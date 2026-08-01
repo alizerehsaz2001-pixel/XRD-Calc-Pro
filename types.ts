@@ -515,6 +515,17 @@ export interface DLPhaseCandidate {
   };
   cellVolume?: number; // Å³
   zValue?: number;
+  rwp?: number; // Weighted pattern residual %
+  rp?: number; // Pattern residual %
+  gof?: number; // Goodness of fit (chi-squared)
+  weightFraction?: number; // Quantitative weight % in mixture
+  rmsAngleShift?: number; // RMS 2theta shift in degrees
+  // Bioceramics & Pharma Intelligence
+  caPRatio?: number; // Calcium to Phosphorus atomic ratio (e.g., 1.67 HAp)
+  bioactivityIndex?: string; // SBF Bioactivity classification
+  resorbabilityClass?: string; // In-vivo biodegradation rate
+  polymorphType?: string; // Drug API polymorphic form designation
+  excipientRole?: string; // Tableting or DPI carrier functionality
 }
 
 export interface DLPhaseResult {

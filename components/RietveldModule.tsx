@@ -16,6 +16,8 @@ import { ScientificMathControl } from './ScientificMathControl';
 import { RietveldRFactorCalculator } from './RietveldRFactorCalculator';
 import { PhysicalResidualCorrectionsModule } from './PhysicalResidualCorrectionsModule';
 import { playSynthTone } from '../utils/sound';
+import rietveldBg from '../src/assets/images/rietveld_bg_1785614322504.jpg';
+
 
 // --- Simulation Constants & Types ---
 
@@ -1823,7 +1825,34 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#051118] to-[#010912] p-6 md:p-10 border border-teal-500/20 shadow-[0_0_40px_rgba(20,184,166,0.15)] group">
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
+          <img src={rietveldBg} alt="Rietveld Refinement" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#020813] via-[#051118]/80 to-[#010912]/30" />
+        </div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px] pointer-events-none group-hover:bg-teal-500/20 transition-colors duration-700" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-emerald-600/20 transition-colors duration-700" />
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-4 max-w-3xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-xs font-black uppercase tracking-widest backdrop-blur-md shadow-inner">
+              <Database className="w-4 h-4" />
+              <span>Full-Pattern Fitting</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-teal-100 to-teal-400 tracking-tight leading-tight drop-shadow-sm">
+              Rietveld Parameter Set
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base font-medium max-w-2xl leading-relaxed">
+              Generate structural starting points for least-squares refinement. Optimize crystal structures against the entire diffraction pattern with the interactive physics engine and live covariance matrix.
+            </p>
+          </div>
+          <div className="hidden lg:flex w-24 h-24 rounded-2xl bg-teal-500/10 border border-teal-500/30 items-center justify-center shadow-[inset_0_0_20px_rgba(20,184,166,0.2)] transform rotate-3 group-hover:rotate-6 transition-transform duration-500 backdrop-blur-sm relative">
+            <div className="absolute inset-0 bg-teal-400/20 blur-xl rounded-full" />
+            <Layers className="w-12 h-12 text-teal-400 relative z-10" />
+          </div>
+        </div>
+      </div>
       
       {/* Tab Navigation */}
       <div className="flex gap-4 border-b border-slate-200 dark:border-slate-800 pb-1">
@@ -1890,8 +1919,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Controls */}
           <div className="lg:col-span-4 space-y-6">
-            <div className={`bg-slate-900 p-6 rounded-2xl shadow-xl border relative overflow-hidden group transition-all duration-500 ${isAutoRefining ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.15)]' : 'border-slate-800'}`}>
-              <div className={`absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 rounded-full blur-3xl transition-all duration-700 ${isAutoRefining ? 'bg-teal-500/30 animate-pulse' : 'bg-teal-500/10 group-hover:bg-teal-500/20'}`}></div>
+            <div className={`bg-[#050A14] p-6 rounded-2xl shadow-2xl border relative overflow-hidden group transition-all duration-500 ${isAutoRefining ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.15)]' : 'border-slate-800/80 hover:border-slate-700'}`}>
+              {/* Custom Background Graphic */}
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+                <img src={rietveldBg} alt="Physics Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+              </div>
+              <div className={`absolute top-0 right-0 -mt-4 -mr-4 w-48 h-48 rounded-full blur-3xl transition-all duration-700 ${isAutoRefining ? 'bg-teal-500/30 animate-pulse' : 'bg-teal-500/10 group-hover:bg-teal-500/20'}`}></div>
               
               <div className="flex justify-between items-center mb-6 relative z-10 border-b border-slate-800/80 pb-4">
                 <div className="flex items-center gap-4">
@@ -3340,8 +3374,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           </div>
 
           <div className="lg:col-span-8">
-            <div className="bg-slate-950/80 p-8 rounded-[2rem] shadow-2xl border border-white/5 h-[650px] flex flex-col relative overflow-hidden group/pattern ring-1 ring-white/10 ring-inset backdrop-blur-2xl">
-              <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[100px] pointer-events-none group-hover/pattern:bg-teal-500/10 transition-all duration-1000"></div>
+            <div className="bg-[#050A14] p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-800/80 h-[650px] flex flex-col relative overflow-hidden group/pattern ring-1 ring-white/5 ring-inset backdrop-blur-2xl">
+              {/* Custom Background Graphic */}
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-5 group-hover/pattern:opacity-10 transition-opacity duration-1000 mix-blend-screen">
+                <img src={rietveldBg} alt="Rietveld Pattern" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+              </div>
+              <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none group-hover/pattern:bg-teal-500/10 transition-all duration-1000"></div>
               <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px] pointer-events-none group-hover/pattern:bg-blue-500/10 transition-all duration-1000"></div>
               
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 relative z-10">
@@ -3594,8 +3633,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
 
           {/* Python and Pandas Refinement Report */}
           {(pythonFeaturesEnabled || isPythonActive) && (isPythonRefining || pythonRefineResult || pythonRefineError) && (
-            <div className="mt-8 bg-slate-950/90 rounded-[2rem] border border-amber-500/20 p-8 shadow-[0_0_50px_rgba(245,158,11,0.08)] relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
+            <div className="mt-8 bg-[#050A14] rounded-[2rem] border border-amber-500/20 p-8 shadow-[0_20px_50px_rgba(245,158,11,0.1)] relative overflow-hidden group hover:border-amber-500/40 transition-colors">
+              {/* Custom Background Graphic */}
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+                <img src={rietveldBg} alt="Python Refinement" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+              </div>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
               
               <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
                 <div className="flex items-center gap-3">
@@ -3846,8 +3890,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Configuration */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-slate-950/80 p-6 rounded-[2rem] shadow-xl border border-white/5 relative overflow-hidden group transition-all duration-500 ring-1 ring-white/10 ring-inset backdrop-blur-lg">
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-700"></div>
+            <div className="bg-[#050A14] p-6 rounded-[2rem] shadow-2xl border border-slate-800/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500 ring-1 ring-white/5 ring-inset backdrop-blur-lg">
+              {/* Custom Background Graphic */}
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000 mix-blend-screen">
+                <img src={rietveldBg} alt="Rietveld Refinement Setup" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+              </div>
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-700"></div>
               
               <div className="flex justify-between items-center mb-6 relative z-10">
                 <div className="flex items-center gap-4">
@@ -4776,8 +4825,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                
                {/* Strategy Card */}
                {result && (
-                 <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(20,184,166,0.05)] border border-[#1e293b] relative overflow-hidden group">
-                   <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-teal-500/10 rounded-full blur-[60px] group-hover:bg-teal-500/20 transition-all duration-700"></div>
+                 <div className="bg-[#050A14] backdrop-blur-md p-6 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-slate-800/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500">
+                   {/* Custom Background Graphic */}
+                   <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+                     <img src={rietveldBg} alt="Rietveld Strategy" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                     <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                   </div>
+                   <div className="absolute top-0 left-0 -mt-2 -mr-2 w-48 h-48 bg-teal-500/10 rounded-full blur-[80px] group-hover:bg-teal-500/20 transition-all duration-700"></div>
                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
                    
                    <h3 className="text-xs font-black text-teal-400 mb-4 uppercase tracking-[0.2em] flex items-center gap-2 relative z-10">
@@ -4829,10 +4883,15 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                  </div>
                )}
     
-               {/* Quality Metrics Summary */}
+               {/* AI Expert Advice */}
                {result && result.ai_advice && (
-                 <div className="bg-[#0B1221] p-6 rounded-3xl border border-[#1e293b] shadow-2xl relative overflow-hidden group animate-in slide-in-from-top-4 duration-500 mb-4">
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full"></div>
+                 <div className="bg-[#050A14] p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-2xl relative overflow-hidden group animate-in slide-in-from-top-4 duration-500 mb-4">
+                   {/* Custom Background Graphic */}
+                   <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+                     <img src={rietveldBg} alt="Rietveld Expert Advice" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                     <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                   </div>
+                   <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full group-hover:bg-indigo-500/20 transition-all duration-700"></div>
                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-fuchsia-500"></div>
                    <h3 className="text-xs font-black text-indigo-400 mb-4 uppercase tracking-[0.2em] flex items-center gap-2 relative z-10">
                      <Cpu className="w-4 h-4" />
@@ -4872,8 +4931,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
 
                {/* Advanced Rietveld Stats */}
                {result && result.stats && (
-                 <div className="bg-[#0B1221] p-5 rounded-3xl border border-[#1e293b] shadow-2xl relative overflow-hidden group animate-in slide-in-from-top-4 duration-700">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-20 group-hover:opacity-100 transition-opacity"></div>
+                 <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800/80 hover:border-slate-700 shadow-[0_15px_30px_rgba(0,0,0,0.4)] relative overflow-hidden group animate-in slide-in-from-top-4 duration-700">
+                    {/* Custom Background Graphic */}
+                    <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+                      <img src={rietveldBg} alt="Rietveld Stats" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                    </div>
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-30 group-hover:opacity-100 transition-opacity z-10"></div>
                     <h3 className="font-mono text-[10px] font-black tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
                        <Calculator className="w-3.5 h-3.5" /> REFINEMENT STATISTICS
                     </h3>

@@ -4301,7 +4301,11 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                       { label: "GaN Bandgap", query: "GaN wurtzite semiconductor" },
                       { label: "Li7La3Zr2O12 Garnet", query: "LLZO Li7La3Zr2O12 solid electrolyte" },
                       { label: "Inconel 625 Alloy", query: "Inconel 625 superalloy" },
-                      { label: "Hydroxyapatite", query: "Calcium Hydroxyapatite bioceramic" }
+                      { label: "Hydroxyapatite HAp", query: "Calcium Hydroxyapatite bioceramic" },
+                      { label: "45S5 Hench Bioglass", query: "Bioactive Hench 45S5 glass-ceramic" },
+                      { label: "Pharma Paracetamol", query: "Paracetamol monoclinic Form I Form II" },
+                      { label: "Bone Graft HAp/TCP", query: "Biphasic Calcium Phosphate HAp beta-TCP" },
+                      { label: "Dental CPC Cement", query: "TTCP Brushite calcium phosphate cement" }
                     ].map((chip, cIdx) => (
                       <button
                         key={cIdx}

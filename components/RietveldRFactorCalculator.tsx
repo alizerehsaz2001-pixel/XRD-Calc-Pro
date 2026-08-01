@@ -4,6 +4,8 @@ import {
   Settings, ChevronRight, CheckCircle, Database, RefreshCw, Upload, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import rietveldBg from '../src/assets/images/rietveld_bg_1785614322504.jpg';
+
 import { PhysicalResidualCorrectionsModule } from './PhysicalResidualCorrectionsModule';
 
 interface RietveldRFactorCalculatorProps {
@@ -213,8 +215,13 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden" id="rietveld-rfactor-container">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-teal-500/5 duration-1000 pointer-events-none" />
+    <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 md:p-8 shadow-2xl relative overflow-hidden group/rfactor transition-colors duration-500" id="rietveld-rfactor-container">
+      {/* Custom Background Graphic */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/rfactor:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+        <img src={rietveldBg} alt="R Factor Calculator" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-teal-500/5 duration-1000 pointer-events-none group-hover/rfactor:from-indigo-500/10 group-hover/rfactor:to-teal-500/10 transition-colors" />
 
       {/* Header */}
       <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-800">

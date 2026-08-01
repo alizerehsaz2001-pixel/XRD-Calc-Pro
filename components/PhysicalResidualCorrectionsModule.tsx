@@ -4,6 +4,8 @@ import {
   Ruler, Activity, ArrowRight, Zap, ShieldAlert, Cpu, ChevronRight, Layers, Sliders
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import rietveldBg from '../src/assets/images/rietveld_bg_1785614322504.jpg';
+
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -314,10 +316,15 @@ export const PhysicalResidualCorrectionsModule: React.FC<PhysicalResidualCorrect
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800/80 rounded-3xl p-6 shadow-2xl space-y-6 relative overflow-hidden">
+    <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden group/residual transition-colors duration-500">
+      {/* Custom Background Graphic */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/residual:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+        <img src={rietveldBg} alt="Residual Analysis" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+      </div>
       {/* Background Ambient Glow */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none translate-y-1/2 -translate-x-1/2" />
+      <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2 group-hover/residual:bg-rose-500/10 transition-colors duration-1000" />
+      <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/2 -translate-x-1/2 group-hover/residual:bg-indigo-500/10 transition-colors duration-1000" />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4 relative z-10">

@@ -1428,6 +1428,52 @@ Provide a step-by-step strategy for the refinement of this specific system. Outl
     });
   }
 
+  
+  app.post("/api/gemini/phase-chat", async (req, res) => {
+    try {
+      const { prompt, history, xrdData } = req.body;
+      if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+
+      const ai = new GoogleGenAI({ 
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+
+      let systemInstruction = "You are an expert AI Crystallography Assistant. Help the user identify material phases and understand their X-ray Diffraction (XRD) pattern data.\n\n";
+      if (xrdData) {
+        systemInstruction += `Current Experimental XRD Data:\n${xrdData}\n\n`;
+        systemInstruction += `Base your suggestions on this data.`;
+      }
+
+      const contents = [];
+      if (history && Array.isArray(history)) {
+        history.forEach((msg) => {
+          contents.push({
+            role: msg.role === 'model' ? 'model' : 'user',
+            parts: [{ text: msg.text }]
+          });
+        });
+      }
+      contents.push({
+        role: 'user',
+        parts: [{ text: prompt }]
+      });
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents,
+        config: {
+          systemInstruction,
+          tools: [{ googleSearch: {} }],
+        }
+      });
+      return res.json({ success: true, text: response.text });
+    } catch (error: any) {
+      console.error("Phase chat error:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });

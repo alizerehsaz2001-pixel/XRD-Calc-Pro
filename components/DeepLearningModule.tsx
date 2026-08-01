@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from 'react-markdown';
+import deepLearningAnalysisBg from '../src/assets/images/deep_learning_analysis_bg_1785615121328.jpg';
+import convolutionalEngineBg from '../src/assets/images/convolutional_engine_bg_1785614983427.jpg';
+
 import { DLPhaseResult, DLPhaseCandidate } from "../types";
 import { identifyPhasesDL, parseXYData, applySavitzkyGolay } from "../utils/physics";
 import { playSynthTone } from "../utils/sound";
@@ -816,6 +819,16 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [aiChatHistory, setAiChatHistory] = useState<{role: 'user' | 'model', text: string}[]>([]);
+  const [aiChatInput, setAiChatInput] = useState("");
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [aiChatHistory, isAiLoading]);
+  
 
   // AI Synthesis formulation states
   const [synthAiResult, setSynthAiResult] = useState<string | null>(null);
@@ -1596,15 +1609,64 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
     if (!inputData) return;
     setIsAiLoading(true);
     setShowAiModal(true);
+    setAiChatHistory([]);
     try {
-      const result = await analyzePhaseID(inputData);
-      setAiAnalysisResult(result);
+      const response = await fetch("/api/gemini/phase-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: "Please analyze my XRD data and identify possible material phases.",
+          history: [],
+          xrdData: inputData
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAiChatHistory([
+          { role: 'user', text: "Please analyze my XRD data and identify possible material phases." },
+          { role: 'model', text: data.text }
+        ]);
+      } else {
+        setAiChatHistory([{ role: 'model', text: "Failed to perform expert analysis: " + data.error }]);
+      }
     } catch (err: any) {
-      setAiAnalysisResult("Failed to perform expert analysis: " + err.message);
+      setAiChatHistory([{ role: 'model', text: "Failed to perform expert analysis: " + err.message }]);
     } finally {
       setIsAiLoading(false);
     }
   };
+
+  const handleSendAiChatMessage = async () => {
+    if (!aiChatInput.trim() || !inputData) return;
+    
+    const userMessage = aiChatInput.trim();
+    setAiChatInput("");
+    setAiChatHistory(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsAiLoading(true);
+    
+    try {
+      const response = await fetch("/api/gemini/phase-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: userMessage,
+          history: aiChatHistory,
+          xrdData: inputData
+        })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setAiChatHistory(prev => [...prev, { role: 'model', text: data.text }]);
+      } else {
+        setAiChatHistory(prev => [...prev, { role: 'model', text: "Error: " + data.error }]);
+      }
+    } catch (err: any) {
+      setAiChatHistory(prev => [...prev, { role: 'model', text: "Error: " + err.message }]);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
 
   const handleLatticeEstimation = () => {
     if (!selectedCandidate || !selectedCandidate.matched_peaks?.length) return;
@@ -2731,12 +2793,27 @@ if __name__ == '__main__':
       setInputData(
         `10.2, 90\n15.6, 100\n18.1, 60\n22.3, 80\n24.5, 45\n27.1, 35`,
       );
-      setSearchTerm("CSD-ACSALA: Pharma Polymorphs (Aspirin + Ibuprofen)");
+      setSearchTerm("CSD-ACSALA: Pharma Polymorphs (Paracetamol Form I + Form II)");
     } else if (type === "Bone-Scaffold-Bioactive") {
       setInputData(
         `25.87, 80\n31.0, 100\n31.77, 95\n32.19, 90\n34.3, 45\n39.8, 30\n46.7, 35`,
       );
       setSearchTerm("COD-9010050: Bone Scaffold (HAp + beta-TCP)");
+    } else if (type === "Dental-Calcium-Phosphate-Cement") {
+      setInputData(
+        `11.62, 70\n20.93, 60\n29.20, 85\n29.80, 100\n31.20, 90\n32.50, 75`,
+      );
+      setSearchTerm("COD-3001020: Dental CPC Cement (TTCP + Brushite DCPD)");
+    } else if (type === "Bioglass-45S5-Bone-Graft") {
+      setInputData(
+        `25.87, 85\n29.80, 100\n31.77, 95\n32.40, 80\n34.10, 60\n48.50, 40`,
+      );
+      setSearchTerm("AMS-000451: Bioglass 45S5 + Hydroxyapatite HCA Graft");
+    } else if (type === "Pharma-Solid-Tablet-Formulation") {
+      setInputData(
+        `12.10, 50\n12.50, 90\n13.80, 100\n15.20, 70\n16.40, 85\n22.60, 95`,
+      );
+      setSearchTerm("CSD-LAKTOS01: Solid Tablet (Paracetamol API + Lactose + MCC)");
     } else if (type === "Meteorite-Chondrite-Suite") {
       setInputData(
         `22.9, 45\n32.2, 90\n35.6, 100\n44.67, 85\n52.1, 30\n61.4, 25`,
@@ -4377,7 +4454,7 @@ if __name__ == '__main__':
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-[#050B14]/95 backdrop-blur-md text-slate-200 p-4 rounded-xl shadow-2xl text-xs border border-cyan-500/30">
+        <div className="bg-[#050A14]/95 backdrop-blur-md text-slate-200 p-4 rounded-xl shadow-2xl text-xs border border-cyan-500/30">
           <div className="flex justify-between items-center mb-3 pb-2 border-b border-cyan-500/20">
             <div className="flex items-center gap-2">
               <Scan className="w-4 h-4 text-cyan-400" />
@@ -4433,7 +4510,7 @@ if __name__ == '__main__':
             ))}
           </div>
 
-          <div className="mt-3 pt-2 border-t border-slate-800 flex justify-between items-center">
+          <div className="mt-3 pt-2 border-t border-slate-800/80 flex justify-between items-center">
             <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
               Signal Confidence
             </span>
@@ -4452,8 +4529,13 @@ if __name__ == '__main__':
       {/* Input Configuration & Top Panels */}
       <div className="lg:col-span-12 flex flex-col gap-8">
         {/* Advanced Engine Configuration */}
-        <div className="bg-slate-900 p-6 rounded-[2rem] shadow-xl border border-slate-800 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none" />
+        <div className="bg-[#050A14] p-6 rounded-[2rem] shadow-2xl border border-slate-800/80/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+            <img src={convolutionalEngineBg} alt="Advanced Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+          </div>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-700 pointer-events-none" />
 
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
@@ -4492,14 +4574,14 @@ if __name__ == '__main__':
           </div>
 
           {/* Network Topology Visualization */}
-          <div className="mb-6 bg-slate-900/60 border border-slate-700/60 rounded-2xl relative z-10 p-5 overflow-hidden group">
+          <div className="mb-6 bg-[#050A14]/80 backdrop-blur-md border border-slate-800/80 hover:border-slate-700 shadow-inner rounded-2xl relative z-10 p-5 overflow-hidden group">
             <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] pointer-events-none" />
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-[10px]">
                 <Cpu className="w-4 h-4 text-indigo-400 animate-pulse" />
                 <span>Live Network Topology</span>
               </div>
-              <span className="text-[9px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 shadow-inner">
+              <span className="text-[9px] font-mono text-slate-500 bg-[#03060C] px-2 py-0.5 rounded border border-slate-800/80 shadow-inner">
                 {engineConfig.depth}-Layer ResNet
               </span>
             </div>
@@ -4580,7 +4662,7 @@ if __name__ == '__main__':
 
           {/* Simulated Auto-Tuner Progress Section */}
           {isAutoTuning && (
-            <div className="mb-6 p-4 bg-slate-950/80 rounded-2xl border border-violet-500/30 relative z-10 animate-in zoom-in duration-300">
+            <div className="mb-6 p-4 bg-[#03060C]/80 rounded-2xl border border-violet-500/30 relative z-10 animate-in zoom-in duration-300">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-[10px] text-violet-400 font-bold uppercase tracking-widest flex items-center gap-1">
                   <Cpu className="w-3.5 h-3.5 animate-bounce" /> Auto-tuning hyperparameter grid
@@ -4588,7 +4670,7 @@ if __name__ == '__main__':
                 <span className="text-xs text-indigo-400 font-mono font-bold">{autoTuneProgress}%</span>
               </div>
               
-              <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-3 border border-slate-800">
+              <div className="w-full bg-[#050A14] h-2 rounded-full overflow-hidden mb-3 border border-slate-800/80">
                 <div 
                   className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
                   style={{ width: `${autoTuneProgress}%` }}
@@ -4596,7 +4678,7 @@ if __name__ == '__main__':
               </div>
 
               {/* Terminal Logs */}
-              <div className="bg-slate-950 p-3 rounded-lg border border-slate-855 h-28 overflow-y-auto space-y-1 font-mono text-[9px] text-emerald-400">
+              <div className="bg-[#03060C] p-3 rounded-lg border border-slate-855 h-28 overflow-y-auto space-y-1 font-mono text-[9px] text-emerald-400">
                 {autoTuneLogs.map((log, idx) => (
                   <div key={idx} className="leading-relaxed border-l-2 border-indigo-700 pl-2">
                     {log}
@@ -4667,11 +4749,11 @@ if __name__ == '__main__':
             </div>
 
             {showConfigImportExport && (
-              <div className="mt-3 p-4 bg-slate-950 rounded-xl border border-slate-800 animate-in slide-in-from-top-1 duration-200">
+              <div className="mt-3 p-4 bg-[#03060C] rounded-xl border border-slate-800/80 animate-in slide-in-from-top-1 duration-200">
                 <textarea
                   value={importJsonText}
                   onChange={(e) => setImportJsonText(e.target.value)}
-                  className="w-full h-24 bg-slate-900 border border-slate-700 rounded-lg p-2 font-mono text-[10px] text-slate-200 outline-none focus:border-indigo-500"
+                  className="w-full h-24 bg-[#050A14] border border-slate-700 rounded-lg p-2 font-mono text-[10px] text-slate-200 outline-none focus:border-indigo-500"
                   placeholder="Paste configuration JSON here..."
                 />
                 <div className="flex gap-2 mt-2">
@@ -4842,7 +4924,7 @@ if __name__ == '__main__':
 
               {/* Pearson-VII shape exponent config */}
               {engineConfig.kernelProfile === "Pearson-VII" && (
-                <div className="mt-2.5 p-3 bg-slate-900/40 rounded-xl border border-slate-700/50 animate-in slide-in-from-top-1 duration-200">
+                <div className="mt-2.5 p-3 bg-[#050A14]/40 rounded-xl border border-slate-700/50 animate-in slide-in-from-top-1 duration-200">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pearson-VII Shape Factor (m)</span>
                     <span className="text-xs font-mono font-bold text-indigo-400">m = {engineConfig.shapeExponent?.toFixed(2) || "2.50"}</span>
@@ -4952,7 +5034,7 @@ if __name__ == '__main__':
           </div>
 
           {/* Bottom Sliders & Toggle Options */}
-          <div className="mt-6 pt-6 border-t border-slate-800 space-y-6 relative z-10">
+          <div className="mt-6 pt-6 border-t border-slate-800/80 space-y-6 relative z-10">
             {/* Learning Rate */}
             <div className="space-y-3">
               <div className="flex justify-between items-end px-1">
@@ -5199,7 +5281,7 @@ if __name__ == '__main__':
           </div>
           
           {/* Cloud Synchronization Button */}
-          <div className="mt-8 pt-6 border-t border-slate-800/50 flex justify-end gap-3">
+          <div className="mt-8 pt-6 border-t border-slate-800/80/50 flex justify-end gap-3">
              <button
                 type="button"
                 onClick={async () => {
@@ -5263,7 +5345,7 @@ if __name__ == '__main__':
           </div>
         </div>
 
-        <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 transition-all duration-500 group/phaseid relative overflow-hidden">
+        <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800/80 transition-all duration-500 group/phaseid relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl group-hover/phaseid:bg-violet-500/10 transition-all duration-1000" />
           <div className="flex justify-between items-center mb-8 relative z-10">
             <h2 className="text-2xl font-black text-white flex flex-col md:flex-row items-start md:items-center gap-3 tracking-tight">
@@ -5347,7 +5429,7 @@ if __name__ == '__main__':
                           className="w-full text-left px-5 py-4 hover:bg-slate-700/80 flex items-center justify-between group rounded-xl transition-colors border border-transparent hover:border-slate-600 mb-1 last:mb-0"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 text-sm font-black group-hover:bg-violet-500/20 group-hover:text-violet-300 group-hover:border-violet-500/30 transition-all shadow-inner">
+                            <div className="w-10 h-10 rounded-lg bg-[#050A14] border border-slate-700 flex items-center justify-center text-slate-400 text-sm font-black group-hover:bg-violet-500/20 group-hover:text-violet-300 group-hover:border-violet-500/30 transition-all shadow-inner">
                               {material.formula.substring(0, 2)}
                             </div>
                             <div>
@@ -5375,7 +5457,7 @@ if __name__ == '__main__':
                               </div>
                             </div>
                           </div>
-                          <span className="text-xs font-mono text-slate-400 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded shadow-sm group-hover:bg-slate-800 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all">
+                          <span className="text-xs font-mono text-slate-400 bg-[#050A14] border border-slate-700 px-3 py-1.5 rounded shadow-sm group-hover:bg-slate-800 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all">
                             {material.crystalSystem}
                           </span>
                         </button>
@@ -5438,7 +5520,7 @@ if __name__ == '__main__':
               </div>
 
               {/* Enhanced Diffraction Input Sub-Tools Control Deck */}
-              <div className="bg-slate-900/60 p-1.5 rounded-xl flex gap-1 mb-3 border border-slate-700/50 relative z-10 backdrop-blur-sm shadow-inner">
+              <div className="bg-[#050A14]/60 p-1.5 rounded-xl flex gap-1 mb-3 border border-slate-700/50 relative z-10 backdrop-blur-sm shadow-inner">
                 {[
                   { id: "presets", label: "Presets", icon: Sparkles },
                   { id: "preview", label: "Live Plot", icon: Activity },
@@ -5471,8 +5553,8 @@ if __name__ == '__main__':
               {/* Sub-tool panels */}
               <div className="mb-4 relative z-10">
                 {activeInputTool === "presets" && (
-                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
-                    <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                  <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
+                    <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
                       <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4 text-violet-500" /> Fast Demo Presets
                       </span>
@@ -5588,11 +5670,11 @@ if __name__ == '__main__':
                 )}
 
                 {activeInputTool === "preview" && (
-                  <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6 space-y-6 shadow-inner relative overflow-hidden group/live">
+                  <div className="bg-[#050A14]/60 border border-slate-700/50 rounded-2xl p-6 space-y-6 shadow-inner relative overflow-hidden group/live">
                     {/* Glowing structural accents */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none rounded-full" />
                     
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/80 pb-3 gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/80/80 pb-3 gap-2">
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
                           <Activity className="w-4 h-4 text-cyan-500 animate-pulse" /> Simulated Input Pattern
@@ -5622,7 +5704,7 @@ if __name__ == '__main__':
                     {parsedPoints.length > 0 ? (
                       <div className="space-y-6">
                         {/* Enlarged Chart: increased height to h-[480px] sm:h-[520px] md:h-[580px] lg:h-[620px] to allow complete visualization without clutter */}
-                        <div className="h-[480px] sm:h-[520px] md:h-[580px] lg:h-[620px] bg-[#060B15]/90 border border-slate-800 rounded-2xl p-4 relative w-full shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] group-hover/live:border-slate-700/60 transition-all overflow-hidden">
+                        <div className="h-[480px] sm:h-[520px] md:h-[580px] lg:h-[620px] bg-[#060B15]/90 border border-slate-800/80 rounded-2xl p-4 relative w-full shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] group-hover/live:border-slate-700/60 transition-all overflow-hidden">
                           {/* Inner scientific grid overlay */}
                           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
                           
@@ -5698,10 +5780,10 @@ if __name__ == '__main__':
                         </div>
 
                         {/* Two-Column Responsive Layout: Dynamic Interactive Sliders + Resolved Table */}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2 border-t border-slate-800/60">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2 border-t border-slate-800/80/60">
                           {/* Left Column: Direct Interactive Simulation Sliders */}
-                          <div className="lg:col-span-5 space-y-4 bg-slate-950/65 border border-slate-800/80 p-5 rounded-2xl shadow-inner">
-                            <div className="flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-1">
+                          <div className="lg:col-span-5 space-y-4 bg-[#03060C]/65 border border-slate-800/80/80 p-5 rounded-2xl shadow-inner">
+                            <div className="flex items-center gap-1.5 border-b border-slate-800/80 pb-2 mb-1">
                               <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
                               <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-widest">
                                 Live Simulation Engine
@@ -5769,10 +5851,10 @@ if __name__ == '__main__':
                               <span>Scroll for all resolved reflections</span>
                             </div>
                             
-                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80 rounded-2xl bg-slate-950/80 p-4 text-[11px] font-mono shadow-inner">
+                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80/80 rounded-2xl bg-[#03060C]/80 p-4 text-[11px] font-mono shadow-inner">
                               <table className="w-full text-left border-collapse">
                                 <thead>
-                                  <tr className="border-b border-slate-800 text-slate-500 text-[9px] uppercase tracking-wider">
+                                  <tr className="border-b border-slate-800/80 text-slate-500 text-[9px] uppercase tracking-wider">
                                     <th className="p-2 font-black">Ref#</th>
                                     <th className="p-2 font-black">2θ Angle</th>
                                     <th className="p-2 font-black">d-spacing (Å)</th>
@@ -5786,7 +5868,7 @@ if __name__ == '__main__':
                                       const rad = (pk.twoTheta / 2) * (Math.PI / 180);
                                       const d = 1.5406 / (2 * Math.sin(rad));
                                       return (
-                                        <tr key={idx} className="hover:bg-slate-900/60 transition-colors group/row">
+                                        <tr key={idx} className="hover:bg-[#050A14]/60 transition-colors group/row">
                                           <td className="p-2 font-bold text-slate-600 group-hover/row:text-slate-400">
                                             #{idx + 1}
                                           </td>
@@ -5798,7 +5880,7 @@ if __name__ == '__main__':
                                           </td>
                                           <td className="p-2 text-right">
                                             <div className="flex items-center justify-end gap-3">
-                                              <div className="w-16 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                                              <div className="w-16 h-1.5 bg-[#050A14] border border-slate-800/80 rounded-full overflow-hidden flex shadow-inner">
                                                 <div 
                                                   className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]"
                                                   style={{ width: `${Math.min(100, (pk.intensity / Math.max(...parsedPoints.map(p => p.intensity))) * 100)}%` }}
@@ -5819,7 +5901,7 @@ if __name__ == '__main__':
                         </div>
                       </div>
                     ) : (
-                      <div className="h-64 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-slate-950/30">
+                      <div className="h-64 border-2 border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-[#03060C]/30">
                         <Activity className="w-12 h-12 text-slate-700 animate-pulse mb-3" />
                         <p className="text-sm font-bold text-slate-400 mb-1 tracking-wide">Diffractogram is Empty</p>
                         <p className="text-xs text-slate-500 max-w-[250px] leading-relaxed">Paste 2θ intensity patterns, upload a scan, or click standard presets to plot real-time spectra</p>
@@ -5829,9 +5911,9 @@ if __name__ == '__main__':
                 )}
 
                 {activeInputTool === "denoise" && (
-                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
+                  <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
                     <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                      <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
                         <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
                           <SlidersHorizontal className="w-4 h-4 text-emerald-500" /> Savitzky-Golay Filter Panel
                         </span>
@@ -5845,7 +5927,7 @@ if __name__ == '__main__':
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner">
+                    <div className="grid grid-cols-2 gap-4 bg-[#050A14] p-4 rounded-xl border border-slate-700 shadow-inner">
                       <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           <span>Window Size (Odd)</span>
@@ -5882,7 +5964,7 @@ if __name__ == '__main__':
                     </div>
 
                     {parsedPoints.length > 3 ? (
-                      <div className="h-32 bg-slate-900 border border-slate-700/50 rounded-xl p-3 shadow-inner">
+                      <div className="h-32 bg-[#050A14] border border-slate-700/50 rounded-xl p-3 shadow-inner">
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart
                             data={sgPreviewData}
@@ -5905,9 +5987,9 @@ if __name__ == '__main__':
                 )}
 
                 {activeInputTool === "noise" && (
-                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
+                  <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
                     <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                      <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
                         <span className="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
                           <Cpu className="w-4 h-4 text-fuchsia-500" /> Diffractogram Synthesizer
                         </span>
@@ -5921,7 +6003,7 @@ if __name__ == '__main__':
                       </button>
                     </div>
 
-                    <div className="space-y-4 bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner">
+                    <div className="space-y-4 bg-[#050A14] p-4 rounded-xl border border-slate-700 shadow-inner">
                       <div className="space-y-2">
                         <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           <span>Thermal Broadening (FWHM)</span>
@@ -5985,7 +6067,7 @@ if __name__ == '__main__':
 
               <div
                 className={`relative border-2 border-dashed rounded-xl transition-all duration-500 overflow-hidden group
-                  ${inputData ? "border-violet-500/50 bg-slate-800/90 shadow-[0_0_20px_rgba(139,92,246,0.15)]" : "border-slate-600 bg-slate-900/60 hover:border-violet-500/50 hover:bg-slate-800/80 hover:shadow-lg"}
+                  ${inputData ? "border-violet-500/50 bg-slate-800/90 shadow-[0_0_20px_rgba(139,92,246,0.15)]" : "border-slate-600 bg-[#050A14]/60 hover:border-violet-500/50 hover:bg-slate-800/80 hover:shadow-lg"}
                 `}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -6048,7 +6130,7 @@ if __name__ == '__main__':
                 />
               </div>
 
-              <div className="flex flex-col gap-3 mt-4 px-2 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10">
+              <div className="flex flex-col gap-3 mt-4 px-2 bg-[#050A14]/60 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10">
                 <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
                   <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
                   Expected Dataset Format:{" "}
@@ -6100,7 +6182,7 @@ if __name__ == '__main__':
                     {mixtureList.map((m, mIdx) => (
                       <div
                         key={`mix-${m}-${mIdx}`}
-                        className="flex items-center gap-2 bg-slate-900 border border-indigo-500/50 px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-300 shadow-sm"
+                        className="flex items-center gap-2 bg-[#050A14] border border-indigo-500/50 px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-300 shadow-sm"
                       >
                         {m}
                         <button
@@ -6133,7 +6215,7 @@ if __name__ == '__main__':
                   </div>
 
                   {/* Interactive filter & search deck */}
-                  <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
+                  <div className="bg-[#050A14]/60 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Fast Filter Keys:</span>
                       <div className="flex gap-1.5 flex-wrap">
@@ -6179,7 +6261,7 @@ if __name__ == '__main__':
                   </div>
                 </div>
 
-                <div className="h-[320px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-slate-900 border border-slate-700 rounded-xl shadow-inner relative space-y-4 pt-3">
+                <div className="h-[320px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-[#050A14] border border-slate-700 rounded-xl shadow-inner relative space-y-4 pt-3">
                 {(() => {
                   const rawCategoriesList = [
                     {
@@ -6831,7 +6913,19 @@ if __name__ == '__main__':
                         },
                         {
                           id: "Bone-Scaffold-Bioactive",
-                          label: "Bone Scaffold",
+                          label: "Bone Scaffold (HAp/beta-TCP)",
+                        },
+                        {
+                          id: "Dental-Calcium-Phosphate-Cement",
+                          label: "Dental CPC Cement",
+                        },
+                        {
+                          id: "Bioglass-45S5-Bone-Graft",
+                          label: "Bioglass 45S5 Graft",
+                        },
+                        {
+                          id: "Pharma-Solid-Tablet-Formulation",
+                          label: "Tablet Formulation (API+Excipients)",
                         },
                         {
                           id: "Meteorite-Chondrite-Suite",
@@ -6982,7 +7076,7 @@ if __name__ == '__main__':
                   ) : (
                     filteredCategories.map((categoryObj, idx) => (
                       <div key={idx} className="mt-2">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-3 border-b border-slate-700/50 pb-2 sticky top-0 bg-slate-900/95 backdrop-blur-sm z-10 p-2 flex items-center gap-2">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-3 border-b border-slate-700/50 pb-2 sticky top-0 bg-[#050A14]/95 backdrop-blur-sm z-10 p-2 flex items-center gap-2">
                           <div className="w-1.5 h-1.5 rounded-full bg-violet-500"></div>
                           {categoryObj.category}
                         </h4>
@@ -7017,7 +7111,7 @@ if __name__ == '__main__':
 
             {/* Active Python RAG Co-Processor Diagnostics Toggle Panel */}
             {pythonFeaturesEnabled && (
-              <div className={`px-4 py-3.5 mb-6 rounded-xl border transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm ${usePythonRAG ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-500/[0.02]' : 'border-slate-800 bg-slate-900/50'}`}>
+              <div className={`px-4 py-3.5 mb-6 rounded-xl border transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm ${usePythonRAG ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-500/[0.02]' : 'border-slate-800/80 bg-[#050A14]/50'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2.5">
@@ -7090,59 +7184,23 @@ if __name__ == '__main__':
         </div>
 
         {/* Deep Learning Architecture Status */}
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800">
-          {/* Advanced Animated Backgrounds */}
-          <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-violet-500/10 rounded-full blur-[80px] group-hover/engine:bg-violet-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-cyan-500/10 rounded-full blur-[60px] group-hover/engine:bg-cyan-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
-          <div
-            className="absolute inset-0 bg-[#000] opacity-20 pointer-events-none mix-blend-overlay"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent opacity-70" />
-
-          {/* Neural Nodes Grid Pattern Decoration */}
-          <svg
-            className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <defs>
-              <pattern
-                id="neural-net"
-                width="60"
-                height="60"
-                patternUnits="userSpaceOnUse"
-              >
-                <circle cx="10" cy="10" r="1.5" fill="#a78bfa" />
-                <circle cx="50" cy="30" r="1.5" fill="#38bdf8" />
-                <path
-                  d="M 10 10 L 50 30"
-                  stroke="#a78bfa"
-                  strokeWidth="0.5"
-                  strokeOpacity="0.5"
-                />
-                <path
-                  d="M 50 30 L 10 50"
-                  stroke="#38bdf8"
-                  strokeWidth="0.5"
-                  strokeOpacity="0.5"
-                />
-                <circle cx="10" cy="50" r="1.5" fill="#a78bfa" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#neural-net)" />
-          </svg>
+        <div className="bg-[#050A14] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800/80/80 hover:border-slate-700">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover/engine:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+            <img src={convolutionalEngineBg} alt="Convolutional Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+          </div>
+          {/* Ambient Glows */}
+          <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-violet-500/10 rounded-full blur-[100px] group-hover/engine:bg-violet-500/20 transition-colors duration-1000 pointer-events-none" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] group-hover/engine:bg-cyan-500/20 transition-colors duration-1000 pointer-events-none" />
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-70 group-hover/engine:via-violet-400/50 transition-colors duration-700" />
 
           <div>
             <div className="flex items-center justify-between mb-6 relative z-10">
               <div className="flex items-center gap-5">
                 <div className="relative group/icon cursor-default">
                   <div className="absolute inset-0 bg-violet-500/30 blur-xl rounded-full group-hover/icon:bg-violet-400/40 transition-colors duration-500" />
-                  <div className="w-14 h-14 bg-slate-900 rounded-2xl border border-violet-500/50 flex items-center justify-center relative shadow-[inset_0_2px_10px_rgba(255,255,255,0.05),tight_0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-300">
+                  <div className="w-14 h-14 bg-[#050A14] rounded-2xl border border-violet-500/50 flex items-center justify-center relative shadow-[inset_0_2px_10px_rgba(255,255,255,0.05),tight_0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-300">
                     <Brain className="w-7 h-7 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]" />
                   </div>
                   {isSimulating && (
@@ -7184,30 +7242,30 @@ if __name__ == '__main__':
             </div>
 
             <div className="flex gap-2.5 mb-2 relative z-10 md:ml-[76px] flex-wrap">
-              <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-cyan-400"></span>{" "}
                 {engineConfig.activation}
               </span>
-              <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-fuchsia-400"></span>{" "}
                 {engineConfig.filters} Filters
               </span>
-              <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span>{" "}
                 Conv1D [{engineConfig.kernelSize}]
               </span>
-              <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-rose-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-rose-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-rose-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-rose-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-rose-400"></span>{" "}
                 {engineConfig.depth} Layers
               </span>
-              <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-amber-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-amber-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-amber-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-amber-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full flex items-center justify-center bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] animate-pulse"></span>{" "}
                 ~{(engineConfig.filters * engineConfig.kernelSize * 1024 * engineConfig.depth / 1000000).toFixed(1)}M Params
               </span>
             </div>
           </div>
 
-          <div className="space-y-7 relative z-10 flex-1 ml-5 mt-6 border-t border-slate-800 pt-8">
+          <div className="space-y-7 relative z-10 flex-1 ml-5 mt-6 border-t border-slate-800/80 pt-8">
             {/* Vertical connecting line */}
             <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] bg-slate-800/80 z-0"></div>
             {/* Dynamic pulse on the line if active */}
@@ -7235,7 +7293,7 @@ if __name__ == '__main__':
                            ? "border-violet-500/50 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.3)] scale-110"
                            : isCompleted
                              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-                             : "bg-slate-900 border-slate-700 text-slate-500"
+                             : "bg-[#050A14] border-slate-700 text-slate-500"
                        }
                      `}
                     >
@@ -7274,12 +7332,12 @@ if __name__ == '__main__':
 
                   {/* Layer Details & Visualizations */}
                   {(isActive || isCompleted) && (
-                    <div className="ml-12 mt-1 pl-4 border-l border-slate-800">
+                    <div className="ml-12 mt-1 pl-4 border-l border-slate-800/80">
                       {idx === 0 && isActive && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 font-black uppercase tracking-widest bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.1)] relative z-10 hover:border-violet-400/50 transition-all duration-300"
+                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 font-black uppercase tracking-widest bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.1)] relative z-10 hover:border-violet-400/50 transition-all duration-300"
                         >
                           <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
                              <span className="text-violet-300 flex items-center gap-1.5">
@@ -7289,17 +7347,17 @@ if __name__ == '__main__':
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 mt-2">
-                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800 shadow-inner flex flex-col gap-1">
+                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800/80 shadow-inner flex flex-col gap-1">
                                <span className="text-[7px] text-slate-500">TENSOR SHAPE</span>
                                <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">[1, 2048, 1]</span>
                             </div>
-                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800 shadow-inner flex flex-col gap-1">
+                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800/80 shadow-inner flex flex-col gap-1">
                                <span className="text-[7px] text-slate-500">NORMALIZATION</span>
                                <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">MIN-MAX I/I0</span>
                             </div>
                           </div>
 
-                          <div className="w-full h-12 mt-2 relative flex items-end gap-[1px] opacity-80 overflow-hidden bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                          <div className="w-full h-12 mt-2 relative flex items-end gap-[1px] opacity-80 overflow-hidden bg-[#03060C] p-1.5 rounded-lg border border-slate-800/80">
                             <div className="absolute inset-0 flex justify-between px-2 opacity-20 pointer-events-none">
                               {Array.from({length: 8}).map((_, i) => (
                                 <div key={i} className="w-px h-full bg-violet-500" />
@@ -7325,7 +7383,7 @@ if __name__ == '__main__':
 
                       {idx === 1 && isActive && (
                         <div className="mb-2 relative z-10 animate-in slide-in-from-top-1 duration-300">
-                          <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.15)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-all duration-300">
+                          <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.15)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-all duration-300">
                             
                             <div className="flex items-center justify-between mb-3 border-b border-violet-500/20 pb-2">
                                <span className="text-violet-300 flex items-center gap-1.5">
@@ -7338,7 +7396,7 @@ if __name__ == '__main__':
 
                             <div className="flex flex-col gap-4">
                               {/* Animated Kernel Sliding Visualization */}
-                              <div className="relative h-12 bg-[#0B1221] rounded-lg border border-[#1e293b] overflow-hidden mb-1 flex items-center shadow-inner">
+                              <div className="relative h-12 bg-[#0B1221] rounded-lg border border-slate-800/80 hover:border-slate-700 overflow-hidden mb-1 flex items-center shadow-inner">
                                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:8px_8px]" />
                                 {/* Input signal mock */}
                                 <svg className="absolute inset-0 w-full h-full opacity-40" preserveAspectRatio="none" viewBox="0 0 100 100">
@@ -7368,17 +7426,17 @@ if __name__ == '__main__':
                               </div>
                               
                               <div className="grid grid-cols-4 gap-2">
-                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80">
                                   <Layers className="w-3.5 h-3.5 text-violet-500 mb-1"/>
                                   <span className="text-[7px] text-slate-500 mb-0.5">FILTERS</span>
                                   <span className="text-violet-400 drop-shadow-sm font-black">{engineConfig.filters}</span>
                                 </div>
-                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80">
                                   <Activity className="w-3.5 h-3.5 text-emerald-500 mb-1"/>
                                   <span className="text-[7px] text-slate-500 mb-0.5">ACTIVATION</span>
                                   <span className="text-emerald-400 drop-shadow-sm font-black">{engineConfig.activation}</span>
                                 </div>
-                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800 relative overflow-hidden">
+                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80 relative overflow-hidden">
                                   {engineConfig.batchNorm && <div className="absolute inset-0 bg-emerald-500/10 animate-pulse" />}
                                   <Database className="w-3.5 h-3.5 text-amber-500 mb-1 relative z-10"/>
                                   <span className="text-[7px] text-slate-500 mb-0.5 relative z-10">BATCH NORM</span>
@@ -7386,7 +7444,7 @@ if __name__ == '__main__':
                                     {engineConfig.batchNorm ? "ACTIVE" : "OFF"}
                                   </span>
                                 </div>
-                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80">
                                   <div className="w-3.5 h-3.5 rounded bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center border border-fuchsia-500/50 text-[8px] mb-1">D</div>
                                   <span className="text-[7px] text-slate-500 mb-0.5">DROPOUT</span>
                                   <span className="text-fuchsia-400 drop-shadow-sm font-black">
@@ -7397,16 +7455,16 @@ if __name__ == '__main__':
                             </div>
                           </div>
 
-                          <div className="flex flex-col gap-3 w-full bg-[#070D18] p-4 rounded-xl border border-slate-800/80 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)] relative overflow-hidden group">
+                          <div className="flex flex-col gap-3 w-full bg-[#070D18] p-4 rounded-xl border border-slate-800/80/80 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)] relative overflow-hidden group">
                             <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                             
-                            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <div className="flex justify-between items-center border-b border-slate-800/80 pb-2">
                               <span className="text-[8px] font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                 <Network className="w-3 h-3 text-violet-500" />
                                 Feature Maps Extraction
                               </span>
                               <div className="flex items-center gap-2">
-                                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">
+                                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest bg-[#050A14] px-1.5 py-0.5 rounded border border-slate-700">
                                   Top {Math.min(engineConfig.filters / 8, 6)} active
                                 </span>
                               </div>
@@ -7418,7 +7476,7 @@ if __name__ == '__main__':
                               }).map((_, iIdx) => (
                                 <div
                                   key={`filter-map-${iIdx}`}
-                                  className="flex items-center gap-3 bg-slate-900/40 p-1.5 rounded-lg border border-slate-800/50"
+                                  className="flex items-center gap-3 bg-[#050A14]/40 p-1.5 rounded-lg border border-slate-800/80/50"
                                 >
                                   <span className="text-[8px] text-violet-400/70 font-mono tracking-widest uppercase w-8 font-black text-right">
                                     F{iIdx * 8 + 1}
@@ -7463,12 +7521,12 @@ if __name__ == '__main__':
                                 </div>
                               ))}
                             </div>
-                            <div className="mt-2 pt-2 border-t border-slate-800 text-[9px] flex justify-between items-center tracking-[0.15em] uppercase font-black text-slate-500 font-mono">
-                              <span className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-md border border-slate-800">
+                            <div className="mt-2 pt-2 border-t border-slate-800/80 text-[9px] flex justify-between items-center tracking-[0.15em] uppercase font-black text-slate-500 font-mono">
+                              <span className="flex items-center gap-1.5 bg-[#050A14] px-2 py-1 rounded-md border border-slate-800/80">
                                 <Maximize2 className="w-3 h-3 text-cyan-500" />
                                 Pool: {engineConfig.pooling}
                               </span>
-                              <span className="bg-slate-900 px-2 py-1 rounded-md border border-slate-800 text-slate-400">
+                              <span className="bg-[#050A14] px-2 py-1 rounded-md border border-slate-800/80 text-slate-400">
                                 Dim: [1, {(1024 / (engineConfig.pooling === 'max' ? 2 : 1)).toFixed(0)}, {engineConfig.filters}]
                               </span>
                             </div>
@@ -7485,9 +7543,9 @@ if __name__ == '__main__':
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(34,211,238,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-cyan-400/50 transition-all duration-300"
+                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(34,211,238,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-cyan-400/50 transition-all duration-300"
                         >
-                          <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-1">
+                          <div className="flex justify-between items-center bg-[#03060C] p-2.5 rounded-lg border border-slate-800/80 mb-1">
                             <span className="text-cyan-400 flex items-center gap-2">
                               <Database className="w-4 h-4 text-cyan-500" />{" "}
                               Vector Database Search
@@ -7500,7 +7558,7 @@ if __name__ == '__main__':
                           {/* Neural Embedding Visualization */}
                           <div className="flex gap-2 items-stretch h-20">
                             {/* Input Embedding */}
-                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
+                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800/80 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
                                <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                <Scan className="w-4 h-4 text-cyan-500 mb-1 animate-pulse" />
                                <span className="text-[6.5px] text-slate-500 mb-1">LIVE TENSOR</span>
@@ -7516,14 +7574,14 @@ if __name__ == '__main__':
                                <div className="absolute inset-0 flex items-center justify-center">
                                  <div className="w-full h-px bg-gradient-to-r from-cyan-500/20 via-cyan-500/50 to-emerald-500/20" />
                                </div>
-                               <div className="bg-slate-950 z-10 px-2 py-1.5 rounded-lg border border-slate-800 shadow-md flex flex-col items-center gap-1">
+                               <div className="bg-[#03060C] z-10 px-2 py-1.5 rounded-lg border border-slate-800/80 shadow-md flex flex-col items-center gap-1">
                                  <Search className="w-3 h-3 text-cyan-400 animate-[spin_4s_linear_infinite]" />
                                  <span className="text-[6.5px] text-cyan-300 font-bold bg-cyan-950/60 px-1 rounded">L2 COSINE</span>
                                </div>
                             </div>
 
                             {/* Target Embeddings */}
-                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
+                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800/80 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
                                <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                <Layers className="w-4 h-4 text-emerald-500 mb-1" />
                                <span className="text-[6.5px] text-slate-500 mb-1">CANDIDATES</span>
@@ -7536,7 +7594,7 @@ if __name__ == '__main__':
                           </div>
                           
                           {/* Search Grid */}
-                          <div className="relative w-full h-10 border border-slate-800/80 rounded-lg overflow-hidden group bg-slate-950/50 flex items-center justify-between p-1">
+                          <div className="relative w-full h-10 border border-slate-800/80/80 rounded-lg overflow-hidden group bg-[#03060C]/50 flex items-center justify-between p-1">
                             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMjBMIDIwIDAiIHN0cm9rZT0iIzFmMjkwMyIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3N2Zz4=')] opacity-30"></div>
                             <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none"></div>
                             
@@ -7547,12 +7605,12 @@ if __name__ == '__main__':
                                ))}
                             </div>
                             
-                            <div className="relative z-10 bg-slate-950/80 px-2 py-1 rounded border border-slate-700/50 ml-1">
+                            <div className="relative z-10 bg-[#03060C]/80 px-2 py-1 rounded border border-slate-700/50 ml-1">
                               <span className="text-slate-400 text-[8px]">SEARCH SPACE: <span className="text-cyan-400">{(100 + Math.random() * 50).toFixed(0)}K</span></span>
                             </div>
                           </div>
 
-                          <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner mt-2">
+                          <div className="w-full bg-[#03060C] h-2.5 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner mt-2">
                             <div
                               className="bg-gradient-to-r from-cyan-600 via-cyan-400 to-cyan-600 h-full rounded-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)] bg-[length:200%_100%]"
                               style={{ width: `${10 + Math.random() * 80}%` }}
@@ -7565,10 +7623,10 @@ if __name__ == '__main__':
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-emerald-400/50 transition-all duration-300"
+                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-emerald-400/50 transition-all duration-300"
                         >
                           <div className="grid grid-cols-2 gap-3 mb-2">
-                            <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800 shadow-inner flex flex-col justify-center">
+                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-slate-800/80 shadow-inner flex flex-col justify-center">
                               <span className="text-[7px] text-slate-500 mb-1.5 flex items-center gap-1">
                                 <Network className="w-3 h-3 text-violet-500" />
                                 INFERENCE
@@ -7577,7 +7635,7 @@ if __name__ == '__main__':
                                 Dense Classifier
                               </span>
                             </div>
-                            <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800 shadow-inner flex flex-col justify-center">
+                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-slate-800/80 shadow-inner flex flex-col justify-center">
                               <span className="text-[7px] text-slate-500 mb-1.5 flex items-center gap-1">
                                 <Activity className="w-3 h-3 text-emerald-500" />
                                 DISTRIBUTION
@@ -7600,7 +7658,7 @@ if __name__ == '__main__':
                                 return (
                                   <div key={`prob-${i}`} className="flex items-center gap-2">
                                     <span className="text-[7px] w-4 text-right text-emerald-600">P{i}</span>
-                                    <div className="h-1.5 flex-1 rounded-full bg-slate-900 relative overflow-hidden shadow-inner border border-slate-800/50">
+                                    <div className="h-1.5 flex-1 rounded-full bg-[#050A14] relative overflow-hidden shadow-inner border border-slate-800/80/50">
                                       <div
                                         className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-400 to-emerald-300 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)] transition-all duration-1000"
                                         style={{ width: `${Math.max(5, prob)}%` }}
@@ -7613,7 +7671,7 @@ if __name__ == '__main__':
                             </div>
                           </div>
 
-                          <p className="flex justify-between items-center text-slate-500 mt-4 border-t border-slate-800 pt-3">
+                          <p className="flex justify-between items-center text-slate-500 mt-4 border-t border-slate-800/80 pt-3">
                             <span className="text-[8px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">LOSS FUNC</span>{" "}
                             <span className="text-[8px] text-emerald-400/70">
                               Categorical Cross-Entropy
@@ -7628,7 +7686,7 @@ if __name__ == '__main__':
             })}
           </div>
 
-          <div className="mt-4 pt-6 border-t border-slate-800/80 relative z-10">
+          <div className="mt-4 pt-6 border-t border-slate-800/80/80 relative z-10">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 group-hover/engine:bg-indigo-500/20 transition-colors shadow-[inset_0_0_10px_rgba(99,102,241,0.2)]">
@@ -7646,7 +7704,7 @@ if __name__ == '__main__':
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="group/fact p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 hover:border-indigo-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
+              <div className="group/fact p-4 bg-[#050A14]/80 rounded-2xl border border-slate-700/80 hover:border-indigo-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
                   <Cpu className="w-16 h-16 text-indigo-400 -rotate-12 translate-x-4 -translate-y-4" />
                 </div>
@@ -7673,7 +7731,7 @@ if __name__ == '__main__':
                     "Increase Feature Maps for complex multi-phase disambiguation."
                   )}
                 </p>
-                <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-[#1e293b] pt-2 flex items-center justify-between">
+                <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-800/80 hover:border-slate-700 pt-2 flex items-center justify-between">
                   <span>Optimization</span>
                   <span className="text-indigo-400">
                     {engineConfig.optimization}
@@ -7681,7 +7739,7 @@ if __name__ == '__main__':
                 </div>
               </div>
 
-              <div className="group/fact p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 hover:border-cyan-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
+              <div className="group/fact p-4 bg-[#050A14]/80 rounded-2xl border border-slate-700/80 hover:border-cyan-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
                   <Microscope className="w-16 h-16 text-cyan-400 rotate-12 translate-x-4 -translate-y-4" />
                 </div>
@@ -7726,13 +7784,13 @@ if __name__ == '__main__':
       {/* Results Section */}
       <div className="lg:col-span-12 space-y-6">
         {/* Visualizer */}
-        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-auto min-h-[700px] flex flex-col relative overflow-hidden group/vis pb-12">
+        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800/80 h-auto min-h-[700px] flex flex-col relative overflow-hidden group/vis pb-12">
           {/* Subtle grid background to look like a terminal/software UI */}
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDQwIEwgNDAgNDAgNDAgMCBMIDQwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-[0.4] pointer-events-none mix-blend-screen"></div>
           <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-cyan-500/80 to-transparent opacity-80 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
 
           <div className="flex flex-col gap-6 mb-6 relative z-10">
-            <div className="flex justify-between items-center px-4 py-3 bg-[#0A101C]/60 backdrop-blur-md rounded-3xl border border-slate-800/80 shadow-inner">
+            <div className="flex justify-between items-center px-4 py-3 bg-[#0A101C]/60 backdrop-blur-md rounded-3xl border border-slate-800/80/80 shadow-inner">
               <div className="flex items-center gap-5">
                 <div className="relative">
                   <div className="absolute inset-0 bg-cyan-500/30 blur-xl rounded-full" />
@@ -7761,7 +7819,7 @@ if __name__ == '__main__':
 
               {selectedCandidate && (
                 <div className="flex gap-4">
-                  <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-slate-800/40 border border-slate-700/80 rounded-2xl shadow-inner">
+                  <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-[#03060C]/60 border border-[#1e293b] rounded-2xl shadow-inner">
                     <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black mb-1">
                       Engine Stability
                     </p>
@@ -8048,7 +8106,7 @@ if __name__ == '__main__':
             )}
           </div>
 
-          <div className="w-full h-[500px] sm:h-[600px] md:h-[650px] lg:h-[700px] min-h-[450px] relative z-10 bg-slate-950 rounded-[2rem] border border-slate-800/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
+          <div className="w-full h-[500px] sm:h-[600px] md:h-[650px] lg:h-[700px] min-h-[450px] relative z-10 bg-[#03060C] rounded-[2rem] border border-slate-800/80/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
             {/* Animated Scanline Overlay */}
             <motion.div
               className="absolute top-0 bottom-0 w-[400px] bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent pointer-events-none mix-blend-screen z-0"
@@ -8146,8 +8204,8 @@ if __name__ == '__main__':
               </div>
             )}
 
-            <div className="absolute bottom-4 right-4 z-10 bg-[#0A101C]/80 px-4 py-2 rounded-xl border border-slate-800 backdrop-blur-md flex flex-col items-end gap-1 pointer-events-none opacity-50 group-hover/chart:opacity-100 transition-opacity">
-              <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-[0.2em] mb-1 border-b border-slate-800 pb-1 w-full text-right">
+            <div className="absolute bottom-4 right-4 z-10 bg-[#0A101C]/80 px-4 py-2 rounded-xl border border-slate-800/80 backdrop-blur-md flex flex-col items-end gap-1 pointer-events-none opacity-50 group-hover/chart:opacity-100 transition-opacity">
+              <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-[0.2em] mb-1 border-b border-slate-800/80 pb-1 w-full text-right">
                 Data Dimensions
               </span>
               <span className="text-[9px] font-mono text-slate-400">
@@ -8421,11 +8479,11 @@ if __name__ == '__main__':
 
             {/* Correlation Confidence Bar */}
             {selectedCandidate && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-slate-900/90 border-t border-slate-800/80 flex items-center px-6 gap-4 z-10 backdrop-blur-xl">
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-[#050A14]/90 border-t border-slate-800/80/80 flex items-center px-6 gap-4 z-10 backdrop-blur-xl">
                 <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
                   Spectral Correlation
                 </span>
-                <div className="flex-1 h-2 bg-slate-950 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                <div className="flex-1 h-2 bg-[#03060C] border border-slate-800/80 rounded-full overflow-hidden flex shadow-inner">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{
@@ -8451,7 +8509,7 @@ if __name__ == '__main__':
             )}
           </div>
           {!inputData.trim() && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md rounded-2xl z-20 border border-slate-800 overflow-hidden">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050A14]/90 backdrop-blur-md rounded-2xl z-20 border border-slate-800/80 overflow-hidden">
               {/* Decorative background grid for empty state */}
               <div
                 className="absolute inset-0 opacity-10 pointer-events-none"
@@ -8527,7 +8585,7 @@ if __name__ == '__main__':
               exit={{ opacity: 0, y: -20 }}
               className="space-y-6 pt-4"
             >
-              <div className="bg-[#0B1221]/80 backdrop-blur-xl text-white p-8 rounded-[2rem] shadow-2xl border border-[#1e293b]/80 relative overflow-hidden">
+              <div className="bg-[#0B1221]/80 backdrop-blur-xl text-white p-8 rounded-[2rem] shadow-2xl border border-slate-800/80 hover:border-slate-700/80 relative overflow-hidden">
                 {/* Animated subtle grid and gradient */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
                 <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-indigo-500/10 rounded-full blur-[150px] pointer-events-none" />
@@ -8545,7 +8603,7 @@ if __name__ == '__main__':
 
                 {/* Mixture Candidates Selector */}
                 {result?.candidates && result.candidates.length > 1 && (
-                  <div className="flex flex-col gap-2 mb-8 relative z-10 p-5 bg-slate-900/40 rounded-3xl border border-slate-700/50 shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+                  <div className="flex flex-col gap-2 mb-8 relative z-10 p-5 bg-[#050A14]/40 rounded-3xl border border-slate-700/50 shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
                     <div className="w-full mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-700/40 pb-4 gap-3 relative">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
@@ -8565,7 +8623,7 @@ if __name__ == '__main__':
                       <button
                         key={candidate.phase_name + idx}
                         onClick={() => setSelectedCandidate(candidate)}
-                        className={`px-4 py-2.5 rounded-xl border text-[11px] font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]" : "bg-slate-950/50 border-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-white"}`}
+                        className={`px-4 py-2.5 rounded-xl border text-[11px] font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]" : "bg-[#03060C]/50 border-slate-800/80/80 text-slate-400 hover:bg-slate-800 hover:text-white"}`}
                       >
                         {candidate.phase_name}
                         <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-500/50 text-white" : "bg-slate-800 text-slate-500"}`}>
@@ -8625,7 +8683,7 @@ if __name__ == '__main__':
                   <div className="flex flex-row md:flex-col lg:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
                     <button
                       onClick={handleLatticeEstimation}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-emerald-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
                     >
                       <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
@@ -8638,7 +8696,7 @@ if __name__ == '__main__':
                     </button>
                     <button
                       onClick={handleGenerateReport}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-violet-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-violet-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
                     >
                       <div className="absolute inset-0 bg-gradient-to-t from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
@@ -8652,7 +8710,7 @@ if __name__ == '__main__':
                     {pythonFeaturesEnabled && (
                       <button
                         onClick={handleExportPythonML}
-                        className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-fuchsia-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                        className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-fuchsia-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
                       >
                         <div className="absolute inset-0 bg-gradient-to-t from-fuchsia-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
@@ -8666,7 +8724,7 @@ if __name__ == '__main__':
                     )}
                     <button
                       onClick={handleRunExpertAI}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-cyan-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-cyan-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
                     >
                       <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
@@ -8683,7 +8741,7 @@ if __name__ == '__main__':
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-fr">
                   {/* Identity Card */}
                   <div className="md:col-span-12 group">
-                    <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] shadow-2xl h-full flex flex-col relative overflow-hidden transition-all duration-500 hover:border-violet-500/40 hover:shadow-[0_0_50px_rgba(139,92,246,0.15)]">
+                    <div className="bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 shadow-2xl h-full flex flex-col relative overflow-hidden transition-all duration-500 hover:border-violet-500/40 hover:shadow-[0_0_50px_rgba(139,92,246,0.15)]">
                       <div className="absolute -top-32 -right-32 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-violet-500/20 transition-all duration-700" />
                       <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-cyan-600/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/20 transition-all duration-700" />
 
@@ -8703,7 +8761,7 @@ if __name__ == '__main__':
                         <span className="px-5 py-2.5 bg-gradient-to-br from-violet-500/20 to-violet-500/5 text-violet-300 text-sm md:text-base font-mono font-black rounded-xl border border-violet-500/40 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:border-violet-400 transition-colors">
                           {selectedCandidate.formula}
                         </span>
-                        <span className="px-5 py-2.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] text-emerald-400 text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] rounded-xl border border-[#1e293b] shadow-inner hover:border-emerald-500/40 transition-colors flex items-center justify-center">
+                        <span className="px-5 py-2.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] text-emerald-400 text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] rounded-xl border border-slate-800/80 hover:border-slate-700 shadow-inner hover:border-emerald-500/40 transition-colors flex items-center justify-center">
                           {selectedCandidate.materialType || "Standard Matrix"}
                         </span>
                       </div>
@@ -8713,7 +8771,7 @@ if __name__ == '__main__':
                           "Phase identification complete. Detailed morphological synthesis and mechanical property mapping for this specific lattice configuration are being processed by the intelligence engine."}
                       </p>
 
-                      <div className="mt-auto pt-8 border-t border-[#1e293b] grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 bg-gradient-to-t from-[#0B1221] to-transparent -mx-8 sm:-mx-10 px-8 sm:px-10 -mb-8 sm:-mb-10 pb-8 sm:pb-10 rounded-b-[2.5rem]">
+                      <div className="mt-auto pt-8 border-t border-slate-800/80 hover:border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 bg-gradient-to-t from-[#0B1221] to-transparent -mx-8 sm:-mx-10 px-8 sm:px-10 -mb-8 sm:-mb-10 pb-8 sm:pb-10 rounded-b-[2.5rem]">
                         {[
                           {
                             label: "Molecular Wt",
@@ -8783,7 +8841,7 @@ if __name__ == '__main__':
                   </div>
 
                   {/* Property Analytics Board */}
-                  <div className="md:col-span-12 group/analytics mb-8 bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-emerald-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
+                  <div className="md:col-span-12 group/analytics mb-8 bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 hover:border-emerald-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover/analytics:bg-emerald-500/10 transition-all duration-700 -translate-y-10 -translate-x-10" />
                     {/* Physical property spectrum */}
                     <div className="flex items-center gap-4 mb-8">
@@ -8876,7 +8934,7 @@ if __name__ == '__main__':
                         return (
                           <div
                             key={"prop-" + i}
-                            className="flex flex-col gap-2.5 group/bar bg-[#0B1221] p-5 rounded-2xl border border-slate-800 shadow-inner hover:border-slate-600 transition-colors relative overflow-hidden"
+                            className="flex flex-col gap-2.5 group/bar bg-[#0B1221] p-5 rounded-2xl border border-slate-800/80 shadow-inner hover:border-slate-600 transition-colors relative overflow-hidden"
                           >
                             <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-[20px] pointer-events-none transition-colors"
                               style={{
@@ -8905,7 +8963,7 @@ if __name__ == '__main__':
                             </div>
                             
                             <div className="flex items-center gap-3 relative z-10 mt-1">
-                              <div className="flex-1 h-1.5 bg-[#050B14] rounded-full overflow-hidden relative shadow-inner">
+                              <div className="flex-1 h-1.5 bg-[#050A14] rounded-full overflow-hidden relative shadow-inner">
                                 <div
                                   className={`h-full rounded-full transition-all duration-1000 ${colorClass}`}
                                   style={{ width: `${pct}%` }}
@@ -8922,7 +8980,7 @@ if __name__ == '__main__':
 
                     {/* Thermodynamic & Stability Analysis */}
                     {selectedCandidate && (
-                      <div className="mt-8 pt-8 border-t border-[#1e293b]/55 z-10 relative">
+                      <div className="mt-8 pt-8 border-t border-slate-800/80 hover:border-slate-700/55 z-10 relative">
                         <div className="flex items-center gap-4 mb-6">
                           <div className="relative">
                             <div className="absolute inset-0 bg-rose-500/20 blur-md rounded-full" />
@@ -8945,7 +9003,7 @@ if __name__ == '__main__':
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                           {/* Enthalpy */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-rose-500/40 hover:shadow-[0_8px_25px_rgba(244,63,94,0.15)] flex flex-col justify-between h-[130px]">
+                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-rose-500/40 hover:shadow-[0_8px_25px_rgba(244,63,94,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-rose-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-rose-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -8977,7 +9035,7 @@ if __name__ == '__main__':
                           </div>
 
                           {/* Entropy */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-amber-500/40 hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] flex flex-col justify-between h-[130px]">
+                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-amber-500/40 hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-amber-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -9005,7 +9063,7 @@ if __name__ == '__main__':
                           </div>
 
                           {/* Gibbs Free Energy */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-cyan-500/40 hover:shadow-[0_8px_25px_rgba(34,211,238,0.15)] flex flex-col justify-between h-[130px]">
+                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-cyan-500/40 hover:shadow-[0_8px_25px_rgba(34,211,238,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-cyan-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-cyan-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -9033,7 +9091,7 @@ if __name__ == '__main__':
                           </div>
 
                           {/* Heat Capacity */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-fuchsia-500/40 hover:shadow-[0_8px_25px_rgba(217,70,239,0.15)] flex flex-col justify-between h-[130px]">
+                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-fuchsia-500/40 hover:shadow-[0_8px_25px_rgba(217,70,239,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-fuchsia-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-fuchsia-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
                               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -9065,7 +9123,7 @@ if __name__ == '__main__':
 
                     {/* Constituent elements under Physical property spectrum */}
                     {selectedCandidate && (
-                      <div className="mt-12 pt-8 border-t border-[#1e293b]/55 z-10 relative">
+                      <div className="mt-12 pt-8 border-t border-slate-800/80 hover:border-slate-700/55 z-10 relative">
                         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
                           <div className="flex items-center gap-4">
                             <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-inner flex items-center justify-center">
@@ -9098,7 +9156,7 @@ if __name__ == '__main__':
                                : parseElementsFromFormula(selectedCandidate.formula);
                             if (elements.length === 0) {
                               return (
-                                <div className="col-span-full py-10 bg-slate-900/30 rounded-2xl border border-white/5 border-dashed text-center flex flex-col items-center justify-center gap-3">
+                                <div className="col-span-full py-10 bg-[#050A14]/30 rounded-2xl border border-white/5 border-dashed text-center flex flex-col items-center justify-center gap-3">
                                   <FlaskConical className="w-8 h-8 text-slate-600 mb-2" />
                                   <div className="text-sm font-mono text-slate-500 uppercase tracking-widest">
                                     No constituent elements identified.
@@ -9210,7 +9268,7 @@ if __name__ == '__main__':
 
                   {/* Neural Architecture Python Source */}
                   {pythonFeaturesEnabled && (
-                    <div className="md:col-span-12 group/python mb-8 bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-fuchsia-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
+                    <div className="md:col-span-12 group/python mb-8 bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 hover:border-fuchsia-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-80 h-80 bg-fuchsia-500/5 rounded-full blur-[80px] pointer-events-none group-hover/python:bg-fuchsia-500/10 transition-all duration-700 -translate-y-10 translate-x-10" />
                       
                       <div className="flex items-center gap-4 mb-8">
@@ -9230,8 +9288,8 @@ if __name__ == '__main__':
                         </div>
                       </div>
 
-                      <div className="relative z-10 bg-black/60 rounded-2xl border border-[#1e293b]/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-slate-900 border-b border-white/5 gap-2">
+                      <div className="relative z-10 bg-black/60 rounded-2xl border border-slate-800/80 hover:border-slate-700/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-[#050A14] border-b border-white/5 gap-2">
                           <div className="flex items-center gap-2">
                             <div className="flex gap-2">
                               <div className="w-3 h-3 rounded-full bg-rose-500/80" />
@@ -9255,7 +9313,7 @@ if __name__ == '__main__':
                         </div>
                         
                         {/* Sub-header architecture tabs */}
-                        <div className="flex flex-wrap gap-1 px-4 py-2 bg-slate-950 border-b border-white/5">
+                        <div className="flex flex-wrap gap-1 px-4 py-2 bg-[#03060C] border-b border-white/5">
                           <button
                             onClick={() => setPythonArch('cnn')}
                             className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
@@ -9314,7 +9372,7 @@ if __name__ == '__main__':
 
                   {/* Crystallography (Cell Metrics) */}
                   <div className="md:col-span-12 group/card">
-                    <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] transition-all duration-500 hover:border-indigo-500/40 hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col">
+                    <div className="bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] transition-all duration-500 hover:border-indigo-500/40 hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col">
                       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[80px] pointer-events-none group-hover/card:bg-indigo-500/15 transition-all duration-700 -translate-y-20 translate-x-32" />
 
                       {/* Header Zone */}
@@ -9368,7 +9426,7 @@ if __name__ == '__main__':
                         })()}
 
                         {/* 2. Space Group */}
-                        <div className="p-5 sm:p-6 bg-slate-900/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/sg">
+                        <div className="p-5 sm:p-6 bg-[#050A14]/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/sg">
                           <span className="text-[9px] font-black text-slate-500 group-hover/sg:text-emerald-500/70 uppercase tracking-widest leading-tight transition-colors">
                             Space Group
                           </span>
@@ -9378,7 +9436,7 @@ if __name__ == '__main__':
                         </div>
 
                         {/* 3. Density */}
-                        <div className="p-5 sm:p-6 bg-slate-900/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/den">
+                        <div className="p-5 sm:p-6 bg-[#050A14]/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/den">
                           <span className="text-[9px] font-black text-slate-500 group-hover/den:text-cyan-500/70 uppercase tracking-widest leading-tight transition-colors">
                             Density (g/cm³)
                           </span>
@@ -9399,7 +9457,7 @@ if __name__ == '__main__':
                                 ? "text-xs sm:text-sm"
                                 : "text-sm sm:text-base";
                           return (
-                            <div className="p-5 sm:p-6 bg-slate-900/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/reg">
+                            <div className="p-5 sm:p-6 bg-[#050A14]/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/reg">
                               <span className="text-[9px] font-black text-slate-500 group-hover/reg:text-amber-500/70 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
                                 <Database className="w-3 h-3" />
                                 Registry Entry
@@ -9431,7 +9489,7 @@ if __name__ == '__main__':
                         return (
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10 w-full mt-2">
                             {/* Lengths Box */}
-                            <div className="p-6 lg:col-span-1 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-[#1e293b] rounded-3xl flex flex-col gap-6 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/dim relative overflow-hidden transition-all hover:border-indigo-500/40">
+                            <div className="p-6 lg:col-span-1 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-slate-800/80 hover:border-slate-700 rounded-3xl flex flex-col gap-6 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/dim relative overflow-hidden transition-all hover:border-indigo-500/40">
                               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover/dim:bg-indigo-500/20 transition-all duration-700" />
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -9447,17 +9505,17 @@ if __name__ == '__main__':
                                 )}
                               </div>
                               <div className="flex flex-col gap-3 relative z-10">
-                                <div className="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-white/5">
+                                <div className="flex items-center justify-between bg-[#050A14]/60 p-3 rounded-2xl border border-white/5">
                                   <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">a</span>
                                   <span className="text-xl font-mono text-white font-black">{lattice.a.toFixed(3)}</span>
                                   <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.001</span>
                                 </div>
-                                <div className="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-white/5">
+                                <div className="flex items-center justify-between bg-[#050A14]/60 p-3 rounded-2xl border border-white/5">
                                   <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">b</span>
                                   <span className="text-xl font-mono text-white font-black">{(lattice.b ?? lattice.a).toFixed(3)}</span>
                                   <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.001</span>
                                 </div>
-                                <div className="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-white/5">
+                                <div className="flex items-center justify-between bg-[#050A14]/60 p-3 rounded-2xl border border-white/5">
                                   <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">c</span>
                                   <span className="text-xl font-mono text-white font-black">{(lattice.c ?? lattice.a).toFixed(3)}</span>
                                   <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.002</span>
@@ -9466,7 +9524,7 @@ if __name__ == '__main__':
                             </div>
 
                             {/* Angles & Additional Metrics Box */}
-                            <div className="p-6 lg:col-span-2 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-[#1e293b] rounded-3xl flex flex-col shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/ang relative overflow-hidden transition-all hover:border-emerald-500/40">
+                            <div className="p-6 lg:col-span-2 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-slate-800/80 hover:border-slate-700 rounded-3xl flex flex-col shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/ang relative overflow-hidden transition-all hover:border-emerald-500/40">
                               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none group-hover/ang:bg-emerald-500/20 transition-all duration-700 -translate-y-10 translate-x-10" />
                               <div className="flex items-center justify-between mb-8 relative z-10">
                                 <div className="flex items-center gap-4">
@@ -9497,7 +9555,7 @@ if __name__ == '__main__':
                                       <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">α (Alpha)</span>
                                       <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.alpha ?? 90).toFixed(1)}°</span>
                                     </div>
-                                    <div className="flex flex-col items-center justify-center p-2 border-x border-[#1e293b]/80 relative z-10">
+                                    <div className="flex flex-col items-center justify-center p-2 border-x border-slate-800/80 hover:border-slate-700/80 relative z-10">
                                       <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">β (Beta)</span>
                                       <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.beta ?? 90).toFixed(1)}°</span>
                                     </div>
@@ -9540,7 +9598,7 @@ if __name__ == '__main__':
                                       <span className="text-lg text-emerald-500 font-black font-mono tracking-widest drop-shadow-sm">V (Å³)</span>
                                     </div>
                                     
-                                    <div className="w-full h-1.5 bg-slate-950/80 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-white/5 relative">
+                                    <div className="w-full h-1.5 bg-[#03060C]/80 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-white/5 relative">
                                       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-50" />
                                       <div 
                                         className="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-emerald-500 relative" 
@@ -9596,7 +9654,7 @@ if __name__ == '__main__':
                           selectedCandidate.applications.map((app, i) => (
                             <div
                               key={`app-${i}`}
-                              className="group/app flex items-center gap-4 bg-slate-900/50 hover:bg-slate-800/80 px-5 py-4 rounded-[1.25rem] border border-white/5 hover:border-amber-500/30 transition-all duration-300 shadow-inner"
+                              className="group/app flex items-center gap-4 bg-[#050A14]/50 hover:bg-slate-800/80 px-5 py-4 rounded-[1.25rem] border border-white/5 hover:border-amber-500/30 transition-all duration-300 shadow-inner"
                             >
                               <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 group-hover/app:border-amber-500/40 group-hover/app:bg-amber-500/10 transition-colors shrink-0">
                                 <span className="text-[10px] font-mono text-slate-400 group-hover/app:text-amber-400 font-bold">0{i+1}</span>
@@ -9679,7 +9737,7 @@ if __name__ == '__main__':
                 {/* Quantum Morphological Synthesizer is deleted */}
                 {false && <div
                   id="quantum-morphological-synthesizer"
-                  className="mt-14 pt-12 border-t border-[#1e293b] relative overflow-hidden group/quantum"
+                  className="mt-14 pt-12 border-t border-slate-800/80 hover:border-slate-700 relative overflow-hidden group/quantum"
                 >
                   <div className="absolute top-0 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
 
@@ -9709,8 +9767,8 @@ if __name__ == '__main__':
 
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10 mt-6">
                     {/* Left Column: Synthesis Autoclave Controls */}
-                    <div className="lg:col-span-4 flex flex-col gap-6 p-6 sm:p-8 bg-[#050B14]/80 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)]">
-                      <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
+                    <div className="lg:col-span-4 flex flex-col gap-6 p-6 sm:p-8 bg-[#050A14]/80 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)]">
+                      <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80/80">
                         <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
                         <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest">
                           Synthesis Parameters
@@ -9744,7 +9802,7 @@ if __name__ == '__main__':
                               className={`px-3 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
                                 synthMorphology === m.key
                                   ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
-                                  : "bg-[#0B1221] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                                  : "bg-[#0B1221] border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700"
                               }`}
                             >
                               <span className="text-sm font-mono text-cyan-400/80">
@@ -9781,7 +9839,7 @@ if __name__ == '__main__':
                             onChange={(e) =>
                               setSynthSize(parseFloat(e.target.value))
                             }
-                            className="w-full accent-cyan-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                            className="w-full accent-cyan-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
                           />
                           <div className="flex justify-between text-[8px] font-mono text-slate-600">
                             <span>2.0 nm (Confinement)</span>
@@ -9812,7 +9870,7 @@ if __name__ == '__main__':
                             onChange={(e) =>
                               setSynthTemp(parseInt(e.target.value))
                             }
-                            className="w-full accent-amber-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                            className="w-full accent-amber-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
                           />
                           <div className="flex justify-between text-[8px] font-mono text-slate-600">
                             <span>100 °C (Amorphous)</span>
@@ -9843,7 +9901,7 @@ if __name__ == '__main__':
                             onChange={(e) =>
                               setSynthDoping(parseFloat(e.target.value))
                             }
-                            className="w-full accent-indigo-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                            className="w-full accent-indigo-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
                           />
                           <div className="flex justify-between text-[8px] font-mono text-slate-600">
                             <span>0.0% (Intrinsic)</span>
@@ -9874,7 +9932,7 @@ if __name__ == '__main__':
                             onChange={(e) =>
                               setSynthTime(parseFloat(e.target.value))
                             }
-                            className="w-full accent-emerald-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                            className="w-full accent-emerald-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
                           />
                           <div className="flex justify-between text-[8px] font-mono text-slate-600">
                             <span>1.0 hr</span>
@@ -9902,7 +9960,7 @@ if __name__ == '__main__':
                             onChange={(e) =>
                               setSynthPH(parseFloat(e.target.value))
                             }
-                            className="w-full accent-pink-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                            className="w-full accent-pink-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
                           />
                           <div className="flex justify-between text-[8px] font-mono text-slate-600">
                             <span>Acidic</span>
@@ -9922,7 +9980,7 @@ if __name__ == '__main__':
                               onChange={(e) =>
                                 setSynthAtmosphere(e.target.value as any)
                               }
-                              className="w-full px-4 py-3 bg-[#0B1221] border border-slate-800 rounded-xl text-xs font-bold text-slate-300 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
+                              className="w-full px-4 py-3 bg-[#0B1221] border border-slate-800/80 rounded-xl text-xs font-bold text-slate-300 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
                             >
                               <option value="air" className="bg-[#0B1221]">
                                 Air (Oxidizing)
@@ -9944,7 +10002,7 @@ if __name__ == '__main__':
                     </div>
 
                     {/* Middle Column: Excitonic Lattice Preview & Morph Generator */}
-                    <div className="lg:col-span-4 min-h-[450px] lg:h-auto bg-[#050B14]/90 p-8 rounded-[2rem] border border-[#1e293b] relative overflow-hidden flex flex-col items-center justify-between shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group/core hover:border-cyan-500/30 transition-colors duration-500">
+                    <div className="lg:col-span-4 min-h-[450px] lg:h-auto bg-[#050A14]/90 p-8 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 relative overflow-hidden flex flex-col items-center justify-between shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group/core hover:border-cyan-500/30 transition-colors duration-500">
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.04),transparent_75%)] pointer-events-none" />
 
                       {/* SVG Lattice Preview based on selected morphology */}
@@ -10109,7 +10167,7 @@ if __name__ == '__main__':
                               />
                               {/* Bottom */}
                               <div
-                                className="absolute inset-0 bg-slate-900/40 border border-slate-800"
+                                className="absolute inset-0 bg-[#050A14]/40 border border-slate-800/80"
                                 style={{
                                   transform: `rotateX(-90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)`,
                                 }}
@@ -10253,7 +10311,7 @@ if __name__ == '__main__':
                         </span>
                       </div>
 
-                      <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between font-mono text-[8px] sm:text-[9px] text-cyan-500/40 uppercase tracking-widest border-t border-slate-800/60 pt-3">
+                      <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between font-mono text-[8px] sm:text-[9px] text-cyan-500/40 uppercase tracking-widest border-t border-slate-800/80/60 pt-3">
                         <span>
                           Exciton Limit:{" "}
                           <span
@@ -10292,7 +10350,7 @@ if __name__ == '__main__':
                     {/* Right Column: Computed Quantum Property Spectrum */}
                     <div className="lg:col-span-4 flex flex-col gap-6">
                       {/* Computed Band Gap Card */}
-                      <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout hover:border-cyan-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout hover:border-cyan-500/30 transition-all duration-500 flex flex-col justify-center">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none group-hover/readout:bg-cyan-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
 
                         <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -10336,7 +10394,7 @@ if __name__ == '__main__':
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="relative w-full h-1.5 bg-slate-900 rounded-full overflow-hidden flex">
+                                  <div className="relative w-full h-1.5 bg-[#050A14] rounded-full overflow-hidden flex">
                                     <div
                                       className="h-full bg-cyan-700 transition-all duration-1000"
                                       style={{ width: `${bulkPct}%` }}
@@ -10376,7 +10434,7 @@ if __name__ == '__main__':
                       </div>
 
                       {/* Specific Surface Area BET Card */}
-                      <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout2 hover:border-emerald-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout2 hover:border-emerald-500/30 transition-all duration-500 flex flex-col justify-center">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover/readout2:bg-emerald-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
 
                         <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -10406,7 +10464,7 @@ if __name__ == '__main__':
                                     </span>
                                   </div>
                                 </div>
-                                <div className="relative w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                <div className="relative w-full h-1.5 bg-[#050A14] rounded-full overflow-hidden">
                                   <div
                                     className="absolute top-0 left-0 h-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] transition-all duration-1000"
                                     style={{ width: `${ssaPct}%` }}
@@ -10424,7 +10482,7 @@ if __name__ == '__main__':
                       </div>
 
                       {/* Lattice Strain & Defects Card */}
-                      <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout3 hover:border-violet-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout3 hover:border-violet-500/30 transition-all duration-500 flex flex-col justify-center">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-full blur-xl pointer-events-none group-hover/readout3:bg-violet-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
 
                         <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -10465,7 +10523,7 @@ if __name__ == '__main__':
                                     </span>
                                   </div>
                                 </div>
-                                <div className="relative w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                <div className="relative w-full h-1.5 bg-[#050A14] rounded-full overflow-hidden">
                                   <div className="absolute top-0 left-0 w-full h-full flex justify-between">
                                     {/* Tick marks */}
                                     <div className="w-px h-full bg-slate-700/50" />
@@ -10491,7 +10549,7 @@ if __name__ == '__main__':
                       </div>
 
                       {/* Entanglement Entropy & Phonon Dispatch */}
-                      <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout4 hover:border-blue-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout4 hover:border-blue-500/30 transition-all duration-500 flex flex-col justify-center">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover/readout4:bg-blue-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
 
                         <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -10551,7 +10609,7 @@ if __name__ == '__main__':
                   </div>
 
                   {/* Simulated Characterization Interface Action */}
-                  <div className="mt-6 p-8 bg-[#040912]/90 border border-slate-800 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)]">
+                  <div className="mt-6 p-8 bg-[#040912]/90 border border-slate-800/80 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)]">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.04),transparent_60%)] pointer-events-none" />
 
                     <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative z-10 w-full">
@@ -10622,7 +10680,7 @@ if __name__ == '__main__':
                         return (
                           <div className="flex flex-col xl:flex-row items-center gap-6 w-full">
                             <div className="flex items-center gap-5 flex-shrink-0 relative">
-                              <div className="relative w-24 h-24 flex items-center justify-center bg-slate-950 rounded-full shadow-[inset_0_2px_15px_rgba(0,0,0,0.8)] border border-slate-800">
+                              <div className="relative w-24 h-24 flex items-center justify-center bg-[#03060C] rounded-full shadow-[inset_0_2px_15px_rgba(0,0,0,0.8)] border border-slate-800/80">
                                 <svg
                                   className="w-full h-full transform -rotate-90 overflow-visible"
                                   viewBox="0 0 36 36"
@@ -10661,7 +10719,7 @@ if __name__ == '__main__':
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full relative z-10">
-                              <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                                   <Timer
                                     size={10}
@@ -10676,7 +10734,7 @@ if __name__ == '__main__':
                                   </span>
                                 </span>
                               </div>
-                              <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                                   <Activity
                                     size={10}
@@ -10691,7 +10749,7 @@ if __name__ == '__main__':
                                   </span>
                                 </span>
                               </div>
-                              <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                                   <Thermometer
                                     size={10}
@@ -10706,7 +10764,7 @@ if __name__ == '__main__':
                                   </span>
                                 </span>
                               </div>
-                              <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                                   <FlaskConical
                                     size={10}
@@ -10814,11 +10872,11 @@ ${
                 </div>}
 
                 {/* AI Synthesis Route Intelligence & Recipe Optimizer */}
-                <div id="synthesis-suite" className="mt-8 p-6 sm:p-8 bg-gradient-to-b from-[#080F1D]/90 to-[#040913]/90 border border-slate-800/80 rounded-3xl relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.015),0_10px_40px_rgba(0,0,0,0.6)]">
+                <div id="synthesis-suite" className="mt-8 p-6 sm:p-8 bg-gradient-to-b from-[#080F1D]/90 to-[#040913]/90 border border-slate-800/80/80 rounded-3xl relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.015),0_10px_40px_rgba(0,0,0,0.6)]">
                   <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
                   <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
                   
-                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800/60 pb-6 mb-6 gap-4 relative z-10">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800/80/60 pb-6 mb-6 gap-4 relative z-10">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
                         <FlaskConical className="w-6 h-6 animate-pulse" />
@@ -10838,7 +10896,7 @@ ${
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
                     {/* Left Column: Stoichiometry Calculator */}
                     <div className="lg:col-span-5 space-y-6">
-                      <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-850/80 shadow-inner space-y-5">
+                      <div className="bg-[#03060C]/60 p-5 rounded-2xl border border-slate-850/80 shadow-inner space-y-5">
                         <div className="flex items-center gap-2.5 border-b border-slate-900 pb-3">
                           <Calculator size={16} className="text-cyan-400" />
                           <h5 className="text-xs font-bold text-slate-200 uppercase tracking-widest">
@@ -10847,7 +10905,7 @@ ${
                         </div>
 
                         {/* Product formula details */}
-                        <div className="flex items-center justify-between bg-slate-900/40 p-3 rounded-xl border border-slate-800/40">
+                        <div className="flex items-center justify-between bg-[#050A14]/40 p-3 rounded-xl border border-slate-800/80/40">
                           <span className="text-[10px] text-slate-400 font-mono uppercase">Target Phase Formula</span>
                           <span className="text-sm font-bold text-cyan-300 font-mono tracking-wider">
                             {selectedCandidate.formula}
@@ -10868,7 +10926,7 @@ ${
                               step={0.1}
                               value={String(synthTargetMass) === 'NaN' ? '' : synthTargetMass}
                               onChange={(e) => setSynthTargetMass(parseFloat(e.target.value))}
-                              className="flex-grow accent-cyan-500 h-1 bg-slate-900 rounded-lg cursor-pointer"
+                              className="flex-grow accent-cyan-500 h-1 bg-[#050A14] rounded-lg cursor-pointer"
                             />
                             <input
                               type="number"
@@ -10877,14 +10935,14 @@ ${
                               step={0.1}
                               value={String(synthTargetMass) === 'NaN' ? '' : synthTargetMass}
                               onChange={(e) => setSynthTargetMass(Math.max(0.1, parseFloat(e.target.value) || 0.1))}
-                              className="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-center font-mono font-bold text-cyan-300"
+                              className="w-16 bg-[#050A14] border border-slate-800/80 rounded-lg px-2 py-1 text-xs text-center font-mono font-bold text-cyan-300"
                             />
                           </div>
                         </div>
 
                         {/* Dopant substitution controls if doping > 0 */}
                         {synthDoping > 0 && (
-                          <div className="bg-slate-900/20 p-4 rounded-xl border border-slate-850 space-y-4">
+                          <div className="bg-[#050A14]/20 p-4 rounded-xl border border-slate-850 space-y-4">
                             <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
                               <ShieldAlert size={12} className="text-amber-500 animate-pulse" />
                               Lattice Doping Site Configuration
@@ -10897,7 +10955,7 @@ ${
                                 <select
                                   value={dopantElement}
                                   onChange={(e) => setDopantElement(e.target.value)}
-                                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
+                                  className="w-full bg-[#050A14] border border-slate-800/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
                                 >
                                   {["Mg", "Al", "Fe", "Co", "Ni", "Cu", "Zn", "Y", "Zr", "La", "Ce", "Sr", "Ba", "Mn"].map(el => (
                                     <option key={el} value={el}>{el}</option>
@@ -10911,7 +10969,7 @@ ${
                                 <select
                                   value={dopedSubstitutedElement}
                                   onChange={(e) => setDopedSubstitutedElement(e.target.value)}
-                                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
+                                  className="w-full bg-[#050A14] border border-slate-800/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
                                 >
                                   {Object.keys(parseChemicalFormula(selectedCandidate.formula))
                                     .filter(el => el !== "O" && el !== "H")
@@ -10941,7 +10999,7 @@ ${
                             return precursors.map((p) => {
                               const db = PRECURSOR_DATABASE[p.element] || [];
                               return (
-                                <div key={p.element} className="bg-slate-900/50 p-3 rounded-xl border border-slate-850 flex flex-col gap-2">
+                                <div key={p.element} className="bg-[#050A14]/50 p-3 rounded-xl border border-slate-850 flex flex-col gap-2">
                                   <div className="flex items-center justify-between text-[11px]">
                                     <span className="font-bold text-slate-300 font-mono">
                                       Element {p.element} <span className="text-[9px] text-slate-500 font-normal">(stoich: {p.stoichCoeff.toFixed(4)})</span>
@@ -10955,7 +11013,7 @@ ${
                                         const val = e.target.value;
                                         setSelectedPrecursors(prev => ({ ...prev, [p.element]: val }));
                                       }}
-                                      className="sm:col-span-8 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
+                                      className="sm:col-span-8 bg-[#03060C] border border-slate-800/80 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
                                     >
                                       {db.map((item) => (
                                         <option key={item.name} value={item.name}>
@@ -10975,12 +11033,12 @@ ${
                                             const val = parseFloat(e.target.value) || 0;
                                             setCustomPrecursorMws(prev => ({ ...prev, [p.element]: val }));
                                           }}
-                                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-center font-mono text-cyan-300 animate-fade-in"
+                                          className="w-full bg-[#03060C] border border-slate-800/80 rounded-lg px-2 py-1 text-xs text-center font-mono text-cyan-300 animate-fade-in"
                                         />
                                         <span className="text-[9px] text-slate-500 font-mono">g/mol</span>
                                       </div>
                                     ) : (
-                                      <div className="sm:col-span-4 bg-slate-950/60 rounded-lg px-2 py-1 text-center font-mono text-[10px] text-slate-400 border border-slate-850/60 flex items-center justify-center">
+                                      <div className="sm:col-span-4 bg-[#03060C]/60 rounded-lg px-2 py-1 text-center font-mono text-[10px] text-slate-400 border border-slate-850/60 flex items-center justify-center">
                                         {p.precursorMw.toFixed(2)} g/mol
                                       </div>
                                     )}
@@ -10993,7 +11051,7 @@ ${
                       </div>
 
                       {/* Math Summary Table */}
-                      <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-850/80 space-y-4">
+                      <div className="bg-[#03060C]/40 p-5 rounded-2xl border border-slate-850/80 space-y-4">
                         <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 font-mono uppercase tracking-wider">
                           <span>Calculated Precursor Masses</span>
                           <span className="text-cyan-400 font-bold uppercase font-mono">
@@ -11008,7 +11066,7 @@ ${
                           return (
                             <div className="space-y-2.5">
                               {precursors.map((p) => (
-                                <div key={p.element} className="flex items-center justify-between p-2.5 bg-slate-900/30 rounded-xl border border-slate-850/50 hover:border-slate-800 transition-colors">
+                                <div key={p.element} className="flex items-center justify-between p-2.5 bg-[#050A14]/30 rounded-xl border border-slate-850/50 hover:border-slate-800/80 transition-colors">
                                   <div className="flex flex-col gap-0.5">
                                     <span className="text-xs font-bold text-slate-200">
                                       {p.precursorName}
@@ -11039,8 +11097,8 @@ ${
                     </div>
 
                     {/* Right Column: AI advisor */}
-                    <div className="lg:col-span-7 space-y-6 lg:border-l lg:border-slate-800/40 lg:pl-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 rounded-2xl border border-slate-850/80">
+                    <div className="lg:col-span-7 space-y-6 lg:border-l lg:border-slate-800/80/40 lg:pl-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#03060C]/40 p-4 rounded-2xl border border-slate-850/80">
                         <div className="flex items-center gap-2">
                           <Sparkles size={14} className="text-cyan-400 animate-pulse" />
                           <span className="text-xs font-bold text-slate-200 uppercase tracking-widest font-mono">AI Recipe Advisor</span>
@@ -11056,7 +11114,7 @@ ${
                               className={`px-2.5 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
                                 synthAiFocus === focus
                                   ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
-                                  : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+                                  : "bg-[#050A14]/60 border-slate-800/80 text-slate-500 hover:text-slate-300 hover:border-slate-700"
                               }`}
                             >
                               {focus === "purity" && "Phase Purity"}
@@ -11087,7 +11145,7 @@ ${
                               Modeling nucleostatic phase matrices for {selectedCandidate.phase_name}
                             </p>
                             
-                            <div className="w-48 h-1 bg-slate-950 rounded-full overflow-hidden mt-6 border border-slate-800/80">
+                            <div className="w-48 h-1 bg-[#03060C] rounded-full overflow-hidden mt-6 border border-slate-800/80/80">
                               <motion.div 
                                 className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500"
                                 animate={{ x: ["-100%", "100%"] }}
@@ -11098,7 +11156,7 @@ ${
                         ) : synthAiResult ? (
                           <div className="space-y-4">
                             {/* Actions rail */}
-                            <div className="flex flex-wrap gap-2 items-center justify-end bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
+                            <div className="flex flex-wrap gap-2 items-center justify-end bg-[#03060C]/40 p-3 rounded-2xl border border-slate-800/80/60">
                               <span className="text-[9px] font-mono font-bold text-slate-500 uppercase mr-auto pl-2 tracking-widest hidden sm:inline">
                                 Tuned for: {synthAiFocus === "purity" ? "High Stoichiometry Purity" : synthAiFocus === "defects" ? "Induced Lattice Dislocation Controls" : "Quantum Dot Confinement Boundary"}
                               </span>
@@ -11109,7 +11167,7 @@ ${
                                   setRecipeCopied(true);
                                   setTimeout(() => setRecipeCopied(false), 2000);
                                 }}
-                                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 hover:text-white border border-slate-800 text-[9px] font-black text-slate-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5"
+                                className="px-3.5 py-1.5 bg-[#050A14] hover:bg-slate-800 hover:text-white border border-slate-800/80 text-[9px] font-black text-slate-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5"
                               >
                                 {recipeCopied ? (
                                   <>
@@ -11143,7 +11201,7 @@ ${
                             </div>
 
                             {/* Interactive result presentation */}
-                            <div className="bg-slate-950/80 p-5 sm:p-6 rounded-2xl border border-slate-800/80 overflow-y-auto max-h-[500px] custom-scrollbar text-slate-300 font-sans shadow-inner selection:bg-cyan-500/20 leading-relaxed font-sans prose prose-invert prose-headings:text-slate-100 prose-strong:text-cyan-200">
+                            <div className="bg-[#03060C]/80 p-5 sm:p-6 rounded-2xl border border-slate-800/80/80 overflow-y-auto max-h-[500px] custom-scrollbar text-slate-300 font-sans shadow-inner selection:bg-cyan-500/20 leading-relaxed font-sans prose prose-invert prose-headings:text-slate-100 prose-strong:text-cyan-200">
                               <ReactMarkdown>{synthAiResult}</ReactMarkdown>
                             </div>
 
@@ -11157,7 +11215,7 @@ ${
                             </div>
                           </div>
                         ) : (
-                          <div className="py-14 px-6 bg-slate-950/40 border border-slate-800/60 rounded-2xl text-center flex flex-col items-center justify-center">
+                          <div className="py-14 px-6 bg-[#03060C]/40 border border-slate-800/80/60 rounded-2xl text-center flex flex-col items-center justify-center">
                             <Database className="w-10 h-10 text-slate-600 mb-4 stroke-[1.5]" />
                             <h5 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-1.5">
                               Adaptive Hydrothermal Solid-Solution Route Advisor
@@ -11180,7 +11238,7 @@ ${
                 </div>
 
                 {/* Improved Neural Attention Mapping */}
-                <div className="mt-14 pt-12 border-t border-[#1e293b] relative">
+                <div className="mt-14 pt-12 border-t border-slate-800/80 hover:border-slate-700 relative">
                   {/* Glow from line */}
                   <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
 
@@ -11264,7 +11322,7 @@ ${
                           </div>
                         </div>
 
-                        <div className="relative p-4 sm:p-5 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2rem] border border-[#1e293b] overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group-hover/layer:border-slate-600/80 group-hover/layer:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-500 z-10 cursor-crosshair">
+                        <div className="relative p-4 sm:p-5 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2rem] border border-slate-800/80 hover:border-slate-700 overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group-hover/layer:border-slate-600/80 group-hover/layer:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-500 z-10 cursor-crosshair">
                           {/* Scanline Effect */}
                           <motion.div
                             className="absolute inset-y-0 w-[150%] bg-gradient-to-r from-transparent via-white-[0.05] to-transparent z-20 pointer-events-none"
@@ -11327,7 +11385,7 @@ ${
                                   className={`aspect-square rounded-md relative overflow-hidden group/cell`}
                                 >
                                   <div
-                                    className={`absolute inset-0 rounded-md bg-gradient-to-br border ${isActive ? `border-white/30 ${layer.color}` : "border-[#1e293b]/50 bg-[#070D18]"} shadow-inner transition-colors`}
+                                    className={`absolute inset-0 rounded-md bg-gradient-to-br border ${isActive ? `border-white/30 ${layer.color}` : "border-slate-800/80 hover:border-slate-700/50 bg-[#070D18]"} shadow-inner transition-colors`}
                                   />
                                   {isActive && intensity > 0.6 && (
                                     <div
@@ -11347,7 +11405,7 @@ ${
                         </div>
 
                         <div className="flex justify-between items-center px-3 relative z-10 pt-2">
-                          <div className="h-1.5 flex-1 bg-[#050B14] rounded-full overflow-hidden mr-5 shadow-inner border border-[#1e293b]">
+                          <div className="h-1.5 flex-1 bg-[#050A14] rounded-full overflow-hidden mr-5 shadow-inner border border-slate-800/80 hover:border-slate-700">
                             <motion.div
                               className={`h-full bg-gradient-to-r ${layer.color} relative`}
                               initial={{ width: "40%" }}
@@ -11375,7 +11433,7 @@ ${
                     ))}
                   </div>
 
-                  <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 p-6 sm:p-8 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2.5rem] border border-[#1e293b] shadow-[inset_0_2px_30px_rgba(255,255,255,0.02)] relative overflow-hidden group/metrics">
+                  <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 p-6 sm:p-8 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_30px_rgba(255,255,255,0.02)] relative overflow-hidden group/metrics">
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.08),transparent_60%)] pointer-events-none group-hover/metrics:bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.12),transparent_70%)] transition-colors duration-1000" />
                     {[
                       {
@@ -11440,7 +11498,7 @@ ${
                 </div>
 
                 {/* Verification Checklist */}
-                <div className="mt-14 pt-12 border-t border-[#1e293b]">
+                <div className="mt-14 pt-12 border-t border-slate-800/80 hover:border-slate-700">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
                       <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1 flex items-center gap-2">
@@ -11452,7 +11510,7 @@ ${
                       </p>
                     </div>
                     {selectedCandidate && (
-                      <div className="flex items-center gap-4 bg-slate-950/80 px-4 py-2 rounded-xl border border-[#1e293b]">
+                      <div className="flex items-center gap-4 bg-[#03060C]/80 px-4 py-2 rounded-xl border border-slate-800/80 hover:border-slate-700">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">
                           Protocol Integrity Grade:
                         </span>
@@ -11480,13 +11538,13 @@ ${
                   </div>
 
                   {/* ML Validation Sub-Tabs selector */}
-                  <div className="flex flex-wrap items-center gap-2 mb-8 bg-[#040812] p-1.5 rounded-3xl border border-slate-800/80 max-w-4xl">
+                  <div className="flex flex-wrap items-center gap-2 mb-8 bg-[#040812] p-1.5 rounded-3xl border border-slate-800/80/80 max-w-4xl">
                     <button
                       onClick={() => setSelectedValidationTab('audit')}
                       className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === 'audit'
                           ? 'bg-indigo-600/25 border border-indigo-500/50 text-white shadow-[inset_0_1px_10px_rgba(99,102,241,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-slate-900/40'
+                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
                       }`}
                     >
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
@@ -11497,7 +11555,7 @@ ${
                       className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === 'robustness'
                           ? 'bg-fuchsia-600/25 border border-fuchsia-500/50 text-white shadow-[inset_0_1px_10px_rgba(217,70,239,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-slate-900/40'
+                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
                       }`}
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5 text-fuchsia-400" />
@@ -11508,7 +11566,7 @@ ${
                       className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === 'confusion'
                           ? 'bg-cyan-600/25 border border-cyan-500/50 text-white shadow-[inset_0_1px_10px_rgba(34,211,238,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-slate-900/40'
+                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
                       }`}
                     >
                       <Activity className="w-3.5 h-3.5 text-cyan-400" />
@@ -11519,7 +11577,7 @@ ${
                       className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === ('training' as any)
                           ? 'bg-emerald-600/25 border border-emerald-500/50 text-white shadow-[inset_0_1px_10px_rgba(16,185,129,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-slate-900/40'
+                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
                       }`}
                     >
                       <Cpu className="w-3.5 h-3.5 text-emerald-400" />
@@ -11542,7 +11600,7 @@ ${
                               className={`relative flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer group hover:bg-[#080E1A] shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] ${
                                 selectedAuditLog === i
                                   ? "bg-[#081120]/80 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.08)]"
-                                  : "bg-[#050B14] border-[#1e293b] hover:border-slate-700/60"
+                                  : "bg-[#050A14] border-slate-800/80 hover:border-slate-700 hover:border-slate-700/60"
                               }`}
                             >
                               <div className="flex items-center gap-4 flex-1">
@@ -11559,7 +11617,7 @@ ${
                                     type="checkbox"
                                     checked={isChecked}
                                     onChange={() => {}}
-                                    className="peer w-5 h-5 rounded-[4px] border-[#1e293b] bg-slate-900/50 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 cursor-pointer transition-all"
+                                    className="peer w-5 h-5 rounded-[4px] border-slate-800/80 hover:border-slate-700 bg-[#050A14]/50 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 cursor-pointer transition-all"
                                   />
                                   <div className="absolute inset-0 pointer-events-none rounded-[4px] peer-checked:shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-shadow" />
                                 </div>
@@ -11590,13 +11648,13 @@ ${
                       </div>
 
                       {/* Right Side: Verification Ledger */}
-                      <div className="w-full bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 relative overflow-hidden min-h-[380px] flex flex-col justify-between shadow-lg">
+                      <div className="w-full bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 relative overflow-hidden min-h-[380px] flex flex-col justify-between shadow-lg">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
 
                         {selectedAuditLog !== null ? (
                           <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between border-b border-[#1e293b] pb-4">
+                              <div className="flex items-center justify-between border-b border-slate-800/80 hover:border-slate-700 pb-4">
                                 <span className="text-[10px] font-black font-mono text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                                   <Activity className="w-3.5 h-3.5" />
                                   Audit Ledger ID_{selectedAuditLog + 1}
@@ -11615,7 +11673,7 @@ ${
                                 </p>
                               </div>
 
-                              <div className="bg-slate-950 p-4 rounded-xl border border-[#1e293b] font-mono text-center">
+                              <div className="bg-[#03060C] p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 font-mono text-center">
                                 <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">
                                   Calculated Scientific Equation
                                 </span>
@@ -11633,7 +11691,7 @@ ${
                                   (step, idx) => (
                                     <div
                                       key={`step-${idx}`}
-                                      className="flex justify-between items-center bg-slate-950/60 border border-[#1e293b]/70 px-4 py-2.5 rounded-lg text-xs font-mono"
+                                      className="flex justify-between items-center bg-[#03060C]/60 border border-slate-800/80 hover:border-slate-700/70 px-4 py-2.5 rounded-lg text-xs font-mono"
                                     >
                                       <span className="text-slate-400 text-[10px] uppercase">
                                         {step.name}
@@ -11647,7 +11705,7 @@ ${
                               </div>
                             </div>
 
-                            <div className="pt-4 border-t border-[#1e293b] flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                            <div className="pt-4 border-t border-slate-800/80 hover:border-slate-700 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
                               <span>Cryptographic Signature: verified</span>
                               <span className="text-slate-400 font-bold">
                                 SHA-256_STABLE
@@ -11674,7 +11732,7 @@ ${
 
                       {/* Final Protocol Action Bar */}
                       {selectedCandidate && (
-                        <div className="w-full mt-4 p-6 bg-[#050B14] rounded-2xl border border-[#1e293b] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)]">
+                        <div className="w-full mt-4 p-6 bg-[#050A14] rounded-2xl border border-slate-800/80 hover:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)]">
                           <div className="flex items-center gap-3">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -11738,8 +11796,8 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
                     >
                       {/* Left: Perturbation Settings */}
-                      <div className="lg:col-span-5 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 space-y-6 shadow-lg">
-                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800">
+                      <div className="lg:col-span-5 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 space-y-6 shadow-lg">
+                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
                           <SlidersHorizontal className="w-5 h-5 text-fuchsia-400" />
                           <span className="text-[11px] font-black font-mono text-fuchsia-400 uppercase tracking-widest">
                             Perturbation Settings
@@ -11761,7 +11819,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 setNoiseLevel(Number(e.target.value));
                                 setPerturbationScore(null);
                               }}
-                              className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
+                              className="w-full h-1.5 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
                             />
                             <p className="text-[8.5px] text-slate-500 leading-normal">
                               Simulates high thermal vibrations, dark current instrumental errors, or rapid synchrotron beam degradation.
@@ -11782,7 +11840,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 setBackgroundDrift(Number(e.target.value));
                                 setPerturbationScore(null);
                               }}
-                              className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
+                              className="w-full h-1.5 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
                             />
                             <p className="text-[8.5px] text-slate-500 leading-normal">
                               Simulates fluorescent amorphous humps, sample holder displacement skew, or incorrect slit height scaling.
@@ -11821,12 +11879,12 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       </div>
 
                       {/* Right: Results Display & Diagnostic */}
-                      <div className="lg:col-span-7 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 min-h-[380px] flex flex-col justify-between relative overflow-hidden shadow-lg">
+                      <div className="lg:col-span-7 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 min-h-[380px] flex flex-col justify-between relative overflow-hidden shadow-lg">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-[40px] pointer-events-none" />
 
                         <div className="space-y-6 flex-1 flex flex-col justify-between">
                           <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
                               <span className="text-[10px] font-black font-mono text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
                                 <Activity className="w-3.5 h-3.5" />
                                 Stress Diagnostic Matrix
@@ -11841,7 +11899,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                             </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex flex-col gap-1.5">
+                              <div className="p-4 rounded-2xl bg-[#03060C]/60 border border-slate-800/80/80 flex flex-col gap-1.5">
                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Unperturbed Score</span>
                                 <div className="text-2xl font-black font-mono text-white tracking-tight">
                                   {selectedCandidate?.mlValidationScore || 0}%
@@ -11849,7 +11907,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 <span className="text-[8.5px] font-medium text-slate-500">Perfect theoretical clean scan</span>
                               </div>
 
-                              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex flex-col gap-1.5 relative overflow-hidden">
+                              <div className="p-4 rounded-2xl bg-[#03060C]/60 border border-slate-800/80/80 flex flex-col gap-1.5 relative overflow-hidden">
                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Perturbed Score</span>
                                 <div className="text-2xl font-black font-mono text-fuchsia-400 tracking-tight">
                                   {perturbationScore !== null ? `${perturbationScore}%` : "---%"}
@@ -11862,7 +11920,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                             {/* Score Interpretation Badge */}
                             {perturbationScore !== null && (
-                              <div className="p-4 rounded-2xl border bg-slate-950/40 flex flex-col gap-2 relative overflow-hidden animate-in fade-in duration-300">
+                              <div className="p-4 rounded-2xl border bg-[#03060C]/40 flex flex-col gap-2 relative overflow-hidden animate-in fade-in duration-300">
                                 <div className="flex items-center gap-2">
                                   <div className={`w-2.5 h-2.5 rounded-full ${
                                     perturbationScore > 85 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' :
@@ -11895,7 +11953,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                             )}
                           </div>
 
-                          <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                          <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
                             <span>Noise-injection vector: active</span>
                             <span className="text-slate-400 font-bold">MONTE_CARLO_SIM</span>
                           </div>
@@ -11911,8 +11969,13 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-300"
                     >
                       {/* Left: Interactive 6x6 Confusion Heatmap Grid */}
-                      <div className="lg:col-span-7 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 shadow-lg">
-                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800 mb-6">
+                      <div className="lg:col-span-7 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group/matrix">
+                        {/* Custom Background Graphic */}
+                        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/matrix:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+                          <img src={deepLearningAnalysisBg} alt="Analysis Matrix" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                        </div>
+                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80 mb-6">
                           <Activity className="w-5 h-5 text-cyan-400" />
                           <span className="text-[11px] font-black font-mono text-cyan-400 uppercase tracking-widest">
                             Crystal System Multi-Class Matrix
@@ -11933,7 +11996,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 True \ Pred
                               </div>
                               {['Cubic', 'Tetra', 'Hexa', 'Ortho', 'Mono', 'Tric'].map(h => (
-                                <div key={h} className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider text-center p-2 bg-slate-950/40 rounded border border-slate-800/40">
+                                <div key={h} className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider text-center p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
                                   {h}
                                 </div>
                               ))}
@@ -11954,7 +12017,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 return rows.map((rowName) => (
                                   <React.Fragment key={rowName}>
                                     {/* Y-axis label column */}
-                                    <div className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider flex items-center justify-start p-2 bg-slate-950/40 rounded border border-slate-800/40">
+                                    <div className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider flex items-center justify-start p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
                                       {rowName.slice(0, 5)}...
                                     </div>
                                     {/* 6 classification projection columns */}
@@ -11977,7 +12040,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                               ? 'border-white ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)] z-10' 
                                               : isDiag 
                                                 ? 'border-cyan-500/20' 
-                                                : 'border-slate-800/40'
+                                                : 'border-slate-800/80/40'
                                           }`}
                                         >
                                           <span className="text-[10px] font-black font-mono text-white tracking-tighter tabular-nums leading-none">
@@ -12000,13 +12063,13 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       </div>
 
                       {/* Right: Neural Diagnostics for Selected Cell */}
-                      <div className="lg:col-span-5 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 min-h-[380px] flex flex-col justify-between shadow-lg relative overflow-hidden">
+                      <div className="lg:col-span-5 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 min-h-[380px] flex flex-col justify-between shadow-lg relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-[40px] pointer-events-none" />
 
                         {activeMatrixCell ? (
                           <div className="space-y-6 flex-1 flex flex-col justify-between">
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                              <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
                                 <span className="text-[10px] font-black font-mono text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
                                   <Activity className="w-3.5 h-3.5" />
                                   Operator Projection Ledger
@@ -12033,7 +12096,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 </p>
                               </div>
 
-                              <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 font-mono text-left">
+                              <div className="bg-[#03060C] p-4 rounded-xl border border-slate-900 font-mono text-left">
                                 <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">Structural Resolution Note</span>
                                 <span className="text-[10px] text-slate-300 font-medium">
                                   {activeMatrixCell.row === 'Cubic' && activeMatrixCell.col === 'Tetragonal' ? 'Cubic unit cells can shear into a Tetragonal crystal system under localized thermal gradient or epitaxial strain, mimicking identical base reflections.' :
@@ -12043,7 +12106,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </div>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                            <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
                               <span>Multi-class test size: N = 10,000</span>
                               <span className="text-slate-400 font-bold">F1_SCORE: 0.892</span>
                             </div>
@@ -12074,8 +12137,13 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-300 text-left"
                     >
                       {/* Left: Hyperparameters & Synthetic Augmentations */}
-                      <div className="lg:col-span-5 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 space-y-6 shadow-lg">
-                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800">
+                      <div className="lg:col-span-5 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 space-y-6 shadow-2xl relative overflow-hidden group/calib">
+                        {/* Custom Background Graphic */}
+                        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/calib:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+                          <img src={deepLearningAnalysisBg} alt="Network Calibration" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                        </div>
+                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
                           <Cpu className="w-5 h-5 text-emerald-400" />
                           <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
                             Deep Learning Network Calibration
@@ -12090,7 +12158,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               <select 
                                 value={trainArch} 
                                 onChange={(e) => setTrainArch(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
                               >
                                 <option value="Feedforward MLP">Feedforward MLP</option>
                                 <option value="Deep MLP">Deep MLP (128 to 64)</option>
@@ -12102,7 +12170,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               <select 
                                 value={trainActivation} 
                                 onChange={(e) => setTrainActivation(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
                               >
                                 <option value="GELU">GELU Activation</option>
                                 <option value="ReLU">ReLU Activation</option>
@@ -12121,7 +12189,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               <select 
                                 value={trainOptimizer} 
                                 onChange={(e) => setTrainOptimizer(e.target.value)}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
                               >
                                 <option value="Adam">Adam (Rolling beta)</option>
                                 <option value="RMSprop">RMSprop Decay</option>
@@ -12133,7 +12201,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               <select 
                                 value={trainDropout} 
                                 onChange={(e) => setTrainDropout(Number(e.target.value))}
-                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
                               >
                                 <option value={0}>0.0 (No Dropout)</option>
                                 <option value={0.1}>0.1 Regularization</option>
@@ -12156,7 +12224,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 value={String(trainEpochs) === 'NaN' ? '' : trainEpochs} 
                                 step="10"
                                 onChange={(e) => setTrainEpochs(Number(e.target.value))}
-                                className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-emerald-500"
                               />
                             </div>
 
@@ -12173,12 +12241,12 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 step="0.001"
                                 value={String(trainLR) === 'NaN' ? '' : trainLR} 
                                 onChange={(e) => setTrainLR(Number(e.target.value))}
-                                className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-emerald-500"
                               />
                             </div>
                           </div>
 
-                          <div className="pt-2 border-t border-slate-800 space-y-3">
+                          <div className="pt-2 border-t border-slate-800/80 space-y-3">
                             <span className="text-[10px] font-black font-mono text-slate-500 uppercase tracking-widest block">
                               Physics-Based Synthetic Augmenter
                             </span>
@@ -12196,7 +12264,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 step="0.5"
                                 value={String(trainStrainRange) === 'NaN' ? '' : trainStrainRange} 
                                 onChange={(e) => setTrainStrainRange(Number(e.target.value))}
-                                className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
                               />
                             </div>
 
@@ -12213,7 +12281,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 step="0.05"
                                 value={String(trainBroadeningRange) === 'NaN' ? '' : trainBroadeningRange} 
                                 onChange={(e) => setTrainBroadeningRange(Number(e.target.value))}
-                                className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
                               />
                             </div>
 
@@ -12230,7 +12298,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                   step="2"
                                   value={String(trainNoiseLevel) === 'NaN' ? '' : trainNoiseLevel} 
                                   onChange={(e) => setTrainNoiseLevel(Number(e.target.value))}
-                                  className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                                  className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
                                 />
                               </div>
                               <div className="space-y-1">
@@ -12245,7 +12313,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                   step="1"
                                   value={String(trainBgDrift) === 'NaN' ? '' : trainBgDrift} 
                                   onChange={(e) => setTrainBgDrift(Number(e.target.value))}
-                                  className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                                  className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
                                 />
                               </div>
                             </div>
@@ -12280,8 +12348,13 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       {/* Right: Visualization & Classroom Interactive Tutor */}
                       <div className="lg:col-span-7 space-y-6">
                         {/* Terminal Logs or Loss Profiles Card */}
-                        <div className="bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 shadow-lg min-h-[300px] flex flex-col justify-between">
-                          <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4 w-full">
+                        <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 shadow-2xl min-h-[300px] flex flex-col justify-between relative overflow-hidden group/monitor">
+                          {/* Custom Background Graphic */}
+                          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/monitor:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+                            <img src={deepLearningAnalysisBg} alt="Model Optimizer Monitor" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                          </div>
+                          <div className="flex items-center justify-between pb-4 border-b border-slate-800/80 mb-4 w-full">
                             <div className="flex items-center gap-2">
                               <Activity className="w-5 h-5 text-emerald-400" />
                               <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
@@ -12297,7 +12370,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                           {/* Terminal Output Logs when training or initial state */}
                           {(isTrainingNet || trainingLogs.length > 0) && trainingHistory.length === 0 && (
-                            <div className="flex-1 bg-slate-950/80 rounded-2xl p-4 border border-slate-800 font-mono text-left overflow-y-auto max-h-[340px] shadow-inner space-y-2 select-all h-[240px]">
+                            <div className="flex-1 bg-[#03060C]/80 rounded-2xl p-4 border border-slate-800/80 font-mono text-left overflow-y-auto max-h-[340px] shadow-inner space-y-2 select-all h-[240px]">
                               {trainingLogs.map((log, lidx) => (
                                 <div key={`log-${lidx}`} className="text-xs flex items-start gap-2 text-emerald-400/90 tracking-wide leading-relaxed">
                                   <span className="text-emerald-600 font-black">▶</span>
@@ -12348,19 +12421,19 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               {/* Small details stats card */}
                               {trainMetrics && (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 text-left">
+                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
                                     <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Train Accuracy</span>
                                     <span className="text-xs font-black font-mono text-emerald-400 tabular-nums">{trainMetrics.final_train_acc}%</span>
                                   </div>
-                                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 text-left">
+                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
                                     <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">CV Val Accuracy</span>
                                     <span className="text-xs font-black font-mono text-indigo-400 tabular-nums">{trainMetrics.final_val_acc}%</span>
                                   </div>
-                                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 text-left">
+                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
                                     <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Validation Loss</span>
                                     <span className="text-xs font-black font-mono text-rose-400 tabular-nums">{trainMetrics.final_val_loss}</span>
                                   </div>
-                                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 text-left">
+                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
                                     <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Solve Duration</span>
                                     <span className="text-xs font-black font-mono text-teal-400 tabular-nums">{trainMetrics.training_time_sec}s</span>
                                   </div>
@@ -12371,8 +12444,8 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         </div>
 
                         {/* Interactive Classroom & AI Tutor Chat Panel */}
-                        <div className="bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 shadow-lg space-y-6">
-                          <div className="flex items-center gap-2 pb-4 border-b border-slate-800">
+                        <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 shadow-lg space-y-6">
+                          <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
                             <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
                             <span className="text-[11px] font-black font-mono text-amber-400 uppercase tracking-widest">
                               Deep Learning Crystallography Classroom
@@ -12380,7 +12453,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           </div>
 
                           {/* Lesson Buttons */}
-                          <div className="grid grid-cols-3 gap-2 bg-slate-950 p-1 rounded-2xl border border-slate-900">
+                          <div className="grid grid-cols-3 gap-2 bg-[#03060C] p-1 rounded-2xl border border-slate-900">
                             <button
                               onClick={() => {
                                 setSelectedTutorLesson("lesson1");
@@ -12430,7 +12503,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 <p>
                                   Traditional neural networks struggle with sparse discrete peak inputs. Our system solves this by transforming discrete XRD peak catalogs into a 1D continuous waveform spectrum mapping unit cell dimensions. Let $y(\theta)$ fit:
                                 </p>
-                                <div className="p-3 bg-slate-950 rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
+                                <div className="p-3 bg-[#03060C] rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
                                   {"y(\u03b8) = \u03a3_{i} I_i exp( -0.5 \u22c5 (( \u03b8 - (1 + k)\u03b8_i ) / \u03c3_i)\u00b2 )"}
                                 </div>
                                 <p>
@@ -12445,7 +12518,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 <p>
                                   We employ GELU (Gaussian Error Linear Unit) activations for high-order gradient stability. Crucially, GELU scales activations non-linearly using local expectations:
                                 </p>
-                                <div className="p-3 bg-slate-950 rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
+                                <div className="p-3 bg-[#03060C] rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
                                   {"GELU(x) \u2248 0.5 \u22c5 x \u22c5 (1 + tanh( \u221a(2/\u03c0) \u22c5 (x + 0.044715 \u22c5 x\u00b3) ))"}
                                 </div>
                                 <p>
@@ -12460,7 +12533,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 <p>
                                   Pure ML classifiers suffer from severe out-of-domain extrapolation failure. We introduce a **Physics-Informed Hybrid** decision model. The final material confidence blends the continuous physical cosine overlap profile with the MLP neural class likelihood:
                                 </p>
-                                <div className="p-3 bg-slate-950 rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
+                                <div className="p-3 bg-[#03060C] rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
                                   {"Combined_Similarity = w_1 \u22c5 S_overlap(\u03b8) + w_2 \u22c5 P_MLP(class | x)"}
                                 </div>
                                 <p>
@@ -12487,7 +12560,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                     }
                                   }}
                                   placeholder="Ask e.g. Why does adam converge faster? or How do synthetic augmentations help?"
-                                  className="flex-1 bg-slate-950 border border-slate-800/80 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
+                                  className="flex-1 bg-[#03060C] border border-slate-800/80/80 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
                                 />
                                 <button
                                   disabled={isTutorLoading || !tutorUserQuery.trim()}
@@ -12501,7 +12574,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                             {/* Tutor Answer Markdown renderer */}
                             {tutorOutputText && (
-                              <div className="bg-slate-950/65 rounded-2xl border border-slate-900 p-5 mt-4 text-left leading-normal text-xs text-slate-200">
+                              <div className="bg-[#03060C]/65 rounded-2xl border border-slate-900 p-5 mt-4 text-left leading-normal text-xs text-slate-200">
                                 <span className="text-[8px] font-black font-mono text-amber-400 uppercase tracking-widest block mb-2">
                                   Advisor Tutor Answer
                                 </span>
@@ -12527,7 +12600,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
             (c) => c.confidence_score >= engineConfig.confidenceThreshold,
           ).length === 0 &&
             result && (
-              <div className="bg-slate-900 p-8 rounded-[1.5rem] border border-slate-800 text-center">
+              <div className="bg-[#050A14] p-8 rounded-[1.5rem] border border-slate-800/80 text-center">
                 <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">
                   No phases meet the confidence threshold of{" "}
                   {engineConfig.confidenceThreshold}%
@@ -12550,8 +12623,8 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
               <div
                 key={`${candidate.phase_name}-${idx}`}
                 onClick={() => setSelectedCandidate(candidate)}
-                className={`bg-slate-900 p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-300 group overflow-hidden relative
-                 ${selectedCandidate?.phase_name === candidate.phase_name ? "border-violet-500/50 shadow-[0_0_30px_rgba(139,92,246,0.15)] bg-slate-950" : "border-slate-800 hover:border-violet-500/30 hover:bg-slate-800/50"}
+                className={`bg-[#050A14] p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-300 group overflow-hidden relative
+                 ${selectedCandidate?.phase_name === candidate.phase_name ? "border-violet-500/50 shadow-[0_0_30px_rgba(139,92,246,0.15)] bg-[#03060C]" : "border-slate-800/80 hover:border-violet-500/30 hover:bg-slate-800/50"}
                `}
               >
                 {selectedCandidate?.phase_name === candidate.phase_name && (
@@ -12568,7 +12641,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                            ? "bg-gradient-to-br from-slate-700 to-slate-800 text-slate-300 border-slate-600"
                            : idx === 2
                              ? "bg-gradient-to-br from-amber-500/20 to-amber-600/20 text-amber-400 border-amber-500/30"
-                             : "bg-slate-900 text-slate-600 border-slate-800"
+                             : "bg-[#050A14] text-slate-600 border-slate-800/80"
                      }
                    `}
                     >
@@ -12617,7 +12690,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                   </div>
                   <div className="flex flex-col items-end w-full md:w-auto">
                     <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0">
-                      <div className="flex-1 md:w-32 bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800 shadow-inner">
+                      <div className="flex-1 md:w-32 bg-[#050A14] rounded-full h-1.5 overflow-hidden border border-slate-800/80 shadow-inner">
                         <div
                           className={`h-full rounded-none transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? "bg-emerald-500" : candidate.confidence_score > 50 ? "bg-violet-500" : "bg-amber-500"}`}
                           style={{ width: `${candidate.confidence_score}%` }}
@@ -12638,32 +12711,131 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                 </div>
 
                 {selectedCandidate?.phase_name === candidate.phase_name && (
-                  <div className="mt-8 pt-6 border-t border-[#1e293b] animate-in slide-in-from-top-4 relative z-10">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-400" />{" "}
-                      Feature Alignment Verification
-                    </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                      {candidate.matched_peaks?.map((mp, i) => (
-                        <div
-                          key={`peak-${mp.refT}-${i}`}
-                          className="bg-[#050B14] p-2 rounded-xl border border-[#1e293b] flex flex-col justify-center group-hover:border-slate-700 transition-colors shadow-inner relative"
-                        >
-                          <div className="flex justify-between items-center w-full">
-                            <span className="text-slate-400 font-mono text-xs">
-                              {mp.refT.toFixed(2)}°
-                            </span>
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                          </div>
-                          {mp.h !== undefined &&
-                            mp.k !== undefined &&
-                            mp.l !== undefined && (
-                              <span className="text-[9px] text-teal-500/70 font-mono font-black mt-1">
-                                ({mp.h} {mp.k} {mp.l})
-                              </span>
-                            )}
+                  <div className="mt-8 pt-6 border-t border-slate-800/80 hover:border-slate-700 animate-in slide-in-from-top-4 relative z-10 space-y-6">
+                    {/* Quantitative Residuals & Figure of Merit */}
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-cyan-400" />{" "}
+                        Phase Identification Residuals & Figure of Merit
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
+                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">Rwp Residual</span>
+                          <span className="text-sm font-mono font-black text-emerald-400 drop-shadow-sm">
+                            {candidate.rwp !== undefined ? `${candidate.rwp.toFixed(2)}%` : "N/A"}
+                          </span>
+                          <span className="text-[8px] text-slate-600">Weighted Pattern Error</span>
                         </div>
-                      ))}
+                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
+                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">Rp Residual</span>
+                          <span className="text-sm font-mono font-black text-cyan-400 drop-shadow-sm">
+                            {candidate.rp !== undefined ? `${candidate.rp.toFixed(2)}%` : "N/A"}
+                          </span>
+                          <span className="text-[8px] text-slate-600">Pattern Profile Error</span>
+                        </div>
+                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
+                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">GoF (χ²)</span>
+                          <span className="text-sm font-mono font-black text-violet-400 drop-shadow-sm">
+                            {candidate.gof !== undefined ? candidate.gof.toFixed(2) : "N/A"}
+                          </span>
+                          <span className="text-[8px] text-slate-600">Goodness of Fit</span>
+                        </div>
+                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
+                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">RMS 2θ Shift</span>
+                          <span className="text-sm font-mono font-black text-amber-400 drop-shadow-sm">
+                            {candidate.rmsAngleShift !== undefined ? `${candidate.rmsAngleShift.toFixed(4)}°` : "N/A"}
+                          </span>
+                          <span className="text-[8px] text-slate-600">Lattice Contraction/Strain</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Biomedical & Pharmaceutical Intelligence Metrics Card */}
+                    {(candidate.caPRatio || candidate.bioactivityIndex || candidate.polymorphType || candidate.excipientRole) && (
+                      <div className="bg-gradient-to-r from-teal-950/30 via-emerald-950/20 to-slate-900/40 p-4 rounded-xl border border-teal-500/30 shadow-md">
+                        <p className="text-[10px] font-black text-teal-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                          <FlaskConical className="w-4 h-4 text-emerald-400" />{" "}
+                          Biomedical, Bioceramic & Pharmaceutical Intelligence
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                          {candidate.caPRatio !== undefined && (
+                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-teal-500/20 flex flex-col gap-1">
+                              <span className="text-[9px] font-mono text-teal-400 uppercase tracking-widest font-black">Ca/P Atomic Ratio</span>
+                              <span className="text-sm font-mono font-black text-teal-300">
+                                {candidate.caPRatio.toFixed(2)}
+                              </span>
+                              <span className="text-[8px] text-slate-400">
+                                {candidate.caPRatio >= 1.66 ? "Stoichiometric Apatite Mineral" : candidate.caPRatio >= 1.49 ? "Tricalcium Phosphate (TCP) Resorbable" : "Acidic Calcium Phosphate Cement Phase"}
+                              </span>
+                            </div>
+                          )}
+
+                          {candidate.bioactivityIndex && (
+                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-emerald-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2">
+                              <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-widest font-black">SBF Bioactivity & Tissue Integration</span>
+                              <span className="text-xs font-mono font-bold text-emerald-200">
+                                {candidate.bioactivityIndex}
+                              </span>
+                              {candidate.resorbabilityClass && (
+                                <span className="text-[9px] text-slate-400 mt-0.5">
+                                  In-Vivo Remodeling: <span className="text-emerald-300 font-bold">{candidate.resorbabilityClass}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {candidate.polymorphType && (
+                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-cyan-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2 md:col-span-3">
+                              <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest font-black">Pharmaceutical API Polymorphic Designation</span>
+                              <span className="text-xs font-mono font-bold text-cyan-200">
+                                {candidate.polymorphType}
+                              </span>
+                            </div>
+                          )}
+
+                          {candidate.excipientRole && (
+                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-indigo-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2 md:col-span-3">
+                              <span className="text-[9px] font-mono text-indigo-400 uppercase tracking-widest font-black">Solid Dosage Excipient Functionality</span>
+                              <span className="text-xs font-mono font-bold text-indigo-200">
+                                {candidate.excipientRole}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Matched Reflections Indexing */}
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />{" "}
+                        Bragg Peak Alignment Verification ({candidate.matched_peaks?.length || 0} reflections)
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                        {candidate.matched_peaks?.map((mp, i) => (
+                          <div
+                            key={`peak-${mp.refT}-${i}`}
+                            className="bg-[#03060C] p-2.5 rounded-xl border border-slate-800/80 hover:border-violet-500/40 flex flex-col justify-center transition-colors shadow-inner relative group"
+                          >
+                            <div className="flex justify-between items-center w-full">
+                              <span className="text-slate-300 font-mono font-black text-xs">
+                                {mp.refT.toFixed(2)}°
+                              </span>
+                              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                            </div>
+                            <div className="flex items-center justify-between mt-1 text-[9px] font-mono">
+                              {mp.h !== undefined && mp.k !== undefined && mp.l !== undefined ? (
+                                <span className="text-teal-400 font-black">
+                                  ({mp.h} {mp.k} {mp.l})
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">Ref Peak</span>
+                              )}
+                              <span className="text-slate-400 font-bold">I={mp.refI.toFixed(0)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -12671,7 +12843,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
             ))}
 
           {!result && !isSimulating && (
-            <div className="h-48 flex flex-col items-center justify-center bg-slate-900 rounded-[2rem] border border-dashed border-slate-700 relative overflow-hidden group">
+            <div className="h-48 flex flex-col items-center justify-center bg-[#050A14] rounded-[2rem] border border-dashed border-slate-700 relative overflow-hidden group">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               <Brain className="w-12 h-12 mb-4 text-violet-500/50 group-hover:text-violet-400 hover:scale-110 transition-all duration-500 drop-shadow-md" />
               <p className="font-black text-xl text-slate-300 tracking-tight group-hover:text-white transition-colors">
@@ -12687,7 +12859,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
       {/* Lattice Assistant Modal */}
       {isLatticeModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050A14]/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="bg-slate-800 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -12780,7 +12952,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
               <div className="mt-8">
                 <button
                   onClick={() => setIsLatticeModalOpen(false)}
-                  className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest font-black"
+                  className="w-full bg-slate-800 hover:bg-[#050A14] text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest font-black"
                 >
                   Update Model
                 </button>
@@ -12800,25 +12972,25 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050A14]/60 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] border border-slate-200 overflow-hidden flex flex-col"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] border border-slate-200 overflow-hidden flex flex-col"
             >
-              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-5 text-white flex items-center justify-between shadow-md relative z-10">
+              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-5 text-white flex items-center justify-between shadow-md relative z-10 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-sm shadow-inner">
                     <Brain className="w-5 h-5 text-cyan-50" />
                   </div>
                   <div>
                     <h3 className="font-black text-lg leading-tight text-white tracking-tighter">
-                      AI Phase ID Analysis
+                      AI Phase ID Chat Assistant
                     </h3>
                     <p className="text-[10px] text-cyan-100 font-mono font-bold tracking-widest uppercase mt-0.5">
-                      Expert Crystallography Engine
+                      Interactive Crystallography Expert
                     </p>
                   </div>
                 </div>
@@ -12830,31 +13002,65 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                 </button>
               </div>
 
-              <div className="p-6 overflow-y-auto flex-1 bg-slate-50 relative">
-                {isAiLoading ? (
-                  <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div ref={chatScrollRef} className="p-6 overflow-y-auto flex-1 bg-slate-50 relative space-y-6">
+                {aiChatHistory.length === 0 && isAiLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full space-y-4">
                     <div className="relative">
                       <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-20 rounded-full animate-pulse" />
                       <Activity className="w-10 h-10 text-cyan-500 animate-spin relative z-10" />
                     </div>
                     <p className="font-bold text-slate-500 font-mono text-xs uppercase tracking-widest animate-pulse">
-                      Processing Diffraction Data...
+                      Analyzing Initial Diffraction Data...
                     </p>
                   </div>
                 ) : (
-                  <div className="prose prose-sm sm:prose-base max-w-none text-slate-700 prose-headings:text-slate-900 prose-headings:font-black prose-p:leading-relaxed prose-a:text-cyan-600">
-                    <ReactMarkdown>{aiAnalysisResult || ""}</ReactMarkdown>
-                  </div>
+                  <>
+                    {aiChatHistory.map((msg, idx) => (
+                      <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] rounded-2xl p-4 ${msg.role === 'user' ? 'bg-cyan-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 shadow-sm rounded-tl-sm text-slate-800'}`}>
+                          <div className="flex items-center gap-2 mb-2 opacity-70">
+                            {msg.role === 'user' ? <Focus className="w-4 h-4" /> : <Brain className="w-4 h-4" />}
+                            <span className="text-xs font-bold uppercase tracking-widest">{msg.role === 'user' ? 'You' : 'AI Assistant'}</span>
+                          </div>
+                          <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'text-white prose-headings:text-white prose-a:text-cyan-200' : 'text-slate-700 prose-headings:text-slate-900 prose-a:text-cyan-600'}`}>
+                            <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {isAiLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl rounded-tl-sm p-4 flex items-center gap-3">
+                          <Activity className="w-5 h-5 text-cyan-500 animate-spin" />
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Thinking...</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
-              <div className="p-4 bg-white border-t border-slate-100 flex justify-end">
-                <button
-                  onClick={() => setShowAiModal(false)}
-                  className="px-6 py-2.5 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-colors shadow-md"
+              <div className="p-4 bg-white border-t border-slate-100 shrink-0">
+                <form 
+                  onSubmit={(e) => { e.preventDefault(); handleSendAiChatMessage(); }}
+                  className="flex gap-3 max-w-4xl mx-auto"
                 >
-                  Close Analysis
-                </button>
+                  <input
+                    type="text"
+                    value={aiChatInput}
+                    onChange={(e) => setAiChatInput(e.target.value)}
+                    placeholder="Ask about phases, peak overlaps, or structure..."
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+                    disabled={isAiLoading}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isAiLoading || !aiChatInput.trim()}
+                    className="px-6 py-3 bg-cyan-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-cyan-500 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    Send <MoveRight className="w-4 h-4" />
+                  </button>
+                </form>
               </div>
             </motion.div>
           </motion.div>
