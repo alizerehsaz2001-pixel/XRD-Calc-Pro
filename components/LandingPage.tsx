@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useMotionValue, useSpring } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
+import { LinkedinIcon, GithubIcon } from './SocialIcons';
 import { getActiveMaterials } from '../utils/materialsHelper';
 import heroBg from '../src/assets/images/diffraction_hero_1785501736455.jpg';
 import aiAdvisorBg from '../src/assets/images/ai_science_advisor_1785501820938.jpg';
@@ -2098,12 +2099,35 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
              <p className="text-slate-500 text-sm font-medium leading-relaxed mb-12 max-w-sm">
                The global leader in AI-driven crystallographic computation. Trusted by researchers to push the boundaries of materials science.
              </p>
-             <div className="flex gap-4">
-                {[Globe, GitBranch, Globe, Mail].map((Icon, i) => (
-                  <a key={i} href="#" className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-violet-500/50 hover:bg-violet-500/10 transition-all">
-                    <Icon className="w-5 h-5" />
-                  </a>
-                ))}
+             <div className="flex flex-wrap gap-3">
+                <a 
+                  href="mailto:alizerehsaz2001@gmail.com" 
+                  title="Gmail: alizerehsaz2001@gmail.com"
+                  className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/10 transition-all text-xs font-bold"
+                >
+                  <Mail className="w-4 h-4 text-rose-400" />
+                  <span>Gmail</span>
+                </a>
+                <a 
+                  href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  title="LinkedIn: ali-zerehsaz-60818b249"
+                  className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/10 transition-all text-xs font-bold"
+                >
+                  <LinkedinIcon className="w-4 h-4 text-blue-400" />
+                  <span>LinkedIn</span>
+                </a>
+                <a 
+                  href="https://github.com/alizerehsaz2001-pixel" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  title="GitHub: alizerehsaz2001-pixel"
+                  className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-slate-400 hover:text-purple-400 hover:border-purple-500/40 hover:bg-purple-500/10 transition-all text-xs font-bold"
+                >
+                  <GithubIcon className="w-4 h-4 text-purple-400" />
+                  <span>GitHub</span>
+                </a>
              </div>
           </div>
           
@@ -2150,6 +2174,32 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 >
                   © 2026 XRD-CALC PRO • Designed by Ali Zerehsaz
                 </p>
+                <div className="flex items-center gap-2.5 my-1 text-[10px] font-mono">
+                  <a 
+                    href="mailto:alizerehsaz2001@gmail.com" 
+                    className="text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1"
+                  >
+                    <Mail className="w-3 h-3 text-rose-400" /> Gmail
+                  </a>
+                  <span className="text-slate-700">•</span>
+                  <a 
+                    href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
+                  >
+                    <LinkedinIcon className="w-3 h-3 text-blue-400" /> LinkedIn
+                  </a>
+                  <span className="text-slate-700">•</span>
+                  <a 
+                    href="https://github.com/alizerehsaz2001-pixel" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-slate-400 hover:text-purple-400 transition-colors flex items-center gap-1"
+                  >
+                    <GithubIcon className="w-3 h-3 text-purple-400" /> GitHub
+                  </a>
+                </div>
                 <p 
                   onClick={() => setFooterModal('about-creator')}
                   className="text-[9px] font-bold text-slate-600 hover:text-slate-400 transition-colors uppercase tracking-[0.15em] max-w-sm leading-relaxed cursor-pointer"

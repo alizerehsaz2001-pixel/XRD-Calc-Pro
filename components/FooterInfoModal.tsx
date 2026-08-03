@@ -31,8 +31,10 @@ import {
   Building2,
   Atom,
   Clock,
-  Sparkle
+  Sparkle,
+  Copy
 } from 'lucide-react';
+import { LinkedinIcon, GithubIcon } from './SocialIcons';
 
 export type FooterModalType = 
   | 'mission' 
@@ -76,6 +78,13 @@ export const FooterInfoModal: React.FC<FooterInfoModalProps> = ({
 }) => {
   const [contactSubmitted, setContactSubmitted] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', subject: 'Scientific Inquiry', message: '' });
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  const handleCopyEmail = () => {
+    navigator.clipboard.writeText('alizerehsaz2001@gmail.com');
+    setCopiedEmail(true);
+    setTimeout(() => setCopiedEmail(false), 2000);
+  };
 
   if (!isOpen || !modalType) return null;
 
@@ -464,7 +473,43 @@ export const FooterInfoModal: React.FC<FooterInfoModalProps> = ({
           icon: Mail,
           color: "from-rose-500 to-pink-600",
           body: (
-            <div>
+            <div className="space-y-5">
+              {/* Direct Developer Channels Banner */}
+              <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 border border-indigo-500/30 rounded-2xl space-y-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block">
+                  {isRTL ? "راهکارهای ارتباط مستقیم" : "Direct Developer Channels"}
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <a 
+                    href="mailto:alizerehsaz2001@gmail.com"
+                    className="p-2.5 bg-white/5 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 rounded-xl flex items-center gap-2.5 transition-all text-xs font-bold text-slate-200 hover:text-rose-300"
+                  >
+                    <Mail className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span className="truncate">alizerehsaz2001@gmail.com</span>
+                  </a>
+
+                  <a 
+                    href="https://www.linkedin.com/in/ali-zerehsaz-60818b249"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 bg-white/5 hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 rounded-xl flex items-center gap-2.5 transition-all text-xs font-bold text-slate-200 hover:text-blue-300"
+                  >
+                    <LinkedinIcon className="w-4 h-4 text-blue-400 shrink-0" />
+                    <span className="truncate">LinkedIn Profile</span>
+                  </a>
+
+                  <a 
+                    href="https://github.com/alizerehsaz2001-pixel"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 bg-white/5 hover:bg-purple-500/10 border border-white/10 hover:border-purple-500/30 rounded-xl flex items-center gap-2.5 transition-all text-xs font-bold text-slate-200 hover:text-purple-300"
+                  >
+                    <GithubIcon className="w-4 h-4 text-purple-400 shrink-0" />
+                    <span className="truncate">GitHub Profile</span>
+                  </a>
+                </div>
+              </div>
+
               {contactSubmitted ? (
                 <div className="p-8 text-center space-y-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
                   <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
@@ -630,6 +675,85 @@ export const FooterInfoModal: React.FC<FooterInfoModalProps> = ({
                 <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-center space-y-1">
                   <span className="text-2xl font-black text-emerald-400 font-mono">100%</span>
                   <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">{isRTL ? "دسترسی آزاد" : "Open Science"}</span>
+                </div>
+              </div>
+
+              {/* Developer Contact Channels */}
+              <div className="p-5 bg-slate-900/90 border border-indigo-500/30 rounded-2xl space-y-3">
+                <h5 className="text-xs font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-indigo-400" />
+                  {isRTL ? "ارتباط با توسعه‌دهنده" : "Developer Connections"}
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Gmail */}
+                  <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex flex-col justify-between hover:border-rose-500/40 transition-all group">
+                    <div className="flex items-center gap-2 text-rose-400 font-bold text-xs">
+                      <Mail className="w-4 h-4" />
+                      <span>Gmail</span>
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-300 truncate my-2" title="alizerehsaz2001@gmail.com">
+                      alizerehsaz2001@gmail.com
+                    </p>
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-white/5">
+                      <a 
+                        href="mailto:alizerehsaz2001@gmail.com" 
+                        className="flex-1 text-center py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Mail className="w-3 h-3" /> Mail
+                      </a>
+                      <button 
+                        onClick={handleCopyEmail}
+                        className="p-1.5 bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] rounded-lg transition-colors flex items-center gap-1"
+                        title="Copy email address"
+                      >
+                        {copiedEmail ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* LinkedIn */}
+                  <a 
+                    href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-3 bg-white/5 border border-white/10 rounded-xl flex flex-col justify-between hover:border-blue-500/40 transition-all group"
+                  >
+                    <div className="flex items-center justify-between text-blue-400 font-bold text-xs">
+                      <span className="flex items-center gap-2">
+                        <LinkedinIcon className="w-4 h-4" />
+                        <span>LinkedIn</span>
+                      </span>
+                      <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-blue-400 transition-colors" />
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-300 truncate my-2">
+                      ali-zerehsaz-60818b249
+                    </p>
+                    <span className="text-center py-1 bg-blue-500/20 group-hover:bg-blue-500/30 text-blue-300 text-[10px] font-bold rounded-lg transition-colors block">
+                      {isRTL ? "پروفایل لینکلین" : "View LinkedIn"}
+                    </span>
+                  </a>
+
+                  {/* GitHub */}
+                  <a 
+                    href="https://github.com/alizerehsaz2001-pixel" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-3 bg-white/5 border border-white/10 rounded-xl flex flex-col justify-between hover:border-purple-500/40 transition-all group"
+                  >
+                    <div className="flex items-center justify-between text-purple-400 font-bold text-xs">
+                      <span className="flex items-center gap-2">
+                        <GithubIcon className="w-4 h-4" />
+                        <span>GitHub</span>
+                      </span>
+                      <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-purple-400 transition-colors" />
+                    </div>
+                    <p className="text-[11px] font-mono text-slate-300 truncate my-2">
+                      alizerehsaz2001-pixel
+                    </p>
+                    <span className="text-center py-1 bg-purple-500/20 group-hover:bg-purple-500/30 text-purple-300 text-[10px] font-bold rounded-lg transition-colors block">
+                      {isRTL ? "پروفایل گیت‌هاب" : "View GitHub"}
+                    </span>
+                  </a>
                 </div>
               </div>
             </div>

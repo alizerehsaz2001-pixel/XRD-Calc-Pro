@@ -49,7 +49,8 @@ import { SettingsContext, LengthUnit } from './components/SettingsContext';
 import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail } from 'lucide-react';
+import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
@@ -1370,13 +1371,24 @@ const App: React.FC = () => {
               <FileDown className="w-4 h-4 animate-bounce" />
               {t('Export PDF Report', 'Export PDF Report')}
             </button>
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
-              <div className="mb-1 font-bold uppercase tracking-widest">v2.5.0 • {t('Lab Active')}</div>
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center space-y-1">
+              <div className="font-bold uppercase tracking-widest">v2.5.0 • {t('Lab Active')}</div>
               <div 
                 onClick={() => setAppFooterModal('about-creator')}
-                className="opacity-70 hover:opacity-100 hover:text-violet-400 transition-all cursor-pointer font-medium"
+                className="opacity-80 hover:opacity-100 hover:text-violet-400 transition-all cursor-pointer font-medium"
               >
                 {t('Designed by')} Ali Zerehsaz
+              </div>
+              <div className="flex items-center justify-center gap-2.5 pt-1">
+                <a href="mailto:alizerehsaz2001@gmail.com" title="Gmail: alizerehsaz2001@gmail.com" className="hover:text-rose-400 transition-colors">
+                  <Mail className="w-3.5 h-3.5" />
+                </a>
+                <a href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" target="_blank" rel="noopener noreferrer" title="LinkedIn: ali-zerehsaz-60818b249" className="hover:text-blue-400 transition-colors">
+                  <LinkedinIcon className="w-3.5 h-3.5" />
+                </a>
+                <a href="https://github.com/alizerehsaz2001-pixel" target="_blank" rel="noopener noreferrer" title="GitHub: alizerehsaz2001-pixel" className="hover:text-purple-400 transition-colors">
+                  <GithubIcon className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
           </div>
@@ -1895,6 +1907,32 @@ const App: React.FC = () => {
               >
                 XRD-Calc Pro {t('Laboratory Environment')} • {t('Designed by')} Ali Zerehsaz
               </p>
+              <div className="flex items-center justify-center gap-3 text-xs">
+                <a 
+                  href="mailto:alizerehsaz2001@gmail.com" 
+                  className="text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1 font-mono text-[11px]"
+                >
+                  <Mail className="w-3.5 h-3.5 text-rose-400" /> Gmail
+                </a>
+                <span className="text-slate-300 dark:text-slate-700">•</span>
+                <a 
+                  href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1 font-mono text-[11px]"
+                >
+                  <LinkedinIcon className="w-3.5 h-3.5 text-blue-400" /> LinkedIn
+                </a>
+                <span className="text-slate-300 dark:text-slate-700">•</span>
+                <a 
+                  href="https://github.com/alizerehsaz2001-pixel" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-slate-400 hover:text-purple-400 transition-colors flex items-center gap-1 font-mono text-[11px]"
+                >
+                  <GithubIcon className="w-3.5 h-3.5 text-purple-400" /> GitHub
+                </a>
+              </div>
               <p className="text-[10px] text-slate-400 dark:text-slate-600 max-w-2xl mx-auto italic leading-relaxed">
                 {t('Disclaimer')}
               </p>
