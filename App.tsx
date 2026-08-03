@@ -47,9 +47,10 @@ import { LatticeEstimator } from './components/LatticeEstimator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext, LengthUnit } from './components/SettingsContext';
 import { PeriodicTableModule } from './components/PeriodicTableModule';
+import { ScientificModuleNavigator } from './components/ScientificModuleNavigator';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom } from 'lucide-react';
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
@@ -212,6 +213,20 @@ const App: React.FC = () => {
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
   const [activeModule, setActiveModule] = useState<Module>('bragg');
+  const [isNavigatorOpen, setIsNavigatorOpen] = useState<boolean>(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false); // default false: FULL SCREEN for active section!
+
+  // Global Ctrl+K / Cmd+K listener to trigger module navigator
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsNavigatorOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
   const [skipIntros, setSkipIntros] = useState<boolean>(() => {
     return localStorage.getItem('xrd_skip_intros') === 'true';
   });
@@ -1305,7 +1320,7 @@ const App: React.FC = () => {
         <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
         {/* Sidebar Navigation */}
-        <aside className={`hidden md:flex w-72 flex-col ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-r h-full shrink-0 z-20 shadow-2xl relative transition-colors`}>
+        <aside className={`${isSidebarPinned ? 'hidden md:flex w-72' : 'hidden'} flex-col ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-r h-full shrink-0 z-20 shadow-2xl relative transition-all duration-300`}>
           <div className={`p-6 border-b ${theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black' : 'border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50'} flex items-center gap-3 backdrop-blur-md group`}>
              <div className={`w-10 h-10 ${theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_15px_rgba(255,0,255,0.5)]' : 'bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-xl shadow-indigo-500/20'} rounded-xl flex items-center justify-center text-white font-bold text-xl border border-white/10 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 relative overflow-hidden`}>
                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent_70%)]" />
@@ -1449,27 +1464,28 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="w-full">
-                <select
-                  value={activeModule}
-                  onChange={(e) => {
-                    setActiveModule(e.target.value as Module);
-                    playSynthTone('switch');
-                  }}
-                  className={`block w-full rounded-xl border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'} py-2 px-3 text-xs outline-none font-medium shadow-inner appearance-none bg-no-repeat transition-all`}
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                    backgroundPosition: `right 0.75rem center`,
-                    backgroundSize: `1em 1em`
-                  }}
-                >
-                  {Array.from(new Set(modules.map(m => m.group || ''))).map(group => (
-                    <optgroup key={group} label={group} className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">
-                      {modules.filter(m => (m.group || '') === group).map(m => (
-                        <option key={m.id} value={m.id}>{m.label}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+              <button
+                onClick={() => {
+                  setIsNavigatorOpen(true);
+                  playSynthTone('switch');
+                }}
+                className={`w-full py-2.5 px-3.5 rounded-xl border flex items-center justify-between gap-2 shadow-sm font-bold text-xs transition-all cursor-pointer ${
+                  theme === 'cyberpunk'
+                    ? 'bg-black border-cyber-accent text-cyber-accent'
+                    : 'bg-indigo-500/10 dark:bg-indigo-950/50 border-indigo-500/30 text-indigo-900 dark:text-indigo-200 hover:bg-indigo-500/20'
+                }`}
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="p-1 rounded-md bg-indigo-600 text-white shrink-0">
+                    {getModuleIcon(activeModule, true)}
+                  </div>
+                  <span className="truncate">{modules.find(m => m.id === activeModule)?.label}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] font-mono text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-400/30 shrink-0">
+                  <span>{isRTL ? 'تغییر سکشن' : 'Change Section'}</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </div>
+              </button>
             </div>
           </div>
 
@@ -1502,19 +1518,72 @@ const App: React.FC = () => {
               )}
             </AnimatePresence>
             
-            {/* Left: Title & Badge */}
+            {/* Left: Brand, Module Switcher & Layout Toggles */}
             <div className="flex-1 flex items-center gap-3 justify-start overflow-hidden">
-              <div className="flex items-center gap-2">
-                <span className={`h-4 w-1 rounded-full ${
-                  theme === 'cyberpunk' ? 'bg-cyber-accent animate-pulse' : 'bg-indigo-500'
-                }`} />
-                {getModuleIcon(activeModule, true)}
-                <span className={`text-sm font-bold tracking-tight shrink-0 ${
-                  theme === 'cyberpunk' ? 'text-cyber-accent font-black uppercase tracking-wider' : 'text-slate-900 dark:text-white'
-                }`}>
-                  {modules.find(m => m.id === activeModule)?.label || activeModule}
+              {!isSidebarPinned && (
+                <div 
+                  onClick={() => setIsNavigatorOpen(true)}
+                  className="flex items-center gap-2 cursor-pointer group shrink-0 mr-1"
+                  title="Open Module Navigator"
+                >
+                  <div className={`w-8 h-8 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-gradient-to-tr from-indigo-600 to-violet-500'} rounded-lg flex items-center justify-center text-white font-bold text-base shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform`}>
+                    λ
+                  </div>
+                  <span className={`font-black text-lg tracking-tight ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} leading-none`}>
+                    XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400 font-bold'}>Pro</span>
+                  </span>
+                </div>
+              )}
+
+              {/* Scientific Switcher Trigger Button */}
+              <button
+                onClick={() => {
+                  setIsNavigatorOpen(true);
+                  playSynthTone('switch');
+                }}
+                className={`px-3 py-1.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer group shadow-sm ${
+                  theme === 'cyberpunk'
+                    ? 'bg-black border-cyber-accent hover:bg-cyber-accent/10 text-cyber-accent'
+                    : 'bg-indigo-50/80 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border-indigo-200 dark:border-indigo-500/30 text-indigo-900 dark:text-indigo-200'
+                }`}
+                title={isRTL ? 'کلیک کنید یا Ctrl+K فشار دهید تا تمام سکشن‌ها نمایش داده شوند' : 'Click or press Ctrl+K to switch module full-screen view'}
+              >
+                <div className="p-1 rounded-lg bg-indigo-600 text-white shadow-sm shrink-0">
+                  {getModuleIcon(activeModule, true)}
+                </div>
+                <div className="flex flex-col text-left overflow-hidden">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-indigo-500 dark:text-indigo-400 font-bold leading-none">
+                    {modules.find(m => m.id === activeModule)?.group || 'Module'}
+                  </span>
+                  <span className="text-xs font-black tracking-tight leading-tight truncate">
+                    {modules.find(m => m.id === activeModule)?.label || activeModule}
+                  </span>
+                </div>
+                <div className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-[10px] font-mono font-bold text-indigo-400 border border-indigo-500/30 flex items-center gap-0.5 shrink-0 ml-1">
+                  <Command className="w-3 h-3" />
+                  <span>K</span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-y-0.5 transition-transform shrink-0" />
+              </button>
+
+              {/* Sidebar Pin / Fullscreen Toggle Button */}
+              <button
+                onClick={() => {
+                  setIsSidebarPinned(!isSidebarPinned);
+                  playSynthTone('switch');
+                }}
+                className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                  isSidebarPinned
+                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-600/20'
+                    : 'bg-white/80 dark:bg-slate-900/80 border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+                title={isSidebarPinned ? 'Hide sidebar (Full-Screen Workspace)' : 'Pin sidebar on left'}
+              >
+                {isSidebarPinned ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeftOpen className="w-3.5 h-3.5" />}
+                <span className="hidden xl:inline text-[10px] font-mono uppercase tracking-wider">
+                  {isSidebarPinned ? 'Full-Screen' : 'Sidebar'}
                 </span>
-              </div>
+              </button>
             </div>
             
             {/* Center: Theoretical Guide */}
@@ -1733,14 +1802,26 @@ const App: React.FC = () => {
           </header>
 
           <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto relative">
               {!isExplained ? (
                 <ModuleIntro 
                   module={activeModule} 
                   onUnderstand={() => setIsExplained(true)} 
                 />
               ) : (
-                <ErrorBoundary key={activeModule}>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeModule}
+                    initial={animationsEnabled ? { opacity: 0, scale: 0.93, y: 15, filter: 'blur(8px)' } : false}
+                    animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                    exit={animationsEnabled ? { opacity: 0, scale: 0.97, y: -10, filter: 'blur(4px)' } : { opacity: 1 }}
+                    transition={{
+                      duration: 0.45,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
+                    className="w-full origin-center"
+                  >
+                    <ErrorBoundary key={activeModule}>
                   {activeModule === 'bragg' && (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 items-start">
                       <div className="lg:col-span-4 space-y-6">
@@ -1898,7 +1979,9 @@ const App: React.FC = () => {
                     />
                   )}
                 </ErrorBoundary>
-              )}
+              </motion.div>
+            </AnimatePresence>
+          )}
             </div>
             <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
               <p 
@@ -2374,6 +2457,18 @@ const App: React.FC = () => {
               </div>
             )}
           </AnimatePresence>
+
+          {/* Scientific Module Navigator Modal */}
+          <ScientificModuleNavigator
+            isOpen={isNavigatorOpen}
+            onClose={() => setIsNavigatorOpen(false)}
+            activeModule={activeModule}
+            onSelectModule={(modId) => {
+              setActiveModule(modId as Module);
+              playSynthTone('switch');
+            }}
+            theme={theme}
+          />
         </div>
       </div>
     </div>
