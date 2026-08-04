@@ -332,6 +332,17 @@ const App: React.FC = () => {
   const [firestoreSyncType, setFirestoreSyncType] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [totalSyncItems, setTotalSyncItems] = useState<number>(0);
   const [syncedItemsCount, setSyncedItemsCount] = useState<number>(0);
+  const [currentClockTime, setCurrentClockTime] = useState<string>(() => {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentClockTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
     return localStorage.getItem('xrd_last_sync_time') || null;
   });
@@ -660,6 +671,7 @@ const App: React.FC = () => {
             id: docSnap.id,
             timestamp: data.timestamp || new Date().toISOString(),
             sampleId: data.sampleId,
+            materialName: data.materialName,
             wavelength: data.wavelength,
             rawPeaks: data.rawPeaks,
             rawHKL: data.rawHKL,
@@ -874,6 +886,7 @@ const App: React.FC = () => {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: new Date().toISOString(),
           sampleId: sampleId.trim() || undefined,
+          materialName: materialName.trim() || undefined,
           wavelength,
           rawPeaks,
           rawHKL,
@@ -1073,6 +1086,7 @@ const App: React.FC = () => {
 
   const restoreHistory = (item: BraggHistoryItem) => {
     if (item.sampleId) setSampleId(item.sampleId);
+    if (item.materialName) setMaterialName(item.materialName);
     setWavelength(item.wavelength);
     setRawPeaks(item.rawPeaks);
     setRawHKL(item.rawHKL);
@@ -1656,6 +1670,16 @@ const App: React.FC = () => {
             {/* Right: Actions */}
             <div className="flex-1 flex items-center justify-end gap-3 shrink-0">
               
+              {/* Real-time System Clock Display */}
+              <div 
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200/60 dark:border-white/5 bg-slate-100/60 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 text-[10px] font-mono font-bold shadow-sm"
+                title={t('Exact Live System Time (24h)', 'Exact Live System Time (24h)')}
+                id="header-live-clock"
+              >
+                <Clock className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+                <span>{currentClockTime}</span>
+              </div>
+
               {/* IndexedDB <-> Firestore Sync Top Bar Indicator Widget with Detailed Hover Tooltip */}
               <div className="relative group" id="indexeddb-sync-container">
                 <button
