@@ -50,7 +50,7 @@ import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { ScientificModuleNavigator } from './components/ScientificModuleNavigator';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock } from 'lucide-react';
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
@@ -332,6 +332,35 @@ const App: React.FC = () => {
   const [firestoreSyncType, setFirestoreSyncType] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [totalSyncItems, setTotalSyncItems] = useState<number>(0);
   const [syncedItemsCount, setSyncedItemsCount] = useState<number>(0);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
+    return localStorage.getItem('xrd_last_sync_time') || null;
+  });
+  const [syncStats, setSyncStats] = useState({
+    totalAnalyses: 0,
+    pendingAnalyses: 0,
+    syncedAnalyses: 0,
+    totalMaterials: 0,
+    pendingMaterials: 0,
+    syncedMaterials: 0,
+  });
+
+  const formatLastSyncTimestamp = (timestamp: string | null) => {
+    if (!timestamp) return t('Never synced yet', 'Never synced yet');
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return timestamp;
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if (isToday) {
+        return `${t('Today at', 'Today at')} ${timeStr}`;
+      }
+      const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+      return `${dateStr} ${t('at', 'at')} ${timeStr}`;
+    } catch (e) {
+      return timestamp;
+    }
+  };
 
   // Python Engine States
   const [pythonReady, setPythonReady] = useState<boolean>(false);
@@ -358,6 +387,20 @@ const App: React.FC = () => {
       setOfflineAnalyses(analyses);
       const mats = await getOfflineMaterials();
       setCachedMaterialsCount(mats.length);
+
+      const pendingAnalyses = analyses.filter(a => !a.isSynced).length;
+      const syncedAnalyses = analyses.filter(a => a.isSynced).length;
+      const pendingMaterials = mats.filter(m => !m.isSynced).length;
+      const syncedMaterials = mats.filter(m => m.isSynced).length;
+
+      setSyncStats({
+        totalAnalyses: analyses.length,
+        pendingAnalyses,
+        syncedAnalyses,
+        totalMaterials: mats.length,
+        pendingMaterials,
+        syncedMaterials
+      });
     } catch (e) {
       console.error("IndexedDB stats refresh warn:", e);
     }
@@ -486,6 +529,12 @@ const App: React.FC = () => {
 
       setFirestoreSyncProgress(100);
       setFirestoreSyncType('success');
+      const syncCompletedTime = new Date().toISOString();
+      setLastSyncTime(syncCompletedTime);
+      try {
+        localStorage.setItem('xrd_last_sync_time', syncCompletedTime);
+      } catch (e) {}
+
       const finalMsg = pendingCount > 0
         ? t(`Successfully synced ${pendingCount} local item(s) with Firestore!`, `Successfully synced ${pendingCount} local item(s) with Firestore!`)
         : t('IndexedDB and Firestore are fully synchronized', 'IndexedDB and Firestore are fully synchronized');
@@ -515,10 +564,7 @@ const App: React.FC = () => {
 
     const updateOfflineData = async () => {
       try {
-        const analyses = await getOfflineAnalyses();
-        setOfflineAnalyses(analyses);
-        const mats = await getOfflineMaterials();
-        setCachedMaterialsCount(mats.length);
+        await refreshOfflineAnalyses();
       } catch (err) {
         console.error("Failed to load IndexedDB data", err);
       }
@@ -1610,53 +1656,186 @@ const App: React.FC = () => {
             {/* Right: Actions */}
             <div className="flex-1 flex items-center justify-end gap-3 shrink-0">
               
-              {/* IndexedDB <-> Firestore Sync Top Bar Indicator Widget */}
-              <button
-                onClick={() => {
-                  syncIndexedDBWithFirestore(true);
-                  playSynthTone('switch');
-                }}
-                className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all shadow-sm ${
-                  firestoreSyncType === 'syncing'
-                    ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
-                    : firestoreSyncType === 'success'
-                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-                    : firestoreSyncType === 'error'
-                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                    : !isOnline
-                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                    : 'border-slate-200/60 dark:border-white/5 bg-slate-100/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800'
-                }`}
-                title={firestoreSyncStatus || t('Click to sync local IndexedDB data with Firestore', 'Click to sync local IndexedDB data with Firestore')}
-              >
-                {firestoreSyncType === 'syncing' ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
-                    <div className="flex flex-col text-left">
-                      <span className="leading-none text-[9.5px] font-black">{t('Syncing DB...', 'Syncing DB...')}</span>
-                      <span className="text-[8px] font-mono opacity-80">{syncedItemsCount}/{totalSyncItems || 1} ({firestoreSyncProgress}%)</span>
+              {/* IndexedDB <-> Firestore Sync Top Bar Indicator Widget with Detailed Hover Tooltip */}
+              <div className="relative group" id="indexeddb-sync-container">
+                <button
+                  onClick={() => {
+                    syncIndexedDBWithFirestore(true);
+                    playSynthTone('switch');
+                  }}
+                  className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all shadow-sm ${
+                    firestoreSyncType === 'syncing'
+                      ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
+                      : firestoreSyncType === 'success'
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                      : firestoreSyncType === 'error'
+                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                      : !isOnline
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                      : 'border-slate-200/60 dark:border-white/5 bg-slate-100/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                  }`}
+                  id="indexeddb-sync-button"
+                >
+                  {firestoreSyncType === 'syncing' ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                      <div className="flex flex-col text-left">
+                        <span className="leading-none text-[9.5px] font-black">{t('Syncing DB...', 'Syncing DB...')}</span>
+                        <span className="text-[8px] font-mono opacity-80">{syncedItemsCount}/{totalSyncItems || 1} ({firestoreSyncProgress}%)</span>
+                      </div>
+                      <div className="w-10 h-1.5 bg-indigo-950/40 rounded-full overflow-hidden border border-indigo-500/30 hidden xl:block">
+                        <div className="h-full bg-indigo-400 transition-all duration-300" style={{ width: `${firestoreSyncProgress}%` }} />
+                      </div>
+                    </>
+                  ) : firestoreSyncType === 'success' ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400">{t('Firestore Synced', 'Firestore Synced')}</span>
+                    </>
+                  ) : firestoreSyncType === 'error' ? (
+                    <>
+                      <WifiOff className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400">{t('Sync Paused', 'Sync Paused')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-3.5 h-3.5 text-indigo-500" />
+                      <span className="hidden lg:inline text-[9.5px]">{t('IndexedDB Sync', 'IndexedDB Sync')}</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Detailed Hover Tooltip */}
+                <div 
+                  id="indexeddb-sync-tooltip"
+                  className={`absolute top-full right-0 mt-2 w-80 p-3.5 rounded-2xl border shadow-2xl backdrop-blur-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 transform group-hover:translate-y-0 translate-y-1 pointer-events-none group-hover:pointer-events-auto ${
+                    theme === 'cyberpunk'
+                      ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_25px_rgba(0,255,255,0.25)]'
+                      : 'bg-slate-900/95 dark:bg-[#080E1E]/95 border-slate-700/60 dark:border-indigo-500/30 text-white shadow-2xl shadow-slate-950/80'
+                  }`}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        firestoreSyncType === 'syncing' 
+                          ? 'bg-indigo-400 animate-ping' 
+                          : isOnline 
+                            ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' 
+                            : 'bg-amber-400'
+                      }`} />
+                      <span className="text-[11px] font-black uppercase tracking-wider font-mono">
+                        {t('IndexedDB Status', 'IndexedDB Status')}
+                      </span>
                     </div>
-                    <div className="w-10 h-1.5 bg-indigo-950/40 rounded-full overflow-hidden border border-indigo-500/30 hidden xl:block">
-                      <div className="h-full bg-indigo-400 transition-all duration-300" style={{ width: `${firestoreSyncProgress}%` }} />
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${
+                      isOnline 
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
+                        : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {isOnline ? t('Online', 'Online') : t('Offline Mode', 'Offline Mode')}
+                    </span>
+                  </div>
+
+                  {/* Timestamp Section */}
+                  <div className="mb-3 p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                        {t('Last Successful Sync:', 'Last Successful Sync:')}
+                      </span>
                     </div>
-                  </>
-                ) : firestoreSyncType === 'success' ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400">{t('Firestore Synced', 'Firestore Synced')}</span>
-                  </>
-                ) : firestoreSyncType === 'error' ? (
-                  <>
-                    <WifiOff className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400">{t('Sync Paused', 'Sync Paused')}</span>
-                  </>
-                ) : (
-                  <>
-                    <Database className="w-3.5 h-3.5 text-indigo-500" />
-                    <span className="hidden lg:inline text-[9.5px]">{t('IndexedDB Sync', 'IndexedDB Sync')}</span>
-                  </>
-                )}
-              </button>
+                    <p className="text-[11px] font-mono font-bold text-indigo-300 pl-5">
+                      {lastSyncTime ? formatLastSyncTimestamp(lastSyncTime) : t('No sync recorded yet', 'No sync recorded yet')}
+                    </p>
+                  </div>
+
+                  {/* Items Breakdown Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 font-mono">
+                      <span>{t('Storage Breakdown', 'Storage Breakdown')}</span>
+                      <span className="text-slate-400">
+                        {syncStats.totalAnalyses + syncStats.totalMaterials} {t('Total Items', 'Total Items')}
+                      </span>
+                    </div>
+
+                    {/* Breakdown Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {/* Synced Box */}
+                      <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            {t('Synced', 'Synced')}
+                          </span>
+                          <span className="text-xs font-mono font-black text-emerald-300">
+                            {syncStats.syncedAnalyses + syncStats.syncedMaterials}
+                          </span>
+                        </div>
+                        <div className="text-[9px] text-slate-300 font-mono space-y-0.5 pt-1 border-t border-emerald-500/15">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">{t('Analyses:', 'Analyses:')}</span>
+                            <span className="font-bold">{syncStats.syncedAnalyses}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">{t('Materials:', 'Materials:')}</span>
+                            <span className="font-bold">{syncStats.syncedMaterials}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pending Box */}
+                      <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                            <RefreshCw className="w-3 h-3 text-amber-400" />
+                            {t('Pending', 'Pending')}
+                          </span>
+                          <span className="text-xs font-mono font-black text-amber-300">
+                            {syncStats.pendingAnalyses + syncStats.pendingMaterials}
+                          </span>
+                        </div>
+                        <div className="text-[9px] text-slate-300 font-mono space-y-0.5 pt-1 border-t border-amber-500/15">
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">{t('Analyses:', 'Analyses:')}</span>
+                            <span className="font-bold">{syncStats.pendingAnalyses}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">{t('Materials:', 'Materials:')}</span>
+                            <span className="font-bold">{syncStats.pendingMaterials}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    {(syncStats.totalAnalyses + syncStats.totalMaterials) > 0 && (
+                      <div className="pt-1.5 space-y-1">
+                        <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                          <span>{t('Sync Ratio', 'Sync Ratio')}</span>
+                          <span className="font-bold text-indigo-300">
+                            {Math.round(((syncStats.syncedAnalyses + syncStats.syncedMaterials) / (syncStats.totalAnalyses + syncStats.totalMaterials)) * 100)}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
+                          <div 
+                            className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-500"
+                            style={{ 
+                              width: `${Math.round(((syncStats.syncedAnalyses + syncStats.syncedMaterials) / (syncStats.totalAnalyses + syncStats.totalMaterials)) * 100)}%` 
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Hint */}
+                  <div className="mt-2.5 pt-2 border-t border-white/10 text-[9.5px] text-slate-400 flex items-center justify-between">
+                    <span className="italic">{t('Click icon to force manual sync', 'Click icon to force manual sync')}</span>
+                    <span className="font-mono text-[9px] text-indigo-400 font-bold">IndexedDB ↔ Firestore</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Grouped System Tools & Status Dropdown */}
               <div className="relative" ref={systemDropdownRef}>

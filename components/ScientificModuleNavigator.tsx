@@ -11,7 +11,7 @@ import {
   Layers, 
   Microscope, 
   TrendingUp, 
-  Infinity, 
+  Infinity as InfinityIcon, 
   Network, 
   BookOpen, 
   Grid, 
@@ -31,8 +31,11 @@ import {
   Compass,
   Zap,
   Command,
-  HelpCircle,
-  BarChart3
+  LayoutGrid,
+  List,
+  SlidersHorizontal,
+  BarChart3,
+  ArrowUpRight
 } from 'lucide-react';
 
 export type ModuleId = 
@@ -98,6 +101,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
 
   // Close on Escape key
   useEffect(() => {
@@ -221,7 +225,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         subtitle: isRTL ? 'تحلیل پهنای انتگرالی نسبت مساحت کل به ارتفاع پیک' : 'Integrated intensity area over peak height parameter',
         formula: 'β_I = A / I_max',
         tags: ['Integral Breadth', 'Peak Area', 'Profiles'],
-        icon: <Infinity className={`${defaultIconClass} text-lime-400`} />
+        icon: <InfinityIcon className={`${defaultIconClass} text-lime-400`} />
       },
       {
         id: 'integral_adv',
@@ -291,7 +295,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         category: t('Structure & Refinement', 'Structure & Refinement'),
         categoryIcon: <Atom className="w-4 h-4 text-purple-400" />,
         subtitle: isRTL ? 'ماتریس‌های تبدیل سلول واحد و ابرسلول‌های بلوری' : 'Real space unit cell transformation & Bravais lattice conversions',
-        formula: '[a\' b\' c\'] = [a b c]·M',
+        formula: "[a' b' c'] = [a b c]·M",
         tags: ['Supercell', 'Transformation', 'Matrix', 'Lattice Vectors'],
         icon: <Grid className={`${defaultIconClass} text-violet-400`} />
       },
@@ -471,65 +475,77 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
-        {/* Backdrop overlay with blur */}
+        {/* Backdrop overlay with high-end blur & ambient radial glow */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className={`absolute inset-0 backdrop-blur-md ${
-            theme === 'cyberpunk' ? 'bg-black/90' : theme === 'dark' ? 'bg-slate-950/80' : 'bg-slate-900/40'
+          className={`absolute inset-0 backdrop-blur-xl transition-all ${
+            theme === 'cyberpunk' ? 'bg-black/90' : theme === 'dark' ? 'bg-[#050A18]/85' : 'bg-slate-900/50'
           }`}
-        />
+        >
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+        </motion.div>
 
         {/* Main Modal Dialog */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          initial={{ opacity: 0, scale: 0.94, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className={`relative w-full max-w-6xl max-h-[90vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden z-10 backdrop-blur-xl ${
+          exit={{ opacity: 0, scale: 0.94, y: 20 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className={`relative w-full max-w-6xl max-h-[92vh] flex flex-col rounded-3xl border shadow-2xl overflow-hidden z-10 backdrop-blur-2xl ${
             theme === 'cyberpunk'
-              ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_50px_rgba(0,255,255,0.2)]'
+              ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_60px_rgba(0,255,255,0.25)]'
               : theme === 'dark'
-                ? 'bg-slate-900/95 border-white/10 text-white shadow-2xl'
-                : 'bg-white/95 border-slate-200/80 text-slate-900 shadow-2xl shadow-indigo-500/10'
+                ? 'bg-[#0B1228]/95 border-indigo-500/20 text-white shadow-[0_0_50px_rgba(15,23,42,0.8)]'
+                : 'bg-white/95 border-slate-200/90 text-slate-900 shadow-2xl shadow-indigo-500/10'
           }`}
           dir={isRTL ? 'rtl' : 'ltr'}
         >
+          {/* Subtle Ambient Grid Background Pattern */}
+          <div 
+            className="absolute inset-0 pointer-events-none opacity-[0.03]" 
+            style={{ 
+              backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', 
+              backgroundSize: '24px 24px' 
+            }} 
+          />
+
           {/* Corner Bracket Instrument Accents */}
-          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-indigo-500/40 pointer-events-none" />
-          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-indigo-500/40 pointer-events-none" />
-          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-indigo-500/40 pointer-events-none" />
-          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-indigo-500/40 pointer-events-none" />
+          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-indigo-500/50 pointer-events-none" />
+          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-indigo-500/50 pointer-events-none" />
+          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-indigo-500/50 pointer-events-none" />
+          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-indigo-500/50 pointer-events-none" />
 
           {/* Top Bar Header */}
-          <div className={`p-5 sm:p-6 border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shrink-0 ${
-            theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black/80' : theme === 'dark' ? 'border-white/10 bg-white/5 backdrop-blur-md' : 'border-slate-200/70 bg-slate-50/70 backdrop-blur-md'
+          <div className={`p-5 sm:p-6 border-b flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shrink-0 relative z-10 ${
+            theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black/80' : theme === 'dark' ? 'border-white/10 bg-[#070C18]/80' : 'border-slate-200/80 bg-slate-50/80'
           }`}>
-            <div className="flex items-center gap-3.5">
-              <div className={`w-11 h-11 rounded-2xl p-0.5 shadow-lg flex items-center justify-center ${
-                theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_15px_rgba(255,0,255,0.5)]' : 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-cyan-500 shadow-indigo-500/30'
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl p-0.5 shadow-xl flex items-center justify-center shrink-0 ${
+                theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_20px_rgba(255,0,255,0.5)]' : 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-cyan-500 shadow-indigo-500/30'
               }`}>
                 <div className={`w-full h-full rounded-[14px] flex items-center justify-center ${
-                  theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-950'
+                  theme === 'cyberpunk' ? 'bg-black' : 'bg-[#070C18]'
                 }`}>
                   <Atom className={`w-6 h-6 animate-spin-slow ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-cyan-400'}`} />
                 </div>
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                  <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-indigo-500 dark:text-indigo-400">
-                    [LAB-SYS-01] • QUANTUM CRYSTALLOGRAPHY
+                  <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-indigo-400">
+                    [NAV-SUITE-01] • SCIENTIFIC SUITE
                   </span>
                 </div>
-                <h3 className={`text-xl font-black tracking-tight flex items-center gap-2 ${theme === 'cyberpunk' ? 'text-cyber-accent' : theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                <h3 className={`text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5 ${theme === 'cyberpunk' ? 'text-cyber-accent' : theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                   <span>{isRTL ? 'ناوبری ماژول‌ها و ابزارهای پراکندگی' : 'Scientific Suite Navigator'}</span>
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider ${
-                    theme === 'cyberpunk' ? 'bg-cyber-accent/20 border border-cyber-accent text-cyber-accent' : 'bg-indigo-500/10 border border-indigo-400/30 text-indigo-600 dark:text-indigo-300'
+                  <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider shadow-sm border ${
+                    theme === 'cyberpunk' ? 'bg-cyber-accent/20 border-cyber-accent text-cyber-accent' : 'bg-indigo-500/10 border-indigo-400/30 text-indigo-400 dark:text-indigo-300'
                   }`}>
-                    31 Modules
+                    {moduleList.length} Modules
                   </span>
                 </h3>
                 <p className={`text-xs font-medium ${theme === 'cyberpunk' ? 'text-cyber-accent/70' : theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -542,20 +558,49 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
 
             {/* Quick Actions & Close Button */}
             <div className="flex items-center gap-3 self-end sm:self-auto">
+              {/* View mode toggle */}
+              <div className={`flex items-center p-1 rounded-xl border ${
+                theme === 'cyberpunk' ? 'bg-black border-cyber-accent/40' : theme === 'dark' ? 'bg-black/40 border-white/10' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    viewMode === 'grid' 
+                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black' : 'bg-indigo-600 text-white shadow-sm')
+                      : (theme === 'cyberpunk' ? 'text-cyber-accent/70 hover:text-cyber-accent' : 'text-slate-400 hover:text-slate-200')
+                  }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('compact')}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    viewMode === 'compact' 
+                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black' : 'bg-indigo-600 text-white shadow-sm')
+                      : (theme === 'cyberpunk' ? 'text-cyber-accent/70 hover:text-cyber-accent' : 'text-slate-400 hover:text-slate-200')
+                  }`}
+                  title="Compact View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
+
               <div className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-mono ${
                 theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent/70' : theme === 'dark' ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
               }`}>
-                <Command className={`w-3.5 h-3.5 ${theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-500'}`} />
+                <Command className={`w-3.5 h-3.5 ${theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-400'}`} />
                 <span>Esc {isRTL ? 'برای خروج' : 'to exit'}</span>
               </div>
+
               <button
                 onClick={onClose}
-                className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-sm ${
                   theme === 'cyberpunk' 
                     ? 'bg-black border-cyber-accent text-cyber-accent hover:bg-cyber-pink hover:text-black hover:border-cyber-pink' 
                     : theme === 'dark'
                       ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300'
-                      : 'bg-white border-slate-200 text-slate-500 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-500 shadow-sm'
+                      : 'bg-white border-slate-200 text-slate-500 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-500'
                 }`}
                 title="Close navigator"
               >
@@ -565,40 +610,49 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
           </div>
 
           {/* Search Bar & Category Filter Tabs */}
-          <div className={`p-4 sm:p-6 border-b space-y-4 shrink-0 ${
-            theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black' : theme === 'dark' ? 'border-white/10 bg-slate-950/60' : 'border-slate-200/60 bg-slate-50/50'
+          <div className={`p-4 sm:p-6 border-b space-y-4 shrink-0 relative z-10 ${
+            theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black' : theme === 'dark' ? 'border-white/10 bg-[#070C18]/60' : 'border-slate-200/60 bg-slate-50/50'
           }`}>
             <div className="relative">
-              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-indigo-500'}`} />
+              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-indigo-400'}`} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={isRTL ? 'جستجوی ماژول (مثلا Scherrer, Rietveld, Strain, HKL, AI...)...' : 'Search modules, formulas, methods (e.g., Scherrer, Williamson-Hall, Pawley, Rietveld)...'}
-                className={`w-full pl-12 pr-10 py-3.5 border rounded-2xl text-sm font-medium outline-none transition-all shadow-inner ${
+                placeholder={isRTL ? 'جستجوی ماژول (مثلا Scherrer, Rietveld, Strain, HKL, AI...)...' : 'Search modules, formulas, methods (e.g., Scherrer, Williamson-Hall, Pawley, Rietveld, AI)...'}
+                className={`w-full pl-12 pr-28 py-3.5 border rounded-2xl text-sm font-medium outline-none transition-all shadow-inner ${
                   theme === 'cyberpunk'
                     ? 'bg-black border-cyber-accent/50 focus:border-cyber-accent text-cyber-accent placeholder-cyber-accent/50'
                     : theme === 'dark'
-                      ? 'bg-white/5 border-white/15 focus:border-indigo-500 text-white placeholder-slate-400'
+                      ? 'bg-black/40 border-white/15 focus:border-indigo-500 text-white placeholder-slate-400'
                       : 'bg-white border-slate-200 focus:border-indigo-500 text-slate-900 placeholder-slate-400'
                 }`}
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className={`absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-colors ${
-                    theme === 'cyberpunk' ? 'text-cyber-accent hover:bg-cyber-accent/20' : theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {searchQuery ? (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className={`p-1 rounded-lg transition-colors ${
+                      theme === 'cyberpunk' ? 'text-cyber-accent hover:bg-cyber-accent/20' : theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <span className={`px-2 py-1 rounded-md text-[10px] font-mono font-bold border hidden sm:inline-block ${
+                    theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30 text-cyber-accent/60' : theme === 'dark' ? 'bg-white/5 border-white/10 text-slate-500' : 'bg-slate-100 border-slate-200 text-slate-400'
+                  }`}>
+                    {filteredModules.length} found
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Horizontal Category Scroll */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar scrollbar-none">
               {categories.map((cat, idx) => {
                 const isSelected = selectedCategory === cat;
+                const count = cat === 'All' ? moduleList.length : moduleList.filter(m => m.category === cat).length;
                 return (
                   <button
                     key={cat}
@@ -607,7 +661,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                       isSelected
                         ? theme === 'cyberpunk'
                           ? 'bg-cyber-accent text-black border-cyber-accent shadow-[0_0_15px_rgba(0,255,255,0.4)] font-mono'
-                          : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-indigo-400 shadow-md shadow-indigo-500/25 font-mono'
+                          : 'bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-600 text-white border-indigo-400 shadow-md shadow-indigo-500/25 font-mono'
                         : theme === 'cyberpunk'
                           ? 'bg-black hover:bg-cyber-accent/10 text-cyber-accent/70 border-cyber-accent/30 hover:border-cyber-accent/70 font-mono'
                           : theme === 'dark'
@@ -618,6 +672,13 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     <span className="text-[10px] font-mono opacity-60">[{idx === 0 ? 'ALL' : `0${idx}`}]</span>
                     {cat === 'All' ? <Sparkles className={`w-3.5 h-3.5 ${isSelected ? (theme === 'cyberpunk' ? 'text-black' : 'text-amber-300') : 'text-amber-500'}`} /> : null}
                     <span>{cat === 'All' ? (isRTL ? 'همه ماژول‌ها' : 'All Modules') : cat}</span>
+                    <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono ${
+                      isSelected 
+                        ? (theme === 'cyberpunk' ? 'bg-black/30 text-black' : 'bg-white/20 text-white')
+                        : (theme === 'cyberpunk' ? 'bg-cyber-accent/10 text-cyber-accent' : 'bg-white/10 text-slate-400')
+                    }`}>
+                      {count}
+                    </span>
                   </button>
                 );
               })}
@@ -625,7 +686,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
           </div>
 
           {/* Main Module Grid View */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar space-y-6 relative z-10">
             {filteredModules.length === 0 ? (
               <div className="py-16 text-center space-y-4">
                 <div className={`w-16 h-16 rounded-full border flex items-center justify-center mx-auto ${
@@ -652,7 +713,6 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                 </button>
               </div>
             ) : (
-              // Group by categories if "All" is selected, or display list directly
               selectedCategory === 'All' && !searchQuery ? (
                 categories.filter(c => c !== 'All').map(category => {
                   const categoryMods = filteredModules.filter(m => m.category === category);
@@ -662,7 +722,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     <div key={category} className="space-y-3">
                       <div className={`flex items-center gap-2.5 pb-2 border-b ${theme === 'cyberpunk' ? 'border-cyber-accent/30' : theme === 'dark' ? 'border-white/10' : 'border-slate-200'}`}>
                         {categoryMods[0]?.categoryIcon}
-                        <h4 className={`text-xs font-black uppercase tracking-widest ${theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-500 dark:text-indigo-400'}`}>
+                        <h4 className={`text-xs font-black uppercase tracking-widest ${theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-400 dark:text-indigo-300'}`}>
                           {category}
                         </h4>
                         <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
@@ -672,7 +732,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                      <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5" : "grid grid-cols-1 md:grid-cols-2 gap-2"}>
                         {categoryMods.map(m => (
                           <ModuleCard
                             key={m.id}
@@ -684,6 +744,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                             }}
                             isRTL={isRTL}
                             theme={theme}
+                            viewMode={viewMode}
                           />
                         ))}
                       </div>
@@ -691,7 +752,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                   );
                 })
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5" : "grid grid-cols-1 md:grid-cols-2 gap-2"}>
                   {filteredModules.map(m => (
                     <ModuleCard
                       key={m.id}
@@ -703,6 +764,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                       }}
                       isRTL={isRTL}
                       theme={theme}
+                      viewMode={viewMode}
                     />
                   ))}
                 </div>
@@ -711,18 +773,19 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
           </div>
 
           {/* Modal Footer with quick instructions */}
-          <div className={`p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shrink-0 ${
-            theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black text-cyber-accent/70' : theme === 'dark' ? 'border-white/10 bg-slate-950/80 text-slate-400' : 'border-slate-200/60 bg-slate-50/80 text-slate-500'
+          <div className={`p-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shrink-0 relative z-10 ${
+            theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black text-cyber-accent/70' : theme === 'dark' ? 'border-white/10 bg-[#070C18]/80 text-slate-400' : 'border-slate-200/80 bg-slate-50/80 text-slate-500'
           }`}>
             <div className="flex items-center gap-2">
-              <Sparkles className={`w-4 h-4 shrink-0 ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-amber-500'}`} />
+              <Sparkles className={`w-4 h-4 shrink-0 ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-amber-400'}`} />
               <span>
                 {isRTL 
                   ? 'نمای کاری برنامه به صورت ۱۰۰٪ تمام صفحه تنظیم شده است.' 
-                  : 'Workspace is rendered in 100% full-screen mode for maximum visibility.'}
+                  : 'Full-spectrum suite enabled. Select any module to immediately load its workspace.'}
               </span>
             </div>
-            <div className={`text-[11px] font-mono ${theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-slate-400 dark:text-slate-500'}`}>
+            <div className={`text-[11px] font-mono flex items-center gap-3 ${theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-slate-400 dark:text-slate-500'}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               XRD-Calc Pro • Quantum Crystallography Labs
             </div>
           </div>
@@ -738,18 +801,76 @@ interface ModuleCardProps {
   onSelect: () => void;
   isRTL: boolean;
   theme: string;
+  viewMode?: 'grid' | 'compact';
 }
 
-const ModuleCard: React.FC<ModuleCardProps> = ({ metadata, isActive, onSelect, isRTL, theme }) => {
+const ModuleCard: React.FC<ModuleCardProps> = ({ metadata, isActive, onSelect, isRTL, theme, viewMode = 'grid' }) => {
+  if (viewMode === 'compact') {
+    return (
+      <div
+        onClick={onSelect}
+        className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer group relative flex items-center justify-between gap-3 backdrop-blur-md ${
+          isActive
+            ? theme === 'cyberpunk'
+              ? 'bg-black border-cyber-pink shadow-[0_0_15px_rgba(255,0,255,0.3)]'
+              : theme === 'dark'
+                ? 'bg-indigo-950/80 border-indigo-500 shadow-md ring-1 ring-indigo-500/50'
+                : 'bg-indigo-50 border-indigo-500 shadow-md ring-1 ring-indigo-500/30'
+            : theme === 'cyberpunk'
+              ? 'bg-black/80 hover:bg-cyber-accent/10 border-cyber-accent/30 hover:border-cyber-accent/70'
+              : theme === 'dark'
+                ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-indigo-500/40'
+                : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-indigo-300 shadow-sm'
+        }`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`p-2 rounded-lg border shrink-0 transition-transform duration-200 group-hover:scale-105 ${
+            isActive 
+              ? theme === 'cyberpunk' ? 'bg-cyber-pink border-cyber-pink text-black' : 'bg-indigo-600 border-indigo-400 text-white'
+              : theme === 'cyberpunk' ? 'bg-black border-cyber-accent/40 text-cyber-accent' : theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'
+          }`}>
+            {metadata.icon}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h5 className={`text-xs font-bold truncate ${
+                isActive 
+                  ? (theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-400 dark:text-white') 
+                  : (theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-800 dark:text-slate-200 group-hover:text-indigo-400')
+              }`}>
+                {metadata.label}
+              </h5>
+              {isActive && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              {metadata.subtitle}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {metadata.formula && (
+            <span className="px-1.5 py-0.5 rounded font-mono text-[9px] bg-black/20 border border-white/10 text-slate-400 hidden sm:inline-block">
+              {metadata.formula}
+            </span>
+          )}
+          <ChevronRight className={`w-4 h-4 transition-transform ${isRTL ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'} text-slate-400`} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       onClick={onSelect}
       className={`p-4 rounded-2xl border transition-all duration-300 cursor-pointer group relative flex flex-col justify-between overflow-hidden backdrop-blur-md ${
         isActive
           ? theme === 'cyberpunk'
-            ? 'bg-black border-cyber-pink shadow-[0_0_20px_rgba(255,0,255,0.3)] ring-1 ring-cyber-pink'
+            ? 'bg-black border-cyber-pink shadow-[0_0_25px_rgba(255,0,255,0.35)] ring-1 ring-cyber-pink'
             : theme === 'dark'
-              ? 'bg-gradient-to-br from-indigo-900/90 via-slate-900 to-indigo-950/90 border-indigo-400 shadow-xl shadow-indigo-600/30 ring-2 ring-indigo-500/50'
+              ? 'bg-gradient-to-br from-indigo-900/90 via-[#0B1228] to-indigo-950/90 border-indigo-400 shadow-xl shadow-indigo-600/30 ring-2 ring-indigo-500/50'
               : 'bg-indigo-50/90 border-indigo-500 shadow-xl shadow-indigo-500/20 ring-2 ring-indigo-500/30'
           : theme === 'cyberpunk'
             ? 'bg-black/90 hover:bg-cyber-accent/10 border-cyber-accent/30 hover:border-cyber-accent/70 shadow-sm'
@@ -759,14 +880,14 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ metadata, isActive, onSelect, i
       }`}
     >
       {/* Corner Bracket Accents for Laboratory Instrument Look */}
-      <div className={`absolute top-1 left-1 w-2 h-2 border-t border-l transition-colors ${
-        isActive ? (theme === 'cyberpunk' ? 'border-cyber-pink' : 'border-indigo-500') : 'border-slate-300 dark:border-white/20 group-hover:border-indigo-400'
+      <div className={`absolute top-1.5 left-1.5 w-2 h-2 border-t border-l transition-colors ${
+        isActive ? (theme === 'cyberpunk' ? 'border-cyber-pink' : 'border-indigo-400') : 'border-slate-300 dark:border-white/20 group-hover:border-indigo-400'
       }`} />
-      <div className={`absolute top-1 right-1 w-2 h-2 border-t border-r transition-colors ${
-        isActive ? (theme === 'cyberpunk' ? 'border-cyber-pink' : 'border-indigo-500') : 'border-slate-300 dark:border-white/20 group-hover:border-indigo-400'
+      <div className={`absolute top-1.5 right-1.5 w-2 h-2 border-t border-r transition-colors ${
+        isActive ? (theme === 'cyberpunk' ? 'border-cyber-pink' : 'border-indigo-400') : 'border-slate-300 dark:border-white/20 group-hover:border-indigo-400'
       }`} />
 
-      {/* Active Glow Accent */}
+      {/* Active Glow Accent Bar */}
       {isActive && (
         <div className={`absolute top-0 right-0 left-0 h-1 ${
           theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-gradient-to-r from-cyan-400 via-indigo-500 to-violet-500'
@@ -775,11 +896,11 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ metadata, isActive, onSelect, i
 
       <div>
         {/* Top Header Row of Card */}
-        <div className="flex items-start justify-between gap-3 mb-2.5">
-          <div className={`p-2.5 rounded-xl border transition-transform duration-300 group-hover:scale-105 ${
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className={`p-2.5 rounded-xl border transition-all duration-300 group-hover:scale-105 shadow-sm ${
             isActive 
               ? theme === 'cyberpunk'
-                ? 'bg-cyber-pink border-cyber-pink shadow-[0_0_10px_rgba(255,0,255,0.5)] text-black'
+                ? 'bg-cyber-pink border-cyber-pink shadow-[0_0_12px_rgba(255,0,255,0.5)] text-black'
                 : 'bg-indigo-600 border-indigo-400 shadow-md text-white' 
               : theme === 'cyberpunk'
                 ? 'bg-black border-cyber-accent/50 group-hover:border-cyber-accent text-cyber-accent'
@@ -803,7 +924,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ metadata, isActive, onSelect, i
             </span>
           ) : (
             metadata.formula && (
-              <span className={`px-2 py-0.5 rounded-md font-mono text-[10px] transition-colors border ${
+              <span className={`px-2 py-0.5 rounded-md font-mono text-[10px] transition-colors border max-w-[120px] truncate ${
                 theme === 'cyberpunk'
                   ? 'bg-black border-cyber-accent/30 text-cyber-accent/70 group-hover:text-cyber-accent group-hover:border-cyber-accent'
                   : theme === 'dark'
@@ -817,14 +938,14 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ metadata, isActive, onSelect, i
         </div>
 
         {/* Title & Subtitle */}
-        <h4 className={`text-sm font-bold tracking-tight mb-1 transition-colors flex items-center gap-1.5 ${
+        <h4 className={`text-sm font-black tracking-tight mb-1 transition-colors flex items-center gap-1.5 ${
           isActive 
-            ? theme === 'cyberpunk' ? 'text-cyber-pink font-black' : theme === 'dark' ? 'text-white font-black' : 'text-indigo-900 font-black'
+            ? theme === 'cyberpunk' ? 'text-cyber-pink' : theme === 'dark' ? 'text-white' : 'text-indigo-900'
             : theme === 'cyberpunk' ? 'text-cyber-accent group-hover:text-cyber-pink' : theme === 'dark' ? 'text-slate-100 group-hover:text-indigo-300' : 'text-slate-800 group-hover:text-indigo-600'
         }`}>
           <span>{metadata.label}</span>
         </h4>
-        <p className={`text-xs font-medium leading-relaxed line-clamp-2 mb-3 ${
+        <p className={`text-xs font-medium leading-relaxed line-clamp-2 mb-3.5 ${
           theme === 'cyberpunk' ? 'text-cyber-accent/70' : theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
         }`}>
           {metadata.subtitle}
@@ -845,12 +966,13 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ metadata, isActive, onSelect, i
           ))}
         </div>
 
-        <ChevronRight className={`w-4 h-4 transition-all ${
-          isRTL ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1'
+        <ArrowUpRight className={`w-4 h-4 transition-all ${
+          isRTL ? 'rotate-[-90deg] group-hover:-translate-x-0.5 group-hover:-translate-y-0.5' : 'group-hover:translate-x-0.5 group-hover:-translate-y-0.5'
         } ${
-          theme === 'cyberpunk' ? 'text-cyber-accent/50 group-hover:text-cyber-pink' : 'text-slate-400 group-hover:text-indigo-500'
+          theme === 'cyberpunk' ? 'text-cyber-accent/50 group-hover:text-cyber-pink' : 'text-slate-400 group-hover:text-indigo-400'
         }`} />
       </div>
     </div>
   );
 };
+
