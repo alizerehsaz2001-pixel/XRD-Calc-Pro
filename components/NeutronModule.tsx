@@ -453,38 +453,49 @@ export const NeutronModule: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
       <div className="lg:col-span-5 space-y-6">
-        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-600 rounded-full opacity-10 blur-2xl"></div>
+        <div className="bg-[#0B1228] p-6 lg:p-8 rounded-3xl shadow-2xl border border-blue-500/15 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
           
+          {/* Corner Accents */}
+          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-blue-500/40 pointer-events-none" />
+          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-blue-500/40 pointer-events-none" />
+          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-blue-500/40 pointer-events-none" />
+          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-blue-500/40 pointer-events-none" />
+
           <div className="flex justify-between items-center mb-6 relative z-10">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/10 rounded-2xl border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                <Atom className="w-6 h-6 text-blue-400" />
+              <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.25)] transition-all">
+                <Atom className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight">Neutron Cell</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Nuclear Structure Configuration</p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                  <span className="text-[9px] font-mono font-bold tracking-widest uppercase text-blue-400">
+                    [NEU-CELL] • NUCLEAR STRUCTURE
+                  </span>
+                </div>
+                <h2 className="text-xl font-black text-white uppercase tracking-tight leading-none">Neutron Cell</h2>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Config & Simulation Matrix</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button 
                 onClick={() => setShowImport(true)}
-                className="group relative px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-xl transition-all hover:border-indigo-500/50"
+                className="group relative px-3 py-2 bg-[#070C18]/80 border border-white/5 rounded-xl transition-all hover:border-indigo-500/40 hover:bg-indigo-500/10 shadow-sm"
               >
-                <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 rounded-xl transition-colors" />
                 <div className="flex items-center gap-2 relative z-10">
-                  <Upload className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Import</span>
+                  <Upload className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
+                  <span className="text-[9px] font-mono font-black text-slate-400 group-hover:text-indigo-300 uppercase tracking-widest transition-colors">Import</span>
                 </div>
               </button>
               <button 
                 onClick={handleExport}
-                className="group relative px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-xl transition-all hover:border-emerald-500/50"
+                className="group relative px-3 py-2 bg-[#070C18]/80 border border-white/5 rounded-xl transition-all hover:border-emerald-500/40 hover:bg-emerald-500/10 shadow-sm"
               >
-                <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 rounded-xl transition-colors" />
                 <div className="flex items-center gap-2 relative z-10">
-                  <Download className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Export</span>
+                  <Download className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
+                  <span className="text-[9px] font-mono font-black text-slate-400 group-hover:text-emerald-300 uppercase tracking-widest transition-colors">Export</span>
                 </div>
               </button>
             </div>
@@ -554,7 +565,7 @@ export const NeutronModule: React.FC = () => {
             </div>
           )}
 
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-2 gap-6 mb-6 relative z-10">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Crystal System</label>
                 <div className="relative">
@@ -565,7 +576,7 @@ export const NeutronModule: React.FC = () => {
                       setCrystalSystem(sys);
                       setLattice(applySymmetry(sys, lattice));
                     }}
-                    className="w-full appearance-none px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer pr-10"
+                    className="w-full appearance-none px-4 py-3 bg-[#070C18]/80 text-blue-400 border border-white/10 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer pr-10 shadow-inner"
                   >
                     {['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'].map(s => (
                       <option key={s} value={s}>{s}</option>
@@ -577,7 +588,7 @@ export const NeutronModule: React.FC = () => {
               <div className="space-y-2">
                  <div className="flex justify-between items-center">
                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength ({lengthUnit})</label>
-                   <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
+                   <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 text-[9px] font-black text-blue-400 hover:bg-blue-500/20 transition-colors uppercase tracking-widest border border-blue-500/30">
                      <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
                    </button>
                  </div>
@@ -587,19 +598,19 @@ export const NeutronModule: React.FC = () => {
                     step="0.01"
                     value={String(wavelength) === 'NaN' ? '' : convertLength(wavelength, lengthUnit)}
                     onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
-                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700 shadow-inner"
+                    className="w-full px-4 py-3 bg-[#070C18]/80 text-blue-400 border border-white/10 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-blue-500/30 shadow-inner"
                    />
-                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest">{lengthUnit}</span>
+                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">{lengthUnit}</span>
                  </div>
                  <div className="mt-3 grid grid-cols-2 gap-2">
                    {Object.entries(NEUTRON_WAVELENGTHS).map(([name, val]) => (
                      <button
                        key={name}
                        onClick={() => setWavelength(val)}
-                       className={`py-1.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all
+                       className={`py-1.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all shadow-sm
                          ${Math.abs(wavelength - val) < 0.0001 
-                           ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' 
-                           : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-400 hover:border-slate-700'
+                           ? 'bg-blue-500/20 border-blue-500/50 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.15)]' 
+                           : 'bg-[#070C18]/60 border-white/5 text-slate-500 hover:text-blue-400 hover:border-blue-500/30'
                          }
                        `}
                      >
@@ -612,7 +623,7 @@ export const NeutronModule: React.FC = () => {
 
             <div className="space-y-8 relative z-10">
               <div className="space-y-6">
-                <div className="space-y-4">
+                <div className="space-y-4 p-4 rounded-2xl bg-[#070C18]/60 border border-white/5 shadow-inner">
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { axis: 'a', disabled: false },
@@ -627,7 +638,7 @@ export const NeutronModule: React.FC = () => {
                           disabled={item.disabled}
                           value={String(lattice[item.axis as keyof LatticeParameters]) === 'NaN' ? '' : convertLength(Number(lattice[item.axis as keyof LatticeParameters]), lengthUnit)}
                           onChange={(e) => handleLatticeChange(item.axis as keyof LatticeParameters, convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
-                          className={`w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${item.disabled ? 'opacity-40 cursor-not-allowed bg-slate-900 border-dashed' : 'hover:border-slate-700'}`}
+                          className={`w-full px-3 py-2 bg-black/40 text-blue-400 border border-white/10 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all shadow-inner ${item.disabled ? 'opacity-40 cursor-not-allowed border-dashed' : 'hover:border-blue-500/30'}`}
                         />
                       </div>
                     ))}
@@ -646,7 +657,7 @@ export const NeutronModule: React.FC = () => {
                           disabled={item.disabled}
                           value={String(lattice[item.angle as keyof LatticeParameters]) === 'NaN' ? '' : lattice[item.angle as keyof LatticeParameters]}
                           onChange={(e) => handleLatticeChange(item.angle as keyof LatticeParameters, parseFloat(e.target.value))}
-                          className={`w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${item.disabled ? 'opacity-40 cursor-not-allowed bg-slate-900 border-dashed' : 'hover:border-slate-700'}`}
+                          className={`w-full px-3 py-2 bg-black/40 text-blue-400 border border-white/10 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all shadow-inner ${item.disabled ? 'opacity-40 cursor-not-allowed border-dashed' : 'hover:border-blue-500/30'}`}
                         />
                       </div>
                     ))}
@@ -654,7 +665,7 @@ export const NeutronModule: React.FC = () => {
                 </div>
               </div>
 
-            <div className="pt-8 border-t border-slate-800/50">
+            <div className="pt-8 border-t border-white/10 relative z-10">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-1 h-3 bg-blue-500 rounded-full" />
@@ -662,7 +673,7 @@ export const NeutronModule: React.FC = () => {
                 </div>
                 <button 
                   onClick={addAtom} 
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
                 >
                   <Atom className="w-3.5 h-3.5" />
                   Add Atom
@@ -671,14 +682,14 @@ export const NeutronModule: React.FC = () => {
               
               <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
                 {atoms.map((atom, idx) => (
-                  <div key={atom.id || idx} className="bg-[#0B1221]/50 p-5 rounded-2xl border border-slate-800/80 group/atom hover:border-blue-500/30 hover:bg-[#0B1221]/80 transition-all relative">
+                  <div key={atom.id || idx} className="bg-[#070C18]/80 p-5 rounded-2xl border border-white/10 group/atom hover:border-blue-500/30 hover:bg-[#0A1224] transition-all relative shadow-inner">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
                        <div className="flex flex-wrap items-center gap-2">
                          <div className="relative">
                             <select 
                               value={atom.element}
                               onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
-                              className="appearance-none font-black bg-slate-900 text-white border border-slate-800 px-4 py-2 rounded-xl cursor-pointer text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all w-24 text-center pr-8"
+                              className="appearance-none font-black bg-black/40 text-white border border-white/10 px-4 py-2 rounded-xl cursor-pointer text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all w-24 text-center pr-8 shadow-inner"
                             >
                               {Object.keys(NEUTRON_SCATTERING_LENGTHS).sort().map(el => (
                                 <option key={el} value={el}>{el}</option>
@@ -689,7 +700,7 @@ export const NeutronModule: React.FC = () => {
                             </div>
                          </div>
                          {atom.b < 0 && (
-                            <span className="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-black uppercase tracking-wider animate-pulse whitespace-nowrap shrink-0">
+                            <span className="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-black uppercase tracking-wider animate-pulse whitespace-nowrap shrink-0 shadow-sm">
                               Negative b
                             </span>
                          )}
@@ -698,7 +709,7 @@ export const NeutronModule: React.FC = () => {
                               onClick={() => {
                                 updateAtom(atom.id, 'element', 'D');
                               }}
-                              className="px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[9px] font-black uppercase tracking-wider hover:bg-violet-500/20 hover:border-violet-400 transition-colors shrink-0"
+                              className="px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[9px] font-black uppercase tracking-wider hover:bg-violet-500/20 hover:border-violet-400 transition-colors shrink-0 shadow-sm"
                               title="Exchange to Deuterium for higher coherent contrast"
                             >
                               ➔ D₂O Swap
@@ -709,14 +720,14 @@ export const NeutronModule: React.FC = () => {
                               onClick={() => {
                                 updateAtom(atom.id, 'element', 'H');
                               }}
-                              className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] font-black uppercase tracking-wider hover:bg-blue-500/20 hover:border-blue-400 transition-colors shrink-0"
+                              className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] font-black uppercase tracking-wider hover:bg-blue-500/20 hover:border-blue-400 transition-colors shrink-0 shadow-sm"
                             >
                               ➔ H Swap
                             </button>
                          )}
                        </div>
 
-                       <div className="flex-1 flex items-center justify-between px-4 py-2 bg-[#050B14] border border-slate-850 rounded-xl min-w-[140px]">
+                       <div className="flex-1 flex items-center justify-between px-4 py-2 bg-black/60 border border-white/5 rounded-xl min-w-[140px] shadow-inner">
                           <div className="flex items-center gap-4">
                             <div className="space-y-0.5 text-left">
                               <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none">Width b</p>
@@ -724,7 +735,7 @@ export const NeutronModule: React.FC = () => {
                                 {atom.b.toFixed(2)} <span className="text-[8px] opacity-60 font-sans font-medium text-slate-500">fm</span>
                               </p>
                             </div>
-                            <div className="w-px h-6 bg-slate-850" />
+                            <div className="w-px h-6 bg-white/10" />
                             <div className="space-y-0.5 text-left">
                               <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none">Atomic Z</p>
                               <p className="text-xs font-mono font-black text-blue-400">
@@ -735,7 +746,7 @@ export const NeutronModule: React.FC = () => {
                           
                           <button 
                             onClick={() => removeAtom(atom.id)} 
-                            className="p-1.5 text-slate-600 hover:text-rose-400 bg-slate-900 border border-slate-850 rounded-lg hover:border-rose-500/30 transition-all opacity-0 group-hover/atom:opacity-100"
+                            className="p-1.5 text-slate-600 hover:text-rose-400 bg-black border border-white/10 rounded-lg hover:border-rose-500/30 transition-all opacity-0 group-hover/atom:opacity-100 shadow-sm"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -744,7 +755,7 @@ export const NeutronModule: React.FC = () => {
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-4">
+                    <div className="grid grid-cols-4 gap-4 p-3 bg-black/40 rounded-xl border border-white/5 shadow-inner">
                       {['x', 'y', 'z', 'B_iso'].map((field) => (
                         <div key={field} className="space-y-1.5 relative text-left">
                           <label className="text-[9px] font-bold text-slate-600 uppercase tracking-widest ml-1">{field === 'B_iso' ? 'B-fact' : field}</label>
@@ -753,7 +764,7 @@ export const NeutronModule: React.FC = () => {
                             step="0.01" 
                             value={String(atom[field as keyof typeof atom]) === 'NaN' ? '' : atom[field as keyof typeof atom]} 
                             onChange={(e) => updateAtom(atom.id, field as any, parseFloat(e.target.value))} 
-                            className="w-full px-3 py-2 bg-black/40 text-slate-300 border border-slate-800 rounded-xl font-mono text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
+                            className="w-full px-3 py-2 bg-[#070C18]/80 text-blue-300 border border-white/10 rounded-lg font-mono text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all shadow-inner"
                           />
                         </div>
                       ))}
@@ -821,26 +832,33 @@ export const NeutronModule: React.FC = () => {
         />
 
         {/* Dynamic Display Panel */}
-        <div className="bg-slate-900 rounded-[2rem] border border-slate-800 p-6 sm:p-8 flex flex-col relative overflow-hidden min-h-[500px] transition-all duration-500 hover:border-slate-700/80 shadow-2xl">
-           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="bg-[#0B1228] rounded-[2rem] border border-white/10 p-6 sm:p-8 flex flex-col relative overflow-hidden min-h-[500px] transition-all duration-500 hover:border-blue-500/30 shadow-2xl group">
+           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[80px] pointer-events-none" />
+           <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/5 rounded-full blur-[60px] pointer-events-none" />
+
+           {/* Corner accents */}
+           <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-blue-500/40 pointer-events-none" />
+           <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-blue-500/40 pointer-events-none" />
+           <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-blue-500/40 pointer-events-none" />
+           <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-blue-500/40 pointer-events-none" />
 
            {/* Tab Controls */}
-           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800 relative z-10">
-              <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-2xl border border-slate-800/80">
+           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10 relative z-10">
+              <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/5 shadow-inner">
                  {[
-                   { id: 'pattern', label: 'Diffraction Map', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
-                    { id: 'rings', label: '2D Detector Rings', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
-                    { id: 'solvent', label: 'Solvent Contrast', color: 'text-pink-500 bg-pink-500/10 border-pink-500/30' },
-                   { id: 'projection', label: 'Unit Cell Projector', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
-                   { id: 'contrast', label: 'Contrast analysis', color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' }
+                   { id: 'pattern', label: 'Diffraction Map', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]' },
+                    { id: 'rings', label: '2D Detector Rings', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]' },
+                    { id: 'solvent', label: 'Solvent Contrast', color: 'text-pink-400 bg-pink-500/10 border-pink-500/30 shadow-[0_0_15px_rgba(236,72,153,0.15)]' },
+                   { id: 'projection', label: 'Unit Cell Projector', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' },
+                   { id: 'contrast', label: 'Contrast analysis', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' }
                  ].map((t) => (
                     <button
                       key={t.id}
                       onClick={() => setActiveRightTab(t.id as any)}
-                      className={`px-3 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all select-none ${
+                      className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all select-none ${
                         activeRightTab === t.id 
-                          ? `${t.color} shadow-inner border` 
-                          : 'text-slate-500 hover:text-slate-300 border border-transparent'
+                          ? `${t.color} border` 
+                          : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-white/5'
                       }`}
                     >
                       {t.label}

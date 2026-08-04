@@ -1018,44 +1018,84 @@ export const MagneticNeutronModule: React.FC = () => {
         </div>
 
         {/* Rotatable 3D Spin and Lattice Visualizer Card */}
-        <div className="bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-800 space-y-4 text-left">
-          <div className="flex items-center justify-between">
+        <div className="bg-[#0B1228] p-8 rounded-3xl shadow-2xl border border-indigo-500/15 space-y-5 text-left relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Corner accents */}
+          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-indigo-500/40 pointer-events-none" />
+          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-indigo-500/40 pointer-events-none" />
+          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-indigo-500/40 pointer-events-none" />
+          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-indigo-500/40 pointer-events-none" />
+
+          <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-pink-500/15 rounded-xl border border-pink-500/20">
-                <Layers className="w-4.5 h-4.5 text-rose-400" />
+              <div className="p-3 bg-gradient-to-br from-pink-500/20 to-indigo-500/20 rounded-2xl border border-pink-500/30 shadow-[0_0_15px_rgba(236,72,153,0.15)] group-hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all">
+                <Layers className="w-5 h-5 text-rose-400" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-widest leading-none">3D Spin & Lattice Visualizer</h4>
-                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Interactive Magnetic Vector Array</p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                  <span className="text-[9px] font-mono font-bold tracking-widest uppercase text-indigo-400">
+                    [VIS-3D] • KINEMATIC DISPLAY
+                  </span>
+                </div>
+                <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">3D Spin & Lattice Visualizer</h4>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Interactive Magnetic Vector Array</p>
               </div>
             </div>
             <button
               onClick={() => setRotation({ x: 25, y: -45 })}
-              className="px-2.5 py-1.5 bg-slate-950 border border-slate-850 hover:border-slate-700 hover:text-white rounded-xl text-[8px] text-slate-400 font-mono flex items-center gap-1.5 transition-colors"
+              className="px-3 py-2 bg-[#070C18]/80 border border-white/5 hover:border-indigo-500/40 hover:bg-indigo-500/10 hover:text-indigo-300 rounded-xl text-[9px] text-slate-400 font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm"
             >
-              <RotateCw className="w-3 h-3 text-slate-500" /> RESET VIEW
+              <RotateCw className="w-3.5 h-3.5" /> RESET VIEW
             </button>
           </div>
 
-          <div className="relative bg-black/40 rounded-2xl border border-slate-800/80 overflow-hidden cursor-grab active:cursor-grabbing">
+          <div className="relative bg-[#070C18]/80 rounded-2xl border border-white/10 overflow-hidden cursor-grab active:cursor-grabbing shadow-inner ring-1 ring-black/50 z-10">
+            {/* Grid overlay for aesthetic */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(#ffffff 1px, transparent 1px), linear-gradient(90deg, #ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+            
             <canvas
               ref={canvasRef}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
-              className="w-full h-[220px] block"
+              className="w-full h-[260px] block"
             />
+            
+            <div className="absolute bottom-3 left-3 flex gap-2 pointer-events-none">
+              <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[8px] font-mono text-slate-400 font-bold flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full" /> X-AXIS
+              </span>
+              <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[8px] font-mono text-slate-400 font-bold flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Y-AXIS
+              </span>
+              <span className="px-2 py-1 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[8px] font-mono text-slate-400 font-bold flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" /> Z-AXIS
+              </span>
+            </div>
+            <div className="absolute top-3 right-3 px-2 py-1 bg-indigo-500/20 backdrop-blur-md rounded border border-indigo-500/30 text-[8px] font-mono text-indigo-300 font-bold pointer-events-none">
+              DRAG TO ROTATE
+            </div>
           </div>
 
-          <div className="space-y-1.5 pt-1">
-            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Spins Quick-Align operations</div>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-2 pt-2 relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Zap className="w-3 h-3 text-amber-400" />
+                Spins Quick-Align operations
+              </span>
+              <div className="h-px bg-white/5 flex-1" />
+            </div>
+            <div className="flex flex-wrap gap-2.5">
               <button
                 type="button"
                 onClick={() => alignSpinsAxis('z', 4.0)}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+                className="flex-1 min-w-[120px] px-3 py-2.5 bg-white/5 hover:bg-indigo-500/20 border border-white/10 hover:border-indigo-500/40 text-[9px] font-mono font-bold text-slate-300 hover:text-indigo-300 rounded-xl transition-all flex justify-center items-center gap-2 shadow-sm"
               >
+                <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full" />
                 ALIGN ALL Z+
               </button>
               <button
@@ -1063,22 +1103,25 @@ export const MagneticNeutronModule: React.FC = () => {
                 onClick={() => {
                   setAtoms(atoms.map((a, idx) => ({ ...a, mx: 0, my: 0, mz: idx % 2 === 0 ? 4.0 : -4.0 })));
                 }}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+                className="flex-1 min-w-[120px] px-3 py-2.5 bg-white/5 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/40 text-[9px] font-mono font-bold text-slate-300 hover:text-rose-300 rounded-xl transition-all flex justify-center items-center gap-2 shadow-sm"
               >
-                AFM COLLINEAR (+/-)
+                <div className="flex gap-0.5"><div className="w-1.5 h-1.5 bg-rose-400 rounded-full" /><div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" /></div>
+                AFM COLLINEAR
               </button>
               <button
                 type="button"
                 onClick={invertSpins}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+                className="flex-1 min-w-[120px] px-3 py-2.5 bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 text-[9px] font-mono font-bold text-slate-300 hover:text-amber-300 rounded-xl transition-all flex justify-center items-center gap-2 shadow-sm"
               >
-                INVERT ALL SPINS
+                <RotateCw className="w-3 h-3 text-amber-400" />
+                INVERT ALL
               </button>
               <button
                 type="button"
                 onClick={randomizeSpins}
-                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+                className="flex-1 min-w-[120px] px-3 py-2.5 bg-white/5 hover:bg-violet-500/20 border border-white/10 hover:border-violet-500/40 text-[9px] font-mono font-bold text-slate-300 hover:text-violet-300 rounded-xl transition-all flex justify-center items-center gap-2 shadow-sm"
               >
+                <Zap className="w-3 h-3 text-violet-400" />
                 RANDOM SPHERICAL
               </button>
             </div>
