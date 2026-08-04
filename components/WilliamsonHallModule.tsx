@@ -13,7 +13,7 @@ import {
   Legend,
   Area
 } from 'recharts';
-import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
@@ -330,40 +330,51 @@ export const WilliamsonHallModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(34,211,238,0.05)] border border-cyan-500/20 relative overflow-hidden group transition-all hover:border-cyan-500/40">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-600/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-cyan-500/20 transition-all duration-700"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-rose-600/10 rounded-full blur-3xl translate-y-16 -translate-x-16 group-hover:bg-rose-500/20 transition-all duration-700"></div>
+        <div className="bg-[#0A101C]/90 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_35px_rgba(34,211,238,0.08)] border border-cyan-500/30 relative overflow-hidden group transition-all hover:border-cyan-500/50">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl -translate-y-20 translate-x-20 group-hover:bg-cyan-500/20 transition-all duration-700 pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-rose-500/10 rounded-full blur-3xl translate-y-20 -translate-x-20 group-hover:bg-rose-500/20 transition-all duration-700 pointer-events-none"></div>
           
-          <div className="flex items-center justify-between mb-8 relative z-10">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/80 relative z-10">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="absolute inset-0 bg-cyan-500 blur-md opacity-20" />
-                <div className="p-2.5 bg-[#070D18] rounded-xl border border-cyan-500/30 relative">
+                <div className="absolute inset-0 bg-cyan-500 blur-md opacity-30 animate-pulse" />
+                <div className="p-2.5 bg-[#070D18] rounded-xl border border-cyan-500/40 relative">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                   </svg>
                 </div>
               </div>
-              <h2 className="text-xl font-black text-white tracking-widest uppercase">W-H Parameters</h2>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-black text-white tracking-widest uppercase">W-H Parameters</h2>
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 uppercase tracking-widest">
+                    ACTIVE CONFIG
+                  </span>
+                </div>
+                <p className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                  Decouple Microstrain & Size Profiles
+                </p>
+              </div>
             </div>
             <button 
               onClick={handleReset}
-              className="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-cyan-400 bg-white/5 hover:bg-cyan-500/10 px-3 py-1.5 rounded-lg border border-white/10 hover:border-cyan-500/30 transition-all flex items-center gap-1.5 mt-1 relative overflow-hidden group/btn"
-              title="Reset config to defaults"
+              className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-cyan-400 bg-slate-900/80 hover:bg-cyan-500/10 px-3 py-1.5 rounded-xl border border-slate-700/80 hover:border-cyan-500/40 transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer group/btn"
+              title="Reset config to default values"
             >
-              <RefreshCw className="w-3 h-3 group-hover/btn:rotate-180 transition-transform duration-500" /> Reset
+              <RefreshCw className="w-3 h-3 text-cyan-500 group-hover/btn:rotate-180 transition-transform duration-500" /> Reset
             </button>
           </div>
 
           <div className="space-y-6 relative z-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors relative overflow-hidden group/wave">
+              <div className="bg-[#070D18] p-4 rounded-2xl border border-white/10 hover:border-cyan-500/40 transition-all relative overflow-hidden group/wave">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                    Wavelength (Å)
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-cyan-400" />
+                    Wavelength (λ)
                   </label>
                   {wavelength > 0 && (
-                    <span className="text-[9px] font-mono text-cyan-400 font-bold">
+                    <span className="text-[9px] font-mono text-cyan-400 font-extrabold bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
                       ~{(12.39842 / wavelength).toFixed(2)} keV
                     </span>
                   )}
@@ -374,19 +385,19 @@ export const WilliamsonHallModule: React.FC = () => {
                     step="0.0001"
                     value={String(wavelength) === 'NaN' ? '' : wavelength}
                     onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                    className="w-full px-4 py-2.5 bg-[#0A101C] text-cyan-300 border border-white/10 focus:border-cyan-500/50 rounded-lg focus:ring-1 focus:ring-cyan-500/20 outline-none font-mono text-sm transition-all"
+                    className="w-full px-4 py-2.5 bg-[#0A101C] text-cyan-300 border border-white/10 focus:border-cyan-500/60 rounded-xl focus:ring-1 focus:ring-cyan-500/30 outline-none font-mono text-sm font-bold transition-all shadow-inner"
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] font-black text-slate-700">Å</div>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] font-black text-slate-500 font-mono">Å</div>
                 </div>
                 <div className="mt-3 grid grid-cols-4 gap-1.5">
                   {Object.entries(XRAY_WAVELENGTHS).slice(0, 4).map(([name, val]) => (
                     <button
                       key={name}
                       onClick={() => setWavelength(val)}
-                      className={`py-1.5 px-0.5 rounded border text-[8px] font-black uppercase tracking-tight transition-all
+                      className={`py-1.5 px-0.5 rounded-lg border text-[8px] font-black uppercase tracking-tight transition-all cursor-pointer
                         ${wavelength === val 
-                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' 
-                          : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'
+                          ? 'bg-cyan-500 text-black border-cyan-400 font-extrabold shadow-[0_0_12px_rgba(34,211,238,0.3)]' 
+                          : 'bg-black/40 border-white/5 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                         }
                       `}
                     >
@@ -400,30 +411,30 @@ export const WilliamsonHallModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsWaveEstimatorOpen(!isWaveEstimatorOpen)}
-                    className="w-full py-2 px-3 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase tracking-wider border border-cyan-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase tracking-wider border border-cyan-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                   >
-                    <Binary className="w-3.5 h-3.5" />
+                    <Binary className="w-3.5 h-3.5 text-cyan-400" />
                     {isWaveEstimatorOpen ? 'Hide Estimator' : '🔬 Source & Energy (keV) Estimator'}
                   </button>
                 </div>
 
                 {isWaveEstimatorOpen && (
-                  <div className="overflow-hidden mt-3 space-y-3 pt-3 border-t border-white/5 text-[10px]">
+                  <div className="overflow-hidden mt-3 space-y-3 pt-3 border-t border-white/10 text-[10px]">
                     {/* Source Type Toggle */}
                     <div className="space-y-1">
-                      <span className="text-slate-500 uppercase font-black text-[9px] tracking-wider block">Source Tech</span>
+                      <span className="text-slate-400 uppercase font-black text-[9px] tracking-wider block">Source Tech</span>
                       <div className="grid grid-cols-2 gap-1.5">
                         <button
                           type="button"
                           onClick={() => setWaveSourceType('lab')}
-                          className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${waveSourceType === 'lab' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                          className={`py-1.5 px-2 rounded-lg font-black uppercase tracking-wider border text-[8px] transition-all cursor-pointer ${waveSourceType === 'lab' ? 'bg-cyan-500/20 border-cyan-500/60 text-cyan-300 shadow-sm' : 'bg-black/30 border-white/5 text-slate-500'}`}
                         >
                           Lab X-Ray Tube
                         </button>
                         <button
                           type="button"
                           onClick={() => setWaveSourceType('synchrotron')}
-                          className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${waveSourceType === 'synchrotron' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                          className={`py-1.5 px-2 rounded-lg font-black uppercase tracking-wider border text-[8px] transition-all cursor-pointer ${waveSourceType === 'synchrotron' ? 'bg-cyan-500/20 border-cyan-500/60 text-cyan-300 shadow-sm' : 'bg-black/30 border-white/5 text-slate-500'}`}
                         >
                           Synchrotron / Tunable
                         </button>
@@ -432,39 +443,37 @@ export const WilliamsonHallModule: React.FC = () => {
 
                     {/* Lab Options */}
                     {waveSourceType === 'lab' ? (
-                      <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-3">
-                        {/* Target Anode selection */}
+                      <div className="bg-black/40 p-2.5 rounded-xl border border-white/10 space-y-3">
                         <div>
-                          <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Anode Material</span>
+                          <span className="text-slate-400 uppercase font-bold text-[8px] tracking-wider block mb-1">Anode Material Target</span>
                           <div className="grid grid-cols-4 gap-1">
                             {Object.keys(EMISSION_LINES).map(anode => (
                               <button
                                 key={anode}
                                 type="button"
                                 onClick={() => setSelectedAnode(anode)}
-                                className={`py-1 rounded border font-mono text-[8px] transition-all ${selectedAnode === anode ? 'bg-cyan-500/30 border-cyan-500/40 text-cyan-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                className={`py-1 rounded-lg border font-mono text-[8px] transition-all cursor-pointer ${selectedAnode === anode ? 'bg-cyan-500/30 border-cyan-500/50 text-cyan-300 font-bold' : 'bg-[#0A101C] border-none text-slate-500 hover:text-slate-300'}`}
                               >
                                 {anode}
                               </button>
                             ))}
                           </div>
                           {EMISSION_LINES[selectedAnode] && (
-                            <p className="text-[8px] text-slate-500 font-sans mt-1.5 block leading-normal">
-                              <strong>{EMISSION_LINES[selectedAnode].name}</strong>: {EMISSION_LINES[selectedAnode].description}
+                            <p className="text-[8px] text-slate-400 font-sans mt-1.5 block leading-normal">
+                              <strong className="text-cyan-400">{EMISSION_LINES[selectedAnode].name}</strong>: {EMISSION_LINES[selectedAnode].description}
                             </p>
                           )}
                         </div>
 
-                        {/* Spectral lines selection */}
                         <div>
-                          <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Spectral Line / Doublet Selection</span>
+                          <span className="text-slate-400 uppercase font-bold text-[8px] tracking-wider block mb-1">Spectral Line Selection</span>
                           <div className="grid grid-cols-2 gap-1 mb-1">
                             {(['a1', 'avg'] as const).map(line => (
                               <button
                                 key={line}
                                 type="button"
                                 onClick={() => setSelectedLine(line)}
-                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${selectedLine === line ? 'bg-cyan-500/30 border-cyan-500/40 text-cyan-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                className={`py-1 rounded-lg border text-[8px] font-black uppercase transition-all cursor-pointer ${selectedLine === line ? 'bg-cyan-500/30 border-cyan-500/50 text-cyan-300 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
                               >
                                 {line === 'a1' ? 'Kα1 Line' : 'Weighted Kα Avg'}
                               </button>
@@ -476,7 +485,7 @@ export const WilliamsonHallModule: React.FC = () => {
                                 key={line}
                                 type="button"
                                 onClick={() => setSelectedLine(line)}
-                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${selectedLine === line ? 'bg-cyan-500/30 border-cyan-500/40 text-cyan-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                className={`py-1 rounded-lg border text-[8px] font-black uppercase transition-all cursor-pointer ${selectedLine === line ? 'bg-cyan-500/30 border-cyan-500/50 text-cyan-300 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
                               >
                                 {line === 'a2' ? 'Kα2 Line' : 'Kβ1 Line'}
                               </button>
@@ -485,12 +494,11 @@ export const WilliamsonHallModule: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      /* Synchrotron / Tunable Options */
-                      <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-3">
+                      <div className="bg-black/40 p-2.5 rounded-xl border border-white/10 space-y-3">
                         <div>
                           <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-1">
                             <span className="uppercase font-semibold">Incident Photon Energy (keV)</span>
-                            <span className="font-mono text-cyan-400">{synchrotronEnergy.toFixed(2)} keV</span>
+                            <span className="font-mono text-cyan-400 font-bold">{synchrotronEnergy.toFixed(2)} keV</span>
                           </div>
                           <input
                             type="range"
@@ -499,7 +507,7 @@ export const WilliamsonHallModule: React.FC = () => {
                             step="0.1"
                             value={String(synchrotronEnergy) === 'NaN' ? '' : synchrotronEnergy}
                             onChange={(e) => setSynchrotronEnergy(parseFloat(e.target.value))}
-                            className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-500"
+                            className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                           />
                           <div className="mt-2 text-[8px] text-slate-500 font-sans flex justify-between font-mono">
                             <span>1.0 keV</span>
@@ -507,17 +515,16 @@ export const WilliamsonHallModule: React.FC = () => {
                             <span>100.0 keV</span>
                           </div>
                         </div>
-                        <p className="text-[8px] text-slate-500 italic mt-1 font-mono leading-normal">
-                          Computed wavelength uses the relativistic wave equation: λ(Å) = hc / E ≈ 12.39842 / E_keV.
+                        <p className="text-[8px] text-slate-400 italic font-mono leading-normal">
+                          Relativistic wave formulation: λ(Å) = hc / E ≈ 12.39842 / E_keV.
                         </p>
                       </div>
                     )}
 
-                    {/* Result and Apply */}
-                    <div className="bg-cyan-500/10 p-2 text-cyan-300 rounded-lg border border-cyan-500/20 flex items-center justify-between gap-2 font-mono">
+                    <div className="bg-cyan-500/10 p-2.5 text-cyan-300 rounded-xl border border-cyan-500/30 flex items-center justify-between gap-2 font-mono">
                       <div>
-                        <span className="block text-[7px] text-slate-500 uppercase font-black">Computed λ</span>
-                        <span className="text-xs font-black text-cyan-400 tracking-wider">λ = {calculatedWavelength.toFixed(5)} Å</span>
+                        <span className="block text-[7px] text-slate-400 uppercase font-black">Computed λ</span>
+                        <span className="text-xs font-black text-cyan-300 tracking-wider">λ = {calculatedWavelength.toFixed(5)} Å</span>
                       </div>
                       <button
                         type="button"
@@ -525,7 +532,7 @@ export const WilliamsonHallModule: React.FC = () => {
                           setWavelength(calculatedWavelength);
                           setIsWaveEstimatorOpen(false);
                         }}
-                        className="py-1 px-2.5 bg-cyan-500 hover:bg-cyan-400 text-white font-black uppercase text-[8px] rounded transition-transform active:scale-95 cursor-pointer"
+                        className="py-1 px-3 bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold uppercase text-[8px] rounded-lg transition-transform active:scale-95 cursor-pointer shadow-sm"
                       >
                         Apply λ
                       </button>
@@ -534,21 +541,22 @@ export const WilliamsonHallModule: React.FC = () => {
                 )}
               </div>
 
-              <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-rose-500/30 transition-colors relative">
-                <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">
+              <div className="bg-[#070D18] p-4 rounded-2xl border border-white/10 hover:border-rose-500/40 transition-all relative">
+                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-[0.2em] flex items-center gap-1">
+                  <Ruler className="w-3 h-3 text-rose-400" />
                   Shape Factor (K)
                 </label>
                 <div className="relative" ref={kMenuRef}>
                   <button
                     onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
-                    className="w-full px-4 py-2.5 bg-[#0A101C] border border-white/10 hover:border-rose-500/40 rounded-lg outline-none transition-all flex items-center justify-between group shadow-inner"
+                    className="w-full px-4 py-2.5 bg-[#0A101C] border border-white/10 hover:border-rose-500/50 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-mono font-black text-rose-400 truncate max-w-[100px]">
+                       <span className="text-[10px] font-mono font-black text-rose-300 truncate max-w-[110px]">
                         {selectedKType}
                        </span>
                     </div>
-                    <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   <AnimatePresence>
@@ -558,7 +566,7 @@ export const WilliamsonHallModule: React.FC = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -5, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-[110%] left-0 right-0 bg-[#070D18] rounded-xl border border-rose-500/30 shadow-[0_5px_30px_rgba(0,0,0,0.5)] overflow-hidden z-[100] py-1 max-h-[250px] overflow-y-auto custom-scrollbar"
+                        className="absolute top-[110%] left-0 right-0 bg-[#070D18] rounded-xl border border-rose-500/40 shadow-[0_10px_40px_rgba(0,0,0,0.6)] overflow-hidden z-[100] py-1 max-h-[250px] overflow-y-auto custom-scrollbar"
                       >
                         {K_FACTORS.map((k) => (
                           <button
@@ -568,8 +576,8 @@ export const WilliamsonHallModule: React.FC = () => {
                               if (k.value !== 0) setConstantK(k.value);
                               setIsKTypeMenuOpen(false);
                             }}
-                            className={`w-full px-3 py-2 flex items-center justify-between hover:bg-rose-500/10 transition-colors group/item relative
-                              ${selectedKType === k.label ? 'bg-rose-500/5' : ''}
+                            className={`w-full px-3 py-2 flex items-center justify-between hover:bg-rose-500/10 transition-colors group/item relative cursor-pointer
+                              ${selectedKType === k.label ? 'bg-rose-500/10' : ''}
                             `}
                           >
                             <div className="flex items-center gap-3">
@@ -602,7 +610,7 @@ export const WilliamsonHallModule: React.FC = () => {
                           setConstantK(parseFloat(e.target.value));
                           setSelectedKType('Custom');
                         }}
-                        className="w-full px-4 py-2.5 bg-[#0A101C] text-rose-400 border border-white/10 rounded-lg focus:border-rose-500/50 outline-none font-mono text-xs font-black transition-all text-center focus:ring-1 focus:ring-rose-500/20"
+                        className="w-full px-4 py-2.5 bg-[#0A101C] text-rose-300 border border-white/10 rounded-xl focus:border-rose-500/60 outline-none font-mono text-xs font-black transition-all text-center focus:ring-1 focus:ring-rose-500/30 shadow-inner"
                       />
                     </div>
                   </div>
@@ -612,46 +620,44 @@ export const WilliamsonHallModule: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsKEstimatorOpen(!isKEstimatorOpen)}
-                      className="w-full py-2 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[10px] font-black uppercase tracking-wider border border-rose-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[10px] font-black uppercase tracking-wider border border-rose-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                     >
-                      <Atom className="w-3.5 h-3.5" />
+                      <Atom className="w-3.5 h-3.5 text-rose-400" />
                       {isKEstimatorOpen ? 'Hide Estimator' : '🔬 Crystal Shape & hkl Estimator'}
                     </button>
                   </div>
 
                   {isKEstimatorOpen && (
-                    <div className="overflow-hidden mt-3 space-y-3 pt-3 border-t border-white/5 text-[10px]">
-                      {/* Width Definition */}
+                    <div className="overflow-hidden mt-3 space-y-3 pt-3 border-t border-white/10 text-[10px]">
                       <div className="space-y-1">
-                        <span className="text-slate-500 uppercase font-black text-[9px] tracking-wider block">Width Definition</span>
+                        <span className="text-slate-400 uppercase font-black text-[9px] tracking-wider block">Width Definition</span>
                         <div className="grid grid-cols-2 gap-1.5">
                           <button
                             type="button"
                             onClick={() => setBreadthDef('fwhm')}
-                            className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${breadthDef === 'fwhm' ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                            className={`py-1.5 px-2 rounded-lg font-black uppercase tracking-wider border text-[8px] transition-all cursor-pointer ${breadthDef === 'fwhm' ? 'bg-rose-500/20 border-rose-500/60 text-rose-300 shadow-sm' : 'bg-black/30 border-white/5 text-slate-500'}`}
                           >
                             FWHM-based
                           </button>
                           <button
                             type="button"
                             onClick={() => setBreadthDef('ib')}
-                            className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${breadthDef === 'ib' ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                            className={`py-1.5 px-2 rounded-lg font-black uppercase tracking-wider border text-[8px] transition-all cursor-pointer ${breadthDef === 'ib' ? 'bg-rose-500/20 border-rose-500/60 text-rose-300 shadow-sm' : 'bg-black/30 border-white/5 text-slate-500'}`}
                           >
                             Integral Breadth
                           </button>
                         </div>
                       </div>
 
-                      {/* Presets by Habit */}
                       <div className="space-y-1">
-                        <span className="text-slate-500 uppercase font-black text-[9px] tracking-wider block">Crystallite Shape Habit</span>
+                        <span className="text-slate-400 uppercase font-black text-[9px] tracking-wider block">Crystallite Shape Habit</span>
                         <div className="grid grid-cols-3 gap-1">
                           {(['cubic', 'cylindrical', 'spheroid'] as const).map(hab => (
                             <button
                               key={hab}
                               type="button"
                               onClick={() => setEstHabit(hab)}
-                              className={`py-1 px-1 rounded border text-[8px] font-black uppercase tracking-tight transition-all truncate ${estHabit === hab ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' : 'bg-black/20 border-white/10 text-slate-500'}`}
+                              className={`py-1 px-1 rounded-lg border text-[8px] font-black uppercase tracking-tight transition-all cursor-pointer truncate ${estHabit === hab ? 'bg-rose-500/20 border-rose-500/60 text-rose-300 shadow-sm' : 'bg-black/30 border-white/10 text-slate-500'}`}
                             >
                               {hab}
                             </button>
@@ -659,18 +665,17 @@ export const WilliamsonHallModule: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Cubic detail options */}
                       {estHabit === 'cubic' && (
-                        <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-2">
+                        <div className="bg-black/40 p-2.5 rounded-xl border border-white/10 space-y-2">
                           <div>
-                            <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Cubic Plane Index (hkl)</span>
+                            <span className="text-slate-400 uppercase font-bold text-[8px] tracking-wider block mb-1">Cubic Plane Index (hkl)</span>
                             <div className="grid grid-cols-3 gap-1 mb-2">
                               {(['100', '110', '111'] as const).map(hkl => (
                                 <button
                                   key={hkl}
                                   type="button"
                                   onClick={() => setCubicHKL(hkl)}
-                                  className={`py-1 rounded border font-mono text-[8px] transition-all ${cubicHKL === hkl ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                  className={`py-1 rounded-lg border font-mono text-[8px] transition-all cursor-pointer ${cubicHKL === hkl ? 'bg-rose-500/30 border-rose-500/50 text-rose-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
                                 >
                                   [{hkl}]
                                 </button>
@@ -682,36 +687,32 @@ export const WilliamsonHallModule: React.FC = () => {
                                   key={shape}
                                   type="button"
                                   onClick={() => setCubicHKL(shape)}
-                                  className={`py-1 rounded border font-mono text-[8px] capitalize transition-all ${cubicHKL === shape ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                  className={`py-1 rounded-lg border font-mono text-[8px] capitalize transition-all cursor-pointer ${cubicHKL === shape ? 'bg-rose-500/30 border-rose-500/50 text-rose-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
                                 >
                                   {shape}
                                 </button>
                               ))}
                             </div>
                           </div>
-                          <p className="text-[8px] text-slate-500 italic mt-1 font-mono">
-                            Factors computed via projection integrals over standard polyhedral geometry relative to the diffracting planes.
-                          </p>
                         </div>
                       )}
 
-                      {/* Cylindrical Habit options */}
                       {estHabit === 'cylindrical' && (
-                        <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-2">
+                        <div className="bg-black/40 p-2.5 rounded-xl border border-white/10 space-y-2">
                           <div>
-                            <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Plane Orientation</span>
+                            <span className="text-slate-400 uppercase font-bold text-[8px] tracking-wider block mb-1">Plane Orientation</span>
                             <div className="grid grid-cols-2 gap-1.5 mb-2">
                               <button
                                 type="button"
                                 onClick={() => setCylinderOrientation('axial')}
-                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${cylinderOrientation === 'axial' ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                className={`py-1 rounded-lg border text-[8px] font-black uppercase transition-all cursor-pointer ${cylinderOrientation === 'axial' ? 'bg-rose-500/30 border-rose-500/50 text-rose-300 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
                               >
                                 Longitudinal (Axial L)
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setCylinderOrientation('radial')}
-                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${cylinderOrientation === 'radial' ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                className={`py-1 rounded-lg border text-[8px] font-black uppercase transition-all cursor-pointer ${cylinderOrientation === 'radial' ? 'bg-rose-500/30 border-rose-500/50 text-rose-300 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
                               >
                                 Transverse (Radial D)
                               </button>
@@ -721,7 +722,7 @@ export const WilliamsonHallModule: React.FC = () => {
                           <div>
                             <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-1">
                               <span className="uppercase font-semibold">Aspect Ratio (Length / Diam)</span>
-                              <span className="font-mono text-rose-400">{cylinderAspect.toFixed(1)}</span>
+                              <span className="font-mono text-rose-400 font-bold">{cylinderAspect.toFixed(1)}</span>
                             </div>
                             <input
                               type="range"
@@ -730,22 +731,18 @@ export const WilliamsonHallModule: React.FC = () => {
                               step="0.1"
                               value={String(cylinderAspect) === 'NaN' ? '' : cylinderAspect}
                               onChange={(e) => setCylinderAspect(parseFloat(e.target.value))}
-                              className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-rose-500"
+                              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
                             />
                           </div>
-                          <p className="text-[8px] text-slate-500 italic font-mono">
-                            Useful for anisotropic structures such as flat disks/platelets or long nanowires.
-                          </p>
                         </div>
                       )}
 
-                      {/* Spheroid option */}
                       {estHabit === 'spheroid' && (
-                        <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-2">
+                        <div className="bg-black/40 p-2.5 rounded-xl border border-white/10 space-y-2">
                           <div>
                             <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-1">
                               <span className="uppercase font-semibold">Eccentricity (e-deviation)</span>
-                              <span className="font-mono text-rose-400">{spheroidEccentricity.toFixed(2)}</span>
+                              <span className="font-mono text-rose-400 font-bold">{spheroidEccentricity.toFixed(2)}</span>
                             </div>
                             <input
                               type="range"
@@ -754,20 +751,16 @@ export const WilliamsonHallModule: React.FC = () => {
                               step="0.01"
                               value={String(spheroidEccentricity) === 'NaN' ? '' : spheroidEccentricity}
                               onChange={(e) => setSpheroidEccentricity(parseFloat(e.target.value))}
-                              className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-rose-500"
+                              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500"
                             />
                           </div>
-                          <p className="text-[8px] text-slate-500 italic font-mono">
-                            Prolate/oblate ellipsoid elongation scales effective peak width parameters. At e = 0, symmetric sphere value is utilized.
-                          </p>
                         </div>
                       )}
 
-                      {/* Display computations and Apply button */}
-                      <div className="bg-rose-500/10 p-2 text-rose-300 rounded-lg border border-rose-500/20 flex items-center justify-between gap-2 font-mono">
+                      <div className="bg-rose-500/10 p-2.5 text-rose-300 rounded-xl border border-rose-500/30 flex items-center justify-between gap-2 font-mono">
                         <div>
-                          <span className="block text-[7px] text-slate-500 uppercase font-black">Calculated Shape Factor</span>
-                          <span className="text-xs font-black text-rose-400 tracking-wider">K = {calculatedK.toFixed(3)}</span>
+                          <span className="block text-[7px] text-slate-400 uppercase font-black">Calculated Shape Factor</span>
+                          <span className="text-xs font-black text-rose-300 tracking-wider">K = {calculatedK.toFixed(3)}</span>
                         </div>
                         <button
                           type="button"
@@ -776,7 +769,7 @@ export const WilliamsonHallModule: React.FC = () => {
                             setSelectedKType(`Estimated (${calculatedK.toFixed(3)})`);
                             setIsKEstimatorOpen(false);
                           }}
-                          className="py-1 px-2.5 bg-rose-500 hover:bg-rose-400 text-white font-black uppercase text-[8px] rounded transition-transform active:scale-95 cursor-pointer"
+                          className="py-1 px-3 bg-rose-500 hover:bg-rose-400 text-black font-extrabold uppercase text-[8px] rounded-lg transition-transform active:scale-95 cursor-pointer shadow-sm"
                         >
                           Apply K
                         </button>
@@ -787,22 +780,25 @@ export const WilliamsonHallModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-amber-500/30 transition-colors">
-              <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em] flex justify-between items-center">
-                <span>Instrumental Broadening</span>
-                <span className="text-[8px] text-amber-500 font-mono">MODEL DECOUPLING</span>
+            {/* Instrumental Broadening Section */}
+            <div className="bg-[#070D18] p-4.5 rounded-2xl border border-white/10 hover:border-amber-500/40 transition-all">
+              <label className="block text-[10px] font-black text-slate-400 mb-3 uppercase tracking-[0.2em] flex justify-between items-center">
+                <span className="flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-amber-400" />
+                  Instrumental Broadening
+                </span>
+                <span className="text-[8px] text-amber-400 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">IRF DECOUPLING</span>
               </label>
 
-              {/* Toggle Mode */}
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {(['constant', 'caglioti'] as const).map(mode => (
                   <button
                     key={mode}
                     onClick={() => setInstrumentalMode(mode)}
-                    className={`py-1.5 px-2 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all
+                    className={`py-2 px-2 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer
                       ${instrumentalMode === mode 
-                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-black' 
-                        : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'
+                        ? 'bg-amber-500 text-black border-amber-400 font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.3)]' 
+                        : 'bg-black/40 border-white/5 text-slate-400 hover:text-slate-200'
                       }
                     `}
                   >
@@ -812,9 +808,9 @@ export const WilliamsonHallModule: React.FC = () => {
               </div>
 
               {instrumentalMode === 'constant' ? (
-                <div className="space-y-2">
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                    Constant FWHM (deg)
+                <div className="space-y-2.5">
+                  <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Constant Instrumental FWHM (deg)
                   </label>
                   <input
                     type="number"
@@ -822,7 +818,7 @@ export const WilliamsonHallModule: React.FC = () => {
                     min="0"
                     value={String(instFwhm) === 'NaN' ? '' : instFwhm}
                     onChange={(e) => setInstFwhm(Math.max(0, parseFloat(e.target.value) || 0))}
-                    className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
+                    className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/60 rounded-xl focus:ring-1 focus:ring-amber-500/30 outline-none font-mono text-sm font-bold transition-all shadow-inner"
                   />
                   <div className="flex gap-2 mt-2">
                     {[0, 0.05, 0.08, 0.12].map(val => (
@@ -830,22 +826,18 @@ export const WilliamsonHallModule: React.FC = () => {
                         key={val}
                         type="button"
                         onClick={() => setInstFwhm(val)}
-                        className={`flex-1 py-1.5 rounded-lg border text-[9px] font-black transition-all ${instFwhm === val ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}`}
+                        className={`flex-1 py-1.5 rounded-lg border text-[9px] font-black transition-all cursor-pointer ${instFwhm === val ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold' : 'bg-black/30 border-white/5 text-slate-500 hover:text-slate-300'}`}
                       >
                         {val === 0 ? '0 (Raw)' : `${val}°`}
                       </button>
                     ))}
                   </div>
-                  <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-relaxed mt-1">
-                    Flat instrumental contribution across all 2θ angles.
-                  </p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {/* Presets */}
+                <div className="space-y-3.5">
                   <div>
-                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                      Instrument Presets
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                      Instrument Setup Presets
                     </label>
                     <select
                       onChange={(e) => {
@@ -856,7 +848,7 @@ export const WilliamsonHallModule: React.FC = () => {
                           setCagliotiW(pr.w);
                         }
                       }}
-                      className="w-full px-3 py-2 bg-[#0A101C] text-amber-400 border border-white/10 rounded-lg text-xs outline-none focus:border-amber-500/50 transition-all font-mono"
+                      className="w-full px-3 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 rounded-xl text-xs outline-none focus:border-amber-500/60 transition-all font-mono shadow-inner cursor-pointer"
                       defaultValue=""
                     >
                       <option value="" disabled>-- Select Instrument Preset --</option>
@@ -868,109 +860,125 @@ export const WilliamsonHallModule: React.FC = () => {
                     </select>
                   </div>
 
-                  {/* U, V, W inputs */}
                   <div className="grid grid-cols-3 gap-2">
                     <div>
-                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">U</label>
+                      <label className="block text-[8px] font-bold text-slate-400 text-center mb-1 font-mono">U</label>
                       <input
                         type="number"
                         step="0.0001"
                         value={String(cagliotiU) === 'NaN' ? '' : cagliotiU}
                         onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
+                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/10 rounded-xl text-center font-mono text-xs focus:border-amber-500/60 outline-none font-bold shadow-inner"
                       />
                     </div>
                     <div>
-                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">V</label>
+                      <label className="block text-[8px] font-bold text-slate-400 text-center mb-1 font-mono">V</label>
                       <input
                         type="number"
                         step="0.0001"
                         value={String(cagliotiV) === 'NaN' ? '' : cagliotiV}
                         onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
+                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/10 rounded-xl text-center font-mono text-xs focus:border-amber-500/60 outline-none font-bold shadow-inner"
                       />
                     </div>
                     <div>
-                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">W</label>
+                      <label className="block text-[8px] font-bold text-slate-400 text-center mb-1 font-mono">W</label>
                       <input
                         type="number"
                         step="0.0001"
                         value={String(cagliotiW) === 'NaN' ? '' : cagliotiW}
                         onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
+                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/10 rounded-xl text-center font-mono text-xs focus:border-amber-500/60 outline-none font-bold shadow-inner"
                       />
                     </div>
                   </div>
-                  <div className="bg-[#0A101C] p-2.5 rounded-lg border border-white/5 text-[8px] font-mono text-slate-400 space-y-1">
-                    <p className="font-bold text-amber-500 uppercase mb-1">Caglioti Equation Mode:</p>
-                    <p className="italic">FWHM² = U·tan²θ + V·tanθ + W</p>
+                  <div className="bg-[#0A101C] p-3 rounded-xl border border-white/5 text-[9px] font-mono text-slate-400 space-y-1">
+                    <p className="font-bold text-amber-400 uppercase mb-0.5">Caglioti Profile Function:</p>
+                    <p className="text-amber-300 font-bold">FWHM² = U · tan²θ + V · tanθ + W</p>
                   </div>
                 </div>
               )}
               
-              <div className="mt-4 pt-4 border-t border-white/5">
-                <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">
-                  Broadening Model
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                   {(['Gaussian', 'Lorentzian'] as const).map(model => (
-                     <button
-                       key={model}
-                       onClick={() => setBroadeningModel(model)}
-                       className={`py-2 px-1 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all
-                         ${broadeningModel === model ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 font-black' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}
-                       `}
-                     >
-                       {model}
-                     </button>
-                   ))}
+              <div className="mt-4 pt-4 border-t border-white/10 space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-[0.2em]">
+                    Broadening Convolution Profile
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                     {(['Gaussian', 'Lorentzian'] as const).map(model => (
+                       <button
+                         key={model}
+                         onClick={() => setBroadeningModel(model)}
+                         className={`py-2 px-1 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all cursor-pointer
+                           ${broadeningModel === model ? 'bg-cyan-500 text-black border-cyan-400 font-extrabold shadow-[0_0_12px_rgba(34,211,238,0.3)]' : 'bg-black/40 border-white/5 text-slate-400 hover:text-slate-200'}
+                         `}
+                       >
+                         {model}
+                       </button>
+                     ))}
+                  </div>
+                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-2 leading-relaxed">
+                     {broadeningModel === 'Gaussian' ? 'Quadratic (β² = β_obs² - β_inst²): Recommended for instrument/strain dominated profiles.' : 'Linear (β = β_obs - β_inst): Recommended for purely Cauchy/Lorentzian profiles.'}
+                  </p>
                 </div>
-                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-2 mb-4 leading-relaxed">
-                   {broadeningModel === 'Gaussian' ? 'Quadratic (β²): Used when instrument/strain profiles are Gaussian.' : 'Linear (β): Used when broadening is dominantly Cauchy/Lorentzian.'}
-                </p>
 
-                <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">
-                  Strain Regression Model
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                   {(['UDM', 'USDM', 'UDEDM', 'Stephens'] as const).map(model => (
-                     <button
-                       key={model}
-                       onClick={() => setStrainModel(model)}
-                       className={`py-2 px-1 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all
-                         ${strainModel === model ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 font-black' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}
-                       `}
-                     >
-                       {model === 'UDM' && 'Uniform UDM'}
-                       {model === 'USDM' && 'Stress USDM'}
-                       {model === 'UDEDM' && 'Energy UDEDM'}
-                       {model === 'Stephens' && 'Stephens'}
-                     </button>
-                   ))}
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-[0.2em]">
+                    Microstrain Regression Physics Model
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                     {(['UDM', 'USDM', 'UDEDM', 'Stephens'] as const).map(model => (
+                       <button
+                         key={model}
+                         onClick={() => setStrainModel(model)}
+                         className={`py-2 px-1.5 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer
+                           ${strainModel === model ? 'bg-emerald-500 text-black border-emerald-400 font-extrabold shadow-[0_0_12px_rgba(16,185,129,0.3)]' : 'bg-black/40 border-white/5 text-slate-400 hover:text-slate-200'}
+                         `}
+                       >
+                         {model === 'UDM' && 'UDM (Uniform Strain)'}
+                         {model === 'USDM' && 'USDM (Stress σ)'}
+                         {model === 'UDEDM' && 'UDEDM (Energy u)'}
+                         {model === 'Stephens' && 'Stephens (hkl)'}
+                       </button>
+                     ))}
+                  </div>
+
+                  {/* Dynamic Equation Formula Display for Selected Strain Model */}
+                  <div className="mt-3 p-3 bg-[#0A101C] rounded-xl border border-emerald-500/30 text-center">
+                    <span className="block text-[8px] text-emerald-400/90 font-black uppercase tracking-widest mb-1">
+                      {strainModel === 'UDM' ? 'Isotropic Uniform Strain (UDM)' :
+                       strainModel === 'USDM' ? 'Anisotropic Uniform Stress (USDM)' :
+                       strainModel === 'UDEDM' ? 'Energy Density Model (UDEDM)' : 'Stephens Anisotropic Matrix'}
+                    </span>
+                    <div 
+                      className="text-xs text-emerald-300 font-sans py-1 overflow-x-auto"
+                      dangerouslySetInnerHTML={{ __html: katex.renderToString(
+                        strainModel === 'UDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)' :
+                        strainModel === 'USDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\frac{4\\sigma \\sin(\\theta)}{E_{hkl}}' :
+                        strainModel === 'UDEDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\sin(\\theta) \\sqrt{\\frac{2u}{E_{hkl}}}' :
+                        '\\sigma^2(M_{hkl}) = \\sum b_{ij} h^i k^j l^k',
+                        { throwOnError: false }
+                      ) }}
+                    />
+                  </div>
                 </div>
-                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-2 leading-relaxed">
-                   {strainModel === 'UDM' && 'Isotropic Uniform Deformation Model. Assumes equal microstrain in all directions.'}
-                   {strainModel === 'USDM' && 'Anisotropic Uniform Stress Deformation Model. Assumes uniform stress (σ = ε_hkl * E_hkl).'}
-                   {strainModel === 'UDEDM' && 'Anisotropic Uniform Deformation Energy Density Model (u = 0.5 * ε_hkl² * E_hkl).'}
-                   {strainModel === 'Stephens' && 'Anisotropic phenomenological S_hkl strain model (requires hkl inputs).'}
-                </p>
               </div>
             </div>
 
-            {/* Young's Modulus & Stress Card */}
-            <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors">
+            {/* Young's Modulus & Elastic Coupling Card */}
+            <div className="bg-[#070D18] p-4.5 rounded-2xl border border-white/10 hover:border-purple-500/40 transition-all">
               <div className="flex items-center justify-between mb-3">
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5">
                   <Atom className="w-3.5 h-3.5 text-purple-400" />
                   <span>Elastic Stress Coupling</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsModulusEnabled(!isModulusEnabled)}
-                  className={`px-2 py-1 text-[8px] font-black uppercase tracking-widest rounded border transition-colors
+                  className={`px-2.5 py-1 text-[8px] font-black uppercase tracking-widest rounded-lg border transition-colors cursor-pointer
                     ${isModulusEnabled 
-                      ? 'bg-purple-500/20 border-purple-500/50 text-purple-300' 
-                      : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-400'
+                      ? 'bg-purple-500 text-black border-purple-400 font-extrabold shadow-[0_0_12px_rgba(168,85,247,0.3)]' 
+                      : 'bg-black/30 border-white/5 text-slate-500 hover:text-slate-300'
                     }
                   `}
                 >
@@ -979,9 +987,9 @@ export const WilliamsonHallModule: React.FC = () => {
               </div>
 
               {isModulusEnabled ? (
-                <div className="space-y-3 animate-in fade-in duration-300">
+                <div className="space-y-3.5 animate-in fade-in duration-300">
                   <div>
-                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
                       Material System Presets
                     </label>
                     <select
@@ -989,7 +997,7 @@ export const WilliamsonHallModule: React.FC = () => {
                         const val = parseFloat(e.target.value);
                         if (!isNaN(val)) setYoungsModulusGPa(val);
                       }}
-                      className="w-full px-3 py-2 bg-[#0A101C] text-purple-400 border border-white/10 rounded-lg text-xs outline-none focus:border-purple-500/50 transition-all font-mono"
+                      className="w-full px-3 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 rounded-xl text-xs outline-none focus:border-purple-500/60 transition-all font-mono shadow-inner cursor-pointer"
                       defaultValue={youngsModulusGPa.toString()}
                     >
                       {MODULUS_PRESETS.map((p) => (
@@ -1002,7 +1010,7 @@ export const WilliamsonHallModule: React.FC = () => {
 
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                      <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                         Young's Modulus (E)
                       </label>
                       <span className="text-xs font-mono font-black text-purple-300">{youngsModulusGPa} GPa</span>
@@ -1014,33 +1022,34 @@ export const WilliamsonHallModule: React.FC = () => {
                       step="1"
                       value={String(youngsModulusGPa) === 'NaN' ? '' : youngsModulusGPa}
                       onChange={(e) => setYoungsModulusGPa(parseInt(e.target.value) || 130)}
-                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
                     />
-                    <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider mt-1">
+                    <p className="text-[8px] text-slate-400 uppercase font-bold tracking-wider mt-1">
                       Translates mechanical microstrain into physical internal lattice stresses (MPa) & stress energy density (kJ/m³).
                     </p>
                   </div>
                 </div>
               ) : (
-                <p className="text-[9px] font-mono text-slate-600 leading-relaxed">
+                <p className="text-[9px] font-mono text-slate-500 leading-relaxed">
                   Enable dynamic Young's modulus coupling to resolve structural lattice stresses and volumetric deformation energy.
                 </p>
               )}
             </div>
 
-            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 relative overflow-hidden group/data hover:border-emerald-500/30 transition-colors">
+            {/* Data Input Section */}
+            <div className="bg-[#070D18] p-5 rounded-2xl border border-white/10 relative overflow-hidden group/data hover:border-emerald-500/40 transition-all">
               <div className="flex justify-between items-end mb-3">
-                <label className="block text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                <label className="block text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
                   <Binary className="w-3.5 h-3.5" />
-                  Peak Data Input
+                  Peak Dataset Input
                 </label>
                 <div className="flex gap-2">
-                  <div className="flex justify-between text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                    <span>2θ, FWHM</span>
+                  <div className="flex justify-between text-[8px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/30">
+                    <span>2θ, FWHM, h, k, l</span>
                   </div>
                   <button 
                     onClick={handleClear}
-                    className="text-[8px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1 transition-colors bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded border border-red-500/30"
+                    className="text-[8px] font-black text-red-400 uppercase tracking-widest flex items-center gap-1 transition-colors bg-red-500/10 hover:bg-red-500/20 px-2.5 py-1 rounded-lg border border-red-500/30 cursor-pointer"
                   >
                     <Trash2 className="w-2.5 h-2.5" /> Clear
                   </button>
@@ -1059,9 +1068,9 @@ export const WilliamsonHallModule: React.FC = () => {
                       const kMatch = K_FACTORS.find(kf => kf.value === p.k);
                       if (kMatch) setSelectedKType(kMatch.label);
                     }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0A101C] border border-white/5 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all text-left group/btn"
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-[#0A101C] border border-white/10 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all text-left group/btn cursor-pointer"
                   >
-                    <span className="text-lg bg-black/50 w-8 h-8 flex items-center justify-center rounded-lg border border-white/5 group-hover/btn:border-emerald-500/30 shrink-0">
+                    <span className="text-lg bg-black/50 w-8 h-8 flex items-center justify-center rounded-lg border border-white/5 group-hover/btn:border-emerald-500/40 shrink-0">
                       {p.icon}
                     </span>
                     <div className="flex flex-col min-w-0">
@@ -1076,17 +1085,17 @@ export const WilliamsonHallModule: React.FC = () => {
                 <textarea
                   value={inputData}
                   onChange={(e) => setInputData(e.target.value)}
-                  className="w-full h-32 px-4 py-3 bg-[#0A101C] text-emerald-300 border border-white/10 focus:border-emerald-500/50 rounded-lg focus:ring-1 focus:ring-emerald-500/20 outline-none custom-scrollbar transition-all leading-relaxed placeholder:text-slate-700"
+                  className="w-full h-32 px-4 py-3 bg-[#0A101C] text-emerald-300 border border-white/10 focus:border-emerald-500/60 rounded-xl focus:ring-1 focus:ring-emerald-500/30 outline-none custom-scrollbar transition-all leading-relaxed placeholder:text-slate-700 font-mono shadow-inner"
                   placeholder="2θ(°), FWHM(°), h, k, l&#10;28.44, 0.25, 4, 0, 0&#10;47.30, 0.28, 2, 2, 0"
                   spellCheck="false"
                 />
               </div>
-              <div className="mt-3 flex items-start gap-2 text-[9px] font-bold text-slate-400 bg-black/40 p-2.5 rounded-lg border border-white/5 flex-col">
-                <span className="leading-tight uppercase tracking-widest font-mono text-emerald-500/80">
-                   <span className="text-emerald-500 mr-1">&gt;</span> Format: 2Theta, FWHM, [H, K, L]
+              <div className="mt-3 flex items-start gap-1.5 text-[9px] font-bold text-slate-400 bg-black/40 p-2.5 rounded-xl border border-white/5 flex-col font-mono">
+                <span className="leading-tight uppercase tracking-widest text-emerald-400">
+                  <span className="text-emerald-500 mr-1">&gt;</span> Format: 2Theta, FWHM, [H, K, L]
                 </span>
-                <span className="leading-tight uppercase tracking-widest font-mono text-emerald-500/80">
-                   <span className="text-emerald-500 mr-1">&gt;</span> Enter at least 3 peaks for reliable regression. Stephens model requires H, K, L inputs.
+                <span className="leading-tight uppercase tracking-widest text-slate-500">
+                  <span className="text-emerald-500 mr-1">&gt;</span> Enter at least 3 peaks for regression. Stephens model requires H, K, L indices.
                 </span>
               </div>
             </div>
@@ -1094,16 +1103,16 @@ export const WilliamsonHallModule: React.FC = () => {
             {!isSimulationRunning ? (
               <button
                 onClick={handleCalculate}
-                className="w-full py-4 bg-gradient-to-r from-cyan-500 to-rose-500 hover:from-cyan-400 hover:to-rose-400 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.4)] flex items-center justify-center gap-3 group relative overflow-hidden"
+                className="w-full py-4 bg-gradient-to-r from-cyan-500 via-rose-500 to-amber-500 hover:from-cyan-400 hover:via-rose-400 hover:to-amber-400 text-black font-extrabold uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_25px_rgba(34,211,238,0.3)] hover:shadow-[0_0_35px_rgba(244,63,94,0.5)] flex items-center justify-center gap-3 group relative overflow-hidden cursor-pointer active:scale-[0.99]"
               >
-                <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 w-full h-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                Generate W-H Plot
+                <span>Generate W-H Plot & Analyze</span>
               </button>
             ) : (
-              <div className="bg-[#070D18] p-5 rounded-2xl border border-cyan-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]">
+              <div className="bg-[#070D18] p-5 rounded-2xl border border-cyan-500/40 overflow-hidden relative shadow-[inset_0_0_20px_rgba(34,211,238,0.08)]">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-2xl rounded-full" />
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <h4 className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" /> Williamson-Hall Analysis Running
                 </h4>
                 <div className="space-y-3 relative z-10 w-full flex flex-col">

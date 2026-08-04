@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS } from '../utils/physics';
-import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, BarChart2, X } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, BarChart2, X, Copy, CheckCircle2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
@@ -167,6 +167,27 @@ export const ScherrerModule: React.FC = () => {
     
     return { exactArithmetic: arithmetic, exactWeighted: weighted };
   }, [results]);
+
+  const [copiedSummary, setCopiedSummary] = useState(false);
+
+  const validResults = useMemo(() => results.filter(r => !r.error && r.sizeNm > 0), [results]);
+  const stats = useMemo(() => {
+    if (validResults.length === 0) {
+      return { count: 0, min: 0, max: 0, stdDev: 0, relDispersion: 0, delta: 0, deltaPct: 0 };
+    }
+    const sizes = validResults.map(r => r.sizeNm);
+    const min = Math.min(...sizes);
+    const max = Math.max(...sizes);
+    const count = validResults.length;
+    const variance = count > 1 
+      ? validResults.reduce((acc, r) => acc + Math.pow(r.sizeNm - avgSize, 2), 0) / count 
+      : 0;
+    const stdDev = Math.sqrt(variance);
+    const relDispersion = avgSize > 0 ? (stdDev / avgSize) * 100 : 0;
+    const delta = Math.abs(exactWeighted - exactArithmetic);
+    const deltaPct = exactArithmetic > 0 ? (delta / exactArithmetic) * 100 : 0;
+    return { count, min, max, stdDev, relDispersion, delta, deltaPct };
+  }, [validResults, avgSize, exactWeighted, exactArithmetic]);
   
   // Ref for clicking outside
   const kMenuRef = React.useRef<HTMLDivElement>(null);
@@ -911,152 +932,219 @@ export const ScherrerModule: React.FC = () => {
         )}
 
         <div className="flex flex-col gap-6 h-full">
-          {/* Average Size Summary Card */}
-          <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+          {/* Average Size Summary Card - Enhanced UI */}
+          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] border border-amber-500/20 dark:border-amber-500/30 rounded-3xl p-6 lg:p-8 shadow-2xl relative overflow-hidden group/size-card">
             {/* Custom Background Graphic */}
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+            <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
               <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
             </div>
 
-            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
-            
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              <div className="lg:col-span-5 space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-amber-500/20 rounded-xl border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-                    <Zap className="h-6 w-6 text-amber-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight leading-none mb-1">Mean Crystallite Size</h3>
-                    <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                         {results.some(r => r.intensity !== undefined && r.intensity > 0) 
-                           ? (averageType === 'weighted' ? 'Intensity-Weighted Avg' : 'Arithmetic Mean') 
-                           : 'Arithmetic Mean'}
-                       </span>
-                       <span className="w-1 h-1 bg-slate-700 rounded-full" />
-                       <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">{results.filter(r => !r.error).length} Peaks Resolved</span>
-                    </div>
-                  </div>
-                </div>
+            <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="absolute top-0 left-1/4 w-60 h-60 bg-indigo-500/10 blur-3xl pointer-events-none rounded-full" />
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
 
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <div className={`px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border transition-colors ${
-                    avgSize < 10 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' :
-                    avgSize < 50 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
-                    avgSize < 100 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
-                    'bg-slate-500/10 border-slate-500/30 text-slate-400'
-                  }`}>
-                    {avgSize < 10 ? 'Quantum Domain' : 
-                     avgSize < 50 ? 'Small Nanoparticle' : 
-                     avgSize < 100 ? 'Large Nanoparticle' : 
-                     avgSize < 200 ? 'Sub-Micron' : 'Bulk Limit'}
-                  </div>
-                  {results.filter(r => !r.error).length > 1 && (
-                    <div className="px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border bg-slate-950/50 border-slate-800 text-slate-500 inline-flex items-center gap-1.5">
-                      <div className="w-1 h-1 rounded-full bg-slate-500" />
-                      Var: ±{(Math.sqrt(results.filter(r => !r.error).reduce((acc, r) => acc + Math.pow(r.sizeNm - avgSize, 2), 0) / results.filter(r => !r.error).length)).toFixed(2)} nm
-                    </div>
-                  )}
+            {/* Header bar inside summary card */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 relative z-10 pb-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-amber-500/30 to-amber-600/10 rounded-2xl border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+                  <Zap className="h-5 w-5 text-amber-400 animate-pulse" />
                 </div>
-
-                {results.length > 0 && results.some(r => r.intensity !== undefined && r.intensity > 0) && (
-                  <div className="pt-2">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Average Calculation Method</span>
-                    <div className="flex bg-slate-950 p-0.5 rounded-xl border border-slate-800 w-fit gap-1">
-                      <button
-                        onClick={() => setAverageType('weighted')}
-                        className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                          averageType === 'weighted'
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-[0_2px_10px_rgba(245,158,11,0.05)]'
-                            : 'text-slate-500 hover:text-slate-400 border border-transparent'
-                        }`}
-                        title="Weights peaks by their intensity. Stronger peaks have higher SNR and represent bulk crystalline volume more accurately."
-                      >
-                        Weighted ({(() => {
-                          const valid = results.filter(r => !r.error && r.sizeNm > 0);
-                          let totalWeight = 0;
-                          let weightedSum = 0;
-                          valid.forEach(r => {
-                            const weight = r.intensity || 0;
-                            weightedSum += r.sizeNm * weight;
-                            totalWeight += weight;
-                          });
-                          return totalWeight > 0 ? (weightedSum / totalWeight).toFixed(1) : '0.0';
-                        })()} nm)
-                      </button>
-                      <button
-                        onClick={() => setAverageType('arithmetic')}
-                        className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                          averageType === 'arithmetic'
-                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-[0_2px_10px_rgba(245,158,11,0.05)]'
-                            : 'text-slate-500 hover:text-slate-400 border border-transparent'
-                        }`}
-                        title="Simple arithmetic mean of individual calculated peak sizes."
-                      >
-                        Arithmetic ({(() => {
-                          const valid = results.filter(r => !r.error && r.sizeNm > 0);
-                          const sum = valid.reduce((acc, curr) => acc + curr.sizeNm, 0);
-                          return valid.length > 0 ? (sum / valid.length).toFixed(1) : '0.0';
-                        })()} nm)
-                      </button>
-                    </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-black text-white uppercase tracking-tight">Mean Crystallite Size</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest">
+                      {stats.count} {stats.count === 1 ? 'Peak' : 'Peaks'} Resolved
+                    </span>
                   </div>
-                )}
+                  <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                    Domain Synthesis ({averageType === 'weighted' ? 'Intensity-Weighted Volume' : 'Arithmetic Peak Mean'})
+                  </p>
+                </div>
               </div>
 
-              <div className="lg:col-span-4 bg-black/40 p-4 rounded-2xl border border-slate-800/50">
-                <div className="flex justify-between items-end mb-3">
-                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Size Scale (1-200nm)</span>
-                  <span className="text-[10px] font-mono font-bold text-slate-300">{avgSize.toFixed(1)} nm</span>
+              {/* Actions: Domain Classification Tag + Copy Button */}
+              <div className="flex items-center gap-2">
+                <div className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 shadow-sm ${
+                  avgSize < 10 ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]' :
+                  avgSize < 50 ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]' :
+                  avgSize < 100 ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]' :
+                  avgSize < 200 ? 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.2)]' :
+                  'bg-slate-500/20 border-slate-500/40 text-slate-300'
+                }`}>
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {avgSize < 10 ? 'Quantum Domain (<10nm)' : 
+                     avgSize < 50 ? 'Fine Nanoparticle (10-50nm)' : 
+                     avgSize < 100 ? 'Medium Nanocrystal (50-100nm)' : 
+                     avgSize < 200 ? 'Sub-Micron Domain (100-200nm)' : 'Bulk Limit (>200nm)'}
+                  </span>
                 </div>
-                <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden p-[1px] border border-slate-800">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (avgSize / 200) * 100)}%` }}
-                    className={`h-full rounded-full ${
-                      avgSize < 50 ? 'bg-gradient-to-r from-indigo-500 to-indigo-400' :
-                      avgSize < 100 ? 'bg-gradient-to-r from-emerald-500 to-emerald-400' :
-                      'bg-gradient-to-r from-amber-500 to-amber-400'
-                    } shadow-[0_0_10px_rgba(99,102,241,0.2)]`}
-                  />
+
+                <button
+                  onClick={() => {
+                    const summaryStr = `Mean Crystallite Size: ${avgSize.toFixed(precision)} nm (±${stats.stdDev.toFixed(2)} nm, N=${stats.count} peaks, K=${constantK}, λ=${wavelength} Å, Method: ${averageType})`;
+                    navigator.clipboard.writeText(summaryStr);
+                    setCopiedSummary(true);
+                    setTimeout(() => setCopiedSummary(false), 2000);
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                  title="Copy summary metrics to clipboard"
+                >
+                  {copiedSummary ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Main Grid Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
+              
+              {/* Hero Size Badge & Alternative Units */}
+              <div className="lg:col-span-4 flex flex-col justify-center space-y-3 bg-black/50 p-5 rounded-2xl border border-amber-500/20 shadow-inner relative overflow-hidden group/hero">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent opacity-0 group-hover/hero:opacity-100 transition-opacity" />
+                <span className="text-[9px] font-black text-amber-500/90 uppercase tracking-[0.25em]">Calculated Mean Size</span>
+                
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl sm:text-6xl font-black text-white font-mono tracking-tighter" style={{ textShadow: '0 0 25px rgba(245,158,11,0.25)' }}>
+                    {avgSize.toFixed(precision)}
+                  </span>
+                  <span className="text-2xl font-black text-amber-400 font-mono">nm</span>
                 </div>
-                <div className="flex justify-between mt-2 text-[8px] font-mono text-slate-600 font-bold uppercase tracking-tighter">
+
+                {/* Alternative unit conversion tags */}
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-800 font-mono text-[10px]">
+                  <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-bold">
+                    {(avgSize * 10).toFixed(Math.max(1, precision - 1))} Å
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                    {(avgSize * 1000).toFixed(0)} pm
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                    {(avgSize / 1000).toFixed(4)} µm
+                  </span>
+                </div>
+              </div>
+
+              {/* Statistical Dispersion 4-Tile Grid */}
+              <div className="lg:col-span-5 grid grid-cols-2 gap-2.5">
+                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Standard Dev (σ)</span>
+                  <span className="text-sm font-mono font-bold text-amber-300">±{stats.stdDev.toFixed(2)} <span className="text-[10px] text-slate-500">nm</span></span>
+                </div>
+
+                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Dispersion Spread</span>
+                  <span className="text-sm font-mono font-bold text-indigo-300">{stats.relDispersion.toFixed(1)}%</span>
+                </div>
+
+                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Size Range [Min - Max]</span>
+                  <span className="text-xs font-mono font-bold text-emerald-300">{stats.min.toFixed(1)} – {stats.max.toFixed(1)} <span className="text-[9px] text-slate-500">nm</span></span>
+                </div>
+
+                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-0.5">Weighting Shift (Δ)</span>
+                  <span className="text-xs font-mono font-bold text-violet-300">
+                    {stats.delta.toFixed(2)} nm <span className="text-[9px] text-slate-500">({stats.deltaPct.toFixed(1)}%)</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Spectrum Domain Gauge Bar */}
+              <div className="lg:col-span-3 bg-black/40 p-4 rounded-2xl border border-slate-800/80 flex flex-col justify-between space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Domain Scale Spectrum</span>
+                  <span className="text-[10px] font-mono font-bold text-amber-400">{avgSize.toFixed(1)} nm</span>
+                </div>
+
+                {/* Domain Multi-Color Bar with Needle Marker */}
+                <div className="relative pt-3 pb-1">
+                  {/* Pulsing Pointer Needle above bar */}
+                  <div 
+                    className="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-all duration-500 pointer-events-none"
+                    style={{ left: `${Math.max(3, Math.min(97, (avgSize / 200) * 100))}%` }}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,1)] animate-ping absolute" />
+                    <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,1)] relative z-10" />
+                    <div className="w-0.5 h-2 bg-amber-400" />
+                  </div>
+
+                  {/* Multi-segment Spectrum Bar */}
+                  <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden p-[1px] border border-slate-800 flex">
+                    <div className="h-full w-[5%] bg-indigo-500/80" title="Quantum (<10nm)" />
+                    <div className="h-full w-[20%] bg-emerald-500/80" title="Fine Nano (10-50nm)" />
+                    <div className="h-full w-[25%] bg-amber-500/80" title="Medium Nano (50-100nm)" />
+                    <div className="h-full w-[50%] bg-purple-500/80" title="Sub-Micron (100-200nm)" />
+                  </div>
+                </div>
+
+                <div className="flex justify-between text-[8px] font-mono text-slate-500 font-bold uppercase tracking-tighter">
                   <span>1nm</span>
+                  <span>10nm</span>
                   <span>50nm</span>
                   <span>100nm</span>
                   <span>200nm</span>
                 </div>
               </div>
 
-              <div className="lg:col-span-3 flex flex-col items-end justify-center">
-                <div className="flex items-baseline gap-2 bg-black/40 px-8 py-5 rounded-2xl border border-slate-800 shadow-inner group-hover:border-amber-500/30 transition-all duration-500 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="text-6xl font-black text-white font-mono tracking-tighter relative z-10" style={{ textShadow: '0 0 30px rgba(245,158,11,0.2)' }}>
-                    {avgSize.toFixed(precision)}
-                  </span>
-                  <span className="text-xl text-amber-500 font-black uppercase tracking-widest opacity-80 relative z-10">nm</span>
-                </div>
-                {results.length > 0 && (
-                  <div className="flex flex-col items-end text-right font-mono text-[9px] text-slate-500 font-bold uppercase tracking-wider relative z-10 gap-2 mt-4 pr-2">
-                    <div className="inline-flex items-center gap-2 bg-[#0A1526]/60 border border-amber-500/30 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
-                      <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span></div>
-                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/80">Arithmetic (Real Value):</span>
-                      <span className="text-[10px] font-mono font-bold text-amber-300">{exactArithmetic.toFixed(4)} nm</span>
-                    </div>
-                    {results.some(r => r.intensity !== undefined && r.intensity > 0) && (
-                      <div className="inline-flex items-center gap-2 bg-[#0A1526]/60 border border-slate-700/50 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
-                        <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-slate-500"></span></div>
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400/80">Weighted Mean:</span>
-                        <span className="text-[10px] font-mono font-bold text-slate-300">{exactWeighted.toFixed(4)} nm</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
+
+            {/* Method Toggle Buttons Bar */}
+            {results.length > 0 && results.some(r => r.intensity !== undefined && r.intensity > 0) && (
+              <div className="mt-5 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 relative z-10">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weighting Method:</span>
+                  <div className="flex bg-black/60 p-1 rounded-xl border border-slate-800 gap-1">
+                    <button
+                      onClick={() => setAverageType('weighted')}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                        averageType === 'weighted'
+                          ? 'bg-amber-500 text-black font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span>Intensity Weighted</span>
+                      <span className="font-mono text-[9px] opacity-90">({exactWeighted.toFixed(1)} nm)</span>
+                    </button>
+                    <button
+                      onClick={() => setAverageType('arithmetic')}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                        averageType === 'arithmetic'
+                          ? 'bg-amber-500 text-black font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <span>Arithmetic Mean</span>
+                      <span className="font-mono text-[9px] opacity-90">({exactArithmetic.toFixed(1)} nm)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Individual Peak Contributions Bar */}
+                <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar max-w-full py-0.5">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest shrink-0 mr-1">Peaks:</span>
+                  {validResults.map((r, i) => (
+                    <span 
+                      key={i} 
+                      className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[9px] font-mono font-bold text-slate-300 shrink-0"
+                      title={`2θ = ${r.twoTheta.toFixed(2)}°, FWHM = ${r.fwhmObs.toFixed(2)}°`}
+                    >
+                      #{i + 1} ({r.twoTheta.toFixed(1)}°): <span className="text-amber-400">{r.sizeNm.toFixed(1)}nm</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Size Distribution Histogram & Structural Triage */}
