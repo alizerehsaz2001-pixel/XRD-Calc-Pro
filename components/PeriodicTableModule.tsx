@@ -3702,8 +3702,21 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                         {/* Interactive Verification Equations */}
                         <div className="space-y-4 pt-2 border-t border-white/5">
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
-                            <Activity className="w-3 text-teal-400" /> Crystallography Verification
+                            <Activity className="w-3 text-teal-400" /> Physics & Crystallography Verification
                           </span>
+
+                          <ScientificMathControl
+                            title={`${activeElementInfo.symbol} Mass-Energy Equivalence`}
+                            formula="E = m \cdot c^2"
+                            description={`Calculate the total rest energy of a single ${activeElementInfo.name} atom using Einstein's mass-energy equivalence.`}
+                            variables={[
+                              { symbol: 'm', name: 'Rest Mass', value: activeElementInfo.weight * 1.66053906660e-27, unit: 'kg' },
+                              { symbol: 'c', name: 'Speed of Light', value: 299792458, unit: 'm/s' }
+                            ]}
+                            result={(activeElementInfo.weight * 1.66053906660e-27 * Math.pow(299792458, 2)) * 1e12}
+                            resultUnit="pJ"
+                            resultName="Rest Energy (E)"
+                          />
 
                           <ScientificMathControl
                             title={`${activeElementInfo.symbol} Theoretical Density Verification`}

@@ -11,7 +11,12 @@ import {
   Terminal, 
   FileText,
   HelpCircle,
-  TrendingUp
+  TrendingUp,
+  Zap,
+  Flame,
+  Home,
+  Globe,
+  Sun
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
@@ -237,6 +242,19 @@ const evaluateFormula = (formulaTitle: string, vars: { [symbol: string]: number 
     };
   }
 
+  if (titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy")) {
+    const m = vars['m'] !== undefined ? vars['m'] : 1.67e-27;
+    const c = vars['c'] !== undefined ? vars['c'] : 299792458;
+    const E = m * c * c;
+    // pJ = 10^12 J
+    const EpJ = E * 1e12;
+    return {
+      value: EpJ,
+      unit: "pJ",
+      steps: `E = m \\cdot c^2 = ${m.toExponential(4)} \\cdot (${c.toExponential(4)})^2 = ${E.toExponential(4)}\\text{ J} = ${EpJ.toFixed(4)}\\text{ pJ}`
+    };
+  }
+
   return {
     value: originalResult,
     unit: "",
@@ -259,6 +277,8 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
   const [inputUncertaintyPercent, setInputUncertaintyPercent] = useState(2); // Default ±2%
   const [copiedState, setCopiedState] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'latex' | 'python' | 'json'>('latex');
+  const [massScale, setMassScale] = useState<'atom' | 'mole' | 'gram' | 'kg' | 'custom'>('atom');
+  const [customMassGrams, setCustomMassGrams] = useState<number>(1.0);
 
   // Dynamic values state for the simulator
   const [simulatedValues, setSimulatedValues] = useState<{ [symbol: string]: number }>({});
@@ -468,6 +488,60 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
     }
     return symbol;
   };
+
+  // Einstein mass-energy equivalence helpers & computations
+  const titleLower = title.toLowerCase();
+  const isMassEnergy = titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy");
+  const elementSymbol = title.split(' ')[0] || 'Element';
+
+  const restMassOfSingleAtom = useMemo(() => {
+    const v0 = variables[0]?.value;
+    return typeof v0 === 'string' ? parseFloat(v0) : (v0 || 1.67e-27);
+  }, [variables]);
+
+  const atomicWeight = useMemo(() => {
+    return restMassOfSingleAtom / 1.66053906660e-27;
+  }, [restMassOfSingleAtom]);
+
+  const mSelected = useMemo(() => {
+    if (massScale === 'atom') {
+      return restMassOfSingleAtom;
+    } else if (massScale === 'mole') {
+      return atomicWeight * 1e-3;
+    } else if (massScale === 'gram') {
+      return 1e-3;
+    } else if (massScale === 'kg') {
+      return 1.0;
+    } else if (massScale === 'custom') {
+      return customMassGrams * 1e-3;
+    }
+    return restMassOfSingleAtom;
+  }, [massScale, restMassOfSingleAtom, atomicWeight, customMassGrams]);
+
+  const eJoules = useMemo(() => {
+    const c = 299792458;
+    return mSelected * c * c;
+  }, [mSelected]);
+
+  const eMeV = useMemo(() => {
+    return eJoules / 1.602176634e-13;
+  }, [eJoules]);
+
+  const eTntTons = useMemo(() => {
+    return eJoules / 4.184e9;
+  }, [eJoules]);
+
+  const homesPowered = useMemo(() => {
+    return eJoules / 3.816e10;
+  }, [eJoules]);
+
+  const hiroshimaBombs = useMemo(() => {
+    return eJoules / 6.276e13;
+  }, [eJoules]);
+
+  const lightbulbYears = useMemo(() => {
+    return eJoules / 1.893456e9;
+  }, [eJoules]);
 
   return (
     <div className="mt-4 border border-indigo-500/20 bg-gradient-to-b from-indigo-950/10 to-slate-900/40 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:border-indigo-500/30">
@@ -700,6 +774,180 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                 </div>
 
               </div>
+
+              {isMassEnergy && (
+                <div className="bg-slate-950/40 rounded-2xl border border-indigo-500/20 p-5 space-y-4 shadow-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-indigo-500/10 pb-3 gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-indigo-500/15 rounded-lg border border-indigo-500/30 text-indigo-400">
+                        <Zap className="w-4 h-4 text-indigo-400 animate-pulse" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-mono block leading-none mb-0.5">
+                          EINSTEINIAN EQUIVALENTS ENGINE
+                        </span>
+                        <span className="text-sm font-bold text-slate-200">
+                          {elementSymbol} Mass-Energy Conversions
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono block">QUANTUM FRAME</span>
+                      <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase">{massScale} Reference</span>
+                    </div>
+                  </div>
+
+                  {/* Mass Scale Selector Tabs */}
+                  <div className="grid grid-cols-5 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-900 text-[10px]">
+                    {(['atom', 'mole', 'gram', 'kg', 'custom'] as const).map(scale => (
+                      <button
+                        key={scale}
+                        type="button"
+                        onClick={() => setMassScale(scale)}
+                        className={`py-1.5 px-1 rounded-lg font-bold font-mono uppercase tracking-tight text-center transition-all cursor-pointer ${
+                          massScale === scale
+                            ? 'bg-indigo-600 text-white font-extrabold shadow-sm shadow-indigo-500/20'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                        }`}
+                      >
+                        {scale === 'atom' ? '1 Atom' : scale === 'mole' ? '1 Mole' : scale === 'gram' ? '1 Gram' : scale === 'kg' ? '1 kg' : 'Custom'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Custom Mass Slider */}
+                  {massScale === 'custom' && (
+                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-900 space-y-2 animate-fadeIn">
+                      <div className="flex justify-between items-center text-xs font-mono">
+                        <span className="text-slate-400">Set Custom Mass:</span>
+                        <span className="text-indigo-400 font-black">{customMassGrams.toFixed(3)} grams</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.001"
+                        max="100"
+                        step="0.001"
+                        value={customMassGrams}
+                        onChange={(e) => setCustomMassGrams(parseFloat(e.target.value) || 0.001)}
+                        className="w-full accent-indigo-500 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[8px] font-mono text-slate-600">
+                        <span>1 milligram</span>
+                        <span>50 g</span>
+                        <span>100 grams</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rest Mass & Energy Core Outputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Mass Info */}
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 flex flex-col justify-center">
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono mb-1">
+                        Effective Rest Mass (m)
+                      </span>
+                      <div className="flex items-baseline gap-1.5 font-mono">
+                        <span className="text-lg font-extrabold text-slate-100">
+                          {mSelected.toExponential(6)}
+                        </span>
+                        <span className="text-xs text-slate-400 font-bold">kg</span>
+                      </div>
+                      <p className="text-[9.5px] text-slate-400 mt-1 leading-snug">
+                        Equivalent to <strong className="text-indigo-400">{(mSelected / 1.66053906660e-27).toExponential(4)}</strong> atomic mass units (u).
+                      </p>
+                    </div>
+
+                    {/* Energy Info */}
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 flex flex-col justify-center">
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono mb-1">
+                        Released Rest Energy (E = mc²)
+                      </span>
+                      <div className="flex items-baseline gap-1.5 font-mono">
+                        <span className="text-lg font-extrabold text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.4)]">
+                          {eJoules.toExponential(6)}
+                        </span>
+                        <span className="text-xs text-indigo-300 font-bold">Joules</span>
+                      </div>
+                      <p className="text-[9.5px] text-indigo-300 mt-1 leading-snug">
+                        Equivalent to <strong className="text-emerald-400">{eMeV >= 1e6 ? `${(eMeV/1e6).toFixed(4)} TeV` : eMeV >= 1e3 ? `${(eMeV/1e3).toFixed(4)} GeV` : `${eMeV.toFixed(4)} MeV`}</strong> of particle physics energy.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Physical Conversions & Real World Scale Equivalents */}
+                  <div className="space-y-2.5 pt-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">
+                      Real-World Scale Energy Equivalencies
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {/* Equivalency 1: TNT */}
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
+                        <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 mt-0.5">
+                          <Flame className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-0.5 min-w-0">
+                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Explosive Yield</span>
+                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
+                            {eTntTons >= 1e6 ? `${(eTntTons/1e6).toFixed(4)} Mt TNT` : eTntTons >= 1e3 ? `${(eTntTons/1e3).toFixed(4)} kt TNT` : `${eTntTons.toFixed(4)} tons TNT`}
+                          </div>
+                          <span className="text-[9px] text-slate-400 leading-tight block">
+                            Equivalent explosive blast.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Equivalency 2: Homes Powered */}
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
+                        <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20 mt-0.5">
+                          <Home className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-0.5 min-w-0">
+                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Grid Power Eq.</span>
+                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
+                            {homesPowered >= 1 ? `${homesPowered.toLocaleString(undefined, {maximumFractionDigits: 1})} Homes/yr` : `${(homesPowered * 365.25).toFixed(1)} Homes/day`}
+                          </div>
+                          <span className="text-[9px] text-slate-400 leading-tight block">
+                            Residential utility feed.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Equivalency 3: Hiroshima Bombs */}
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
+                        <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/20 mt-0.5">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-0.5 min-w-0">
+                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Hiroshima Yield</span>
+                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
+                            {hiroshimaBombs.toExponential(4)} Bombs
+                          </div>
+                          <span className="text-[9px] text-slate-400 leading-tight block">
+                            ~15 kt Little Boy fission bomb.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Equivalency 4: Lightbulb Duration */}
+                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
+                        <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20 mt-0.5">
+                          <Sun className="w-4 h-4" />
+                        </div>
+                        <div className="space-y-0.5 min-w-0">
+                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">60W Lightbulb</span>
+                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
+                            {lightbulbYears >= 1e6 ? `${(lightbulbYears/1e6).toFixed(3)}M Years` : lightbulbYears >= 1 ? `${lightbulbYears.toFixed(1)} Years` : `${(lightbulbYears * 365.25).toFixed(1)} Days`}
+                          </div>
+                          <span className="text-[9px] text-slate-400 leading-tight block">
+                            Continuous illumination.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* DYNAMIC ERROR PROPAGATION & SENSITIVITY VIEW */}
               <AnimatePresence>
