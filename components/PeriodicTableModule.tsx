@@ -1998,10 +1998,13 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [activeTab, setActiveTab] = useState<'grid' | 'compare'>('grid');
   const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
   const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
-  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'chemical' | 'physical'>('lattice');
+  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'chemical' | 'physical' | 'stp'>('lattice');
   const [temperature, setTemperature] = useState<number>(25); // °C
+  const [stpCalcMolesStr, setStpCalcMolesStr] = useState<string>('1');
+  const [stpStandard, setStpStandard] = useState<'STP' | 'SATP'>('STP');
 
   // Deep scientific properties of crystallographic elements
+
   const elementsDb = useMemo<Record<number, Partial<CrystalElement>>>(() => ({
     1: { // Hydrogen
       weight: 1.008,
@@ -2693,6 +2696,40 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     return fullElementsGrid.find(el => el.number === selectedElement) || null;
   }, [fullElementsGrid, selectedElement]);
 
+  const molarVolumeL = useMemo(() => {
+    if (!activeElementInfo) return 22.413962;
+    const standardTemp = stpStandard === 'STP' ? 0 : 25;
+    const stateAtStandard = getPhysicalStateAtTemp(
+      activeElementInfo.number,
+      activeElementInfo.meltingPoint,
+      (activeElementInfo as any).boilingPoint,
+      standardTemp
+    );
+    const isGasAtStandard = stateAtStandard === 'gas';
+    if (isGasAtStandard) {
+      return stpStandard === 'STP' ? 22.413962 : 24.78957;
+    } else {
+      const dens = activeElementInfo.density || 1.0;
+      return (activeElementInfo.weight / dens) / 1000;
+    }
+  }, [activeElementInfo, stpStandard]);
+
+  const computedMass = useMemo(() => {
+    if (!activeElementInfo) return 0;
+    const moles = parseFloat(stpCalcMolesStr) || 0;
+    return moles * activeElementInfo.weight;
+  }, [stpCalcMolesStr, activeElementInfo]);
+
+  const computedVolume = useMemo(() => {
+    const moles = parseFloat(stpCalcMolesStr) || 0;
+    return moles * molarVolumeL;
+  }, [stpCalcMolesStr, molarVolumeL]);
+
+  const computedAtoms = useMemo(() => {
+    const moles = parseFloat(stpCalcMolesStr) || 0;
+    return moles * 6.02214076e23;
+  }, [stpCalcMolesStr]);
+
   useEffect(() => {
     if (activeElementInfo) {
       setFormName(activeElementInfo.name);
@@ -3121,6 +3158,30 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   onChange={(e) => setTemperature(parseFloat(e.target.value))}
                   className="w-full accent-emerald-500 h-1.5 bg-slate-900 rounded-lg cursor-pointer appearance-none"
                 />
+                <div className="flex gap-2 mt-1.5 justify-start">
+                  <button
+                    type="button"
+                    onClick={() => { setTemperature(0); playSynthTone('tick'); }}
+                    className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded border transition-colors cursor-pointer ${
+                      temperature === 0
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400 font-extrabold'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    STP (0°C)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setTemperature(25); playSynthTone('tick'); }}
+                    className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded border transition-colors cursor-pointer ${
+                      temperature === 25
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400 font-extrabold'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    SATP (25°C)
+                  </button>
+                </div>
               </div>
               
               <div className="flex-1 flex justify-evenly sm:justify-start gap-4 text-[10px] uppercase font-bold tracking-widest text-slate-500 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
@@ -3610,7 +3671,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                       {([
                         { id: 'lattice', label: 'Lattice', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/10 border-rose-500/20' },
                         { id: 'chemical', label: 'Chemical', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/10 border-indigo-500/20' },
-                        { id: 'physical', label: 'Physical', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/10 border-emerald-500/20' }
+                        { id: 'physical', label: 'Physical', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/10 border-emerald-500/20' },
+                        { id: 'stp', label: 'STP', icon: Cloud, color: 'text-sky-400', activeBg: 'bg-sky-500/10 border-sky-500/20' }
                       ] as const).map((tab) => {
                         const Icon = tab.icon;
                         const active = detailSubTab === tab.id;
@@ -4144,6 +4206,232 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                               <p className={`text-[11px] leading-relaxed mt-1 text-slate-300 font-medium ${isFa ? 'font-sans text-right' : 'font-sans'}`} dir={isFa ? 'rtl' : 'ltr'}>
                                 {isFa ? (activeElementInfo.factFa || activeElementInfo.factEn) : (activeElementInfo.factEn || activeElementInfo.factFa)}
                               </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {detailSubTab === 'stp' && (
+                      <div className="space-y-3 animate-fadeIn">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+                          <Cloud className="w-3 text-sky-400" /> Standard Temperature & Pressure (STP) & Molar Mass
+                        </span>
+
+                        <div className="space-y-4 bg-[#0B0F19]/60 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-inner relative isolate overflow-hidden text-xs text-slate-200">
+                          {/* Ambient glow for the STP section */}
+                          <div className="absolute inset-y-0 right-0 w-40 bg-sky-500/5 blur-[40px] pointer-events-none" />
+                          <div className="absolute inset-x-0 bottom-0 h-40 bg-indigo-500/5 blur-[40px] pointer-events-none" />
+                          
+                          {/* Top row: state & molar mass details at selected standard */}
+                          <div className="grid grid-cols-2 gap-4 pb-1">
+                            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/40 border border-white/5">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                                State at {stpStandard}
+                              </span>
+                              <div className="text-white font-bold font-mono text-[13px] flex items-baseline gap-1 pt-1">
+                                {(() => {
+                                  const standardTemp = stpStandard === 'STP' ? 0 : 25;
+                                  const stateAtStandard = getPhysicalStateAtTemp(activeElementInfo.number, activeElementInfo.meltingPoint, (activeElementInfo as any).boilingPoint, standardTemp);
+                                  if (stateAtStandard === 'liquid') {
+                                    return <span className="text-blue-400 flex items-center gap-1.5"><Droplets className="w-3.5 h-3.5" /> Liquid</span>;
+                                  } else if (stateAtStandard === 'gas') {
+                                    return <span className="text-sky-300 flex items-center gap-1.5"><Cloud className="w-3.5 h-3.5" /> Gas</span>;
+                                  } else {
+                                    return <span className="text-slate-300 flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Solid</span>;
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/40 border border-white/5">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                                Molar Mass (g/mol)
+                              </span>
+                              <div className="text-sky-300 font-bold font-mono text-[13px] leading-tight flex items-baseline gap-1 pt-1">
+                                {activeElementInfo.weight.toFixed(4)}
+                                <span className="text-[9px] text-slate-500 font-normal">g/mol</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Standard selector button group */}
+                          <div className="space-y-1.5 border-t border-white/5 pt-3">
+                            <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                              Reference Condition Environment
+                            </span>
+                            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-lg border border-slate-900">
+                              <button
+                                type="button"
+                                onClick={() => { setStpStandard('STP'); playSynthTone('tick'); }}
+                                className={`py-1 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                                  stpStandard === 'STP'
+                                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black shadow-sm'
+                                    : 'text-slate-400 border border-transparent hover:text-slate-200'
+                                }`}
+                              >
+                                STP (0 °C, 1 atm)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setStpStandard('SATP'); playSynthTone('tick'); }}
+                                className={`py-1 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                                  stpStandard === 'SATP'
+                                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black shadow-sm'
+                                    : 'text-slate-400 border border-transparent hover:text-slate-200'
+                                }`}
+                              >
+                                SATP (25 °C, 1 bar)
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Molar Volume card */}
+                          <div className="bg-[#0B0F19] p-3 rounded-xl border border-white/5 space-y-1 relative overflow-hidden shadow-inner">
+                            <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                              Molar Volume (V_m) at {stpStandard}
+                            </span>
+                            <div className="flex items-baseline gap-1.5 font-mono pt-0.5">
+                              <span className="text-base font-extrabold text-sky-400">
+                                {molarVolumeL.toFixed(6)}
+                              </span>
+                              <span className="text-xs text-sky-300 font-bold">L/mol</span>
+                            </div>
+                            <p className="text-[9.5px] text-slate-400 mt-1 leading-snug font-sans">
+                              {(() => {
+                                const standardTemp = stpStandard === 'STP' ? 0 : 25;
+                                const stateAtStandard = getPhysicalStateAtTemp(activeElementInfo.number, activeElementInfo.meltingPoint, (activeElementInfo as any).boilingPoint, standardTemp);
+                                const isGasAtStandard = stateAtStandard === 'gas';
+                                if (isGasAtStandard) {
+                                  return "Calculated via Ideal Gas Law. Equal molar volume of any ideal gas under these conditions.";
+                                } else {
+                                  const dens = activeElementInfo.density || 1.0;
+                                  const mv = activeElementInfo.weight / dens; // cm3/mol
+                                  return `Condensed state: Molar volume is ${mv.toFixed(3)} cm³/mol based on crystallographic density of ${dens.toFixed(3)} g/cm³.`;
+                                }
+                              })()}
+                            </p>
+                          </div>
+
+                          {/* Interactive stoichiometry calculator */}
+                          <div className="border-t border-white/5 pt-4 space-y-3">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">
+                              Stoichiometric Quantity Converter ({stpStandard})
+                            </span>
+                            
+                            {/* Inputs: moles, mass, volume, atoms */}
+                            <div className="space-y-2.5">
+                              {/* 1. Moles */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[9.5px] font-mono">
+                                  <span className="text-slate-400">Amount of Substance (n)</span>
+                                  <span className="text-sky-400 font-bold">moles</span>
+                                </div>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    value={stpCalcMolesStr}
+                                    onChange={(e) => setStpCalcMolesStr(e.target.value)}
+                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-sky-500/50"
+                                    placeholder="Enter moles..."
+                                  />
+                                </div>
+                              </div>
+
+                              {/* 2. Mass */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[9.5px] font-mono">
+                                  <span className="text-slate-400">Mass (g)</span>
+                                  <span className="text-emerald-400 font-bold">grams</span>
+                                </div>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    value={computedMass > 0 ? Number(computedMass.toFixed(6)) : (stpCalcMolesStr === '0' ? '0' : '')}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value);
+                                      if (isNaN(val)) setStpCalcMolesStr('');
+                                      else setStpCalcMolesStr(String(Math.max(0, val / activeElementInfo.weight)));
+                                    }}
+                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-emerald-500/50"
+                                    placeholder="Enter mass..."
+                                  />
+                                </div>
+                              </div>
+
+                              {/* 3. Volume */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[9.5px] font-mono">
+                                  <span className="text-slate-400">Gas/Condensed Volume (V)</span>
+                                  <span className="text-amber-400 font-bold">Liters</span>
+                                </div>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    value={computedVolume > 0 ? Number(computedVolume.toFixed(6)) : (stpCalcMolesStr === '0' ? '0' : '')}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value);
+                                      if (isNaN(val)) setStpCalcMolesStr('');
+                                      else setStpCalcMolesStr(String(Math.max(0, val / molarVolumeL)));
+                                    }}
+                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-amber-500/50"
+                                    placeholder="Enter volume..."
+                                  />
+                                </div>
+                              </div>
+
+                              {/* 4. Atoms */}
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[9.5px] font-mono">
+                                  <span className="text-slate-400">Number of Atoms (N)</span>
+                                  <span className="text-rose-400 font-bold">atoms</span>
+                                </div>
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    value={computedAtoms > 0 ? computedAtoms.toExponential(4) : (stpCalcMolesStr === '0' ? '0' : '')}
+                                    onChange={(e) => {
+                                      const val = parseFloat(e.target.value);
+                                      if (isNaN(val)) setStpCalcMolesStr('');
+                                      else setStpCalcMolesStr(String(Math.max(0, val / 6.02214076e23)));
+                                    }}
+                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-rose-500/50"
+                                    placeholder="Enter atoms..."
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Preset Buttons */}
+                            <div className="flex justify-between gap-1.5 pt-1.5">
+                              <button
+                                type="button"
+                                onClick={() => { setStpCalcMolesStr('1'); playSynthTone('tick'); }}
+                                className="flex-1 py-1 bg-slate-900 border border-slate-800 text-[9px] font-mono font-bold uppercase rounded text-slate-400 hover:text-slate-200 cursor-pointer"
+                              >
+                                1 Mole
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setStpCalcMolesStr('10'); playSynthTone('tick'); }}
+                                className="flex-1 py-1 bg-slate-900 border border-slate-800 text-[9px] font-mono font-bold uppercase rounded text-slate-400 hover:text-slate-200 cursor-pointer"
+                              >
+                                10 Moles
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setStpCalcMolesStr(String(100 / activeElementInfo.weight)); playSynthTone('tick'); }}
+                                className="flex-1 py-1 bg-slate-900 border border-slate-800 text-[9px] font-mono font-bold uppercase rounded text-slate-400 hover:text-slate-200 cursor-pointer"
+                              >
+                                100g
+                              </button>
                             </div>
                           </div>
                         </div>

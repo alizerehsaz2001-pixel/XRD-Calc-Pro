@@ -688,7 +688,13 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                               </span>
                             </div>
                             <div className="text-slate-200 font-bold">
-                              {typeof currentVal === 'number' ? (isNaN(currentVal) ? '0' : currentVal.toFixed(5).replace(/\.?0+$/, '')) : currentVal}
+                              {typeof currentVal === 'number' 
+                                ? (isNaN(currentVal) 
+                                  ? '0' 
+                                  : (Math.abs(currentVal) > 0 && (Math.abs(currentVal) < 1e-4 || Math.abs(currentVal) >= 1e6))
+                                    ? currentVal.toExponential(5)
+                                    : currentVal.toFixed(5).replace(/\.?0+$/, '')) 
+                                : currentVal}
                               <span className="text-slate-500 font-normal ml-1">{v.unit}</span>
                             </div>
                           </div>
