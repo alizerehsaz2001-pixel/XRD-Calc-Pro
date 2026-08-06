@@ -401,6 +401,7 @@ async function startServer() {
       }
 
       if (responseText) {
+        let parsed: Record<string, string> | null = null;
         try {
           let cleanJson = responseText.trim();
           cleanJson = cleanJson.replace(/```json\n?/gi, "").replace(/\n?```/g, "").trim();
@@ -409,17 +410,36 @@ async function startServer() {
           if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
             cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
           }
-          const parsed = JSON.parse(cleanJson);
-          // Store new translations in cache and in result
+          
+          try {
+            parsed = JSON.parse(cleanJson);
+          } catch {
+            // Attempt cleanup for trailing commas & control characters
+            const sanitized = cleanJson
+              .replace(/,\s*([}\]])/g, '$1')
+              .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ');
+            parsed = JSON.parse(sanitized);
+          }
+        } catch {
+          // Regex fallback for key-value extraction if JSON.parse fails
+          parsed = {};
+          const kvRegex = /"([^"]+)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/g;
+          let match;
+          while ((match = kvRegex.exec(responseText)) !== null) {
+            parsed[match[1]] = match[2];
+          }
+        }
+
+        if (parsed && Object.keys(parsed).length > 0) {
           Object.keys(parsed).forEach((key) => {
-            const val = parsed[key];
+            const val = parsed![key];
             if (typeof val === "string" && val) {
               langCache[key] = val;
               result[key] = val;
             }
           });
-        } catch (parseErr) {
-          console.log("[i18n] Note: non-json format resolved. Falling back.", parseErr);
+        } else {
+          console.log("[i18n] Dynamic translation fallback applied.");
         }
       } else {
         console.log("[i18n] Dynamic translation fallback applied.");

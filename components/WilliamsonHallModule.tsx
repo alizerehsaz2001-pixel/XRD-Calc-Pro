@@ -13,12 +13,13 @@ import {
   Legend,
   Area
 } from 'recharts';
-import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle, Zap } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle, Zap, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import williamsonBg from '../src/assets/images/williamson_hall_ui_bg_1786057190288.jpg';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -334,25 +335,21 @@ export const WilliamsonHallModule: React.FC = () => {
           <div className="absolute top-0 right-0 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl -translate-y-20 translate-x-20 group-hover:bg-cyan-500/20 transition-all duration-700 pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-rose-500/10 rounded-full blur-3xl translate-y-20 -translate-x-20 group-hover:bg-rose-500/20 transition-all duration-700 pointer-events-none"></div>
           
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800/80 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-cyan-500 blur-md opacity-30 animate-pulse" />
-                <div className="p-2.5 bg-[#070D18] rounded-xl border border-cyan-500/40 relative">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                  </svg>
+          <div className="flex items-center justify-between gap-4 mb-8 relative z-10 pb-4 border-b border-slate-800/80">
+            <div className="flex items-center gap-4">
+              <div className="relative group/title-icon cursor-default">
+                <div className="absolute inset-0 bg-cyan-500/20 blur-xl rounded-full group-hover/title-icon:bg-cyan-400/30 transition-all duration-700 pointer-events-none" />
+                <div className="w-14 h-14 bg-[#0a0500] rounded-2xl border border-cyan-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/title-icon:border-cyan-400 transition-colors duration-500 overflow-hidden">
+                  <Settings className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_12px_rgba(34,211,238,0.6)] group-hover/title-icon:rotate-90 transition-transform duration-700" />
                 </div>
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-black text-white tracking-widest uppercase">W-H Parameters</h2>
-                  <span className="px-2 py-0.5 rounded-full text-[8px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 uppercase tracking-widest">
-                    ACTIVE CONFIG
-                  </span>
-                </div>
-                <p className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                  Decouple Microstrain & Size Profiles
+                <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-1">
+                  System Config
+                </h2>
+                <p className="flex items-center gap-2 text-[10px] font-mono text-cyan-500/60 uppercase tracking-[0.3em]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-[pulse_2s_ease-in-out_infinite]" />
+                  Williamson-Hall Engine
                 </p>
               </div>
             </div>
@@ -1147,7 +1144,13 @@ export const WilliamsonHallModule: React.FC = () => {
         </div>
 
         {/* Scientific Context Card */}
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-500/40 transition-all">
+        <div className="bg-[#050A14] p-8 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+            <img src={williamsonBg} alt="Williamson-Hall Context" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/80 to-[#050A14]/30" />
+          </div>
+          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl group-hover:bg-cyan-500/10 transition-all duration-700 pointer-events-none"></div>
           <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-cyan-500/20 transition-all duration-700"></div>
           
           <div className="flex items-center gap-4 mb-6 relative z-10">
@@ -1220,7 +1223,12 @@ export const WilliamsonHallModule: React.FC = () => {
         )}
         {/* Results Summary */}
         <div className={`grid grid-cols-1 md:grid-cols-3 ${isModulusEnabled ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-4`}>
-           <div className="bg-[#050B14]/90 backdrop-blur-xl p-6 rounded-3xl border border-cyan-500/10 hover:border-cyan-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(34,211,238,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 rounded-3xl border border-cyan-500/20 shadow-2xl relative overflow-hidden group/size-card flex flex-col justify-between transition-all duration-500">
+             {/* Custom Background Graphic */}
+             <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+               <img src={williamsonBg} alt="Model Fit" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+             </div>
              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] transition-all duration-700 pointer-events-none group-hover:bg-cyan-500/20 translate-x-10 -translate-y-10" />
              <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full blur-[30px] transition-all duration-700 pointer-events-none group-hover:bg-blue-500/20 -translate-x-10 translate-y-10" />
              
@@ -1271,7 +1279,12 @@ export const WilliamsonHallModule: React.FC = () => {
              </div>
            </div>
            
-           <div className="bg-[#0A101C]/90 p-6 rounded-3xl border border-white/5 hover:border-emerald-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(16,185,129,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 rounded-3xl border border-emerald-500/20 shadow-2xl relative overflow-hidden group/size-card flex flex-col justify-between transition-all duration-500">
+             {/* Custom Background Graphic */}
+             <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+               <img src={williamsonBg} alt="Strain" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+             </div>
              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700 translate-x-10 -translate-y-10" />
              
              <div>
@@ -1333,7 +1346,12 @@ export const WilliamsonHallModule: React.FC = () => {
              </div>
            </div>
 
-           <div className="bg-[#050B14]/90 backdrop-blur-xl p-6 rounded-3xl border border-purple-500/10 hover:border-purple-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(168,85,247,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 rounded-3xl border border-purple-500/20 shadow-2xl relative overflow-hidden group/size-card flex flex-col justify-between transition-all duration-500">
+             {/* Custom Background Graphic */}
+             <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+               <img src={williamsonBg} alt="Size" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+             </div>
              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-all duration-700 translate-x-10 -translate-y-10" />
              
              <div>
@@ -1371,7 +1389,12 @@ export const WilliamsonHallModule: React.FC = () => {
            </div>
 
            {result?.stephensParams && (
-             <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)] relative overflow-hidden group hover:border-emerald-500/40 transition-all flex flex-col justify-between col-span-2">
+             <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-[2rem] border border-emerald-500/20 shadow-2xl relative overflow-hidden group/size-card hover:border-emerald-500/40 transition-all flex flex-col justify-between col-span-2">
+                {/* Custom Background Graphic */}
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+                  <img src={williamsonBg} alt="Stephens Analysis" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                </div>
                 <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                   <Layers className="w-16 h-16 text-emerald-500" />
                 </div>
@@ -1395,7 +1418,12 @@ export const WilliamsonHallModule: React.FC = () => {
 
            {isModulusEnabled && (
              <>
-               <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.05)] relative overflow-hidden group hover:border-rose-500/40 transition-all flex flex-col justify-between animate-in fade-in slide-in-from-right-4 duration-300">
+               <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-[2rem] border border-rose-500/20 shadow-2xl relative overflow-hidden group/size-card hover:border-rose-500/40 transition-all flex flex-col justify-between animate-in fade-in slide-in-from-right-4 duration-300">
+                  {/* Custom Background Graphic */}
+                  <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+                    <img src={williamsonBg} alt="Lattice Stress" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                  </div>
                   <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Atom className="w-16 h-16 text-rose-500" />
                   </div>
@@ -1411,7 +1439,12 @@ export const WilliamsonHallModule: React.FC = () => {
                   </div>
                </div>
 
-               <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.05)] relative overflow-hidden group hover:border-blue-500/40 transition-all flex flex-col justify-between animate-in fade-in slide-in-from-right-8 duration-300">
+               <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-[2rem] border border-blue-500/20 shadow-2xl relative overflow-hidden group/size-card hover:border-blue-500/40 transition-all flex flex-col justify-between animate-in fade-in slide-in-from-right-8 duration-300">
+                  {/* Custom Background Graphic */}
+                  <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+                    <img src={williamsonBg} alt="Strain Energy" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                  </div>
                   <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Binary className="w-16 h-16 text-blue-500" />
                   </div>
@@ -1466,7 +1499,13 @@ export const WilliamsonHallModule: React.FC = () => {
         )}
 
         {/* Chart */}
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_40px_rgba(34,211,238,0.05)] border border-white/10 min-h-[600px] xl:min-h-[700px] h-[70vh] xl:h-[80vh] flex flex-col relative overflow-hidden group hover:border-cyan-500/30 transition-all">
+        <div className="xl:col-span-8 bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group flex flex-col min-h-[600px] xl:min-h-[700px] h-[70vh] xl:h-[80vh]">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+            <img src={williamsonBg} alt="Williamson-Hall Plot" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/10 transition-all duration-700" />
           <div className="flex justify-between items-center mb-6 relative z-10 px-2">
             <div className="flex items-center gap-3">
@@ -1575,7 +1614,12 @@ export const WilliamsonHallModule: React.FC = () => {
 
         {/* Peak-by-Peak Analysis Table */}
         {result && result.pointsExtended && result.pointsExtended.length > 0 && (
-          <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/10 relative overflow-hidden group hover:border-[#22d3ee]/30 transition-all font-mono">
+          <div className="bg-[#050A14] rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px] relative group p-6">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000 mix-blend-screen">
+            <img src={williamsonBg} alt="Williamson-Hall Analysis" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+          </div>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-slate-800 rounded-lg text-[#22d3ee]">
                 <Binary className="w-4 h-4" />

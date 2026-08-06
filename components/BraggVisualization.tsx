@@ -114,25 +114,27 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
   }
 
   const waveAnimDuration = 1 / (Math.sin(thetaRad) * 2 + 0.1); 
-  
-  return (
-    <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl border border-slate-800 relative overflow-hidden group">
-      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/15 transition-all duration-1000" />
+    return (
+    <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 relative overflow-hidden group">
+      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-1000" />
+      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl" />
       
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 relative z-10 gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 relative z-10 gap-4 pb-4 border-b border-slate-800/80">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+          <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.25)]">
             <Atom className="w-6 h-6 text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white tracking-tight uppercase">Lattice Probe</h2>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Quantum Diffraction Dynamics</p>
+            <h2 className="text-lg sm:text-xl font-black text-white tracking-tight uppercase flex items-center gap-2">
+              Lattice Probe & Bragg Wave Simulator
+            </h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Real-time constructive & destructive interference dynamics</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 p-2 bg-black/40 rounded-2xl border border-slate-800/50 shadow-inner">
-          <div className="flex items-center gap-4 px-4 py-1.5">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Scanner</span>
+        <div className="flex items-center gap-2 p-2 bg-slate-950/80 rounded-2xl border border-slate-800/80 shadow-inner">
+          <div className="flex items-center gap-3 px-3 py-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Goniometer 2θ</span>
             <input 
               type="range" 
               min="10" 
@@ -143,13 +145,14 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
                 setLocalTwoTheta(parseFloat(e.target.value));
                 setIsAutoScanning(false);
               }}
-              className="w-32 accent-indigo-500 hover:accent-indigo-400 transition-all"
+              className="w-28 sm:w-36 accent-indigo-500 hover:accent-indigo-400 transition-all cursor-pointer"
             />
-            <span className="text-xs font-mono font-black text-indigo-400 w-16 text-right tabular-nums bg-indigo-500/5 py-1 px-2 rounded-lg border border-indigo-500/20">{localTwoTheta.toFixed(1)}°</span>
+            <span className="text-xs font-mono font-black text-indigo-400 w-16 text-right tabular-nums bg-indigo-500/10 py-1 px-2 rounded-lg border border-indigo-500/20">{localTwoTheta.toFixed(1)}°</span>
           </div>
           <button 
             onClick={() => setIsAutoScanning(!isAutoScanning)}
-            className={`p-2.5 rounded-xl transition-all border active:scale-90 ${isAutoScanning ? 'bg-rose-500/20 border-rose-500/30 text-rose-400' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'}`}
+            className={`p-2 rounded-xl transition-all border active:scale-90 cursor-pointer ${isAutoScanning ? 'bg-rose-500/20 border-rose-500/30 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.2)]' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'}`}
+            title={isAutoScanning ? "Pause auto-scan" : "Start continuous angle scan"}
           >
             {isAutoScanning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
           </button>
@@ -157,76 +160,104 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1 space-y-4">
-          <div className="bg-black/60 p-5 rounded-2xl border border-slate-800 shadow-inner relative overflow-hidden group/card">
+        <div className="lg:col-span-1 space-y-3">
+          <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80 shadow-inner relative overflow-hidden group/card">
             <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
-            <div className="relative z-10">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Bragg Resolution</span>
-              <div className="flex items-baseline gap-2">
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Bragg Angle (θ)</span>
                 <span className="text-2xl font-black font-mono text-emerald-400 tracking-tighter">{theta.toFixed(precision)}°</span>
-                <span className="text-[9px] font-bold text-slate-600 uppercase">Theta</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">2θ Value</span>
+                <span className="text-xs font-mono font-bold text-slate-300">{localTwoTheta.toFixed(precision)}°</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-black/60 p-5 rounded-2xl border border-slate-800 shadow-inner relative overflow-hidden group/card">
-             <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
-             <div className="relative z-10">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Atom Spacing</span>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black font-mono text-amber-400 tracking-tighter">{dSpacing.toFixed(precision)}</span>
-                <span className="text-[9px] font-bold text-slate-600 uppercase">Ångström</span>
+          <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80 shadow-inner relative overflow-hidden group/card">
+            <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Plane Spacing (d)</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black font-mono text-amber-400 tracking-tighter">{dSpacing.toFixed(precision)}</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase">Å</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">λ Wavelength</span>
+                <span className="text-xs font-mono font-bold text-slate-300">{wavelength.toFixed(4)} Å</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-black/60 p-6 rounded-2xl border border-slate-800 shadow-inner relative overflow-hidden">
-             <div className="flex justify-between items-center mb-4">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Interference signal</span>
-                <div className={`w-2 h-2 rounded-full ${signalStrength > 0.8 ? 'bg-emerald-500' : 'bg-slate-700'} animate-pulse`} />
+          <div className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800/80 shadow-inner relative overflow-hidden">
+             <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Waves className="w-3.5 h-3.5 text-indigo-400" />
+                  Phase Resonance
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-md ${
+                    signalStrength > 0.8 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {signalStrength > 0.8 ? 'Bragg Peak' : 'Off-Resonance'}
+                  </span>
+                  <div className={`w-2 h-2 rounded-full ${signalStrength > 0.8 ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-slate-700'} animate-pulse`} />
+                </div>
              </div>
-             <div className="h-16 flex items-end gap-1 px-1">
+             <div className="h-16 flex items-end gap-1 px-1 bg-black/40 p-2 rounded-xl border border-slate-800/50">
                 {[...Array(20)].map((_, i) => {
                   const h = Math.max(10, signalStrength * (100 - i * 4) * (0.8 + 0.2 * Math.sin(Date.now() / 120 + i)) + 5);
                   return (
                     <div 
                       key={`bar-${i}`} 
-                      className="flex-1 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-sm transition-[height] duration-75"
+                      className={`flex-1 rounded-t-sm transition-[height] duration-75 ${
+                        signalStrength > 0.8 
+                          ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.3)]' 
+                          : 'bg-gradient-to-t from-indigo-700 to-indigo-400'
+                      }`}
                       style={{ height: `${h}%` }}
                     />
                   );
                 })}
              </div>
-             <div className="mt-4 flex items-center gap-2">
-                <Activity className="w-3 h-3 text-indigo-500" />
-                <span className="text-[9px] font-black text-indigo-400/80 uppercase tracking-widest">
-                  Signal Strength: {(signalStrength * 100).toFixed(0)}%
+             <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wider">
+                    Scattering Amplitudes
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-black text-indigo-400">
+                  {(signalStrength * 100).toFixed(0)}%
                 </span>
              </div>
           </div>
         </div>
 
         <div className="lg:col-span-3">
-          <div className="w-full bg-[#05070a] rounded-3xl overflow-hidden border-2 border-slate-800/80 relative shadow-[inset_0_4px_30px_rgba(0,0,0,0.8)] aspect-[16/9]">
-            <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+          <div className="w-full bg-[#05070a] rounded-3xl overflow-hidden border-2 border-slate-800/90 relative shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)] aspect-[16/9]">
+            <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
             
             <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="pointer-events-none p-4" preserveAspectRatio="xMidYMid meet">
               <defs>
                 <radialGradient id="atomGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-                  <stop offset="0%" stopColor="#94a3b8" />
-                  <stop offset="100%" stopColor="#1e293b" />
+                  <stop offset="0%" stopColor="#cbd5e1" />
+                  <stop offset="100%" stopColor="#334155" />
                 </radialGradient>
                 <radialGradient id="highlightAtomGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-                  <stop offset="0%" stopColor="#fbbf24" />
-                  <stop offset="100%" stopColor="#92400e" />
+                  <stop offset="0%" stopColor="#fef08a" />
+                  <stop offset="100%" stopColor="#d97706" />
                 </radialGradient>
                 <filter id="rayGlow">
                   <feGaussianBlur stdDeviation="3" result="blur" />
                   <feComposite in="SourceGraphic" in2="blur" operator="over" />
                 </filter>
                 <filter id="constructiveGlow">
-                  <feGaussianBlur stdDeviation="5" result="blur" />
-                  <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.2  0 0 0 0 0.5  0 0 0 0 1  0 0 0 1 0" />
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.2  0 0 0 0 0.8  0 0 0 0 0.4  0 0 0 1 0" />
                   <feMerge>
                     <feMergeNode />
                     <feMergeNode in="SourceGraphic" />
@@ -234,57 +265,67 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
                 </filter>
               </defs>
 
-              {/* Atomic Planes */}
-              <line x1="0" y1={topAtomY} x2={width} y2={topAtomY} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-              <line x1="0" y1={bottomAtomY} x2={width} y2={bottomAtomY} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+              {/* Atomic Planes Lines */}
+              <line x1="0" y1={topAtomY} x2={width} y2={topAtomY} stroke="rgba(99,102,241,0.2)" strokeWidth="1.5" strokeDasharray="6 4" />
+              <line x1="0" y1={bottomAtomY} x2={width} y2={bottomAtomY} stroke="rgba(99,102,241,0.2)" strokeWidth="1.5" strokeDasharray="6 4" />
+              
+              <text x="15" y={topAtomY - 8} fill="#818cf8" fontSize="9" fontWeight="800" className="opacity-80 font-mono">Plane (hkl)_1</text>
+              <text x="15" y={bottomAtomY + 16} fill="#818cf8" fontSize="9" fontWeight="800" className="opacity-80 font-mono">Plane (hkl)_2</text>
 
               {/* Atoms */}
               {atoms.map((atom, i) => (
-                <circle key={`atom-${atom.x}-${atom.y}-${i}`} cx={atom.x} cy={atom.y} r="6" fill="url(#atomGrad)" opacity="0.6" />
+                <circle key={`atom-${atom.x}-${atom.y}-${i}`} cx={atom.x} cy={atom.y} r="5.5" fill="url(#atomGrad)" opacity="0.75" />
               ))}
               
-              {/* Highlighted Atoms */}
+              {/* Highlighted Core Scattering Center Atoms */}
               <motion.circle 
-                cx={centerX} cy={topAtomY} r={8 + signalStrength * 4} 
+                cx={centerX} cy={topAtomY} r={8 + signalStrength * 5} 
                 fill="url(#highlightAtomGrad)" 
                 animate={{ filter: signalStrength > 0.8 ? 'url(#constructiveGlow)' : 'none' }}
               />
               <motion.circle 
-                cx={centerX} cy={bottomAtomY} r={8 + signalStrength * 4} 
+                cx={centerX} cy={bottomAtomY} r={8 + signalStrength * 5} 
                 fill="url(#highlightAtomGrad)" 
                 animate={{ filter: signalStrength > 0.8 ? 'url(#constructiveGlow)' : 'none' }}
               />
 
-              {/* Constructive Visual Feedback */}
+              {/* Constructive Visual Ring Feedback */}
               <AnimatePresence>
                 {signalStrength > 0.8 && (
                   <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    <circle cx={centerX} cy={centerY} r={50 * signalStrength} stroke="#6366f1" strokeWidth="1" fill="none" opacity="0.1" className="animate-ping" />
+                    <circle cx={centerX} cy={centerY} r={55 * signalStrength} stroke="#10b981" strokeWidth="1.5" fill="none" opacity="0.25" className="animate-ping" />
+                    <circle cx={centerX} cy={topAtomY} r={24 * signalStrength} stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.3" className="animate-ping" />
                   </motion.g>
                 )}
               </AnimatePresence>
 
-              {/* Path Difference Triangle */}
-              <path d={`M ${centerX} ${topAtomY} L ${cx} ${cy} L ${centerX} ${bottomAtomY} Z`} fill="rgba(16, 185, 129, 0.05)" />
-              <path d={`M ${centerX} ${topAtomY} L ${dx} ${dy} L ${centerX} ${bottomAtomY} Z`} fill="rgba(16, 185, 129, 0.05)" />
+              {/* Path Difference Triangles */}
+              <path d={`M ${centerX} ${topAtomY} L ${cx} ${cy} L ${centerX} ${bottomAtomY} Z`} fill="rgba(16, 185, 129, 0.12)" />
+              <path d={`M ${centerX} ${topAtomY} L ${dx} ${dy} L ${centerX} ${bottomAtomY} Z`} fill="rgba(16, 185, 129, 0.12)" />
 
-              <line x1={centerX} y1={topAtomY} x2={cx} y2={cy} stroke="#10b981" strokeWidth="1" strokeDasharray="4 2" />
-              <line x1={centerX} y1={topAtomY} x2={dx} y2={dy} stroke="#10b981" strokeWidth="1" strokeDasharray="4 2" />
+              <line x1={centerX} y1={topAtomY} x2={cx} y2={cy} stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" />
+              <line x1={centerX} y1={topAtomY} x2={dx} y2={dy} stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" />
               
-              <text x={cx - 30} y={cy - 10} fill="#10b981" fontSize="9" fontWeight="900" className="opacity-60">ΔS = d sinθ</text>
-              <text x={dx + 5} y={dy - 10} fill="#10b981" fontSize="9" fontWeight="900" className="opacity-60">ΔS = d sinθ</text>
+              <text x={cx - 38} y={cy - 10} fill="#10b981" fontSize="9.5" fontWeight="900" className="font-mono">d·sinθ</text>
+              <text x={dx + 8} y={dy - 10} fill="#10b981" fontSize="9.5" fontWeight="900" className="font-mono">d·sinθ</text>
+
+              {/* Plane Spacing d Dimension Indicator */}
+              <line x1={centerX - 130} y1={topAtomY} x2={centerX - 130} y2={bottomAtomY} stroke="#f59e0b" strokeWidth="1.5" />
+              <line x1={centerX - 135} y1={topAtomY} x2={centerX - 125} y2={topAtomY} stroke="#f59e0b" strokeWidth="1.5" />
+              <line x1={centerX - 135} y1={bottomAtomY} x2={centerX - 125} y2={bottomAtomY} stroke="#f59e0b" strokeWidth="1.5" />
+              <text x={centerX - 152} y={centerY + 3} fill="#f59e0b" fontSize="10" fontWeight="900" className="font-mono">d</text>
 
               {/* Incident Waves */}
               <motion.path 
                 d={generateWavePath(inc1StartX - lambdaVis, inc1StartY - lambdaVis * Math.sin(thetaRad), thetaRad, rayLength + lambdaVis)} 
-                stroke="#6366f1" strokeWidth="2" fill="none" opacity={0.6 + signalStrength * 0.4}
+                stroke="#818cf8" strokeWidth="2.5" fill="none" opacity={0.7 + signalStrength * 0.3}
                 animate={{ x: [0, lambdaVis * Math.cos(thetaRad)], y: [0, lambdaVis * Math.sin(thetaRad)] }}
                 transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
                 filter="url(#rayGlow)"
               />
               <motion.path 
                 d={generateWavePath(inc2StartX - lambdaVis, inc2StartY - lambdaVis * Math.sin(thetaRad), thetaRad, rayLength + lambdaVis)} 
-                stroke="#ec4899" strokeWidth="2" fill="none" opacity={0.6 + signalStrength * 0.4}
+                stroke="#f43f5e" strokeWidth="2.5" fill="none" opacity={0.7 + signalStrength * 0.3}
                 animate={{ x: [0, lambdaVis * Math.cos(thetaRad)], y: [0, lambdaVis * Math.sin(thetaRad)] }}
                 transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
                 filter="url(#rayGlow)"
@@ -293,14 +334,14 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
               {/* Reflected Waves */}
               <motion.path 
                 d={generateWavePath(centerX - lambdaVis, topAtomY - lambdaVis * -Math.sin(thetaRad), -thetaRad, rayLength + lambdaVis)} 
-                stroke="#6366f1" strokeWidth={2 + signalStrength} fill="none" opacity={0.6 + signalStrength * 0.4}
+                stroke="#818cf8" strokeWidth={2.5 + signalStrength * 1.5} fill="none" opacity={0.7 + signalStrength * 0.3}
                 animate={{ x: [0, lambdaVis * Math.cos(-thetaRad)], y: [0, lambdaVis * Math.sin(-thetaRad)] }}
                 transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
                 filter="url(#rayGlow)"
               />
               <motion.path 
                 d={generateWavePath(centerX - lambdaVis, bottomAtomY - lambdaVis * -Math.sin(thetaRad), -thetaRad, rayLength + lambdaVis)} 
-                stroke="#ec4899" strokeWidth={2 + signalStrength} fill="none" opacity={0.6 + signalStrength * 0.4}
+                stroke="#f43f5e" strokeWidth={2.5 + signalStrength * 1.5} fill="none" opacity={0.7 + signalStrength * 0.3}
                 animate={{ x: [0, lambdaVis * Math.cos(-thetaRad)], y: [0, lambdaVis * Math.sin(-thetaRad)] }}
                 transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
                 filter="url(#rayGlow)"
@@ -309,25 +350,34 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
               {/* Angle Marker */}
               <path 
                 d={`M ${centerX - 60} ${topAtomY} A 60 60 0 0 0 ${centerX - 60 * Math.cos(thetaRad)} ${topAtomY - 60 * Math.sin(thetaRad)}`} 
-                stroke="rgba(255,255,255,0.15)" fill="none" strokeWidth="1.5"
+                stroke="rgba(255,255,255,0.25)" fill="none" strokeWidth="1.5"
               />
-              <text x={centerX - 80} y={topAtomY - 20} fill="#64748b" fontSize="12" fontWeight="bold">θ</text>
+              <text x={centerX - 80} y={topAtomY - 20} fill="#94a3b8" fontSize="12" fontWeight="bold" className="font-mono">θ</text>
             </svg>
 
             {/* Bottom Legend */}
-            <div className="absolute bottom-6 left-8 flex items-center gap-6 bg-black/60 backdrop-blur-md px-6 py-2.5 rounded-2xl border border-slate-700/50 z-20">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-[2px] bg-[#6366f1] rounded-full shadow-[0_0_8px_#6366f1]" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ray Order 1</span>
+            <div className="absolute bottom-4 left-6 right-6 flex flex-wrap items-center justify-between gap-4 bg-slate-950/80 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-slate-800/80 z-20">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-[3px] bg-[#818cf8] rounded-full shadow-[0_0_8px_#818cf8]" />
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest font-mono">Incident Plane 1</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-[3px] bg-[#f43f5e] rounded-full shadow-[0_0_8px_#f43f5e]" />
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest font-mono">Incident Plane 2</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-[2px] bg-[#ec4899] rounded-full shadow-[0_0_8px_#ec4899]" />
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ray Order 2</span>
-              </div>
-              <div className="h-4 w-[1px] bg-slate-800" />
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-                <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Phase Locking</span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-1 bg-emerald-500/30 border border-emerald-500 rounded-xs" />
+                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest font-mono">Path Difference (2d sinθ)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${signalStrength > 0.8 ? 'bg-emerald-400 shadow-[0_0_8px_#10b981]' : 'bg-amber-400'}`} />
+                  <span className={`text-[9px] font-black uppercase tracking-widest font-mono ${signalStrength > 0.8 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {signalStrength > 0.8 ? 'Constructive (nλ)' : 'Phase Lag'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -550,18 +550,23 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
-      <div className="flex justify-between items-center mb-5">
+    <div className="bg-white dark:bg-slate-900/90 p-6 rounded-3xl shadow-lg dark:shadow-2xl border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl transition-all duration-300">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 font-sans tracking-tight uppercase">
-            <Gauge className="h-5 w-5 text-indigo-500 shrink-0" />
-            {t('Parameters')}
-          </h2>
+          <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shadow-sm">
+            <Gauge className="h-5 w-5 shrink-0" />
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-100 font-sans tracking-tight uppercase flex items-center gap-2">
+              {t('Parameters')}
+            </h2>
+            <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Experimental conditions & diffraction input variables</p>
+          </div>
           {lastAutosaved && (
-            <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-mono tracking-tight transition-all duration-300 ${
+            <span className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9.5px] font-mono tracking-tight transition-all duration-300 ml-2 ${
               isSaving
-                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 animate-pulse'
-                : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700/50'
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 animate-pulse'
+                : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700/50'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isSaving ? 'bg-emerald-500 animate-ping' : 'bg-slate-400 dark:bg-slate-500'}`} />
               {isSaving ? 'saving...' : `saved ${lastAutosaved}`}
@@ -571,94 +576,100 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         <button 
           onClick={handleSync}
           disabled={isSyncing}
-          className="text-[9px] uppercase font-black tracking-wider text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-colors disabled:opacity-50 px-2 py-1 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-lg border border-indigo-500/10"
+          className="text-[10px] uppercase font-black tracking-wider text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-all disabled:opacity-50 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 shadow-sm cursor-pointer"
           title="Fetch latest IUPAC/NIST standard values"
         >
-          <SyncIcon className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
+          <SyncIcon className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
           {isSyncing ? t('Syncing') : t('Sync Standards')}
         </button>
       </div>
       
-      <div className="space-y-5">
-        {/* Sample ID Input */}
-        {setSampleId && (
-          <div>
-            <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5">
-              {t('Sample ID')}
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={sampleId}
-                onChange={(e) => setSampleId(e.target.value)}
-                placeholder="e.g., TiO2-NP-001"
-                maxLength={50}
-                className="w-full px-3.5 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold text-xs"
-              />
-              <button 
-                type="button"
-                onClick={() => setSampleId('SAMPLE-' + Math.floor(Math.random() * 9000 + 1000))}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-indigo-500 transition-colors"
-                title="Generate Random Sample ID"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-              </button>
+      <div className="space-y-6">
+        {/* Top Grid: Sample ID & Calibration Reference Standard */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Sample ID Input */}
+          {setSampleId && (
+            <div className="bg-slate-50/80 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center justify-between">
+                <span>{t('Sample ID')}</span>
+                <span className="text-[9px] font-normal text-slate-400 lowercase font-mono">max 50 chars</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={sampleId}
+                  onChange={(e) => setSampleId(e.target.value)}
+                  placeholder="e.g., TiO2-NP-001"
+                  maxLength={50}
+                  className="w-full pl-3.5 pr-9 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold font-mono text-xs shadow-xs"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setSampleId('SAMPLE-' + Math.floor(Math.random() * 9000 + 1000))}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/50"
+                  title="Generate Random Sample ID"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Calibration Reference Standard Dropdown */}
-        <div>
-          <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
-            <Database className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-            Calibration Reference Standard
-          </label>
-          <select
-            onChange={(e) => {
-              const selectedId = e.target.value;
-              const preset = CALIBRATION_PRESETS.find(p => p.id === selectedId);
-              if (preset) {
-                if (preset.sampleId && setSampleId) setSampleId(preset.sampleId);
-                setWavelength(preset.wavelength);
-                setRawPeaks(preset.peaks);
-                setRawHKL(preset.hkls);
-                
-                const presetCrystalSystems: Record<string, string> = {
-                  custom: 'SC',
-                  silicon: 'Diamond',
-                  lab6: 'SC',
-                  ceo2: 'FCC',
-                  nacl: 'FCC',
-                  au: 'FCC'
-                };
-                if (presetCrystalSystems[selectedId] && setCrystalSystem) {
-                  setCrystalSystem(presetCrystalSystems[selectedId]);
+          {/* Calibration Reference Standard Dropdown */}
+          <div className="bg-slate-50/80 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+            <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              <span>Calibration Reference Standard</span>
+            </label>
+            <select
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const preset = CALIBRATION_PRESETS.find(p => p.id === selectedId);
+                if (preset) {
+                  if (preset.sampleId && setSampleId) setSampleId(preset.sampleId);
+                  setWavelength(preset.wavelength);
+                  setRawPeaks(preset.peaks);
+                  setRawHKL(preset.hkls);
+                  
+                  const presetCrystalSystems: Record<string, string> = {
+                    custom: 'SC',
+                    silicon: 'Diamond',
+                    lab6: 'SC',
+                    ceo2: 'FCC',
+                    nacl: 'FCC',
+                    au: 'FCC'
+                  };
+                  if (presetCrystalSystems[selectedId] && setCrystalSystem) {
+                    setCrystalSystem(presetCrystalSystems[selectedId]);
+                  }
                 }
-              }
-            }}
-            className="w-full px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold text-xs cursor-pointer"
-            value={CALIBRATION_PRESETS.some(p => p.sampleId === sampleId) ? CALIBRATION_PRESETS.find(p => p.sampleId === sampleId)?.id : "custom"}
-          >
-            {CALIBRATION_PRESETS.map((p) => (
-              <option key={p.id} value={p.id} className="font-bold text-xs">
-                {p.name}
-              </option>
-            ))}
-          </select>
+              }}
+              className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold text-xs cursor-pointer shadow-xs"
+              value={CALIBRATION_PRESETS.some(p => p.sampleId === sampleId) ? CALIBRATION_PRESETS.find(p => p.sampleId === sampleId)?.id : "custom"}
+            >
+              {CALIBRATION_PRESETS.map((p) => (
+                <option key={p.id} value={p.id} className="font-bold text-xs">
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         
-        {/* Wavelength Section */}
-        <div>
-          <div className="flex justify-between items-center mb-1.5">
-            <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400">
+        {/* Wavelength Section Card */}
+        <div className="bg-slate-50/80 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="block text-[10px] uppercase tracking-widest font-black text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
               {t('Wavelength')} ({lengthUnit})
             </label>
             {energyKev && (
-              <span className="text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/10">
-                {energyKev} keV
+              <span className="text-[9.5px] font-mono font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-0.5 rounded-full border border-indigo-500/20 shadow-2xs">
+                Energy: {energyKev} keV
               </span>
             )}
           </div>
+
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input
@@ -673,14 +684,15 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                     setWavelength(convertToAngstrom(val, lengthUnit));
                   }
                 }}
-                className="w-full px-3.5 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold font-mono text-xs"
+                className="w-full px-3.5 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold font-mono text-xs shadow-xs"
               />
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold font-mono">
                 {lengthUnit}
               </div>
             </div>
+
             {/* Fine tuning buttons */}
-            <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="flex rounded-xl overflow-hidden border border-slate-300 dark:border-slate-800 shadow-xs">
               <button
                 type="button"
                 onClick={() => {
@@ -688,7 +700,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                   const step = lengthUnit === 'pm' ? 0.01 : lengthUnit === 'nm' ? 0.00001 : 0.0001;
                   setWavelength(convertToAngstrom(currentInUnit - step, lengthUnit));
                 }}
-                className="px-3 bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-xs"
+                className="px-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-sm cursor-pointer"
                 title={`Decrease wavelength (${lengthUnit})`}
               >
                 -
@@ -700,7 +712,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                   const step = lengthUnit === 'pm' ? 0.01 : lengthUnit === 'nm' ? 0.00001 : 0.0001;
                   setWavelength(convertToAngstrom(currentInUnit + step, lengthUnit));
                 }}
-                className="px-3 bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-xs border-l border-slate-200 dark:border-slate-800"
+                className="px-3 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-sm border-l border-slate-200 dark:border-slate-800 cursor-pointer"
                 title={`Increase wavelength (${lengthUnit})`}
               >
                 +
@@ -709,40 +721,48 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           </div>
           
           {/* Quick Selected Tubes */}
-          <div className="mt-2.5 grid grid-cols-4 gap-1">
-            {availableWavelengths.slice(0, 8).map((sw, i) => (
-              <button 
-                key={`${sw.label}-${i}`}
-                type="button"
-                onClick={() => setWavelength(sw.value)}
-                className={`px-1.5 py-1 text-[9px] rounded-lg border transition-all font-mono font-bold truncate ${
-                  Math.abs(wavelength - sw.value) < 0.0001
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm font-extrabold' 
-                    : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850'
-                }`}
-                title={`${sw.label}: ${convertLength(sw.value, lengthUnit).toFixed(lengthUnit === 'pm' ? 2 : lengthUnit === 'nm' ? 5 : 4)} ${lengthUnit}`}
-              >
-                {sw.label.replace(' (avg)', '')}
-              </button>
-            ))}
+          <div className="space-y-1 pt-1">
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Preset X-Ray Anode Target Wavelengths:</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {availableWavelengths.slice(0, 8).map((sw, i) => (
+                <button 
+                  key={`${sw.label}-${i}`}
+                  type="button"
+                  onClick={() => setWavelength(sw.value)}
+                  className={`px-2 py-1.5 text-[10px] rounded-xl border transition-all font-mono font-bold truncate cursor-pointer ${
+                    Math.abs(wavelength - sw.value) < 0.0001
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md font-black ring-2 ring-indigo-500/20' 
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-2xs'
+                  }`}
+                  title={`${sw.label}: ${convertLength(sw.value, lengthUnit).toFixed(lengthUnit === 'pm' ? 2 : lengthUnit === 'nm' ? 5 : 4)} ${lengthUnit}`}
+                >
+                  {sw.label.replace(' (avg)', '')}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* XRD Peaks and Miller Indices inputs inside beautifully organized container */}
-        <div className="space-y-4 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+        <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800/80">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Binary className="w-3.5 h-3.5 text-indigo-400" />
-                {t('2Theta Peaks')}
-              </label>
-              <textarea
-                value={rawPeaks}
-                onChange={(e) => setRawPeaks(e.target.value)}
-                placeholder="e.g., 28.44, 47.30, 56.12"
-                className="w-full h-20 px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-mono text-xs leading-relaxed custom-scrollbar resize-none"
-              />
-              <div className="mt-1.5 flex flex-wrap gap-1 items-center">
+            <div className="bg-slate-50/80 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest font-black text-slate-600 dark:text-slate-400 mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Binary className="w-3.5 h-3.5 text-indigo-500" />
+                    {t('2Theta Peaks')}
+                  </span>
+                  <span className="text-[9px] font-mono text-indigo-500 font-bold">{parsedPeaks.length} detected</span>
+                </label>
+                <textarea
+                  value={rawPeaks}
+                  onChange={(e) => setRawPeaks(e.target.value)}
+                  placeholder="e.g., 28.44, 47.30, 56.12"
+                  className="w-full h-24 px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-mono text-xs leading-relaxed custom-scrollbar resize-none shadow-xs"
+                />
+              </div>
+              <div className="mt-2.5 flex flex-wrap gap-1 items-center">
                 <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-1">Tuning Tools:</span>
                 <button
                   type="button"
@@ -752,7 +772,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       setRawPeaks(sorted.map(n => n.toFixed(3)).join(', '));
                     }
                   }}
-                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  className="px-2 py-1 text-[8px] font-bold uppercase rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors cursor-pointer"
                   title="Sort 2Theta values in ascending order"
                 >
                   Sort Asc
@@ -764,7 +784,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       setRawPeaks(parsedPeaks.map(n => n.toFixed(2)).join(', '));
                     }
                   }}
-                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  className="px-2 py-1 text-[8px] font-bold uppercase rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors cursor-pointer"
                   title="Normalize formatting to 2 decimal places"
                 >
                   Clean/Format
@@ -777,7 +797,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       setRawPeaks(shifted.join(', '));
                     }
                   }}
-                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  className="px-2 py-1 text-[8px] font-bold uppercase rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors cursor-pointer"
                   title="Shift all peaks by +0.1° 2-Theta"
                 >
                   +0.1° Shift
@@ -790,7 +810,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       setRawPeaks(shifted.join(', '));
                     }
                   }}
-                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  className="px-2 py-1 text-[8px] font-bold uppercase rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors cursor-pointer"
                   title="Shift all peaks by -0.1° 2-Theta"
                 >
                   -0.1° Shift
@@ -806,7 +826,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       setSelectedRefineMaterial(MATERIAL_DB[0]);
                     }
                   }}
-                  className="px-1.5 py-0.5 text-[8px] font-black uppercase rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:bg-indigo-500/25 dark:hover:bg-indigo-500/35 dark:text-indigo-400 border border-indigo-500/15 transition-all cursor-pointer flex items-center gap-0.5"
+                  className="px-2 py-1 text-[8px] font-black uppercase rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
                   title="Automatically optimize peak locations against material reference databases"
                 >
                   <Sparkles className="w-2.5 h-2.5" />
@@ -814,57 +834,65 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 </button>
               </div>
             </div>
-            <div>
-              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                {t('Miller Indices')}
-              </label>
-              <textarea
-                value={rawHKL}
-                onChange={(e) => setRawHKL(e.target.value)}
-                placeholder="e.g., 111, 220, 311"
-                className="w-full h-20 px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-mono text-xs leading-relaxed custom-scrollbar resize-none"
-              />
-              <div className="mt-1.5 flex flex-wrap gap-1 items-center">
-                <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-1">Symmetry Presets:</span>
-                {[
-                  { name: 'FCC/Cubic', list: '111, 200, 220, 311' },
-                  { name: 'BCC', list: '110, 200, 211, 220' },
-                  { name: 'Hexagonal', list: '100, 002, 101, 102' }
-                ].map((tpl) => (
-                  <button
-                    key={tpl.name}
-                    type="button"
-                    onClick={() => {
-                      setRawHKL(tpl.list);
-                      if (setCrystalSystem) {
-                        setCrystalSystem(tpl.name.includes('FCC') ? 'FCC' : tpl.name.includes('BCC') ? 'BCC' : 'Hexagonal');
-                      }
-                    }}
-                    className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
-                  >
-                    {tpl.name}
-                  </button>
-                ))}
-              </div>
-              
-              {/* Crystal System Dropdown Selector */}
-              <div className="mt-2.5">
-                <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 mb-1">
-                  Crystal System Constraint Validation
+
+            <div className="bg-slate-50/80 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest font-black text-slate-600 dark:text-slate-400 mb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                    {t('Miller Indices')}
+                  </span>
+                  <span className="text-[9px] font-mono text-indigo-500 font-bold">{parsedHKLs.length} planes</span>
                 </label>
-                <select
-                  value={crystalSystem}
-                  onChange={(e) => setCrystalSystem && setCrystalSystem(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-white text-slate-800 border border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800/80 rounded-lg focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all font-bold text-[11px] cursor-pointer"
-                >
-                  <option value="SC">Simple Cubic / Primitive (No Constraints)</option>
-                  <option value="BCC">Body-Centered Cubic / I-Centered [h+k+l is even]</option>
-                  <option value="FCC">Face-Centered Cubic / F-Centered [unmixed parity]</option>
-                  <option value="Diamond">Diamond Cubic [FCC + if even, h+k+l div by 4]</option>
-                  <option value="Hexagonal">Hexagonal / HCP [No (l odd & h+2k multiple of 3)]</option>
-                  <option value="Orthorhombic_C">Base-Centered / C-Centered [h+k is even]</option>
-                </select>
+                <textarea
+                  value={rawHKL}
+                  onChange={(e) => setRawHKL(e.target.value)}
+                  placeholder="e.g., 111, 220, 311"
+                  className="w-full h-24 px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-mono text-xs leading-relaxed custom-scrollbar resize-none shadow-xs"
+                />
+              </div>
+              <div className="mt-2.5 space-y-2">
+                <div className="flex flex-wrap gap-1 items-center">
+                  <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-1">Symmetry Presets:</span>
+                  {[
+                    { name: 'FCC/Cubic', list: '111, 200, 220, 311' },
+                    { name: 'BCC', list: '110, 200, 211, 220' },
+                    { name: 'Hexagonal', list: '100, 002, 101, 102' }
+                  ].map((tpl) => (
+                    <button
+                      key={tpl.name}
+                      type="button"
+                      onClick={() => {
+                        setRawHKL(tpl.list);
+                        if (setCrystalSystem) {
+                          setCrystalSystem(tpl.name.includes('FCC') ? 'FCC' : tpl.name.includes('BCC') ? 'BCC' : 'Hexagonal');
+                        }
+                      }}
+                      className="px-2 py-0.5 text-[8px] font-bold uppercase rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-2xs transition-colors cursor-pointer"
+                    >
+                      {tpl.name}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Crystal System Dropdown Selector */}
+                <div>
+                  <label className="block text-[8.5px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 mb-1">
+                    Crystal System Constraint Validation
+                  </label>
+                  <select
+                    value={crystalSystem}
+                    onChange={(e) => setCrystalSystem && setCrystalSystem(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-1 focus:ring-indigo-500 outline-none transition-all font-bold text-xs cursor-pointer shadow-xs"
+                  >
+                    <option value="SC">Simple Cubic / Primitive (No Constraints)</option>
+                    <option value="BCC">Body-Centered Cubic / I-Centered [h+k+l is even]</option>
+                    <option value="FCC">Face-Centered Cubic / F-Centered [unmixed parity]</option>
+                    <option value="Diamond">Diamond Cubic [FCC + if even, h+k+l div by 4]</option>
+                    <option value="Hexagonal">Hexagonal / HCP [No (l odd & h+2k multiple of 3)]</option>
+                    <option value="Orthorhombic_C">Base-Centered / C-Centered [h+k is even]</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>

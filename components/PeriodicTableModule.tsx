@@ -177,18 +177,21 @@ interface Point3D {
   y: number;
   z: number;
   id?: string;
+  frac?: [number, number, number];
+  type?: 'corner' | 'face' | 'body' | 'interstitial' | 'hex' | 'center';
 }
 
-// Projected 2D Point style helper
 interface Point2D {
   x: number;
   y: number;
   zDepth: number;
   id?: string;
+  frac?: [number, number, number];
+  type?: 'corner' | 'face' | 'body' | 'interstitial' | 'hex' | 'center';
 }
 
 /* =========================================================================
-   CrystallineLattice3D: Interactive Unit Cell projection engine
+   CrystallineLattice3D: Interactive Scientific Static Unit Cell Projection Engine
    ========================================================================= */
 const CrystallineLattice3D: React.FC<{ 
   structure: CrystalElement['crystalStructure'];
@@ -196,11 +199,23 @@ const CrystallineLattice3D: React.FC<{
   b?: number;
   c?: number;
   colorClass: string;
-}> = ({ structure, a, b, c, colorClass }) => {
+  symbol?: string;
+  name?: string;
+  spaceGroup?: string;
+  alpha?: number;
+  beta?: number;
+  gamma?: number;
+}> = ({ structure, a, b, c, colorClass, symbol = 'X', spaceGroup }) => {
+  // Static view by default as requested by user ("make it more scientific and it should be static")
   const [yaw, setYaw] = useState<number>(35);
   const [pitch, setPitch] = useState<number>(-20);
-  const [isRotating, setIsRotating] = useState<boolean>(true);
-  const [selectedAtom, setSelectedAtom] = useState<string | null>(null);
+  const [isRotating, setIsRotating] = useState<boolean>(false);
+  const [selectedAtom, setSelectedAtom] = useState<Point2D | null>(null);
+  const [renderMode, setRenderMode] = useState<'ball-stick' | 'space-filling'>('ball-stick');
+  const [showAxes] = useState<boolean>(true);
+  const [showEdgeLabels] = useState<boolean>(true);
+  const [showBasisDrawer, setShowBasisDrawer] = useState<boolean>(false);
+
   const requestRef = useRef<number | null>(null);
   const prevTimeRef = useRef<number | null>(null);
 
@@ -209,9 +224,9 @@ const CrystallineLattice3D: React.FC<{
   const lb = b ? (b / a) * 75 : 75;
   const lc = c ? (c / a) * 75 : 75;
 
-  // Scale bounds to fits inside SVG viewport nicely
+  // Scale bounds to fit inside SVG viewport nicely
   const maxSide = Math.max(la, lb, lc);
-  const scaleNorm = 70 / maxSide;
+  const scaleNorm = 65 / maxSide;
   const sa = la * scaleNorm;
   const sb = lb * scaleNorm;
   const sc = lc * scaleNorm;
@@ -222,14 +237,14 @@ const CrystallineLattice3D: React.FC<{
     const oy = -sb / 2;
     const oz = -sc / 2;
     return [
-      { x: ox, y: oy, z: oz },          // 0
-      { x: ox + sa, y: oy, z: oz },     // 1
-      { x: ox + sa, y: oy + sb, z: oz },// 2
-      { x: ox, y: oy + sb, z: oz },     // 3
-      { x: ox, y: oy, z: oz + sc },     // 4
-      { x: ox + sa, y: oy, z: oz + sc },// 5
-      { x: ox + sa, y: oy + sb, z: oz + sc }, // 6
-      { x: ox, y: oy + sb, z: oz + sc }  // 7
+      { x: ox, y: oy, z: oz, frac: [0, 0, 0] },             // 0
+      { x: ox + sa, y: oy, z: oz, frac: [1, 0, 0] },        // 1
+      { x: ox + sa, y: oy + sb, z: oz, frac: [1, 1, 0] },   // 2
+      { x: ox, y: oy + sb, z: oz, frac: [0, 1, 0] },        // 3
+      { x: ox, y: oy, z: oz + sc, frac: [0, 0, 1] },        // 4
+      { x: ox + sa, y: oy, z: oz + sc, frac: [1, 0, 1] },   // 5
+      { x: ox + sa, y: oy + sb, z: oz + sc, frac: [1, 1, 1] },// 6
+      { x: ox, y: oy + sb, z: oz + sc, frac: [0, 1, 1] }   // 7
     ];
   }, [sa, sb, sc]);
 
@@ -240,60 +255,92 @@ const CrystallineLattice3D: React.FC<{
     const oz = -sc / 2;
     const list: Point3D[] = [];
 
-    // All Bravais cell states start with corners populated
-    boxVertices.forEach((v, index) => {
-      list.push({ ...v, id: `Corner-${index + 1}` });
-    });
-
-    if (structure === 'BCC') {
-      // Body Center atoms
-      list.push({ x: 0, y: 0, z: 0, id: 'Body-Center' });
-    } else if (structure === 'FCC') {
-      // 6 Face center coordinates
-      list.push({ x: 0, y: 0, z: oz, id: 'Face-Bottom' });
-      list.push({ x: 0, y: 0, z: -oz, id: 'Face-Top' });
-      list.push({ x: ox, y: 0, z: 0, id: 'Face-Left' });
-      list.push({ x: -ox, y: 0, z: 0, id: 'Face-Right' });
-      list.push({ x: 0, y: oy, z: 0, id: 'Face-Front' });
-      list.push({ x: 0, y: -oy, z: 0, id: 'Face-Back' });
-    } else if (structure === 'Diamond') {
-      // 4 Internal coordinates
-      list.push({ x: ox + sa / 4, y: oy + sb / 4, z: oz + sc / 4, id: 'Diamond-Int-1' });
-      list.push({ x: ox + (3 * sa) / 4, y: oy + (3 * sb) / 4, z: oz + sc / 4, id: 'Diamond-Int-2' });
-      list.push({ x: ox + sa / 4, y: oy + (3 * sb) / 4, z: oz + (3 * sc) / 4, id: 'Diamond-Int-3' });
-      list.push({ x: ox + (3 * sa) / 4, y: oy + sb / 4, z: oz + (3 * sc) / 4, id: 'Diamond-Int-4' });
-    } else if (structure === 'HCP') {
-      // Hexagonal bases projection (HCP specialized points)
-      list.length = 0; // Overwrite default corners for beautiful explicit prism rendering
-      const r = sa * 0.7;
+    if (structure === 'HCP' || structure === 'Hexagonal') {
+      const r = sa * 0.65;
       // Bottom Base Hex
       for (let i = 0; i < 6; i++) {
         const theta = (i * 60 * Math.PI) / 180;
-        list.push({ x: r * Math.cos(theta), y: r * Math.sin(theta), z: oz, id: `Hex-Bottom-${i + 1}` });
+        const u = Number((0.5 + 0.5 * Math.cos(theta)).toFixed(2));
+        const v = Number((0.5 + 0.5 * Math.sin(theta)).toFixed(2));
+        list.push({ 
+          x: r * Math.cos(theta), 
+          y: r * Math.sin(theta), 
+          z: oz, 
+          id: `Hex-Bot-${i + 1}`,
+          frac: [u, v, 0],
+          type: 'hex'
+        });
       }
-      list.push({ x: 0, y: 0, z: oz, id: 'Hex-Bottom-Center' });
+      list.push({ x: 0, y: 0, z: oz, id: 'Hex-Bot-Center', frac: [0, 0, 0], type: 'center' });
 
       // Top Base Hex
       for (let i = 0; i < 6; i++) {
         const theta = (i * 60 * Math.PI) / 180;
-        list.push({ x: r * Math.cos(theta), y: r * Math.sin(theta), z: -oz, id: `Hex-Top-${i + 1}` });
+        const u = Number((0.5 + 0.5 * Math.cos(theta)).toFixed(2));
+        const v = Number((0.5 + 0.5 * Math.sin(theta)).toFixed(2));
+        list.push({ 
+          x: r * Math.cos(theta), 
+          y: r * Math.sin(theta), 
+          z: -oz, 
+          id: `Hex-Top-${i + 1}`,
+          frac: [u, v, 1],
+          type: 'hex'
+        });
       }
-      list.push({ x: 0, y: 0, z: -oz, id: 'Hex-Top-Center' });
+      list.push({ x: 0, y: 0, z: -oz, id: 'Hex-Top-Center', frac: [0, 0, 1], type: 'center' });
 
       // Middle Interstitial Trio
       for (let i = 0; i < 3; i++) {
         const theta = ((i * 120 + 30) * Math.PI) / 180;
-        list.push({ x: (r * 0.55) * Math.cos(theta), y: (r * 0.55) * Math.sin(theta), z: 0, id: `HCP-Mid-${i + 1}` });
+        list.push({ 
+          x: (r * 0.55) * Math.cos(theta), 
+          y: (r * 0.55) * Math.sin(theta), 
+          z: 0, 
+          id: `HCP-Mid-${i + 1}`,
+          frac: [0.33, 0.67, 0.5],
+          type: 'interstitial'
+        });
       }
+      return list;
+    }
+
+    // Default corners for orthogonal/cubic cells
+    boxVertices.forEach((v, index) => {
+      list.push({ ...v, id: `Corner-${index + 1}`, type: 'corner' });
+    });
+
+    if (structure === 'BCC') {
+      list.push({ x: 0, y: 0, z: 0, id: 'Body-Center', frac: [0.5, 0.5, 0.5], type: 'body' });
+    } else if (structure === 'FCC') {
+      list.push({ x: 0, y: 0, z: oz, id: 'Face-Bottom', frac: [0.5, 0.5, 0], type: 'face' });
+      list.push({ x: 0, y: 0, z: -oz, id: 'Face-Top', frac: [0.5, 0.5, 1], type: 'face' });
+      list.push({ x: ox, y: 0, z: 0, id: 'Face-Left', frac: [0, 0.5, 0.5], type: 'face' });
+      list.push({ x: -ox, y: 0, z: 0, id: 'Face-Right', frac: [1, 0.5, 0.5], type: 'face' });
+      list.push({ x: 0, y: oy, z: 0, id: 'Face-Front', frac: [0.5, 1, 0.5], type: 'face' });
+      list.push({ x: 0, y: -oy, z: 0, id: 'Face-Back', frac: [0.5, 0, 0.5], type: 'face' });
+    } else if (structure === 'Diamond') {
+      list.push({ x: 0, y: 0, z: oz, id: 'Face-Bottom', frac: [0.5, 0.5, 0], type: 'face' });
+      list.push({ x: 0, y: 0, z: -oz, id: 'Face-Top', frac: [0.5, 0.5, 1], type: 'face' });
+      list.push({ x: ox, y: 0, z: 0, id: 'Face-Left', frac: [0, 0.5, 0.5], type: 'face' });
+      list.push({ x: -ox, y: 0, z: 0, id: 'Face-Right', frac: [1, 0.5, 0.5], type: 'face' });
+      list.push({ x: 0, y: oy, z: 0, id: 'Face-Front', frac: [0.5, 1, 0.5], type: 'face' });
+      list.push({ x: 0, y: -oy, z: 0, id: 'Face-Back', frac: [0.5, 0, 0.5], type: 'face' });
+
+      list.push({ x: ox + sa / 4, y: oy + sb / 4, z: oz + sc / 4, id: 'Tetra-1', frac: [0.25, 0.25, 0.25], type: 'interstitial' });
+      list.push({ x: ox + (3 * sa) / 4, y: oy + (3 * sb) / 4, z: oz + sc / 4, id: 'Tetra-2', frac: [0.75, 0.75, 0.25], type: 'interstitial' });
+      list.push({ x: ox + sa / 4, y: oy + (3 * sb) / 4, z: oz + (3 * sc) / 4, id: 'Tetra-3', frac: [0.25, 0.75, 0.75], type: 'interstitial' });
+      list.push({ x: ox + (3 * sa) / 4, y: oy + sb / 4, z: oz + (3 * sc) / 4, id: 'Tetra-4', frac: [0.75, 0.25, 0.75], type: 'interstitial' });
     } else if (structure === 'Amorphous') {
-      // Randomized spatial coordination with structural distortion
       list.length = 0;
       for (let i = 0; i < 15; i++) {
+        const rx = (Math.random() - 0.5) * sa;
+        const ry = (Math.random() - 0.5) * sb;
+        const rz = (Math.random() - 0.5) * sc;
         list.push({
-          x: (Math.random() - 0.5) * sa,
-          y: (Math.random() - 0.5) * sb,
-          z: (Math.random() - 0.5) * sc,
-          id: `Amorphous-Node-${i + 1}`
+          x: rx, y: ry, z: rz,
+          id: `Node-${i + 1}`,
+          frac: [Number(((rx - ox) / sa).toFixed(2)), Number(((ry - oy) / sb).toFixed(2)), Number(((rz - oz) / sc).toFixed(2))],
+          type: 'interstitial'
         });
       }
     }
@@ -301,12 +348,37 @@ const CrystallineLattice3D: React.FC<{
     return list;
   }, [sa, sb, sc, structure, boxVertices]);
 
-  // Continuous physics orbital rotation animation loop
+  // Scientific metadata metrics lookup
+  const crystalProps = useMemo(() => {
+    switch (structure) {
+      case 'BCC':
+        return { name: 'Body-Centered Cubic', z: 2, cn: 8, apf: '68%', sg: spaceGroup || 'Im-3m (229)', formula: 'a = b = c' };
+      case 'FCC':
+        return { name: 'Face-Centered Cubic', z: 4, cn: 12, apf: '74%', sg: spaceGroup || 'Fm-3m (225)', formula: 'a = b = c' };
+      case 'HCP':
+      case 'Hexagonal':
+        return { name: 'Hexagonal Close-Packed', z: 6, cn: 12, apf: '74%', sg: spaceGroup || 'P6₃/mmc (194)', formula: 'c/a ≈ 1.633' };
+      case 'Diamond':
+        return { name: 'Diamond Cubic', z: 8, cn: 4, apf: '34%', sg: spaceGroup || 'Fd-3m (227)', formula: 'a = b = c' };
+      case 'Tetragonal':
+        return { name: 'Tetragonal', z: 2, cn: 8, apf: '65%', sg: spaceGroup || 'I4/mmm (139)', formula: 'a = b ≠ c' };
+      case 'Orthorhombic':
+        return { name: 'Orthorhombic', z: 4, cn: 8, apf: '62%', sg: spaceGroup || 'Cmcm (63)', formula: 'a ≠ b ≠ c' };
+      case 'Monoclinic':
+        return { name: 'Monoclinic', z: 2, cn: 6, apf: '55%', sg: spaceGroup || 'P2₁/c (14)', formula: 'β ≠ 90°' };
+      case 'Rhombohedral':
+        return { name: 'Rhombohedral', z: 1, cn: 6, apf: '58%', sg: spaceGroup || 'R-3m (166)', formula: 'a=b=c, α=β=γ≠90°' };
+      default:
+        return { name: 'Simple Cubic / Primitive', z: 1, cn: 6, apf: '52%', sg: spaceGroup || 'Pm-3m (221)', formula: 'a = b = c' };
+    }
+  }, [structure, spaceGroup]);
+
+  // Continuous physics orbital rotation loop (Optional, defaults OFF)
   useEffect(() => {
     const tick = (time: number) => {
       if (prevTimeRef.current !== null && isRotating) {
         const delta = time - prevTimeRef.current;
-        setYaw(y => (y + delta * 0.035) % 360);
+        setYaw(y => (y + delta * 0.025) % 360);
       }
       prevTimeRef.current = time;
       requestRef.current = requestAnimationFrame(tick);
@@ -318,33 +390,26 @@ const CrystallineLattice3D: React.FC<{
     };
   }, [isRotating]);
 
-  // Wireframe structural edges connection indexes mapping
+  // Wireframe structural edges connection indexes
   const edges = useMemo<[number, number][]>(() => {
-    if (structure === 'HCP') {
+    if (structure === 'HCP' || structure === 'Hexagonal') {
       return [
-        // Bottom ring
         [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0],
-        // Top ring
         [7, 8], [8, 9], [9, 10], [10, 11], [11, 12], [12, 7],
-        // Center spine anchors
         [6, 0], [6, 2], [6, 4],
         [13, 7], [13, 9], [13, 11],
-        // Vertical pillars
         [0, 7], [1, 8], [2, 9], [3, 10], [4, 11], [5, 12]
       ];
     }
-
-    // Default Orthorhombic / Cubic bounding edges index arrays
     return [
-      [0, 1], [1, 2], [2, 3], [3, 0], // Bottom square cell
-      [4, 5], [5, 6], [6, 7], [7, 4], // Top square cell
-      [0, 4], [1, 5], [2, 6], [3, 7]  // Connecting vertical columns
+      [0, 1], [1, 2], [2, 3], [3, 0],
+      [4, 5], [5, 6], [6, 7], [7, 4],
+      [0, 4], [1, 5], [2, 6], [3, 7]
     ];
   }, [structure]);
 
   // 3D coordinate point rotation map projection
   const project = (point: Point3D): Point2D => {
-    // 1. Yaw rotation (Z-axis rotation around origin)
     const ryRad = (yaw * Math.PI) / 180;
     const cosY = Math.cos(ryRad);
     const sinY = Math.sin(ryRad);
@@ -352,7 +417,6 @@ const CrystallineLattice3D: React.FC<{
     const y1 = point.x * sinY + point.y * cosY;
     const z1 = point.z;
 
-    // 2. Pitch rotation (X-axis tilt)
     const rxRad = (pitch * Math.PI) / 180;
     const cosP = Math.cos(rxRad);
     const sinP = Math.sin(rxRad);
@@ -360,22 +424,30 @@ const CrystallineLattice3D: React.FC<{
     const y2 = y1 * cosP - z1 * sinP;
     const z2 = y1 * sinP + z1 * cosP;
 
-    // Standard perspective depth multiplication factor
-    const dist = 160;
+    const dist = 180;
     const factor = dist / (dist - z2);
-    const scale = 1.35;
+    const scale = 1.3;
 
     return {
-      x: 100 + x2 * factor * scale,
+      x: 110 + x2 * factor * scale,
       y: 95 + y2 * factor * scale,
       zDepth: z2,
-      id: point.id
+      id: point.id,
+      frac: point.frac,
+      type: point.type
     };
   };
 
-  // Compute live Projected Coordinates
   const projectedBox = boxVertices.map(v => project(v));
   const projectedAtoms = atoms.map(v => project(v));
+
+  // Origin point for coordinate axes
+  const origin3D: Point3D = { x: -sa / 2, y: -sb / 2, z: -sc / 2, id: 'Origin' };
+  const origin2D = project(origin3D);
+
+  const axisA2D = project({ x: -sa / 2 + sa * 0.45, y: -sb / 2, z: -sc / 2, id: 'AxisA' });
+  const axisB2D = project({ x: -sa / 2, y: -sb / 2 + sb * 0.45, z: -sc / 2, id: 'AxisB' });
+  const axisC2D = project({ x: -sa / 2, y: -sb / 2, z: -sc / 2 + sc * 0.45, id: 'AxisC' });
 
   // Determine element specific color highlights
   const atomColor = useMemo(() => {
@@ -387,69 +459,161 @@ const CrystallineLattice3D: React.FC<{
     if (colorClass.includes('fuchsia')) return '#e879f9';
     if (colorClass.includes('amber')) return '#fbbf24';
     if (colorClass.includes('rose')) return '#fb7185';
-    return '#818cf8'; // default indigo
+    return '#818cf8';
   }, [colorClass]);
 
+  const setProjectionPreset = (preset: 'isometric' | 'plan-001' | 'front-100' | 'side-010') => {
+    setIsRotating(false);
+    playSynthTone('tick');
+    if (preset === 'isometric') {
+      setYaw(35);
+      setPitch(-20);
+    } else if (preset === 'plan-001') {
+      setYaw(0);
+      setPitch(-89.9);
+    } else if (preset === 'front-100') {
+      setYaw(0);
+      setPitch(0);
+    } else if (preset === 'side-010') {
+      setYaw(90);
+      setPitch(0);
+    }
+  };
+
   return (
-    <div className="bg-slate-50 dark:bg-slate-950 rounded-[1.5rem] border border-slate-200 dark:border-slate-800/80 p-5 relative overflow-hidden group shadow-sm dark:shadow-inner transition-all hover:shadow-md dark:hover:shadow-[inset_0_0_40px_rgba(0,0,0,0.5)]">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      <div className="absolute right-4 top-4 flex items-center gap-2 z-20">
-        <button
-          onClick={() => {
-            setIsRotating(!isRotating);
-            playSynthTone('tick');
-          }}
-          className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all duration-300 flex items-center gap-1.5 shadow-sm ${
-            isRotating 
-              ? 'bg-slate-100 dark:bg-slate-800/80 text-indigo-600 dark:text-indigo-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700' 
-              : 'bg-white dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-          }`}
-          title="Pause or spin crystal rotational alignment"
-        >
-          <Orbit className={`w-3 h-3 ${isRotating ? 'animate-spin text-indigo-500 dark:text-indigo-400' : ''}`} style={{ animationDuration: '4s' }} />
-          {isRotating ? 'Orbiting' : 'Paused'}
-        </button>
+    <div className="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 relative overflow-hidden shadow-lg dark:shadow-xl text-slate-800 dark:text-slate-100 font-sans transition-colors duration-300">
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-50/50 dark:from-indigo-500/5 via-transparent to-transparent pointer-events-none" />
+
+      {/* Header bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 mb-2 border-b border-slate-100 dark:border-slate-800/80 z-20 relative">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full shadow-sm dark:shadow-[0_0_8px_rgba(129,140,248,0.8)]" style={{ backgroundColor: atomColor }} />
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span>{symbol} — {crystalProps.name}</span>
+            </h4>
+            <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+              Space Group: <span className="text-indigo-600 dark:text-indigo-300 font-semibold">{crystalProps.sg}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* View mode toggle & Orbit button */}
+        <div className="flex items-center gap-1.5 z-20">
+          <button
+            type="button"
+            onClick={() => {
+              setIsRotating(!isRotating);
+              playSynthTone('tick');
+            }}
+            className={`px-2.5 py-1 rounded-md border text-[10px] font-mono transition-all flex items-center gap-1 cursor-pointer ${
+              isRotating
+                ? 'bg-indigo-50 dark:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/50 shadow-sm dark:shadow-[0_0_10px_rgba(99,102,241,0.3)]'
+                : 'bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+            title={isRotating ? 'Pause rotation' : 'Enable auto rotation (Static view active by default)'}
+          >
+            <Orbit className={`w-3 h-3 ${isRotating ? 'animate-spin text-indigo-600 dark:text-indigo-400' : ''}`} style={{ animationDuration: '6s' }} />
+            <span>{isRotating ? 'Orbiting' : 'Static'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowBasisDrawer(!showBasisDrawer)}
+            className={`px-2.5 py-1 rounded-md border text-[10px] font-mono transition-all flex items-center gap-1 cursor-pointer ${
+              showBasisDrawer
+                ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40'
+                : 'bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+            title="Toggle Fractional Coordinates Basis Drawer"
+          >
+            <Grid className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
+            <span>Basis ({atoms.length})</span>
+          </button>
+        </div>
       </div>
 
-      <div className="absolute left-5 top-5 z-20 pointer-events-none">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2 drop-shadow-sm">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: atomColor }} />
-          {structure} Unit Cell
-        </span>
+      {/* Projection presets & render mode tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 z-20 relative text-[10px] font-mono">
+        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900/80 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+          <span className="text-slate-500 px-1 font-bold uppercase text-[9px]">Proj:</span>
+          {(['isometric', 'plan-001', 'front-100', 'side-010'] as const).map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setProjectionPreset(p)}
+              className="px-2 py-0.5 rounded text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-all cursor-pointer capitalize"
+            >
+              {p === 'isometric' ? '3D Iso' : p.replace('-', ' [') + ']'}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900/80 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+          <span className="text-slate-500 px-1 font-bold uppercase text-[9px]">Style:</span>
+          <button
+            type="button"
+            onClick={() => { setRenderMode('ball-stick'); playSynthTone('tick'); }}
+            className={`px-2 py-0.5 rounded transition-all cursor-pointer ${renderMode === 'ball-stick' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+          >
+            Ball-Stick
+          </button>
+          <button
+            type="button"
+            onClick={() => { setRenderMode('space-filling'); playSynthTone('tick'); }}
+            className={`px-2 py-0.5 rounded transition-all cursor-pointer ${renderMode === 'space-filling' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+          >
+            CPK Radii
+          </button>
+        </div>
       </div>
 
-      {/* Main interactive Projection viewport */}
-      <div className="w-full flex justify-center items-center h-48 relative cursor-move"
-           onMouseMove={(e) => {
-             if (e.buttons === 1) {
-                setYaw(y => y + e.movementX * 0.5);
-                setPitch(p => Math.max(-90, Math.min(90, p + e.movementY * 0.5)));
-                setIsRotating(false);
-             }
-           }}
+      {/* Main interactive SVG projection viewport */}
+      <div 
+        className="w-full h-56 relative cursor-grab active:cursor-grabbing flex justify-center items-center bg-slate-50/50 dark:bg-slate-950/60 rounded-xl border border-slate-200 dark:border-slate-900/80"
+        onMouseMove={(e) => {
+          if (e.buttons === 1) {
+            setYaw(y => (y + e.movementX * 0.5) % 360);
+            setPitch(p => Math.max(-90, Math.min(90, p + e.movementY * 0.5)));
+            setIsRotating(false);
+          }
+        }}
       >
-        <svg viewBox="0 0 200 190" className="w-full h-full max-w-[220px] drop-shadow-md">
+        <svg viewBox="0 0 220 190" className="w-full h-full max-w-[280px] drop-shadow-lg dark:drop-shadow-xl select-none">
           <defs>
-            <radialGradient id={`atom-grad`} cx="30%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+            <radialGradient id="atom-grad-3d" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
               <stop offset="50%" stopColor={atomColor} stopOpacity="1" />
-              <stop offset="100%" stopColor={atomColor} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={atomColor} stopOpacity="0.65" />
             </radialGradient>
-            <radialGradient id={`atom-glow`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={atomColor} stopOpacity="0.4" />
+            <radialGradient id="atom-center-3d" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+              <stop offset="60%" stopColor="#38bdf8" stopOpacity="1" />
+              <stop offset="100%" stopColor="#0284c7" stopOpacity="0.8" />
+            </radialGradient>
+            <radialGradient id="atom-glow-3d" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={atomColor} stopOpacity="0.45" />
               <stop offset="100%" stopColor={atomColor} stopOpacity="0" />
             </radialGradient>
+            <marker id="arrow-a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+            </marker>
+            <marker id="arrow-b" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+            </marker>
+            <marker id="arrow-c" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+            </marker>
           </defs>
 
-          {/* Edge links rendering */}
+          {/* Unit Cell Wireframe Edges */}
           {edges.map(([p1, p2], idx) => {
-            const start = structure === 'HCP' ? projectedAtoms[p1] : projectedBox[p1];
-            const end = structure === 'HCP' ? projectedAtoms[p2] : projectedBox[p2];
+            const start = (structure === 'HCP' || structure === 'Hexagonal') ? projectedAtoms[p1] : projectedBox[p1];
+            const end = (structure === 'HCP' || structure === 'Hexagonal') ? projectedAtoms[p2] : projectedBox[p2];
             if (!start || !end) return null;
-            
-            // Fade lines based on depth to create atmospheric perspective
+
             const avgZ = (start.zDepth + end.zDepth) / 2;
-            const opacity = Math.max(0.1, Math.min(0.8, (avgZ + 100) / 200));
+            const opacity = Math.max(0.15, Math.min(0.95, (avgZ + 100) / 200));
 
             return (
               <line
@@ -458,79 +622,136 @@ const CrystallineLattice3D: React.FC<{
                 y1={start.y}
                 x2={end.x}
                 y2={end.y}
-                stroke={isRotating ? `rgba(99,102,241,${opacity * 0.5})` : `rgba(99,102,241,${opacity})`}
-                strokeWidth={1.5}
+                stroke={`rgba(148,163,184,${opacity * 0.7})`}
+                strokeWidth={1.2}
                 strokeLinecap="round"
                 strokeDasharray={structure === 'Amorphous' ? '2 4' : undefined}
-                className="transition-all duration-300"
               />
             );
           })}
 
+          {/* Body-Center Coordination Lines (BCC) */}
+          {structure === 'BCC' && (() => {
+            const center = projectedAtoms.find(a => a.id === 'Body-Center');
+            if (!center) return null;
+            return projectedBox.map((corner, cIdx) => (
+              <line
+                key={`bcc-coord-${cIdx}`}
+                x1={center.x}
+                y1={center.y}
+                x2={corner.x}
+                y2={corner.y}
+                stroke="rgba(56,189,248,0.4)"
+                strokeWidth={1}
+                strokeDasharray="2 2"
+              />
+            ));
+          })()}
+
+          {/* Crystallographic Coordinate Axes (a, b, c) */}
+          {showAxes && (
+            <g className="opacity-90">
+              <line x1={origin2D.x} y1={origin2D.y} x2={axisA2D.x} y2={axisA2D.y} stroke="#ef4444" strokeWidth={1.8} markerEnd="url(#arrow-a)" />
+              <text x={axisA2D.x + 4} y={axisA2D.y + 3} fill="#ef4444" fontSize="8" fontWeight="bold" fontFamily="monospace">a</text>
+
+              <line x1={origin2D.x} y1={origin2D.y} x2={axisB2D.x} y2={axisB2D.y} stroke="#10b981" strokeWidth={1.8} markerEnd="url(#arrow-b)" />
+              <text x={axisB2D.x + 4} y={axisB2D.y + 3} fill="#10b981" fontSize="8" fontWeight="bold" fontFamily="monospace">b</text>
+
+              <line x1={origin2D.x} y1={origin2D.y} x2={axisC2D.x} y2={axisC2D.y} stroke="#3b82f6" strokeWidth={1.8} markerEnd="url(#arrow-c)" />
+              <text x={axisC2D.x + 4} y={axisC2D.y + 3} fill="#3b82f6" fontSize="8" fontWeight="bold" fontFamily="monospace">c</text>
+            </g>
+          )}
+
+          {/* Edge Dimension Text Annotations */}
+          {showEdgeLabels && (
+            <g className="font-mono text-[7px] fill-slate-400">
+              <text x={(projectedBox[0].x + projectedBox[1].x) / 2} y={(projectedBox[0].y + projectedBox[1].y) / 2 + 10} textAnchor="middle">
+                a={a.toFixed(2)}Å
+              </text>
+              {b && Math.abs(b - a) > 0.01 && (
+                <text x={(projectedBox[0].x + projectedBox[3].x) / 2 - 10} y={(projectedBox[0].y + projectedBox[3].y) / 2} textAnchor="end">
+                  b={b.toFixed(2)}Å
+                </text>
+              )}
+              {c && Math.abs(c - a) > 0.01 && (
+                <text x={(projectedBox[0].x + projectedBox[4].x) / 2 - 10} y={(projectedBox[0].y + projectedBox[4].y) / 2} textAnchor="end">
+                  c={c.toFixed(2)}Å
+                </text>
+              )}
+            </g>
+          )}
+
           {/* Atomic coordinate spheres */}
           {projectedAtoms
-            .sort((a, b) => a.zDepth - b.zDepth) // Depth sorting (painters algorithm)
+            .sort((a, b) => a.zDepth - b.zDepth)
             .map((atom, idx) => {
-              const isSelected = selectedAtom === atom.id;
-              const isCenter = atom.id === 'Body-Center' || atom.id?.includes('Int');
-              const nodeRadius = isSelected ? 5.5 : (isCenter ? 4.5 : 3.5);
+              const isSelected = selectedAtom?.id === atom.id;
+              const isCenter = atom.type === 'body' || atom.type === 'center';
+              
+              const baseRadius = renderMode === 'space-filling' ? 14 : (isCenter ? 5 : 3.8);
+              const nodeRadius = isSelected ? baseRadius * 1.3 : baseRadius;
 
               return (
                 <g 
-                  key={`atom-${idx}`} 
+                  key={`atom-node-${idx}`} 
                   onMouseEnter={() => {
-                    setSelectedAtom(atom.id || null);
+                    setSelectedAtom(atom);
                     playSynthTone('tick');
                   }}
                   onMouseLeave={() => setSelectedAtom(null)}
                   className="cursor-pointer group/atom"
                 >
-                  {/* Outer subtle glow */}
                   <circle
                     cx={atom.x}
                     cy={atom.y}
-                    r={nodeRadius * 4}
-                    fill={`url(#atom-glow)`}
-                    opacity={isSelected ? 1 : 0.2}
-                    className="transition-all duration-300"
+                    r={nodeRadius * 3}
+                    fill="url(#atom-glow-3d)"
+                    opacity={isSelected ? 1 : 0.25}
                   />
-                  {/* Central solid node */}
                   <circle
                     cx={atom.x}
                     cy={atom.y}
                     r={nodeRadius}
-                    fill={isCenter ? '#ffffff' : `url(#atom-grad)`}
-                    stroke={isCenter ? atomColor : "rgba(0,0,0,0.4)"}
+                    fill={isCenter ? "url(#atom-center-3d)" : "url(#atom-grad-3d)"}
+                    stroke={isSelected ? "#ffffff" : "rgba(0,0,0,0.5)"}
                     strokeWidth={isSelected ? 1.5 : 0.8}
-                    className="transition-all duration-300 group-hover/atom:scale-125 drop-shadow-sm"
+                    opacity={renderMode === 'space-filling' ? 0.85 : 1}
                   />
                 </g>
               );
             })}
         </svg>
 
-        {/* Selected atom metadata overlay */}
+        {/* Selected atom metadata hover badge */}
         <AnimatePresence>
           {selectedAtom && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 border border-indigo-200 dark:border-indigo-500/30 px-3 py-1.5 rounded-lg text-[10px] font-mono text-indigo-700 dark:text-indigo-300 text-center shadow-lg whitespace-nowrap z-20 backdrop-blur-md"
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 border border-indigo-200 dark:border-indigo-500/40 px-3 py-1 rounded-lg text-[10px] font-mono text-indigo-800 dark:text-indigo-200 shadow-xl backdrop-blur-md flex items-center gap-2 z-30"
             >
-              <span className="text-slate-800 dark:text-white font-bold mr-1">Node:</span> {selectedAtom}
+              <span className="font-bold text-slate-900 dark:text-white">{selectedAtom.id}</span>
+              <span className="text-slate-300 dark:text-slate-500">|</span>
+              <span className="text-emerald-600 dark:text-emerald-400">
+                ({selectedAtom.frac ? selectedAtom.frac.join(', ') : '0, 0, 0'})
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Rotation indicator badge */}
+        <div className="absolute top-2 left-2 text-[9px] font-mono text-slate-600 dark:text-slate-500 bg-white/60 dark:bg-slate-900/60 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 backdrop-blur-sm">
+          Yaw: {Math.round(yaw)}° | Pitch: {Math.round(pitch)}°
+        </div>
       </div>
 
-      {/* Manual interactive pitch/yaw calibration slides */}
-      <div className="grid grid-cols-2 gap-4 mt-3 pt-4 border-t border-slate-200 dark:border-slate-800/80 z-20 relative">
-        <div className="space-y-2">
+      {/* Manual interactive pitch/yaw calibration sliders */}
+      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 z-20 relative">
+        <div className="space-y-1">
           <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase tracking-wider">
             <span>Yaw (Azimuth)</span>
-            <span className="text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded">{Math.round(yaw)}°</span>
+            <span className="text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{Math.round(yaw)}°</span>
           </div>
           <input
             type="range"
@@ -544,10 +765,10 @@ const CrystallineLattice3D: React.FC<{
             className="w-full accent-indigo-500 h-1.5 bg-slate-200 dark:bg-slate-900 rounded-lg cursor-pointer appearance-none transition-all hover:h-2"
           />
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase tracking-wider">
             <span>Pitch (Elevation)</span>
-            <span className="text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded">{Math.round(pitch)}°</span>
+            <span className="text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{Math.round(pitch)}°</span>
           </div>
           <input
             type="range"
@@ -562,6 +783,56 @@ const CrystallineLattice3D: React.FC<{
           />
         </div>
       </div>
+
+      {/* Scientific Metrics HUD Panel */}
+      <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800/80 text-center font-mono">
+        <div className="bg-slate-50 dark:bg-slate-900/80 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
+          <div className="text-[8.5px] text-slate-500 uppercase">Atoms / Cell (Z)</div>
+          <div className="text-xs font-bold text-indigo-600 dark:text-indigo-300">{crystalProps.z}</div>
+        </div>
+        <div className="bg-slate-50 dark:bg-slate-900/80 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
+          <div className="text-[8.5px] text-slate-500 uppercase">Coord. No. (CN)</div>
+          <div className="text-xs font-bold text-emerald-600 dark:text-emerald-300">{crystalProps.cn}</div>
+        </div>
+        <div className="bg-slate-50 dark:bg-slate-900/80 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
+          <div className="text-[8.5px] text-slate-500 uppercase">Packing Factor</div>
+          <div className="text-xs font-bold text-amber-600 dark:text-amber-300">{crystalProps.apf}</div>
+        </div>
+        <div className="bg-slate-50 dark:bg-slate-900/80 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800/80">
+          <div className="text-[8.5px] text-slate-500 uppercase">Lattice Metric</div>
+          <div className="text-xs font-bold text-sky-600 dark:text-sky-300">{crystalProps.formula}</div>
+        </div>
+      </div>
+
+      {/* Togglable Basis Positions Drawer */}
+      <AnimatePresence>
+        {showBasisDrawer && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden mt-2 pt-2 border-t border-slate-200 dark:border-slate-800/80"
+          >
+            <div className="flex justify-between items-center mb-1.5 text-[9.5px] font-mono text-slate-500 dark:text-slate-400">
+              <span className="font-bold uppercase text-indigo-600 dark:text-indigo-400">Atomic Basis Positions (u, v, w)</span>
+              <span>Total Nodes: {atoms.length}</span>
+            </div>
+            <div className="max-h-28 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1 text-[9px] font-mono pr-1">
+              {atoms.map((at, idx) => (
+                <div 
+                  key={idx}
+                  onMouseEnter={() => setSelectedAtom(projectedAtoms[idx])}
+                  onMouseLeave={() => setSelectedAtom(null)}
+                  className="bg-slate-50 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 p-1 rounded border border-slate-200 dark:border-slate-800/80 flex justify-between items-center cursor-pointer transition-colors"
+                >
+                  <span className="text-slate-700 dark:text-slate-300 font-bold truncate max-w-[80px]">{at.id}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">({at.frac ? at.frac.join(',') : '0,0,0'})</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -3706,6 +3977,12 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           b={activeElementInfo.b}
                           c={activeElementInfo.c}
                           colorClass={categoryColor(activeElementInfo.category)}
+                          symbol={activeElementInfo.symbol}
+                          name={activeElementInfo.name}
+                          spaceGroup={activeElementInfo.spaceGroup}
+                          alpha={activeElementInfo.alpha}
+                          beta={activeElementInfo.beta}
+                          gamma={activeElementInfo.gamma}
                         />
 
                         {/* Deep Crystallographic Parameters */}
@@ -4213,60 +4490,60 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     )}
 
                     {detailSubTab === 'stp' && (
-                      <div className="space-y-3 animate-fadeIn">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
-                          <Cloud className="w-3 text-sky-400" /> Standard Temperature & Pressure (STP) & Molar Mass
+                      <div className="space-y-4 animate-fadeIn">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-500 dark:text-sky-400 flex items-center gap-1.5">
+                          <Cloud className="w-3 text-sky-500 dark:text-sky-400" /> Standard Temperature & Pressure (STP) & Molar Mass
                         </span>
 
-                        <div className="space-y-4 bg-[#0B0F19]/60 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-inner relative isolate overflow-hidden text-xs text-slate-200">
+                        <div className="space-y-5 bg-slate-50/50 dark:bg-[#0B0F19]/60 backdrop-blur-xl p-5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-inner relative isolate overflow-hidden text-xs text-slate-800 dark:text-slate-200 transition-colors">
                           {/* Ambient glow for the STP section */}
-                          <div className="absolute inset-y-0 right-0 w-40 bg-sky-500/5 blur-[40px] pointer-events-none" />
-                          <div className="absolute inset-x-0 bottom-0 h-40 bg-indigo-500/5 blur-[40px] pointer-events-none" />
+                          <div className="absolute inset-y-0 right-0 w-40 bg-sky-500/10 dark:bg-sky-500/5 blur-[40px] pointer-events-none" />
+                          <div className="absolute inset-x-0 bottom-0 h-40 bg-indigo-500/10 dark:bg-indigo-500/5 blur-[40px] pointer-events-none" />
                           
                           {/* Top row: state & molar mass details at selected standard */}
                           <div className="grid grid-cols-2 gap-4 pb-1">
-                            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/40 border border-white/5">
-                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                            <div className="space-y-1.5 p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
+                              <span className="text-slate-500 dark:text-slate-500 font-mono text-[9.5px] uppercase font-bold tracking-wider block">
                                 State at {stpStandard}
                               </span>
-                              <div className="text-white font-bold font-mono text-[13px] flex items-baseline gap-1 pt-1">
+                              <div className="text-slate-900 dark:text-white font-bold font-mono text-[14px] flex items-baseline gap-1.5 pt-1">
                                 {(() => {
                                   const standardTemp = stpStandard === 'STP' ? 0 : 25;
                                   const stateAtStandard = getPhysicalStateAtTemp(activeElementInfo.number, activeElementInfo.meltingPoint, (activeElementInfo as any).boilingPoint, standardTemp);
                                   if (stateAtStandard === 'liquid') {
-                                    return <span className="text-blue-400 flex items-center gap-1.5"><Droplets className="w-3.5 h-3.5" /> Liquid</span>;
+                                    return <span className="text-blue-500 dark:text-blue-400 flex items-center gap-1.5"><Droplets className="w-4 h-4" /> Liquid</span>;
                                   } else if (stateAtStandard === 'gas') {
-                                    return <span className="text-sky-300 flex items-center gap-1.5"><Cloud className="w-3.5 h-3.5" /> Gas</span>;
+                                    return <span className="text-sky-500 dark:text-sky-300 flex items-center gap-1.5"><Cloud className="w-4 h-4" /> Gas</span>;
                                   } else {
-                                    return <span className="text-slate-300 flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Solid</span>;
+                                    return <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5"><Layers className="w-4 h-4" /> Solid</span>;
                                   }
                                 })()}
                               </div>
                             </div>
-                            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/40 border border-white/5">
-                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                            <div className="space-y-1.5 p-3.5 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-none">
+                              <span className="text-slate-500 dark:text-slate-500 font-mono text-[9.5px] uppercase font-bold tracking-wider block">
                                 Molar Mass (g/mol)
                               </span>
-                              <div className="text-sky-300 font-bold font-mono text-[13px] leading-tight flex items-baseline gap-1 pt-1">
+                              <div className="text-sky-600 dark:text-sky-300 font-bold font-mono text-[14px] leading-tight flex items-baseline gap-1.5 pt-1">
                                 {activeElementInfo.weight.toFixed(4)}
-                                <span className="text-[9px] text-slate-500 font-normal">g/mol</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-500 font-normal">g/mol</span>
                               </div>
                             </div>
                           </div>
 
                           {/* Standard selector button group */}
-                          <div className="space-y-1.5 border-t border-white/5 pt-3">
-                            <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                          <div className="space-y-2 border-t border-slate-200 dark:border-white/5 pt-4">
+                            <span className="text-slate-500 dark:text-slate-500 font-mono text-[9.5px] uppercase font-bold tracking-wider block">
                               Reference Condition Environment
                             </span>
-                            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-lg border border-slate-900">
+                            <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-950 p-1.5 rounded-lg border border-slate-200 dark:border-slate-900">
                               <button
                                 type="button"
                                 onClick={() => { setStpStandard('STP'); playSynthTone('tick'); }}
-                                className={`py-1 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                                className={`py-1.5 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
                                   stpStandard === 'STP'
-                                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black shadow-sm'
-                                    : 'text-slate-400 border border-transparent hover:text-slate-200'
+                                    ? 'bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/20 dark:border-sky-500/30 font-black shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 border border-transparent hover:text-slate-700 dark:hover:text-slate-200'
                                 }`}
                               >
                                 STP (0 °C, 1 atm)
@@ -4274,10 +4551,10 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                               <button
                                 type="button"
                                 onClick={() => { setStpStandard('SATP'); playSynthTone('tick'); }}
-                                className={`py-1 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                                className={`py-1.5 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
                                   stpStandard === 'SATP'
-                                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black shadow-sm'
-                                    : 'text-slate-400 border border-transparent hover:text-slate-200'
+                                    ? 'bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border border-sky-500/20 dark:border-sky-500/30 font-black shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 border border-transparent hover:text-slate-700 dark:hover:text-slate-200'
                                 }`}
                               >
                                 SATP (25 °C, 1 bar)
@@ -4286,17 +4563,17 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           </div>
 
                           {/* Molar Volume card */}
-                          <div className="bg-[#0B0F19] p-3 rounded-xl border border-white/5 space-y-1 relative overflow-hidden shadow-inner">
-                            <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider block">
+                          <div className="bg-sky-50/50 dark:bg-[#0B0F19] p-4 rounded-xl border border-sky-100 dark:border-white/5 space-y-1.5 relative overflow-hidden shadow-sm dark:shadow-inner">
+                            <span className="text-sky-600 dark:text-slate-500 font-mono text-[9.5px] uppercase font-bold tracking-wider block">
                               Molar Volume (V_m) at {stpStandard}
                             </span>
-                            <div className="flex items-baseline gap-1.5 font-mono pt-0.5">
-                              <span className="text-base font-extrabold text-sky-400">
+                            <div className="flex items-baseline gap-1.5 font-mono pt-1">
+                              <span className="text-lg font-extrabold text-sky-600 dark:text-sky-400">
                                 {molarVolumeL.toFixed(6)}
                               </span>
-                              <span className="text-xs text-sky-300 font-bold">L/mol</span>
+                              <span className="text-sm text-sky-500 dark:text-sky-300 font-bold">L/mol</span>
                             </div>
-                            <p className="text-[9.5px] text-slate-400 mt-1 leading-snug font-sans">
+                            <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1.5 leading-snug font-sans">
                               {(() => {
                                 const standardTemp = stpStandard === 'STP' ? 0 : 25;
                                 const stateAtStandard = getPhysicalStateAtTemp(activeElementInfo.number, activeElementInfo.meltingPoint, (activeElementInfo as any).boilingPoint, standardTemp);
@@ -4313,18 +4590,23 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           </div>
 
                           {/* Interactive stoichiometry calculator */}
-                          <div className="border-t border-white/5 pt-4 space-y-3">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">
-                              Stoichiometric Quantity Converter ({stpStandard})
-                            </span>
+                          <div className="border-t border-slate-200 dark:border-white/5 pt-5 space-y-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest font-mono">
+                                Stoichiometric Quantity Converter ({stpStandard})
+                              </span>
+                              <span className="text-[9.5px] text-slate-500 dark:text-slate-500 font-mono">
+                                Edit any field to auto-calculate the rest
+                              </span>
+                            </div>
                             
                             {/* Inputs: moles, mass, volume, atoms */}
-                            <div className="space-y-2.5">
+                            <div className="space-y-3.5">
                               {/* 1. Moles */}
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[9.5px] font-mono">
-                                  <span className="text-slate-400">Amount of Substance (n)</span>
-                                  <span className="text-sky-400 font-bold">moles</span>
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Amount of Substance (n)</span>
+                                  <span className="text-sky-500 dark:text-sky-400 font-bold uppercase tracking-wider text-[9px] bg-sky-500/10 px-2 py-0.5 rounded">moles</span>
                                 </div>
                                 <div className="relative">
                                   <input
@@ -4333,17 +4615,17 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                     min="0"
                                     value={stpCalcMolesStr}
                                     onChange={(e) => setStpCalcMolesStr(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-sky-500/50"
+                                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-sky-500/50 shadow-sm transition-all"
                                     placeholder="Enter moles..."
                                   />
                                 </div>
                               </div>
 
                               {/* 2. Mass */}
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[9.5px] font-mono">
-                                  <span className="text-slate-400">Mass (g)</span>
-                                  <span className="text-emerald-400 font-bold">grams</span>
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Mass (m) = n × M</span>
+                                  <span className="text-emerald-500 dark:text-emerald-400 font-bold uppercase tracking-wider text-[9px] bg-emerald-500/10 px-2 py-0.5 rounded">grams</span>
                                 </div>
                                 <div className="relative">
                                   <input
@@ -4356,17 +4638,17 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                       if (isNaN(val)) setStpCalcMolesStr('');
                                       else setStpCalcMolesStr(String(Math.max(0, val / activeElementInfo.weight)));
                                     }}
-                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-emerald-500/50"
+                                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-emerald-500/50 shadow-sm transition-all"
                                     placeholder="Enter mass..."
                                   />
                                 </div>
                               </div>
 
                               {/* 3. Volume */}
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[9.5px] font-mono">
-                                  <span className="text-slate-400">Gas/Condensed Volume (V)</span>
-                                  <span className="text-amber-400 font-bold">Liters</span>
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Volume (V) = n × V_m</span>
+                                  <span className="text-amber-500 dark:text-amber-400 font-bold uppercase tracking-wider text-[9px] bg-amber-500/10 px-2 py-0.5 rounded">Liters</span>
                                 </div>
                                 <div className="relative">
                                   <input
@@ -4379,17 +4661,17 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                       if (isNaN(val)) setStpCalcMolesStr('');
                                       else setStpCalcMolesStr(String(Math.max(0, val / molarVolumeL)));
                                     }}
-                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-amber-500/50"
+                                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-amber-500/50 shadow-sm transition-all"
                                     placeholder="Enter volume..."
                                   />
                                 </div>
                               </div>
 
                               {/* 4. Atoms */}
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[9.5px] font-mono">
-                                  <span className="text-slate-400">Number of Atoms (N)</span>
-                                  <span className="text-rose-400 font-bold">atoms</span>
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between items-center text-[10px] font-mono">
+                                  <span className="text-slate-600 dark:text-slate-400 font-semibold">Atoms (N) = n × N_A</span>
+                                  <span className="text-rose-500 dark:text-rose-400 font-bold uppercase tracking-wider text-[9px] bg-rose-500/10 px-2 py-0.5 rounded">atoms</span>
                                 </div>
                                 <div className="relative">
                                   <input
@@ -4402,7 +4684,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                       if (isNaN(val)) setStpCalcMolesStr('');
                                       else setStpCalcMolesStr(String(Math.max(0, val / 6.02214076e23)));
                                     }}
-                                    className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono outline-none focus:border-rose-500/50"
+                                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-rose-500/50 shadow-sm transition-all"
                                     placeholder="Enter atoms..."
                                   />
                                 </div>
@@ -4410,25 +4692,25 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             </div>
 
                             {/* Preset Buttons */}
-                            <div className="flex justify-between gap-1.5 pt-1.5">
+                            <div className="flex justify-between gap-2 pt-2">
                               <button
                                 type="button"
                                 onClick={() => { setStpCalcMolesStr('1'); playSynthTone('tick'); }}
-                                className="flex-1 py-1 bg-slate-900 border border-slate-800 text-[9px] font-mono font-bold uppercase rounded text-slate-400 hover:text-slate-200 cursor-pointer"
+                                className="flex-1 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[9.5px] font-mono font-bold uppercase rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer shadow-sm transition-all"
                               >
                                 1 Mole
                               </button>
                               <button
                                 type="button"
                                 onClick={() => { setStpCalcMolesStr('10'); playSynthTone('tick'); }}
-                                className="flex-1 py-1 bg-slate-900 border border-slate-800 text-[9px] font-mono font-bold uppercase rounded text-slate-400 hover:text-slate-200 cursor-pointer"
+                                className="flex-1 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[9.5px] font-mono font-bold uppercase rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer shadow-sm transition-all"
                               >
                                 10 Moles
                               </button>
                               <button
                                 type="button"
                                 onClick={() => { setStpCalcMolesStr(String(100 / activeElementInfo.weight)); playSynthTone('tick'); }}
-                                className="flex-1 py-1 bg-slate-900 border border-slate-800 text-[9px] font-mono font-bold uppercase rounded text-slate-400 hover:text-slate-200 cursor-pointer"
+                                className="flex-1 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[9.5px] font-mono font-bold uppercase rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer shadow-sm transition-all"
                               >
                                 100g
                               </button>

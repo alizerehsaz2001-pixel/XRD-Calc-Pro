@@ -248,10 +248,13 @@ const evaluateFormula = (formulaTitle: string, vars: { [symbol: string]: number 
     const E = m * c * c;
     // pJ = 10^12 J
     const EpJ = E * 1e12;
+    const mFormatted = Math.abs(m) < 1e-4 || Math.abs(m) >= 1e6 ? m.toExponential(5) : m.toFixed(5);
+    const eFormatted = Math.abs(E) < 1e-4 || Math.abs(E) >= 1e6 ? E.toExponential(5) : E.toFixed(5);
+    const epjFormatted = Math.abs(EpJ) < 1e-4 || Math.abs(EpJ) >= 1e6 ? EpJ.toExponential(5) : EpJ.toFixed(5);
     return {
       value: EpJ,
       unit: "pJ",
-      steps: `E = m \\cdot c^2 = ${m.toExponential(4)} \\cdot (${c.toExponential(4)})^2 = ${E.toExponential(4)}\\text{ J} = ${EpJ.toFixed(4)}\\text{ pJ}`
+      steps: `E = m \\cdot c^2 = ${mFormatted} \\cdot (${c.toExponential(4)})^2 = ${eFormatted}\\text{ J} = ${epjFormatted}\\text{ pJ}`
     };
   }
 
@@ -313,6 +316,35 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
     }
   }, [formula]);
 
+  // Einstein mass-energy equivalence helpers & computations
+  const titleLower = title.toLowerCase();
+  const isMassEnergy = titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy");
+  const elementSymbol = title.split(' ')[0] || 'Element';
+
+  const restMassOfSingleAtom = useMemo(() => {
+    const v0 = variables[0]?.value;
+    return typeof v0 === 'string' ? parseFloat(v0) : (v0 || 1.67e-27);
+  }, [variables]);
+
+  const atomicWeight = useMemo(() => {
+    return restMassOfSingleAtom / 1.66053906660e-27;
+  }, [restMassOfSingleAtom]);
+
+  const mSelected = useMemo(() => {
+    if (massScale === 'atom') {
+      return restMassOfSingleAtom;
+    } else if (massScale === 'mole') {
+      return atomicWeight * 1e-3;
+    } else if (massScale === 'gram') {
+      return 1e-3;
+    } else if (massScale === 'kg') {
+      return 1.0;
+    } else if (massScale === 'custom') {
+      return customMassGrams * 1e-3;
+    }
+    return restMassOfSingleAtom;
+  }, [massScale, restMassOfSingleAtom, atomicWeight, customMassGrams]);
+
   // Active inputs depending on simulator state
   const currentVariablesMap = useMemo(() => {
     const map: { [symbol: string]: number } = {};
@@ -320,8 +352,11 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
       const rawVal = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
       map[v.symbol] = isSimulating ? (simulatedValues[v.symbol] ?? rawVal) : rawVal;
     });
+    if (isMassEnergy && !isSimulating && map['m'] !== undefined) {
+      map['m'] = mSelected;
+    }
     return map;
-  }, [variables, isSimulating, simulatedValues]);
+  }, [variables, isSimulating, simulatedValues, isMassEnergy, mSelected]);
 
   // Compute simulated result & LaTeX evaluation step
   const evaluated = useMemo(() => {
@@ -364,6 +399,8 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
       pythonCode += `beta = area / i_max\nprint(f"Integral breadth: {beta:.5f} rad")\n`;
     } else if (titleLower.includes("lattice parameters")) {
       pythonCode += `s = h**2 + k**2 + l**2\na = d * np.sqrt(s)\nprint(f"Unit cell a: {a:.5f} Å")\n`;
+    } else if (titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy")) {
+      pythonCode += `# Einstein Mass-Energy Equivalence: E = m * c^2\nc = 299792458  # Speed of light in m/s\ne_joules = m * (c ** 2)\ne_pj = e_joules * 1e12\ne_mev = e_joules / 1.602176634e-13\nprint(f"Rest Energy E = {e_joules:.6e} Joules ({e_pj:.6e} pJ, {e_mev:.6e} MeV)")\n`;
     } else {
       pythonCode += `# Custom formula: ${formula}\nresult = ${evaluated.value}\nprint(f"Result: {result}")\n`;
     }
@@ -488,35 +525,6 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
     }
     return symbol;
   };
-
-  // Einstein mass-energy equivalence helpers & computations
-  const titleLower = title.toLowerCase();
-  const isMassEnergy = titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy");
-  const elementSymbol = title.split(' ')[0] || 'Element';
-
-  const restMassOfSingleAtom = useMemo(() => {
-    const v0 = variables[0]?.value;
-    return typeof v0 === 'string' ? parseFloat(v0) : (v0 || 1.67e-27);
-  }, [variables]);
-
-  const atomicWeight = useMemo(() => {
-    return restMassOfSingleAtom / 1.66053906660e-27;
-  }, [restMassOfSingleAtom]);
-
-  const mSelected = useMemo(() => {
-    if (massScale === 'atom') {
-      return restMassOfSingleAtom;
-    } else if (massScale === 'mole') {
-      return atomicWeight * 1e-3;
-    } else if (massScale === 'gram') {
-      return 1e-3;
-    } else if (massScale === 'kg') {
-      return 1.0;
-    } else if (massScale === 'custom') {
-      return customMassGrams * 1e-3;
-    }
-    return restMassOfSingleAtom;
-  }, [massScale, restMassOfSingleAtom, atomicWeight, customMassGrams]);
 
   const eJoules = useMemo(() => {
     const c = 299792458;
@@ -673,8 +681,8 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                       const isDegreeOrRad = v.symbol.includes('θ') || v.symbol.includes('theta') || v.symbol.includes('β') || v.symbol.includes('beta');
                       const safeInitialVal = isNaN(initialVal) ? 0 : initialVal;
                       const step = safeInitialVal === 0 ? 0.05 : Math.pow(10, Math.floor(Math.log10(Math.abs(safeInitialVal) || 1)) - 3);
-                      const min = safeInitialVal === 0 ? 0 : Math.min(safeInitialVal * 0.2, safeInitialVal * 1.8);
-                      const max = safeInitialVal === 0 ? 5 : Math.max(safeInitialVal * 0.2, safeInitialVal * 1.8);
+                      const min = safeInitialVal === 0 ? 0 : Math.min(safeInitialVal * 0.1, safeInitialVal * 2.0);
+                      const max = safeInitialVal === 0 ? 5 : Math.max(safeInitialVal * 0.1, safeInitialVal * 2.0);
 
                       return (
                         <div key={i} className="flex flex-col gap-1.5">
@@ -752,7 +760,11 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-black text-white font-mono drop-shadow-[0_0_15px_rgba(99,102,241,0.6)]">
                         {typeof evaluated.value === 'number' 
-                          ? (isNaN(evaluated.value) ? 'ERR' : evaluated.value.toFixed(4)) 
+                          ? (isNaN(evaluated.value) 
+                            ? 'ERR' 
+                            : (Math.abs(evaluated.value) > 0 && (Math.abs(evaluated.value) < 1e-3 || Math.abs(evaluated.value) >= 1e6))
+                              ? evaluated.value.toExponential(4)
+                              : evaluated.value.toFixed(4)) 
                           : evaluated.value
                         }
                       </span>
