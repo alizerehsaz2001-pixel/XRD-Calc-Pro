@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { IntegralBreadthInput, IntegralBreadthResult } from '../types';
 import { parseIntegralBreadthInput, calculateIntegralBreadth, XRAY_WAVELENGTHS } from '../utils/physics';
-import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check, Database, Zap, BarChart2 } from 'lucide-react';
+import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check, Database, Zap, BarChart2 , Settings } from 'lucide-react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
@@ -10,6 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import { MorphologyVisualizer } from './MorphologyVisualizer';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import integralBg from '../src/assets/images/integral_breadth_ui_bg_1786057501341.jpg';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -238,22 +239,33 @@ export const IntegralBreadthModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(168,85,247,0.05)] border border-purple-500/20 relative overflow-hidden group transition-all hover:border-purple-500/40">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-purple-500/20 transition-all duration-700"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-600/10 rounded-full blur-3xl translate-y-16 -translate-x-16 group-hover:bg-cyan-500/20 transition-all duration-700"></div>
+        <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
+            <img src={integralBg} alt="Integral Breadth" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/80 to-[#050A14]/30" />
+          </div>
+          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-700 pointer-events-none"></div>
           
-          <div className="flex items-center justify-between mb-8 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-purple-500 blur-md opacity-20" />
-                <div className="p-2.5 bg-[#070D18] rounded-xl border border-purple-500/30 relative">
-                  <Calculator className="w-5 h-5 text-purple-400" />
+
+          
+          <div className="flex items-center justify-between gap-4 mb-8 relative z-10 pb-4 border-b border-slate-800/80">
+            <div className="flex items-center gap-4">
+              <div className="relative group/title-icon cursor-default">
+                <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full group-hover/title-icon:bg-purple-400/30 transition-all duration-700 pointer-events-none" />
+                <div className="w-14 h-14 bg-[#0a0500] rounded-2xl border border-purple-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/title-icon:border-purple-400 transition-colors duration-500 overflow-hidden">
+                  <Settings className="w-6 h-6 text-purple-400 drop-shadow-[0_0_12px_rgba(168,85,247,0.6)] group-hover/title-icon:rotate-90 transition-transform duration-700" />
                 </div>
               </div>
-              <h2 className="text-xl font-black text-white tracking-widest uppercase">Configuration</h2>
-            </div>
-            <div className="px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-[10px] font-mono text-purple-400 font-black uppercase tracking-widest">
-              SYS_CFG
+              <div>
+                <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-1">
+                  System Config
+                </h2>
+                <p className="flex items-center gap-2 text-[10px] font-mono text-purple-500/60 uppercase tracking-[0.3em]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-[pulse_2s_ease-in-out_infinite]" />
+                  Integral Breadth Engine
+                </p>
+              </div>
             </div>
           </div>
 
@@ -656,8 +668,14 @@ export const IntegralBreadthModule: React.FC = () => {
         </div>
 
         {/* Scientific Context Card */}
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-cyan-500/20 transition-all duration-700"></div>
+        <div className="bg-[#050A14] p-8 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+            <img src={integralBg} alt="Integral Breadth Context" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/80 to-[#050A14]/30" />
+          </div>
+          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-cyan-500/5 rounded-full blur-3xl group-hover:bg-cyan-500/10 transition-all duration-700 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-cyan-500/20 transition-all duration-700 pointer-events-none"></div>
           
           <div className="flex items-center gap-4 mb-6 relative z-10">
             <div className="p-2.5 bg-[#070D18] rounded-xl border border-cyan-500/30">
@@ -732,7 +750,12 @@ export const IntegralBreadthModule: React.FC = () => {
           />
         )}
         {/* Summary Card */}
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(34,211,238,0.05)] border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between relative overflow-hidden group hover:border-cyan-500/40 transition-all">
+        <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 lg:p-8 rounded-3xl border border-emerald-500/20 shadow-2xl relative overflow-hidden group flex flex-col sm:flex-row sm:items-center justify-between transition-all duration-500">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+            <img src={integralBg} alt="Integral Breadth Results" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+          </div>
            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-bl-full transition-all group-hover:scale-110 blur-2xl" />
            <div className="absolute left-0 bottom-0 w-[200px] h-[1px] bg-gradient-to-r from-cyan-500 to-transparent" />
            <div className="absolute left-0 top-0 w-[1px] h-[100px] bg-gradient-to-b from-cyan-500 to-transparent" />
@@ -757,7 +780,12 @@ export const IntegralBreadthModule: React.FC = () => {
         {results.length > 0 && histogramData.length > 0 && (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
             {/* Histogram */}
-            <div className="xl:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group flex flex-col">
+            <div className="xl:col-span-8 bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group flex flex-col h-full min-h-[300px]">
+              {/* Custom Background Graphic */}
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+                <img src={integralBg} alt="Size Distribution" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+              </div>
               <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
               <div className="flex items-center gap-3 mb-6 relative z-10">
                 <div className="p-2.5 bg-cyan-500/20 rounded-xl border border-cyan-500/30">
@@ -821,12 +849,17 @@ export const IntegralBreadthModule: React.FC = () => {
 
             {/* Morphology */}
             <div className="xl:col-span-4 flex flex-col gap-6">
-              <div className="bg-[#050b14] border border-cyan-900/30 rounded-3xl p-6 shadow-2xl relative flex flex-col h-full min-h-[300px] overflow-hidden group">
+              <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative flex flex-col h-full min-h-[300px] overflow-hidden group">
+                {/* Custom Background Graphic */}
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+                  <img src={integralBg} alt="Size Distribution" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+                </div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
                 <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 relative z-10">
                   <Atom className="w-3.5 h-3.5" /> Morphological Projection
                 </h3>
-                <div className="flex-1 w-full relative z-10 border border-cyan-900/40 rounded-xl bg-black/40 overflow-hidden">
+                <div className="flex-1 w-full relative z-10 rounded-2xl overflow-hidden">
                   <MorphologyVisualizer kType={selectedKType} sizeNm={avgSize} />
                 </div>
               </div>
@@ -834,7 +867,12 @@ export const IntegralBreadthModule: React.FC = () => {
           </div>
         )}
 
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden flex flex-col min-h-[500px]">
+        <div className="bg-[#050A14] rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col min-h-[500px] relative group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000 mix-blend-screen">
+            <img src={integralBg} alt="Integral Breadth Data" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+          </div>
           <div className="p-5 border-b border-white/5 bg-[#070D18] flex justify-between items-center relative">
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
             <h3 className="font-black text-white uppercase tracking-[0.2em] text-xs flex items-center gap-3">

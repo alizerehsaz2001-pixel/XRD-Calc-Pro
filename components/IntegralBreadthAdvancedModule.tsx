@@ -5,6 +5,7 @@ import { IBAdvancedResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import voigtBg from '../src/assets/images/voigt_ui_bg_1786057688362.jpg';
 import {
   ComposedChart,
   Line,
@@ -244,7 +245,13 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(244,114,182,0.05)] border border-pink-500/20 relative group transition-all hover:border-pink-500/40">
+        <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
+            <img src={voigtBg} alt="Voigt Configuration" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/80 to-[#050A14]/30" />
+          </div>
+          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl group-hover:bg-pink-500/20 transition-all duration-700 pointer-events-none"></div>
           <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none z-0">
             <div className="absolute top-0 right-0 w-32 h-32 bg-pink-600/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-pink-500/20 transition-all duration-700"></div>
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl translate-y-16 -translate-x-16 group-hover:bg-purple-500/20 transition-all duration-700"></div>
@@ -833,7 +840,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
         {/* Results Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
            {/* Card 1: Microstrain */}
-           <div className="bg-[#050B14]/90 backdrop-blur-xl p-6 rounded-3xl border border-cyan-500/10 hover:border-cyan-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(34,211,238,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 rounded-3xl border border-cyan-500/20 shadow-2xl relative overflow-hidden group/size-card flex flex-col justify-between transition-all duration-500">
+             {/* Custom Background Graphic */}
+             <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+               <img src={voigtBg} alt="Size Result" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+             </div>
              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] transition-all duration-700 pointer-events-none group-hover:bg-cyan-500/20 translate-x-10 -translate-y-10" />
              <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full blur-[30px] transition-all duration-700 pointer-events-none group-hover:bg-blue-500/20 -translate-x-10 translate-y-10" />
              
@@ -895,7 +907,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
            </div>
            
            {/* Card 2: Crystallite Size */}
-           <div className="bg-[#0A101C]/90 p-6 rounded-3xl border border-white/5 hover:border-emerald-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(16,185,129,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 rounded-3xl border border-emerald-500/20 shadow-2xl relative overflow-hidden group/size-card flex flex-col justify-between transition-all duration-500">
+             {/* Custom Background Graphic */}
+             <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+               <img src={voigtBg} alt="Strain Result" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+             </div>
              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700 translate-x-10 -translate-y-10" />
              
              <div>
@@ -990,7 +1007,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
            </div>
 
            {/* Card 3: Isotropic Elastic Stress */}
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-cyan-400/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-400/40 transition-all flex flex-col justify-between">
+           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-[2rem] border border-cyan-400/20 shadow-2xl relative overflow-hidden group/size-card hover:border-cyan-400/40 transition-all flex flex-col justify-between">
+                {/* Custom Background Graphic */}
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+                  <img src={voigtBg} alt="Lorentzian Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                </div>
              <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/5 rounded-bl-full transition-all group-hover:scale-110" />
              <div>
                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Elastic Properties</p>
@@ -1021,7 +1043,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
            </div>
 
            {/* Card 4: Fit Quality */}
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] relative overflow-hidden group hover:border-purple-500/40 transition-all flex flex-col justify-between">
+           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-[2rem] border border-purple-500/20 shadow-2xl relative overflow-hidden group/size-card hover:border-purple-500/40 transition-all flex flex-col justify-between">
+                {/* Custom Background Graphic */}
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+                  <img src={voigtBg} alt="Gaussian Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                </div>
              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-bl-full transition-all group-hover:scale-110" />
              <div>
                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Fit Quality (R²)</p>
@@ -1053,7 +1080,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               transition={{ duration: 0.4, ease: 'easeInOut' }}
               className="overflow-hidden mb-6"
             >
-              <div className="bg-[#0D1527] border border-amber-500/25 rounded-[2rem] p-6 text-slate-300 space-y-4 shadow-[0_0_40px_rgba(245,158,11,0.05)] relative">
+              <div className="bg-[#050A14] border border-amber-500/25 rounded-3xl p-6 text-slate-300 space-y-4 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/[0.02] rounded-bl-full pointer-events-none" />
                 
                 <div className="flex items-start gap-3">
@@ -1134,7 +1161,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               transition={{ duration: 0.4, ease: 'easeInOut' }}
               className="overflow-hidden mb-6"
             >
-              <div className="bg-[#0B1221] border border-cyan-500/20 rounded-[2rem] p-6 text-slate-300 space-y-4 shadow-[0_0_40px_rgba(6,182,212,0.05)] relative">
+              <div className="bg-[#050A14] border border-cyan-500/20 rounded-3xl p-6 text-slate-300 space-y-4 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/[0.02] rounded-bl-full pointer-events-none" />
                 
                 <div className="flex items-start gap-3">
@@ -1226,7 +1253,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
         </AnimatePresence>
 
         {/* Chart */}
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 h-[700px] flex flex-col relative overflow-hidden group hover:border-pink-500/30 transition-all">
+        <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative flex flex-col h-[700px] overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+            <img src={voigtBg} alt="Deconvolution Chart" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+          </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-pink-500/10 transition-all duration-700" />
           
           <div className="flex justify-between items-center mb-6 relative z-10 px-2">
@@ -1326,7 +1358,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
 
         {/* Peak Deconstruction Table */}
         {result && result.pointsExtended && result.pointsExtended.length > 0 && (
-          <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 relative overflow-hidden group hover:border-emerald-500/20 transition-all">
+          <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+            <img src={voigtBg} alt="Deconvoluted Profiles" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+          </div>
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/10 transition-all duration-700" />
             <div className="flex items-center gap-3 mb-6 relative z-10 px-2">
               <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
