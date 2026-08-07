@@ -907,14 +907,14 @@ const Symmetry3DVisualizer = ({
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300 w-full">
       <div 
-        className="h-64 bg-[#030712] rounded-2xl border border-[#1e293b] relative overflow-hidden flex items-center justify-center shadow-inner group cursor-grab active:cursor-grabbing"
+        className="h-64 bg-[#030712] rounded-none border border-[#1e293b] relative overflow-hidden flex items-center justify-center group cursor-grab active:cursor-grabbing"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
         <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] opacity-100 pointer-events-none"></div>
-        <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
 
         <svg
           className="w-full h-full max-w-[400px] max-h-[300px] overflow-visible"
@@ -992,21 +992,21 @@ const Symmetry3DVisualizer = ({
           <button
             type="button"
             onClick={() => setIsAutoSpin(!isAutoSpin)}
-            className={`px-2 py-1 rounded-lg border font-mono text-[9px] flex items-center gap-1 transition-all ${
+            className={`px-2 py-1 rounded-none border font-mono text-[9px] flex items-center gap-1 transition-all ${
               isAutoSpin
-                ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                ? "bg-sky-500/20 text-sky-300 border-sky-500/40 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
                 : "bg-black/50 text-slate-400 border-white/10 hover:text-white hover:bg-black/80"
             }`}
             title="Toggle 3D Auto Spin"
           >
-            {isAutoSpin ? <Pause className="w-3 h-3 text-indigo-400" /> : <Play className="w-3 h-3 text-slate-400" />}
+            {isAutoSpin ? <Pause className="w-3 h-3 text-sky-400" /> : <Play className="w-3 h-3 text-slate-400" />}
             <span className="font-bold uppercase tracking-wider">{isAutoSpin ? "Spinning" : "Auto Spin"}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setRotation({ x: -Math.PI / 6, y: Math.PI / 4 })}
-            className="p-1.5 rounded-lg border border-white/10 bg-black/50 text-slate-400 hover:text-white hover:bg-black/80 font-mono text-[9px] transition-all"
+            className="p-1.5 rounded-none border border-white/10 bg-black/50 text-slate-400 hover:text-white hover:bg-black/80 font-mono text-[9px] transition-all"
             title="Reset View"
           >
             <RotateCw className="w-3 h-3" />
@@ -1015,7 +1015,7 @@ const Symmetry3DVisualizer = ({
           <button
             type="button"
             onClick={() => setZoomScale((s) => Math.min(85, s + 10))}
-            className="w-6 h-6 rounded-lg border border-white/10 bg-black/50 text-slate-400 hover:text-white flex items-center justify-center font-mono text-xs font-black transition-all"
+            className="w-6 h-6 rounded-none border border-white/10 bg-black/50 text-slate-400 hover:text-white flex items-center justify-center font-mono text-xs font-black transition-all"
             title="Zoom In"
           >
             +
@@ -1023,7 +1023,7 @@ const Symmetry3DVisualizer = ({
           <button
             type="button"
             onClick={() => setZoomScale((s) => Math.max(30, s - 10))}
-            className="w-6 h-6 rounded-lg border border-white/10 bg-black/50 text-slate-400 hover:text-white flex items-center justify-center font-mono text-xs font-black transition-all"
+            className="w-6 h-6 rounded-none border border-white/10 bg-black/50 text-slate-400 hover:text-white flex items-center justify-center font-mono text-xs font-black transition-all"
             title="Zoom Out"
           >
             -
@@ -1032,7 +1032,7 @@ const Symmetry3DVisualizer = ({
 
         {/* Center Reticle */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <div className="w-1.5 h-1.5 border border-indigo-500/40 rounded-full"></div>
+          <div className="w-1.5 h-1.5 border border-sky-500/40 rounded-full"></div>
         </div>
 
         {/* Bottom Right Info */}
@@ -1132,6 +1132,8 @@ export const SelectionRulesModule: React.FC = () => {
     "perspective",
   );
   const [showEwaldSphere, setShowEwaldSphere] = useState<boolean>(true);
+  const [filterAllowedOnly, setFilterAllowedOnly] = useState<boolean>(false);
+  const [laueZoneFilter, setLaueZoneFilter] = useState<"ALL" | "ZOLZ" | "FOLZ">("ALL");
   const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka wavelength in Angstroms
   const [latticeParameter, setLatticeParameter] = useState<number>(4.07); // Custom lattice constant 'a' in Angstroms
 
@@ -1242,7 +1244,7 @@ export const SelectionRulesModule: React.FC = () => {
 
     const cx = rect.width / 2;
     const cy = rect.height / 2;
-    const maxBound = Math.min(Math.max(1, maxIndex), 3);
+    const maxBound = maxIndex;
     const scaleBase = Math.min(rect.width, rect.height) * 0.42;
     const scale = scaleBase / (maxBound + 0.5);
     const rx = (recipRotation.x * Math.PI) / 180;
@@ -1300,7 +1302,7 @@ export const SelectionRulesModule: React.FC = () => {
         null;
       const cx = rect.width / 2;
       const cy = rect.height / 2;
-      const maxBound = Math.min(Math.max(1, maxIndex), 3);
+      const maxBound = maxIndex;
       const scaleBase = Math.min(rect.width, rect.height) * 0.42;
       const scale = scaleBase / (maxBound + 0.5);
       const rx = (recipRotation.x * Math.PI) / 180;
@@ -1370,7 +1372,7 @@ export const SelectionRulesModule: React.FC = () => {
     const rx = (recipRotation.x * Math.PI) / 180;
     const ry = (recipRotation.y * Math.PI) / 180;
 
-    const maxBound = Math.min(Math.max(1, maxIndex), 3);
+    const maxBound = maxIndex;
     const activeNode = hoveredNode || manualProbe;
 
     const projectPhysical = (x: number, y: number, z: number) => {
@@ -1410,14 +1412,27 @@ export const SelectionRulesModule: React.FC = () => {
     const axK = project(0, maxBound + 0.5, 0);
     const axL = project(0, 0, maxBound + 0.5);
 
+    const isNodeVisible = (h: number, k: number, l: number) => {
+      if (laueZoneFilter === "ZOLZ" && l !== 0) return false;
+      if (laueZoneFilter === "FOLZ" && Math.abs(l) !== 1) return false;
+      if (filterAllowedOnly) {
+        if (h === 0 && k === 0 && l === 0) return true; // Keep origin visible always
+        const val = validateSelectionRule(system, [h, k, l]);
+        if (val.status !== "Allowed") return false;
+      }
+      return true;
+    };
+
     // Grid edges and nodes
     for (let h = -maxBound; h <= maxBound; h++) {
       for (let k = -maxBound; k <= maxBound; k++) {
         for (let l = -maxBound; l <= maxBound; l++) {
+          if (!isNodeVisible(h, k, l)) continue;
+
           const p1 = project(h, k, l);
 
           // Render edges
-          if (h < maxBound) {
+          if (h < maxBound && isNodeVisible(h + 1, k, l)) {
             const p2 = project(h + 1, k, l);
             elements.push({
               type: "edge",
@@ -1432,7 +1447,7 @@ export const SelectionRulesModule: React.FC = () => {
               z: (p1.z + p2.z) / 2,
             });
           }
-          if (k < maxBound) {
+          if (k < maxBound && isNodeVisible(h, k + 1, l)) {
             const p2 = project(h, k + 1, l);
             elements.push({
               type: "edge",
@@ -1447,7 +1462,7 @@ export const SelectionRulesModule: React.FC = () => {
               z: (p1.z + p2.z) / 2,
             });
           }
-          if (l < maxBound) {
+          if (l < maxBound && isNodeVisible(h, k, l + 1)) {
             const p2 = project(h, k, l + 1);
             elements.push({
               type: "edge",
@@ -1543,6 +1558,23 @@ export const SelectionRulesModule: React.FC = () => {
             z: (p1.z + p2.z) / 2,
           });
         }
+      });
+    }
+
+    // Add Laue Zone plane representation (for l=0 plane)
+    if (laueZoneFilter === "ALL" || laueZoneFilter === "ZOLZ") {
+      const s = maxBound + 0.8;
+      const p1 = project(-s, -s, 0);
+      const p2 = project(s, -s, 0);
+      const p3 = project(s, s, 0);
+      const p4 = project(-s, s, 0);
+      
+      elements.push({
+        type: "laue-plane",
+        p1, p2, p3, p4,
+        z: (p1.z + p2.z + p3.z + p4.z) / 4,
+        label: "ZOLZ (l=0)",
+        color: "rgba(168, 85, 247, 0.05)" // very faint purple
       });
     }
 
@@ -1647,6 +1679,22 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.setLineDash([3, 3]);
         ctx.stroke();
         ctx.setLineDash([]);
+      } else if (el.type === "laue-plane") {
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.lineTo(el.p3.x, el.p3.y);
+        ctx.lineTo(el.p4.x, el.p4.y);
+        ctx.closePath();
+        ctx.fillStyle = el.color;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.2)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.fillStyle = "rgba(168, 85, 247, 0.6)";
+        ctx.font = "bold 9px monospace";
+        ctx.fillText(el.label, el.p4.x + 5, el.p4.y - 5);
       } else if (el.type === "recip-vector") {
         // Draw standard vector
         ctx.beginPath();
@@ -1691,24 +1739,26 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.fillText(el.label, el.p2.x + 4, el.p2.y + 4);
       } else if (el.type === "origin") {
         ctx.beginPath();
-        ctx.arc(el.p.x, el.p.y, 4, 0, 2 * Math.PI);
+        ctx.rect(el.p.x - 3, el.p.y - 3, 6, 6);
         ctx.fillStyle = "#facc15";
-        ctx.shadowColor = "rgba(250, 204, 21, 0.6)";
-        ctx.shadowBlur = 8;
         ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.stroke();
         ctx.fillStyle = "#facc15";
         ctx.font = "bold 8.5px monospace";
         ctx.textAlign = "center";
         ctx.fillText("(0,0,0)", el.p.x, el.p.y - 6);
       } else if (el.type === "ewald-center") {
         ctx.beginPath();
-        ctx.arc(el.p.x, el.p.y, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = "#38bdf8";
-        ctx.shadowColor = "rgba(56, 189, 248, 0.6)";
-        ctx.shadowBlur = 8;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        // Draw a crisp cross for Ewald center
+        ctx.moveTo(el.p.x - 4, el.p.y);
+        ctx.lineTo(el.p.x + 4, el.p.y);
+        ctx.moveTo(el.p.x, el.p.y - 4);
+        ctx.lineTo(el.p.x, el.p.y + 4);
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
         ctx.fillStyle = "#38bdf8";
         ctx.font = "bold 8.5px monospace";
         ctx.textAlign = "center";
@@ -1769,81 +1819,55 @@ export const SelectionRulesModule: React.FC = () => {
             ? 6.0
             : 3.5;
 
-        // If node satisfies Ewald Sphere reflection, add a glowing aura
+        // If node satisfies Ewald Sphere reflection, add a sharp highlight box
         if (el.isEwaldIntersecting) {
           ctx.beginPath();
-          ctx.arc(
-            el.p.x,
-            el.p.y,
-            radius + (isProbeActive ? 5 : 3.5),
-            0,
-            2 * Math.PI,
+          ctx.rect(
+            el.p.x - (radius + 2),
+            el.p.y - (radius + 2),
+            (radius + 2) * 2,
+            (radius + 2) * 2
           );
-          ctx.strokeStyle = "rgba(251, 191, 36, 0.45)"; // golden glow
-          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = "#fbbf24"; // sharp yellow
+          ctx.lineWidth = 1;
           ctx.stroke();
         }
 
         // Draw selection halo/pointer ring for hovered or manually focused probe
         if (isProbeActive) {
           ctx.beginPath();
-          ctx.arc(el.p.x, el.p.y, radius + 4, 0, 2 * Math.PI);
-          ctx.strokeStyle = isHovered ? "rgba(52, 211, 153, 0.75)" : "rgba(168, 85, 247, 0.85)";
-          ctx.lineWidth = 1.5;
+          ctx.rect(el.p.x - (radius + 4), el.p.y - (radius + 4), (radius + 4) * 2, (radius + 4) * 2);
+          ctx.strokeStyle = isHovered ? "#10b981" : "#8b5cf6"; // sharp green or purple
+          ctx.lineWidth = 1;
           ctx.setLineDash([2, 2]);
           ctx.stroke();
           ctx.setLineDash([]);
         }
 
         ctx.beginPath();
-        ctx.arc(el.p.x, el.p.y, radius, 0, 2 * Math.PI);
-
         if (el.status === "Allowed") {
-          const grad = ctx.createRadialGradient(
-            el.p.x - radius * 0.3,
-            el.p.y - radius * 0.3,
-            radius * 0.1,
-            el.p.x,
-            el.p.y,
-            radius,
-          );
-          grad.addColorStop(0, "#ffffff");
-          grad.addColorStop(0.3, el.isSelected ? "#10b981" : el.isEwaldIntersecting ? "#fbbf24" : "#059669");
-          grad.addColorStop(1, el.isSelected ? "#064e3b" : el.isEwaldIntersecting ? "#b45309" : "#022c22");
-          ctx.fillStyle = grad;
+          ctx.rect(el.p.x - radius, el.p.y - radius, radius * 2, radius * 2);
+          ctx.fillStyle = el.isSelected ? "#10b981" : el.isEwaldIntersecting ? "#fbbf24" : "#059669";
           ctx.strokeStyle = el.isSelected ? "#34d399" : el.isEwaldIntersecting ? "#fcd34d" : "#047857";
           ctx.lineWidth = el.isSelected || isProbeActive ? 1 : 0.5;
-          if (el.isSelected || isProbeActive || el.isEwaldIntersecting) {
-            ctx.shadowColor = el.isEwaldIntersecting ? "rgba(251, 191, 36, 0.45)" : "rgba(16, 185, 129, 0.45)";
-            ctx.shadowBlur = isProbeActive ? 12 : 6;
-          }
         } else {
-          // Forbidden node
-          const grad = ctx.createRadialGradient(
-            el.p.x - radius * 0.3,
-            el.p.y - radius * 0.3,
-            radius * 0.1,
-            el.p.x,
-            el.p.y,
-            radius,
-          );
-          grad.addColorStop(0, "#ffffff");
-          grad.addColorStop(0.3, el.isSelected ? "#ef4444" : "#b91c1c");
-          grad.addColorStop(1, el.isSelected ? "#7f1d1d" : "#450a0a");
-          ctx.fillStyle = grad;
+          // Forbidden node - draw as a tiny cross or small diamond
+          ctx.moveTo(el.p.x - radius, el.p.y);
+          ctx.lineTo(el.p.x, el.p.y - radius);
+          ctx.lineTo(el.p.x + radius, el.p.y);
+          ctx.lineTo(el.p.x, el.p.y + radius);
+          ctx.closePath();
+          
+          ctx.fillStyle = el.isSelected ? "#ef4444" : "#450a0a";
           ctx.strokeStyle = el.isSelected ? "#f87171" : "rgba(153, 27, 27, 0.5)";
           ctx.lineWidth = el.isSelected || isProbeActive ? 1 : 0.5;
-          if (el.isSelected || isProbeActive) {
-            ctx.shadowColor = "rgba(239, 68, 68, 0.45)";
-            ctx.shadowBlur = isProbeActive ? 12 : 6;
-          }
         }
         
         ctx.globalAlpha = el.isSelected || isProbeActive || el.isEwaldIntersecting ? 1.0 : 0.6;
         ctx.fill();
         ctx.stroke();
         ctx.globalAlpha = 1.0;
-        ctx.shadowBlur = 0;
+        ctx.shadowBlur = 0; // ensure no shadow blur
 
         if (el.isSelected || isProbeActive) {
           ctx.fillStyle = el.isSelected ? "#ffffff" : isHovered ? "#34d399" : "#a855f7";
@@ -1852,7 +1876,7 @@ export const SelectionRulesModule: React.FC = () => {
           ctx.fillText(
             `(${el.h},${el.k},${el.l})`,
             el.p.x,
-            el.p.y - radius - (isProbeActive ? 6 : 3),
+            el.p.y - radius - (isProbeActive ? 6 : 4),
           );
         }
       }
@@ -1879,6 +1903,8 @@ export const SelectionRulesModule: React.FC = () => {
     showEwaldSphere,
     wavelength,
     latticeParameter,
+    laueZoneFilter,
+    filterAllowedOnly,
   ]);
 
   useEffect(() => {
@@ -2903,7 +2929,7 @@ export const SelectionRulesModule: React.FC = () => {
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-600 rounded-full opacity-10 blur-2xl"></div>
 
           <div className="flex items-center gap-3 mb-6 relative z-10">
-            <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
+            <div className="p-2.5 bg-emerald-500/20 rounded-none border border-emerald-500/30">
               <Layers className="w-5 h-5 text-emerald-400" />
             </div>
             <h2 className="text-xl font-bold text-white">Configuration</h2>
@@ -2924,10 +2950,10 @@ export const SelectionRulesModule: React.FC = () => {
 
               <button
                 onClick={() => setIsSystemMenuOpen(!isSystemMenuOpen)}
-                className="w-full px-4 py-4 bg-[#0B1221] hover:bg-[#0f172a] border-2 border-[#1e293b] hover:border-emerald-500/40 rounded-2xl outline-none transition-all flex items-center justify-between group shadow-inner backdrop-blur-sm"
+                className="w-full px-4 py-4 bg-[#0B1221] hover:bg-[#0f172a] border-2 border-[#1e293b] hover:border-emerald-500/40 rounded-none outline-none transition-all flex items-center justify-between group backdrop-blur-sm"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 font-black text-xs shadow-inner">
+                  <div className="w-10 h-10 rounded-none bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 font-black text-xs">
                     {
                       systemGroups
                         .flatMap((g) => g.options)
@@ -2959,7 +2985,7 @@ export const SelectionRulesModule: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="p-1.5 bg-[#050B14] rounded-lg group-hover:bg-emerald-500/10 transition-colors border border-[#1e293b]">
+                <div className="p-1.5 bg-[#050B14] rounded-none group-hover:bg-emerald-500/10 transition-colors border border-[#1e293b]">
                   <ChevronDown
                     className={`w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-transform duration-300 ${isSystemMenuOpen ? "rotate-180" : ""}`}
                   />
@@ -2973,14 +2999,14 @@ export const SelectionRulesModule: React.FC = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.98 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-full left-0 right-0 mt-3 bg-[#0B1221]/95 backdrop-blur-xl rounded-2xl border-2 border-[#1e293b] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-[400px] overflow-y-auto custom-scrollbar"
+                    className="absolute top-full left-0 right-0 mt-3 bg-[#0B1221]/95 backdrop-blur-xl rounded-none border-2 border-[#1e293b] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-[400px] overflow-y-auto custom-scrollbar"
                   >
                     {systemGroups.map((group, gIdx) => (
                       <div
                         key={`group-${group.label}-${gIdx}`}
                         className="border-b border-[#1e293b] last:border-0"
                       >
-                        <div className="px-5 py-3 bg-[#050B14]/80 flex items-center gap-2 shadow-inner">
+                        <div className="px-5 py-3 bg-[#050B14]/80 flex items-center gap-2">
                           <div className="text-emerald-500/70">
                             {group.icon}
                           </div>
@@ -2996,17 +3022,17 @@ export const SelectionRulesModule: React.FC = () => {
                                 setSystem(option.value as CrystalSystem);
                                 setIsSystemMenuOpen(false);
                               }}
-                              className={`w-full px-4 py-3 rounded-xl flex items-center justify-between transition-all group/item
+                              className={`w-full px-4 py-3 rounded-none flex items-center justify-between transition-all group/item
                                 ${system === option.value ? "bg-emerald-500/10 border border-emerald-500/20" : "hover:bg-[#0f172a] border border-transparent"}
                               `}
                             >
                               <div className="flex items-center gap-4">
                                 <div
-                                  className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center text-[11px] font-black transition-all
+                                  className={`w-9 h-9 rounded-none border-2 flex items-center justify-center text-[11px] font-black transition-all
                                   ${
                                     system === option.value
                                       ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.2)]"
-                                      : "bg-[#050B14] border-[#1e293b] text-slate-500 group-hover/item:border-slate-500 shadow-inner"
+                                      : "bg-[#050B14] border-[#1e293b] text-slate-500 group-hover/item:border-slate-500"
                                   }
                                 `}
                                 >
@@ -3024,7 +3050,7 @@ export const SelectionRulesModule: React.FC = () => {
                                 </div>
                               </div>
                               {system === option.value && (
-                                <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                                <div className="w-6 h-6 rounded-none bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
                                   <Check className="w-3.5 h-3.5 text-emerald-400" />
                                 </div>
                               )}
@@ -3038,7 +3064,7 @@ export const SelectionRulesModule: React.FC = () => {
               </AnimatePresence>
             </div>
 
-            <div className="p-5 bg-[#050B14] rounded-2xl border border-[#1e293b] shadow-inner group/rule transition-all hover:border-emerald-500/30">
+            <div className="p-5 bg-[#050B14] rounded-none border border-[#1e293b] group/rule transition-all hover:border-emerald-500/30">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -3048,12 +3074,12 @@ export const SelectionRulesModule: React.FC = () => {
                 </div>
                 <Zap className="w-3.5 h-3.5 text-emerald-500/30 group-hover/rule:text-emerald-500/60 transition-colors" />
               </div>
-              <div className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10 font-mono text-xs text-emerald-400/90 leading-relaxed text-center italic">
+              <div className="p-4 bg-emerald-500/5 rounded-none border border-emerald-500/10 font-mono text-xs text-emerald-400/90 leading-relaxed text-center italic">
                 "{systemDetails[system as keyof typeof systemDetails].rule}"
               </div>
             </div>
 
-            <div className="bg-[#0B1221] p-5 rounded-2xl border border-[#1e293b] shadow-inner">
+            <div className="bg-[#0B1221] p-5 rounded-none border border-[#1e293b]">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-emerald-400" />
@@ -3079,7 +3105,7 @@ export const SelectionRulesModule: React.FC = () => {
                     step="1"
                     value={String(maxIndex) === 'NaN' ? '' : maxIndex}
                     onChange={(e) => setMaxIndex(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
+                    className="w-full h-1.5 bg-[#1e293b] rounded-none appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
                   />
                   <div className="flex justify-between mt-2 px-0.5">
                     {[1, 2, 3, 4, 5, 6].map((v) => (
@@ -3094,7 +3120,7 @@ export const SelectionRulesModule: React.FC = () => {
                 </div>
                 <button
                   onClick={generateHKLs}
-                  className="px-5 py-2.5 bg-[#050B14] hover:bg-[#0f172a] text-emerald-400 text-[10px] font-black rounded-xl transition-all border border-[#1e293b] flex items-center gap-2 shadow-inner active:scale-95 uppercase tracking-widest"
+                  className="px-5 py-2.5 bg-[#050B14] hover:bg-[#0f172a] text-emerald-400 text-[10px] font-black rounded-none transition-all border border-[#1e293b] flex items-center gap-2 active:scale-95 uppercase tracking-widest"
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   Execute
@@ -3103,7 +3129,7 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
 
             {/* Reciprocal Space 3D interactive grid */}
-            <div className="space-y-4 p-5 bg-[#0B0F19] rounded-2xl border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative isolate overflow-hidden">
+            <div className="space-y-4 p-5 bg-[#0B0F19] rounded-none border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative isolate overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/10 via-[#0B0F19] to-[#0B0F19] pointer-events-none" />
               <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/5 blur-[60px] pointer-events-none" />
               
@@ -3118,7 +3144,7 @@ export const SelectionRulesModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsOrbiting(!isOrbiting)}
-                    className={`px-2.5 py-1.5 rounded-lg border font-mono text-[9px] flex items-center transition-all uppercase tracking-widest font-bold shadow-inner ${
+                    className={`px-2.5 py-1.5 rounded-none border font-mono text-[9px] flex items-center transition-all uppercase tracking-widest font-bold ${
                       isOrbiting
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-[inset_0_1px_4px_rgba(52,211,153,0.1)]"
                         : "bg-black/50 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
@@ -3134,7 +3160,7 @@ export const SelectionRulesModule: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setRecipRotation({ x: 25, y: -45 })}
-                    className="px-2.5 py-1.5 bg-black/50 rounded-lg border border-white/10 text-[9px] text-slate-400 font-mono flex items-center hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest font-bold shadow-inner"
+                    className="px-2.5 py-1.5 bg-black/50 rounded-none border border-white/10 text-[9px] text-slate-400 font-mono flex items-center hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest font-bold"
                   >
                     <RotateCw className="w-3 h-3 mr-1.5 text-slate-400" />{" "}
                     Reset View
@@ -3143,42 +3169,42 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
 
               {/* Quick View Orienteer */}
-              <div className="flex flex-wrap items-center gap-1.5 bg-[#010308]/60 p-2 rounded-xl border border-white/5 relative z-10 shadow-inner">
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#010308]/60 p-2 rounded-none border border-white/5 relative z-10">
                 <span className="text-[9px] font-bold font-mono text-slate-500 uppercase tracking-widest mr-2 pl-1">
                   Alignment:
                 </span>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 0, y: 0 }); setIsOrbiting(false); }}
-                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-none text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [100] Front
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 0, y: 90 }); setIsOrbiting(false); }}
-                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-none text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [010] Side
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 90, y: 0 }); setIsOrbiting(false); }}
-                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-none text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [001] Top
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 35.26, y: -45 }); setIsOrbiting(false); }}
-                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-none text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [111] Diag
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 25, y: -45 }); setIsOrbiting(false); }}
-                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider relative overflow-hidden"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-none text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider relative overflow-hidden"
                 >
                   Isometric
                   <span className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
@@ -3186,7 +3212,7 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
 
               {/* 3D Canvas Box */}
-              <div className="relative rounded-xl border border-white/5 overflow-hidden cursor-grab active:cursor-grabbing bg-gradient-to-b from-[#010308] to-[#050B14] group shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)] z-10">
+              <div className="relative rounded-none border border-white/5 overflow-hidden cursor-grab active:cursor-grabbing bg-gradient-to-b from-[#010308] to-[#050B14] group shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)] z-10">
                 <canvas
                   ref={recipCanvasRef}
                   onMouseDown={handleRecipMouseDown}
@@ -3200,16 +3226,16 @@ export const SelectionRulesModule: React.FC = () => {
                 />
                 <div className="absolute top-3 right-3 flex flex-col items-end gap-2 pointer-events-none">
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
+                    <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-none border border-white/10 shadow-lg">
                       DRAG TO ROTATE
                     </span>
-                    <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
+                    <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-none border border-white/10 shadow-lg">
                       CLICK TO TOGGLE HKL
                     </span>
                   </div>
                   
                   {/* Legend */}
-                  <div className="flex flex-col gap-1.5 p-2 bg-black/80 backdrop-blur-md rounded-lg border border-white/10 shadow-lg text-[9px] font-mono font-bold uppercase tracking-widest pointer-events-auto">
+                  <div className="flex flex-col gap-1.5 p-2 bg-black/80 backdrop-blur-md rounded-none border border-white/10 shadow-lg text-[9px] font-mono font-bold uppercase tracking-widest pointer-events-auto">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] border border-emerald-400" />
                       <span className="text-emerald-400">Allowed</span>
@@ -3227,16 +3253,51 @@ export const SelectionRulesModule: React.FC = () => {
                   </div>
                 </div>
 
-                {(hoveredNode || manualProbe) && (
-                  <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-purple-500/30 rounded-lg text-[10px] font-mono text-purple-300 flex items-center shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all pointer-events-none">
-                    <span className="w-2 h-2 rounded-full bg-purple-400 mr-2 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                    Probe: ({(hoveredNode || manualProbe).join(" ")})
-                  </div>
-                )}
+                {(hoveredNode || manualProbe) && (() => {
+                  const node = hoveredNode || manualProbe;
+                  const [h, k, l] = node;
+                  const rule = validateSelectionRule(system, [h, k, l]);
+                  // Calculate d-spacing based on system
+                  let dVal = 0;
+                  const h2k2l2 = h * h + k * k + l * l;
+                  if (h2k2l2 > 0) {
+                    dVal = latticeParameter / Math.sqrt(h2k2l2);
+                  }
+                  const qVal = dVal > 0 ? (2 * Math.PI) / dVal : 0;
+                  const sinTh = (wavelength && dVal > 0) ? wavelength / (2 * dVal) : 0;
+                  const thetaVal = (sinTh <= 1 && sinTh >= 0) ? (Math.asin(sinTh) * 180 / Math.PI) : NaN;
+
+                  return (
+                    <div className="absolute bottom-3 right-3 p-3 bg-black/90 backdrop-blur-md border border-white/10 text-[10px] font-mono text-slate-300 shadow-2xl transition-all pointer-events-none max-w-[240px] space-y-1">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-1 gap-2">
+                        <span className="font-bold text-sky-400 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-sky-400 rounded-none animate-pulse" />
+                          Node ({h} {k} {l})
+                        </span>
+                        <span className={`px-1 py-0.5 text-[8.5px] font-bold uppercase border ${
+                          rule.status === "Allowed" 
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" 
+                            : "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                        }`}>
+                          {rule.status}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px]">
+                        <div><span className="text-slate-500">d_hkl:</span> <span className="font-bold text-amber-300">{dVal > 0 ? dVal.toFixed(3) : '—'} Å</span></div>
+                        <div><span className="text-slate-500">|Q|:</span> <span className="font-bold text-sky-300">{qVal > 0 ? qVal.toFixed(3) : '—'} Å⁻¹</span></div>
+                        <div><span className="text-slate-500">2θ:</span> <span className="font-bold text-purple-300">{!isNaN(thetaVal) ? (thetaVal * 2).toFixed(2) + '°' : 'N/A'}</span></div>
+                        <div><span className="text-slate-500">System:</span> <span className="font-bold text-slate-300">{system}</span></div>
+                      </div>
+                      <div className="text-[8.5px] text-slate-400 border-t border-white/5 pt-1 truncate">
+                        {rule.reason}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Direct HKL Micro-Probe Selector Console */}
-              <div className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-4 shadow-inner relative overflow-hidden group">
+              <div className="p-4 bg-black/40 rounded-none border border-white/5 space-y-4 relative overflow-hidden group">
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
                 <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-white/5 pb-2 flex items-center justify-between relative z-10">
                   <div className="flex items-center gap-2">
@@ -3250,7 +3311,7 @@ export const SelectionRulesModule: React.FC = () => {
 
                 <div className="grid grid-cols-3 gap-3 relative z-10">
                   {/* H Index selector */}
-                  <div className="bg-[#0B0F19] p-2 rounded-xl border border-white/5 flex flex-col items-center shadow-inner relative overflow-hidden">
+                  <div className="bg-[#0B0F19] p-2 rounded-none border border-white/5 flex flex-col items-center relative overflow-hidden">
                     <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-xl" />
                     <span className="text-[9px] font-mono font-bold text-slate-500 mb-2 uppercase tracking-widest z-10">Index h</span>
                     <div className="flex items-center gap-2 z-10">
@@ -3261,7 +3322,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextH = Math.max(-limit, manualProbe[0] - 1);
                           setManualProbe([nextH, manualProbe[1], manualProbe[2]]);
                         }}
-                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
+                        className="w-6 h-6 rounded-none bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         -
                       </button>
@@ -3275,7 +3336,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextH = Math.min(limit, manualProbe[0] + 1);
                           setManualProbe([nextH, manualProbe[1], manualProbe[2]]);
                         }}
-                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
+                        className="w-6 h-6 rounded-none bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         +
                       </button>
@@ -3283,7 +3344,7 @@ export const SelectionRulesModule: React.FC = () => {
                   </div>
 
                   {/* K Index selector */}
-                  <div className="bg-[#0B0F19] p-2 rounded-xl border border-white/5 flex flex-col items-center shadow-inner relative overflow-hidden">
+                  <div className="bg-[#0B0F19] p-2 rounded-none border border-white/5 flex flex-col items-center relative overflow-hidden">
                     <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-xl" />
                     <span className="text-[9px] font-mono font-bold text-slate-500 mb-2 uppercase tracking-widest z-10">Index k</span>
                     <div className="flex items-center gap-2 z-10">
@@ -3294,7 +3355,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextK = Math.max(-limit, manualProbe[1] - 1);
                           setManualProbe([manualProbe[0], nextK, manualProbe[2]]);
                         }}
-                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
+                        className="w-6 h-6 rounded-none bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         -
                       </button>
@@ -3308,7 +3369,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextK = Math.min(limit, manualProbe[1] + 1);
                           setManualProbe([manualProbe[0], nextK, manualProbe[2]]);
                         }}
-                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
+                        className="w-6 h-6 rounded-none bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         +
                       </button>
@@ -3316,7 +3377,7 @@ export const SelectionRulesModule: React.FC = () => {
                   </div>
 
                   {/* L Index selector */}
-                  <div className="bg-[#0B0F19] p-2 rounded-xl border border-white/5 flex flex-col items-center shadow-inner relative overflow-hidden">
+                  <div className="bg-[#0B0F19] p-2 rounded-none border border-white/5 flex flex-col items-center relative overflow-hidden">
                     <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-xl" />
                     <span className="text-[9px] font-mono font-bold text-slate-500 mb-2 uppercase tracking-widest z-10">Index l</span>
                     <div className="flex items-center gap-2 z-10">
@@ -3327,7 +3388,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextL = Math.max(-limit, manualProbe[2] - 1);
                           setManualProbe([manualProbe[0], manualProbe[1], nextL]);
                         }}
-                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
+                        className="w-6 h-6 rounded-none bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         -
                       </button>
@@ -3341,7 +3402,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextL = Math.min(limit, manualProbe[2] + 1);
                           setManualProbe([manualProbe[0], manualProbe[1], nextL]);
                         }}
-                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
+                        className="w-6 h-6 rounded-none bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         +
                       </button>
@@ -3355,7 +3416,7 @@ export const SelectionRulesModule: React.FC = () => {
                     if (manualProbe[0] === 0 && manualProbe[1] === 0 && manualProbe[2] === 0) return;
                     toggleHKLNode(manualProbe[0], manualProbe[1], manualProbe[2]);
                   }}
-                  className={`w-full py-2.5 px-3 rounded-xl border text-[10px] font-mono font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 relative z-10 ${
+                  className={`w-full py-2.5 px-3 rounded-none border text-[10px] font-mono font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 relative z-10 ${
                     (() => {
                       const parsed = parseHKLString(hklInput);
                       const exists = parsed.some((p) => p[0] === manualProbe[0] && p[1] === manualProbe[1] && p[2] === manualProbe[2]);
@@ -3375,7 +3436,7 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
 
               {/* Probe Calibration Panel */}
-              <div className="p-4 bg-[#0B0F19] rounded-xl border border-white/5 space-y-4 shadow-[0_0_20px_rgba(0,0,0,0.5)_inset] relative isolate overflow-hidden">
+              <div className="p-4 bg-[#0B0F19] rounded-none border border-white/5 space-y-4 shadow-[0_0_20px_rgba(0,0,0,0.5)_inset] relative isolate overflow-hidden">
                 {/* ambient core glow */}
                 <div className="absolute left-1/2 top-0 blur-[50px] -translate-x-1/2 w-48 h-20 bg-sky-500/10 pointer-events-none" />
                 <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-white/5 pb-2 flex items-center justify-between z-10 relative">
@@ -3395,11 +3456,11 @@ export const SelectionRulesModule: React.FC = () => {
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
                         Projection:
                       </span>
-                      <div className="flex rounded-lg border border-white/10 p-0.5 bg-black/50 shadow-inner">
+                      <div className="flex rounded-none border border-white/10 p-0.5 bg-black/50">
                         <button
                           type="button"
                           onClick={() => setProjectionMode("ortho")}
-                          className={`px-3 py-1 rounded-md text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
+                          className={`px-3 py-1 rounded-none text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
                             projectionMode === "ortho"
                               ? "bg-emerald-500/15 text-emerald-400 font-black shadow-[inset_0_1px_4px_rgba(52,211,153,0.1)] border-emerald-500/20"
                               : "text-slate-500 hover:text-slate-300"
@@ -3410,7 +3471,7 @@ export const SelectionRulesModule: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setProjectionMode("perspective")}
-                          className={`px-3 py-1 rounded-md text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
+                          className={`px-3 py-1 rounded-none text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
                             projectionMode === "perspective"
                               ? "bg-emerald-500/15 text-emerald-400 font-black shadow-[inset_0_1px_4px_rgba(52,211,153,0.1)] border-emerald-500/20"
                               : "text-slate-500 hover:text-slate-300"
@@ -3429,7 +3490,7 @@ export const SelectionRulesModule: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowEwaldSphere(!showEwaldSphere)}
-                        className={`px-3 py-1 rounded-lg border text-[9px] font-mono font-bold transition-all shadow-inner uppercase tracking-widest ${
+                        className={`px-3 py-1 rounded-none border text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
                           showEwaldSphere
                             ? "bg-sky-500/15 border-sky-500/30 text-sky-400 shadow-[inset_0_1px_4px_rgba(56,189,248,0.2)]"
                             : "bg-black/50 border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20"
@@ -3437,6 +3498,47 @@ export const SelectionRulesModule: React.FC = () => {
                       >
                         {showEwaldSphere ? "VISIBLE" : "HIDDEN"}
                       </button>
+                    </div>
+
+                    {/* Filter Allowed Only Toggle */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        Filter Rules:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFilterAllowedOnly(!filterAllowedOnly)}
+                        className={`px-3 py-1 rounded-none border text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
+                          filterAllowedOnly
+                            ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-[inset_0_1px_4px_rgba(16,185,129,0.2)]"
+                            : "bg-black/50 border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20"
+                        }`}
+                      >
+                        {filterAllowedOnly ? "ALLOWED ONLY" : "ALL NODES"}
+                      </button>
+                    </div>
+
+                    {/* Laue Zone Selection */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        Laue Zone Filter:
+                      </span>
+                      <div className="flex rounded-none border border-white/10 p-0.5 bg-black/50">
+                        {["ALL", "ZOLZ", "FOLZ"].map((zone) => (
+                          <button
+                            key={zone}
+                            type="button"
+                            onClick={() => setLaueZoneFilter(zone as "ALL" | "ZOLZ" | "FOLZ")}
+                            className={`flex-1 px-2 py-1 rounded-none text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
+                              laueZoneFilter === zone
+                                ? "bg-purple-500/15 text-purple-400 font-black shadow-[inset_0_1px_4px_rgba(168,85,247,0.1)] border-purple-500/20"
+                                : "text-slate-500 hover:text-slate-300"
+                            }`}
+                          >
+                            {zone}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -3461,7 +3563,7 @@ export const SelectionRulesModule: React.FC = () => {
                         onChange={(e) =>
                           setWavelength(parseFloat(e.target.value))
                         }
-                        className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-sky-400 transition-all hover:bg-slate-800 border border-white/5 shadow-inner"
+                        className="w-full h-1.5 bg-black rounded-none appearance-none cursor-pointer accent-sky-400 transition-all hover:bg-slate-800 border border-white/5"
                       />
                     </div>
 
@@ -3484,7 +3586,7 @@ export const SelectionRulesModule: React.FC = () => {
                         onChange={(e) =>
                           setLatticeParameter(parseFloat(e.target.value))
                         }
-                        className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-400 transition-all hover:bg-slate-800 border border-white/5 shadow-inner"
+                        className="w-full h-1.5 bg-black rounded-none appearance-none cursor-pointer accent-emerald-400 transition-all hover:bg-slate-800 border border-white/5"
                       />
                     </div>
                   </div>
@@ -3492,7 +3594,7 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
 
               {/* Crystallographic Investigator (Real-time Bragg Equation Solver) */}
-              <div className="p-3 bg-[#0A1221] rounded-xl border border-emerald-500/15">
+              <div className="p-3 bg-[#0A1221] rounded-none border border-emerald-500/15">
                 {(() => {
                   const activeNode = hoveredNode || manualProbe;
                   const [h, k, l] = activeNode || [0, 0, 0];
@@ -3572,7 +3674,7 @@ export const SelectionRulesModule: React.FC = () => {
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] pt-1">
                         {/* d-spacing */}
-                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
+                        <div className="bg-black/55 p-2 rounded-none border border-[#1e293b]">
                           <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
                             Interplanar d
                           </div>
@@ -3582,7 +3684,7 @@ export const SelectionRulesModule: React.FC = () => {
                         </div>
 
                         {/* Reciprocal vector length */}
-                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
+                        <div className="bg-black/55 p-2 rounded-none border border-[#1e293b]">
                           <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
                             Recip Vector |g*|
                           </div>
@@ -3594,7 +3696,7 @@ export const SelectionRulesModule: React.FC = () => {
                         </div>
 
                         {/* Bragg angle 2theta */}
-                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
+                        <div className="bg-black/55 p-2 rounded-none border border-[#1e293b]">
                           <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
                             Bragg 2θ
                           </div>
@@ -3606,7 +3708,7 @@ export const SelectionRulesModule: React.FC = () => {
                         </div>
 
                         {/* Ewald Sphere Status */}
-                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b] col-span-1">
+                        <div className="bg-black/55 p-2 rounded-none border border-[#1e293b] col-span-1">
                           <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
                             Diffraction
                           </div>
@@ -3668,7 +3770,7 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
 
             {/* Quick manual entry helper */}
-            <div className="space-y-2 p-4 bg-[#050B14]/40 rounded-2xl border border-[#1e293b]">
+            <div className="space-y-2 p-4 bg-[#050B14]/40 rounded-none border border-[#1e293b]">
               <div className="flex items-center justify-between text-left">
                 <div className="text-[9px] font-black font-mono text-slate-400 uppercase tracking-widest">
                   Quick-Append Plane (h k l)
@@ -3685,7 +3787,7 @@ export const SelectionRulesModule: React.FC = () => {
                   return (
                     <div
                       key={index}
-                      className="flex-1 flex gap-1 items-center bg-black/60 rounded-xl px-2 py-1.5 border border-[#1e293b]"
+                      className="flex-1 flex gap-1 items-center bg-black/60 rounded-none px-2 py-1.5 border border-[#1e293b]"
                     >
                       <span className="text-[9px] font-mono font-black text-slate-500 uppercase">
                         {index}:
@@ -3703,7 +3805,7 @@ export const SelectionRulesModule: React.FC = () => {
                 <button
                   type="button"
                   onClick={addQuickHKL}
-                  className="px-4 py-2 bg-[#10b981]/15 hover:bg-[#10b981]/25 border border-[#10b981]/30 text-[#10b981] font-black text-[10px] rounded-xl flex items-center justify-center uppercase tracking-wider relative active:scale-95 transition-all text-center self-stretch"
+                  className="px-4 py-2 bg-[#10b981]/15 hover:bg-[#10b981]/25 border border-[#10b981]/30 text-[#10b981] font-black text-[10px] rounded-none flex items-center justify-center uppercase tracking-wider relative active:scale-95 transition-all text-center self-stretch"
                 >
                   ADD
                 </button>
@@ -3741,7 +3843,7 @@ export const SelectionRulesModule: React.FC = () => {
 
             {/* Chip tag group representation */}
             {parseHKLString(hklInput).length > 0 && (
-              <div className="space-y-2 p-4 bg-[#050B14]/30 rounded-2xl border border-[#1e293b] text-left">
+              <div className="space-y-2 p-4 bg-[#050B14]/30 rounded-none border border-[#1e293b] text-left">
                 <div className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest pl-0.5 mb-1">
                   Active Coordinates ({parseHKLString(hklInput).length} planes)
                 </div>
@@ -3752,7 +3854,7 @@ export const SelectionRulesModule: React.FC = () => {
                     return (
                       <div
                         key={`${pt.join("-")}-${i}`}
-                        className={`pl-2 pr-1 py-1 rounded-lg border flex items-center gap-1.5 text-[10px] font-mono select-none transition-colors
+                        className={`pl-2 pr-1 py-1 rounded-none border flex items-center gap-1.5 text-[10px] font-mono select-none transition-colors
                           ${
                             isAllowed
                               ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
@@ -3764,7 +3866,7 @@ export const SelectionRulesModule: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => removeHKLAtIndex(i)}
-                          className="p-0.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
+                          className="p-0.5 rounded-none hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
                           title="Remove reflection"
                         >
                           <X className="w-2.5 h-2.5" />
@@ -3815,7 +3917,7 @@ export const SelectionRulesModule: React.FC = () => {
                   value={hklInput}
                   onChange={(e) => setHklInput(e.target.value)}
                   placeholder="e.g. 1 0 0, 1 1 0, 1 1 1"
-                  className="w-full h-24 px-4 py-4 bg-[#050B14] text-emerald-400 border-2 border-[#1e293b] rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 outline-none transition-all font-mono text-[11px] leading-relaxed resize-none shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] custom-scrollbar"
+                  className="w-full h-24 px-4 py-4 bg-[#050B14] text-emerald-400 border-2 border-[#1e293b] rounded-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 outline-none transition-all font-mono text-[11px] leading-relaxed resize-none shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] custom-scrollbar"
                   spellCheck={false}
                 />
               </div>
@@ -3823,7 +3925,7 @@ export const SelectionRulesModule: React.FC = () => {
 
             <button
               onClick={handleValidate}
-              className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black rounded-2xl shadow-[0_15px_30px_rgba(16,185,129,0.2)] transition-all active:scale-[0.97] flex items-center justify-center gap-3 group relative overflow-hidden"
+              className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black rounded-none shadow-[0_15px_30px_rgba(16,185,129,0.2)] transition-all active:scale-[0.97] flex items-center justify-center gap-3 group relative overflow-hidden"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-white/20 to-emerald-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
               <CheckCircle2 className="w-5 h-5" />
@@ -3839,7 +3941,7 @@ export const SelectionRulesModule: React.FC = () => {
           <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-emerald-500/10 rounded-full blur-[60px] group-hover:bg-emerald-500/20 transition-all duration-700"></div>
 
           <div className="flex items-center gap-4 mb-6 relative z-10">
-            <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
+            <div className="p-2.5 bg-emerald-500/20 rounded-none border border-emerald-500/30">
               <Component className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
@@ -3859,7 +3961,7 @@ export const SelectionRulesModule: React.FC = () => {
             ].map((type) => (
               <div
                 key={type.id}
-                className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all shadow-inner"
+                className="bg-[#0B1221] p-3 rounded-none border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all"
               >
                 <span className="text-sm font-black text-emerald-400 mb-1">
                   {type.id}
@@ -3882,7 +3984,7 @@ export const SelectionRulesModule: React.FC = () => {
           <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] group-hover:bg-blue-500/20 transition-all duration-700"></div>
 
           <div className="flex items-center gap-4 mb-6 relative z-10">
-            <div className="p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30">
+            <div className="p-2.5 bg-blue-500/20 rounded-none border border-blue-500/30">
               <BookOpen className="w-5 h-5 text-blue-400" />
             </div>
             <div>
@@ -3894,7 +3996,7 @@ export const SelectionRulesModule: React.FC = () => {
           </div>
 
           <div className="space-y-4 relative z-10">
-            <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
+            <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] hover:bg-[#070D18] transition-all">
               <div className="flex items-center gap-2 mb-2">
                 <Atom className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -3906,14 +4008,14 @@ export const SelectionRulesModule: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
+            <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] hover:bg-[#070D18] transition-all">
               <div className="flex items-center gap-2 mb-2">
                 <Binary className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   Structure Factor Formula
                 </span>
               </div>
-              <div className="bg-[#050B14] p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-[#1e293b] shadow-inner">
+              <div className="bg-[#050B14] p-4 rounded-none font-mono text-sm text-emerald-400 overflow-x-auto border border-[#1e293b]">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse shrink-0" />
                   <span className="whitespace-normal break-words drop-shadow-sm">
@@ -3926,7 +4028,7 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
+            <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] hover:bg-[#070D18] transition-all">
               <div className="flex items-center gap-2 mb-2">
                 <Beaker className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -3947,15 +4049,15 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             </div>
             {/* Symmetry Intelligence Card */}
-            <div className="bg-[#050B14]/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative group/symmetry hover:border-indigo-500/40 transition-all duration-700">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none group-hover/symmetry:bg-indigo-500/15 transition-all duration-1000 -translate-y-20 translate-x-10" />
+            <div className="bg-[#050B14]/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative group/symmetry hover:border-sky-500/40 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-[80px] pointer-events-none group-hover/symmetry:bg-sky-500/15 transition-all duration-1000 -translate-y-20 translate-x-10" />
 
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 relative z-10 border-b border-[#1e293b] pb-6">
                 <div className="flex items-center gap-6">
                   <div className="relative group/sym-icon cursor-default">
-                    <div className="absolute inset-0 bg-indigo-600/20 blur-xl rounded-full group-hover/sym-icon:bg-indigo-500/30 transition-all duration-700 pointer-events-none" />
-                    <div className="w-16 h-16 bg-[#070D18] rounded-3xl border border-indigo-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/sym-icon:border-indigo-400 transition-colors duration-500 overflow-hidden">
-                      <ShieldQuestion className="w-7 h-7 text-indigo-400 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)] group-hover/sym-icon:rotate-12 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-sky-600/20 blur-xl rounded-full group-hover/sym-icon:bg-sky-500/30 transition-all duration-700 pointer-events-none" />
+                    <div className="w-16 h-16 bg-[#070D18] rounded-3xl border border-sky-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/sym-icon:border-sky-400 transition-colors duration-500 overflow-hidden">
+                      <ShieldQuestion className="w-7 h-7 text-sky-400 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)] group-hover/sym-icon:rotate-12 transition-transform duration-500" />
                     </div>
                   </div>
                   <div>
@@ -3967,7 +4069,7 @@ export const SelectionRulesModule: React.FC = () => {
                         <p className="text-[9px] sm:text-[10px] text-slate-500 font-mono uppercase tracking-[0.15em]">
                           Point Group
                         </p>
-                        <span className="text-[10px] font-mono font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/30 uppercase shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                        <span className="text-[10px] font-mono font-black text-sky-400 bg-sky-500/10 px-2.5 py-0.5 rounded-none border border-sky-500/30 uppercase shadow-[0_0_10px_rgba(99,102,241,0.2)]">
                           {currentSymmetry.group}
                         </span>
                       </div>
@@ -3976,7 +4078,7 @@ export const SelectionRulesModule: React.FC = () => {
                         <p className="text-[9px] sm:text-[10px] text-slate-500 font-mono uppercase tracking-[0.15em]">
                           Laue Class
                         </p>
-                        <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                        <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-none border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
                           {currentSymmetry.laueClass}
                         </span>
                       </div>
@@ -3985,16 +4087,16 @@ export const SelectionRulesModule: React.FC = () => {
                         <p className="text-[9px] sm:text-[10px] text-slate-500 font-mono uppercase tracking-[0.15em]">
                           Bravais
                         </p>
-                        <span className="text-[10px] font-mono font-black text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-lg border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]">
+                        <span className="text-[10px] font-mono font-black text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-none border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]">
                           {currentSymmetry.bravais}
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="px-5 py-3 bg-[#050B14] rounded-2xl border border-[#1e293b] flex items-center gap-4 relative group/ops hover:border-indigo-500/30 transition-colors shadow-inner">
+                <div className="px-5 py-3 bg-[#050B14] rounded-none border border-[#1e293b] flex items-center gap-4 relative group/ops hover:border-sky-500/30 transition-colors">
                   <div className="text-right">
-                    <span className="text-4xl font-black font-mono text-indigo-400 leading-none drop-shadow-md">
+                    <span className="text-4xl font-black font-mono text-sky-400 leading-none drop-shadow-md">
                       {currentSymmetry.operations}
                     </span>
                   </div>
@@ -4011,38 +4113,38 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
 
               {/* Tab Navigation */}
-              <div className="flex bg-[#0B1221] p-1 rounded-xl border border-[#1e293b] gap-1 mb-5 relative z-10 font-mono overflow-x-auto custom-scrollbar">
+              <div className="flex bg-[#0B1221] p-1 rounded-none border border-[#1e293b] gap-1 mb-5 relative z-10 font-mono overflow-x-auto custom-scrollbar">
                 <button
                   onClick={() => setSymmetryTab("visualizer")}
-                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "visualizer" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-none text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "visualizer" ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 font-black" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <Box className="w-3.5 h-3.5" />
                   <span className="truncate">3D Lattice</span>
                 </button>
                 <button
                   onClick={() => setSymmetryTab("spacegroup")}
-                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "spacegroup" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-none text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "spacegroup" ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 font-black" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <ShieldQuestion className="w-3.5 h-3.5" />
                   <span className="truncate">Space Group</span>
                 </button>
                 <button
                   onClick={() => setSymmetryTab("properties")}
-                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "properties" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-none text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "properties" ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 font-black" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                   <span className="truncate">Point Group</span>
                 </button>
                 <button
                   onClick={() => setSymmetryTab("reciprocal")}
-                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "reciprocal" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-none text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "reciprocal" ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 font-black" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <Compass className="w-3.5 h-3.5" />
                   <span className="truncate">Reciprocal</span>
                 </button>
                 <button
                   onClick={() => setSymmetryTab("sandbox")}
-                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "sandbox" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-none text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "sandbox" ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 font-black" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <Binary className="w-3.5 h-3.5" />
                   <span className="truncate">Equivalents</span>
@@ -4074,37 +4176,37 @@ export const SelectionRulesModule: React.FC = () => {
                         onClick={() =>
                           setShowLatticeOutline(!showLatticeOutline)
                         }
-                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showLatticeOutline ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                        className={`py-1.5 px-2.5 rounded-none text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showLatticeOutline ? "bg-sky-500/10 border-sky-500/20 text-sky-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
                       >
                         <span className="flex items-center gap-1">
                           <Box className="w-3.5 h-3.5" /> Outlines
                         </span>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${showLatticeOutline ? "bg-indigo-400" : "bg-slate-700"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${showLatticeOutline ? "bg-sky-400" : "bg-slate-700"}`}
                         />
                       </button>
 
                       <button
                         onClick={() => setShowSymmetryAxes(!showSymmetryAxes)}
-                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showSymmetryAxes ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                        className={`py-1.5 px-2.5 rounded-none text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showSymmetryAxes ? "bg-sky-500/10 border-sky-500/20 text-sky-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
                       >
                         <span className="flex items-center gap-1">
                           <RotateCw className="w-3.5 h-3.5" /> Axes (Rot)
                         </span>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${showSymmetryAxes ? "bg-indigo-400" : "bg-slate-700"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${showSymmetryAxes ? "bg-sky-400" : "bg-slate-700"}`}
                         />
                       </button>
 
                       <button
                         onClick={() => setShowMirrorPlanes(!showMirrorPlanes)}
-                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showMirrorPlanes ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                        className={`py-1.5 px-2.5 rounded-none text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showMirrorPlanes ? "bg-sky-500/10 border-sky-500/20 text-sky-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
                       >
                         <span className="flex items-center gap-1">
                           <Split className="w-3.5 h-3.5" /> Planes (σ)
                         </span>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${showMirrorPlanes ? "bg-indigo-400" : "bg-slate-700"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${showMirrorPlanes ? "bg-sky-400" : "bg-slate-700"}`}
                         />
                       </button>
 
@@ -4113,43 +4215,43 @@ export const SelectionRulesModule: React.FC = () => {
                           setShowInversionCenter(!showInversionCenter)
                         }
                         disabled={!currentSymmetry.inversion}
-                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${!currentSymmetry.inversion ? "opacity-30 cursor-not-allowed bg-slate-900 border-transparent text-slate-600" : showInversionCenter ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                        className={`py-1.5 px-2.5 rounded-none text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${!currentSymmetry.inversion ? "opacity-30 cursor-not-allowed bg-slate-900 border-transparent text-slate-600" : showInversionCenter ? "bg-sky-500/10 border-sky-500/20 text-sky-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
                       >
                         <span className="flex items-center gap-1">
                           <CircleDot className="w-3.5 h-3.5" /> Inversion (i)
                         </span>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${!currentSymmetry.inversion ? "bg-slate-800" : showInversionCenter ? "bg-indigo-400" : "bg-slate-700"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${!currentSymmetry.inversion ? "bg-slate-800" : showInversionCenter ? "bg-sky-400" : "bg-slate-700"}`}
                         />
                       </button>
 
                       <button
                         onClick={() => setShowBasisAtoms(!showBasisAtoms)}
-                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showBasisAtoms ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                        className={`py-1.5 px-2.5 rounded-none text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showBasisAtoms ? "bg-sky-500/10 border-sky-500/20 text-sky-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
                       >
                         <span className="flex items-center gap-1">
                           <Component className="w-3.5 h-3.5" /> Basis Atoms
                         </span>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${showBasisAtoms ? "bg-indigo-400" : "bg-slate-700"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${showBasisAtoms ? "bg-sky-400" : "bg-slate-700"}`}
                         />
                       </button>
 
                       <button
                         onClick={() => setShowCoordinationBonds(!showCoordinationBonds)}
-                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showCoordinationBonds ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                        className={`py-1.5 px-2.5 rounded-none text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showCoordinationBonds ? "bg-sky-500/10 border-sky-500/20 text-sky-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
                       >
                         <span className="flex items-center gap-1">
                           <Network className="w-3.5 h-3.5" /> Bonds
                         </span>
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${showCoordinationBonds ? "bg-indigo-400" : "bg-slate-700"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${showCoordinationBonds ? "bg-sky-400" : "bg-slate-700"}`}
                         />
                       </button>
                     </div>
 
                     {/* Miller Slicing Plane interactive controls */}
-                    <div className="p-3.5 bg-[#050B14]/60 rounded-xl border border-[#1e293b]/80 space-y-3">
+                    <div className="p-3.5 bg-[#050B14]/60 rounded-none border border-[#1e293b]/80 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                           <Layers className="w-3.5 h-3.5 text-emerald-400" />
@@ -4158,7 +4260,7 @@ export const SelectionRulesModule: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setShowMillerPlane(!showMillerPlane)}
-                          className={`px-3 py-1 text-[8px] font-mono font-black uppercase tracking-widest rounded-md border transition-all ${
+                          className={`px-3 py-1 text-[8px] font-mono font-black uppercase tracking-widest rounded-none border transition-all ${
                             showMillerPlane
                               ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
                               : "bg-[#0b1221] border-[#1e293b] text-slate-500"
@@ -4175,7 +4277,7 @@ export const SelectionRulesModule: React.FC = () => {
                               const val = idx === 0 ? visualizerH : idx === 1 ? visualizerK : visualizerL;
                               const setter = idx === 0 ? setVisualizerH : idx === 1 ? setVisualizerK : setVisualizerL;
                               return (
-                                <div key={coord} className="flex-1 bg-black/40 rounded-lg p-1.5 border border-[#1e293b] flex flex-col items-center">
+                                <div key={coord} className="flex-1 bg-black/40 rounded-none p-1.5 border border-[#1e293b] flex flex-col items-center">
                                   <span className="text-[9px] font-mono font-black text-slate-500 uppercase">{coord}</span>
                                   <div className="flex items-center gap-1.5 mt-1">
                                     <button
@@ -4212,44 +4314,44 @@ export const SelectionRulesModule: React.FC = () => {
                   return (
                     <div className="space-y-4 animate-in fade-in duration-300 font-mono">
                       {/* Space Group Banner */}
-                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] flex items-center justify-between shadow-inner">
+                      <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] flex items-center justify-between">
                         <div>
                           <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">
                             International Space Group Symbol
                           </div>
-                          <div className="text-2xl font-black text-indigo-300 tracking-wider">
+                          <div className="text-2xl font-black text-sky-300 tracking-wider">
                             {sg.symbol} <span className="text-sm font-normal text-slate-500">#{sg.number}</span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30 uppercase">
+                          <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-none border border-emerald-500/30 uppercase">
                             {sg.centering}
                           </span>
                         </div>
                       </div>
 
                       {/* Systematic Extinctions & Reflection Rules */}
-                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] space-y-3 shadow-inner">
+                      <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-3">
                         <div className="flex items-center gap-2 border-b border-[#1e293b] pb-2">
-                          <ShieldQuestion className="w-4 h-4 text-indigo-400" />
+                          <ShieldQuestion className="w-4 h-4 text-sky-400" />
                           <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">
                             Systematic Absences & Reflection Rules
                           </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
-                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                          <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b]">
                             <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">Lattice Centering</span>
-                            <span className="text-indigo-300 font-bold">{sg.extinctions.centeringCondition}</span>
+                            <span className="text-sky-300 font-bold">{sg.extinctions.centeringCondition}</span>
                           </div>
-                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                          <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b]">
                             <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">Glide Plane Absences</span>
                             <span className="text-emerald-300 font-bold">{sg.extinctions.glidePlanes}</span>
                           </div>
-                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                          <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b]">
                             <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">Screw Axis Absences</span>
                             <span className="text-amber-300 font-bold">{sg.extinctions.screwAxes}</span>
                           </div>
-                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                          <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b]">
                             <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">General Rule Summary</span>
                             <span className="text-cyan-300 font-bold">{sg.extinctions.generalRule}</span>
                           </div>
@@ -4257,7 +4359,7 @@ export const SelectionRulesModule: React.FC = () => {
                       </div>
 
                       {/* Wyckoff Positions Table */}
-                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-2.5">
+                      <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-2.5">
                         <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
                           <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">
                             Wyckoff Positions & Site Symmetry
@@ -4277,7 +4379,7 @@ export const SelectionRulesModule: React.FC = () => {
                             <tbody>
                               {sg.wyckoffPositions.map((wp, idx) => (
                                 <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                  <td className="py-1.5 px-2 font-black text-indigo-400">{wp.site}</td>
+                                  <td className="py-1.5 px-2 font-black text-sky-400">{wp.site}</td>
                                   <td className="py-1.5 px-2 text-slate-300">{wp.mult}</td>
                                   <td className="py-1.5 px-2 text-emerald-400 font-bold">{wp.symmetry}</td>
                                   <td className="py-1.5 px-2 text-slate-400">{wp.coords}</td>
@@ -4294,9 +4396,9 @@ export const SelectionRulesModule: React.FC = () => {
                 {symmetryTab === "properties" && (
                   <div className="space-y-4 animate-in fade-in duration-300">
                     <div className="grid grid-cols-2 gap-3 font-mono">
-                      <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
+                      <div className="bg-[#0B1221] p-3.5 rounded-none border border-[#1e293b] hover:bg-[#070D18] transition-all">
                         <div className="flex items-center gap-1.5 mb-2.5">
-                          <RotateCw className="w-3.5 h-3.5 text-indigo-400" />
+                          <RotateCw className="w-3.5 h-3.5 text-sky-400" />
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
                             Rotation Ops
                           </span>
@@ -4305,7 +4407,7 @@ export const SelectionRulesModule: React.FC = () => {
                           {currentSymmetry.rotation.map((r, idx) => (
                             <span
                               key={`rot-${r}-${idx}`}
-                              className="text-[9px] font-bold font-mono text-indigo-300 bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]"
+                              className="text-[9px] font-bold font-mono text-sky-300 bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]"
                             >
                               {r}
                             </span>
@@ -4313,10 +4415,10 @@ export const SelectionRulesModule: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner flex flex-col justify-between">
+                      <div className="bg-[#0B1221] p-3.5 rounded-none border border-[#1e293b] hover:bg-[#070D18] transition-all flex flex-col justify-between">
                         <div>
                           <div className="flex items-center gap-1.5 mb-2">
-                            <Split className="w-3.5 h-3.5 text-indigo-400" />
+                            <Split className="w-3.5 h-3.5 text-sky-400" />
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
                               Reflections
                             </span>
@@ -4329,9 +4431,9 @@ export const SelectionRulesModule: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 font-mono">
-                      <div className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
+                      <div className="bg-[#0B1221] p-3 rounded-none border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Hexagon className="w-3.5 h-3.5 text-indigo-400" />
+                          <Hexagon className="w-3.5 h-3.5 text-sky-400" />
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
                             Inversion (i)
                           </span>
@@ -4342,14 +4444,14 @@ export const SelectionRulesModule: React.FC = () => {
                           {currentSymmetry.inversion ? "Present" : "Absent"}
                         </span>
                       </div>
-                      <div className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
+                      <div className="bg-[#0B1221] p-3 rounded-none border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
-                          <Component className="w-3.5 h-3.5 text-indigo-400" />
+                          <Component className="w-3.5 h-3.5 text-sky-400" />
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
                             Identity (E)
                           </span>
                         </div>
-                        <span className="text-[10px] font-mono text-indigo-400 font-black bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]">
+                        <span className="text-[10px] font-mono text-sky-400 font-black bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]">
                           {currentSymmetry.identity}
                         </span>
                       </div>
@@ -4360,9 +4462,9 @@ export const SelectionRulesModule: React.FC = () => {
                       const ct = characterTables[currentSymmetry.group];
                       if (!ct) return null;
                       return (
-                        <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-3 font-mono">
+                        <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-3 font-mono">
                           <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
-                            <span className="text-[10px] font-black text-indigo-300 uppercase tracking-wider">
+                            <span className="text-[10px] font-black text-sky-300 uppercase tracking-wider">
                               Point Group Character Table ({ct.pointGroup})
                             </span>
                             <span className="text-[8px] text-slate-500 uppercase">Irreducible Representations</span>
@@ -4383,7 +4485,7 @@ export const SelectionRulesModule: React.FC = () => {
                               <tbody>
                                 {ct.irreps.map((irp, idx) => (
                                   <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                    <td className="py-1.5 px-2 text-left font-black text-indigo-400">{irp.name}</td>
+                                    <td className="py-1.5 px-2 text-left font-black text-sky-400">{irp.name}</td>
                                     {irp.characters.map((ch, cIdx) => (
                                       <td key={cIdx} className={`py-1.5 px-1.5 font-bold ${ch < 0 ? "text-rose-400" : ch > 1 ? "text-emerald-400" : "text-slate-300"}`}>
                                         {ch}
@@ -4410,15 +4512,15 @@ export const SelectionRulesModule: React.FC = () => {
                       );
                     })()}
 
-                    <div className="bg-[#0B1221] p-3.5 rounded-2xl border border-[#1e293b] shadow-inner">
+                    <div className="bg-[#0B1221] p-3.5 rounded-none border border-[#1e293b]">
                       <div className="flex items-center gap-1.5 mb-2.5">
-                        <Network className="w-3.5 h-3.5 text-indigo-400" />
+                        <Network className="w-3.5 h-3.5 text-sky-400" />
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono font-black">
                           Interpretation
                         </span>
                       </div>
-                      <div className="bg-[#050B14] p-3.5 rounded-xl font-mono text-[11px] text-indigo-300 border border-[#1e293b] flex gap-2.5 items-start shadow-inner">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse mt-1 shrink-0" />
+                      <div className="bg-[#050B14] p-3.5 rounded-none font-mono text-[11px] text-sky-300 border border-[#1e293b] flex gap-2.5 items-start">
+                        <div className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse mt-1 shrink-0" />
                         <p className="leading-relaxed">
                           "{currentSymmetry.description}"
                         </p>
@@ -4436,36 +4538,36 @@ export const SelectionRulesModule: React.FC = () => {
                   return (
                     <div className="space-y-4 animate-in fade-in duration-300 font-mono">
                       {/* Reciprocal Basis Vectors */}
-                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-3">
+                      <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-3">
                         <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
                           <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <Compass className="w-3.5 h-3.5 text-indigo-400" />
+                            <Compass className="w-3.5 h-3.5 text-sky-400" />
                             Reciprocal Lattice Basis Vectors
                           </span>
-                          <span className="text-[8px] text-indigo-400 font-bold uppercase">{system} System</span>
+                          <span className="text-[8px] text-sky-400 font-bold uppercase">{system} System</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-center">
+                          <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b] text-center">
                             <span className="text-[8px] text-slate-500 block uppercase">a* magnitude</span>
-                            <span className="text-xs font-black text-indigo-300">{rd.aStar}</span>
+                            <span className="text-xs font-black text-sky-300">{rd.aStar}</span>
                           </div>
-                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-center">
+                          <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b] text-center">
                             <span className="text-[8px] text-slate-500 block uppercase">b* magnitude</span>
-                            <span className="text-xs font-black text-indigo-300">{rd.bStar}</span>
+                            <span className="text-xs font-black text-sky-300">{rd.bStar}</span>
                           </div>
-                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-center">
+                          <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b] text-center">
                             <span className="text-[8px] text-slate-500 block uppercase">c* magnitude</span>
-                            <span className="text-xs font-black text-indigo-300">{rd.cStar}</span>
+                            <span className="text-xs font-black text-sky-300">{rd.cStar}</span>
                           </div>
                         </div>
-                        <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-[10px] text-slate-400 flex items-center justify-between">
+                        <div className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b] text-[10px] text-slate-400 flex items-center justify-between">
                           <span className="text-[8px] text-slate-500 uppercase">d-spacing master equation:</span>
                           <span className="text-emerald-400 font-bold">{rd.dFormula}</span>
                         </div>
                       </div>
 
                       {/* Live Q-Vector & Interplanar Spacing Calculator */}
-                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-3">
+                      <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-3">
                         <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
                           <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                             <Zap className="w-3.5 h-3.5 text-emerald-400" />
@@ -4474,19 +4576,19 @@ export const SelectionRulesModule: React.FC = () => {
                           <span className="text-[8px] text-slate-500">a = {sampleA} Å</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-center">
-                          <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b]">
+                          <div className="bg-[#050B14] p-3 rounded-none border border-[#1e293b]">
                             <span className="text-[8px] text-slate-500 block uppercase tracking-wider">Interplanar d_{visualizerH}{visualizerK}{visualizerL}</span>
                             <span className="text-base font-black text-emerald-400">{sampleD > 0 ? sampleD.toFixed(4) : "0.0000"} Å</span>
                           </div>
-                          <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b]">
+                          <div className="bg-[#050B14] p-3 rounded-none border border-[#1e293b]">
                             <span className="text-[8px] text-slate-500 block uppercase tracking-wider">Scattering Vector |Q| = 2π/d</span>
-                            <span className="text-base font-black text-indigo-300">{sampleQ > 0 ? sampleQ.toFixed(4) : "0.0000"} Å⁻¹</span>
+                            <span className="text-base font-black text-sky-300">{sampleQ > 0 ? sampleQ.toFixed(4) : "0.0000"} Å⁻¹</span>
                           </div>
                         </div>
                       </div>
 
                       {/* 1st Brillouin Zone High Symmetry Points Table */}
-                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-2.5">
+                      <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-2.5">
                         <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
                           <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">
                             1st Brillouin Zone High-Symmetry k-Points
@@ -4495,9 +4597,9 @@ export const SelectionRulesModule: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
                           {rd.bzPoints.map((pt, idx) => (
-                            <div key={idx} className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] flex items-center justify-between">
+                            <div key={idx} className="bg-[#050B14] p-2.5 rounded-none border border-[#1e293b] flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="w-5 h-5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-indigo-300 text-xs">
+                                <span className="w-5 h-5 rounded-none bg-sky-500/20 border border-sky-500/30 flex items-center justify-center font-black text-sky-300 text-xs">
                                   {pt.name}
                                 </span>
                                 <span className="text-slate-400 font-bold">{pt.coord}</span>
@@ -4523,8 +4625,8 @@ export const SelectionRulesModule: React.FC = () => {
 
                     return (
                       <div className="space-y-4 animate-in fade-in duration-300">
-                        <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner">
-                          <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3 font-mono">
+                        <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b]">
+                          <span className="block text-[9px] font-black text-sky-400 uppercase tracking-widest mb-3 font-mono">
                             Input Miller Indices (h k l)
                           </span>
 
@@ -4539,7 +4641,7 @@ export const SelectionRulesModule: React.FC = () => {
                                 onChange={(e) =>
                                   setSandboxH(parseInt(e.target.value) || 0)
                                 }
-                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
+                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-none text-center py-1.5 font-mono text-sky-300 text-sm focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 outline-none transition-all"
                               />
                             </div>
                             <div>
@@ -4552,7 +4654,7 @@ export const SelectionRulesModule: React.FC = () => {
                                 onChange={(e) =>
                                   setSandboxK(parseInt(e.target.value) || 0)
                                 }
-                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
+                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-none text-center py-1.5 font-mono text-sky-300 text-sm focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 outline-none transition-all"
                               />
                             </div>
                             <div>
@@ -4565,13 +4667,13 @@ export const SelectionRulesModule: React.FC = () => {
                                 onChange={(e) =>
                                   setSandboxL(parseInt(e.target.value) || 0)
                                 }
-                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
+                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-none text-center py-1.5 font-mono text-sky-300 text-sm focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 outline-none transition-all"
                               />
                             </div>
                           </div>
                         </div>
 
-                        <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] flex justify-between items-center shadow-inner">
+                        <div className="bg-[#0B1221] p-3.5 rounded-none border border-[#1e293b] flex justify-between items-center">
                           <div>
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
                               Peak Multiplicity (m)
@@ -4580,20 +4682,20 @@ export const SelectionRulesModule: React.FC = () => {
                               Diffraction peak intensity factor
                             </p>
                           </div>
-                          <div className="bg-indigo-500/15 text-indigo-400 px-3 py-1 font-black font-mono text-xs rounded border border-indigo-500/30 shadow-inner">
+                          <div className="bg-sky-500/15 text-sky-400 px-3 py-1 font-black font-mono text-xs rounded border border-sky-500/30">
                             {multiplicity} Peaks
                           </div>
                         </div>
 
-                        <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] shadow-inner flex flex-col min-h-[160px] max-h-[220px]">
-                          <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 font-mono">
+                        <div className="bg-[#0B1221] p-3.5 rounded-none border border-[#1e293b] flex flex-col min-h-[160px] max-h-[220px]">
+                          <span className="block text-[9px] font-black text-sky-400 uppercase tracking-widest mb-2 font-mono">
                             Symmetry-Equivalent Family {'{h k l}'}
                           </span>
                           <div className="flex-1 overflow-y-auto pr-1 flex flex-wrap gap-1.5 content-start custom-scrollbar">
                             {familyList.map((plane, i) => (
                               <span
                                 key={`equiv-plane-${plane}-${i}`}
-                                className="text-[10px] font-mono font-bold text-indigo-300 bg-[#050B14] px-2 py-0.5 rounded border border-[#1e293b] hover:border-indigo-500/50 hover:bg-indigo-500/10 cursor-default transition-colors animate-in zoom-in-95 duration-200"
+                                className="text-[10px] font-mono font-bold text-sky-300 bg-[#050B14] px-2 py-0.5 rounded border border-[#1e293b] hover:border-sky-500/50 hover:bg-sky-500/10 cursor-default transition-colors animate-in zoom-in-95 duration-200"
                               >
                                 {plane}
                               </span>
@@ -4651,12 +4753,12 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-xl border border-[#1e293b]">
+              <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-none border border-[#1e293b]">
                 {(["All", "Allowed", "Forbidden"] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    className={`px-4 py-1.5 text-xs font-bold rounded-none transition-all ${
                       filter === f
                         ? "bg-emerald-600 text-white shadow-md"
                         : "text-slate-400 hover:text-white hover:bg-slate-700"
@@ -4670,7 +4772,7 @@ export const SelectionRulesModule: React.FC = () => {
               <button
                 onClick={handleSave}
                 disabled={results.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black rounded-xl transition-all border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save shadow-inner uppercase tracking-widest"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black rounded-none transition-all border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save uppercase tracking-widest"
               >
                 <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
                 Save CSV
@@ -4683,7 +4785,7 @@ export const SelectionRulesModule: React.FC = () => {
               <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 p-12 text-center border-t border-[#1e293b]/50">
                 <div className="relative group/empty mb-6">
                   <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-xl group-hover/empty:bg-emerald-500/20 transition-all duration-700" />
-                  <div className="w-20 h-20 rounded-2xl bg-[#0B1221] border border-[#1e293b] flex items-center justify-center relative z-10 shadow-inner group-hover/empty:border-emerald-500/30 transition-colors">
+                  <div className="w-20 h-20 rounded-none bg-[#0B1221] border border-[#1e293b] flex items-center justify-center relative z-10 group-hover/empty:border-emerald-500/30 transition-colors">
                     <Hexagon className="w-10 h-10 text-slate-600 group-hover/empty:text-emerald-500/50 transition-colors" />
                   </div>
                 </div>
@@ -4737,7 +4839,7 @@ export const SelectionRulesModule: React.FC = () => {
                           </td>
                           <td className="px-8 py-5">
                             <div
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-none text-[10px] font-black uppercase tracking-tighter border ${
                                 res.status === "Allowed"
                                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                                   : "bg-red-500/10 text-red-400 border-red-500/20"
@@ -4767,17 +4869,17 @@ export const SelectionRulesModule: React.FC = () => {
 
           <div className="p-4 bg-[#0B1221] border-t border-[#1e293b] flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             <div className="flex gap-6">
-              <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-400">
+              <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-none border border-emerald-500/20 text-emerald-400">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 Allowed: {results.filter((r) => r.status === "Allowed").length}
               </span>
-              <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400">
+              <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-none border border-red-500/20 text-red-400">
                 <div className="w-2 h-2 rounded-full bg-red-500" />
                 Forbidden:{" "}
                 {results.filter((r) => r.status === "Forbidden").length}
               </span>
             </div>
-            <span className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+            <span className="bg-slate-800 px-3 py-1.5 rounded-none border border-slate-700 text-slate-300">
               Total: {results.length}
             </span>
           </div>

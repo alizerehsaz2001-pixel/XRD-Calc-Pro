@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Maximize2, Move, Waves, Play, Pause, RotateCw, Activity, Atom, Info } from 'lucide-react';
+import { Activity, Play, Pause, Waves, Compass, Sliders, Zap } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 
 interface BraggVisualizationProps {
@@ -12,6 +12,8 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
   const { precision } = useSettings();
   const [localTwoTheta, setLocalTwoTheta] = useState(initialTwoTheta);
   const [isAutoScanning, setIsAutoScanning] = useState(false);
+  const [reflectionOrder, setReflectionOrder] = useState<number>(1);
+  const [debyeWallerB, setDebyeWallerB] = useState<number>(0.5); // B-factor in A^2
 
   useEffect(() => {
     setLocalTwoTheta(initialTwoTheta);
@@ -22,46 +24,86 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
     if (isAutoScanning) {
       interval = setInterval(() => {
         setLocalTwoTheta(prev => {
-          const next = prev + 0.1;
-          return next > 80 ? 10 : next;
+          const next = prev + 0.15;
+          return next > 90 ? 10 : next;
         });
-      }, 50);
+      }, 40);
     }
     return () => clearInterval(interval);
   }, [isAutoScanning]);
 
-  // Constants for visualization
-  const width = 600;
-  const height = 340;
-  const planeSpacing = 80; 
-  const centerY = height / 2 + 10;
+  // Diagram geometry dimensions
+  const width = 640;
+  const height = 380;
+  const planeSpacing = 90; 
+  const centerY = height / 2 + 15;
   const centerX = width / 2;
   
+  const [showQVectors, setShowQVectors] = useState(false);
+  const [showPhasor, setShowPhasor] = useState(true);
+
   // Physics calculations
   const theta = (localTwoTheta || 0) / 2;
   const thetaRad = isNaN(theta) ? 0 : (theta * Math.PI) / 180;
   
-  // Normalized spacing (d) - assuming initial theta is roughly at a peak
-  const dRefTheta = (initialTwoTheta || 20) / 2;
+  // Reference d-spacing derived from initial condition assuming n=1 peak
+  const dRefTheta = (initialTwoTheta || 28.44) / 2;
   const dRefThetaRad = (dRefTheta * Math.PI) / 180;
   const dSpacing = wavelength / (2 * Math.max(0.0001, Math.sin(dRefThetaRad)));
 
-  // Constructive interference check (Bragg Condition)
-  // Signal strength based on how close sin(theta) is to nλ/2d
-  const signalStrength = useMemo(() => {
-    const targetSin = wavelength / (2 * dSpacing);
-    const currentSin = Math.sin(thetaRad);
-    const diff = Math.abs(currentSin - targetSin);
-    return Math.exp(-Math.pow(diff * 50, 2)); // Gaussian peak
-  }, [thetaRad, wavelength, dSpacing]);
+  // Calculate exact Bragg Peak angles for Quick Presets
+  const peak1TwoTheta = useMemo(() => {
+    const sin1 = wavelength / (2 * dSpacing);
+    if (sin1 > 1) return null;
+    return (2 * Math.asin(sin1) * 180) / Math.PI;
+  }, [wavelength, dSpacing]);
 
-  // Visual Wavelength calculation
-  const lambdaVis = Math.max(15, 2 * planeSpacing * Math.sin(thetaRad));
+  const peak2TwoTheta = useMemo(() => {
+    const sin2 = (2 * wavelength) / (2 * dSpacing);
+    if (sin2 > 1) return null;
+    return (2 * Math.asin(sin2) * 180) / Math.PI;
+  }, [wavelength, dSpacing]);
 
-  // Generate wave path
-  const generateWavePath = (startX: number, startY: number, angleRad: number, length: number, phaseShift: number = 0) => {
-    const amplitude = 5 + (signalStrength * 5); // Amplify wave visual when in phase
-    const steps = 45; // Reduced from 120 for a massive calculation speedup
+  const nullTwoTheta = useMemo(() => {
+    const sinNull = (0.5 * wavelength) / (2 * dSpacing);
+    if (sinNull > 1) return null;
+    return (2 * Math.asin(sinNull) * 180) / Math.PI;
+  }, [wavelength, dSpacing]);
+
+  // Exact path difference delta = 2 * d * sin(theta)
+  const pathLengthDiff = 2 * dSpacing * Math.sin(thetaRad);
+  // Phase difference delta_phi in radians
+  const phaseDiffRad = (2 * Math.PI * pathLengthDiff) / Math.max(0.0001, wavelength);
+  const phaseDiffDeg = ((phaseDiffRad * 180 / Math.PI) % 360 + 360) % 360;
+
+  // Scattering vector magnitude |Q| = 4 * pi * sin(theta) / lambda
+  const qMagnitude = (4 * Math.PI * Math.sin(thetaRad)) / Math.max(0.0001, wavelength);
+  
+  // X-ray photon energy E = hc / lambda (in keV)
+  const energyKeV = 12.3984 / Math.max(0.001, wavelength);
+
+  // Debye-Waller thermal damping factor exp(-2M) where M = B * (sin(theta)/lambda)^2
+  const sinOverLambda = Math.sin(thetaRad) / Math.max(0.0001, wavelength);
+  const debyeWallerDamping = Math.exp(-2 * debyeWallerB * Math.pow(sinOverLambda, 2));
+
+  // Constructive interference resonance signal strength
+  const braggConditionSin = (reflectionOrder * wavelength) / (2 * dSpacing);
+  const sinDiff = Math.abs(Math.sin(thetaRad) - braggConditionSin);
+  const resonanceStrength = Math.exp(-Math.pow(sinDiff * 45, 2));
+  const totalNormalizedIntensity = Math.pow(Math.cos(phaseDiffRad / 2), 2) * debyeWallerDamping;
+
+  // Visual wave generator parameters
+  const lambdaVis = 32; // Fixed visual wavelength for crystal clear wave peaks
+
+  const generateWavePath = (
+    startX: number, 
+    startY: number, 
+    angleRad: number, 
+    length: number, 
+    phaseOffset: number = 0,
+    amplitudeVal: number = 6
+  ) => {
+    const steps = 80;
     const cosA = Math.cos(angleRad);
     const sinA = Math.sin(angleRad);
     const twoPiOverLambda = (2 * Math.PI) / lambdaVis;
@@ -71,7 +113,7 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       const dist = t * length;
-      const waveY = amplitude * Math.sin((dist - phaseShift) * twoPiOverLambda);
+      const waveY = amplitudeVal * Math.sin((dist - phaseOffset) * twoPiOverLambda);
       const px = startX + (dist * cosA - waveY * sinA);
       const py = startY + (dist * sinA + waveY * cosA);
       path += ` L ${px.toFixed(1)},${py.toFixed(1)}`;
@@ -81,301 +123,636 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
 
   const topAtomY = centerY - planeSpacing / 2;
   const bottomAtomY = centerY + planeSpacing / 2;
-  const rayLength = 300;
-  
-  // Incident 1 (Top)
-  const inc1StartX = centerX - rayLength * Math.cos(thetaRad);
-  const inc1StartY = topAtomY - rayLength * Math.sin(thetaRad);
+  const rayLength = 280;
 
-  // Incident 2 (Bottom)
-  const inc2StartX = centerX - rayLength * Math.cos(thetaRad);
-  const inc2StartY = bottomAtomY - rayLength * Math.sin(thetaRad);
+  // Key Scattering Points (Exact Vector Math)
+  // Point A: Scattering center on top atomic plane
+  const ax = centerX;
+  const ay = topAtomY;
 
-  // Reflected 1 (Top)
-  const ref1EndX = centerX + rayLength * Math.cos(thetaRad);
-  const ref1EndY = topAtomY - rayLength * Math.sin(thetaRad);
+  // Point B: Scattering center on bottom atomic plane directly below A
+  const bx = centerX;
+  const by = bottomAtomY;
 
-  // Reflected 2 (Bottom)
-  const ref2EndX = centerX + rayLength * Math.cos(thetaRad);
-  const ref2EndY = bottomAtomY - rayLength * Math.sin(thetaRad);
+  // Point C: Perpendicular drop from A onto incident Ray 1 (lower ray)
+  // Distance CB = planeSpacing * sin(theta)
+  const dSinTheta = planeSpacing * Math.sin(thetaRad);
+  const cx = bx - dSinTheta * Math.cos(thetaRad);
+  const cy = by - dSinTheta * Math.sin(thetaRad);
 
-  const pathDiff = planeSpacing * Math.sin(thetaRad);
-  const cx = centerX - pathDiff * Math.cos(thetaRad);
-  const cy = bottomAtomY - pathDiff * Math.sin(thetaRad);
-  const dx = centerX + pathDiff * Math.cos(thetaRad);
-  const dy = bottomAtomY - pathDiff * Math.sin(thetaRad);
+  // Point D: Perpendicular drop from A onto diffracted Ray 1 (lower ray)
+  // Distance BD = planeSpacing * sin(theta)
+  const dx = bx + dSinTheta * Math.cos(thetaRad);
+  const dy = by - dSinTheta * Math.sin(thetaRad);
 
+  // Ray start and end positions
+  // Incident Ray 2 (Upper, hits A):
+  const inc2StartX = ax - rayLength * Math.cos(thetaRad);
+  const inc2StartY = ay - rayLength * Math.sin(thetaRad);
+
+  // Incident Ray 1 (Lower, hits B):
+  const inc1StartX = bx - rayLength * Math.cos(thetaRad);
+  const inc1StartY = by - rayLength * Math.sin(thetaRad);
+
+  // Diffracted Ray 2 (Upper, leaves A):
+  const diff2EndX = ax + rayLength * Math.cos(thetaRad);
+  const diff2EndY = ay - rayLength * Math.sin(thetaRad);
+
+  // Diffracted Ray 1 (Lower, leaves B):
+  const diff1EndX = bx + rayLength * Math.cos(thetaRad);
+  const diff1EndY = by - rayLength * Math.sin(thetaRad);
+
+  // Atomic planes lattice nodes
   const atoms = [];
-  const atomSpacing = 45;
-  const atomsCount = 12;
+  const atomSpacing = 44;
+  const atomsCount = 14;
   for (let i = -atomsCount/2; i <= atomsCount/2; i++) {
     atoms.push({ x: centerX + i * atomSpacing, y: topAtomY });
     atoms.push({ x: centerX + i * atomSpacing, y: bottomAtomY });
   }
 
-  const waveAnimDuration = 1 / (Math.sin(thetaRad) * 2 + 0.1); 
-    return (
-    <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-800 relative overflow-hidden group">
-      <div className="absolute top-0 right-0 -mt-10 -mr-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-1000" />
-      <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl" />
-      
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 relative z-10 gap-4 pb-4 border-b border-slate-800/80">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.25)]">
-            <Atom className="w-6 h-6 text-indigo-400" />
+  const waveAnimDuration = 1.2;
+
+  // Black dots along rays to match textbook diagram style
+  const rayNodeDots = [];
+  const dotCount = 8;
+  for (let i = 1; i <= dotCount; i++) {
+    const dist = (i / (dotCount + 1)) * rayLength;
+    // Incident Ray 2
+    rayNodeDots.push({ x: inc2StartX + dist * Math.cos(thetaRad), y: inc2StartY + dist * Math.sin(thetaRad) });
+    // Incident Ray 1
+    rayNodeDots.push({ x: inc1StartX + dist * Math.cos(thetaRad), y: inc1StartY + dist * Math.sin(thetaRad) });
+    // Diffracted Ray 2
+    rayNodeDots.push({ x: ax + dist * Math.cos(thetaRad), y: ay - dist * Math.sin(thetaRad) });
+    // Diffracted Ray 1
+    rayNodeDots.push({ x: bx + dist * Math.cos(thetaRad), y: by - dist * Math.sin(thetaRad) });
+  }
+
+  // Oscilloscope Superposition Trace Generator
+  const scopePoints = useMemo(() => {
+    const pts = [];
+    const numSteps = 80;
+    for (let i = 0; i <= numSteps; i++) {
+      const t = (i / numSteps) * 4 * Math.PI; // 2 periods
+      const e1 = Math.sin(t);
+      const e2 = Math.sin(t - phaseDiffRad);
+      const eSum = e1 + e2;
+      pts.push({ t, e1, e2, eSum });
+    }
+    return pts;
+  }, [phaseDiffRad]);
+
+  return (
+    <div className="bg-[#080B11] border border-slate-800/80 p-5 sm:p-6 shadow-2xl relative font-mono text-slate-300">
+      {/* Header HUD */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-white/10 gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-sky-500/10 border border-sky-500/20 text-sky-400">
+            <Activity className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-lg sm:text-xl font-black text-white tracking-tight uppercase flex items-center gap-2">
-              Lattice Probe & Bragg Wave Simulator
+            <h2 className="text-base sm:text-lg font-bold tracking-wider text-slate-100 uppercase flex items-center gap-2">
+              Bragg Diffraction Kinematics & Wave Superposition
             </h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Real-time constructive & destructive interference dynamics</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">
+              Quantitative X-Ray Scattering Physics & Interference Simulator
+            </p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2 p-2 bg-slate-950/80 rounded-2xl border border-slate-800/80 shadow-inner">
-          <div className="flex items-center gap-3 px-3 py-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Goniometer 2θ</span>
+
+        {/* Goniometer Angle Controls & Quick Presets */}
+        <div className="flex flex-wrap items-center gap-2 bg-black/60 p-2 border border-slate-800/80">
+          <div className="flex items-center gap-2 px-2">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goniometer (2θ)</span>
             <input 
               type="range" 
               min="10" 
-              max="80" 
-              step="0.1"
+              max="90" 
+              step="0.05"
               value={String(localTwoTheta) === 'NaN' ? '' : localTwoTheta}
               onChange={(e) => {
                 setLocalTwoTheta(parseFloat(e.target.value));
                 setIsAutoScanning(false);
               }}
-              className="w-28 sm:w-36 accent-indigo-500 hover:accent-indigo-400 transition-all cursor-pointer"
+              className="w-24 sm:w-32 accent-sky-400 hover:accent-sky-300 transition-all cursor-pointer h-1.5 bg-slate-800 appearance-none rounded-none"
             />
-            <span className="text-xs font-mono font-black text-indigo-400 w-16 text-right tabular-nums bg-indigo-500/10 py-1 px-2 rounded-lg border border-indigo-500/20">{localTwoTheta.toFixed(1)}°</span>
+            <span className="text-xs font-bold text-sky-400 w-16 text-right tabular-nums bg-sky-950/40 px-2 py-0.5 border border-sky-500/30">
+              {localTwoTheta.toFixed(2)}°
+            </span>
           </div>
           <button 
             onClick={() => setIsAutoScanning(!isAutoScanning)}
-            className={`p-2 rounded-xl transition-all border active:scale-90 cursor-pointer ${isAutoScanning ? 'bg-rose-500/20 border-rose-500/30 text-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.2)]' : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)]'}`}
-            title={isAutoScanning ? "Pause auto-scan" : "Start continuous angle scan"}
+            className={`px-2.5 py-1 text-[10px] uppercase font-bold tracking-widest border transition-all flex items-center gap-1.5 ${
+              isAutoScanning 
+                ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' 
+                : 'bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500/20'
+            }`}
           >
-            {isAutoScanning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+            {isAutoScanning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {isAutoScanning ? 'Scanning' : 'Auto-Scan'}
           </button>
+
+          {/* Quick Presets */}
+          <div className="flex items-center gap-1 pl-2 border-l border-white/10">
+            {peak1TwoTheta && (
+              <button
+                onClick={() => { setLocalTwoTheta(peak1TwoTheta); setIsAutoScanning(false); setReflectionOrder(1); }}
+                className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+                title="Jump to 1st Order Bragg Peak"
+              >
+                Peak n=1 ({peak1TwoTheta.toFixed(1)}°)
+              </button>
+            )}
+            {peak2TwoTheta && (
+              <button
+                onClick={() => { setLocalTwoTheta(peak2TwoTheta); setIsAutoScanning(false); setReflectionOrder(2); }}
+                className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-all"
+                title="Jump to 2nd Order Bragg Peak"
+              >
+                Peak n=2 ({peak2TwoTheta.toFixed(1)}°)
+              </button>
+            )}
+            {nullTwoTheta && (
+              <button
+                onClick={() => { setLocalTwoTheta(nullTwoTheta); setIsAutoScanning(false); }}
+                className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 transition-all"
+                title="Jump to Destructive Interference Null"
+              >
+                Null (180°)
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
+        {/* Telemetry & Physics Controls Panel */}
         <div className="lg:col-span-1 space-y-3">
-          <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80 shadow-inner relative overflow-hidden group/card">
-            <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
-            <div className="relative z-10 flex items-center justify-between">
+          {/* Angle & Spacing Telemetry */}
+          <div className="bg-[#0B0F17] p-3.5 border border-slate-800/80 space-y-2">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1 flex justify-between">
+              <span>Geometric Parameters</span>
+              <span className="text-sky-400 font-mono">λ = {wavelength.toFixed(4)} Å</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Bragg Angle (θ)</span>
-                <span className="text-2xl font-black font-mono text-emerald-400 tracking-tighter">{theta.toFixed(precision)}°</span>
+                <span className="text-[9px] text-slate-500 block">θ (Bragg Angle)</span>
+                <span className="font-bold text-slate-200">{theta.toFixed(precision)}°</span>
               </div>
-              <div className="text-right">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">2θ Value</span>
-                <span className="text-xs font-mono font-bold text-slate-300">{localTwoTheta.toFixed(precision)}°</span>
+              <div>
+                <span className="text-[9px] text-slate-500 block">d-spacing (d_hkl)</span>
+                <span className="font-bold text-emerald-400">{dSpacing.toFixed(precision)} Å</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-500 block">Scattering Vector |Q|</span>
+                <span className="font-bold text-sky-400">{qMagnitude.toFixed(4)} Å⁻¹</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-500 block">Photon Energy (E)</span>
+                <span className="font-bold text-amber-400">{energyKeV.toFixed(2)} keV</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80 shadow-inner relative overflow-hidden group/card">
-            <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
-            <div className="relative z-10 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Plane Spacing (d)</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-black font-mono text-amber-400 tracking-tighter">{dSpacing.toFixed(precision)}</span>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase">Å</span>
-                </div>
+          {/* Reflection Order & Thermal Factor Control */}
+          <div className="bg-[#0B0F17] p-3.5 border border-slate-800/80 space-y-3">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-1">
+              Physics Controls
+            </div>
+            
+            {/* Reflection Order n */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider">Order (n):</span>
+              <div className="flex bg-black/60 border border-slate-800/80 p-0.5">
+                {[1, 2, 3].map(order => (
+                  <button
+                    key={order}
+                    onClick={() => setReflectionOrder(order)}
+                    className={`px-2.5 py-0.5 text-[10px] font-bold ${
+                      reflectionOrder === order 
+                        ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40' 
+                        : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    n={order}
+                  </button>
+                ))}
               </div>
-              <div className="text-right">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">λ Wavelength</span>
-                <span className="text-xs font-mono font-bold text-slate-300">{wavelength.toFixed(4)} Å</span>
+            </div>
+
+            {/* Debye-Waller B Factor Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] text-slate-400 uppercase tracking-wider">
+                <span>Debye-Waller (B):</span>
+                <span className="text-amber-400 font-bold">{debyeWallerB.toFixed(2)} Å²</span>
+              </div>
+              <input
+                type="range"
+                min="0.0"
+                max="2.0"
+                step="0.05"
+                value={debyeWallerB}
+                onChange={(e) => setDebyeWallerB(parseFloat(e.target.value))}
+                className="w-full h-1 bg-slate-800 appearance-none rounded-none accent-amber-400 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Phase & Interference Status */}
+          <div className="bg-[#0B0F17] p-3.5 border border-slate-800/80 space-y-2">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-white/5 pb-1">
+              <span>Phase Shift & Intensity</span>
+              <span className={`px-1.5 py-0.5 border ${
+                resonanceStrength > 0.85 
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                  : 'bg-black text-slate-500 border-white/10'
+              }`}>
+                {resonanceStrength > 0.85 ? 'Bragg Peak' : 'Off-Peak'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+              <div>
+                <span className="text-[9px] text-slate-500 block">Path Diff (Δ)</span>
+                <span className="font-bold text-slate-300">{pathLengthDiff.toFixed(3)} Å</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-500 block">Phase (Δφ)</span>
+                <span className="font-bold text-purple-400">{phaseDiffDeg.toFixed(1)}°</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <div className="flex justify-between text-[10px] text-slate-400 mb-1 uppercase tracking-wider">
+                <span>Relative Intensity (I/I₀)</span>
+                <span className="font-bold text-sky-400">{(totalNormalizedIntensity * 100).toFixed(1)}%</span>
+              </div>
+              <div className="w-full h-2 bg-black border border-slate-800/80 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-sky-500 via-emerald-400 to-amber-400 transition-all duration-150"
+                  style={{ width: `${Math.min(100, Math.max(0, totalNormalizedIntensity * 100))}%` }}
+                />
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800/80 shadow-inner relative overflow-hidden">
-             <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Waves className="w-3.5 h-3.5 text-indigo-400" />
-                  Phase Resonance
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-md ${
-                    signalStrength > 0.8 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    {signalStrength > 0.8 ? 'Bragg Peak' : 'Off-Resonance'}
+          {/* Superposition Oscilloscope Display & Phasor Wheel */}
+          <div className="bg-[#0B0F17] p-3 border border-slate-800/80 space-y-2">
+            <div className="flex justify-between items-center text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+              <span className="flex items-center gap-1"><Waves className="w-3 h-3 text-sky-400" /> Superposition & Phasors</span>
+              <button 
+                onClick={() => setShowPhasor(!showPhasor)}
+                className="text-[8px] uppercase tracking-wider text-sky-400 hover:underline"
+              >
+                {showPhasor ? 'Hide Phasor' : 'Show Phasor'}
+              </button>
+            </div>
+
+            <div className="bg-[#030508] border border-slate-800/80 p-1 relative min-h-20 flex flex-col sm:flex-row items-center gap-2">
+              {/* Scope Grid lines */}
+              <div className="flex-1 w-full h-20 relative">
+                <svg className="w-full h-full overflow-visible">
+                  <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(255,255,255,0.1)" strokeDasharray="2 2" />
+                  <line x1="50%" y1="0" x2="50%" y2="100%" stroke="rgba(255,255,255,0.1)" strokeDasharray="2 2" />
+
+                  {/* Wave 1 trace (cyan) */}
+                  <path
+                    d={scopePoints.map((p, idx) => {
+                      const x = (idx / (scopePoints.length - 1)) * 180;
+                      const y = 35 - p.e1 * 14;
+                      return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth="1"
+                    opacity="0.6"
+                  />
+
+                  {/* Wave 2 trace (magenta) */}
+                  <path
+                    d={scopePoints.map((p, idx) => {
+                      const x = (idx / (scopePoints.length - 1)) * 180;
+                      const y = 35 - p.e2 * 14;
+                      return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="#c084fc"
+                    strokeWidth="1"
+                    opacity="0.6"
+                  />
+
+                  {/* Resultant Wave trace (Amber/Gold) */}
+                  <path
+                    d={scopePoints.map((p, idx) => {
+                      const x = (idx / (scopePoints.length - 1)) * 180;
+                      const y = 35 - (p.eSum / 2) * 28;
+                      return `${idx === 0 ? 'M' : 'L'} ${x} ${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="#fbbf24"
+                    strokeWidth="1.8"
+                  />
+                </svg>
+              </div>
+
+              {/* Complex Argand Phasor Wheel */}
+              {showPhasor && (
+                <div className="w-20 h-20 shrink-0 bg-black/80 border border-slate-800 p-1 flex flex-col items-center justify-center relative">
+                  <svg width="70" height="70" viewBox="0 0 100 100" className="overflow-visible">
+                    {/* Circle & Axes */}
+                    <circle cx="50" cy="50" r="32" stroke="rgba(255,255,255,0.15)" strokeDasharray="2 2" fill="none" />
+                    <line x1="10" y1="50" x2="90" y2="50" stroke="rgba(255,255,255,0.1)" />
+                    <line x1="50" y1="10" x2="50" y2="90" stroke="rgba(255,255,255,0.1)" />
+
+                    {/* Vector E1 (Cyan, fixed along Re) */}
+                    <line x1="50" y1="50" x2="74" y2="50" stroke="#38bdf8" strokeWidth="1.5" />
+                    <circle cx="74" cy="50" r="1.5" fill="#38bdf8" />
+
+                    {/* Vector E2 (Purple, angled by phaseDiffRad) */}
+                    {(() => {
+                      const e2x = 74 + 24 * Math.cos(phaseDiffRad);
+                      const e2y = 50 - 24 * Math.sin(phaseDiffRad);
+                      const totX = 50 + 24 * (1 + Math.cos(phaseDiffRad));
+                      const totY = 50 - 24 * Math.sin(phaseDiffRad);
+                      return (
+                        <>
+                          <line x1="74" y1="50" x2={e2x} y2={e2y} stroke="#c084fc" strokeWidth="1.5" />
+                          <circle cx={e2x} cy={e2y} r="1.5" fill="#c084fc" />
+                          {/* Total E_sum vector (Gold) */}
+                          <line x1="50" y1="50" x2={totX} y2={totY} stroke="#fbbf24" strokeWidth="2" />
+                          <circle cx={totX} cy={totY} r="2" fill="#fbbf24" />
+                        </>
+                      );
+                    })()}
+                  </svg>
+                  <span className="text-[7px] text-amber-300 font-bold uppercase tracking-tighter absolute bottom-0.5">
+                    Argand Phasor
                   </span>
-                  <div className={`w-2 h-2 rounded-full ${signalStrength > 0.8 ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-slate-700'} animate-pulse`} />
                 </div>
-             </div>
-             <div className="h-16 flex items-end gap-1 px-1 bg-black/40 p-2 rounded-xl border border-slate-800/50">
-                {[...Array(20)].map((_, i) => {
-                  const h = Math.max(10, signalStrength * (100 - i * 4) * (0.8 + 0.2 * Math.sin(Date.now() / 120 + i)) + 5);
-                  return (
-                    <div 
-                      key={`bar-${i}`} 
-                      className={`flex-1 rounded-t-sm transition-[height] duration-75 ${
-                        signalStrength > 0.8 
-                          ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.3)]' 
-                          : 'bg-gradient-to-t from-indigo-700 to-indigo-400'
-                      }`}
-                      style={{ height: `${h}%` }}
-                    />
-                  );
-                })}
-             </div>
-             <div className="mt-3 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wider">
-                    Scattering Amplitudes
-                  </span>
-                </div>
-                <span className="text-xs font-mono font-black text-indigo-400">
-                  {(signalStrength * 100).toFixed(0)}%
-                </span>
-             </div>
+              )}
+            </div>
+
+            {/* Scope Legend */}
+            <div className="flex items-center justify-between text-[8px] text-slate-400 pt-0.5">
+              <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-sky-400 inline-block" /> E₁(t)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-purple-400 inline-block" /> E₂(t)</span>
+              <span className="flex items-center gap-1 font-bold text-amber-300"><span className="w-2 h-0.5 bg-amber-400 inline-block" /> E_total</span>
+            </div>
           </div>
         </div>
 
-        <div className="lg:col-span-3">
-          <div className="w-full bg-[#05070a] rounded-3xl overflow-hidden border-2 border-slate-800/90 relative shadow-[inset_0_4px_30px_rgba(0,0,0,0.9)] aspect-[16/9]">
-            <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
-            
-            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="pointer-events-none p-4" preserveAspectRatio="xMidYMid meet">
+        {/* Interactive Diffraction Ray-Tracing Diagram */}
+        <div className="lg:col-span-3 flex flex-col justify-between">
+          <div className="w-full bg-[#020408] border border-slate-800/80 relative shadow-2xl aspect-[16/9] overflow-hidden">
+            {/* Top Right Canvas Overlay Toggle */}
+            <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+              <button
+                onClick={() => setShowQVectors(!showQVectors)}
+                className={`px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider border backdrop-blur-md transition-all ${
+                  showQVectors 
+                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' 
+                    : 'bg-black/60 border-slate-700/80 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {showQVectors ? 'Hide Vectors (Q)' : 'Show Vectors (k_i, k_f, Q)'}
+              </button>
+            </div>
+
+            {/* Fine Grid Background */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} className="pointer-events-none p-2" preserveAspectRatio="xMidYMid meet">
               <defs>
-                <radialGradient id="atomGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-                  <stop offset="0%" stopColor="#cbd5e1" />
-                  <stop offset="100%" stopColor="#334155" />
-                </radialGradient>
-                <radialGradient id="highlightAtomGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-                  <stop offset="0%" stopColor="#fef08a" />
-                  <stop offset="100%" stopColor="#d97706" />
-                </radialGradient>
-                <filter id="rayGlow">
-                  <feGaussianBlur stdDeviation="3" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-                <filter id="constructiveGlow">
-                  <feGaussianBlur stdDeviation="6" result="blur" />
-                  <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.2  0 0 0 0 0.8  0 0 0 0 0.4  0 0 0 1 0" />
-                  <feMerge>
-                    <feMergeNode />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
+                <marker id="arrowhead-sky" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+                </marker>
+                <marker id="arrowhead-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#fbbf24" />
+                </marker>
+                <marker id="arrowhead-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+                </marker>
               </defs>
 
               {/* Atomic Planes Lines */}
-              <line x1="0" y1={topAtomY} x2={width} y2={topAtomY} stroke="rgba(99,102,241,0.2)" strokeWidth="1.5" strokeDasharray="6 4" />
-              <line x1="0" y1={bottomAtomY} x2={width} y2={bottomAtomY} stroke="rgba(99,102,241,0.2)" strokeWidth="1.5" strokeDasharray="6 4" />
+              <line x1="20" y1={topAtomY} x2={width - 20} y2={topAtomY} stroke="#f1f5f9" strokeWidth="1.8" />
+              <line x1="20" y1={bottomAtomY} x2={width - 20} y2={bottomAtomY} stroke="#f1f5f9" strokeWidth="1.8" />
               
-              <text x="15" y={topAtomY - 8} fill="#818cf8" fontSize="9" fontWeight="800" className="opacity-80 font-mono">Plane (hkl)_1</text>
-              <text x="15" y={bottomAtomY + 16} fill="#818cf8" fontSize="9" fontWeight="800" className="opacity-80 font-mono">Plane (hkl)_2</text>
+              <text x="25" y={topAtomY - 10} fill="#cbd5e1" fontSize="11" className="font-mono font-bold uppercase tracking-wider">atomic plane</text>
+              <text x="25" y={bottomAtomY + 18} fill="#cbd5e1" fontSize="11" className="font-mono font-bold uppercase tracking-wider">atomic plane</text>
 
-              {/* Atoms */}
+              {/* Lattice Atoms (Black Filled Circles along Planes) */}
               {atoms.map((atom, i) => (
-                <circle key={`atom-${atom.x}-${atom.y}-${i}`} cx={atom.x} cy={atom.y} r="5.5" fill="url(#atomGrad)" opacity="0.75" />
+                <circle key={`atom-${atom.x}-${atom.y}-${i}`} cx={atom.x} cy={atom.y} r="4.5" fill="#000000" stroke="#f8fafc" strokeWidth="1" />
               ))}
-              
-              {/* Highlighted Core Scattering Center Atoms */}
-              <motion.circle 
-                cx={centerX} cy={topAtomY} r={8 + signalStrength * 5} 
-                fill="url(#highlightAtomGrad)" 
-                animate={{ filter: signalStrength > 0.8 ? 'url(#constructiveGlow)' : 'none' }}
-              />
-              <motion.circle 
-                cx={centerX} cy={bottomAtomY} r={8 + signalStrength * 5} 
-                fill="url(#highlightAtomGrad)" 
-                animate={{ filter: signalStrength > 0.8 ? 'url(#constructiveGlow)' : 'none' }}
-              />
 
-              {/* Constructive Visual Ring Feedback */}
-              <AnimatePresence>
-                {signalStrength > 0.8 && (
-                  <motion.g initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                    <circle cx={centerX} cy={centerY} r={55 * signalStrength} stroke="#10b981" strokeWidth="1.5" fill="none" opacity="0.25" className="animate-ping" />
-                    <circle cx={centerX} cy={topAtomY} r={24 * signalStrength} stroke="#f59e0b" strokeWidth="1" fill="none" opacity="0.3" className="animate-ping" />
-                  </motion.g>
-                )}
-              </AnimatePresence>
+              {/* Central Ray Vector Straight Lines (Light Blue) */}
+              <line x1={inc2StartX} y1={inc2StartY} x2={ax} y2={ay} stroke="#38bdf8" strokeWidth="1.5" />
+              <line x1={inc1StartX} y1={inc1StartY} x2={bx} y2={by} stroke="#38bdf8" strokeWidth="1.5" />
+              <line x1={ax} y1={ay} x2={diff2EndX} y2={diff2EndY} stroke="#38bdf8" strokeWidth="1.5" markerEnd="url(#arrowhead-sky)" />
+              <line x1={bx} y1={by} x2={diff1EndX} y2={diff1EndY} stroke="#38bdf8" strokeWidth="1.5" markerEnd="url(#arrowhead-sky)" />
 
-              {/* Path Difference Triangles */}
-              <path d={`M ${centerX} ${topAtomY} L ${cx} ${cy} L ${centerX} ${bottomAtomY} Z`} fill="rgba(16, 185, 129, 0.12)" />
-              <path d={`M ${centerX} ${topAtomY} L ${dx} ${dy} L ${centerX} ${bottomAtomY} Z`} fill="rgba(16, 185, 129, 0.12)" />
+              {/* Wavefront Dashed Lines */}
+              <line x1={inc2StartX} y1={inc2StartY} x2={inc1StartX} y2={inc1StartY} stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 4" />
+              <line x1={diff2EndX} y1={diff2EndY} x2={diff1EndX} y2={diff1EndY} stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 4" />
 
-              <line x1={centerX} y1={topAtomY} x2={cx} y2={cy} stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" />
-              <line x1={centerX} y1={topAtomY} x2={dx} y2={dy} stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" />
-              
-              <text x={cx - 38} y={cy - 10} fill="#10b981" fontSize="9.5" fontWeight="900" className="font-mono">d·sinθ</text>
-              <text x={dx + 8} y={dy - 10} fill="#10b981" fontSize="9.5" fontWeight="900" className="font-mono">d·sinθ</text>
-
-              {/* Plane Spacing d Dimension Indicator */}
-              <line x1={centerX - 130} y1={topAtomY} x2={centerX - 130} y2={bottomAtomY} stroke="#f59e0b" strokeWidth="1.5" />
-              <line x1={centerX - 135} y1={topAtomY} x2={centerX - 125} y2={topAtomY} stroke="#f59e0b" strokeWidth="1.5" />
-              <line x1={centerX - 135} y1={bottomAtomY} x2={centerX - 125} y2={bottomAtomY} stroke="#f59e0b" strokeWidth="1.5" />
-              <text x={centerX - 152} y={centerY + 3} fill="#f59e0b" fontSize="10" fontWeight="900" className="font-mono">d</text>
-
-              {/* Incident Waves */}
+              {/* Incident Wave 2 (Upper Ray, Pink/Magenta) */}
               <motion.path 
-                d={generateWavePath(inc1StartX - lambdaVis, inc1StartY - lambdaVis * Math.sin(thetaRad), thetaRad, rayLength + lambdaVis)} 
-                stroke="#818cf8" strokeWidth="2.5" fill="none" opacity={0.7 + signalStrength * 0.3}
+                d={generateWavePath(inc2StartX, inc2StartY, thetaRad, rayLength, 0, 7)} 
+                stroke="#f43f5e" strokeWidth="2" fill="none"
                 animate={{ x: [0, lambdaVis * Math.cos(thetaRad)], y: [0, lambdaVis * Math.sin(thetaRad)] }}
                 transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
-                filter="url(#rayGlow)"
-              />
-              <motion.path 
-                d={generateWavePath(inc2StartX - lambdaVis, inc2StartY - lambdaVis * Math.sin(thetaRad), thetaRad, rayLength + lambdaVis)} 
-                stroke="#f43f5e" strokeWidth="2.5" fill="none" opacity={0.7 + signalStrength * 0.3}
-                animate={{ x: [0, lambdaVis * Math.cos(thetaRad)], y: [0, lambdaVis * Math.sin(thetaRad)] }}
-                transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
-                filter="url(#rayGlow)"
-              />
-              
-              {/* Reflected Waves */}
-              <motion.path 
-                d={generateWavePath(centerX - lambdaVis, topAtomY - lambdaVis * -Math.sin(thetaRad), -thetaRad, rayLength + lambdaVis)} 
-                stroke="#818cf8" strokeWidth={2.5 + signalStrength * 1.5} fill="none" opacity={0.7 + signalStrength * 0.3}
-                animate={{ x: [0, lambdaVis * Math.cos(-thetaRad)], y: [0, lambdaVis * Math.sin(-thetaRad)] }}
-                transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
-                filter="url(#rayGlow)"
-              />
-              <motion.path 
-                d={generateWavePath(centerX - lambdaVis, bottomAtomY - lambdaVis * -Math.sin(thetaRad), -thetaRad, rayLength + lambdaVis)} 
-                stroke="#f43f5e" strokeWidth={2.5 + signalStrength * 1.5} fill="none" opacity={0.7 + signalStrength * 0.3}
-                animate={{ x: [0, lambdaVis * Math.cos(-thetaRad)], y: [0, lambdaVis * Math.sin(-thetaRad)] }}
-                transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
-                filter="url(#rayGlow)"
               />
 
-              {/* Angle Marker */}
+              {/* Incident Wave 1 (Lower Ray, Green) */}
+              <motion.path 
+                d={generateWavePath(inc1StartX, inc1StartY, thetaRad, rayLength, 0, 7)} 
+                stroke="#10b981" strokeWidth="2" fill="none"
+                animate={{ x: [0, lambdaVis * Math.cos(thetaRad)], y: [0, lambdaVis * Math.sin(thetaRad)] }}
+                transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
+              />
+
+              {/* Diffracted Wave 2 (Upper Ray, Pink/Magenta or Gold on Bragg Peak) */}
+              <motion.path 
+                d={generateWavePath(ax, ay, -thetaRad, rayLength, 0, 7)} 
+                stroke={resonanceStrength > 0.85 ? "#fbbf24" : "#f43f5e"} 
+                strokeWidth={resonanceStrength > 0.85 ? "2.5" : "2"} fill="none"
+                animate={{ x: [0, lambdaVis * Math.cos(-thetaRad)], y: [0, lambdaVis * Math.sin(-thetaRad)] }}
+                transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
+              />
+
+              {/* Diffracted Wave 1 (Lower Ray, Green or Gold on Bragg Peak) */}
+              <motion.path 
+                d={generateWavePath(bx, by, -thetaRad, rayLength, 0, 7)} 
+                stroke={resonanceStrength > 0.85 ? "#fbbf24" : "#10b981"} 
+                strokeWidth={resonanceStrength > 0.85 ? "2.5" : "2"} fill="none"
+                animate={{ x: [0, lambdaVis * Math.cos(-thetaRad)], y: [0, lambdaVis * Math.sin(-thetaRad)] }}
+                transition={{ repeat: Infinity, duration: waveAnimDuration, ease: "linear" }}
+              />
+
+              {/* Black Dots along Ray Vectors */}
+              {rayNodeDots.map((dot, idx) => (
+                <circle key={`dot-${idx}`} cx={dot.x} cy={dot.y} r="2.5" fill="#000000" stroke="#38bdf8" strokeWidth="0.5" />
+              ))}
+
+              {/* Segment AB (Vertical Line connecting top Atom A and bottom Atom B) */}
+              <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#f8fafc" strokeWidth="2" />
+              <text x={ax + 6} y={(ay + by) / 2 + 3} fill="#f8fafc" fontSize="12" className="font-mono font-bold">d</text>
+
+              {/* Dashed Line AC (Perpendicular drop from A to Incident Ray 1) */}
+              <line x1={ax} y1={ay} x2={cx} y2={cy} stroke="#94a3b8" strokeWidth="1.2" strokeDasharray="3 3" />
+
+              {/* Dashed Line AD (Perpendicular drop from A to Diffracted Ray 1) */}
+              <line x1={ax} y1={ay} x2={dx} y2={dy} stroke="#94a3b8" strokeWidth="1.2" strokeDasharray="3 3" />
+
+              {/* Right Angle Square Indicators at C and D */}
               <path 
-                d={`M ${centerX - 60} ${topAtomY} A 60 60 0 0 0 ${centerX - 60 * Math.cos(thetaRad)} ${topAtomY - 60 * Math.sin(thetaRad)}`} 
-                stroke="rgba(255,255,255,0.25)" fill="none" strokeWidth="1.5"
+                d={`M ${cx + 6 * Math.cos(thetaRad)} ${cy + 6 * Math.sin(thetaRad)} L ${cx + 6 * Math.cos(thetaRad) + 6 * Math.sin(thetaRad)} ${cy + 6 * Math.sin(thetaRad) - 6 * Math.cos(thetaRad)} L ${cx + 6 * Math.sin(thetaRad)} ${cy - 6 * Math.cos(thetaRad)}`} 
+                stroke="#cbd5e1" fill="none" strokeWidth="1" 
               />
-              <text x={centerX - 80} y={topAtomY - 20} fill="#94a3b8" fontSize="12" fontWeight="bold" className="font-mono">θ</text>
+              <path 
+                d={`M ${dx - 6 * Math.cos(thetaRad)} ${dy + 6 * Math.sin(thetaRad)} L ${dx - 6 * Math.cos(thetaRad) - 6 * Math.sin(thetaRad)} ${dy + 6 * Math.sin(thetaRad) - 6 * Math.cos(thetaRad)} L ${dx - 6 * Math.sin(thetaRad)} ${dy - 6 * Math.cos(thetaRad)}`} 
+                stroke="#cbd5e1" fill="none" strokeWidth="1" 
+              />
+
+              {/* Points A, B, C, D Labels & Circles */}
+              {/* Point A */}
+              <circle cx={ax} cy={ay} r="4" fill="#f43f5e" stroke="#ffffff" strokeWidth="1" />
+              <text x={ax - 12} y={ay - 8} fill="#f8fafc" fontSize="12" className="font-mono font-bold italic">A</text>
+
+              {/* Point B */}
+              <circle cx={bx} cy={by} r="4" fill="#10b981" stroke="#ffffff" strokeWidth="1" />
+              <text x={bx - 12} y={by + 16} fill="#f8fafc" fontSize="12" className="font-mono font-bold italic">B</text>
+
+              {/* Point C */}
+              <circle cx={cx} cy={cy} r="3.5" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
+              <text x={cx - 14} y={cy + 4} fill="#38bdf8" fontSize="11" className="font-mono font-bold italic">C</text>
+
+              {/* Point D */}
+              <circle cx={dx} cy={dy} r="3.5" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
+              <text x={dx + 6} y={dy + 4} fill="#38bdf8" fontSize="11" className="font-mono font-bold italic">D</text>
+
+              {/* Path Difference Dimension Arrows d sin θ */}
+              {/* Segment CB */}
+              <line x1={cx} y1={cy + 10} x2={bx} y2={by + 10} stroke="#38bdf8" strokeWidth="1" />
+              <text x={(cx + bx) / 2 - 20} y={cy + 22} fill="#38bdf8" fontSize="11" className="font-mono font-bold">d sin θ</text>
+
+              {/* Segment BD */}
+              <text x={(bx + dx) / 2 + 4} y={dy + 22} fill="#38bdf8" fontSize="11" className="font-mono font-bold">d sin θ</text>
+
+              {/* Optional Scattering Vectors Overlay at Point A */}
+              {showQVectors && (
+                <g className="animate-in fade-in duration-300">
+                  {/* k_i (incident vector towards A) */}
+                  <line 
+                    x1={ax - 55 * Math.cos(thetaRad)} 
+                    y1={ay - 55 * Math.sin(thetaRad)} 
+                    x2={ax} 
+                    y2={ay} 
+                    stroke="#38bdf8" strokeWidth="2.5" markerEnd="url(#arrowhead-sky)" 
+                  />
+                  <text x={ax - 65 * Math.cos(thetaRad) - 10} y={ay - 65 * Math.sin(thetaRad)} fill="#38bdf8" fontSize="11" className="font-mono font-bold">k_i</text>
+
+                  {/* k_f (diffracted vector away from A) */}
+                  <line 
+                    x1={ax} 
+                    y1={ay} 
+                    x2={ax + 55 * Math.cos(thetaRad)} 
+                    y2={ay - 55 * Math.sin(thetaRad)} 
+                    stroke="#fbbf24" strokeWidth="2.5" markerEnd="url(#arrowhead-amber)" 
+                  />
+                  <text x={ax + 60 * Math.cos(thetaRad)} y={ay - 60 * Math.sin(thetaRad)} fill="#fbbf24" fontSize="11" className="font-mono font-bold">k_f</text>
+
+                  {/* Q = k_f - k_i (Scattering momentum transfer vector straight up) */}
+                  {(() => {
+                    const qLen = 110 * Math.sin(thetaRad);
+                    return (
+                      <>
+                        <line 
+                          x1={ax} 
+                          y1={ay} 
+                          x2={ax} 
+                          y2={ay - qLen} 
+                          stroke="#10b981" strokeWidth="3" markerEnd="url(#arrowhead-emerald)" 
+                        />
+                        <text x={ax + 8} y={ay - qLen / 2} fill="#10b981" fontSize="11" className="font-mono font-bold">
+                          Q = k_f - k_i
+                        </text>
+                      </>
+                    );
+                  })()}
+                </g>
+              )}
+
+              {/* Angles θ inside triangle at A */}
+              {/* Arc between AB and AC */}
+              <path 
+                d={`M ${ax - 18 * Math.sin(thetaRad)} ${ay + 18 * Math.cos(thetaRad)} A 18 18 0 0 1 ${ax - 18 * Math.sin(thetaRad * 0.5)} ${ay + 18 * Math.cos(thetaRad * 0.5)}`} 
+                stroke="#f8fafc" fill="none" strokeWidth="1" 
+              />
+              <text x={ax - 14} y={ay + 32} fill="#cbd5e1" fontSize="10" className="font-mono">θ</text>
+
+              {/* Arc between AB and AD */}
+              <path 
+                d={`M ${ax + 18 * Math.sin(thetaRad)} ${ay + 18 * Math.cos(thetaRad)} A 18 18 0 0 0 ${ax + 18 * Math.sin(thetaRad * 0.5)} ${ay + 18 * Math.cos(thetaRad * 0.5)}`} 
+                stroke="#f8fafc" fill="none" strokeWidth="1" 
+              />
+              <text x={ax + 8} y={ay + 32} fill="#cbd5e1" fontSize="10" className="font-mono">θ</text>
+
+              {/* Incident Angle θ Arc between Incident Ray 2 and Top Plane */}
+              <path 
+                d={`M ${ax - 60} ${ay} A 60 60 0 0 1 ${ax - 60 * Math.cos(thetaRad)} ${ay - 60 * Math.sin(thetaRad)}`} 
+                stroke="#38bdf8" fill="none" strokeWidth="1.2"
+              />
+              <text x={ax - 130} y={ay - 14} fill="#cbd5e1" fontSize="11" className="font-mono">incident angle <tspan fill="#38bdf8" fontWeight="bold">θ</tspan></text>
+
+              {/* Reflected Angle θ Arc between Diffracted Ray 2 and Top Plane */}
+              <path 
+                d={`M ${ax + 60} ${ay} A 60 60 0 0 0 ${ax + 60 * Math.cos(thetaRad)} ${ay - 60 * Math.sin(thetaRad)}`} 
+                stroke="#38bdf8" fill="none" strokeWidth="1.2"
+              />
+              <text x={ax + 60} y={ay - 14} fill="#cbd5e1" fontSize="11" className="font-mono"><tspan fill="#38bdf8" fontWeight="bold">θ</tspan> reflected angle</text>
+
+              {/* Wave Labels */}
+              <text x={inc2StartX + 20} y={inc2StartY - 12} fill="#f43f5e" fontSize="12" className="font-mono font-bold">wave 2</text>
+              <text x={inc1StartX + 20} y={inc1StartY - 12} fill="#10b981" fontSize="12" className="font-mono font-bold">wave 1</text>
+
+              {/* Wavelength lambda dimension markers */}
+              <text x={inc2StartX + 120} y={inc2StartY - 14} fill="#cbd5e1" fontSize="11" className="font-mono font-bold">|← λ →|</text>
+              <text x={inc1StartX + 100} y={inc1StartY + 24} fill="#cbd5e1" fontSize="11" className="font-mono font-bold">|← λ →|</text>
+
+              {/* Interplanar Spacing Dimension Indicator on the Left */}
+              <line x1={50} y1={topAtomY} x2={50} y2={bottomAtomY} stroke="#f8fafc" strokeWidth="1.5" />
+              <line x1={45} y1={topAtomY} x2={55} y2={topAtomY} stroke="#f8fafc" strokeWidth="1.5" />
+              <line x1={45} y1={bottomAtomY} x2={55} y2={bottomAtomY} stroke="#f8fafc" strokeWidth="1.5" />
+              <text x={38} y={(topAtomY + bottomAtomY) / 2 + 4} fill="#f8fafc" fontSize="12" className="font-mono font-bold italic">d</text>
+
+              {/* Reflection Order Indicator Label on the Right */}
+              <text x={width - 80} y={(topAtomY + bottomAtomY) / 2 + 4} fill="#38bdf8" fontSize="13" className="font-mono font-bold">n = {reflectionOrder}</text>
             </svg>
 
-            {/* Bottom Legend */}
-            <div className="absolute bottom-4 left-6 right-6 flex flex-wrap items-center justify-between gap-4 bg-slate-950/80 backdrop-blur-md px-5 py-2.5 rounded-2xl border border-slate-800/80 z-20">
+            {/* Bottom Diagram Legend */}
+            <div className="absolute bottom-3 left-4 right-4 flex flex-wrap items-center justify-between gap-3 bg-black/80 px-3.5 py-1.5 border border-slate-800/80 z-20 text-[9px]">
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-[3px] bg-[#818cf8] rounded-full shadow-[0_0_8px_#818cf8]" />
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest font-mono">Incident Plane 1</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#38bdf8]" />
+                  <span className="text-slate-400 uppercase tracking-wider">Incident Ray (k_i)</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-[3px] bg-[#f43f5e] rounded-full shadow-[0_0_8px_#f43f5e]" />
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest font-mono">Incident Plane 2</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-0.5 bg-[#fbbf24]" />
+                  <span className="text-slate-400 uppercase tracking-wider">Diffracted Ray (k_f)</span>
                 </div>
               </div>
+
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-1 bg-emerald-500/30 border border-emerald-500 rounded-xs" />
-                  <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest font-mono">Path Difference (2d sinθ)</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-0.5 bg-emerald-400" />
+                  <span className="text-slate-400 uppercase tracking-wider">Path Diff (2d sin θ)</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${signalStrength > 0.8 ? 'bg-emerald-400 shadow-[0_0_8px_#10b981]' : 'bg-amber-400'}`} />
-                  <span className={`text-[9px] font-black uppercase tracking-widest font-mono ${signalStrength > 0.8 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {signalStrength > 0.8 ? 'Constructive (nλ)' : 'Phase Lag'}
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-1.5 h-1.5 ${resonanceStrength > 0.8 ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24]' : 'bg-slate-600'}`} />
+                  <span className={`uppercase tracking-wider ${resonanceStrength > 0.8 ? 'text-amber-300 font-bold' : 'text-slate-500'}`}>
+                    {resonanceStrength > 0.8 ? `Bragg Peak (${reflectionOrder}λ)` : 'Phase Mismatch'}
                   </span>
                 </div>
               </div>
