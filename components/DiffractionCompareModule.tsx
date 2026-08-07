@@ -34,7 +34,13 @@ import {
   Scale,
   Crosshair,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2,
+  HelpCircle,
+  X,
+  FileSpreadsheet,
+  Play,
+  Lightbulb
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -240,6 +246,54 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     }
   };
 
+  // User Help & Guide Modal State
+  const [showGuideModal, setShowGuideModal] = useState<boolean>(false);
+
+  // 1-Click Preset Demonstration Scenarios
+  const handleLoadPresetScenario = (key: string) => {
+    if (key === 'pure-ha') {
+      const ha = MATERIAL_DB.find(m => m.name.toLowerCase().includes('hydroxyapatite')) || MATERIAL_DB[5];
+      setExpMode('custom');
+      setCustomExpName('Synthesized HAp (Single Phase)');
+      setCustomExpFormula(ha.formula);
+      setCustomExpPattern(ha.pattern);
+      setRefMode('preset');
+      setSelectedMaterialBName(ha.name);
+      setShiftTwoTheta(0);
+      setScaleSampleB(1.0);
+    } else if (key === 'strained-ha') {
+      const ha = MATERIAL_DB.find(m => m.name.toLowerCase().includes('hydroxyapatite')) || MATERIAL_DB[5];
+      setExpMode('custom');
+      setCustomExpName('Strained HAp (Substituted)');
+      setCustomExpFormula('Ca9.5Mg0.5(PO4)6(OH)2');
+      setCustomExpPattern('25.99(30), 31.89(100), 32.31(70), 33.02(65), 34.20(45), 46.83(35), 49.58(30)');
+      setRefMode('preset');
+      setSelectedMaterialBName(ha.name);
+      setShiftTwoTheta(0);
+      setScaleSampleB(1.0);
+    } else if (key === 'biphasic-ha-tcp') {
+      const ha = MATERIAL_DB.find(m => m.name.toLowerCase().includes('hydroxyapatite')) || MATERIAL_DB[5];
+      setExpMode('custom');
+      setCustomExpName('Biphasic HAp + TCP Mixture');
+      setCustomExpFormula('Ca10(PO4)6(OH)2 + Ca3(PO4)2');
+      setCustomExpPattern('25.87(30), 31.02(45), 31.77(100), 32.19(70), 32.90(65), 34.08(45), 34.30(35), 46.71(35), 49.46(30)');
+      setRefMode('preset');
+      setSelectedMaterialBName(ha.name);
+      setShiftTwoTheta(0);
+      setScaleSampleB(1.0);
+    } else if (key === 'quartz') {
+      const qz = MATERIAL_DB.find(m => m.name.toLowerCase().includes('quartz')) || MATERIAL_DB[0];
+      setExpMode('custom');
+      setCustomExpName('Quartz Standard (Alpha-SiO2)');
+      setCustomExpFormula(qz.formula);
+      setCustomExpPattern(qz.pattern);
+      setRefMode('preset');
+      setSelectedMaterialBName(qz.name);
+      setShiftTwoTheta(0);
+      setScaleSampleB(1.0);
+    }
+  };
+
   // ----------------------------------------------------
   // Match & Residual Diagnostics Logic
   // ----------------------------------------------------
@@ -303,7 +357,29 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       }
     });
 
-    return { shifts, missingInA, extraInA };
+    let meanShift = 0;
+    let avgStrain = 0;
+    if (shifts.length > 0) {
+      const sumShift = shifts.reduce((acc, s) => acc + s.shift, 0);
+      meanShift = sumShift / shifts.length;
+      const strains = shifts.map(s => {
+        const thetaRad = (s.peak / 2) * (Math.PI / 180);
+        const deltaRad = (s.shift) * (Math.PI / 180);
+        return -0.5 * deltaRad / Math.tan(thetaRad || 0.1);
+      });
+      avgStrain = (strains.reduce((acc, st) => acc + st, 0) / strains.length) * 100;
+    }
+
+    let matchQuality: 'exact' | 'strained' | 'multiphase' | 'poor' = 'exact';
+    if (extraInA.length > 1 && missingInA.length > 1) {
+      matchQuality = 'poor';
+    } else if (extraInA.length > 0) {
+      matchQuality = 'multiphase';
+    } else if (Math.abs(meanShift) > 0.03 || shifts.length > 0) {
+      matchQuality = 'strained';
+    }
+
+    return { shifts, missingInA, extraInA, meanShift, avgStrain, matchQuality };
   }, [materialA, materialB]);
 
   // ----------------------------------------------------
@@ -615,8 +691,172 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     );
   }, [searchBText]);
 
+  // Export Report to CSV
+  const handleExportReportCSV = () => {
+    let csv = `XRD Compare & Residual Diagnostics Report\n`;
+    csv += `Sample A (Experimental):,${materialA.name} (${materialA.formula})\n`;
+    csv += `Sample B (Reference):,${materialB?.name} (${materialB?.formula})\n`;
+    csv += `Shift 2Theta:,${shiftTwoTheta}°\n`;
+    csv += `Scale Sample B:,${scaleSampleB}x\n`;
+    csv += `Metrics:,Rp = ${spectralMetrics.rP}%, Rwp = ${spectralMetrics.rWP}%, Pearson R = ${spectralMetrics.pearsonR}%, RMS Error = ${spectralMetrics.rmsd}\n`;
+    csv += `Match Quality:,${analysis.matchQuality.toUpperCase()}, Mean Shift = ${analysis.meanShift.toFixed(3)} deg, Microstrain = ${analysis.avgStrain.toFixed(3)}%\n\n`;
+    csv += `2Theta_deg,Intensity_A,Intensity_B_Scaled,Delta_Residual,Deriv_A,Deriv_B\n`;
+    points.forEach(p => {
+      csv += `${p.twoTheta},${p.intensityA},${p.intensityB},${p.difference},${p.derivA},${p.derivB}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `XRD_Compare_${materialA.name.replace(/\s+/g, '_')}_vs_${materialB?.name.replace(/\s+/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Automated Plain-English AI Interpretation
+  const plainEnglishSummary = useMemo(() => {
+    const { meanShift, avgStrain, extraInA } = analysis;
+    const pVal = parseFloat(spectralMetrics.pearsonR);
+    const rpVal = parseFloat(spectralMetrics.rP);
+
+    if (pVal >= 95 && rpVal < 15 && Math.abs(meanShift) < 0.04 && extraInA.length === 0) {
+      return {
+        badge: 'Single Phase High Pure Match',
+        badgeClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+        title: `Excellent match with ${materialB?.name} standard (${pVal}% correlation)`,
+        description: `Sample A matches reference standard with minimal residual deviation (Profile Residual Rp = ${rpVal}%). No significant unit cell strain or secondary phase impurities detected.`,
+        bullets: [
+          'Suitable for phase quantification and crystallite size determination.',
+          'Peak positions align within standard instrumental tolerance (Δ2θ < 0.04°).'
+        ]
+      };
+    } else if (Math.abs(meanShift) >= 0.04 || Math.abs(avgStrain) >= 0.05) {
+      return {
+        badge: 'Lattice Strain / Peak Shift',
+        badgeClass: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+        title: `Systematic peak shift detected (Average Δ2θ = ${meanShift > 0 ? '+' : ''}${meanShift.toFixed(3)}°)`,
+        description: `Reflections are displaced from ideal reference positions, indicating unit cell ${meanShift > 0 ? 'contraction (compressive strain)' : 'expansion (tensile strain)'}. Microstrain estimate ε ≈ ${avgStrain > 0 ? '+' : ''}${avgStrain.toFixed(3)}%.`,
+        bullets: [
+          'Commonly caused by ionic substitution (doping), thermal stress, or residual lattice strain.',
+          'Use the "Auto Align" button to zero-shift before strain calculation.'
+        ]
+      };
+    } else if (extraInA.length > 0) {
+      return {
+        badge: 'Secondary Phase / Impurity',
+        badgeClass: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30',
+        title: `Multiphase mixture detected (${extraInA.length} unindexed reflections)`,
+        description: `Sample A contains extra diffraction peaks not indexed by reference ${materialB?.name} (e.g. 2θ = ${extraInA.slice(0, 3).map(x => x.toFixed(2) + '°').join(', ')}).`,
+        bullets: [
+          'Indicates secondary crystalline phase formation or unreacted precursor residues.',
+          'Click any unindexed peak button below to zoom chart directly to the discrepancy.'
+        ]
+      };
+    } else {
+      return {
+        badge: 'Phase Discrepancy',
+        badgeClass: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+        title: `Moderate correlation (${pVal}%) with profile residual Rp = ${rpVal}%`,
+        description: `Notable intensity discrepancy between Sample A and reference ${materialB?.name}.`,
+        bullets: [
+          'May indicate preferred orientation (texture) or low crystallite size/amorphous broadening.',
+          'Try adjusting reference scaling or searching for alternative polymorphs.'
+        ]
+      };
+    }
+  }, [analysis, spectralMetrics, materialB]);
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500" id="diffraction-compare-module">
+      {/* Quick Demo Scenarios & Guide Ribbon */}
+      <div className="bg-[#080d1a] border border-slate-800/90 p-4 rounded-2xl shadow-xl space-y-3">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="text-xs font-black uppercase tracking-wider text-slate-200">
+              {t('1-Click Test Scenarios')}:
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono hidden lg:inline">
+              ({t('Select a scenario to test XRD match diagnostics instantly')})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setShowGuideModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-[11px] font-mono font-bold transition-all active:scale-95"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{t('Guide & Interpretation')}</span>
+            </button>
+            <button
+              onClick={handleExportReportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-[11px] font-mono font-bold transition-all active:scale-95"
+              title="Download comparison analysis report as CSV"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{t('Export CSV Report')}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button
+            onClick={() => handleLoadPresetScenario('pure-ha')}
+            className="flex items-center gap-2 px-3 py-2 bg-[#030712] hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/40 rounded-xl text-[10px] font-mono font-bold text-slate-300 hover:text-white transition-all text-left group"
+          >
+            <div className="p-1 bg-emerald-500/10 rounded group-hover:bg-emerald-500/20 text-emerald-400">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="truncate">{t('Pure HAp Match')}</span>
+              <span className="text-[8px] text-slate-500 font-normal">{t('Single Phase 99%')}</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleLoadPresetScenario('strained-ha')}
+            className="flex items-center gap-2 px-3 py-2 bg-[#030712] hover:bg-amber-950/40 border border-slate-800 hover:border-amber-500/40 rounded-xl text-[10px] font-mono font-bold text-slate-300 hover:text-white transition-all text-left group"
+          >
+            <div className="p-1 bg-amber-500/10 rounded group-hover:bg-amber-500/20 text-amber-400">
+              <MoveHorizontal className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="truncate">{t('Strained Lattice')}</span>
+              <span className="text-[8px] text-slate-500 font-normal">{t('+0.12° 2θ Shift')}</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleLoadPresetScenario('biphasic-ha-tcp')}
+            className="flex items-center gap-2 px-3 py-2 bg-[#030712] hover:bg-indigo-950/40 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-[10px] font-mono font-bold text-slate-300 hover:text-white transition-all text-left group"
+          >
+            <div className="p-1 bg-indigo-500/10 rounded group-hover:bg-indigo-500/20 text-indigo-400">
+              <Layers3 className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="truncate">{t('Biphasic Impurity')}</span>
+              <span className="text-[8px] text-slate-500 font-normal">{t('HAp + TCP Mixture')}</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleLoadPresetScenario('quartz')}
+            className="flex items-center gap-2 px-3 py-2 bg-[#030712] hover:bg-cyan-950/40 border border-slate-800 hover:border-cyan-500/40 rounded-xl text-[10px] font-mono font-bold text-slate-300 hover:text-white transition-all text-left group"
+          >
+            <div className="p-1 bg-cyan-500/10 rounded group-hover:bg-cyan-500/20 text-cyan-400">
+              <Database className="w-3.5 h-3.5" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="truncate">{t('Quartz α-SiO2')}</span>
+              <span className="text-[8px] text-slate-500 font-normal">{t('High-Crystallinity')}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Sample Swap & Quick Configuration Ribbon */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#080d1a] border border-slate-800/90 px-5 py-3.5 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3 flex-wrap">
@@ -935,96 +1175,321 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       {/* ----------------------------------------------------
           Diagnostics & Shift Analyzer Panel
           ---------------------------------------------------- */}
-      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-indigo-400" />
-            <span className="text-sm font-black uppercase text-white tracking-wider">{t('Diffraction Match & Residual Diagnostics')}</span>
+      <div className="bg-[#080d1a] border border-slate-800/90 p-5 md:p-6 rounded-2xl shadow-2xl space-y-5">
+        
+        {/* Header & Match Status Bar */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+              <Sliders className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black uppercase text-white tracking-wider">{t('Diffraction Match & Residual Diagnostics')}</span>
+                <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-500/10 rounded border border-indigo-500/20 font-mono">
+                  {t('v2.0 Advanced')}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                {t('Systematic peak shifts, missing reflections & phase impurity analysis')}
+              </p>
+            </div>
           </div>
-          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 rounded-full border border-emerald-500/15 font-mono">
-            {t('Residual Analyzer v1.5')}
-          </span>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Match Status Badge */}
+            {analysis.matchQuality === 'exact' && (
+              <span className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-black font-mono uppercase tracking-wider text-emerald-400 bg-emerald-500/10 rounded-xl border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                {t('Single Phase Match')}
+              </span>
+            )}
+            {analysis.matchQuality === 'strained' && (
+              <span className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-black font-mono uppercase tracking-wider text-amber-400 bg-amber-500/10 rounded-xl border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)]">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                {t('Lattice Strain / Shifted')}
+              </span>
+            )}
+            {analysis.matchQuality === 'multiphase' && (
+              <span className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-black font-mono uppercase tracking-wider text-indigo-400 bg-indigo-500/10 rounded-xl border border-indigo-500/30 shadow-[0_0_12px_rgba(99,102,241,0.15)]">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                {t('Secondary Phase Detected')}
+              </span>
+            )}
+            {analysis.matchQuality === 'poor' && (
+              <span className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-black font-mono uppercase tracking-wider text-rose-400 bg-rose-500/10 rounded-xl border border-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.15)]">
+                <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                {t('Phase Discrepancy')}
+              </span>
+            )}
+
+            {/* Quick Metrics Pills */}
+            <div className="flex items-center gap-2 bg-[#050a14] border border-slate-800 px-3 py-1 rounded-xl text-[10px] font-mono">
+              <span className="text-slate-400">{t('Mean Δ2θ')}:</span>
+              <span className={`font-bold ${analysis.meanShift > 0 ? 'text-amber-400' : analysis.meanShift < 0 ? 'text-cyan-400' : 'text-slate-200'}`}>
+                {analysis.meanShift > 0 ? `+${analysis.meanShift.toFixed(3)}°` : `${analysis.meanShift.toFixed(3)}°`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 bg-[#050a14] border border-slate-800 px-3 py-1 rounded-xl text-[10px] font-mono">
+              <span className="text-slate-400">{t('Microstrain (ε)')}:</span>
+              <span className={`font-bold ${Math.abs(analysis.avgStrain) > 0.05 ? 'text-purple-400' : 'text-slate-200'}`}>
+                {analysis.avgStrain > 0 ? `+${analysis.avgStrain.toFixed(3)}%` : `${analysis.avgStrain.toFixed(3)}%`}
+              </span>
+            </div>
+          </div>
         </div>
 
+        {/* Live Alignment & Scale Quick Controls Strip */}
+        <div className="bg-[#030712]/90 border border-slate-800/80 p-3 rounded-xl flex flex-col lg:flex-row items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <MoveHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+              {t('2θ Alignment')}:
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShiftTwoTheta(s => Number((s - 0.05).toFixed(2)))}
+                className="px-2 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-bold transition-all"
+                title="Shift -0.05° 2θ"
+              >-0.05°</button>
+              <button
+                onClick={() => setShiftTwoTheta(s => Number((s - 0.01).toFixed(2)))}
+                className="px-2 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-bold transition-all"
+                title="Shift -0.01° 2θ"
+              >-0.01°</button>
+              <div className="px-2.5 py-1 bg-indigo-950/60 border border-indigo-800/50 rounded font-bold text-indigo-300 text-[11px] min-w-[65px] text-center">
+                {shiftTwoTheta > 0 ? `+${shiftTwoTheta.toFixed(2)}°` : `${shiftTwoTheta.toFixed(2)}°`}
+              </div>
+              <button
+                onClick={() => setShiftTwoTheta(s => Number((s + 0.01).toFixed(2)))}
+                className="px-2 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-bold transition-all"
+                title="Shift +0.01° 2θ"
+              >+0.01°</button>
+              <button
+                onClick={() => setShiftTwoTheta(s => Number((s + 0.05).toFixed(2)))}
+                className="px-2 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded text-[10px] font-bold transition-all"
+                title="Shift +0.05° 2θ"
+              >+0.05°</button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <Scale className="w-3.5 h-3.5 text-emerald-400" />
+                {t('Ref Scale')}:
+              </span>
+              <div className="flex items-center gap-1">
+                {[0.5, 1.0, 1.5, 2.0].map(sVal => (
+                  <button
+                    key={sVal}
+                    onClick={() => setScaleSampleB(sVal)}
+                    className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                      scaleSampleB === sVal
+                        ? 'bg-emerald-500 text-black font-black'
+                        : 'bg-slate-800/80 hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    {sVal.toFixed(1)}x
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleAutoAlign}
+                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all shadow-md active:scale-95"
+                title="Automatically match dominant peak 2θ offset and scale"
+              >
+                <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
+                <span>{t('Auto Align')}</span>
+              </button>
+              <button
+                onClick={handleResetAlign}
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-all"
+                title="Reset Shift & Scale"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Plain-English AI Synthesis Card */}
+        <div className="bg-[#030712] border border-slate-800 p-4 rounded-xl flex flex-col md:flex-row items-start gap-3.5 relative overflow-hidden">
+          <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl shrink-0 mt-0.5">
+            <Lightbulb className="w-5 h-5 text-indigo-400" />
+          </div>
+          <div className="space-y-1.5 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded font-mono border ${plainEnglishSummary.badgeClass}`}>
+                {plainEnglishSummary.badge}
+              </span>
+              <h4 className="text-xs font-bold text-white font-mono">
+                {plainEnglishSummary.title}
+              </h4>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {plainEnglishSummary.description}
+            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+              {plainEnglishSummary.bullets.map((b, idx) => (
+                <div key={idx} className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                  <span className="w-1 h-1 rounded-full bg-indigo-400 shrink-0" />
+                  <span>{b}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 3 Interactive Columns */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
-          {/* Position shift analysis column */}
-          <div className="bg-black/40 p-4 border border-slate-800 rounded-xl space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded bg-amber-500"></span>
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('Position Shift Analysis')}</h4>
-            </div>
-            
-            <div className="h-[120px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
-              {analysis.shifts.length > 0 ? (
-                analysis.shifts.map((s, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-800/80">
-                    <span className="text-[10px] font-mono font-bold text-slate-300">2θ ≈ {s.peak.toFixed(2)}°</span>
-                    <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
-                      s.shift > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-rose-500/15 text-rose-400'
-                    }`}>
-                      {s.shift > 0 ? `+${s.shift.toFixed(3)}°` : `${s.shift.toFixed(3)}°`}
-                    </span>
+          {/* Column 1: Position Shift Analysis */}
+          <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-amber-500/40 transition-colors">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+                  <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Position Shift Analysis')}</h4>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full">
+                  {analysis.shifts.length} {t('peaks')}
+                </span>
+              </div>
+              
+              <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+                {analysis.shifts.length > 0 ? (
+                  analysis.shifts.map((s, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex justify-between items-center bg-slate-900/80 hover:bg-amber-950/30 p-2 rounded-lg border border-slate-800 hover:border-amber-500/30 transition-all group/item"
+                    >
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => zoomToTheta(s.peak)}
+                          className="p-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded transition-colors"
+                          title={`Click to zoom chart to 2θ = ${s.peak.toFixed(2)}°`}
+                        >
+                          <Crosshair className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-[11px] font-mono font-bold text-slate-200">2θ ≈ {s.peak.toFixed(2)}°</span>
+                      </div>
+                      <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded ${
+                        s.shift > 0 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                      }`}>
+                        {s.shift > 0 ? `+${s.shift.toFixed(3)}°` : `${s.shift.toFixed(3)}°`}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
+                    <span>{t('No systematic peak shifts detected')}</span>
                   </div>
-                ))
-              ) : (
-                <div className="text-[10px] text-slate-500 italic py-4 text-center">{t('No significant shift detected')}</div>
-              )}
+                )}
+              </div>
             </div>
-            <p className="text-[8px] text-slate-500 leading-normal">
-              {t('Peak shifts reveal systematic unit cell expansion or contraction, often due to dopant substitution or lattice strains.')}
+            <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
+              {t('Systematic shifts indicate lattice parameter changes caused by substitution, solid solutions, thermal expansion or microstrain.')}
             </p>
           </div>
 
-          {/* Missing / Suppressed peaks column */}
-          <div className="bg-black/40 p-4 border border-slate-800 rounded-xl space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded bg-red-500"></span>
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('Suppressed / Missing Peaks')}</h4>
-            </div>
+          {/* Column 2: Suppressed / Missing Peaks */}
+          <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-rose-500/40 transition-colors">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
+                  <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Suppressed / Missing')}</h4>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-full">
+                  {analysis.missingInA.length} {t('ref peaks')}
+                </span>
+              </div>
 
-            <div className="h-[120px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
-              {analysis.missingInA.length > 0 ? (
-                analysis.missingInA.map((theta, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-800/80">
-                    <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Ref Database Peak')}</span>
-                    <span className="text-[10px] font-black font-mono text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">
-                      {theta.toFixed(2)}°
-                    </span>
+              <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+                {analysis.missingInA.length > 0 ? (
+                  analysis.missingInA.map((theta, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex justify-between items-center bg-slate-900/80 hover:bg-rose-950/30 p-2 rounded-lg border border-slate-800 hover:border-rose-500/30 transition-all group/item"
+                    >
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => zoomToTheta(theta)}
+                          className="p-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors"
+                          title={`Click to zoom chart to 2θ = ${theta.toFixed(2)}°`}
+                        >
+                          <ZoomIn className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Ref Peak')}</span>
+                      </div>
+                      <span className="text-[10px] font-black font-mono text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded">
+                        2θ = {theta.toFixed(2)}°
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
+                    <span>{t('All reference reflections observed')}</span>
                   </div>
-                ))
-              ) : (
-                <div className="text-[10px] text-slate-500 italic py-4 text-center">{t('No suppressed reference peaks')}</div>
-              )}
+                )}
+              </div>
             </div>
-            <p className="text-[8px] text-slate-500 leading-normal">
-              {t('Suppressed or missing peaks denote low crystallite size/crystallinity, or highly oriented sample alignment.')}
+            <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
+              {t('Missing reference peaks point to preferred orientation (texture), low crystallinity, nanostructured peak broadening, or extinct reflections.')}
             </p>
           </div>
 
-          {/* Extra secondary phases column */}
-          <div className="bg-black/40 p-4 border border-slate-800 rounded-xl space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded bg-indigo-500"></span>
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('Impurities / Extra Peaks')}</h4>
-            </div>
+          {/* Column 3: Impurities / Extra Peaks */}
+          <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-indigo-500/40 transition-colors">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
+                  <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Extra / Impurity Peaks')}</h4>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
+                  {analysis.extraInA.length} {t('extra')}
+                </span>
+              </div>
 
-            <div className="h-[120px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
-              {analysis.extraInA.length > 0 ? (
-                analysis.extraInA.map((theta, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-800/80">
-                    <span className="text-[10px] font-mono text-slate-450 font-bold">{t('Atypical Peak')}</span>
-                    <span className="text-[10px] font-black font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">
-                      {theta.toFixed(2)}°
-                    </span>
+              <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+                {analysis.extraInA.length > 0 ? (
+                  analysis.extraInA.map((theta, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex justify-between items-center bg-slate-900/80 hover:bg-indigo-950/30 p-2 rounded-lg border border-slate-800 hover:border-indigo-500/30 transition-all group/item"
+                    >
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => zoomToTheta(theta)}
+                          className="p-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors"
+                          title={`Click to zoom chart to 2θ = ${theta.toFixed(2)}°`}
+                        >
+                          <Crosshair className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Atypical')}</span>
+                      </div>
+                      <span className="text-[10px] font-black font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2 py-0.5 rounded">
+                        2θ = {theta.toFixed(2)}°
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
+                    <span>{t('No unindexed secondary phase peaks')}</span>
                   </div>
-                ))
-              ) : (
-                <div className="text-[10px] text-slate-500 italic py-4 text-center">{t('No secondary phases detected')}</div>
-              )}
+                )}
+              </div>
             </div>
-            <p className="text-[8px] text-slate-505 leading-normal">
-              {t('Atypical peaks point to unreacted precursors, secondary reaction pathways or organic mineral contaminants.')}
+            <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
+              {t('Atypical extra reflections indicate unreacted raw precursors, secondary crystalline phase formation, or sample impurities.')}
             </p>
           </div>
 
@@ -1067,22 +1532,49 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
           </div>
 
           {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full lg:w-auto">
-            <div className="bg-[#080E1C]/90 backdrop-blur-md border border-slate-800 p-2.5 rounded-xl flex flex-col justify-center">
-              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">Residual R_p</span>
-              <span className="text-sm font-mono font-black text-rose-400">{spectralMetrics.rP}%</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+            <div className="bg-[#030712]/80 backdrop-blur-xl border-l-2 border-l-rose-500 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-center relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Activity className="w-8 h-8 text-rose-500" />
+              </div>
+              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5">Residual R_p</span>
+              <div className="flex items-end gap-1.5">
+                <span className="text-lg font-mono font-black text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]">{spectralMetrics.rP}</span>
+                <span className="text-[10px] font-mono text-rose-500/70 font-bold mb-1">%</span>
+              </div>
             </div>
-            <div className="bg-[#080E1C]/90 backdrop-blur-md border border-slate-800 p-2.5 rounded-xl flex flex-col justify-center">
-              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">Weighted R_wp</span>
-              <span className="text-sm font-mono font-black text-amber-400">{spectralMetrics.rWP}%</span>
+            
+            <div className="bg-[#030712]/80 backdrop-blur-xl border-l-2 border-l-amber-500 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-center relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Layers3 className="w-8 h-8 text-amber-500" />
+              </div>
+              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5">Weighted R_wp</span>
+              <div className="flex items-end gap-1.5">
+                <span className="text-lg font-mono font-black text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]">{spectralMetrics.rWP}</span>
+                <span className="text-[10px] font-mono text-amber-500/70 font-bold mb-1">%</span>
+              </div>
             </div>
-            <div className="bg-[#080E1C]/90 backdrop-blur-md border border-slate-800 p-2.5 rounded-xl flex flex-col justify-center">
-              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">Cross-Corr (r)</span>
-              <span className="text-sm font-mono font-black text-emerald-400">{spectralMetrics.pearsonR}%</span>
+
+            <div className="bg-[#030712]/80 backdrop-blur-xl border-l-2 border-l-emerald-500 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-center relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Zap className="w-8 h-8 text-emerald-500" />
+              </div>
+              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5">Cross-Corr (r)</span>
+              <div className="flex items-end gap-1.5">
+                <span className="text-lg font-mono font-black text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]">{spectralMetrics.pearsonR}</span>
+                <span className="text-[10px] font-mono text-emerald-500/70 font-bold mb-1">%</span>
+              </div>
             </div>
-            <div className="bg-[#080E1C]/90 backdrop-blur-md border border-slate-800 p-2.5 rounded-xl flex flex-col justify-center">
-              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">RMS Error</span>
-              <span className="text-sm font-mono font-black text-cyan-400">{spectralMetrics.rmsd} cnt</span>
+
+            <div className="bg-[#030712]/80 backdrop-blur-xl border-l-2 border-l-cyan-500 border border-slate-800/80 p-3 rounded-xl flex flex-col justify-center relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                <TrendingUp className="w-8 h-8 text-cyan-500" />
+              </div>
+              <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest mb-0.5">RMS Error</span>
+              <div className="flex items-end gap-1.5">
+                <span className="text-lg font-mono font-black text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.4)]">{spectralMetrics.rmsd}</span>
+                <span className="text-[10px] font-mono text-cyan-500/70 font-bold mb-1">cnt</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1332,22 +1824,34 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
         {/* Top Discrepancy Peaks (Residual Mismatches Jump Bar) */}
         {topMismatches.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 relative z-10 bg-[#080E1C]/80 backdrop-blur-md px-3.5 py-2 rounded-xl border border-rose-500/20">
-            <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-              Top Mismatches (&gt;{noiseThreshold}%):
-            </span>
-            <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 relative z-10 bg-gradient-to-r from-rose-950/40 to-[#080E1C]/80 backdrop-blur-md px-4 py-3 rounded-xl border border-rose-500/30 shadow-[0_4px_20px_rgba(244,63,94,0.1)]">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-rose-500/20 rounded-lg border border-rose-500/30 animate-pulse">
+                <AlertTriangle className="w-4 h-4 text-rose-400" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-rose-300">
+                  Critical Mismatches
+                </span>
+                <span className="text-[9px] font-mono text-rose-400/70">
+                  Δ &gt; {noiseThreshold}% intensity diff
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 flex flex-wrap items-center gap-2">
               {topMismatches.map((m, idx) => (
                 <button
                   key={idx}
                   onClick={() => zoomToTheta(m.twoTheta)}
-                  className="flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all hover:scale-105 active:scale-95"
+                  className="group flex items-center gap-2 bg-[#050A14] hover:bg-rose-950/50 border border-slate-700 hover:border-rose-500/50 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all hover:scale-105 active:scale-95 shadow-sm"
                   title={`Click to zoom to 2θ = ${m.twoTheta}°`}
                 >
-                  <Crosshair className="w-3 h-3 text-rose-400" />
-                  <span>{m.twoTheta}°</span>
-                  <span className="text-rose-400 font-black">({m.difference > 0 ? `+${m.difference}` : m.difference}%)</span>
+                  <Crosshair className="w-3.5 h-3.5 text-slate-500 group-hover:text-rose-400 transition-colors" />
+                  <span className="text-slate-300 group-hover:text-white transition-colors">{m.twoTheta}°</span>
+                  <div className="h-3.5 w-[1px] bg-slate-700 group-hover:bg-rose-500/30 mx-0.5" />
+                  <span className={`font-black ${m.difference > 0 ? 'text-rose-400' : 'text-cyan-400'}`}>
+                    {m.difference > 0 ? `+${m.difference}` : m.difference}%
+                  </span>
                 </button>
               ))}
             </div>
@@ -1476,6 +1980,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         onMouseUp={zoom}
                         onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                       >
+                        <defs>
+                          <linearGradient id="colorA_unified" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.4} />
+                            <stop offset="95%" stopColor={pal.colorA} stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorB_unified" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={pal.colorB} stopOpacity={0.2} />
+                            <stop offset="95%" stopColor={pal.colorB} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
                         {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                         <XAxis 
                           dataKey="twoTheta" 
@@ -1496,10 +2010,13 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         />
                         <Tooltip content={<RenderTooltip />} />
                         {showDiffArea && (
-                          <Area type="monotone" dataKey="intensityA" fill={pal.colorA} fillOpacity={0.08} stroke="none" />
+                          <>
+                            <Area type="monotone" dataKey="intensityA" fill="url(#colorA_unified)" stroke="none" />
+                            <Area type="monotone" dataKey="intensityB" fill="url(#colorB_unified)" stroke="none" />
+                          </>
                         )}
-                        <Line type="monotone" dataKey="intensityA" stroke={pal.colorA} strokeWidth={2} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="intensityB" stroke={pal.colorB} strokeWidth={2} strokeDasharray="4 2" dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="intensityA" stroke={pal.colorA} strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="intensityB" stroke={pal.colorB} strokeWidth={2.5} strokeDasharray="5 3" dot={false} isAnimationActive={false} />
                         {refAreaLeft && refAreaRight ? (
                           <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
                         ) : null}
@@ -1527,6 +2044,12 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         onMouseUp={zoom}
                         onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                       >
+                        <defs>
+                          <linearGradient id="colorDiff_unified" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={pal.colorDiff} stopOpacity={0.4} />
+                            <stop offset="95%" stopColor={pal.colorDiff} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
                         {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                         <XAxis 
                           dataKey="twoTheta" 
@@ -1546,9 +2069,9 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         <Tooltip content={<RenderTooltip />} />
                         <ReferenceLine y={0} stroke="#475569" strokeWidth={1} strokeDasharray="3 3"/>
                         {showDiffArea && (
-                          <Area type="monotone" dataKey="difference" fill={pal.colorDiff} fillOpacity={0.15} stroke="none" />
+                          <Area type="monotone" dataKey="difference" fill="url(#colorDiff_unified)" stroke="none" />
                         )}
-                        <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={2} dot={false} isAnimationActive={false} />
                         {refAreaLeft && refAreaRight ? (
                           <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
                         ) : null}
@@ -1588,6 +2111,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         onMouseUp={zoom}
                         onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                       >
+                        <defs>
+                          <linearGradient id="colorA_mirrored" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.4} />
+                            <stop offset="95%" stopColor={pal.colorA} stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorB_mirrored" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="5%" stopColor={pal.colorB} stopOpacity={0.4} />
+                            <stop offset="95%" stopColor={pal.colorB} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
                         {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                         <XAxis 
                           dataKey="twoTheta" 
@@ -1609,12 +2142,12 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.5} />
                         {showDiffArea && (
                           <>
-                            <Area type="monotone" dataKey="intensityA" fill={pal.colorA} fillOpacity={0.15} stroke="none" />
-                            <Area type="monotone" dataKey="mirroredB" fill={pal.colorB} fillOpacity={0.15} stroke="none" />
+                            <Area type="monotone" dataKey="intensityA" fill="url(#colorA_mirrored)" stroke="none" />
+                            <Area type="monotone" dataKey="mirroredB" fill="url(#colorB_mirrored)" stroke="none" />
                           </>
                         )}
-                        <Line type="monotone" dataKey="intensityA" stroke={pal.colorA} strokeWidth={2} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="mirroredB" stroke={pal.colorB} strokeWidth={2} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="intensityA" stroke={pal.colorA} strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="mirroredB" stroke={pal.colorB} strokeWidth={2.5} dot={false} isAnimationActive={false} />
                         {refAreaLeft && refAreaRight ? (
                           <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
                         ) : null}
@@ -1691,6 +2224,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         onMouseUp={zoom}
                         onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                       >
+                        <defs>
+                          <linearGradient id="colorA_deriv" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={pal.colorA} stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="colorB_deriv" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={pal.colorB} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={pal.colorB} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
                         {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                         <XAxis 
                           dataKey="twoTheta" 
@@ -1710,6 +2253,8 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         />
                         <Tooltip content={<RenderTooltip />} />
                         <ReferenceLine y={0} stroke="#475569" strokeWidth={1.5} strokeDasharray="2 2" />
+                        <Area type="monotone" dataKey="derivA" fill="url(#colorA_deriv)" stroke="none" />
+                        <Area type="monotone" dataKey="derivB" fill="url(#colorB_deriv)" stroke="none" />
                         <Line type="monotone" dataKey="derivA" stroke={pal.colorA} strokeWidth={2} dot={false} isAnimationActive={false} />
                         <Line type="monotone" dataKey="derivB" stroke={pal.colorB} strokeWidth={2} strokeDasharray="4 2" dot={false} isAnimationActive={false} />
                         {refAreaLeft && refAreaRight ? (
@@ -1738,15 +2283,21 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         onMouseUp={zoom}
                         onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                       >
+                        <defs>
+                          <linearGradient id="colorDiff_deriv" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={pal.colorDiff} stopOpacity={0.4} />
+                            <stop offset="95%" stopColor={pal.colorDiff} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
                         {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                         <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
                         <YAxis domain={[-100, 100]} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
                         <Tooltip content={<RenderTooltip />} />
                         <ReferenceLine y={0} stroke="#475569" strokeWidth={1} strokeDasharray="3 3"/>
                         {showDiffArea && (
-                          <Area type="monotone" dataKey="difference" fill={pal.colorDiff} fillOpacity={0.15} stroke="none" />
+                          <Area type="monotone" dataKey="difference" fill="url(#colorDiff_deriv)" stroke="none" />
                         )}
-                        <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={2} dot={false} isAnimationActive={false} />
                         {refAreaLeft && refAreaRight ? (
                           <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#a855f7" fillOpacity={0.25} />
                         ) : null}
@@ -1780,12 +2331,18 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                       onMouseUp={zoom}
                       onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                     >
+                      <defs>
+                        <linearGradient id="colorA_stacked" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.4} />
+                          <stop offset="95%" stopColor={pal.colorA} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
                       {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                       <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
                       <YAxis domain={[0, 110]} tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
                       <Tooltip content={<RenderTooltip />} />
-                      {showDiffArea && <Area type="monotone" dataKey="intensityA" fill={pal.colorA} fillOpacity={0.12} stroke="none" />}
-                      <Line type="monotone" dataKey="intensityA" stroke={pal.colorA} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                      {showDiffArea && <Area type="monotone" dataKey="intensityA" fill="url(#colorA_stacked)" stroke="none" />}
+                      <Line type="monotone" dataKey="intensityA" stroke={pal.colorA} strokeWidth={2} dot={false} isAnimationActive={false} />
                       {refAreaLeft && refAreaRight ? (
                         <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
                       ) : null}
@@ -1813,12 +2370,18 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                       onMouseUp={zoom}
                       onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                     >
+                      <defs>
+                        <linearGradient id="colorB_stacked" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={pal.colorB} stopOpacity={0.4} />
+                          <stop offset="95%" stopColor={pal.colorB} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
                       {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                       <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
                       <YAxis domain={[0, 110]} tick={{ fontSize: 9, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
                       <Tooltip content={<RenderTooltip />} />
-                      {showDiffArea && <Area type="monotone" dataKey="intensityB" fill={pal.colorB} fillOpacity={0.12} stroke="none" />}
-                      <Line type="monotone" dataKey="intensityB" stroke={pal.colorB} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                      {showDiffArea && <Area type="monotone" dataKey="intensityB" fill="url(#colorB_stacked)" stroke="none" />}
+                      <Line type="monotone" dataKey="intensityB" stroke={pal.colorB} strokeWidth={2} dot={false} isAnimationActive={false} />
                       {refAreaLeft && refAreaRight ? (
                         <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
                       ) : null}
@@ -1846,6 +2409,12 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                       onMouseUp={zoom}
                       onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                     >
+                      <defs>
+                        <linearGradient id="colorDiff_stacked" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={pal.colorDiff} stopOpacity={0.4} />
+                          <stop offset="95%" stopColor={pal.colorDiff} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
                       {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
                       <XAxis 
                         dataKey="twoTheta" 
@@ -1861,9 +2430,9 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                       <Tooltip content={<RenderTooltip />} />
                       <ReferenceLine y={0} stroke="#475569" strokeWidth={1} strokeDasharray="3 3"/>
                       {showDiffArea && (
-                        <Area type="monotone" dataKey="difference" fill={pal.colorDiff} fillOpacity={0.15} stroke="none" />
+                        <Area type="monotone" dataKey="difference" fill="url(#colorDiff_stacked)" stroke="none" />
                       )}
-                      <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                      <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={2} dot={false} isAnimationActive={false} />
                       {refAreaLeft && refAreaRight ? (
                         <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
                       ) : null}
@@ -1875,6 +2444,98 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
           })()}
         </div>
       </div>
+
+      {/* Interactive Guide & Interpretation Modal */}
+      {showGuideModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#080d1a] border border-slate-700/80 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative space-y-5 max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                  <HelpCircle className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">{t('How to Interpret XRD Compare & Residuals')}</h3>
+                  <p className="text-xs text-slate-400 font-mono">{t('Crystallographic Match & Diagnostics User Guide')}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-300 leading-relaxed font-mono">
+              <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase text-[11px]">
+                  <Activity className="w-4 h-4" />
+                  <span>1. Quantitative Residual Metrics (Rp, Rwp, Pearson r)</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  • <strong className="text-rose-400">Profile Residual (Rp):</strong> Sum of absolute differences |I_A - I_B| divided by total intensity. Values below 10-15% denote excellent profile agreement.
+                  <br />
+                  • <strong className="text-amber-400">Weighted Profile Residual (Rwp):</strong> Gives higher statistical weight to strong diffraction peaks.
+                  <br />
+                  • <strong className="text-emerald-400">Pearson Cross-Correlation (r):</strong> Measure of shape and peak profile alignment. Values &gt; 95% indicate strong phase identity.
+                </p>
+              </div>
+
+              <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-400 font-bold uppercase text-[11px]">
+                  <MoveHorizontal className="w-4 h-4" />
+                  <span>2. Position Shifts (Δ2θ) & Lattice Strain</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  • A positive shift (+Δ2θ) indicates unit cell contraction (smaller d-spacing), often caused by smaller ionic substitutions or compressive stress.
+                  <br />
+                  • A negative shift (-Δ2θ) indicates unit cell expansion (larger d-spacing).
+                  <br />
+                  • Click <strong className="text-amber-300">Auto Align</strong> to compensate for zero-point detector offset or sample displacement errors.
+                </p>
+              </div>
+
+              <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase text-[11px]">
+                  <Layers3 className="w-4 h-4" />
+                  <span>3. Unindexed Reflections & Impurities</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  • Any peaks in Sample A that do not match reference Sample B appear in the <strong className="text-indigo-300">Extra / Impurity Peaks</strong> table.
+                  <br />
+                  • Clicking on any peak button in the jump bar automatically zooms the charts directly to that 2θ position.
+                </p>
+              </div>
+
+              <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                <div className="flex items-center gap-2 text-cyan-400 font-bold uppercase text-[11px]">
+                  <SlidersHorizontal className="w-4 h-4" />
+                  <span>4. View Modes (3-Pane Split vs Overlay vs Butterfly)</span>
+                </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  • <strong className="text-white">3-Pane Split:</strong> Stacked view showing Sample A, Sample B, and the Delta Residual profile simultaneously.
+                  <br />
+                  • <strong className="text-white">Unified Overlay:</strong> Overlay both patterns on a single axis for direct peak comparison.
+                  <br />
+                  • <strong className="text-white">Butterfly Mirror:</strong> Mirrors Sample B below the zero axis for visual symmetry inspection.
+                  <br />
+                  • <strong className="text-white">1st Derivative:</strong> Computes dI/d2θ to identify subtle shoulders and hidden doublet peaks.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+              >
+                {t('Got It')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
