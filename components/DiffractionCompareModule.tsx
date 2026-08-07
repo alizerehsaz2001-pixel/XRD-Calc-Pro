@@ -28,7 +28,13 @@ import {
   Download,
   Layers3,
   Maximize2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Zap,
+  MoveHorizontal,
+  Scale,
+  Crosshair,
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -206,6 +212,34 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     setRefMode('custom');
   };
 
+  // Swap Sample A and Sample B
+  const handleSwapSamples = () => {
+    const curA = materialA as any;
+    const curB = materialB as any;
+
+    if (!curA || !curB) return;
+
+    setExpMode('custom');
+    setCustomExpName(curB.name || 'Reference Copy');
+    setCustomExpFormula(curB.formula || '');
+    if (curB.pattern) {
+      setCustomExpPattern(curB.pattern);
+    } else if (curB.results) {
+      setCustomExpPattern(curB.results.map((r: any) => `${r.twoTheta}(${r.intensity !== undefined ? r.intensity : 100})`).join(', '));
+    }
+
+    setRefMode('custom');
+    setCustomRefName(curA.name || 'Experimental Copy');
+    setCustomRefFormula(curA.formula || '');
+    setCustomRefCrystalSystem(curA.crystalSystem || 'Experimental');
+    setCustomRefSpaceGroup(curA.spaceGroup || 'Custom');
+    if (curA.pattern) {
+      setCustomRefPattern(curA.pattern);
+    } else if (curA.results) {
+      setCustomRefPattern(curA.results.map((r: any) => `${r.twoTheta}(${r.intensity !== undefined ? r.intensity : 100})`).join(', '));
+    }
+  };
+
   // ----------------------------------------------------
   // Match & Residual Diagnostics Logic
   // ----------------------------------------------------
@@ -273,9 +307,9 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   }, [materialA, materialB]);
 
   // ----------------------------------------------------
-  // Simulated Pattern Generator
+  // Simulated Pattern Generator with 2θ Shift & Relative Scale
   // ----------------------------------------------------
-  const generateChartData = (matA: any, matB: any) => {
+  const generateChartData = (matA: any, matB: any, shift: number = 0, scaleB: number = 1.0) => {
     const minTheta = 10;
     const maxTheta = 90;
     const step = 0.1;
@@ -304,7 +338,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     const peaksA = parsePattern(matA);
     const peaksB = parsePattern(matB);
 
-    const points = [];
+    const rawPoints = [];
     for (let x = minTheta; x <= maxTheta; x += step) {
       let intensityA = Math.random() * 0.5 + 1.5; // low experimental noise
       let intensityB = Math.random() * 0.5 + 1.5; 
@@ -321,11 +355,11 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
       const hwB = 0.12;
       peaksB.forEach(p => {
-        const diff = x - p.twoTheta;
+        const diff = x - (p.twoTheta + shift);
         if (Math.abs(diff) < 2.0) {
           const g = Math.exp(-Math.log(2) * Math.pow(diff / hwB, 2));
           const l = 1 / (1 + Math.pow(diff / hwB, 2));
-          intensityB += p.intensity * (0.5 * g + 0.5 * l);
+          intensityB += p.intensity * scaleB * (0.5 * g + 0.5 * l);
         }
       });
 
@@ -333,7 +367,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       const finalB = Math.min(100, intensityB);
       const difference = finalA - finalB;
 
-      points.push({
+      rawPoints.push({
         twoTheta: Number(x.toFixed(2)),
         intensityA: Number(finalA.toFixed(1)),
         intensityB: Number(finalB.toFixed(1)),
@@ -341,6 +375,23 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         difference: Number(difference.toFixed(1)),
       });
     }
+
+    // Calculate 1st Derivative dI/d2Theta
+    const points = rawPoints.map((pt, i, arr) => {
+      const prevA = arr[Math.max(0, i - 1)].intensityA;
+      const nextA = arr[Math.min(arr.length - 1, i + 1)].intensityA;
+      const derivA = Number(((nextA - prevA) / (2 * step)).toFixed(1));
+
+      const prevB = arr[Math.max(0, i - 1)].intensityB;
+      const nextB = arr[Math.min(arr.length - 1, i + 1)].intensityB;
+      const derivB = Number(((nextB - prevB) / (2 * step)).toFixed(1));
+
+      return {
+        ...pt,
+        derivA,
+        derivB
+      };
+    });
 
     return { points, peaksA, peaksB };
   };
@@ -354,10 +405,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   const [refAreaRight, setRefAreaRight] = useState<number | string | null>(null);
 
   // Spectral Diff Custom UI Controls
-  const [viewMode, setViewMode] = useState<'stacked' | 'unified' | 'mirrored'>('stacked');
+  const [viewMode, setViewMode] = useState<'stacked' | 'unified' | 'mirrored' | 'derivative'>('stacked');
   const [diffTheme, setDiffTheme] = useState<'neon' | 'emerald' | 'amber'>('neon');
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [showDiffArea, setShowDiffArea] = useState<boolean>(true);
+
+  // Advanced Spectral Alignment & Calibration Controls
+  const [shiftTwoTheta, setShiftTwoTheta] = useState<number>(0);
+  const [scaleSampleB, setScaleSampleB] = useState<number>(1.0);
+  const [showDerivative, setShowDerivative] = useState<boolean>(false);
+  const [noiseThreshold, setNoiseThreshold] = useState<number>(10);
 
   const zoom = () => {
     let zoomLeft = refAreaLeft;
@@ -427,7 +484,74 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
   const isZoomedIn = typeof left === 'number' && typeof right === 'number';
 
-  const { points } = useMemo(() => generateChartData(materialA, materialB), [materialA, materialB]);
+  const { points } = useMemo(
+    () => generateChartData(materialA, materialB, shiftTwoTheta, scaleSampleB), 
+    [materialA, materialB, shiftTwoTheta, scaleSampleB]
+  );
+
+  // Top Discrepancy Peaks (Residual Mismatches Navigator)
+  const topMismatches = useMemo(() => {
+    if (!points || points.length === 0) return [];
+    const sorted = [...points].sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
+    const uniquePeaks: typeof points = [];
+    sorted.forEach(p => {
+      if (Math.abs(p.difference) >= noiseThreshold) {
+        const exists = uniquePeaks.some(u => Math.abs(u.twoTheta - p.twoTheta) < 2.5);
+        if (!exists && uniquePeaks.length < 5) {
+          uniquePeaks.push(p);
+        }
+      }
+    });
+    return uniquePeaks;
+  }, [points, noiseThreshold]);
+
+  const zoomToTheta = (theta: number) => {
+    setLeft(Math.max(10, Number((theta - 3.5).toFixed(1))));
+    setRight(Math.min(90, Number((theta + 3.5).toFixed(1))));
+  };
+
+  const handleAutoAlign = () => {
+    const parsePatternToPeaks = (mat: any) => {
+      if (!mat) return [];
+      if (mat.isUserSample) {
+        return (mat.results || []).map((r: any) => ({
+          twoTheta: r.twoTheta,
+          intensity: r.intensity !== undefined ? r.intensity : 100
+        }));
+      }
+      const pattern = mat.pattern || '';
+      return pattern.split(',').map((s: string) => {
+        const [thetaStr] = s.split('(');
+        return { twoTheta: parseFloat(thetaStr.trim()), intensity: 100 };
+      }).filter((p: any) => !isNaN(p.twoTheta));
+    };
+
+    const pA = parsePatternToPeaks(materialA);
+    const pB = parsePatternToPeaks(materialB);
+
+    if (pA.length > 0 && pB.length > 0) {
+      const maxA = Math.max(...pA.map((p: any) => p.intensity || 100));
+      const maxB = Math.max(...pB.map((p: any) => p.intensity || 100));
+      if (maxB > 0) {
+        setScaleSampleB(Number((maxA / maxB).toFixed(2)));
+      }
+      const topA = pA.reduce((prev: any, curr: any) => (curr.intensity > prev.intensity ? curr : prev), pA[0]);
+      const closestB = pB.reduce((prev: any, curr: any) => {
+        return Math.abs(curr.twoTheta - topA.twoTheta) < Math.abs(prev.twoTheta - topA.twoTheta) ? curr : prev;
+      }, pB[0]);
+      if (closestB) {
+        const shift = topA.twoTheta - closestB.twoTheta;
+        if (Math.abs(shift) <= 3.0) {
+          setShiftTwoTheta(Number(shift.toFixed(2)));
+        }
+      }
+    }
+  };
+
+  const handleResetAlign = () => {
+    setShiftTwoTheta(0);
+    setScaleSampleB(1.0);
+  };
 
   // Real-time scientific residuals & goodness of fit metrics
   const spectralMetrics = useMemo(() => {
@@ -493,6 +617,38 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500" id="diffraction-compare-module">
+      {/* Sample Swap & Quick Configuration Ribbon */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#080d1a] border border-slate-800/90 px-5 py-3.5 rounded-2xl shadow-xl">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-xl">
+            <FlaskConical className="w-4 h-4 text-indigo-400 shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-[9px] font-mono text-indigo-400 font-bold uppercase tracking-wider">{t('Sample A: Experimental / Synthesized')}</span>
+              <span className="text-xs font-mono font-bold text-white">{materialA.name} ({materialA.formula})</span>
+            </div>
+          </div>
+
+          <span className="text-slate-500 font-black font-mono text-xs hidden sm:inline">VS</span>
+
+          <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+            <Database className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-[9px] font-mono text-emerald-400 font-bold uppercase tracking-wider">{t('Sample B: Database / Reference')}</span>
+              <span className="text-xs font-mono font-bold text-white">{materialB?.name} ({materialB?.formula})</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSwapSamples}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 rounded-xl text-[11px] font-mono font-bold uppercase tracking-wider transition-all active:scale-95 shadow-md shrink-0"
+          title="Swap Sample A (Experimental) and Sample B (Reference Standard)"
+        >
+          <RefreshCw className="w-4 h-4 text-indigo-400" />
+          <span>{t('Swap Sample A & B')}</span>
+        </button>
+      </div>
+
       {/* ----------------------------------------------------
           Configuration Header Grid (Two-Column Layout)
           ---------------------------------------------------- */}
@@ -969,6 +1125,17 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
               <Maximize2 className="w-3.5 h-3.5" />
               <span>Butterfly Mirror</span>
             </button>
+            <button
+              onClick={() => setViewMode('derivative')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
+                viewMode === 'derivative' 
+                  ? 'bg-purple-600 text-white shadow-[0_0_12px_rgba(168,85,247,0.5)]' 
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+              <span>Derivative dI/d2θ</span>
+            </button>
           </div>
 
           {/* Theme & Display Options */}
@@ -1067,6 +1234,126 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
           </div>
         </div>
 
+        {/* Interactive Peak Calibration & Alignment Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 relative z-10 bg-[#080E1C]/90 backdrop-blur-md p-3.5 rounded-2xl border border-slate-800/90">
+          
+          {/* 2θ Shift / Calibration Zero Error */}
+          <div className="space-y-1 bg-[#030712] p-2.5 rounded-xl border border-slate-800">
+            <div className="flex justify-between items-center text-[10px] font-mono font-bold text-slate-400">
+              <span className="flex items-center gap-1.5 text-cyan-400">
+                <MoveHorizontal className="w-3.5 h-3.5" />
+                2θ Shift Offset
+              </span>
+              <span className="text-white font-mono bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-800/40">
+                {shiftTwoTheta >= 0 ? `+${shiftTwoTheta.toFixed(2)}°` : `${shiftTwoTheta.toFixed(2)}°`}
+              </span>
+            </div>
+            <input 
+              type="range"
+              min="-2.0"
+              max="2.0"
+              step="0.02"
+              value={shiftTwoTheta}
+              onChange={(e) => setShiftTwoTheta(parseFloat(e.target.value))}
+              className="w-full accent-cyan-400 hover:accent-cyan-300 h-1.5 bg-slate-800 appearance-none rounded cursor-pointer"
+            />
+          </div>
+
+          {/* Sample B Relative Scale Factor */}
+          <div className="space-y-1 bg-[#030712] p-2.5 rounded-xl border border-slate-800">
+            <div className="flex justify-between items-center text-[10px] font-mono font-bold text-slate-400">
+              <span className="flex items-center gap-1.5 text-amber-400">
+                <Scale className="w-3.5 h-3.5" />
+                Sample B Scale (I_B)
+              </span>
+              <span className="text-white font-mono bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/40">
+                {scaleSampleB.toFixed(2)}x
+              </span>
+            </div>
+            <input 
+              type="range"
+              min="0.1"
+              max="3.0"
+              step="0.05"
+              value={scaleSampleB}
+              onChange={(e) => setScaleSampleB(parseFloat(e.target.value))}
+              className="w-full accent-amber-400 hover:accent-amber-300 h-1.5 bg-slate-800 appearance-none rounded cursor-pointer"
+            />
+          </div>
+
+          {/* Auto-Align & Reset Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAutoAlign}
+              className="flex-1 h-full min-h-[46px] flex items-center justify-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl px-3 py-2 text-[10px] font-mono font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95"
+              title="Auto-match strongest peak intensity and zero offset"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Auto-Align Peaks</span>
+            </button>
+            <button
+              onClick={handleResetAlign}
+              className="h-full min-h-[46px] px-3 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-[10px] font-mono font-bold transition-all active:scale-95"
+              title="Reset 2θ shift and scale"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Derivative Mode & Threshold Controls */}
+          <div className="flex items-center justify-between gap-2 bg-[#030712] p-2.5 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setShowDerivative(!showDerivative)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[9px] font-mono font-bold uppercase transition-all ${
+                showDerivative ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-[0_0_10px_rgba(168,85,247,0.3)]' : 'text-slate-400 hover:text-slate-200 border border-transparent'
+              }`}
+              title="Display 1st derivative dI/d2Theta curve"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+              <span>Derivative dI/d2θ</span>
+            </button>
+            
+            <div className="flex items-center gap-1">
+              <span className="text-[8px] font-mono text-slate-500 font-bold uppercase">Threshold</span>
+              <select
+                value={noiseThreshold}
+                onChange={(e) => setNoiseThreshold(Number(e.target.value))}
+                className="bg-slate-900 text-cyan-400 border border-slate-700 rounded px-1.5 py-1 text-[9px] font-mono font-bold focus:outline-none"
+              >
+                <option value={5}>5%</option>
+                <option value={8}>8%</option>
+                <option value={10}>10%</option>
+                <option value={15}>15%</option>
+                <option value={20}>20%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Discrepancy Peaks (Residual Mismatches Jump Bar) */}
+        {topMismatches.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 relative z-10 bg-[#080E1C]/80 backdrop-blur-md px-3.5 py-2 rounded-xl border border-rose-500/20">
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              Top Mismatches (&gt;{noiseThreshold}%):
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {topMismatches.map((m, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => zoomToTheta(m.twoTheta)}
+                  className="flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all hover:scale-105 active:scale-95"
+                  title={`Click to zoom to 2θ = ${m.twoTheta}°`}
+                >
+                  <Crosshair className="w-3 h-3 text-rose-400" />
+                  <span>{m.twoTheta}°</span>
+                  <span className="text-rose-400 font-black">({m.difference > 0 ? `+${m.difference}` : m.difference}%)</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Dynamic Display Stage */}
         <div className="w-full relative z-10 select-none bg-[#030712] p-4 rounded-2xl border border-slate-800 shadow-inner flex flex-col gap-4 min-h-[640px]">
           
@@ -1091,6 +1378,8 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                 const valB = payload.find((p: any) => p.dataKey === 'intensityB')?.value;
                 const valDiff = payload.find((p: any) => p.dataKey === 'difference')?.value;
                 const valMirroredB = payload.find((p: any) => p.dataKey === 'mirroredB')?.value;
+                const valDerivA = payload.find((p: any) => p.dataKey === 'derivA')?.value;
+                const valDerivB = payload.find((p: any) => p.dataKey === 'derivB')?.value;
 
                 return (
                   <div className="bg-[#050A14]/95 backdrop-blur-xl border border-slate-700/80 p-3 rounded-xl shadow-2xl text-xs font-mono space-y-1.5 z-50 min-w-[210px]">
@@ -1138,6 +1427,18 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         <span className={`font-black ${valDiff > 0 ? 'text-rose-400' : valDiff < 0 ? 'text-cyan-400' : 'text-slate-300'}`}>
                           {valDiff > 0 ? `+${valDiff}` : valDiff} %
                         </span>
+                      </div>
+                    )}
+                    {valDerivA !== undefined && (
+                      <div className="flex justify-between items-center text-[10px] border-t border-slate-800/80 pt-1 mt-1 text-indigo-300 font-mono">
+                        <span>dI_A/d2θ:</span>
+                        <span className="font-bold">{valDerivA}</span>
+                      </div>
+                    )}
+                    {valDerivB !== undefined && (
+                      <div className="flex justify-between items-center text-[10px] text-cyan-300 font-mono">
+                        <span>dI_B/d2θ:</span>
+                        <span className="font-bold">{valDerivB}</span>
                       </div>
                     )}
                   </div>
@@ -1351,6 +1652,103 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={1.8} dot={false} isAnimationActive={false} />
                         {refAreaLeft && refAreaRight ? (
                           <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
+                        ) : null}
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              );
+            }
+
+            if (viewMode === 'derivative') {
+              return (
+                <div className="w-full flex flex-col gap-4">
+                  {/* 1st Derivative Spectrogram Comparison */}
+                  <div className="w-full h-[450px] bg-[#080d1a] rounded-xl border border-slate-800 p-3 relative flex flex-col">
+                    <div className="flex items-center justify-between mb-2 z-10 px-2">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1.5 text-[11px] font-mono font-bold" style={{ color: pal.colorA }}>
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorA }} />
+                          dI_A/d2θ ({materialA.name})
+                        </span>
+                        <span className="flex items-center gap-1.5 text-[11px] font-mono font-bold" style={{ color: pal.colorB }}>
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorB }} />
+                          dI_B/d2θ ({materialB?.name})
+                        </span>
+                      </div>
+                      <span className="text-[9px] font-mono text-purple-400 font-bold uppercase tracking-widest bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/40">
+                        1st Derivative Mode
+                      </span>
+                    </div>
+
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart
+                        syncId="compareSync"
+                        data={points}
+                        margin={{ top: 15, right: 15, bottom: 25, left: 10 }}
+                        onMouseDown={(e) => e && setRefAreaLeft(e.activeLabel)}
+                        onMouseMove={(e) => refAreaLeft && e && setRefAreaRight(e.activeLabel)}
+                        onMouseUp={zoom}
+                        onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
+                      >
+                        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
+                        <XAxis 
+                          dataKey="twoTheta" 
+                          type="number"
+                          domain={[left, right]}
+                          allowDataOverflow={true}
+                          tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                          axisLine={{ stroke: '#334155' }}
+                          tickLine={{ stroke: '#334155' }}
+                          label={{ value: t('Position [°2Theta]'), position: 'bottom', offset: 5, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                          axisLine={{ stroke: '#334155' }}
+                          tickLine={{ stroke: '#334155' }}
+                          label={{ value: 'dI / d(2Theta)', angle: -90, position: 'insideTopLeft', fill: '#94a3b8', fontSize: 10, dy: 20, dx: 10 }}
+                        />
+                        <Tooltip content={<RenderTooltip />} />
+                        <ReferenceLine y={0} stroke="#475569" strokeWidth={1.5} strokeDasharray="2 2" />
+                        <Line type="monotone" dataKey="derivA" stroke={pal.colorA} strokeWidth={2} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="derivB" stroke={pal.colorB} strokeWidth={2} strokeDasharray="4 2" dot={false} isAnimationActive={false} />
+                        {refAreaLeft && refAreaRight ? (
+                          <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#a855f7" fillOpacity={0.25} />
+                        ) : null}
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Residual Lower Pane */}
+                  <div className="w-full h-[180px] bg-[#080d1a] rounded-xl border border-slate-800 p-3 relative flex flex-col">
+                    <div className="flex items-center justify-between mb-1 z-10 px-2">
+                      <span className="text-[11px] font-mono font-bold flex items-center gap-1.5" style={{ color: pal.colorDiff }}>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {t('Δ Residual Intensity Profile')}
+                      </span>
+                    </div>
+
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart
+                        syncId="compareSync"
+                        data={points}
+                        margin={{ top: 10, right: 15, bottom: 20, left: 10 }}
+                        onMouseDown={(e) => e && setRefAreaLeft(e.activeLabel)}
+                        onMouseMove={(e) => refAreaLeft && e && setRefAreaRight(e.activeLabel)}
+                        onMouseUp={zoom}
+                        onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
+                      >
+                        {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
+                        <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
+                        <YAxis domain={[-100, 100]} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }} axisLine={{ stroke: '#334155' }} tickLine={{ stroke: '#334155' }} />
+                        <Tooltip content={<RenderTooltip />} />
+                        <ReferenceLine y={0} stroke="#475569" strokeWidth={1} strokeDasharray="3 3"/>
+                        {showDiffArea && (
+                          <Area type="monotone" dataKey="difference" fill={pal.colorDiff} fillOpacity={0.15} stroke="none" />
+                        )}
+                        <Line type="monotone" dataKey="difference" stroke={pal.colorDiff} strokeWidth={1.8} dot={false} isAnimationActive={false} />
+                        {refAreaLeft && refAreaRight ? (
+                          <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#a855f7" fillOpacity={0.25} />
                         ) : null}
                       </ComposedChart>
                     </ResponsiveContainer>
