@@ -379,7 +379,106 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       matchQuality = 'strained';
     }
 
-    return { shifts, missingInA, extraInA, meanShift, avgStrain, matchQuality };
+    // Indexed Peak Table & Phase Estimation computation
+    const lambda = 1.5406; // Cu-Ka wavelength
+    const indexedPeaks: Array<{
+      id: number;
+      twoThetaA: number;
+      twoThetaB: number | null;
+      dSpacingA: string;
+      dSpacingB: string;
+      shift: number | null;
+      intensityA: number;
+      intensityB: number;
+      status: 'matched' | 'shifted' | 'extra' | 'missing';
+    }> = [];
+
+    let peakId = 1;
+
+    pA.forEach((peakA: any) => {
+      const thetaRadA = (peakA.twoTheta / 2) * (Math.PI / 180);
+      const dA = thetaRadA > 0 ? (lambda / (2 * Math.sin(thetaRadA))).toFixed(4) : '-';
+
+      const closestRef = pB.reduce((prev: any, curr: any) => {
+        if (!prev) return curr;
+        return Math.abs(curr.twoTheta - peakA.twoTheta) < Math.abs(prev.twoTheta - peakA.twoTheta) ? curr : prev;
+      }, null);
+
+      if (closestRef && Math.abs(closestRef.twoTheta - peakA.twoTheta) <= 0.6) {
+        const shiftVal = peakA.twoTheta - closestRef.twoTheta;
+        const thetaRadB = (closestRef.twoTheta / 2) * (Math.PI / 180);
+        const dB = thetaRadB > 0 ? (lambda / (2 * Math.sin(thetaRadB))).toFixed(4) : '-';
+
+        indexedPeaks.push({
+          id: peakId++,
+          twoThetaA: peakA.twoTheta,
+          twoThetaB: closestRef.twoTheta,
+          dSpacingA: dA,
+          dSpacingB: dB,
+          shift: Number(shiftVal.toFixed(3)),
+          intensityA: peakA.intensity,
+          intensityB: closestRef.intensity,
+          status: Math.abs(shiftVal) >= 0.02 ? 'shifted' : 'matched'
+        });
+      } else {
+        indexedPeaks.push({
+          id: peakId++,
+          twoThetaA: peakA.twoTheta,
+          twoThetaB: null,
+          dSpacingA: dA,
+          dSpacingB: '-',
+          shift: null,
+          intensityA: peakA.intensity,
+          intensityB: 0,
+          status: 'extra'
+        });
+      }
+    });
+
+    pB.forEach((peakB: any) => {
+      const closestA = pA.reduce((prev: any, curr: any) => {
+        if (!prev) return curr;
+        return Math.abs(curr.twoTheta - peakB.twoTheta) < Math.abs(prev.twoTheta - peakB.twoTheta) ? curr : prev;
+      }, null);
+
+      if (!closestA || Math.abs(closestA.twoTheta - peakB.twoTheta) > 0.6) {
+        const thetaRadB = (peakB.twoTheta / 2) * (Math.PI / 180);
+        const dB = thetaRadB > 0 ? (lambda / (2 * Math.sin(thetaRadB))).toFixed(4) : '-';
+
+        indexedPeaks.push({
+          id: peakId++,
+          twoThetaA: 0,
+          twoThetaB: peakB.twoTheta,
+          dSpacingA: '-',
+          dSpacingB: dB,
+          shift: null,
+          intensityA: 0,
+          intensityB: peakB.intensity,
+          status: 'missing'
+        });
+      }
+    });
+
+    // Phase purity & fraction estimation
+    const sumIntA = pA.reduce((acc: number, p: any) => acc + p.intensity, 0);
+    const matchedIntA = indexedPeaks
+      .filter(p => p.status === 'matched' || p.status === 'shifted')
+      .reduce((acc, p) => acc + p.intensityA, 0);
+
+    const primaryPhasePurity = sumIntA > 0 ? Math.round((matchedIntA / sumIntA) * 100) : 100;
+    const secondaryPhaseEst = Math.max(0, 100 - primaryPhasePurity);
+
+    return { 
+      shifts, 
+      missingInA, 
+      extraInA, 
+      meanShift, 
+      avgStrain, 
+      matchQuality, 
+      indexedPeaks, 
+      primaryPhasePurity, 
+      secondaryPhaseEst 
+    };
   }, [materialA, materialB]);
 
   // ----------------------------------------------------
@@ -443,12 +542,21 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       const finalB = Math.min(100, intensityB);
       const difference = finalA - finalB;
 
+      const posDiff = Math.max(0, Number((finalA - finalB).toFixed(1)));
+      const negDiff = Math.max(0, Number((finalB - finalA).toFixed(1)));
+      const toleranceUpper = Number((finalB + 5.0).toFixed(1));
+      const toleranceLower = Number(Math.max(0, finalB - 5.0).toFixed(1));
+
       rawPoints.push({
         twoTheta: Number(x.toFixed(2)),
         intensityA: Number(finalA.toFixed(1)),
         intensityB: Number(finalB.toFixed(1)),
         mirroredB: Number((-finalB).toFixed(1)),
         difference: Number(difference.toFixed(1)),
+        posDiff,
+        negDiff,
+        toleranceUpper,
+        toleranceLower
       });
     }
 
@@ -469,7 +577,13 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       };
     });
 
-    return { points, peaksA, peaksB };
+    const peaksBWithShift = peaksB.map((p: any) => ({
+      twoTheta: Number((p.twoTheta + shift).toFixed(2)),
+      intensity: Number((p.intensity * scaleB).toFixed(1)),
+      hkl: p.hkl
+    }));
+
+    return { points, peaksA, peaksB, peaksBWithShift };
   };
 
   // ----------------------------------------------------
@@ -485,6 +599,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   const [diffTheme, setDiffTheme] = useState<'neon' | 'emerald' | 'amber'>('neon');
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [showDiffArea, setShowDiffArea] = useState<boolean>(true);
+
+  // Diagnostics Panel View Tabs
+  const [diagViewMode, setDiagViewMode] = useState<'cards' | 'table' | 'quant'>('cards');
+  const [tableSearchFilter, setTableSearchFilter] = useState<string>('');
+
+  // Enhanced Spectral Diff Overlay Controls
+  const [showPosNegDiff, setShowPosNegDiff] = useState<boolean>(true);
+  const [showToleranceBand, setShowToleranceBand] = useState<boolean>(false);
+  const [showBraggLines, setShowBraggLines] = useState<boolean>(true);
+  const [refLineStyle, setRefLineStyle] = useState<'dashed' | 'solid'>('dashed');
 
   // Advanced Spectral Alignment & Calibration Controls
   const [shiftTwoTheta, setShiftTwoTheta] = useState<number>(0);
@@ -560,7 +684,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
   const isZoomedIn = typeof left === 'number' && typeof right === 'number';
 
-  const { points } = useMemo(
+  const { points, peaksBWithShift } = useMemo(
     () => generateChartData(materialA, materialB, shiftTwoTheta, scaleSampleB), 
     [materialA, materialB, shiftTwoTheta, scaleSampleB]
   );
@@ -699,7 +823,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     csv += `Shift 2Theta:,${shiftTwoTheta}°\n`;
     csv += `Scale Sample B:,${scaleSampleB}x\n`;
     csv += `Metrics:,Rp = ${spectralMetrics.rP}%, Rwp = ${spectralMetrics.rWP}%, Pearson R = ${spectralMetrics.pearsonR}%, RMS Error = ${spectralMetrics.rmsd}\n`;
-    csv += `Match Quality:,${analysis.matchQuality.toUpperCase()}, Mean Shift = ${analysis.meanShift.toFixed(3)} deg, Microstrain = ${analysis.avgStrain.toFixed(3)}%\n\n`;
+    csv += `Match Quality:,${analysis.matchQuality.toUpperCase()}, Mean Shift = ${analysis.meanShift.toFixed(3)} deg, Microstrain = ${analysis.avgStrain.toFixed(3)}%\n`;
+    csv += `Primary Phase Purity Estimate:,${analysis.primaryPhasePurity}%\n\n`;
+
+    csv += `INDEXED PEAK MATCHING TABLE\n`;
+    csv += `Peak_ID,Exp_2Theta,Ref_2Theta,Shift_2Theta,Exp_d_Spacing_A,Ref_d_Spacing_A,Intensity_A,Intensity_B,Status\n`;
+    analysis.indexedPeaks.forEach(p => {
+      csv += `${p.id},${p.twoThetaA || ''},${p.twoThetaB || ''},${p.shift !== null ? p.shift : ''},${p.dSpacingA},${p.dSpacingB},${p.intensityA},${p.intensityB},${p.status.toUpperCase()}\n`;
+    });
+
+    csv += `\nFULL SPECTRAL PROFILE POINTS\n`;
     csv += `2Theta_deg,Intensity_A,Intensity_B_Scaled,Delta_Residual,Deriv_A,Deriv_B\n`;
     points.forEach(p => {
       csv += `${p.twoTheta},${p.intensityA},${p.intensityB},${p.difference},${p.derivA},${p.derivB}\n`;
@@ -1344,156 +1477,371 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
           </div>
         </div>
 
-        {/* 3 Interactive Columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          
-          {/* Column 1: Position Shift Analysis */}
-          <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-amber-500/40 transition-colors">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
-                  <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Position Shift Analysis')}</h4>
-                </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full">
-                  {analysis.shifts.length} {t('peaks')}
-                </span>
-              </div>
-              
-              <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
-                {analysis.shifts.length > 0 ? (
-                  analysis.shifts.map((s, idx) => (
-                    <div 
-                      key={idx} 
-                      className="flex justify-between items-center bg-slate-900/80 hover:bg-amber-950/30 p-2 rounded-lg border border-slate-800 hover:border-amber-500/30 transition-all group/item"
-                    >
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => zoomToTheta(s.peak)}
-                          className="p-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded transition-colors"
-                          title={`Click to zoom chart to 2θ = ${s.peak.toFixed(2)}°`}
-                        >
-                          <Crosshair className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="text-[11px] font-mono font-bold text-slate-200">2θ ≈ {s.peak.toFixed(2)}°</span>
-                      </div>
-                      <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded ${
-                        s.shift > 0 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
-                      }`}>
-                        {s.shift > 0 ? `+${s.shift.toFixed(3)}°` : `${s.shift.toFixed(3)}°`}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
-                    <span>{t('No systematic peak shifts detected')}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
-              {t('Systematic shifts indicate lattice parameter changes caused by substitution, solid solutions, thermal expansion or microstrain.')}
-            </p>
+        {/* Diagnostics View Mode Switcher Ribbon */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#030712] border border-slate-800 p-2 rounded-xl text-xs font-mono">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setDiagViewMode('cards')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                diagViewMode === 'cards'
+                  ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.5)]'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <Grid className="w-3.5 h-3.5" />
+              <span>{t('3-Column Diagnostics')}</span>
+            </button>
+
+            <button
+              onClick={() => setDiagViewMode('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                diagViewMode === 'table'
+                  ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.5)]'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>{t('Indexed Peak Table')}</span>
+              <span className="px-1.5 py-0.2 text-[9px] bg-slate-900 text-indigo-300 rounded font-black border border-indigo-500/30">
+                {analysis.indexedPeaks.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setDiagViewMode('quant')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                diagViewMode === 'quant'
+                  ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.5)]'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+              }`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>{t('Phase Fraction Estimate')}</span>
+            </button>
           </div>
 
-          {/* Column 2: Suppressed / Missing Peaks */}
-          <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-rose-500/40 transition-colors">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
-                  <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Suppressed / Missing')}</h4>
-                </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-full">
-                  {analysis.missingInA.length} {t('ref peaks')}
-                </span>
-              </div>
-
-              <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
-                {analysis.missingInA.length > 0 ? (
-                  analysis.missingInA.map((theta, idx) => (
-                    <div 
-                      key={idx} 
-                      className="flex justify-between items-center bg-slate-900/80 hover:bg-rose-950/30 p-2 rounded-lg border border-slate-800 hover:border-rose-500/30 transition-all group/item"
-                    >
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => zoomToTheta(theta)}
-                          className="p-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors"
-                          title={`Click to zoom chart to 2θ = ${theta.toFixed(2)}°`}
-                        >
-                          <ZoomIn className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Ref Peak')}</span>
-                      </div>
-                      <span className="text-[10px] font-black font-mono text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded">
-                        2θ = {theta.toFixed(2)}°
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
-                    <span>{t('All reference reflections observed')}</span>
-                  </div>
-                )}
-              </div>
+          {diagViewMode === 'table' && (
+            <div className="relative w-full sm:w-auto">
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" />
+              <input
+                type="text"
+                value={tableSearchFilter}
+                onChange={(e) => setTableSearchFilter(e.target.value)}
+                placeholder={t('Filter peaks...')}
+                className="bg-black/60 border border-slate-800 text-slate-200 text-[10px] pl-8 pr-3 py-1.5 rounded-lg outline-none focus:border-indigo-500/50 w-full sm:w-48 font-mono"
+              />
             </div>
-            <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
-              {t('Missing reference peaks point to preferred orientation (texture), low crystallinity, nanostructured peak broadening, or extinct reflections.')}
-            </p>
-          </div>
-
-          {/* Column 3: Impurities / Extra Peaks */}
-          <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-indigo-500/40 transition-colors">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
-                  <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Extra / Impurity Peaks')}</h4>
-                </div>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
-                  {analysis.extraInA.length} {t('extra')}
-                </span>
-              </div>
-
-              <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
-                {analysis.extraInA.length > 0 ? (
-                  analysis.extraInA.map((theta, idx) => (
-                    <div 
-                      key={idx} 
-                      className="flex justify-between items-center bg-slate-900/80 hover:bg-indigo-950/30 p-2 rounded-lg border border-slate-800 hover:border-indigo-500/30 transition-all group/item"
-                    >
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => zoomToTheta(theta)}
-                          className="p-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors"
-                          title={`Click to zoom chart to 2θ = ${theta.toFixed(2)}°`}
-                        >
-                          <Crosshair className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Atypical')}</span>
-                      </div>
-                      <span className="text-[10px] font-black font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2 py-0.5 rounded">
-                        2θ = {theta.toFixed(2)}°
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
-                    <span>{t('No unindexed secondary phase peaks')}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
-              {t('Atypical extra reflections indicate unreacted raw precursors, secondary crystalline phase formation, or sample impurities.')}
-            </p>
-          </div>
-
+          )}
         </div>
+
+        {/* Dynamic Diagnostics Content Render Scope */}
+        {diagViewMode === 'cards' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Column 1: Position Shift Analysis */}
+            <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-amber-500/40 transition-colors">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+                    <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Position Shift Analysis')}</h4>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full">
+                    {analysis.shifts.length} {t('peaks')}
+                  </span>
+                </div>
+                
+                <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+                  {analysis.shifts.length > 0 ? (
+                    analysis.shifts.map((s, idx) => (
+                      <div 
+                        key={idx} 
+                        className="flex justify-between items-center bg-slate-900/80 hover:bg-amber-950/30 p-2 rounded-lg border border-slate-800 hover:border-amber-500/30 transition-all group/item"
+                      >
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => zoomToTheta(s.peak)}
+                            className="p-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded transition-colors"
+                            title={`Click to zoom chart to 2θ = ${s.peak.toFixed(2)}°`}
+                          >
+                            <Crosshair className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-[11px] font-mono font-bold text-slate-200">2θ ≈ {s.peak.toFixed(2)}°</span>
+                        </div>
+                        <span className={`text-[10px] font-black font-mono px-2 py-0.5 rounded ${
+                          s.shift > 0 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                        }`}>
+                          {s.shift > 0 ? `+${s.shift.toFixed(3)}°` : `${s.shift.toFixed(3)}°`}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
+                      <span>{t('No systematic peak shifts detected')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
+                {t('Systematic shifts indicate lattice parameter changes caused by substitution, solid solutions, thermal expansion or microstrain.')}
+              </p>
+            </div>
+
+            {/* Column 2: Suppressed / Missing Peaks */}
+            <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-rose-500/40 transition-colors">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
+                    <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Suppressed / Missing')}</h4>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-full">
+                    {analysis.missingInA.length} {t('ref peaks')}
+                  </span>
+                </div>
+
+                <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+                  {analysis.missingInA.length > 0 ? (
+                    analysis.missingInA.map((theta, idx) => (
+                      <div 
+                        key={idx} 
+                        className="flex justify-between items-center bg-slate-900/80 hover:bg-rose-950/30 p-2 rounded-lg border border-slate-800 hover:border-rose-500/30 transition-all group/item"
+                      >
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => zoomToTheta(theta)}
+                            className="p-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors"
+                            title={`Click to zoom chart to 2θ = ${theta.toFixed(2)}°`}
+                          >
+                            <ZoomIn className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Ref Peak')}</span>
+                        </div>
+                        <span className="text-[10px] font-black font-mono text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded">
+                          2θ = {theta.toFixed(2)}°
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
+                      <span>{t('All reference reflections observed')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
+                {t('Missing reference peaks point to preferred orientation (texture), low crystallinity, nanostructured peak broadening, or extinct reflections.')}
+              </p>
+            </div>
+
+            {/* Column 3: Impurities / Extra Peaks */}
+            <div className="bg-[#030712]/80 p-4 border border-slate-800/90 rounded-xl space-y-3 flex flex-col justify-between group/card hover:border-indigo-500/40 transition-colors">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
+                    <h4 className="text-[11px] font-black text-slate-200 uppercase tracking-wider">{t('Extra / Impurity Peaks')}</h4>
+                  </div>
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
+                    {analysis.extraInA.length} {t('extra')}
+                  </span>
+                </div>
+
+                <div className="h-[140px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+                  {analysis.extraInA.length > 0 ? (
+                    analysis.extraInA.map((theta, idx) => (
+                      <div 
+                        key={idx} 
+                        className="flex justify-between items-center bg-slate-900/80 hover:bg-indigo-950/30 p-2 rounded-lg border border-slate-800 hover:border-indigo-500/30 transition-all group/item"
+                      >
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => zoomToTheta(theta)}
+                            className="p-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors"
+                            title={`Click to zoom chart to 2θ = ${theta.toFixed(2)}°`}
+                          >
+                            <Crosshair className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Atypical')}</span>
+                        </div>
+                        <span className="text-[10px] font-black font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2 py-0.5 rounded">
+                          2θ = {theta.toFixed(2)}°
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-slate-500 h-full text-[10px] italic py-6 text-center">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500/60 mb-1" />
+                      <span>{t('No unindexed secondary phase peaks')}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-400 leading-relaxed pt-2 border-t border-slate-800/60">
+                {t('Atypical extra reflections indicate unreacted raw precursors, secondary crystalline phase formation, or sample impurities.')}
+              </p>
+            </div>
+
+          </div>
+        )}
+
+        {/* Tab View 2: Full Indexed Peak Table */}
+        {diagViewMode === 'table' && (
+          <div className="bg-[#030712] border border-slate-800 rounded-xl overflow-hidden font-mono text-xs shadow-inner">
+            <div className="max-h-[320px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-[#080d1a] border-b border-slate-800 sticky top-0 z-10 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="p-2.5 text-center">#</th>
+                    <th className="p-2.5">Exp 2θ (°)</th>
+                    <th className="p-2.5">Ref 2θ (°)</th>
+                    <th className="p-2.5">Shift Δ2θ (°)</th>
+                    <th className="p-2.5">Exp d-Spacing (Å)</th>
+                    <th className="p-2.5">Ref d-Spacing (Å)</th>
+                    <th className="p-2.5">Int A (%)</th>
+                    <th className="p-2.5">Int B (%)</th>
+                    <th className="p-2.5">Indexing Status</th>
+                    <th className="p-2.5 text-center">Zoom</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-[11px] text-slate-300">
+                  {analysis.indexedPeaks
+                    .filter(p => {
+                      if (!tableSearchFilter) return true;
+                      const search = tableSearchFilter.toLowerCase();
+                      return (
+                        p.twoThetaA.toString().includes(search) ||
+                        (p.twoThetaB && p.twoThetaB.toString().includes(search)) ||
+                        p.status.toLowerCase().includes(search) ||
+                        p.dSpacingA.includes(search)
+                      );
+                    })
+                    .map((p) => (
+                      <tr key={p.id} className="hover:bg-indigo-950/20 transition-colors">
+                        <td className="p-2.5 text-center text-slate-500 font-bold">{p.id}</td>
+                        <td className="p-2.5 font-bold text-slate-100">
+                          {p.twoThetaA > 0 ? `${p.twoThetaA.toFixed(2)}°` : '-'}
+                        </td>
+                        <td className="p-2.5 text-emerald-400 font-bold">
+                          {p.twoThetaB ? `${p.twoThetaB.toFixed(2)}°` : '-'}
+                        </td>
+                        <td className="p-2.5 font-bold">
+                          {p.shift !== null ? (
+                            <span className={p.shift > 0 ? 'text-amber-400' : p.shift < 0 ? 'text-cyan-400' : 'text-slate-400'}>
+                              {p.shift > 0 ? `+${p.shift.toFixed(3)}°` : `${p.shift.toFixed(3)}°`}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td className="p-2.5 text-slate-400">{p.dSpacingA}</td>
+                        <td className="p-2.5 text-slate-400">{p.dSpacingB}</td>
+                        <td className="p-2.5 text-slate-300">{p.intensityA}%</td>
+                        <td className="p-2.5 text-emerald-400">{p.intensityB}%</td>
+                        <td className="p-2.5">
+                          {p.status === 'matched' && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                              Matched
+                            </span>
+                          )}
+                          {p.status === 'shifted' && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                              Shifted
+                            </span>
+                          )}
+                          {p.status === 'extra' && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+                              Unindexed
+                            </span>
+                          )}
+                          {p.status === 'missing' && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                              Suppressed
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-2.5 text-center">
+                          <button
+                            onClick={() => zoomToTheta(p.twoThetaA || p.twoThetaB || 30)}
+                            className="p-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors inline-flex items-center"
+                            title="Zoom Chart to this 2θ position"
+                          >
+                            <Crosshair className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Tab View 3: Phase Fraction & Purity Estimator */}
+        {diagViewMode === 'quant' && (
+          <div className="bg-[#030712] border border-slate-800 p-5 rounded-xl space-y-4 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">{t('Semi-Quantitative Phase Composition Estimate')}</h4>
+                  <p className="text-[10px] text-slate-400">{t('Relative integrated intensity scaling ratio for main phase vs impurity reflections')}</p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase rounded">
+                RIR Model
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-indigo-300 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" />
+                  {materialA?.name} ({t('Primary Indexed Phase')}): {analysis.primaryPhasePurity}%
+                </span>
+                <span className="text-rose-400 flex items-center gap-1.5">
+                  {materialB?.name} / {t('Unindexed Reflections')}: {analysis.secondaryPhaseEst}%
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
+                </span>
+              </div>
+
+              {/* Progress Dual Bar */}
+              <div className="w-full h-4 bg-slate-900 rounded-full border border-slate-800 overflow-hidden flex shadow-inner">
+                <div 
+                  style={{ width: `${analysis.primaryPhasePurity}%` }} 
+                  className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 transition-all duration-500 flex items-center justify-center text-[9px] font-black text-white"
+                >
+                  {analysis.primaryPhasePurity >= 15 ? `${analysis.primaryPhasePurity}%` : ''}
+                </div>
+                <div 
+                  style={{ width: `${analysis.secondaryPhaseEst}%` }} 
+                  className="h-full bg-gradient-to-r from-rose-500 to-amber-500 transition-all duration-500 flex items-center justify-center text-[9px] font-black text-white"
+                >
+                  {analysis.secondaryPhaseEst >= 15 ? `${analysis.secondaryPhaseEst}%` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 text-[11px] text-slate-300 leading-relaxed">
+              <div className="bg-[#080d1a] p-3 rounded-lg border border-slate-800 space-y-1">
+                <span className="text-indigo-400 font-bold uppercase text-[10px]">{t('Interpretation & Quality')}</span>
+                <p className="text-slate-400 text-[10px]">
+                  • High primary phase purity ({analysis.primaryPhasePurity}%) denotes clean crystallization without major secondary phase precipitation.
+                  <br />
+                  • For precise Rietveld refinement, import full CIF structural parameters.
+                </p>
+              </div>
+              <div className="bg-[#080d1a] p-3 rounded-lg border border-slate-800 space-y-1">
+                <span className="text-amber-400 font-bold uppercase text-[10px]">{t('Quantitative Actionable Advice')}</span>
+                <p className="text-slate-400 text-[10px]">
+                  • {analysis.secondaryPhaseEst > 0 
+                      ? `Investigate unindexed peaks at 2θ positions ${analysis.extraInA.slice(0, 3).map(t => t.toFixed(2) + '°').join(', ')} to identify secondary phases.`
+                      : 'No secondary phase impurity reflections detected.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ----------------------------------------------------
@@ -1954,8 +2302,90 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
             if (viewMode === 'unified') {
               return (
                 <div className="w-full flex flex-col gap-4">
+                  {/* Spectral Diff Overlay Control Ribbon */}
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 bg-[#080d1a] border border-slate-800 p-2.5 rounded-xl text-xs font-mono">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
+                      <span className="font-bold text-slate-200 uppercase tracking-wider text-[11px]">{t('Spectral Overlay Controls')}:</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => setShowPosNegDiff(!showPosNegDiff)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                          showPosNegDiff 
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-[0_0_8px_rgba(244,63,94,0.3)]' 
+                            : 'bg-[#030712] text-slate-500 border border-slate-800'
+                        }`}
+                        title="Highlight positive (+A excess in Rose) and negative (-B deficit in Cyan) spectrum gaps"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
+                        <span>{t('Split +/- Diff Fill')}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowToleranceBand(!showToleranceBand)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                          showToleranceBand 
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.3)]' 
+                            : 'bg-[#030712] text-slate-500 border border-slate-800'
+                        }`}
+                        title="Toggle ±5% Noise Corridor envelope around Reference B"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                        <span>{t('±5% Noise Envelope')}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowBraggLines(!showBraggLines)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                          showBraggLines 
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_8px_rgba(6,182,212,0.3)]' 
+                            : 'bg-[#030712] text-slate-500 border border-slate-800'
+                        }`}
+                        title="Toggle vertical Bragg peak markers for Reference B"
+                      >
+                        <Activity className="w-3 h-3 text-cyan-400" />
+                        <span>{t('Bragg Position Lines')}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setRefLineStyle(refLineStyle === 'dashed' ? 'solid' : 'dashed')}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-[#030712] hover:bg-slate-800 text-slate-300 border border-slate-800 rounded-lg text-[10px] font-bold uppercase transition-colors"
+                        title="Toggle reference curve stroke style"
+                      >
+                        <span>{t('Ref Stroke')}:</span>
+                        <span className="text-indigo-400">{refLineStyle.toUpperCase()}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Discrepancy Peaks Navigator Pill Ribbon */}
+                  {topMismatches.length > 0 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[10px] font-mono scrollbar-none">
+                      <span className="text-slate-500 font-bold uppercase shrink-0 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3 text-amber-400" />
+                        {t('Major Peak Discrepancies')}:
+                      </span>
+                      {topMismatches.map((m, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => zoomToTheta(m.twoTheta)}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border font-bold shrink-0 transition-all active:scale-95 ${
+                            m.difference > 0
+                              ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border-rose-500/30'
+                              : 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                          }`}
+                        >
+                          <span>2θ = {m.twoTheta}°</span>
+                          <span className="font-black">({m.difference > 0 ? `+${m.difference}` : m.difference}%)</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Single Unified Chart */}
-                  <div className="w-full h-[400px] bg-[#080d1a] rounded-xl border border-slate-800 p-3 relative flex flex-col">
+                  <div className="w-full h-[420px] bg-[#080d1a] rounded-xl border border-slate-800 p-3 relative flex flex-col shadow-xl">
                     <div className="flex items-center justify-between mb-2 z-10 px-2">
                       <div className="flex items-center gap-3">
                         <span className="flex items-center gap-1.5 text-[11px] font-mono font-bold" style={{ color: pal.colorA }}>
@@ -1967,7 +2397,9 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                           {t('Sample B')}: {materialB?.name}
                         </span>
                       </div>
-                      <span className="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-widest">Unified Overlay Mode</span>
+                      <span className="text-[9px] font-mono text-indigo-400 font-bold uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                        {t('Spectral Diff Overlay Active')}
+                      </span>
                     </div>
 
                     <ResponsiveContainer width="100%" height="100%">
@@ -1981,8 +2413,20 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                         onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
                       >
                         <defs>
+                          <linearGradient id="posDiffGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.45} />
+                            <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.05} />
+                          </linearGradient>
+                          <linearGradient id="negDiffGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.45} />
+                            <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.05} />
+                          </linearGradient>
+                          <linearGradient id="toleranceGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.18} />
+                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
+                          </linearGradient>
                           <linearGradient id="colorA_unified" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.4} />
+                            <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.35} />
                             <stop offset="95%" stopColor={pal.colorA} stopOpacity={0} />
                           </linearGradient>
                           <linearGradient id="colorB_unified" x1="0" y1="0" x2="0" y2="1">
@@ -2009,14 +2453,62 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                           label={{ value: t('Counts [%]'), angle: -90, position: 'insideTopLeft', fill: '#94a3b8', fontSize: 10, dy: 20, dx: 10 }}
                         />
                         <Tooltip content={<RenderTooltip />} />
-                        {showDiffArea && (
+
+                        {/* Tolerance Envelope Corridor */}
+                        {showToleranceBand && (
+                          <Area type="monotone" dataKey="toleranceUpper" fill="url(#toleranceGrad)" stroke="none" />
+                        )}
+
+                        {/* Split Positive & Negative Difference Fills */}
+                        {showPosNegDiff ? (
+                          <>
+                            <Area type="monotone" dataKey="posDiff" fill="url(#posDiffGrad)" stroke="none" />
+                            <Area type="monotone" dataKey="negDiff" fill="url(#negDiffGrad)" stroke="none" />
+                          </>
+                        ) : showDiffArea ? (
                           <>
                             <Area type="monotone" dataKey="intensityA" fill="url(#colorA_unified)" stroke="none" />
                             <Area type="monotone" dataKey="intensityB" fill="url(#colorB_unified)" stroke="none" />
                           </>
-                        )}
-                        <Line type="monotone" dataKey="intensityA" stroke={pal.colorA} strokeWidth={2.5} dot={false} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="intensityB" stroke={pal.colorB} strokeWidth={2.5} strokeDasharray="5 3" dot={false} isAnimationActive={false} />
+                        ) : null}
+
+                        {/* Primary Diffraction Lines */}
+                        <Line 
+                          type="monotone" 
+                          dataKey="intensityA" 
+                          stroke={pal.colorA} 
+                          strokeWidth={2.5} 
+                          dot={false} 
+                          isAnimationActive={false} 
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="intensityB" 
+                          stroke={pal.colorB} 
+                          strokeWidth={2} 
+                          strokeDasharray={refLineStyle === 'dashed' ? '5 3' : undefined} 
+                          dot={false} 
+                          isAnimationActive={false} 
+                        />
+
+                        {/* Bragg Position Indicators */}
+                        {showBraggLines && peaksBWithShift?.map((p: any, idx: number) => (
+                          <ReferenceLine 
+                            key={idx} 
+                            x={p.twoTheta} 
+                            stroke={pal.colorB} 
+                            strokeDasharray="2 2" 
+                            strokeOpacity={0.5} 
+                            label={{ 
+                              value: p.hkl ? `(${p.hkl})` : `${p.twoTheta}°`, 
+                              position: 'top', 
+                              fill: pal.colorB, 
+                              fontSize: 9, 
+                              fontFamily: 'monospace' 
+                            }} 
+                          />
+                        ))}
+
                         {refAreaLeft && refAreaRight ? (
                           <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.5} fill="#6366f1" fillOpacity={0.25} />
                         ) : null}
@@ -2025,13 +2517,15 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                   </div>
 
                   {/* Residual Lower Pane */}
-                  <div className="w-full h-[200px] bg-[#080d1a] rounded-xl border border-slate-800 p-3 relative flex flex-col">
+                  <div className="w-full h-[200px] bg-[#080d1a] rounded-xl border border-slate-800 p-3 relative flex flex-col shadow-xl">
                     <div className="flex items-center justify-between mb-1 z-10 px-2">
                       <span className="text-[11px] font-mono font-bold flex items-center gap-1.5" style={{ color: pal.colorDiff }}>
-                        <Sparkles className="w-3.5 h-3.5" />
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                         {t('Δ Residual Profile (I_SampleA - I_SampleB)')}
                       </span>
-                      <span className="text-[9px] font-mono text-amber-500/80 font-bold uppercase tracking-wider">Delta Curve</span>
+                      <span className="text-[9px] font-mono text-rose-400 font-bold uppercase tracking-wider bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                        {t('Diff Residual Spectrum')}
+                      </span>
                     </div>
 
                     <ResponsiveContainer width="100%" height="100%">
@@ -2046,8 +2540,8 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                       >
                         <defs>
                           <linearGradient id="colorDiff_unified" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={pal.colorDiff} stopOpacity={0.4} />
-                            <stop offset="95%" stopColor={pal.colorDiff} stopOpacity={0} />
+                            <stop offset="5%" stopColor={pal.colorDiff} stopOpacity={0.45} />
+                            <stop offset="95%" stopColor={pal.colorDiff} stopOpacity={0.02} />
                           </linearGradient>
                         </defs>
                         {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />}
@@ -2067,7 +2561,10 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                           tickLine={{ stroke: '#334155' }}
                         />
                         <Tooltip content={<RenderTooltip />} />
-                        <ReferenceLine y={0} stroke="#475569" strokeWidth={1} strokeDasharray="3 3"/>
+                        <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.5} strokeDasharray="3 3"/>
+                        <ReferenceLine y={10} stroke="#f43f5e" strokeWidth={1} strokeDasharray="2 2" strokeOpacity={0.4} />
+                        <ReferenceLine y={-10} stroke="#06b6d4" strokeWidth={1} strokeDasharray="2 2" strokeOpacity={0.4} />
+
                         {showDiffArea && (
                           <Area type="monotone" dataKey="difference" fill="url(#colorDiff_unified)" stroke="none" />
                         )}

@@ -1,11 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle, Download, BookOpen, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { 
+  RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle, Download, BookOpen, HelpCircle,
+  Sliders, Eye, ZoomIn, ZoomOut, Crosshair, TrendingUp, BarChart2, Split, Maximize2, Sparkles, SlidersHorizontal
+} from 'lucide-react';
 import { simulatePeak } from '../utils/physics';
 import { FWHMResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -25,6 +29,23 @@ export const FWHMModule: React.FC = () => {
   const [amplitude, setAmplitude] = useState<number>(100);
   const [background, setBackground] = useState<number>(10);
   const [noiseLevel, setNoiseLevel] = useState<number>(2);
+  
+  // Advanced Physics State
+  const [showComponents, setShowComponents] = useState<boolean>(true); // G & L components
+  const [enableKaDoublet, setEnableKaDoublet] = useState<boolean>(false); // Ka1/Ka2 doublet splitting
+  const [ka2Ratio, setKa2Ratio] = useState<number>(0.5); // I(Ka2)/I(Ka1)
+  const [asymmetry, setAsymmetry] = useState<number>(1.0); // Asymmetry index (1.0 = symmetric)
+  
+  // Secondary Overlapping Peak Simulation (Deconvolution Mode)
+  const [enableSecondaryPeak, setEnableSecondaryPeak] = useState<boolean>(false);
+  const [secondPeakOffset, setSecondPeakOffset] = useState<number>(0.4); // deg 2theta offset
+  const [secondPeakFwhm, setSecondPeakFwhm] = useState<number>(0.6);
+  const [secondPeakAmp, setSecondPeakAmp] = useState<number>(40); // % of primary peak
+  const [applyLpFactor, setApplyLpFactor] = useState<boolean>(false); // Lorentz-Polarization correction
+
+  // Residuals & Zoom Display
+  const [showResiduals, setShowResiduals] = useState<boolean>(true);
+  const [zoomRange, setZoomRange] = useState<number>(1.0); // multiplier on default range
   
   // High-value physics parameters for PhD / research use
   const [wavelengthPreset, setWavelengthPreset] = useState<string>('Cu Kα (1.5406 Å)');
@@ -203,17 +224,181 @@ export const FWHMModule: React.FC = () => {
     setShowReferencePeaks(false);
     setRefMaterial('Silicon');
     setCustomRefPeaks('28.44, 47.30, 56.12');
+    setShowComponents(true);
+    setEnableKaDoublet(false);
+    setKa2Ratio(0.5);
+    setAsymmetry(1.0);
+    setEnableSecondaryPeak(false);
+    setSecondPeakOffset(0.4);
+    setSecondPeakFwhm(0.6);
+    setSecondPeakAmp(40);
+    setApplyLpFactor(false);
+    setShowResiduals(true);
+    setZoomRange(1.0);
   };
   
   const [isHovered, setIsHovered] = useState(false);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
+  const extSim = useMemo(() => {
+    const halfWidth = fwhm * 4 * zoomRange;
+    const range: [number, number] = [Math.max(5, center - halfWidth), Math.min(170, center + halfWidth)];
+    const steps = 300;
+    const start = range[0];
+    const end = range[1];
+    const stepSize = (end - start) / steps;
+
+    const gamma = Math.max(0.0001, fwhm / 2);
+    const sigma = Math.max(0.0001, fwhm / (2 * Math.sqrt(2 * Math.log(2))));
+    const m = Math.max(1, eta * 10);
+    const PVII_w = fwhm / (2 * Math.sqrt(Math.pow(2, 1 / m) - 1));
+
+    // Kα2 shift computation for active wavelength
+    const lambda1 = activeWavelength;
+    const lambda2 = activeWavelength * 1.002486; // Cu Ka2/Ka1 ratio
+    const theta1Rad = (center / 2) * (Math.PI / 180);
+    const sinTheta2 = (lambda2 / lambda1) * Math.sin(theta1Rad);
+    const theta2Rad = sinTheta2 <= 1 ? Math.asin(sinTheta2) : theta1Rad;
+    const centerKa2 = 2 * theta2Rad * (180 / Math.PI);
+
+    const evalPeak = (x: number, pCenter: number, pFwhm: number, pAmp: number) => {
+      const asymFactor = x < pCenter ? asymmetry : 1 / asymmetry;
+      const effFwhm = Math.max(0.001, pFwhm * asymFactor);
+      const effGamma = Math.max(0.0001, effFwhm / 2);
+      const effSigma = Math.max(0.0001, effFwhm / (2 * Math.sqrt(2 * Math.log(2))));
+      const effW = effFwhm / (2 * Math.sqrt(Math.pow(2, 1 / m) - 1));
+
+      let gVal = 0;
+      let lVal = 0;
+      let val = 0;
+
+      if (type === 'Gaussian' || type === 'Pseudo-Voigt') {
+        gVal = pAmp * Math.exp(-0.5 * Math.pow((x - pCenter) / effSigma, 2));
+      }
+      if (type === 'Lorentzian' || type === 'Pseudo-Voigt') {
+        lVal = pAmp * (Math.pow(effGamma, 2) / (Math.pow(x - pCenter, 2) + Math.pow(effGamma, 2)));
+      }
+
+      if (type === 'Gaussian') val = gVal;
+      else if (type === 'Lorentzian') val = lVal;
+      else if (type === 'Pseudo-Voigt') val = (1 - eta) * gVal + eta * lVal;
+      else if (type === 'Pearson VII') {
+        val = pAmp * Math.pow(1 + Math.pow((x - pCenter) / effW, 2), -m);
+      }
+
+      return { val, gVal, lVal };
+    };
+
+    const points = [];
+    let sumSqDiff = 0;
+    let sumSqNoisy = 0;
+    let sumAbsDiff = 0;
+    let sumNoisy = 0;
+
+    for (let i = 0; i <= steps; i++) {
+      const x = start + i * stepSize;
+
+      const pk1 = evalPeak(x, center, fwhm, amplitude);
+
+      let pk2Val = 0;
+      if (enableKaDoublet) {
+        const pk2 = evalPeak(x, centerKa2, fwhm, amplitude * ka2Ratio);
+        pk2Val = pk2.val;
+      }
+
+      let pkSecVal = 0;
+      if (enableSecondaryPeak) {
+        const secCenter = center + secondPeakOffset;
+        const secAmp = amplitude * (secondPeakAmp / 100);
+        const pkSec = evalPeak(x, secCenter, secondPeakFwhm, secAmp);
+        pkSecVal = pkSec.val;
+      }
+
+      let cleanSum = pk1.val + pk2Val + pkSecVal;
+
+      if (applyLpFactor) {
+        // Lorentz-Polarization Factor: (1 + cos²(2θ)) / (sin²(θ) * cos(θ))
+        const thetaRad = (x / 2) * (Math.PI / 180);
+        const lp = (1 + Math.pow(Math.cos(2 * thetaRad), 2)) / (Math.pow(Math.sin(thetaRad), 2) * Math.cos(thetaRad));
+        
+        // Normalize lp factor at peak center so amplitude doesn't visually explode off-chart
+        const thetaCenterRad = (center / 2) * (Math.PI / 180);
+        const lpCenter = (1 + Math.pow(Math.cos(2 * thetaCenterRad), 2)) / (Math.pow(Math.sin(thetaCenterRad), 2) * Math.cos(thetaCenterRad));
+        
+        cleanSum = cleanSum * (lp / lpCenter);
+      }
+      
+      cleanSum += background;
+
+      const noise = (Math.random() - 0.5) * noiseLevel * Math.sqrt(cleanSum + 1) * 2;
+      const noisyY = Math.max(0, cleanSum + noise);
+      const residual = noisyY - cleanSum;
+
+      sumSqDiff += residual * residual;
+      sumSqNoisy += noisyY * noisyY;
+      sumAbsDiff += Math.abs(residual);
+      sumNoisy += noisyY;
+
+      points.push({
+        x,
+        y: noisyY,
+        _cleanY: cleanSum,
+        yG: (type === 'Pseudo-Voigt' && showComponents) ? pk1.gVal + background : undefined,
+        yL: (type === 'Pseudo-Voigt' && showComponents) ? pk1.lVal + background : undefined,
+        yKa1: enableKaDoublet ? pk1.val + background : undefined,
+        yKa2: enableKaDoublet ? pk2Val + background : undefined,
+        yPeak2: enableSecondaryPeak ? pkSecVal + background : undefined,
+        residual
+      });
+    }
+
+    const rP = sumNoisy > 0 ? (sumAbsDiff / sumNoisy) * 100 : 0;
+    const rWP = sumSqNoisy > 0 ? Math.sqrt(sumSqDiff / sumSqNoisy) * 100 : 0;
+    const goodnessOfFit = sumSqDiff / Math.max(1, steps - 4);
+
+    const areaG = amplitude * sigma * Math.sqrt(2 * Math.PI);
+    const areaL = amplitude * Math.PI * gamma;
+    let totalArea = 0;
+    if (type === 'Gaussian') totalArea = areaG;
+    else if (type === 'Lorentzian') totalArea = areaL;
+    else if (type === 'Pseudo-Voigt') totalArea = (1 - eta) * areaG + eta * areaL;
+    else {
+      let sum = 0;
+      for (let i = 0; i < steps; i++) sum += (points[i]._cleanY + points[i + 1]._cleanY) / 2 * stepSize;
+      totalArea = sum;
+    }
+
+    const integralBreadth = amplitude > 0 ? totalArea / amplitude : 0.01;
+    const shapeFactor = fwhm / integralBreadth;
+
+    const resStats: FWHMResult & {
+      rP: number;
+      rWP: number;
+      goodnessOfFit: number;
+      centerKa2: number;
+    } = {
+      fwhm,
+      integralBreadth,
+      shapeFactor,
+      area: totalArea,
+      maxIntensity: amplitude,
+      rP,
+      rWP,
+      goodnessOfFit,
+      centerKa2
+    };
+
+    return { points, stats: resStats };
+  }, [
+    type, center, fwhm, eta, amplitude, background, noiseLevel, zoomRange,
+    enableKaDoublet, ka2Ratio, asymmetry, enableSecondaryPeak, secondPeakOffset,
+    secondPeakFwhm, secondPeakAmp, showComponents, activeWavelength, applyLpFactor
+  ]);
+
   useEffect(() => {
-    const range: [number, number] = [center - fwhm * 4, center + fwhm * 4];
-    const { points, stats } = simulatePeak(type, center, fwhm, eta, amplitude, range, 200, background, noiseLevel);
-    setChartData(points);
-    setStats(stats);
-  }, [type, center, fwhm, eta, amplitude, background, noiseLevel]);
+    setChartData(extSim.points);
+    setStats(extSim.stats);
+  }, [extSim]);
 
   const analyzeProfile = () => {
     if (!stats) return null;
@@ -508,6 +693,123 @@ export const FWHMModule: React.FC = () => {
               )}
             </div>
 
+            {/* Doublet & Asymmetry Physical Distortion Controls */}
+            <div className="space-y-3 bg-slate-50 dark:bg-slate-950/30 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Split className="w-3.5 h-3.5 text-indigo-500" />
+                  Kα₁ / Kα₂ Doublet
+                </span>
+                <button
+                  onClick={() => setEnableKaDoublet(!enableKaDoublet)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${
+                    enableKaDoublet 
+                      ? 'bg-amber-500 text-white shadow-sm' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {enableKaDoublet ? 'Active' : 'Off'}
+                </button>
+              </div>
+
+              {enableKaDoublet && (
+                <div className="space-y-3 pt-2 border-t border-slate-200/50 dark:border-slate-800/50 animate-in fade-in duration-200">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-400">I(Kα₂) / I(Kα₁) Ratio:</span>
+                      <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{(ka2Ratio * 100).toFixed(0)}%</span>
+                    </div>
+                    <input
+                      type="range" min="0.2" max="0.8" step="0.05"
+                      value={ka2Ratio} onChange={(e) => setKa2Ratio(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    />
+                  </div>
+                  <div className="p-2 bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/40 rounded text-[10px] text-amber-800 dark:text-amber-300 font-mono">
+                    2θ(Kα₂) centroid shift: <strong className="font-bold">{extSim.stats.centerKa2.toFixed(3)}°</strong>
+                  </div>
+                </div>
+              )}
+
+              {/* Peak Asymmetry Slider */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-200/50 dark:border-slate-800/50">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Asymmetry Ratio (Aₛ)</span>
+                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{asymmetry.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range" min="0.7" max="1.5" step="0.02"
+                  value={asymmetry} onChange={(e) => setAsymmetry(parseFloat(e.target.value))}
+                  className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+                <div className="flex justify-between text-[8px] text-slate-400 font-mono">
+                  <span>Left Skew (0.7)</span>
+                  <span>Symmetric (1.0)</span>
+                  <span>Right Skew (1.5)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Secondary Overlapping Peak Deconvolution */}
+            <div className="space-y-3 bg-slate-50 dark:bg-slate-950/30 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-emerald-500" />
+                  Secondary Peak
+                </span>
+                <button
+                  onClick={() => setEnableSecondaryPeak(!enableSecondaryPeak)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${
+                    enableSecondaryPeak 
+                      ? 'bg-emerald-600 text-white shadow-sm' 
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {enableSecondaryPeak ? 'Active' : 'Off'}
+                </button>
+              </div>
+
+              {enableSecondaryPeak && (
+                <div className="space-y-3 pt-2 border-t border-slate-200/50 dark:border-slate-800/50 animate-in fade-in duration-200">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-400">2θ Offset:</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{secondPeakOffset > 0 ? `+${secondPeakOffset.toFixed(2)}` : secondPeakOffset.toFixed(2)}°</span>
+                    </div>
+                    <input
+                      type="range" min="-2.0" max="2.0" step="0.05"
+                      value={secondPeakOffset} onChange={(e) => setSecondPeakOffset(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-400">Peak 2 FWHM:</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{secondPeakFwhm.toFixed(2)}°</span>
+                    </div>
+                    <input
+                      type="range" min="0.1" max="2.0" step="0.05"
+                      value={secondPeakFwhm} onChange={(e) => setSecondPeakFwhm(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-slate-400">Relative Intensity:</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{secondPeakAmp.toFixed(0)}%</span>
+                    </div>
+                    <input
+                      type="range" min="5" max="100" step="5"
+                      value={secondPeakAmp} onChange={(e) => setSecondPeakAmp(parseFloat(e.target.value))}
+                      className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Instrument Setup (Wavelength and Scherrer K) */}
             <div className="space-y-4 bg-slate-50 dark:bg-slate-950/30 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
               
@@ -715,22 +1017,98 @@ export const FWHMModule: React.FC = () => {
           onMouseEnter={() => setIsHovered(true)} 
           onMouseLeave={() => setIsHovered(false)}
         >
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 z-10">
+          {/* Header & Controls Toolbar */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-4 z-10">
             <div>
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-indigo-500" />
                 Line Profile Peak Visualizer
               </h3>
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                Interactive Bragg peak profile fitting. Hover to inspect precise localized physical data.
+                Interactive Bragg peak profile fitting & deconvolution. Click on chart to snap peak centroid.
               </p>
             </div>
 
-            {/* Live Indicator Pill */}
-            <div className="flex items-center gap-3 px-3 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-full text-slate-600 dark:text-slate-400 text-xs font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Cu-Kα₁ = {activeWavelength.toFixed(5)} nm</span>
+            {/* Quick Action Toolbar */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setShowComponents(!showComponents)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                  showComponents ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                }`}
+                title="Toggle Gaussian & Lorentzian sub-components"
+              >
+                <Eye className="w-3 h-3" />
+                G/L Components
+              </button>
+
+              <button
+                onClick={() => setEnableKaDoublet(!enableKaDoublet)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                  enableKaDoublet ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                }`}
+                title="Toggle Cu Kα₁/Kα₂ Doublet Splitting"
+              >
+                <Split className="w-3 h-3" />
+                Kα Doublet
+              </button>
+
+              <button
+                onClick={() => setEnableSecondaryPeak(!enableSecondaryPeak)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                  enableSecondaryPeak ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                }`}
+                title="Toggle Secondary Peak Deconvolution"
+              >
+                <Layers className="w-3 h-3" />
+                Multi-Peak
+              </button>
+
+              <button
+                onClick={() => setApplyLpFactor(!applyLpFactor)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                  applyLpFactor ? 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                }`}
+                title="Toggle Lorentz-Polarization geometric correction factor"
+              >
+                <Sparkles className="w-3 h-3" />
+                Lp Factor
+              </button>
+
+              <button
+                onClick={() => setShowResiduals(!showResiduals)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                  showResiduals ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                }`}
+                title="Toggle Residuals Pane"
+              >
+                <Activity className="w-3 h-3" />
+                Residuals
+              </button>
+
+              <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700 ml-1">
+                <button
+                  onClick={() => setZoomRange(prev => Math.max(0.3, prev - 0.2))}
+                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 cursor-pointer"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => setZoomRange(prev => Math.min(2.5, prev + 0.2))}
+                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 cursor-pointer"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={() => setZoomRange(1.0)}
+                  className="px-1.5 py-0.5 text-[9px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer"
+                  title="Reset Zoom"
+                >
+                  1x
+                </button>
+              </div>
             </div>
           </div>
 
@@ -767,7 +1145,7 @@ export const FWHMModule: React.FC = () => {
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickLine={{ stroke: '#cbd5e1' }}
                 />
-                <YAxis domain={[0, amplitude * 1.25]} width={35} tick={{fontSize: 10, fill: '#64748b'}} />
+                <YAxis domain={[0, amplitude * 1.35]} width={35} tick={{fontSize: 10, fill: '#64748b'}} />
                 
                 <Tooltip 
                   content={({ active, payload }) => {
@@ -777,27 +1155,62 @@ export const FWHMModule: React.FC = () => {
                       const localSize = activeWavelength * scherrerK / ((fwhm * Math.PI / 180) * Math.cos(thetaRad));
                       
                       return (
-                        <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 p-4 rounded-xl shadow-lg text-xs border border-slate-200 dark:border-slate-800 min-w-[200px]">
-                          <div className="font-bold border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-2 text-indigo-600 dark:text-indigo-400">
-                            Angle 2θ: {dataPoint.x.toFixed(4)}°
+                        <div className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 p-4 rounded-xl shadow-lg text-xs border border-slate-200 dark:border-slate-800 min-w-[210px]">
+                          <div className="font-bold border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-2 text-indigo-600 dark:text-indigo-400 flex items-center justify-between">
+                            <span>Angle 2θ: {dataPoint.x.toFixed(4)}°</span>
+                            <span className="text-[9px] bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded text-indigo-600">{type}</span>
                           </div>
-                          <div className="space-y-2 font-mono text-[11px]">
+                          <div className="space-y-1.5 font-mono text-[11px]">
                             <div className="flex justify-between">
-                              <span className="text-slate-400">Y_measured:</span>
-                              <span className="font-bold">{dataPoint.y.toFixed(1)} cps</span>
+                              <span className="text-slate-400">Y_obs (Noisy):</span>
+                              <span className="font-bold text-rose-500">{dataPoint.y.toFixed(1)} cps</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-400">Y_clean:</span>
-                              <span className="font-bold">{dataPoint._cleanY?.toFixed(1) || '-'} cps</span>
+                              <span className="text-slate-400">Y_calc (Clean):</span>
+                              <span className="font-bold text-indigo-600 dark:text-indigo-400">{dataPoint._cleanY?.toFixed(1) || '-'} cps</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Local Size:</span>
+                            {dataPoint.residual !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Residual:</span>
+                                <span className="font-bold text-emerald-600">{dataPoint.residual > 0 ? `+${dataPoint.residual.toFixed(1)}` : dataPoint.residual.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            {dataPoint.yG !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-purple-400">Gaussian:</span>
+                                <span className="font-bold text-purple-600">{dataPoint.yG.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            {dataPoint.yL !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-cyan-400">Lorentzian:</span>
+                                <span className="font-bold text-cyan-600">{dataPoint.yL.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            {dataPoint.yKa1 !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-blue-400">Kα₁ Peak:</span>
+                                <span className="font-bold text-blue-600">{dataPoint.yKa1.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            {dataPoint.yKa2 !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-amber-400">Kα₂ Peak:</span>
+                                <span className="font-bold text-amber-600">{dataPoint.yKa2.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+                              <span className="text-slate-400">Local Coherence:</span>
                               <span className="font-bold text-emerald-600 dark:text-emerald-400">{localSize.toFixed(1)} nm</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Peak Model:</span>
-                              <span className="font-bold">{type}</span>
-                            </div>
+                            {applyLpFactor && (
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Lp Factor (local):</span>
+                                <span className="font-bold text-cyan-600 dark:text-cyan-400">
+                                  {((1 + Math.pow(Math.cos(2 * thetaRad), 2)) / (Math.pow(Math.sin(thetaRad), 2) * Math.cos(thetaRad))).toFixed(2)}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -885,6 +1298,70 @@ export const FWHMModule: React.FC = () => {
                 <ReferenceDot x={center - fwhm / 2} y={amplitude / 2 + background} r={4} fill="#4338ca" stroke="#ffffff" strokeWidth={1.5} />
                 <ReferenceDot x={center + fwhm / 2} y={amplitude / 2 + background} r={4} fill="#4338ca" stroke="#ffffff" strokeWidth={1.5} />
 
+                {/* Gaussian Sub-Curve Component */}
+                {type === 'Pseudo-Voigt' && showComponents && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="yG" 
+                    stroke="#a855f7" 
+                    strokeWidth={1.8} 
+                    strokeDasharray="3 3" 
+                    dot={false} 
+                    isAnimationActive={false} 
+                  />
+                )}
+
+                {/* Lorentzian Sub-Curve Component */}
+                {type === 'Pseudo-Voigt' && showComponents && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="yL" 
+                    stroke="#06b6d4" 
+                    strokeWidth={1.8} 
+                    strokeDasharray="3 3" 
+                    dot={false} 
+                    isAnimationActive={false} 
+                  />
+                )}
+
+                {/* Kα1 Profile */}
+                {enableKaDoublet && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="yKa1" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2} 
+                    dot={false} 
+                    isAnimationActive={false} 
+                  />
+                )}
+
+                {/* Kα2 Profile */}
+                {enableKaDoublet && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="yKa2" 
+                    stroke="#f59e0b" 
+                    strokeWidth={2} 
+                    strokeDasharray="4 4" 
+                    dot={false} 
+                    isAnimationActive={false} 
+                  />
+                )}
+
+                {/* Secondary Overlapping Reflection */}
+                {enableSecondaryPeak && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="yPeak2" 
+                    stroke="#10b981" 
+                    strokeWidth={2} 
+                    strokeDasharray="3 3" 
+                    dot={false} 
+                    isAnimationActive={false} 
+                  />
+                )}
+
                 {/* Clean Peak Curve */}
                 <Area 
                    type="monotone" 
@@ -912,6 +1389,34 @@ export const FWHMModule: React.FC = () => {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Synchronized Difference Residuals Pane */}
+          {showResiduals && chartData.length > 0 && (
+            <div className="mt-3 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between mb-1 text-[10px] font-mono">
+                <span className="font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-rose-500" />
+                  Fit Residual Difference (Y_obs - Y_calc)
+                </span>
+                <div className="flex items-center gap-3 text-[9px]">
+                  <span className="text-slate-400">R_p: <strong className="text-indigo-600 dark:text-indigo-400">{extSim.stats.rP.toFixed(2)}%</strong></span>
+                  <span className="text-slate-400">R_wp: <strong className="text-purple-600 dark:text-purple-400">{extSim.stats.rWP.toFixed(2)}%</strong></span>
+                  <span className="text-slate-400">GoF (χ²): <strong className="text-emerald-600 dark:text-emerald-400">{extSim.stats.goodnessOfFit.toFixed(2)}</strong></span>
+                </div>
+              </div>
+              <div className="h-[75px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="2 2" stroke="#e2e8f0" strokeOpacity={0.4} />
+                    <XAxis dataKey="x" hide domain={['dataMin', 'dataMax']} />
+                    <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
+                    <ReferenceLine y={0} stroke="#10b981" strokeWidth={1.2} strokeDasharray="3 3" />
+                    <Line type="monotone" dataKey="residual" stroke="#f43f5e" strokeWidth={1.2} dot={false} isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
 
         {stats && (
@@ -930,11 +1435,11 @@ export const FWHMModule: React.FC = () => {
         )}
 
         {/* Physical Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Crystallite Size</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">
+            <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-100">
               {stats && stats.integralBreadth > 0 ? (
                 (() => {
                   const thetaRad = (center / 2) * (Math.PI / 180);
@@ -945,12 +1450,12 @@ export const FWHMModule: React.FC = () => {
                 })()
               ) : '-'}
             </span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Scherrer length of coherent crystalline domains.</p>
+            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">Scherrer domain length.</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Lattice Strain (ε)</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">
+            <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-100">
               {stats && stats.integralBreadth > 0 ? (
                 (() => {
                   const thetaRad = (center / 2) * (Math.PI / 180);
@@ -961,25 +1466,31 @@ export const FWHMModule: React.FC = () => {
                 })()
               ) : '-'}
             </span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Instrument / deformation lattice microstrain.</p>
+            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">Lattice microstrain.</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Integrated Area</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.area.toFixed(1)}</span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Integrated intensity under peak profile (cps·deg).</p>
+            <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.area.toFixed(1)}</span>
+            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">Total area (cps·deg).</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Integral Breadth (β)</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.integralBreadth.toFixed(4)}°</span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Equivalent height rectangle width (Integrated Area / I_max).</p>
+            <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.integralBreadth.toFixed(4)}°</span>
+            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">Area / I_max ratio.</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Shape Factor (φ)</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.shapeFactor.toFixed(3)}</span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">FWHM / β ratio. Gaussian ≈ 0.94, Lorentzian ≈ 0.64.</p>
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Profile R-Factor (R_p)</span>
+            <span className="text-lg font-bold font-mono text-indigo-600 dark:text-indigo-400">{extSim.stats.rP.toFixed(2)}%</span>
+            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">Σ|Y_obs - Y_calc| / ΣY_obs.</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Goodness of Fit (χ²)</span>
+            <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">{extSim.stats.goodnessOfFit.toFixed(2)}</span>
+            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">Reduced Chi-squared factor.</p>
           </div>
 
         </div>
