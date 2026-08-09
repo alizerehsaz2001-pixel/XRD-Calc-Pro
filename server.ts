@@ -1,5 +1,9 @@
 
 import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import hpp from "hpp";
+import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
 import path from "path";
@@ -259,7 +263,49 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Trust the proxy (needed for Cloud Run/Nginx) so req.ip and rate-limiting work properly
+  app.set('trust proxy', 1);
+
+  // Cybersecurity & Best Practices Setup
+  // 1. Helmet: Sets various HTTP headers to secure the app
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disabled for Vite HMR and dynamic inline styles/scripts
+    crossOriginEmbedderPolicy: false,
+  }));
+
+  // 2. CORS: Enable Cross-Origin Resource Sharing
+  app.use(cors());
+
+  // 3. Enforce HTTPS in production environments
+  app.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production') {
+      if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+        return res.redirect('https://' + req.headers.host + req.url);
+      }
+    }
+    next();
+  });
+
   app.use(express.json({ limit: "25mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+
+  // 4. HPP: Protect against HTTP Parameter Pollution attacks
+  app.use(hpp());
+
+  // 5. Rate Limiting: Prevent brute-force and DDoS attacks on API routes
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 1000, // Limit each IP to 1000 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: "Too many requests, please try again later." },
+    validate: { xForwardedForHeader: false }, // Disables validation warnings for proxy headers
+    keyGenerator: (req) => {
+      // Use standard Express ip which handles X-Forwarded-For when 'trust proxy' is set
+      return req.ip || 'unknown';
+    }
+  });
+  app.use('/api', apiLimiter);
 
   // API routes
   app.post("/api/register", (req, res) => {
