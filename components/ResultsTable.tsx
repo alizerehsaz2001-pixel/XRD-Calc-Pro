@@ -494,64 +494,73 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                 </td>
               </tr>
             ) : (
-              filteredResults.map((row, index) => {
-                const originalIndex = results.indexOf(row);
-                const isSelected = selectedIndices.includes(originalIndex);
-                const intensity = row.intensity !== undefined ? row.intensity : 100;
-                return (
-                  <tr 
-                    key={`${row.twoTheta}-${index}`} 
-                    className={`transition-colors cursor-pointer ${
-                      isSelected 
-                        ? 'bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30' 
-                        : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                    }`}
-                    onClick={() => handleRowSelectToggle(row)}
-                  >
-                    <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center">
-                        <input
-                          id={`row-checkbox-${originalIndex}`}
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleRowSelectToggle(row)}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
-                        />
-                      </div>
-                    </td>
-                    <td className="px-6 py-3 font-sans font-bold">
-                      <div className="flex items-center gap-1.5">
-                        <span className={row.validationError ? 'text-rose-600 dark:text-rose-400' : 'text-indigo-600 dark:text-indigo-400'}>
-                          ({row.hkl || '?'})
-                        </span>
-                        {row.validationError && (
-                          <span 
-                            className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500 text-white dark:bg-rose-600 animate-pulse cursor-help shrink-0"
-                            title={row.validationError}
-                          >
-                            FORBIDDEN
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 dark:text-slate-100 w-11">{intensity.toFixed(1)}%</span>
-                        <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shrink-0 hidden sm:block">
-                          <div 
-                            className="h-full bg-amber-500 rounded-full" 
-                            style={{ width: `${Math.min(100, intensity)}%` }}
+              <AnimatePresence mode="popLayout">
+                {filteredResults.map((row, index) => {
+                  const originalIndex = results.indexOf(row);
+                  const isSelected = selectedIndices.includes(originalIndex);
+                  const intensity = row.intensity !== undefined ? row.intensity : 100;
+                  const rowKey = `${row.hkl || 'peak'}-${row.twoTheta.toFixed(4)}-${row.dSpacing.toFixed(4)}`;
+                  return (
+                    <motion.tr 
+                      key={rowKey} 
+                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                      transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3), ease: [0.25, 0.8, 0.25, 1] }}
+                      className={`transition-colors cursor-pointer ${
+                        isSelected 
+                          ? 'bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30' 
+                          : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                      }`}
+                      onClick={() => handleRowSelectToggle(row)}
+                    >
+                      <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center">
+                          <input
+                            id={`row-checkbox-${originalIndex}`}
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleRowSelectToggle(row)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
                           />
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3 font-bold text-slate-900 dark:text-slate-100">{row.twoTheta.toFixed(Math.min(precision, 3))}</td>
-                    <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold">{convertLength(row.dSpacing, lengthUnit).toFixed(precision)}</td>
-                    <td className="px-6 py-3 text-slate-700 dark:text-slate-400">{row.qVector.toFixed(precision)}</td>
-                    <td className="px-6 py-3 text-slate-700 dark:text-slate-400">{row.sinThetaOverLambda.toFixed(precision)}</td>
-                  </tr>
-                );
-              })
+                      </td>
+                      <td className="px-6 py-3 font-sans font-bold">
+                        <div className="flex items-center gap-1.5">
+                          <span className={row.validationError ? 'text-rose-600 dark:text-rose-400' : 'text-indigo-600 dark:text-indigo-400'}>
+                            ({row.hkl || '?'})
+                          </span>
+                          {row.validationError && (
+                            <span 
+                              className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500 text-white dark:bg-rose-600 animate-pulse cursor-help shrink-0"
+                              title={row.validationError}
+                            >
+                              FORBIDDEN
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 dark:text-slate-100 w-11">{intensity.toFixed(1)}%</span>
+                          <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shrink-0 hidden sm:block">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(100, intensity)}%` }}
+                              transition={{ duration: 0.4, delay: Math.min(index * 0.03, 0.3) + 0.1 }}
+                              className="h-full bg-amber-500 rounded-full" 
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3 font-bold text-slate-900 dark:text-slate-100">{row.twoTheta.toFixed(Math.min(precision, 3))}</td>
+                      <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold">{convertLength(row.dSpacing, lengthUnit).toFixed(precision)}</td>
+                      <td className="px-6 py-3 text-slate-700 dark:text-slate-400">{row.qVector.toFixed(precision)}</td>
+                      <td className="px-6 py-3 text-slate-700 dark:text-slate-400">{row.sinThetaOverLambda.toFixed(precision)}</td>
+                    </motion.tr>
+                  );
+                })}
+              </AnimatePresence>
             )}
           </tbody>
         </table>
