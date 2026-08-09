@@ -28,7 +28,10 @@ import {
   Edit3,
   Tag,
   ArrowUpDown,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  Compass
 } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
@@ -341,6 +344,22 @@ const PRESET_SAMPLES = [
       { id: '8', twoTheta: 58.12, h: 2, k: 1, l: 3, intensity: 30 },
       { id: '9', twoTheta: 68.32, h: 2, k: 2, l: 0, intensity: 15 }
     ]
+  },
+  {
+    name: 'Alumina Corundum (α-Al2O3)',
+    system: 'Hexagonal' as CrystalSystem,
+    refLattice: { a: 4.7587, c: 12.9929 },
+    wavelength: 1.54056,
+    peaks: [
+      { id: '1', twoTheta: 25.578, h: 0, k: 1, l: 2, intensity: 65 },
+      { id: '2', twoTheta: 35.152, h: 1, k: 0, l: 4, intensity: 100 },
+      { id: '3', twoTheta: 37.776, h: 1, k: 1, l: 0, intensity: 45 },
+      { id: '4', twoTheta: 43.355, h: 1, k: 1, l: 3, intensity: 90 },
+      { id: '5', twoTheta: 52.549, h: 0, k: 2, l: 4, intensity: 50 },
+      { id: '6', twoTheta: 57.496, h: 1, k: 1, l: 6, intensity: 80 },
+      { id: '7', twoTheta: 66.519, h: 2, k: 1, l: 4, intensity: 40 },
+      { id: '8', twoTheta: 68.212, h: 3, k: 0, l: 0, intensity: 60 }
+    ]
   }
 ];
 
@@ -356,6 +375,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
   const [driftType, setDriftType] = useState<DriftFunctionType>('nelson_riley');
   const [wavelength, setWavelength] = useState<number>(1.54056);
   const [copiedMatrix, setCopiedMatrix] = useState<boolean>(false);
+
+  // Guide & Visual Key State
+  const [showGuide, setShowGuide] = useState<boolean>(true);
+  const [guideTab, setGuideTab] = useState<'concept' | 'legend' | 'workflow'>('concept');
 
   // Peak Inputs
   const [peaks, setPeaks] = useState<PeakInput[]>(() => PRESET_SAMPLES[0].peaks);
@@ -1097,6 +1120,221 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
         resultName="Refined Lattice Parameter a"
       />
 
+      {/* Interactive Module Guide & Visual Key */}
+      <div className="bg-slate-900 dark:bg-slate-950 text-white rounded-3xl p-5 md:p-6 shadow-lg border border-slate-800 space-y-4">
+        <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowGuide(!showGuide)}>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm md:text-base tracking-tight flex items-center gap-2">
+                Cohen's Method Matrix Refinement Guide &amp; Error Function Key
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-widest">
+                  Crystallography Theory
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Understand how normal matrix inversion [M]•X = Y eliminates systematic diffractometer shift and computes precise lattice parameters.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition-colors"
+          >
+            {showGuide ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {showGuide && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-4 pt-3 border-t border-slate-800/80 overflow-hidden"
+            >
+              {/* Tabs */}
+              <div className="flex flex-wrap items-center gap-2 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setGuideTab('concept')}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                    guideTab === 'concept'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  }`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Crystallographic Concept
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuideTab('legend')}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                    guideTab === 'legend'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  }`}
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  Drift Function Key &amp; Visual Legend
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGuideTab('workflow')}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                    guideTab === 'workflow'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  }`}
+                >
+                  <Activity className="w-3.5 h-3.5" />
+                  Refinement Workflow Steps
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              {guideTab === 'concept' && (
+                <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 text-xs text-slate-300 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-indigo-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                        The Problem of Systematic Diffraction Errors
+                      </h4>
+                      <p className="leading-relaxed text-slate-300">
+                        In powder X-ray diffractometry, raw measured peak positions 2θ<sub>obs</sub> deviate from true theoretical angles due to instrumental factors: sample surface displacement, beam absorption, zero-angle offset, and camera radius tolerances.
+                      </p>
+                      <p className="leading-relaxed text-slate-400">
+                        Graphical extrapolation methods rely solely on high-angle peaks (θ → 90°). In contrast, <strong>M.U. Cohen's Least Squares Method</strong> (1935) uses <em>all reflections simultaneously</em> by incorporating a systematic drift function f(θ) directly into Bragg's equation.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 bg-slate-900/80 p-3.5 rounded-xl border border-slate-800">
+                      <h4 className="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <Cpu className="w-4 h-4 text-amber-400" />
+                        Normal Equations Matrix [M] • X = Y
+                      </h4>
+                      <p className="leading-relaxed text-slate-300 font-mono text-[11px]">
+                        sin²θ<sub>i</sub> = g<sub>0,i</sub> A + g<sub>1,i</sub> B + ... + D • f(θ<sub>i</sub>)
+                      </p>
+                      <ul className="space-y-1 text-slate-400 text-[11.5px] list-disc list-inside">
+                        <li><strong>Vector X:</strong> Contains lattice parameters (A, B, C) and drift constant D.</li>
+                        <li><strong>Matrix M:</strong> Formed by dot products of basis vectors g<sub>j,i</sub>.</li>
+                        <li><strong>Matrix M<sup>-1</sup>:</strong> Covariance matrix supplying analytical standard uncertainties ± σ(a), σ(b), σ(c).</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {guideTab === 'legend' && (
+                <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 text-xs text-slate-300 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-1">
+                      <div className="font-bold text-indigo-400 flex items-center justify-between">
+                        <span>Nelson-Riley Function</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Standard</span>
+                      </div>
+                      <div className="font-mono text-[11px] text-indigo-300 bg-slate-950 p-1.5 rounded border border-slate-800/60 text-center">
+                        f(θ) = ½(cos²θ/sinθ + cos²θ/θ)
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        Combines flat-sample displacement and specimen absorption. Most widely used for Bragg-Brentano diffractometers.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-1">
+                      <div className="font-bold text-cyan-400 flex items-center justify-between">
+                        <span>Bradley-Jay Function</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Camera</span>
+                      </div>
+                      <div className="font-mono text-[11px] text-cyan-300 bg-slate-950 p-1.5 rounded border border-slate-800/60 text-center">
+                        f(θ) = cos²θ
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        Simplified approximation for cylindrical Debye-Scherrer cameras and high-angle reflection data.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-1">
+                      <div className="font-bold text-emerald-400 flex items-center justify-between">
+                        <span>Sample Displacement</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Surface</span>
+                      </div>
+                      <div className="font-mono text-[11px] text-emerald-300 bg-slate-950 p-1.5 rounded border border-slate-800/60 text-center">
+                        f(θ) = cos²θ sinθ
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        Direct physical correction for specimen height errors relative to the goniometer center of rotation.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-1">
+                      <div className="font-bold text-purple-400 flex items-center justify-between">
+                        <span>Hess-Hägg Function</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Focusing</span>
+                      </div>
+                      <div className="font-mono text-[11px] text-purple-300 bg-slate-950 p-1.5 rounded border border-slate-800/60 text-center">
+                        f(θ) = sin²(2θ)
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        Custom error correction model for Guinier focusing cameras and symmetrical transmission geometry.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-1 sm:col-span-2 lg:col-span-2">
+                      <div className="font-bold text-amber-400 flex items-center justify-between">
+                        <span>Pure Zero-Shift Correction</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Zero Offset</span>
+                      </div>
+                      <div className="font-mono text-[11px] text-amber-300 bg-slate-950 p-1.5 rounded border border-slate-800/60 text-center">
+                        f(θ) = cosθ
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        Corrects constant mechanical angular shift Δ2θ<sub>zero</sub> across all detector positions.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {guideTab === 'workflow' && (
+                <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 text-xs text-slate-300 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 relative">
+                      <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Step 1</div>
+                      <div className="font-bold text-white mb-1">Select System &amp; Radiation</div>
+                      <p className="text-[11px] text-slate-400">Choose symmetry (Cubic to Monoclinic) and standard X-ray wavelength (e.g. Cu Kα1 = 1.54056 Å).</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 relative">
+                      <div className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-1">Step 2</div>
+                      <div className="font-bold text-white mb-1">Input Reflection Data</div>
+                      <p className="text-[11px] text-slate-400">Load NIST reference standards or paste custom observed $(h,k,l, 2\theta)$ peak sets.</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 relative">
+                      <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Step 3</div>
+                      <div className="font-bold text-white mb-1">Matrix [M] Calculation</div>
+                      <p className="text-[11px] text-slate-400">Inspect the Normal Matrix $[M]$ and inverted Covariance Matrix $[M^{-1}]$ values.</p>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 relative">
+                      <div className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-1">Step 4</div>
+                      <div className="font-bold text-white mb-1">Refined Unit Cell &amp; Error</div>
+                      <p className="text-[11px] text-slate-400">Examine refined lattice constants $(a, b, c)$, cell volume $V$, and residual RMS $\Delta 2\theta$ shifts.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Controls & Preset Bar */}
       <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
@@ -1394,6 +1632,74 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 <div className="text-[11px] font-mono text-slate-500 mt-1">
                   RMS Δ2θ: {refinementResult.rmsTwoThetaShift.toFixed(4)}°
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Fit Quality & Residual Gauge Bar */}
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 rounded-2xl border border-indigo-900/50 shadow-md space-y-3">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-xl border ${
+                  refinementResult.rmsTwoThetaShift < 0.02
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : refinementResult.rmsTwoThetaShift < 0.05
+                    ? 'bg-teal-500/20 text-teal-400 border-teal-500/30'
+                    : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                }`}>
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm flex items-center gap-2">
+                    Refinement Fit Quality
+                    <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full border uppercase tracking-wider ${
+                      refinementResult.rmsTwoThetaShift < 0.02
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        : refinementResult.rmsTwoThetaShift < 0.05
+                        ? 'bg-teal-500/20 text-teal-300 border-teal-500/40'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    }`}>
+                      {refinementResult.rmsTwoThetaShift < 0.02
+                        ? 'High Precision Fit'
+                        : refinementResult.rmsTwoThetaShift < 0.05
+                        ? 'Good Quality Fit'
+                        : 'Review Outlier Peaks'}
+                    </span>
+                  </h4>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Root Mean Square 2θ Angular Residual: <span className="font-mono font-bold text-indigo-300">{refinementResult.rmsTwoThetaShift.toFixed(4)}°</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right font-mono text-xs text-slate-300">
+                <div>Max Peak |Δ2θ|: <strong className="text-white">{Math.max(...refinementResult.peakDetails.map(p => Math.abs(p.deltaTwoTheta))).toFixed(4)}°</strong></div>
+                <div className="text-[10px] text-slate-400">Target Tolerance: &lt; 0.0500°</div>
+              </div>
+            </div>
+
+            {/* Visual Gauge Bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                <span>0.00° (Ideal)</span>
+                <span>0.02° (High)</span>
+                <span>0.05° (Acceptable)</span>
+                <span>0.10°+</span>
+              </div>
+              <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800 relative">
+                <div className="w-full h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-500 opacity-30" />
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (refinementResult.rmsTwoThetaShift / 0.10) * 100)}%` }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                  className={`h-full rounded-full absolute top-0 left-0 ${
+                    refinementResult.rmsTwoThetaShift < 0.02
+                      ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                      : refinementResult.rmsTwoThetaShift < 0.05
+                      ? 'bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.8)]'
+                      : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]'
+                  }`}
+                />
               </div>
             </div>
           </div>
@@ -1769,63 +2075,85 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                  {refinementResult.peakDetails.map((p, idx) => (
-                    <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                      <td className="p-3 text-center text-slate-400 dark:text-slate-500 font-bold">{idx + 1}</td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-1">
+                  <AnimatePresence initial={false}>
+                    {refinementResult.peakDetails.map((p, idx) => (
+                      <motion.tr
+                        key={p.id}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                      >
+                        <td className="p-3 text-center text-slate-400 dark:text-slate-500 font-bold">{idx + 1}</td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={p.h}
+                              onChange={(e) => handleUpdatePeak(p.id, 'h', parseInt(e.target.value) || 0)}
+                              className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
+                            />
+                            <input
+                              type="number"
+                              value={p.k}
+                              onChange={(e) => handleUpdatePeak(p.id, 'k', parseInt(e.target.value) || 0)}
+                              className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
+                            />
+                            <input
+                              type="number"
+                              value={p.l}
+                              onChange={(e) => handleUpdatePeak(p.id, 'l', parseInt(e.target.value) || 0)}
+                              className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
+                            />
+                          </div>
+                        </td>
+                        <td className="p-3 font-bold">
                           <input
                             type="number"
-                            value={p.h}
-                            onChange={(e) => handleUpdatePeak(p.id, 'h', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
+                            step="0.001"
+                            value={p.twoTheta}
+                            onChange={(e) => handleUpdatePeak(p.id, 'twoTheta', parseFloat(e.target.value) || 30)}
+                            className="w-24 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-700 dark:text-indigo-400 shadow-sm focus:ring-1 focus:ring-indigo-500 outline-none"
                           />
-                          <input
-                            type="number"
-                            value={p.k}
-                            onChange={(e) => handleUpdatePeak(p.id, 'k', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
-                          />
-                          <input
-                            type="number"
-                            value={p.l}
-                            onChange={(e) => handleUpdatePeak(p.id, 'l', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
-                          />
-                        </div>
-                      </td>
-                      <td className="p-3 font-bold">
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={p.twoTheta}
-                          onChange={(e) => handleUpdatePeak(p.id, 'twoTheta', parseFloat(e.target.value) || 30)}
-                          className="w-24 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-700 dark:text-indigo-400 shadow-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-                        />
-                      </td>
-                      <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
-                        {p.twoThetaCalc.toFixed(Math.min(precision, 3))}
-                      </td>
-                      <td className={`p-3 font-bold ${
-                        Math.abs(p.deltaTwoTheta) < 0.05 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                      }`}>
-                        {p.deltaTwoTheta > 0 ? `+${p.deltaTwoTheta.toFixed(4)}` : p.deltaTwoTheta.toFixed(4)}
-                      </td>
-                      <td className="p-3 text-slate-600 dark:text-slate-400"><FormatSci val={p.sin2Obs} digits={5} /></td>
-                      <td className="p-3 text-slate-600 dark:text-slate-400"><FormatSci val={p.sin2Calc} digits={5} /></td>
-                      <td className="p-3 text-slate-500"><FormatSci val={p.driftVal} digits={4} /></td>
-                      <td className="p-3 text-center">
-                        <button
-                          onClick={() => handleDeletePeak(p.id)}
-                          disabled={peaks.length <= 2}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors disabled:opacity-30"
-                          title="Delete Reflection"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
+                          {p.twoThetaCalc.toFixed(Math.min(precision, 3))}
+                        </td>
+                        <td className="p-3 font-bold">
+                          <div className="flex items-center gap-2">
+                            <span className={Math.abs(p.deltaTwoTheta) < 0.05 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                              {p.deltaTwoTheta > 0 ? `+${p.deltaTwoTheta.toFixed(4)}` : p.deltaTwoTheta.toFixed(4)}
+                            </span>
+                            {/* Visual micro-bar for angular shift */}
+                            <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex items-center relative">
+                              <div className="w-0.5 h-full bg-slate-400 dark:bg-slate-600 absolute left-1/2 -translate-x-1/2" />
+                              <div
+                                className={`h-full ${p.deltaTwoTheta >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                style={{
+                                  width: `${Math.min(50, Math.abs(p.deltaTwoTheta) * 500)}%`,
+                                  marginLeft: p.deltaTwoTheta >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(p.deltaTwoTheta) * 500)}%`
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-slate-600 dark:text-slate-400"><FormatSci val={p.sin2Obs} digits={5} /></td>
+                        <td className="p-3 text-slate-600 dark:text-slate-400"><FormatSci val={p.sin2Calc} digits={5} /></td>
+                        <td className="p-3 text-slate-500"><FormatSci val={p.driftVal} digits={4} /></td>
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={() => handleDeletePeak(p.id)}
+                            disabled={peaks.length <= 2}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors disabled:opacity-30"
+                            title="Delete Reflection"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
                 </tbody>
               </table>
             </div>
