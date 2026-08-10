@@ -86,6 +86,11 @@ export interface FWHMResult {
   shapeFactor: number; // FWHM / IB
   area: number;
   maxIntensity: number;
+  betaStrainDeg?: number;
+  microstrain?: number;
+  effFwhmWithStrain?: number;
+  snr?: number;
+  peakToBackground?: number;
 }
 
 export interface MonshiScherrerPoint {

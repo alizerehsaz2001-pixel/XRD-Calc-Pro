@@ -299,11 +299,7 @@ async function startServer() {
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: "Too many requests, please try again later." },
-    validate: { xForwardedForHeader: false }, // Disables validation warnings for proxy headers
-    keyGenerator: (req) => {
-      // Use standard Express ip which handles X-Forwarded-For when 'trust proxy' is set
-      return req.ip || 'unknown';
-    }
+    validate: { xForwardedForHeader: false } // Disables validation warnings for proxy headers
   });
   app.use('/api', apiLimiter);
 
