@@ -192,7 +192,32 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const [dbCategoryFilter, setDbCategoryFilter] = useState('All');
   const [showDbModal, setShowDbModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'charts' | 'stick' | 'mac' | 'theory'>('charts');
+  const [mainTab, setMainTab] = useState<'analysis' | 'calibration' | 'spectrum' | 'database' | 'theory'>('analysis');
+  const [applyTargetPhaseId, setApplyTargetPhaseId] = useState<string>('');
   const [copiedReport, setCopiedReport] = useState(false);
+
+  // Normalize peak intensities to max 10,000
+  const normalizeIntensities = () => {
+    if (phases.length === 0) return;
+    playSynthTone('success');
+    const maxInt = Math.max(...phases.map(p => p.intensity || 0));
+    if (maxInt <= 0) return;
+    setPhases(prev => prev.map(p => ({
+      ...p,
+      intensity: Math.round(((p.intensity || 0) / maxInt) * 10000)
+    })));
+  };
+
+  // Apply calibrated RIR to selected phase
+  const handleApplyCalibratedRIR = (calibratedRIRValue: number) => {
+    const targetId = applyTargetPhaseId || (phases[0]?.id || '');
+    if (!targetId) return;
+    playSynthTone('success');
+    const rirVal = Number(calibratedRIRValue.toFixed(2));
+    updatePhase(targetId, 'rir', rirVal);
+    setAutoFitSuccessMsg(`Applied Calibrated RIR (${rirVal}) to phase!`);
+    setTimeout(() => setAutoFitSuccessMsg(null), 4000);
+  };
 
   // Add Phase
   const addPhase = () => {
@@ -360,6 +385,12 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       totalSampleMAC
     };
   }, [phases, amorphousWtPct, internalStandardMode, standardPhaseId, standardAddedWtPct, intensityUncertaintyPct, rirUncertaintyPct]);
+
+  // Dominant Phase Calculation
+  const dominantPhase = useMemo(() => {
+    if (!calculations.phaseResults || calculations.phaseResults.length === 0) return null;
+    return [...calculations.phaseResults].sort((a, b) => b.crystallineFraction - a.crystallineFraction)[0];
+  }, [calculations]);
 
   // Calibrated single-point RIR calculation
   const calculatedCalibRIR = useMemo(() => {
@@ -647,90 +678,94 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   return (
     <div className="w-full flex flex-col gap-6 p-4 md:p-6 lg:p-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
       
-      {/* Header Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl group">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none transition-transform duration-700 group-hover:scale-110" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/3 pointer-events-none transition-transform duration-700 group-hover:scale-110" />
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 border border-indigo-500/20 text-indigo-400 shadow-inner">
-                <Layers className="w-7 h-7" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 tracking-tight flex items-center gap-2">
-                  {t('Reference Intensity Ratio')} (RIR)
-                </h1>
-                <p className="text-[11px] font-mono text-indigo-400 font-bold tracking-widest uppercase mt-1">
-                  Chung Adiabatic & Internal Standard Quantitative Phase Engine
-                </p>
-              </div>
+      {/* Top Module Navigation Tabs */}
+      <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-1.5 backdrop-blur-md flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xl">
+        <button
+          onClick={() => setMainTab('analysis')}
+          className={`flex-1 py-3 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mainTab === 'analysis' ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`}
+        >
+          <FlaskConical className="w-4 h-4 text-indigo-300" />
+          <span>1. Phase Analysis Engine</span>
+        </button>
+
+        <button
+          onClick={() => setMainTab('calibration')}
+          className={`flex-1 py-3 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mainTab === 'calibration' ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`}
+        >
+          <Calculator className="w-4 h-4 text-amber-300" />
+          <span>2. RIR Calibration Engine</span>
+        </button>
+
+        <button
+          onClick={() => setMainTab('spectrum')}
+          className={`flex-1 py-3 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mainTab === 'spectrum' ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`}
+        >
+          <BarChart3 className="w-4 h-4 text-cyan-300" />
+          <span>3. XRD Pattern Visualizer</span>
+        </button>
+
+        <button
+          onClick={() => setMainTab('database')}
+          className={`flex-1 py-3 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mainTab === 'database' ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`}
+        >
+          <Database className="w-4 h-4 text-emerald-300" />
+          <span>4. Reference Library</span>
+        </button>
+
+        <button
+          onClick={() => setMainTab('theory')}
+          className={`flex-1 py-3 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mainTab === 'theory' ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'}`}
+        >
+          <BookOpen className="w-4 h-4 text-purple-300" />
+          <span>5. Theory & Equations</span>
+        </button>
+      </div>
+
+      {/* Auto-Fit / Action Notification Bar */}
+      <AnimatePresence>
+        {autoFitSuccessMsg && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 p-4 rounded-2xl flex items-center justify-between text-xs font-medium shadow-lg"
+          >
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+              <span>{autoFitSuccessMsg}</span>
             </div>
-            <p className="text-slate-400 text-sm max-w-2xl leading-relaxed mt-2 font-medium">
-              {t('Perform fast quantitative XRD phase analysis using reference intensity ratio ($I/I_c$) constants. Features amorphous content scaling, internal standard calibration, mass absorption calculations, error bounds propagation, and continuous pattern simulation.')}
-            </p>
+            <button onClick={() => setAutoFitSuccessMsg(null)} className="text-emerald-400 hover:text-emerald-200 font-bold px-2 py-1">✕</button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Live Analysis Summary Metrics */}
+      {mainTab === 'analysis' && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="bg-slate-900/80 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Crystalline Mass</span>
+            <span className="text-xl font-mono font-black text-indigo-400 mt-1">{(100 - amorphousWtPct).toFixed(1)} wt%</span>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={handleAutoFit}
-              className="px-4 py-2.5 text-xs font-bold bg-gradient-to-r from-amber-500 via-amber-600 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 border border-amber-400/30 active:scale-95"
-              title="Auto-Fit phase volume fractions from Bragg peak intensities and crystallographic densities"
-            >
-              <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" />
-              <span>Auto-Fit (Vol%)</span>
-            </button>
-
-            <button
-              onClick={copyReportToClipboard}
-              className="px-4 py-2.5 text-xs font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20 border border-indigo-400/20 active:scale-95"
-            >
-              {copiedReport ? <CheckCircle2 className="w-4 h-4 text-emerald-200" /> : <Copy className="w-4 h-4" />}
-              <span>{copiedReport ? 'Copied Report!' : 'Copy Summary'}</span>
-            </button>
-
-            <button
-              onClick={() => setShowDbModal(true)}
-              className="px-4 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-indigo-300 border border-slate-700 hover:border-indigo-500/50 rounded-xl transition-all flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95"
-            >
-              <Database className="w-4 h-4 text-indigo-400" />
-              <span>Reference DB</span>
-            </button>
-
-            <button
-              onClick={exportCSV}
-              className="px-4 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-emerald-300 border border-slate-700 hover:border-emerald-500/50 rounded-xl transition-all flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95"
-            >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              <span>Export CSV</span>
-            </button>
-
-            <button
-              onClick={exportJSON}
-              className="px-4 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700 hover:border-slate-500 rounded-xl transition-all flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95"
-            >
-              <Download className="w-4 h-4 text-slate-400" />
-              <span>Save Session</span>
-            </button>
-
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-3.5 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700 hover:border-slate-500 rounded-xl transition-all flex items-center justify-center shadow-lg backdrop-blur-md active:scale-95"
-              title="Load Saved JSON Session"
-            >
-              <Upload className="w-4 h-4 text-slate-400" />
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleJSONImport} 
-              accept=".json" 
-              className="hidden" 
-            />
+          <div className="bg-slate-900/80 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amorphous Content</span>
+            <span className="text-xl font-mono font-black text-rose-400 mt-1">{amorphousWtPct.toFixed(1)} wt%</span>
+          </div>
+          <div className="bg-slate-900/80 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Volume Factor</span>
+            <span className="text-xl font-mono font-black text-amber-400 mt-1">{calculations.totalVolumeFactor.toFixed(1)}</span>
+          </div>
+          <div className="bg-slate-900/80 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between shadow-lg">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sample MAC (μ*)</span>
+            <span className="text-xl font-mono font-black text-cyan-400 mt-1">{calculations.totalSampleMAC.toFixed(1)} <span className="text-xs font-normal text-slate-400">cm²/g</span></span>
+          </div>
+          <div className="bg-slate-900/80 border border-slate-800/80 p-4 rounded-2xl flex flex-col justify-between shadow-lg col-span-2 md:col-span-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dominant Phase</span>
+            <span className="text-sm font-bold text-emerald-400 mt-1 truncate">
+              {dominantPhase ? `${dominantPhase.name} (${dominantPhase.crystallineFraction.toFixed(1)}%)` : 'N/A'}
+            </span>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Preset Mixture Scenarios Selector */}
       <div className="bg-gradient-to-br from-slate-900/60 to-slate-900/40 border border-slate-800/80 rounded-3xl p-5 shadow-xl backdrop-blur-sm">
@@ -794,6 +829,15 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>Auto-Fit Vol%</span>
+                </button>
+
+                <button
+                  onClick={normalizeIntensities}
+                  className="px-3.5 py-2 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-cyan-300 border border-slate-700 hover:border-cyan-500/40 rounded-xl transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                  title="Scale peak intensities so max peak equals 10,000"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Normalize Peaks</span>
                 </button>
 
                 <button
@@ -928,6 +972,26 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                         />
                       </div>
                     </div>
+
+                    {/* Live Phase Contribution Bar */}
+                    {(() => {
+                      const res = calculations.phaseResults.find(r => r.id === phase.id);
+                      return (
+                        <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800/80 flex flex-col gap-1.5 text-xs font-mono">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-sans font-medium text-[11px]">Calculated Contribution:</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-indigo-400 font-bold">Mass: {(res?.crystallineFraction || 0).toFixed(1)} wt%</span>
+                              <span className="text-amber-400 font-bold">Vol: {(res?.crystallineVolFraction || 0).toFixed(1)} vol%</span>
+                            </div>
+                          </div>
+                          <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden flex gap-1 p-0.5 border border-slate-800/80">
+                            <div className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(1, res?.crystallineFraction || 0))}%` }} />
+                            <div className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(1, res?.crystallineVolFraction || 0))}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -1657,6 +1721,29 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Apply Calibrated Value Action Controls */}
+                <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 shadow-inner">
+                  <div className="flex items-center gap-2.5 text-xs w-full sm:w-auto">
+                    <span className="text-slate-400 font-bold uppercase tracking-wider text-[11px]">Target Mixture Phase:</span>
+                    <select
+                      value={applyTargetPhaseId || phases[0]?.id || ''}
+                      onChange={(e) => setApplyTargetPhaseId(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-100 rounded-xl px-3 py-2 text-xs font-bold outline-none transition-all focus:ring-2 focus:ring-indigo-500/50"
+                    >
+                      {phases.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} (Current RIR: {p.rir})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={() => handleApplyCalibratedRIR(calibMode === 'single' ? calculatedCalibRIR : multiPointStats.calibRIR)}
+                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-emerald-500 via-indigo-600 to-indigo-500 hover:from-emerald-400 hover:to-indigo-400 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                    <span>Apply RIR ({(calibMode === 'single' ? calculatedCalibRIR : multiPointStats.calibRIR).toFixed(2)}) to Selected Phase</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

@@ -181,6 +181,9 @@ function invert3x3(m: Matrix3x3): Matrix3x3 | null {
 export const SupercellTransformationModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'setup' | 'matrix' | 'mapping' | 'results'>('setup');
+
   // Python Features State (Disabled by default)
   const [showPythonPanel, setShowPythonPanel] = useState<boolean>(pythonFeaturesEnabled);
   const [isPythonExecuting, setIsPythonExecuting] = useState<boolean>(false);
@@ -952,7 +955,40 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
         </div>
       </div>
 
-      {/* Scientific Math Control Box */}
+      {/* Tab Navigation */}
+      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950/80 rounded-2xl overflow-x-auto hide-scrollbar border border-slate-800/80 shadow-md">
+        {[
+          { id: 'setup', icon: Box, label: 'Parent Setup & Presets' },
+          { id: 'matrix', icon: Grid, label: 'Matrix Engine (P)' },
+          { id: 'mapping', icon: ArrowRightLeft, label: 'Coordinate & Miller Mapping' },
+          { id: 'results', icon: Maximize2, label: '2D Projections & Metrics' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === tab.id
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                : 'text-slate-400 hover:bg-slate-900/80 hover:text-slate-200 border border-transparent'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'setup' && (
+          <motion.div
+            key="setup"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            {/* Scientific Math Control Box */}
       <ScientificMathControl
         title="Supercell Transformation & Coordinate Mapping Formulas"
         formula="\begin{pmatrix}\mathbf{a}'\\\mathbf{b}'\\\mathbf{c}'\end{pmatrix} = P \begin{pmatrix}\mathbf{a}\\\mathbf{b}\\\mathbf{c}\end{pmatrix}, \quad \mathbf{x}' = P^{-1}(\mathbf{x} - \mathbf{p}), \quad \begin{pmatrix}h'\\k'\\l'\end{pmatrix} = P \begin{pmatrix}h\\k\\l\end{pmatrix}"
@@ -1012,7 +1048,10 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
 
         {/* Custom Parent Lattice Inputs */}
         <div className="space-y-3">
-          <span className="text-xs font-bold text-slate-300 block">Parent Unit Cell Parameters:</span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-300 block">Parent Unit Cell Parameters:</span>
+            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-500/20">Volume: {fmt(parentVolume, 2)} Å³</span>
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { label: 'a (Å)', val: a, set: setA },
@@ -1036,7 +1075,18 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
           </div>
         </div>
       </div>
+          </motion.div>
+        )}
 
+        {activeTab === 'matrix' && (
+          <motion.div
+            key="matrix"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
       {/* 3x3 Transformation Matrix Input (P) & Inverse P^-1 Display */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -1098,13 +1148,19 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-            <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
+            <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 text-center flex flex-col justify-center">
               <span className="text-slate-400 block text-[10px]">Determinant det(P)</span>
-              <span className={`font-bold text-sm ${detP === 0 ? 'text-rose-400' : 'text-cyan-300'}`}>{fmt(detP, 3)}</span>
+              <span className={`font-bold text-lg ${detP === 0 ? 'text-rose-400' : 'text-cyan-300'}`}>{fmt(detP, 3)}</span>
+              {detP !== 0 && (
+                 <span className={`text-[9px] mt-1 ${detP > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                   {detP > 0 ? 'Right-Handed' : 'Left-Handed (Inverted)'}
+                 </span>
+              )}
             </div>
-            <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
+            <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 text-center flex flex-col justify-center">
               <span className="text-slate-400 block text-[10px]">Supercell Multiplicity N</span>
-              <span className="text-emerald-400 font-bold text-sm">{absDetP}×</span>
+              <span className="text-emerald-400 font-bold text-lg">{absDetP}×</span>
+              <span className="text-slate-500 text-[9px] mt-1">Volume Expansion</span>
             </div>
           </div>
         </div>
@@ -1171,7 +1227,18 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
         </div>
 
       </div>
+          </motion.div>
+        )}
 
+        {activeTab === 'results' && (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
       {/* Comparison: Parent vs Transformed Cell Metrics & 2D Projection Canvas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -1417,7 +1484,18 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
         </div>
 
       </div>
+          </motion.div>
+        )}
 
+        {activeTab === 'mapping' && (
+          <motion.div
+            key="mapping"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
       {/* Miller Indices & Atomic Coordinate Mapping Engine */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -1571,6 +1649,9 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
         </div>
 
       </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Python Scripting Engine & Supercell Transformation (PyMatGen & DiffPy) */}
       {showPythonPanel && (

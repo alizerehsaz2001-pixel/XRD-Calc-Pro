@@ -2142,6 +2142,11 @@ export const FWHMModule: React.FC = () => {
                       onChange={(e) => setNoiseLevel(parseFloat(e.target.value))}
                       className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                     />
+                    <div className="flex justify-between text-[8px] text-slate-400 font-mono mt-1">
+                      <span>0% (Ideal)</span>
+                      <span>50% (Typical)</span>
+                      <span>100% (Noisy)</span>
+                    </div>
                   </div>
                 </div>
 
