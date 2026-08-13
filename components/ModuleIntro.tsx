@@ -68,6 +68,23 @@ const FormulaContainer = ({ children, label }: { children: React.ReactNode, labe
 );
 
 const MODULE_CONTENT: Record<string, { title: string; description: string; tag: string; icon: any; color: string; formulas: React.ReactNode }> = {
+  xrr: {
+    title: "X-Ray Reflectometry (XRR) Engine",
+    tag: "Thin Film Metrology",
+    icon: Activity,
+    color: "from-cyan-500 to-indigo-500",
+    description: "Specular reflectivity calculation for thin film stacks using Parratt's recursion formula with Névot-Croce roughness attenuation. Measures layer thickness, interfacial roughness, and electron density.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Parratt Recursion">
+          <M>R</M><sub>j</sub> = <Fraction num={<span><M>r</M><sub>j,j+1</sub> + <M>R</M><sub>j+1</sub><M>e</M><sup>i<M>q</M><sub>z,j+1</sub><M>d</M><sub>j+1</sub></sup></span>} den={<span>1 + <M>r</M><sub>j,j+1</sub><M>R</M><sub>j+1</sub><M>e</M><sup>i<M>q</M><sub>z,j+1</sub><M>d</M><sub>j+1</sub></sup></span>} />
+        </FormulaContainer>
+        <FormulaContainer label="Kiessig Film Thickness">
+          <M>d</M><sub>film</sub> = <Fraction num={<span>2<M>π</M></span>} den={<span>Δ<M>q</M><sub>z</sub></span>} />
+        </FormulaContainer>
+      </div>
+    )
+  },
   bragg: {
     title: "Bragg Diffractometer Core",
     tag: "Fundamental Physics",

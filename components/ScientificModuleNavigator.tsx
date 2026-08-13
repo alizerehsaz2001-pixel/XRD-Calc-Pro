@@ -69,7 +69,8 @@ export type ModuleId =
   | 'settings' 
   | 'database' 
   | 'periodic_table' 
-  | 'residual_stress';
+  | 'residual_stress'
+  | 'xrr';
 
 export interface ModuleMetadata {
   id: ModuleId;
@@ -174,6 +175,16 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         formula: 'P_k = (r²cos²α + r⁻¹sin²α)⁻³/²',
         tags: ['Texture', 'March-Dollase', 'Pole Density', 'Orientation'],
         icon: <Compass className={`${defaultIconClass} text-teal-400`} />
+      },
+      {
+        id: 'xrr',
+        label: t('X-Ray Reflectometry (XRR)', 'X-Ray Reflectometry (XRR)'),
+        category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
+        categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
+        subtitle: isRTL ? 'تحلیل بازتاب‌سنجی پرتو ایکس، ضخامت لایه‌ها، زبری سطوح و چگالی' : 'Thin film thickness, roughness & density modeling with Parratt recursion',
+        formula: 'R = |R_0|², d = 2π / Δq_z',
+        tags: ['XRR', 'Reflectometry', 'Thin Films', 'Thickness', 'Roughness', 'Density', 'Parratt', 'Kiessig'],
+        icon: <Activity className={`${defaultIconClass} text-cyan-400`} />
       },
 
       // Category 2: Size, Strain & Lattice Dynamics

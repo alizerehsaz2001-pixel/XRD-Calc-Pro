@@ -60,8 +60,9 @@ import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOffli
 import { syncOfflineHelper } from './utils/materialsHelper';
 
 import { ResidualStressModule } from './components/ResidualStressModule';
+import { XRRModule } from './components/XRRModule';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -98,6 +99,8 @@ const getModuleIcon = (id: Module, active: boolean) => {
     case 'preferred_orientation':
       return <Compass {...iconProps} />;
     case 'residual_stress':
+      return <Activity {...iconProps} />;
+    case 'xrr':
       return <Activity {...iconProps} />;
     case 'cohen':
       return <Grid {...iconProps} />;
@@ -2118,6 +2121,7 @@ const App: React.FC = () => {
                   {activeModule === 'wa' && <WarrenAverbachModule />}
                   {activeModule === 'method_of_moments' && <MethodOfMomentsModule />}
                   {activeModule === 'residual_stress' && <ResidualStressModule />}
+                  {activeModule === 'xrr' && <XRRModule />}
                   {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
                   {activeModule === 'cohen' && (
                     <CohenRefinementModule 

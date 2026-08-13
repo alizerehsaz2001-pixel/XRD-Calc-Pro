@@ -22,6 +22,326 @@ import {
   Label
 } from 'recharts';
 
+export interface RefPeakItem {
+  theta: number; // Cu Ka 2-theta (deg)
+  label: string;
+  hkl: string;
+  relIntensity: number; // %
+}
+
+export interface RefMaterialDetail {
+  id: string;
+  name: string;
+  category: 'NIST Standards' | 'Metals' | 'Semiconductors' | 'Oxides & Ceramics';
+  formula: string;
+  spaceGroup: string;
+  crystalSystem: string;
+  latticeParams: string;
+  description: string;
+  peaks: RefPeakItem[];
+}
+
+export const REFERENCE_MATERIALS_CATALOG: RefMaterialDetail[] = [
+  {
+    id: 'Silicon',
+    name: 'Silicon (Si NIST SRM 640f)',
+    category: 'NIST Standards',
+    formula: 'Si',
+    spaceGroup: 'Fd-3m (227)',
+    crystalSystem: 'Cubic',
+    latticeParams: 'a = 5.43119 Å',
+    description: 'NIST primary line position calibration standard for powder diffraction.',
+    peaks: [
+      { theta: 28.442, label: 'Si (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 47.302, label: 'Si (220)', hkl: '(220)', relIntensity: 55 },
+      { theta: 56.122, label: 'Si (311)', hkl: '(311)', relIntensity: 30 },
+      { theta: 69.130, label: 'Si (400)', hkl: '(400)', relIntensity: 6 },
+      { theta: 76.377, label: 'Si (331)', hkl: '(331)', relIntensity: 11 },
+      { theta: 88.030, label: 'Si (422)', hkl: '(422)', relIntensity: 12 },
+      { theta: 94.953, label: 'Si (511)', hkl: '(511)', relIntensity: 6 }
+    ]
+  },
+  {
+    id: 'LaB6',
+    name: 'LaB6 (Lanthanum Hexaboride SRM 660c)',
+    category: 'NIST Standards',
+    formula: 'LaB6',
+    spaceGroup: 'Pm-3m (221)',
+    crystalSystem: 'Cubic',
+    latticeParams: 'a = 4.15692 Å',
+    description: 'NIST standard for line profile shape and instrumental resolution (β_inst) calibration.',
+    peaks: [
+      { theta: 21.362, label: 'LaB6 (100)', hkl: '(100)', relIntensity: 100 },
+      { theta: 30.386, label: 'LaB6 (110)', hkl: '(110)', relIntensity: 50 },
+      { theta: 37.441, label: 'LaB6 (111)', hkl: '(111)', relIntensity: 25 },
+      { theta: 43.511, label: 'LaB6 (200)', hkl: '(200)', relIntensity: 20 },
+      { theta: 48.962, label: 'LaB6 (210)', hkl: '(210)', relIntensity: 30 },
+      { theta: 53.987, label: 'LaB6 (211)', hkl: '(211)', relIntensity: 28 },
+      { theta: 63.226, label: 'LaB6 (220)', hkl: '(220)', relIntensity: 18 },
+      { theta: 71.603, label: 'LaB6 (310)', hkl: '(310)', relIntensity: 15 }
+    ]
+  },
+  {
+    id: 'Al2O3',
+    name: 'Corundum (Al2O3 NIST SRM 1976b)',
+    category: 'NIST Standards',
+    formula: 'α-Al2O3',
+    spaceGroup: 'R-3c (167)',
+    crystalSystem: 'Trigonal',
+    latticeParams: 'a = 4.7587 Å, c = 12.9929 Å',
+    description: 'NIST sintered alumina standard plate for diffraction intensity and position sensitivity.',
+    peaks: [
+      { theta: 25.578, label: 'Al2O3 (012)', hkl: '(012)', relIntensity: 70 },
+      { theta: 35.152, label: 'Al2O3 (104)', hkl: '(104)', relIntensity: 100 },
+      { theta: 37.776, label: 'Al2O3 (110)', hkl: '(110)', relIntensity: 90 },
+      { theta: 43.355, label: 'Al2O3 (113)', hkl: '(113)', relIntensity: 85 },
+      { theta: 52.549, label: 'Al2O3 (024)', hkl: '(024)', relIntensity: 45 },
+      { theta: 57.496, label: 'Al2O3 (116)', hkl: '(116)', relIntensity: 95 },
+      { theta: 66.519, label: 'Al2O3 (214)', hkl: '(214)', relIntensity: 50 }
+    ]
+  },
+  {
+    id: 'CeO2',
+    name: 'Ceria (CeO2 NIST SRM 674b)',
+    category: 'NIST Standards',
+    formula: 'CeO2',
+    spaceGroup: 'Fm-3m (225)',
+    crystalSystem: 'Cubic Fluorite',
+    latticeParams: 'a = 5.4111 Å',
+    description: 'NIST standard for crystallite size, microstrain broadening, and quantitative phase analysis.',
+    peaks: [
+      { theta: 28.553, label: 'CeO2 (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 33.082, label: 'CeO2 (200)', hkl: '(200)', relIntensity: 28 },
+      { theta: 47.479, label: 'CeO2 (220)', hkl: '(220)', relIntensity: 51 },
+      { theta: 56.342, label: 'CeO2 (311)', hkl: '(311)', relIntensity: 43 },
+      { theta: 59.088, label: 'CeO2 (222)', hkl: '(222)', relIntensity: 10 },
+      { theta: 69.418, label: 'CeO2 (400)', hkl: '(400)', relIntensity: 8 }
+    ]
+  },
+  {
+    id: 'Gold',
+    name: 'Gold (Au Metal Standard)',
+    category: 'Metals',
+    formula: 'Au',
+    spaceGroup: 'Fm-3m (225)',
+    crystalSystem: 'Cubic FCC',
+    latticeParams: 'a = 4.0782 Å',
+    description: 'Face-centered cubic noble metal standard for nano-diffraction and thin film stress analysis.',
+    peaks: [
+      { theta: 38.184, label: 'Au (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 44.392, label: 'Au (200)', hkl: '(200)', relIntensity: 52 },
+      { theta: 64.576, label: 'Au (220)', hkl: '(220)', relIntensity: 32 },
+      { theta: 77.547, label: 'Au (311)', hkl: '(311)', relIntensity: 36 },
+      { theta: 81.721, label: 'Au (222)', hkl: '(222)', relIntensity: 12 },
+      { theta: 98.128, label: 'Au (400)', hkl: '(400)', relIntensity: 6 }
+    ]
+  },
+  {
+    id: 'Copper',
+    name: 'Copper (Cu Metal)',
+    category: 'Metals',
+    formula: 'Cu',
+    spaceGroup: 'Fm-3m (225)',
+    crystalSystem: 'Cubic FCC',
+    latticeParams: 'a = 3.6149 Å',
+    description: 'Pure copper metal polycrystalline substrate and foil standard.',
+    peaks: [
+      { theta: 43.297, label: 'Cu (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 50.433, label: 'Cu (200)', hkl: '(200)', relIntensity: 46 },
+      { theta: 74.130, label: 'Cu (220)', hkl: '(220)', relIntensity: 20 },
+      { theta: 89.931, label: 'Cu (311)', hkl: '(311)', relIntensity: 17 },
+      { theta: 95.142, label: 'Cu (222)', hkl: '(222)', relIntensity: 5 }
+    ]
+  },
+  {
+    id: 'Aluminum',
+    name: 'Aluminum (Al Metal)',
+    category: 'Metals',
+    formula: 'Al',
+    spaceGroup: 'Fm-3m (225)',
+    crystalSystem: 'Cubic FCC',
+    latticeParams: 'a = 4.0495 Å',
+    description: 'Structural light-alloy metal reference standard.',
+    peaks: [
+      { theta: 38.472, label: 'Al (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 44.724, label: 'Al (200)', hkl: '(200)', relIntensity: 47 },
+      { theta: 65.096, label: 'Al (220)', hkl: '(220)', relIntensity: 22 },
+      { theta: 78.228, label: 'Al (311)', hkl: '(311)', relIntensity: 24 },
+      { theta: 82.435, label: 'Al (222)', hkl: '(222)', relIntensity: 7 }
+    ]
+  },
+  {
+    id: 'Platinum',
+    name: 'Platinum (Pt Metal)',
+    category: 'Metals',
+    formula: 'Pt',
+    spaceGroup: 'Fm-3m (225)',
+    crystalSystem: 'Cubic FCC',
+    latticeParams: 'a = 3.9231 Å',
+    description: 'Heavy catalyst transition metal reference.',
+    peaks: [
+      { theta: 39.761, label: 'Pt (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 46.244, label: 'Pt (200)', hkl: '(200)', relIntensity: 53 },
+      { theta: 67.452, label: 'Pt (220)', hkl: '(220)', relIntensity: 31 },
+      { theta: 81.285, label: 'Pt (311)', hkl: '(311)', relIntensity: 33 },
+      { theta: 85.710, label: 'Pt (222)', hkl: '(222)', relIntensity: 11 }
+    ]
+  },
+  {
+    id: 'Diamond',
+    name: 'Diamond (C Cubic)',
+    category: 'Metals',
+    formula: 'C',
+    spaceGroup: 'Fd-3m (227)',
+    crystalSystem: 'Cubic Diamond',
+    latticeParams: 'a = 3.5670 Å',
+    description: 'Covalent carbon allotrope with distinct high-angle Bragg reflections.',
+    peaks: [
+      { theta: 43.915, label: 'C (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 75.302, label: 'C (220)', hkl: '(220)', relIntensity: 25 },
+      { theta: 91.495, label: 'C (311)', hkl: '(311)', relIntensity: 16 }
+    ]
+  },
+  {
+    id: 'TiO2_Anatase',
+    name: 'Titanium Dioxide (Anatase TiO2)',
+    category: 'Oxides & Ceramics',
+    formula: 'TiO2',
+    spaceGroup: 'I41/amd (141)',
+    crystalSystem: 'Tetragonal',
+    latticeParams: 'a = 3.785 Å, c = 9.514 Å',
+    description: 'Anatase phase TiO2 semiconductor and photocatalyst powder.',
+    peaks: [
+      { theta: 25.281, label: 'TiO2 (101)', hkl: '(101)', relIntensity: 100 },
+      { theta: 36.947, label: 'TiO2 (103)', hkl: '(103)', relIntensity: 10 },
+      { theta: 37.800, label: 'TiO2 (004)', hkl: '(004)', relIntensity: 20 },
+      { theta: 38.576, label: 'TiO2 (112)', hkl: '(112)', relIntensity: 10 },
+      { theta: 48.049, label: 'TiO2 (200)', hkl: '(200)', relIntensity: 35 },
+      { theta: 53.890, label: 'TiO2 (105)', hkl: '(105)', relIntensity: 20 },
+      { theta: 55.060, label: 'TiO2 (211)', hkl: '(211)', relIntensity: 20 }
+    ]
+  },
+  {
+    id: 'TiO2_Rutile',
+    name: 'Titanium Dioxide (Rutile TiO2)',
+    category: 'Oxides & Ceramics',
+    formula: 'TiO2',
+    spaceGroup: 'P42/mnm (136)',
+    crystalSystem: 'Tetragonal',
+    latticeParams: 'a = 4.593 Å, c = 2.958 Å',
+    description: 'Thermodynamically stable high-index rutile titanium oxide.',
+    peaks: [
+      { theta: 27.446, label: 'TiO2 (110)', hkl: '(110)', relIntensity: 100 },
+      { theta: 36.085, label: 'TiO2 (101)', hkl: '(101)', relIntensity: 50 },
+      { theta: 39.187, label: 'TiO2 (200)', hkl: '(200)', relIntensity: 8 },
+      { theta: 41.225, label: 'TiO2 (111)', hkl: '(111)', relIntensity: 25 },
+      { theta: 44.052, label: 'TiO2 (210)', hkl: '(210)', relIntensity: 10 },
+      { theta: 54.322, label: 'TiO2 (211)', hkl: '(211)', relIntensity: 60 }
+    ]
+  },
+  {
+    id: 'ZnO',
+    name: 'Zinc Oxide (ZnO Wurtzite)',
+    category: 'Oxides & Ceramics',
+    formula: 'ZnO',
+    spaceGroup: 'P63mc (186)',
+    crystalSystem: 'Hexagonal Wurtzite',
+    latticeParams: 'a = 3.249 Å, c = 5.206 Å',
+    description: 'Direct wide-bandgap piezoelectric zinc oxide semiconductor.',
+    peaks: [
+      { theta: 31.769, label: 'ZnO (100)', hkl: '(100)', relIntensity: 57 },
+      { theta: 34.421, label: 'ZnO (002)', hkl: '(002)', relIntensity: 44 },
+      { theta: 36.252, label: 'ZnO (101)', hkl: '(101)', relIntensity: 100 },
+      { theta: 47.538, label: 'ZnO (102)', hkl: '(102)', relIntensity: 23 },
+      { theta: 56.602, label: 'ZnO (110)', hkl: '(110)', relIntensity: 32 },
+      { theta: 62.862, label: 'ZnO (103)', hkl: '(103)', relIntensity: 29 }
+    ]
+  },
+  {
+    id: 'Quartz',
+    name: 'Quartz (α-SiO2 Mineral)',
+    category: 'Oxides & Ceramics',
+    formula: 'SiO2',
+    spaceGroup: 'P3221 (154)',
+    crystalSystem: 'Trigonal',
+    latticeParams: 'a = 4.913 Å, c = 5.405 Å',
+    description: 'Natural crystalline quartz silica standard.',
+    peaks: [
+      { theta: 20.855, label: 'SiO2 (100)', hkl: '(100)', relIntensity: 22 },
+      { theta: 26.643, label: 'SiO2 (101)', hkl: '(101)', relIntensity: 100 },
+      { theta: 36.542, label: 'SiO2 (110)', hkl: '(110)', relIntensity: 8 },
+      { theta: 39.464, label: 'SiO2 (102)', hkl: '(102)', relIntensity: 9 },
+      { theta: 50.138, label: 'SiO2 (112)', hkl: '(112)', relIntensity: 14 }
+    ]
+  },
+  {
+    id: 'NaCl',
+    name: 'Halite (NaCl Rock Salt)',
+    category: 'Oxides & Ceramics',
+    formula: 'NaCl',
+    spaceGroup: 'Fm-3m (225)',
+    crystalSystem: 'Cubic Rock Salt',
+    latticeParams: 'a = 5.640 Å',
+    description: 'Classic ionic rock salt lattice reference.',
+    peaks: [
+      { theta: 27.351, label: 'NaCl (111)', hkl: '(111)', relIntensity: 13 },
+      { theta: 31.693, label: 'NaCl (200)', hkl: '(200)', relIntensity: 100 },
+      { theta: 45.412, label: 'NaCl (220)', hkl: '(220)', relIntensity: 55 },
+      { theta: 53.864, label: 'NaCl (311)', hkl: '(311)', relIntensity: 2 },
+      { theta: 56.431, label: 'NaCl (222)', hkl: '(222)', relIntensity: 15 }
+    ]
+  },
+  {
+    id: 'Pyrite',
+    name: 'Pyrite (FeS2 Mineral)',
+    category: 'Oxides & Ceramics',
+    formula: 'FeS2',
+    spaceGroup: 'Pa-3 (205)',
+    crystalSystem: 'Cubic',
+    latticeParams: 'a = 5.417 Å',
+    description: 'Iron disulfide mineral crystal reference.',
+    peaks: [
+      { theta: 28.532, label: 'FeS2 (111)', hkl: '(111)', relIntensity: 35 },
+      { theta: 33.041, label: 'FeS2 (200)', hkl: '(200)', relIntensity: 100 },
+      { theta: 37.083, label: 'FeS2 (210)', hkl: '(210)', relIntensity: 50 },
+      { theta: 40.781, label: 'FeS2 (211)', hkl: '(211)', relIntensity: 35 },
+      { theta: 56.324, label: 'FeS2 (311)', hkl: '(311)', relIntensity: 65 }
+    ]
+  },
+  {
+    id: 'GaAs',
+    name: 'Gallium Arsenide (GaAs)',
+    category: 'Semiconductors',
+    formula: 'GaAs',
+    spaceGroup: 'F-43m (216)',
+    crystalSystem: 'Cubic Zincblende',
+    latticeParams: 'a = 5.6533 Å',
+    description: 'High-speed III-V semiconductor single-crystal substrate.',
+    peaks: [
+      { theta: 27.289, label: 'GaAs (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 45.302, label: 'GaAs (220)', hkl: '(220)', relIntensity: 45 },
+      { theta: 53.729, label: 'GaAs (311)', hkl: '(311)', relIntensity: 30 },
+      { theta: 66.002, label: 'GaAs (400)', hkl: '(400)', relIntensity: 8 }
+    ]
+  },
+  {
+    id: 'SiC',
+    name: 'Silicon Carbide (SiC 3C)',
+    category: 'Semiconductors',
+    formula: 'β-SiC',
+    spaceGroup: 'F-43m (216)',
+    crystalSystem: 'Cubic Zincblende',
+    latticeParams: 'a = 4.3596 Å',
+    description: 'Wide bandgap high-power cubic silicon carbide semiconductor.',
+    peaks: [
+      { theta: 35.601, label: 'SiC (111)', hkl: '(111)', relIntensity: 100 },
+      { theta: 41.401, label: 'SiC (200)', hkl: '(200)', relIntensity: 15 },
+      { theta: 60.003, label: 'SiC (220)', hkl: '(220)', relIntensity: 40 },
+      { theta: 71.782, label: 'SiC (311)', hkl: '(311)', relIntensity: 25 }
+    ]
+  }
+];
+
 export const FWHMModule: React.FC = () => {
   const [type, setType] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII'>('Pseudo-Voigt');
   const [center, setCenter] = useState<number>(30);
@@ -131,7 +451,8 @@ export const FWHMModule: React.FC = () => {
   // Reference Materials and Peaks state
   const [showReferencePeaks, setShowReferencePeaks] = useState<boolean>(false);
   const [refMaterial, setRefMaterial] = useState<string>('Silicon');
-  const [customRefPeaks, setCustomRefPeaks] = useState<string>('28.44, 47.30, 56.12');
+  const [customRefPeaks, setCustomRefPeaks] = useState<string>('28.44 (111), 47.30 (220), 56.12 (311)');
+  const [refCategoryFilter, setRefCategoryFilter] = useState<string>('All');
 
   // Amorphous Glass/Polymer Background Halo
   const [enableAmorphousHalo, setEnableAmorphousHalo] = useState<boolean>(false);
@@ -149,9 +470,13 @@ export const FWHMModule: React.FC = () => {
 
   const activeWavelength = wavelengthPreset === 'Custom' ? customWavelength : (WAVELENGTH_PRESETS[wavelengthPreset] || 0.154059);
 
+  const selectedRefDetail = React.useMemo(() => {
+    return REFERENCE_MATERIALS_CATALOG.find(m => m.id === refMaterial || m.name.toLowerCase().includes(refMaterial.toLowerCase()));
+  }, [refMaterial]);
+
   const parsedRefPeaks = React.useMemo(() => {
     if (!showReferencePeaks) return [];
-    const lambdaCu = 0.154059; // Cu Kα in nm
+    const lambdaCu = 0.154059; // Cu Kα reference wavelength in nm
     const targetWavelength = activeWavelength; // active wavelength in nm (e.g., 0.154059)
 
     const shiftPeak = (thetaCu: number): { theta: number; dSpacing: number; isSuppressed: boolean } => {
@@ -170,90 +495,41 @@ export const FWHMModule: React.FC = () => {
     };
 
     if (refMaterial !== 'Custom') {
-      const PRESETS: Record<string, { theta: number; label: string }[]> = {
-        'Silicon': [
-          { theta: 28.442, label: 'Si (111)' },
-          { theta: 47.302, label: 'Si (220)' },
-          { theta: 56.122, label: 'Si (311)' },
-          { theta: 69.130, label: 'Si (400)' },
-          { theta: 88.030, label: 'Si (422)' }
-        ],
-        'Gold': [
-          { theta: 38.184, label: 'Au (111)' },
-          { theta: 44.392, label: 'Au (200)' },
-          { theta: 64.576, label: 'Au (220)' },
-          { theta: 77.547, label: 'Au (311)' },
-          { theta: 81.721, label: 'Au (222)' }
-        ],
-        'NaCl': [
-          { theta: 27.351, label: 'NaCl (111)' },
-          { theta: 31.693, label: 'NaCl (200)' },
-          { theta: 45.412, label: 'NaCl (220)' },
-          { theta: 53.864, label: 'NaCl (311)' },
-          { theta: 56.431, label: 'NaCl (222)' }
-        ],
-        'Pyrite': [
-          { theta: 28.532, label: 'FeS2 (111)' },
-          { theta: 33.041, label: 'FeS2 (200)' },
-          { theta: 37.083, label: 'FeS2 (210)' },
-          { theta: 40.781, label: 'FeS2 (211)' },
-          { theta: 56.324, label: 'FeS2 (311)' }
-        ],
-        'Quartz': [
-          { theta: 20.855, label: 'SiO2 (100)' },
-          { theta: 26.643, label: 'SiO2 (101)' },
-          { theta: 36.542, label: 'SiO2 (110)' },
-          { theta: 50.138, label: 'SiO2 (112)' },
-          { theta: 59.954, label: 'SiO2 (211)' }
-        ],
-        'Aluminum': [
-          { theta: 38.472, label: 'Al (111)' },
-          { theta: 44.724, label: 'Al (200)' },
-          { theta: 65.096, label: 'Al (220)' },
-          { theta: 78.228, label: 'Al (311)' },
-          { theta: 82.435, label: 'Al (222)' }
-        ],
-        'Copper': [
-          { theta: 43.297, label: 'Cu (111)' },
-          { theta: 50.433, label: 'Cu (200)' },
-          { theta: 74.130, label: 'Cu (220)' },
-          { theta: 89.931, label: 'Cu (311)' },
-          { theta: 95.142, label: 'Cu (222)' }
-        ],
-        'Platinum': [
-          { theta: 39.761, label: 'Pt (111)' },
-          { theta: 46.244, label: 'Pt (200)' },
-          { theta: 67.452, label: 'Pt (220)' },
-          { theta: 81.285, label: 'Pt (311)' },
-          { theta: 85.710, label: 'Pt (222)' }
-        ],
-        'Diamond': [
-          { theta: 43.915, label: 'C (111)' },
-          { theta: 75.302, label: 'C (220)' },
-          { theta: 91.495, label: 'C (311)' }
-        ]
-      };
-      const originalPeaks = PRESETS[refMaterial] || [];
-      return originalPeaks.map(p => {
+      const match = selectedRefDetail || REFERENCE_MATERIALS_CATALOG[0];
+      return match.peaks.map(p => {
         const shifted = shiftPeak(p.theta);
         return {
           theta: shifted.theta,
           label: p.label,
+          hkl: p.hkl,
+          relIntensity: p.relIntensity,
           dSpacing: shifted.dSpacing,
           isSuppressed: shifted.isSuppressed,
           originalTheta: p.theta
         };
       }).filter(p => !p.isSuppressed);
     } else {
+      // Custom Peaks Parsing (supports '28.44 (111), 47.30 (220)' or '28.44, 47.30')
       return customRefPeaks
         .split(',')
         .map((val, idx) => {
-          const num = parseFloat(val.trim());
-          if (!isNaN(num) && num >= 10 && num <= 150) {
+          const trimmed = val.trim();
+          if (!trimmed) return null;
+          
+          // Match numbers and optional label like "28.44 (111)" or "28.44"
+          const match = trimmed.match(/([\d\.]+)\s*(?:\(([^)]+)\))?/);
+          if (!match) return null;
+          
+          const num = parseFloat(match[1]);
+          const labelTag = match[2] ? match[2] : `Custom #${idx + 1}`;
+          
+          if (!isNaN(num) && num >= 5 && num <= 175) {
             const shifted = shiftPeak(num);
             return {
               theta: shifted.isSuppressed ? num : shifted.theta,
-              label: `Custom #${idx + 1}`,
+              label: match[2] ? `Peak ${match[2]}` : `Custom (${num.toFixed(2)}°)`,
+              hkl: labelTag,
+              relIntensity: 100,
               dSpacing: shifted.dSpacing,
               isSuppressed: shifted.isSuppressed,
               originalTheta: num
@@ -261,9 +537,37 @@ export const FWHMModule: React.FC = () => {
           }
           return null;
         })
-        .filter((p): p is { theta: number; label: string; dSpacing: number; isSuppressed: boolean; originalTheta: number } => p !== null && !p.isSuppressed);
+        .filter((p): p is { theta: number; label: string; hkl: string; relIntensity: number; dSpacing: number; isSuppressed: boolean; originalTheta: number } => p !== null && !p.isSuppressed);
     }
-  }, [showReferencePeaks, refMaterial, customRefPeaks, activeWavelength]);
+  }, [showReferencePeaks, refMaterial, customRefPeaks, activeWavelength, selectedRefDetail]);
+
+  // Closest Reference Peak Match Metrics relative to active simulation centroid
+  const closestRefMatch = React.useMemo(() => {
+    if (!parsedRefPeaks.length) return null;
+    let closest = parsedRefPeaks[0];
+    let minDiff = Math.abs(center - closest.theta);
+
+    for (let i = 1; i < parsedRefPeaks.length; i++) {
+      const diff = Math.abs(center - parsedRefPeaks[i].theta);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = parsedRefPeaks[i];
+      }
+    }
+
+    const angleOffset = center - closest.theta;
+    const obsThetaRad = (center / 2) * (Math.PI / 180);
+    const obsD = (activeWavelength * 10) / (2 * Math.sin(obsThetaRad)); // Å
+    const strainMismatch = ((obsD - closest.dSpacing) / closest.dSpacing) * 100; // % strain
+
+    return {
+      peak: closest,
+      angleOffset, // deg
+      obsD, // Å
+      strainMismatch, // %
+      isCloseMatch: Math.abs(angleOffset) < 1.0
+    };
+  }, [parsedRefPeaks, center, activeWavelength]);
 
   const [useCaglioti, setUseCaglioti] = useState<boolean>(false);
   const [cagliotiPreset, setCagliotiPreset] = useState<string>('Lab (Cu Kα)');
@@ -2012,6 +2316,29 @@ export const FWHMModule: React.FC = () => {
 
                   {showReferencePeaks && (
                     <div className="space-y-3 pt-2 border-t border-slate-200/50 dark:border-slate-800/50 animate-in fade-in duration-200">
+                      {/* Category Filter Pills */}
+                      <div className="space-y-1">
+                        <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          Filter Material Class
+                        </label>
+                        <div className="flex flex-wrap gap-1">
+                          {['All', 'NIST Standards', 'Metals', 'Semiconductors', 'Oxides & Ceramics'].map((cat) => (
+                            <button
+                              key={cat}
+                              onClick={() => setRefCategoryFilter(cat)}
+                              className={`text-[9px] px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${
+                                refCategoryFilter === cat
+                                  ? 'bg-indigo-600 text-white shadow-xs'
+                                  : 'bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Material Standard Select */}
                       <div className="space-y-1.5">
                         <label className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                           Material Standard Reference
@@ -2019,64 +2346,171 @@ export const FWHMModule: React.FC = () => {
                         <select
                           value={refMaterial}
                           onChange={(e) => setRefMaterial(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none font-bold"
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-200 focus:outline-none font-bold"
                         >
-                          <option value="Silicon">Silicon (Si NIST SRM 640f)</option>
-                          <option value="Gold">Gold (Au Standard)</option>
-                          <option value="NaCl">Halite (NaCl Salt)</option>
-                          <option value="Pyrite">Pyrite (FeS2)</option>
-                          <option value="Quartz">Quartz (α-SiO2)</option>
-                          <option value="Aluminum">Aluminum (Al Metal)</option>
-                          <option value="Copper">Copper (Cu Metal)</option>
-                          <option value="Platinum">Platinum (Pt)</option>
-                          <option value="Diamond">Diamond (C Cubic)</option>
-                          <option value="Custom">Custom 2θ Values</option>
+                          {refCategoryFilter === 'All' || refCategoryFilter === 'NIST Standards' ? (
+                            <optgroup label="NIST Calibration Standards">
+                              <option value="Silicon">Silicon (Si NIST SRM 640f)</option>
+                              <option value="LaB6">LaB6 (Lanthanum Hexaboride SRM 660c)</option>
+                              <option value="Al2O3">Corundum (Al2O3 NIST SRM 1976b)</option>
+                              <option value="CeO2">Ceria (CeO2 NIST SRM 674b)</option>
+                            </optgroup>
+                          ) : null}
+
+                          {refCategoryFilter === 'All' || refCategoryFilter === 'Metals' ? (
+                            <optgroup label="Metals & Elemental Phase Standards">
+                              <option value="Gold">Gold (Au Metal Standard)</option>
+                              <option value="Copper">Copper (Cu Metal)</option>
+                              <option value="Aluminum">Aluminum (Al Metal)</option>
+                              <option value="Platinum">Platinum (Pt Metal)</option>
+                              <option value="Diamond">Diamond (C Cubic)</option>
+                            </optgroup>
+                          ) : null}
+
+                          {refCategoryFilter === 'All' || refCategoryFilter === 'Semiconductors' ? (
+                            <optgroup label="Semiconductors & Electronic Materials">
+                              <option value="GaAs">Gallium Arsenide (GaAs Substrate)</option>
+                              <option value="SiC">Silicon Carbide (SiC 3C Polytype)</option>
+                            </optgroup>
+                          ) : null}
+
+                          {refCategoryFilter === 'All' || refCategoryFilter === 'Oxides & Ceramics' ? (
+                            <optgroup label="Oxides & Functional Ceramics">
+                              <option value="TiO2_Anatase">Titanium Dioxide (Anatase TiO2)</option>
+                              <option value="TiO2_Rutile">Titanium Dioxide (Rutile TiO2)</option>
+                              <option value="ZnO">Zinc Oxide (ZnO Wurtzite)</option>
+                              <option value="Quartz">Quartz (α-SiO2 Mineral)</option>
+                              <option value="NaCl">Halite (NaCl Rock Salt)</option>
+                              <option value="Pyrite">Pyrite (FeS2 Mineral)</option>
+                            </optgroup>
+                          ) : null}
+
+                          <optgroup label="User Custom Settings">
+                            <option value="Custom">Custom 2θ Values (Manual Input)</option>
+                          </optgroup>
                         </select>
                       </div>
 
+                      {/* Selected Material Info Card */}
+                      {refMaterial !== 'Custom' && selectedRefDetail && (
+                        <div className="p-2.5 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 space-y-1.5 text-[10px]">
+                          <div className="flex items-center justify-between font-extrabold text-indigo-900 dark:text-indigo-200">
+                            <span>{selectedRefDetail.name}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 bg-indigo-200/60 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 rounded font-mono">
+                              {selectedRefDetail.formula}
+                            </span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-300 text-[9px] leading-tight">
+                            {selectedRefDetail.description}
+                          </p>
+                          <div className="grid grid-cols-2 gap-1 text-[9px] pt-1 border-t border-indigo-200/50 dark:border-indigo-800/50 font-mono text-slate-500 dark:text-slate-400">
+                            <div>Space Group: <span className="font-bold text-slate-700 dark:text-slate-200">{selectedRefDetail.spaceGroup}</span></div>
+                            <div>Lattice: <span className="font-bold text-slate-700 dark:text-slate-200">{selectedRefDetail.latticeParams}</span></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Custom Input Field */}
                       {refMaterial === 'Custom' && (
-                        <div className="space-y-1.5">
-                          <label className="block text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">
-                            Custom Bragg Angles (2θ values)
+                        <div className="space-y-1.5 bg-slate-100 dark:bg-slate-900/70 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                          <label className="block text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                            Custom Bragg Angles & (hkl) Labels
                           </label>
                           <input
                             type="text"
                             value={customRefPeaks}
                             onChange={(e) => setCustomRefPeaks(e.target.value)}
-                            placeholder="e.g. 28.44, 47.30, 56.12"
-                            className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs p-1.5 font-mono text-slate-700 dark:text-slate-300 focus:outline-none"
+                            placeholder="e.g. 28.44 (111), 47.30 (220), 56.12 (311)"
+                            className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded text-xs p-1.5 font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           />
+                          <p className="text-[8px] text-slate-400 dark:text-slate-500">
+                            Format: Comma-separated 2θ values. Optionally add hkl tag in parentheses.
+                          </p>
                         </div>
                       )}
 
-                      {parsedRefPeaks.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                              Snap Peak Centroid to Standard:
+                      {/* Peak Alignment HUD & Strain Offset Card */}
+                      {closestRefMatch && showReferencePeaks && (
+                        <div className="p-2.5 bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                              <Crosshair className="w-3 h-3 text-emerald-500" />
+                              Nearest Reference Reflection
+                            </span>
+                            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-extrabold text-[9px]">
+                              {closestRefMatch.peak.label} ({closestRefMatch.peak.theta.toFixed(2)}°)
                             </span>
                           </div>
-                          <div className="grid grid-cols-2 gap-1.5 max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
+
+                          <div className="grid grid-cols-2 gap-2 text-[9px] bg-white dark:bg-slate-950 p-2 rounded border border-slate-200/60 dark:border-slate-800/60">
+                            <div>
+                              <span className="text-slate-400 block">Peak Offset Δ(2θ):</span>
+                              <span className={`font-mono font-bold ${Math.abs(closestRefMatch.angleOffset) < 0.1 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                {closestRefMatch.angleOffset > 0 ? '+' : ''}{closestRefMatch.angleOffset.toFixed(3)}°
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block">Microstrain (ε):</span>
+                              <span className={`font-mono font-bold ${Math.abs(closestRefMatch.strainMismatch) < 0.2 ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                                {closestRefMatch.strainMismatch > 0 ? '+' : ''}{closestRefMatch.strainMismatch.toFixed(2)}%
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => setCenter(closestRefMatch.peak.theta)}
+                            className="w-full py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold text-[9.5px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            Snap Centroid to {closestRefMatch.peak.label}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Interactive Reflection Grid */}
+                      {parsedRefPeaks.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                            <span>Reference Bragg Reflections ({parsedRefPeaks.length})</span>
+                            <span>I/I₀ Relative Intensity</span>
+                          </div>
+                          <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
                             {parsedRefPeaks.map((peak, idx) => {
-                              const isCurrentCenter = Math.abs(center - peak.theta) < 0.02;
+                              const isCurrentCenter = Math.abs(center - peak.theta) < 0.03;
+                              const intensityPct = peak.relIntensity || 100;
+
                               return (
                                 <button
                                   key={idx}
                                   onClick={() => setCenter(peak.theta)}
-                                  className={`p-1.5 text-[10px] font-mono rounded-lg border transition-all text-left flex flex-col justify-between cursor-pointer ${
+                                  className={`w-full p-2 text-[10px] font-mono rounded-lg border transition-all text-left flex flex-col gap-1 cursor-pointer ${
                                     isCurrentCenter
-                                      ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-extrabold shadow-sm'
-                                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 text-slate-600 dark:text-slate-400'
+                                      ? 'bg-indigo-50 dark:bg-indigo-950/70 border-indigo-500 text-indigo-900 dark:text-indigo-200 font-extrabold shadow-sm'
+                                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 text-slate-700 dark:text-slate-300'
                                   }`}
-                                  title={`Snap peak center to ${peak.theta.toFixed(3)}°`}
+                                  title={`Click to snap active peak center to ${peak.theta.toFixed(3)}°`}
                                 >
-                                  <div className="flex items-center gap-1">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${isCurrentCenter ? 'bg-indigo-600 dark:bg-indigo-400 animate-pulse' : 'bg-emerald-500'}`}></span>
-                                    <span className="font-extrabold">{peak.label}</span>
+                                  <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={`w-2 h-2 rounded-full ${isCurrentCenter ? 'bg-indigo-600 dark:bg-indigo-400 animate-pulse' : 'bg-emerald-500'}`}></span>
+                                      <span className="font-extrabold">{peak.label}</span>
+                                    </div>
+                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">
+                                      d = {peak.dSpacing.toFixed(3)} Å
+                                    </span>
                                   </div>
-                                  <div className="mt-1 flex justify-between items-center text-[9px] w-full text-slate-400 font-medium leading-none">
-                                    <span>{peak.theta.toFixed(2)}°</span>
-                                    <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-bold">{peak.dSpacing.toFixed(3)} Å</span>
+
+                                  <div className="flex items-center justify-between text-[9px] text-slate-400">
+                                    <span>2θ = <strong className="text-slate-700 dark:text-slate-200">{peak.theta.toFixed(2)}°</strong></span>
+                                    <span>Rel. I: <strong className="text-slate-700 dark:text-slate-200">{intensityPct}%</strong></span>
+                                  </div>
+
+                                  {/* Intensity progress bar */}
+                                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${isCurrentCenter ? 'bg-indigo-500' : 'bg-emerald-500'}`}
+                                      style={{ width: `${intensityPct}%` }}
+                                    ></div>
                                   </div>
                                 </button>
                               );
@@ -2921,15 +3355,15 @@ export const FWHMModule: React.FC = () => {
                         x={peak.theta} 
                         stroke="#059669" 
                         strokeDasharray="4 4" 
-                        strokeWidth={1.8}
+                        strokeWidth={2}
                       >
                          <Label 
-                           value={`${peak.label} (${peak.theta.toFixed(2)}°)`} 
+                           value={`${peak.label} | ${peak.theta.toFixed(2)}° | d=${peak.dSpacing.toFixed(3)}Å (${peak.relIntensity || 100}%)`} 
                            position="insideTopLeft" 
                            fill="#047857" 
                            fontSize={11} 
                            fontWeight="800" 
-                           offset={12} 
+                           offset={12 + (idx % 3) * 14} 
                          />
                       </ReferenceLine>
                     );
