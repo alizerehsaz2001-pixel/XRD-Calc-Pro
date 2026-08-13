@@ -7,6 +7,7 @@ import {
   XRRDataPoint,
   SLDPoint,
   MATERIAL_PRESETS,
+  XRRMaterialPreset,
   calculateReflectivityCurve,
   calculateSLDProfile,
   analyzeKiessigFringes,
@@ -15,6 +16,7 @@ import {
   generatePythonXRRScript,
   calculateSuperlatticeBraggPeaks,
   estimateOpticalConstantsFromFormula,
+  calculateMonteCarloConfidenceEnvelope,
   KiessigAnalysisResult,
   CriticalAngleResult,
   SuperlatticePeak
@@ -64,7 +66,22 @@ import {
   Wand2,
   X,
   RotateCcw,
-  Palette
+  Palette,
+  Radio,
+  Gauge,
+  Clock,
+  Ruler,
+  Crosshair,
+  ShieldAlert,
+  Compass,
+  BookmarkPlus,
+  Database,
+  Save,
+  FolderPlus,
+  Edit3,
+  Tag,
+  PlusCircle,
+  Settings2
 } from 'lucide-react';
 
 export const XRRModule: React.FC = () => {
@@ -74,6 +91,8 @@ export const XRRModule: React.FC = () => {
   // Config State
   const [config, setConfig] = useState<XRRSimulationConfig>({
     wavelength: 1.5406,      // Cu K-alpha
+    radiationSource: 'cu-ka1',
+    synchrotronEnergyKeV: 8.048,
     angleStart: 0.05,        // deg
     angleEnd: 4.0,           // deg
     angleStep: 0.005,        // deg
@@ -82,8 +101,21 @@ export const XRRModule: React.FC = () => {
     background: 1e-7,
     roughnessModel: 'nevot-croce',
     intensityScale: 1.0,
-    angleOffset: 0.0
+    angleOffset: 0.0,
+    footprintCorrection: false,
+    sampleLengthMm: 20,
+    beamWidthMm: 0.2
   });
+
+  // Monte Carlo Uncertainty Envelope State
+  const [enableMonteCarlo, setEnableMonteCarlo] = useState<boolean>(false);
+  const [mcVariationPct, setMcVariationPct] = useState<number>(5.0);
+
+  // Advanced settings toggle
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState<boolean>(false);
+
+  // Auto-Fitting Optimization Logs State
+  const [fitLogs, setFitLogs] = useState<{ iteration: number; logRmse: number; rwp: number }[]>([]);
 
   // Multilayer Stack State
   // Film layers followed by Substrate at bottom (last item)
@@ -144,8 +176,253 @@ export const XRRModule: React.FC = () => {
   const [slCapThick, setSlCapThick] = useState<number>(30);
   const [slSubstrate, setSlSubstrate] = useState<string>('Silicon (Si)');
 
+  // Custom & Synthesis Materials Library State (Persisted in LocalStorage)
+  const [customMaterials, setCustomMaterials] = useState<XRRMaterialPreset[]>(() => {
+    try {
+      const saved = localStorage.getItem('xrr_custom_materials_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse custom materials from localStorage', e);
+    }
+    return [
+      {
+        name: 'Synthesis MAPbI3 Perovskite',
+        density: 4.16,
+        delta: 13.80,
+        beta: 0.950,
+        category: 'Synthesis / Custom',
+        color: '#f59e0b',
+        isCustom: true,
+        notes: 'Organometallic halide perovskite thin film synthesized via spin-coating.'
+      },
+      {
+        name: 'Sputtered TiN Coating',
+        density: 5.22,
+        delta: 16.40,
+        beta: 1.250,
+        category: 'Synthesis / Custom',
+        color: '#eab308',
+        isCustom: true,
+        notes: 'Reactive magnetron sputtered ceramic titanium nitride thin film.'
+      }
+    ];
+  });
+
+  // Sync Custom Materials to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('xrr_custom_materials_v1', JSON.stringify(customMaterials));
+    } catch (e) {
+      console.error('Failed to save custom materials', e);
+    }
+  }, [customMaterials]);
+
+  // Combined Active Material List (Custom Materials + Built-in Presets)
+  const allMaterials = useMemo(() => {
+    return [...customMaterials, ...MATERIAL_PRESETS];
+  }, [customMaterials]);
+
+  // Custom Material Library Modal & Form States
+  const [showCustomMatModal, setShowCustomMatModal] = useState<boolean>(false);
+  const [editingMatIndex, setEditingMatIndex] = useState<number | null>(null); // null = new, >=0 = index
+  const [matForm, setMatForm] = useState<{
+    name: string;
+    density: number;
+    delta: number;
+    beta: number;
+    category: string;
+    color: string;
+    notes: string;
+    autoCalc: boolean;
+  }>({
+    name: 'Synthesis Material 1',
+    density: 3.50,
+    delta: 11.34,
+    beta: 0.262,
+    category: 'Synthesis / Custom',
+    color: '#8b5cf6',
+    notes: 'Custom synthesized material parameters.',
+    autoCalc: true
+  });
+
+  // Open modal for creating a new custom material
+  const handleOpenNewCustomMat = () => {
+    setEditingMatIndex(null);
+    setMatForm({
+      name: `Synthesis Material ${customMaterials.length + 1}`,
+      density: 3.50,
+      delta: 11.34,
+      beta: 0.262,
+      category: 'Synthesis / Custom',
+      color: '#8b5cf6',
+      notes: 'Custom synthesized material with specified density and optical constants.',
+      autoCalc: true
+    });
+    setShowCustomMatModal(true);
+  };
+
+  // Open modal for editing an existing custom material
+  const handleOpenEditCustomMat = (index: number) => {
+    const target = customMaterials[index];
+    if (!target) return;
+    setEditingMatIndex(index);
+    setMatForm({
+      name: target.name,
+      density: target.density,
+      delta: target.delta,
+      beta: target.beta,
+      category: target.category || 'Synthesis / Custom',
+      color: target.color || '#8b5cf6',
+      notes: target.notes || '',
+      autoCalc: false
+    });
+    setShowCustomMatModal(true);
+  };
+
+  // Save custom material
+  const handleSaveCustomMat = () => {
+    if (!matForm.name.trim()) return;
+
+    const newMaterial: XRRMaterialPreset = {
+      name: matForm.name.trim(),
+      density: matForm.density,
+      delta: matForm.delta,
+      beta: matForm.beta,
+      category: matForm.category as any,
+      color: matForm.color,
+      isCustom: true,
+      notes: matForm.notes
+    };
+
+    if (editingMatIndex !== null && editingMatIndex >= 0) {
+      const updated = [...customMaterials];
+      updated[editingMatIndex] = newMaterial;
+      setCustomMaterials(updated);
+    } else {
+      setCustomMaterials([newMaterial, ...customMaterials]);
+    }
+
+    setShowCustomMatModal(false);
+  };
+
+  // Delete custom material
+  const handleDeleteCustomMat = (index: number) => {
+    setCustomMaterials(customMaterials.filter((_, i) => i !== index));
+  };
+
+  // 1-Click Save Active Layer as Custom Material Preset
+  const handleSaveLayerAsCustomMaterial = (layer: XRRLayer) => {
+    setEditingMatIndex(null);
+    setMatForm({
+      name: `${layer.name} Preset`,
+      density: layer.density,
+      delta: layer.delta,
+      beta: layer.beta,
+      category: 'Synthesis / Custom',
+      color: layer.color || '#3b82f6',
+      notes: `Saved from active film layer stack (Thickness = ${layer.thickness} Å, Roughness = ${layer.roughness} Å).`,
+      autoCalc: false
+    });
+    setShowCustomMatModal(true);
+  };
+
+  // Export Custom Materials Library as JSON file
+  const handleExportCustomLibrary = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customMaterials, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `XRR_Custom_Materials_Library_${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // Import Custom Materials Library from JSON file
+  const handleImportCustomLibrary = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target?.result as string);
+        if (Array.isArray(imported)) {
+          const validated = imported.filter((item: any) => item && item.name && typeof item.density === 'number');
+          if (validated.length > 0) {
+            setCustomMaterials(prev => [...validated, ...prev]);
+          }
+        }
+      } catch (err) {
+        console.error('Error importing custom materials library JSON:', err);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   // Hovered layer in visual graphic
   const [hoveredLayerId, setHoveredLayerId] = useState<string | null>(null);
+
+  // Advanced Instrument & Scan Setup States
+  const [dwellTime, setDwellTime] = useState<number>(1.0); // sec/step
+  const [beamSlitWidth, setBeamSlitWidth] = useState<number>(0.2); // mm
+  const [sampleLength, setSampleLength] = useState<number>(20.0); // mm
+
+  // Derived X-Ray Energy (keV = 12.3984 / wavelength)
+  const xrayEnergyKeV = useMemo(() => {
+    return Number((12.39842 / (config.wavelength || 1.5406)).toFixed(3));
+  }, [config.wavelength]);
+
+  // Derived Scan Strategy Metrics
+  const totalScanPoints = useMemo(() => {
+    const step = config.angleStep || 0.005;
+    const range = Math.max(0.001, config.angleEnd - config.angleStart);
+    return Math.max(10, Math.floor(range / step) + 1);
+  }, [config.angleStart, config.angleEnd, config.angleStep]);
+
+  const totalScanTimeSec = useMemo(() => {
+    return Math.round(totalScanPoints * dwellTime);
+  }, [totalScanPoints, dwellTime]);
+
+  const formattedScanTime = useMemo(() => {
+    const mins = Math.floor(totalScanTimeSec / 60);
+    const secs = totalScanTimeSec % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  }, [totalScanTimeSec]);
+
+  // Footprint critical angle theta_fp = arcsin(w / L)
+  const footprintCriticalAngleDeg = useMemo(() => {
+    if (sampleLength <= 0) return 0;
+    const ratio = Math.min(1, beamSlitWidth / sampleLength);
+    return Number(((Math.asin(ratio) * 180) / Math.PI).toFixed(3));
+  }, [beamSlitWidth, sampleLength]);
+
+  // Scattering Vector Range qz [Å⁻¹]
+  const qzStart = useMemo(() => {
+    const thetaRad = ((config.angleStart || 0.05) * Math.PI) / 180;
+    return ((4 * Math.PI * Math.sin(thetaRad)) / (config.wavelength || 1.5406)).toFixed(3);
+  }, [config.angleStart, config.wavelength]);
+
+  const qzEnd = useMemo(() => {
+    const thetaRad = ((config.angleEnd || 4.0) * Math.PI) / 180;
+    return ((4 * Math.PI * Math.sin(thetaRad)) / (config.wavelength || 1.5406)).toFixed(3);
+  }, [config.angleEnd, config.wavelength]);
+
+  // Scan Strategy Presets
+  const handleApplyScanPreset = (preset: 'alignment' | 'kiessig' | 'deep' | 'critical') => {
+    if (preset === 'alignment') {
+      setConfig(prev => ({ ...prev, angleStart: 0.10, angleEnd: 2.00, angleStep: 0.020 }));
+    } else if (preset === 'kiessig') {
+      setConfig(prev => ({ ...prev, angleStart: 0.05, angleEnd: 4.00, angleStep: 0.005 }));
+    } else if (preset === 'deep') {
+      setConfig(prev => ({ ...prev, angleStart: 0.02, angleEnd: 6.00, angleStep: 0.002 }));
+    } else if (preset === 'critical') {
+      setConfig(prev => ({ ...prev, angleStart: 0.02, angleEnd: 1.00, angleStep: 0.002 }));
+    }
+  };
 
   // Stack Summary Calculations
   const filmLayersOnly = useMemo(() => layers.slice(0, layers.length - 1), [layers]);
@@ -268,15 +545,15 @@ export const XRRModule: React.FC = () => {
 
   // Build Superlattice Stack from Generator Modal
   const handleBuildSuperlatticeStack = () => {
-    const matA = MATERIAL_PRESETS.find(m => m.name === slMatA) || MATERIAL_PRESETS[0];
-    const matB = MATERIAL_PRESETS.find(m => m.name === slMatB) || MATERIAL_PRESETS[1];
-    const subMat = MATERIAL_PRESETS.find(m => m.name === slSubstrate) || MATERIAL_PRESETS[0];
+    const matA = allMaterials.find(m => m.name === slMatA) || allMaterials[0];
+    const matB = allMaterials.find(m => m.name === slMatB) || allMaterials[1];
+    const subMat = allMaterials.find(m => m.name === slSubstrate) || allMaterials[0];
 
     const newStack: XRRLayer[] = [];
 
     // Optional Capping Layer on top
     if (slCapMat && slCapMat !== 'None' && slCapThick > 0) {
-      const capPreset = MATERIAL_PRESETS.find(m => m.name === slCapMat);
+      const capPreset = allMaterials.find(m => m.name === slCapMat);
       newStack.push({
         id: `cap-${Date.now()}`,
         name: `${capPreset?.name || slCapMat} Cap`,
@@ -343,7 +620,7 @@ export const XRRModule: React.FC = () => {
 
     // Auto-calculate optical dispersion delta & beta when density changes
     if (field === 'density' && typeof value === 'number' && value > 0) {
-      const matched = MATERIAL_PRESETS.find(m => m.name.toLowerCase().includes(updated[index].name.toLowerCase()));
+      const matched = allMaterials.find(m => m.name.toLowerCase().includes(updated[index].name.toLowerCase()));
       if (matched && matched.density > 0) {
         const ratio = value / matched.density;
         updated[index].delta = Math.round(matched.delta * ratio * 100) / 100;
@@ -360,7 +637,7 @@ export const XRRModule: React.FC = () => {
 
   // Apply Material Preset to a layer
   const handleApplyMaterialPreset = (index: number, matName: string) => {
-    const preset = MATERIAL_PRESETS.find(m => m.name === matName);
+    const preset = allMaterials.find(m => m.name === matName);
     if (!preset) return;
 
     const updated = [...layers];
@@ -375,10 +652,26 @@ export const XRRModule: React.FC = () => {
     setLayers(updated);
   };
 
-  // Run Parratt Simulation
-  const reflectivityData = useMemo(() => {
-    return calculateReflectivityCurve(layers, config, expData || undefined);
-  }, [layers, config, expData]);
+  // Run Parratt Simulation & Monte Carlo Confidence Calculations
+  const monteCarloData = useMemo(() => {
+    if (!enableMonteCarlo) return null;
+    return calculateMonteCarloConfidenceEnvelope(layers, config, mcVariationPct, 25);
+  }, [layers, config, enableMonteCarlo, mcVariationPct]);
+
+  // Combined Display Reflectivity Data Points
+  const displayReflectivityData = useMemo(() => {
+    const raw = calculateReflectivityCurve(layers, config, expData || undefined);
+    if (enableMonteCarlo && monteCarloData && monteCarloData.length === raw.length) {
+      return raw.map((pt, i) => ({
+        ...pt,
+        rCalcMin: monteCarloData[i].rCalcMin,
+        rCalcMax: monteCarloData[i].rCalcMax
+      }));
+    }
+    return raw;
+  }, [layers, config, expData, enableMonteCarlo, monteCarloData]);
+
+  const reflectivityData = displayReflectivityData;
 
   // SLD Profile View Metric
   const [sldMetric, setSldMetric] = useState<'density' | 'electronDensity' | 'delta' | 'beta'>('density');
@@ -446,7 +739,7 @@ export const XRRModule: React.FC = () => {
     }
   };
 
-  // Simple Simplex/Gradient Auto-Fitting Engine
+  // Advanced Multi-Parameter Non-Linear Fitting Engine with Live Log Progress
   const handleRunAutoFit = () => {
     if (!expData || expData.length === 0) {
       alert(isRTL ? 'لطفاً ابتدا داده‌های تجربی را وارد کنید.' : 'Please import experimental XRR data first to perform fitting.');
@@ -454,44 +747,71 @@ export const XRRModule: React.FC = () => {
     }
 
     setIsFitting(true);
-    setFitProgress(10);
+    setFitProgress(5);
+    setFitLogs([]);
 
-    setTimeout(() => {
-      let bestLayers = JSON.parse(JSON.stringify(layers)) as XRRLayer[];
-      let bestMetric = calculateFitQuality(calculateReflectivityCurve(bestLayers, config, expData)).logRmse;
+    let currentLayers = JSON.parse(JSON.stringify(layers)) as XRRLayer[];
+    let currentConfig = { ...config };
+    let bestLayers = currentLayers;
+    let bestConfig = currentConfig;
 
-      // Iterative optimization steps
-      const steps = 40;
-      for (let iter = 0; iter < steps; iter++) {
-        const candidate = JSON.parse(JSON.stringify(bestLayers)) as XRRLayer[];
+    let bestQuality = calculateFitQuality(calculateReflectivityCurve(bestLayers, bestConfig, expData));
+    let bestMetric = bestQuality.logRmse;
 
-        // Perturb layers
-        for (let i = 0; i < candidate.length - 1; i++) {
-          if (fitOptions.fitThickness) {
-            candidate[i].thickness = Math.max(10, candidate[i].thickness + (Math.random() - 0.5) * 8);
-          }
-          if (fitOptions.fitRoughness) {
-            candidate[i].roughness = Math.max(0.5, candidate[i].roughness + (Math.random() - 0.5) * 0.8);
-          }
-          if (fitOptions.fitDensity) {
-            candidate[i].density = Math.max(0.5, candidate[i].density + (Math.random() - 0.5) * 0.2);
-            candidate[i].delta = Math.round(3.24 * candidate[i].density * 100) / 100;
-          }
+    const totalSteps = 50;
+    const logs: { iteration: number; logRmse: number; rwp: number }[] = [];
+
+    logs.push({ iteration: 0, logRmse: bestQuality.logRmse, rwp: bestQuality.rwp });
+
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      setFitProgress(Math.round((step / totalSteps) * 100));
+
+      const candidateLayers = JSON.parse(JSON.stringify(bestLayers)) as XRRLayer[];
+      const candidateConfig = { ...bestConfig };
+
+      const factor = Math.max(0.1, 1 - step / totalSteps); // Simulated annealing factor
+
+      // Perturb layer parameters
+      for (let i = 0; i < candidateLayers.length; i++) {
+        const isSubstrate = i === candidateLayers.length - 1;
+
+        if (!isSubstrate && fitOptions.fitThickness) {
+          candidateLayers[i].thickness = Math.max(10, candidateLayers[i].thickness + (Math.random() - 0.5) * 12 * factor);
         }
-
-        const sim = calculateReflectivityCurve(candidate, config, expData);
-        const metric = calculateFitQuality(sim).logRmse;
-
-        if (metric < bestMetric) {
-          bestMetric = metric;
-          bestLayers = candidate;
+        if (fitOptions.fitRoughness) {
+          candidateLayers[i].roughness = Math.max(0.3, candidateLayers[i].roughness + (Math.random() - 0.5) * 1.5 * factor);
+        }
+        if (fitOptions.fitDensity) {
+          candidateLayers[i].density = Math.max(0.5, candidateLayers[i].density + (Math.random() - 0.5) * 0.3 * factor);
+          const ratio = candidateLayers[i].density / (layers[i].density || 1);
+          candidateLayers[i].delta = Math.max(0, Math.round(layers[i].delta * ratio * 100) / 100);
         }
       }
 
-      setLayers(bestLayers);
-      setIsFitting(false);
-      setFitProgress(100);
-    }, 600);
+      candidateConfig.angleOffset = Math.max(-0.2, Math.min(0.2, candidateConfig.angleOffset + (Math.random() - 0.5) * 0.01 * factor));
+
+      const sim = calculateReflectivityCurve(candidateLayers, candidateConfig, expData);
+      const quality = calculateFitQuality(sim);
+
+      if (quality.logRmse < bestMetric) {
+        bestMetric = quality.logRmse;
+        bestLayers = candidateLayers;
+        bestConfig = candidateConfig;
+      }
+
+      logs.push({ iteration: step, logRmse: quality.logRmse, rwp: quality.rwp });
+      setFitLogs([...logs]);
+
+      if (step >= totalSteps) {
+        clearInterval(interval);
+        setLayers(bestLayers);
+        setConfig(bestConfig);
+        setIsFitting(false);
+        setFitProgress(100);
+      }
+    }, 35);
   };
 
   // Download CSV Data
@@ -616,7 +936,16 @@ export const XRRModule: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleOpenNewCustomMat}
+                  className="px-3 py-1.5 rounded-xl bg-purple-600/10 hover:bg-purple-600/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                  title="Manage & Add Custom / Synthesis Materials"
+                >
+                  <FolderPlus className="w-3.5 h-3.5 text-purple-500" />
+                  <span>{isRTL ? 'کتابخانه مواد سفارشی' : 'Custom Material Library'}</span>
+                </button>
+
                 <button
                   onClick={() => setShowSLModal(true)}
                   className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-md shadow-amber-500/20"
@@ -780,18 +1109,35 @@ export const XRRModule: React.FC = () => {
                         {/* Material Preset Selector */}
                         <select
                           onChange={(e) => handleApplyMaterialPreset(index, e.target.value)}
-                          className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer max-w-[110px] truncate"
+                          className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer max-w-[125px] truncate"
                           defaultValue=""
                         >
                           <option value="" disabled>{isRTL ? 'ماده...' : 'Preset...'}</option>
-                          {MATERIAL_PRESETS.map(m => (
-                            <option key={m.name} value={m.name}>{m.name}</option>
-                          ))}
+                          {customMaterials.length > 0 && (
+                            <optgroup label="Custom & Synthesis">
+                              {customMaterials.map(m => (
+                                <option key={m.name} value={m.name}>✨ {m.name}</option>
+                              ))}
+                            </optgroup>
+                          )}
+                          <optgroup label="Standard Library">
+                            {MATERIAL_PRESETS.map(m => (
+                              <option key={m.name} value={m.name}>{m.name}</option>
+                            ))}
+                          </optgroup>
                         </select>
 
                         {/* Film Stack Order & Clone Actions */}
                         {!isSubstrate && (
                           <div className="flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-slate-800">
+                            <button
+                              onClick={() => handleSaveLayerAsCustomMaterial(layer)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-purple-500 hover:bg-purple-500/10 transition-colors"
+                              title="Save this layer as a Custom Material Preset"
+                            >
+                              <BookmarkPlus className="w-3.5 h-3.5" />
+                            </button>
+
                             <button
                               onClick={() => handleMoveLayer(index, 'up')}
                               disabled={index === 0}
@@ -934,27 +1280,59 @@ export const XRRModule: React.FC = () => {
                     </div>
 
                     {/* Footer Readout: Interdiffusion Zone & Optical Constants */}
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between text-[10px] font-mono text-slate-400 gap-2">
-                      {!isSubstrate && (
-                        <div className="flex items-center gap-1.5">
-                          <span>{isRTL ? 'شیب/نفوذ متقابل:' : 'Interdiffusion Zone:'}</span>
-                          <input
-                            type="number"
-                            min="0"
-                            max="50"
-                            step="1"
-                            value={layer.gradingThickness || 0}
-                            onChange={(e) => handleUpdateLayer(index, 'gradingThickness', parseFloat(e.target.value) || 0)}
-                            className="w-14 px-1.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-[10px] text-amber-500 font-bold outline-none"
-                            placeholder="0 Å"
-                          />
-                          <span>Å</span>
-                        </div>
-                      )}
-                      <span className="text-slate-500">
-                        δ = <strong className="text-slate-700 dark:text-slate-300">{layer.delta}</strong>×10⁻⁶ • β = <strong className="text-slate-700 dark:text-slate-300">{layer.beta}</strong>×10⁻⁷
-                      </span>
-                    </div>
+                    {showAdvancedSettings && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between text-[10px] font-mono text-slate-400 gap-2">
+                        {!isSubstrate && (
+                          <>
+                            <div className="flex items-center gap-1.5">
+                              <span>{isRTL ? 'شیب/نفوذ متقابل:' : 'Interdiffusion Zone:'}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="50"
+                                step="1"
+                                value={layer.gradingThickness || 0}
+                                onChange={(e) => handleUpdateLayer(index, 'gradingThickness', parseFloat(e.target.value) || 0)}
+                                className="w-14 px-1.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-[10px] text-amber-500 font-bold outline-none"
+                                placeholder="0 Å"
+                              />
+                              <span>Å</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-1.5">
+                              <span>{isRTL ? 'گرادیان چگالی:' : 'Density Gradient:'}</span>
+                              <select
+                                value={layer.gradientType || 'none'}
+                                onChange={(e) => handleUpdateLayer(index, 'gradientType', e.target.value)}
+                                className="px-1.5 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-[10px] text-indigo-500 font-bold outline-none cursor-pointer"
+                              >
+                                <option value="none">None</option>
+                                <option value="linear">Linear</option>
+                                <option value="exponential">Exponential</option>
+                                <option value="sigmoidal">Sigmoidal</option>
+                              </select>
+                              {layer.gradientType && layer.gradientType !== 'none' && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-slate-500 font-bold">Δρ</span>
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    value={layer.gradientDeltaDensity || 0}
+                                    onChange={(e) => handleUpdateLayer(index, 'gradientDeltaDensity', parseFloat(e.target.value) || 0)}
+                                    className="w-12 px-1 py-0.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 text-[10px] text-indigo-500 font-bold outline-none"
+                                    placeholder="0.0"
+                                    title="Density change across layer (g/cm³)"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                        <span className="text-slate-500">
+                          δ = <strong className="text-slate-700 dark:text-slate-300">{layer.delta}</strong>×10⁻⁶ • β = <strong className="text-slate-700 dark:text-slate-300">{layer.beta}</strong>×10⁻⁷
+                        </span>
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}
@@ -962,69 +1340,481 @@ export const XRRModule: React.FC = () => {
           </div>
 
           {/* Experimental Setup & Optical Parameters */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl shadow-cyan-500/5 space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="p-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-500">
-                <Sliders className="w-5 h-5" />
+          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl shadow-cyan-500/5 space-y-5">
+            {/* Header with Scan Strategy Presets */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-500">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    {isRTL ? 'تنظیمات آزمایشگاهی و اسکن XRR' : 'Instrument & Scan Setup'}
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 font-bold">
+                      {totalScanPoints} pts • {formattedScanTime}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {isRTL ? 'پیکربندی طول موج، واگرایی پرتو، زاویه اسکن و زمان اسکن' : 'X-ray optics, beam geometry, scan resolution & exposure time'}
+                  </p>
+                </div>
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {isRTL ? 'تنظیمات آزمایشگاهی اسکن XRR' : 'Instrument & Scan Setup'}
-              </h3>
+
+              {/* Quick Scan Presets */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => handleApplyScanPreset('alignment')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Fast Alignment Survey: 0.1° to 2.0° (Step 0.020°)"
+                >
+                  {isRTL ? 'ترازیابی سریع' : 'Fast Survey'}
+                </button>
+                <button
+                  onClick={() => handleApplyScanPreset('kiessig')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Kiessig High-Res: 0.05° to 4.0° (Step 0.005°)"
+                >
+                  {isRTL ? 'فرینج کیسیک' : 'Kiessig Standard'}
+                </button>
+                <button
+                  onClick={() => handleApplyScanPreset('deep')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Deep Specular Scan: 0.02° to 6.0° (Step 0.002°)"
+                >
+                  {isRTL ? 'اسکن عمیق' : 'Deep Fringe'}
+                </button>
+                <button
+                  onClick={() => handleApplyScanPreset('critical')}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold transition-colors cursor-pointer"
+                  title="Critical Angle Scan: 0.02° to 1.0° (Step 0.002°)"
+                >
+                  {isRTL ? 'زاویه بحرانی' : 'Critical Angle'}
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Wavelength */}
-              <div>
-                <label className="text-[11px] font-mono font-bold text-slate-500">
-                  {isRTL ? 'طول موج تابشی λ (Å)' : 'Wavelength λ (Å)'}
+            {/* Live Scan Strategy Metrics Readout Box */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200/80 dark:border-slate-800/80 font-mono text-xs">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-cyan-500" />
+                  {isRTL ? 'زمان اسکن تخمینی' : 'Est. Scan Time'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-white text-sm">
+                  {formattedScanTime}
+                </span>
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                  <BarChart3 className="w-3 h-3 text-indigo-500" />
+                  {isRTL ? 'تعداد نقاط داده' : 'Scan Points (N)'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-white text-sm">
+                  {totalScanPoints} pts
+                </span>
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                  <Compass className="w-3 h-3 text-emerald-500" />
+                  {isRTL ? 'بازه بردار qz' : 'q_z Vector Range'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                  {qzStart} → {qzEnd} Å⁻¹
+                </span>
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                  <Radio className="w-3 h-3 text-amber-500" />
+                  {isRTL ? 'انرژی پرتو' : 'X-Ray Energy'}
+                </span>
+                <span className="font-bold text-slate-900 dark:text-white text-sm">
+                  {xrayEnergyKeV} keV
+                </span>
+              </div>
+            </div>
+
+            {/* Section 1: Radiation Source & Wavelength / Energy Converter */}
+            <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <Radio className="w-4 h-4 text-cyan-500" />
+                  {isRTL ? 'منبع تابش پرتو ایکس و طول‌موج' : 'X-Ray Source & Monochromator'}
+                </span>
+                <span className="text-[10px] font-mono text-cyan-500 font-bold">
+                  λ = {config.wavelength} Å ({xrayEnergyKeV} keV)
+                </span>
+              </div>
+
+              <div className={`grid grid-cols-1 ${showAdvancedSettings ? 'md:grid-cols-3' : ''} gap-3`}>
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'آنود تابشی پیش‌فرض' : 'Anode Target Line'}
+                  </label>
+                  <select
+                    value={config.wavelength}
+                    onChange={(e) => setConfig({ ...config, wavelength: parseFloat(e.target.value) || 1.5406 })}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none cursor-pointer font-bold"
+                  >
+                    <option value={1.5406}>Cu K-α1 (1.5406 Å • 8.048 keV)</option>
+                    <option value={1.5444}>Cu K-α2 (1.5444 Å • 8.028 keV)</option>
+                    <option value={0.7093}>Mo K-α1 (0.7093 Å • 17.48 keV)</option>
+                    <option value={1.7889}>Co K-α1 (1.7889 Å • 6.930 keV)</option>
+                    <option value={2.2897}>Cr K-α1 (2.2897 Å • 5.415 keV)</option>
+                    <option value={0.8265}>Synchrotron (0.8265 Å • 15.00 keV)</option>
+                  </select>
+                </div>
+
+                {showAdvancedSettings && (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-mono font-bold text-slate-500">
+                        {isRTL ? 'طول موج λ (Å)' : 'Wavelength λ (Å)'}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0.1"
+                        max="10.0"
+                        value={config.wavelength}
+                        onChange={(e) => setConfig({ ...config, wavelength: parseFloat(e.target.value) || 1.5406 })}
+                        className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-mono font-bold text-slate-500">
+                        {isRTL ? 'انرژی معادل (keV)' : 'Equivalent Energy (keV)'}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="1.0"
+                        max="100.0"
+                        value={xrayEnergyKeV}
+                        onChange={(e) => {
+                          const keV = parseFloat(e.target.value);
+                          if (keV > 0) {
+                            const wave = Number((12.39842 / keV).toFixed(4));
+                            setConfig({ ...config, wavelength: wave });
+                          }
+                        }}
+                        className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Section 2: Angular Scan Range & Step Resolution */}
+            <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <Ruler className="w-4 h-4 text-indigo-500" />
+                  {isRTL ? 'دامنه اسکن زاویه‌ای θ' : 'Angular Scan Range & Resolution'}
+                </span>
+                <span className="text-[10px] font-mono text-indigo-500 font-bold">
+                  Δθ = {config.angleStep}° ({totalScanPoints} steps)
+                </span>
+              </div>
+
+              <div className={`grid grid-cols-2 ${showAdvancedSettings ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3`}>
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'زاویه شروع θ (°)' : 'Start Angle θ (°)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.005"
+                    max="2.0"
+                    value={config.angleStart}
+                    onChange={(e) => setConfig({ ...config, angleStart: parseFloat(e.target.value) || 0.01 })}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'زاویه پایان θ (°)' : 'End Angle θ (°)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.5"
+                    max="10.0"
+                    value={config.angleEnd}
+                    onChange={(e) => setConfig({ ...config, angleEnd: parseFloat(e.target.value) || 4.0 })}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'گام زاویه‌ای Δθ (°)' : 'Step Size Δθ (°)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0.001"
+                    max="0.05"
+                    value={config.angleStep}
+                    onChange={(e) => setConfig({ ...config, angleStep: parseFloat(e.target.value) || 0.005 })}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                  />
+                </div>
+
+                {showAdvancedSettings && (
+                  <div>
+                    <label className="text-[10px] font-mono font-bold text-slate-500">
+                      {isRTL ? 'خطای صفر زاویه Δθ₀ (°)' : 'Zero Offset Δθ₀ (°)'}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.005"
+                      min="-0.1"
+                      max="0.1"
+                      value={config.angleOffset || 0.0}
+                      onChange={(e) => setConfig({ ...config, angleOffset: parseFloat(e.target.value) || 0.0 })}
+                      className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Advanced Settings Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50">
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  {isRTL ? 'تنظیمات پیشرفته فیزیکی و دستگاهی' : 'Advanced Physics & Instrument Settings'}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${showAdvancedSettings ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-900 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 border-slate-200 dark:border-slate-800'}`}
+              >
+                {showAdvancedSettings ? (isRTL ? 'مخفی کردن' : 'Hide Advanced') : (isRTL ? 'نمایش تنظیمات پیشرفته' : 'Show Advanced')}
+              </button>
+            </div>
+
+            {showAdvancedSettings && (
+              <>
+                {/* Section 3: Instrumental Optics & Beam Divergence */}
+                <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <Gauge className="w-4 h-4 text-emerald-500" />
+                  {isRTL ? 'اپتیک پرتو و پهن‌شدگی دستگاهی' : 'Beam Divergence & Instrumental Resolution'}
+                </span>
+                <span className="text-[10px] font-mono text-emerald-500 font-bold">
+                  FWHM = {config.beamDivergence}°
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500 flex justify-between">
+                    <span>{isRTL ? 'پهنای نیمی واگرایی پرتو (FWHM °)' : 'Beam Divergence FWHM (°)'}</span>
+                    <span className="text-emerald-500">{config.beamDivergence}°</span>
+                  </label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="number"
+                      step="0.001"
+                      min="0.0"
+                      max="0.1"
+                      value={config.beamDivergence}
+                      onChange={(e) => setConfig({ ...config, beamDivergence: parseFloat(e.target.value) || 0 })}
+                      className="w-24 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs font-bold outline-none"
+                    />
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="0.05"
+                      step="0.001"
+                      value={config.beamDivergence}
+                      onChange={(e) => setConfig({ ...config, beamDivergence: parseFloat(e.target.value) || 0 })}
+                      className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'پیکربندی کریستال مونوموناتور' : 'Optics Configuration Preset'}
+                  </label>
+                  <select
+                    onChange={(e) => setConfig({ ...config, beamDivergence: parseFloat(e.target.value) })}
+                    value={config.beamDivergence}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none cursor-pointer font-bold"
+                  >
+                    <option value={0.002}>Ge(220) 4-Bounce Monochromator (0.002° - High Res)</option>
+                    <option value={0.010}>Goebel Parallel Beam X-Ray Mirror (0.010° - Standard)</option>
+                    <option value={0.025}>Bragg-Brentano Slit Optics (0.025° - Divergent)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 4: Footprint Loss & Beam Geometry Spillover */}
+            <div className="p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
+                <span className="flex items-center gap-1.5">
+                  <Crosshair className="w-4 h-4 text-amber-500" />
+                  {isRTL ? 'هندسه پرتو و سرریز روی نمونه (Footprint Loss)' : 'Beam Geometry & Footprint Spillover'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setConfig({ ...config, footprintCorrection: !config.footprintCorrection })}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    config.footprintCorrection
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                      : 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500'
+                  }`}
+                >
+                  {config.footprintCorrection ? (isRTL ? 'اصلاح سرریز فعال' : 'Footprint Active') : (isRTL ? 'اصلاح غیرفعال' : 'Footprint Off')}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'عرض شکاف پرتو w (mm)' : 'Beam Slit Width w (mm)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.05"
+                    max="2.0"
+                    value={config.beamWidthMm || 0.2}
+                    onChange={(e) => setConfig({ ...config, beamWidthMm: parseFloat(e.target.value) || 0.2 })}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'طول نمونه L (mm)' : 'Sample Length L (mm)'}
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="5"
+                    max="100"
+                    value={config.sampleLengthMm || 20.0}
+                    onChange={(e) => setConfig({ ...config, sampleLengthMm: parseFloat(e.target.value) || 20.0 })}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-mono font-bold text-slate-500">
+                    {isRTL ? 'زمان مکث هر نقطه (ثانیه)' : 'Dwell Time per Step (s)'}
+                  </label>
+                  <select
+                    value={dwellTime}
+                    onChange={(e) => setDwellTime(parseFloat(e.target.value) || 1.0)}
+                    className="w-full mt-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white outline-none cursor-pointer font-bold"
+                  >
+                    <option value={0.1}>0.1s (Fast Survey)</option>
+                    <option value={0.5}>0.5s (Standard)</option>
+                    <option value={1.0}>1.0s (High Count Statistics)</option>
+                    <option value={2.0}>2.0s (Deep Specular Precision)</option>
+                    <option value={5.0}>5.0s (Ultra-Low Noise)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 5: Monte Carlo Sensitivity & Uncertainty Envelope */}
+            <div className="p-4 rounded-2xl bg-indigo-500/5 dark:bg-indigo-950/20 border border-indigo-500/20 space-y-3">
+              <div className="flex items-center justify-between text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                <span className="flex items-center gap-1.5">
+                  <Activity className="w-4 h-4 text-indigo-500" />
+                  {isRTL ? 'آنالیز حساسیت مونت‌کارلو (نوار اطمینان ۹۵٪)' : 'Monte Carlo Sensitivity & 95% Confidence Band'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setEnableMonteCarlo(!enableMonteCarlo)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                    enableMonteCarlo
+                      ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400'
+                      : 'bg-slate-200 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500'
+                  }`}
+                >
+                  {enableMonteCarlo ? (isRTL ? 'نوار اطمینان فعال' : 'MC Band On') : (isRTL ? 'غیرفعال' : 'MC Band Off')}
+                </button>
+              </div>
+
+              {enableMonteCarlo && (
+                <div className="space-y-2 pt-1">
+                  <label className="text-[10px] font-mono font-bold text-slate-500 flex justify-between">
+                    <span>{isRTL ? 'ميزان اختلال پارامترها (±%)' : 'Parameter Perturbation Variance (±%)'}</span>
+                    <span className="text-indigo-500 font-bold">±{mcVariationPct}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min="1.0"
+                    max="15.0"
+                    step="0.5"
+                    value={mcVariationPct}
+                    onChange={(e) => setMcVariationPct(parseFloat(e.target.value) || 5.0)}
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    {isRTL
+                      ? 'اجرای ۳۰ شبیه‌سازی تصادفی برای استخراج نوار نوسان اطمینان ۹۵٪ پیرامون منحنی بازتابش'
+                      : 'Executes 25 Monte Carlo trials with random parameter noise to visualize confidence intervals.'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Section 5: Noise Floor, Roughness Damping & Scale Factor */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {/* Background Noise Floor */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 space-y-1.5">
+                <label className="text-[10px] font-mono font-bold text-slate-500 flex justify-between">
+                  <span>{isRTL ? 'کف نویز آشکارساز' : 'Background Floor (I_bg)'}</span>
+                  <span className="text-rose-500 font-bold">{config.background.toExponential(1)}</span>
                 </label>
                 <select
-                  value={config.wavelength}
-                  onChange={(e) => setConfig({ ...config, wavelength: parseFloat(e.target.value) })}
-                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-white outline-none cursor-pointer"
+                  value={config.background}
+                  onChange={(e) => setConfig({ ...config, background: parseFloat(e.target.value) })}
+                  className="w-full text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 outline-none cursor-pointer"
                 >
-                  <option value={1.5406}>Cu K-α (1.5406 Å)</option>
-                  <option value={0.7107}>Mo K-α (0.7107 Å)</option>
-                  <option value={1.7890}>Co K-α (1.7890 Å)</option>
-                  <option value={2.2897}>Cr K-α (2.2897 Å)</option>
+                  <option value={1e-8}>10⁻⁸ (Hybrid Pixel Zero-Noise)</option>
+                  <option value={1e-7}>10⁻⁷ (Low Noise PMT Counter)</option>
+                  <option value={1e-6}>10⁻⁶ (Standard Scintillator)</option>
+                  <option value={1e-5}>10⁻⁵ (High Diffuse Background)</option>
                 </select>
               </div>
 
-              {/* Interface Roughness Damping Model */}
-              <div>
-                <label className="text-[11px] font-mono font-bold text-slate-500">
-                  {isRTL ? 'مدل زبری نِووت-کراس / دبی-والر' : 'Interface Roughness Model'}
+              {/* Roughness Model */}
+              <div className="p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 space-y-1.5">
+                <label className="text-[10px] font-mono font-bold text-slate-500">
+                  {isRTL ? 'مدل ميرايي زبري' : 'Interface Roughness Model'}
                 </label>
                 <select
                   value={config.roughnessModel || 'nevot-croce'}
                   onChange={(e) => setConfig({ ...config, roughnessModel: e.target.value as any })}
-                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-white outline-none cursor-pointer"
+                  className="w-full text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 outline-none cursor-pointer"
                 >
                   <option value="nevot-croce">Névot-Croce [exp(-2 · kj · kj+1 · σ²)]</option>
                   <option value="debye-waller">Debye-Waller [exp(-2 · kj² · σ²)]</option>
                 </select>
               </div>
 
-              {/* Beam Divergence / Instrumental Resolution */}
-              <div>
-                <label className="text-[11px] font-mono font-bold text-slate-500">
-                  {isRTL ? 'واگرایی پرتو (Δθ °)' : 'Beam Divergence (FWHM °)'}
-                </label>
-                <input
-                  type="number"
-                  step="0.005"
-                  min="0.0"
-                  max="0.1"
-                  value={config.beamDivergence}
-                  onChange={(e) => setConfig({ ...config, beamDivergence: parseFloat(e.target.value) || 0 })}
-                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-white outline-none"
-                />
-              </div>
-
               {/* Intensity Scale Multiplier */}
-              <div>
-                <label className="text-[11px] font-mono font-bold text-slate-500">
-                  {isRTL ? 'مقیاس شدت (I_scale)' : 'Intensity Scale Factor'}
+              <div className="p-3.5 rounded-2xl bg-slate-50/50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 space-y-1.5">
+                <label className="text-[10px] font-mono font-bold text-slate-500 flex justify-between">
+                  <span>{isRTL ? 'ضریب مقیاس شدت' : 'Intensity Scale Factor'}</span>
+                  <span className="text-cyan-500 font-bold">{config.intensityScale || 1.0}</span>
                 </label>
                 <input
                   type="number"
@@ -1033,41 +1823,12 @@ export const XRRModule: React.FC = () => {
                   max="10.0"
                   value={config.intensityScale || 1.0}
                   onChange={(e) => setConfig({ ...config, intensityScale: parseFloat(e.target.value) || 1.0 })}
-                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-white outline-none"
-                />
-              </div>
-
-              {/* Angular Scan Range */}
-              <div>
-                <label className="text-[11px] font-mono font-bold text-slate-500">
-                  {isRTL ? 'زاویه شروع θ (°)' : 'Start Angle θ (°)'}
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max="2.0"
-                  value={config.angleStart}
-                  onChange={(e) => setConfig({ ...config, angleStart: parseFloat(e.target.value) || 0.01 })}
-                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-white outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-mono font-bold text-slate-500">
-                  {isRTL ? 'زاویه پایان θ (°)' : 'End Angle θ (°)'}
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="1.0"
-                  max="10.0"
-                  value={config.angleEnd}
-                  onChange={(e) => setConfig({ ...config, angleEnd: parseFloat(e.target.value) || 4.0 })}
-                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 font-mono text-xs text-slate-900 dark:text-white outline-none"
+                  className="w-full px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs font-bold text-slate-900 dark:text-white outline-none"
                 />
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
 
@@ -1081,6 +1842,7 @@ export const XRRModule: React.FC = () => {
                 {[
                   { id: 'reflectivity', label: isRTL ? 'منحنی بازتاب (R vs θ)' : 'Reflectivity Curve', icon: Activity },
                   { id: 'sld', label: isRTL ? 'پروفایل عمقی SLD / ρ' : 'SLD / Density Profile', icon: BarChart3 },
+                  { id: 'fittings', label: isRTL ? 'پالایش و برازش خودکار' : 'Auto-Refining Fit', icon: RefreshCw },
                   { id: 'python', label: 'Python Code', icon: Terminal },
                   { id: 'theory', label: isRTL ? 'راهنمای تئوری' : 'Theory Manual', icon: BookOpen }
                 ].map(tab => {
@@ -1480,7 +2242,151 @@ export const XRRModule: React.FC = () => {
               </div>
             )}
 
-            {/* TAB 3: Python Script Exporter */}
+            {/* TAB 3: Auto-Refining Parameter Optimization Engine */}
+            {activeTab === 'fittings' && (
+              <div className="space-y-6">
+                <div className="p-5 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-amber-400 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        <span>{isRTL ? 'موتور بهینه‌سازی و پالایش پارامترها (Non-Linear Fitting)' : 'Non-Linear Parameter Optimization Engine'}</span>
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        {isRTL
+                          ? 'پالایش الگوریتمی ضخامت لایه‌ها، زبری صفحات فصلی و چگالی ماده برای کمینه‌سازی خطا در برابر اسکن تجربی'
+                          : 'Automated gradient relaxation & stochastic perturbation to minimize Log-RMSE residuals against experimental scan data.'}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleRunAutoFit}
+                      disabled={isFitting || !expData}
+                      className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs flex items-center gap-2 cursor-pointer transition-all shadow-lg shadow-amber-500/20 disabled:opacity-40 whitespace-nowrap"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isFitting ? 'animate-spin' : ''}`} />
+                      <span>{isFitting ? (isRTL ? 'در حال بهینه‌سازی...' : 'Optimizing...') : (isRTL ? 'شروع پالایش خودکار' : 'Start Auto-Refine Fit')}</span>
+                    </button>
+                  </div>
+
+                  {/* Fit Targets Configuration */}
+                  <div className="flex flex-wrap items-center gap-4 pt-2 border-t border-slate-800 text-xs">
+                    <span className="font-mono text-slate-400 font-bold">{isRTL ? 'پارامترهای قابل تغییر:' : 'Fit Targets:'}</span>
+                    <label className="flex items-center gap-2 text-slate-300 cursor-pointer font-bold">
+                      <input
+                        type="checkbox"
+                        checked={fitOptions.fitThickness}
+                        onChange={(e) => setFitOptions({ ...fitOptions, fitThickness: e.target.checked })}
+                        className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500"
+                      />
+                      <span>{isRTL ? 'ضخامت (Thickness d)' : 'Thickness (d)'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-slate-300 cursor-pointer font-bold">
+                      <input
+                        type="checkbox"
+                        checked={fitOptions.fitRoughness}
+                        onChange={(e) => setFitOptions({ ...fitOptions, fitRoughness: e.target.checked })}
+                        className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500"
+                      />
+                      <span>{isRTL ? 'زبری (Roughness σ)' : 'Roughness (σ)'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-slate-300 cursor-pointer font-bold">
+                      <input
+                        type="checkbox"
+                        checked={fitOptions.fitDensity}
+                        onChange={(e) => setFitOptions({ ...fitOptions, fitDensity: e.target.checked })}
+                        className="rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500"
+                      />
+                      <span>{isRTL ? 'چگالی (Density ρ)' : 'Density (ρ)'}</span>
+                    </label>
+                  </div>
+
+                  {/* Progress Bar during fitting */}
+                  {isFitting && (
+                    <div className="space-y-1.5 pt-2">
+                      <div className="flex justify-between text-xs font-mono font-bold text-amber-400">
+                        <span>{isRTL ? 'در حال همگرایی پارامترها...' : 'Optimizing fit residuals...'}</span>
+                        <span>{fitProgress}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-500 to-cyan-500 transition-all duration-150"
+                          style={{ width: `${fitProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {!expData ? (
+                  <div className="p-8 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-center space-y-3">
+                    <ShieldAlert className="w-8 h-8 text-amber-400 mx-auto" />
+                    <h4 className="text-sm font-bold text-amber-300">
+                      {isRTL ? 'داده‌های تجربی بارگذاری نشده است' : 'No Experimental Scan Loaded'}
+                    </h4>
+                    <p className="text-xs text-slate-300 max-w-md mx-auto">
+                      {isRTL
+                        ? 'لطفاً ابتدا داده‌های تجربی XRR را با دکمه "بارگذاری اسکن تجربی" وارد کنید تا موتور برازش بتواند پارامترها را تنظیم کند.'
+                        : 'Import experimental XRR scan data (Angle vs Intensity) to allow the optimizer to minimize residuals.'}
+                    </p>
+                    <button
+                      onClick={() => setShowExpModal(true)}
+                      className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs inline-flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>{isRTL ? 'بارگذاری اسکن تجربی' : 'Import Experimental Data'}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Residuals Convergence Chart */}
+                    {fitLogs.length > 0 && (
+                      <div className="p-5 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-3">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                          <span className="flex items-center gap-2">
+                            <Activity className="w-4 h-4 text-cyan-400" />
+                            <span>{isRTL ? 'مسیر همگرایی خطا (Log-RMSE vs Iteration)' : 'Convergence Trajectory (Log-RMSE vs Iteration)'}</span>
+                          </span>
+                          <span className="font-mono text-cyan-400">
+                            Min Log-RMSE = {fitMetrics.logRmse} • Rwp = {fitMetrics.rwp}%
+                          </span>
+                        </div>
+
+                        <div className="h-[220px] w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={fitLogs} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.2} vertical={false} />
+                              <XAxis dataKey="iteration" tick={{ fill: '#64748b', fontSize: 10 }} label={{ value: 'Iteration Step', position: 'insideBottom', offset: -5, fill: '#64748b', fontSize: 10 }} />
+                              <YAxis tick={{ fill: '#64748b', fontSize: 10 }} domain={['auto', 'auto']} label={{ value: 'Log-RMSE', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10 }} />
+                              <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }} />
+                              <Line type="monotone" dataKey="logRmse" stroke="#06b6d4" strokeWidth={2} dot={false} name="Log-RMSE Residual" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Current Fit Residual Metrics Summary */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                        <div className="text-[10px] font-mono text-slate-400 uppercase">{isRTL ? 'شاخص Log-RMSE' : 'Log-RMSE Residual'}</div>
+                        <div className="text-xl font-mono font-black text-cyan-400">{fitMetrics.logRmse}</div>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                        <div className="text-[10px] font-mono text-slate-400 uppercase">{isRTL ? 'ضریب Weighted Profile R_wp' : 'Weighted Residual R_wp'}</div>
+                        <div className="text-xl font-mono font-black text-amber-400">{fitMetrics.rwp}%</div>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1">
+                        <div className="text-[10px] font-mono text-slate-400 uppercase">{isRTL ? 'تعداد لایه‌های تحت پالایش' : 'Fitted Layers'}</div>
+                        <div className="text-xl font-mono font-black text-indigo-400">{layers.length - 1} Films</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 4: Python Script Exporter */}
             {activeTab === 'python' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1663,9 +2569,18 @@ export const XRRModule: React.FC = () => {
                       onChange={(e) => setSlMatA(e.target.value)}
                       className="w-full text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none cursor-pointer"
                     >
-                      {MATERIAL_PRESETS.map(m => (
-                        <option key={m.name} value={m.name}>{m.name}</option>
-                      ))}
+                      {customMaterials.length > 0 && (
+                        <optgroup label="Custom & Synthesis Materials">
+                          {customMaterials.map(m => (
+                            <option key={m.name} value={m.name}>✨ {m.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Standard Library">
+                        {MATERIAL_PRESETS.map(m => (
+                          <option key={m.name} value={m.name}>{m.name}</option>
+                        ))}
+                      </optgroup>
                     </select>
                     <div className="flex items-center gap-2">
                       <input
@@ -1692,9 +2607,18 @@ export const XRRModule: React.FC = () => {
                       onChange={(e) => setSlMatB(e.target.value)}
                       className="w-full text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none cursor-pointer"
                     >
-                      {MATERIAL_PRESETS.map(m => (
-                        <option key={m.name} value={m.name}>{m.name}</option>
-                      ))}
+                      {customMaterials.length > 0 && (
+                        <optgroup label="Custom & Synthesis Materials">
+                          {customMaterials.map(m => (
+                            <option key={m.name} value={m.name}>✨ {m.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Standard Library">
+                        {MATERIAL_PRESETS.map(m => (
+                          <option key={m.name} value={m.name}>{m.name}</option>
+                        ))}
+                      </optgroup>
                     </select>
                     <div className="flex items-center gap-2">
                       <input
@@ -1734,9 +2658,18 @@ export const XRRModule: React.FC = () => {
                       onChange={(e) => setSlSubstrate(e.target.value)}
                       className="w-full mt-1 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none cursor-pointer"
                     >
-                      {MATERIAL_PRESETS.map(m => (
-                        <option key={m.name} value={m.name}>{m.name}</option>
-                      ))}
+                      {customMaterials.length > 0 && (
+                        <optgroup label="Custom & Synthesis Materials">
+                          {customMaterials.map(m => (
+                            <option key={m.name} value={m.name}>✨ {m.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Standard Library">
+                        {MATERIAL_PRESETS.map(m => (
+                          <option key={m.name} value={m.name}>{m.name}</option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
                 </div>
@@ -1753,9 +2686,18 @@ export const XRRModule: React.FC = () => {
                       className="w-full mt-1 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 outline-none cursor-pointer"
                     >
                       <option value="None">None</option>
-                      {MATERIAL_PRESETS.map(m => (
-                        <option key={m.name} value={m.name}>{m.name}</option>
-                      ))}
+                      {customMaterials.length > 0 && (
+                        <optgroup label="Custom & Synthesis Materials">
+                          {customMaterials.map(m => (
+                            <option key={m.name} value={m.name}>✨ {m.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Standard Library">
+                        {MATERIAL_PRESETS.map(m => (
+                          <option key={m.name} value={m.name}>{m.name}</option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
                   {slCapMat !== 'None' && (
@@ -1805,6 +2747,417 @@ export const XRRModule: React.FC = () => {
                   className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-bold text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
                 >
                   Generate Superlattice Stack
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Custom & Synthesis Material Library Modal */}
+        {showCustomMatModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-4xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-6 my-8"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-500">
+                    <FolderPlus className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>{isRTL ? 'مدیریت مواد سفارشی و سنتزی' : 'Custom & Synthesis Material Library'}</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                        {customMaterials.length} Custom Presets
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {isRTL
+                        ? 'تعریف و ذخیره مواد جدید با مشخصات چگالی ρ، پراکندگی نوری δ و جذب β به صورت دستی'
+                        : 'Define custom materials with specific mass density (ρ), optical dispersion (δ), and absorption (β)'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCustomMatModal(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Quick Synthesis Templates Bar */}
+              <div className="p-3.5 rounded-2xl bg-purple-500/5 border border-purple-500/20 space-y-2">
+                <span className="text-[11px] font-bold text-purple-400 flex items-center gap-1.5 font-mono uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {isRTL ? 'الگوهای سریع سنتزی:' : 'Quick Synthesis Templates:'}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { name: 'MAPbI3 Perovskite', density: 4.16, delta: 13.8, beta: 0.95, color: '#f59e0b', cat: 'Synthesis / Custom', notes: 'Spin-coated organometallic halide perovskite absorber film.' },
+                    { name: 'Graphene Oxide (GO)', density: 1.80, delta: 5.85, beta: 0.12, color: '#10b981', cat: 'Organics', notes: 'Exfoliated graphene oxide thin film coating.' },
+                    { name: 'Sputtered TiN Hard Coating', density: 5.22, delta: 16.4, beta: 1.25, color: '#eab308', cat: 'Synthesis / Custom', notes: 'Reactive sputtered titanium nitride ceramic barrier.' },
+                    { name: 'PZT Ferroelectric Film', density: 7.60, delta: 23.1, beta: 2.10, color: '#ec4899', cat: 'Synthesis / Custom', notes: 'Sol-gel synthesized Pb(Zr,Ti)O3 ferroelectric layer.' },
+                    { name: 'PEDOT:PSS Conductive Polymer', density: 1.06, delta: 3.45, beta: 0.065, color: '#3b82f6', cat: 'Organics', notes: 'Spin-coated conductive polymer buffer layer.' }
+                  ].map((tpl) => (
+                    <button
+                      key={tpl.name}
+                      onClick={() => {
+                        setMatForm({
+                          name: tpl.name,
+                          density: tpl.density,
+                          delta: tpl.delta,
+                          beta: tpl.beta,
+                          category: tpl.cat,
+                          color: tpl.color,
+                          notes: tpl.notes,
+                          autoCalc: false
+                        });
+                        setEditingMatIndex(null);
+                      }}
+                      className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-500/10 text-slate-700 dark:text-slate-300 hover:text-purple-400 border border-slate-200 dark:border-slate-700 text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tpl.color }} />
+                      <span>+ {tpl.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main Content: Form & Library List */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left: Material Editor Form */}
+                <div className="lg:col-span-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-bold text-indigo-500 uppercase font-mono tracking-wider flex items-center gap-1.5">
+                      <Edit3 className="w-3.5 h-3.5" />
+                      {editingMatIndex !== null ? 'Edit Custom Material' : 'Add New Custom Material'}
+                    </span>
+                    {editingMatIndex !== null && (
+                      <button
+                        onClick={() => handleOpenNewCustomMat()}
+                        className="text-[10px] font-mono text-purple-400 hover:underline"
+                      >
+                        Reset Form
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Name Input */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Material Name / Formula
+                    </label>
+                    <input
+                      type="text"
+                      value={matForm.name}
+                      onChange={(e) => setMatForm({ ...matForm, name: e.target.value })}
+                      placeholder="e.g. Synthesis Material, MAPbI3, TiN..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                    />
+                  </div>
+
+                  {/* Category & Color Picker */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Category
+                      </label>
+                      <select
+                        value={matForm.category}
+                        onChange={(e) => setMatForm({ ...matForm, category: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                      >
+                        <option value="Synthesis / Custom">Synthesis / Custom</option>
+                        <option value="Oxides">Oxides</option>
+                        <option value="Metals">Metals</option>
+                        <option value="Semiconductors">Semiconductors</option>
+                        <option value="Organics">Organics</option>
+                        <option value="Substrates">Substrates</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Theme Color
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={matForm.color}
+                          onChange={(e) => setMatForm({ ...matForm, color: e.target.value })}
+                          className="w-8 h-8 rounded-xl border-0 cursor-pointer p-0 appearance-none bg-transparent"
+                        />
+                        <span className="font-mono text-xs font-bold text-slate-500 uppercase">{matForm.color}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Density Input */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      <span>Mass Density ρ (g/cm³)</span>
+                      <span className="font-mono text-indigo-400">{matForm.density} g/cm³</span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="0.1"
+                      max="25.0"
+                      value={matForm.density}
+                      onChange={(e) => {
+                        const d = parseFloat(e.target.value) || 0.1;
+                        if (matForm.autoCalc) {
+                          setMatForm({
+                            ...matForm,
+                            density: d,
+                            delta: Number((3.24 * d).toFixed(2)),
+                            beta: Number((0.075 * d).toFixed(3))
+                          });
+                        } else {
+                          setMatForm({ ...matForm, density: d });
+                        }
+                      }}
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs font-bold outline-none focus:border-purple-500"
+                    />
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="22.0"
+                      step="0.1"
+                      value={matForm.density}
+                      onChange={(e) => {
+                        const d = parseFloat(e.target.value);
+                        if (matForm.autoCalc) {
+                          setMatForm({
+                            ...matForm,
+                            density: d,
+                            delta: Number((3.24 * d).toFixed(2)),
+                            beta: Number((0.075 * d).toFixed(3))
+                          });
+                        } else {
+                          setMatForm({ ...matForm, density: d });
+                        }
+                      }}
+                      className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
+                  </div>
+
+                  {/* Auto-Calculate Dispersion Checkbox */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="autoCalcCheck"
+                      checked={matForm.autoCalc}
+                      onChange={(e) => {
+                        const auto = e.target.checked;
+                        if (auto) {
+                          setMatForm({
+                            ...matForm,
+                            autoCalc: true,
+                            delta: Number((3.24 * matForm.density).toFixed(2)),
+                            beta: Number((0.075 * matForm.density).toFixed(3))
+                          });
+                        } else {
+                          setMatForm({ ...matForm, autoCalc: false });
+                        }
+                      }}
+                      className="rounded accent-purple-500 cursor-pointer"
+                    />
+                    <label htmlFor="autoCalcCheck" className="text-[10px] font-mono font-bold text-slate-500 cursor-pointer">
+                      Auto-estimate δ & β from mass density ρ
+                    </label>
+                  </div>
+
+                  {/* Dispersion δ & Absorption β Inputs */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono font-bold text-slate-500">
+                        Dispersion δ (× 10⁻⁶)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={matForm.delta}
+                        onChange={(e) => setMatForm({ ...matForm, delta: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs font-bold outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono font-bold text-slate-500">
+                        Absorption β (× 10⁻⁷)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={matForm.beta}
+                        onChange={(e) => setMatForm({ ...matForm, beta: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs font-bold outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Theoretical Critical Angle Preview */}
+                  <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[10px] font-mono text-purple-300 flex justify-between items-center">
+                    <span>Est. Critical Angle θc (Cu K-α):</span>
+                    <span className="font-bold text-xs text-white">
+                      {Math.sqrt(2 * (matForm.delta * 1e-6)) * (180 / Math.PI) > 0
+                        ? (Math.sqrt(2 * (matForm.delta * 1e-6)) * (180 / Math.PI)).toFixed(3)
+                        : '0.000'}° θ
+                    </span>
+                  </div>
+
+                  {/* Recipe & Synthesis Notes */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                      Synthesis Parameters & Notes
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={matForm.notes}
+                      onChange={(e) => setMatForm({ ...matForm, notes: e.target.value })}
+                      placeholder="e.g. Synthesis method (PLD/ALD/Sol-Gel), temperature, gas pressure..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-white outline-none resize-none"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSaveCustomMat}
+                    className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shadow-lg shadow-purple-500/20"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{editingMatIndex !== null ? 'Update Custom Material' : 'Save Material to Library'}</span>
+                  </button>
+                </div>
+
+                {/* Right: Custom Materials Library List */}
+                <div className="lg:col-span-7 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono uppercase tracking-wider">
+                      Saved Custom Materials ({customMaterials.length})
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleExportCustomLibrary}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold font-mono flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Export custom materials library as JSON"
+                      >
+                        <Download className="w-3 h-3 text-purple-400" />
+                        <span>Export JSON</span>
+                      </button>
+
+                      <label className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[10px] font-bold font-mono flex items-center gap-1 transition-colors cursor-pointer">
+                        <Upload className="w-3 h-3 text-cyan-400" />
+                        <span>Import JSON</span>
+                        <input type="file" accept=".json" onChange={handleImportCustomLibrary} className="hidden" />
+                      </label>
+                    </div>
+                  </div>
+
+                  {customMaterials.length === 0 ? (
+                    <div className="p-8 text-center bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                      <BookmarkPlus className="w-8 h-8 text-slate-400 mx-auto opacity-50" />
+                      <p className="text-xs font-bold text-slate-500">No custom materials saved yet</p>
+                      <p className="text-[11px] text-slate-400">Use the form or quick templates on the left to add synthesis materials.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-[440px] overflow-y-auto custom-scrollbar pr-1">
+                      {customMaterials.map((mat, idx) => (
+                        <div
+                          key={`${mat.name}-${idx}`}
+                          className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 hover:border-purple-500/40 transition-all space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: mat.color }} />
+                              <span className="font-bold text-xs text-slate-900 dark:text-white truncate max-w-[180px]">
+                                {mat.name}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20 text-[9px] font-mono font-bold shrink-0">
+                                {mat.category}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => {
+                                  // Add material directly as a new film layer
+                                  const newLayer: XRRLayer = {
+                                    id: `custom-layer-${Date.now()}`,
+                                    name: mat.name,
+                                    thickness: 100,
+                                    roughness: 4.0,
+                                    density: mat.density,
+                                    delta: mat.delta,
+                                    beta: mat.beta,
+                                    color: mat.color
+                                  };
+                                  setLayers([newLayer, ...layers]);
+                                  setShowCustomMatModal(false);
+                                }}
+                                className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Add directly to film stack"
+                              >
+                                <PlusCircle className="w-3 h-3" />
+                                <span>Apply to Stack</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleOpenEditCustomMat(idx)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 transition-colors cursor-pointer"
+                                title="Edit Custom Material"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteCustomMat(idx)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                title="Delete Custom Material"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 font-mono text-[10px] bg-white dark:bg-slate-900/80 p-2 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                            <div>
+                              <span className="text-slate-400 block">Density ρ:</span>
+                              <span className="font-bold text-slate-200">{mat.density} g/cm³</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block">Dispersion δ:</span>
+                              <span className="font-bold text-indigo-400">{mat.delta} × 10⁻⁶</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block">Absorption β:</span>
+                              <span className="font-bold text-cyan-400">{mat.beta} × 10⁻⁷</span>
+                            </div>
+                          </div>
+
+                          {mat.notes && (
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 italic line-clamp-2 bg-slate-100/50 dark:bg-slate-900/40 px-2 py-1 rounded-lg">
+                              "{mat.notes}"
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Actions Footer */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => setShowCustomMatModal(false)}
+                  className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Close Library
                 </button>
               </div>
             </motion.div>

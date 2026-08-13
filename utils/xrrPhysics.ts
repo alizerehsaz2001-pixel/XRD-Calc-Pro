@@ -15,6 +15,8 @@ export interface XRRLayer {
   delta: number;      // Real part of refractive index dispersion (× 10⁻⁶)
   beta: number;       // Imaginary part of refractive index absorption (× 10⁻⁷)
   gradingThickness?: number; // Interdiffusion / graded interface thickness (Å)
+  gradientType?: 'none' | 'linear' | 'exponential' | 'sigmoidal'; // Continuous density profile
+  gradientDeltaDensity?: number; // Δρ shift across layer thickness (g/cm³)
   color?: string;
 }
 
@@ -25,12 +27,16 @@ export interface XRRMaterialPreset {
   beta: number;       // × 10⁻⁷
   atomicZ?: number;
   molarMass?: number;
-  category: 'Substrates' | 'Oxides' | 'Metals' | 'Semiconductors' | 'Organics';
+  category: 'Substrates' | 'Oxides' | 'Metals' | 'Semiconductors' | 'Organics' | 'Synthesis / Custom' | string;
   color: string;
+  isCustom?: boolean;
+  notes?: string;
 }
 
 export interface XRRSimulationConfig {
   wavelength: number;     // X-ray wavelength in Å (default 1.5406 Å Cu K-alpha)
+  radiationSource?: 'cu-ka1' | 'cu-ka2' | 'mo-ka' | 'co-ka' | 'cr-ka' | 'synchrotron';
+  synchrotronEnergyKeV?: number; // Synchrotron X-ray energy in keV
   angleStart: number;     // Incident angle θ start (deg)
   angleEnd: number;       // Incident angle θ end (deg)
   angleStep: number;      // Angle step size (deg)
@@ -40,6 +46,9 @@ export interface XRRSimulationConfig {
   roughnessModel?: 'nevot-croce' | 'debye-waller'; // Roughness attenuation damping equation
   intensityScale?: number;// Experimental intensity multiplier scale factor
   angleOffset?: number;   // Angular zero-point error correction (° θ)
+  footprintCorrection?: boolean; // Enable beam footprint spillover correction at low angles
+  sampleLengthMm?: number;  // Sample length in mm (default 20 mm)
+  beamWidthMm?: number;     // X-ray beam height/width in mm (default 0.2 mm)
 }
 
 export interface XRRDataPoint {
@@ -47,8 +56,11 @@ export interface XRRDataPoint {
   twoTheta: number;       // Scattering angle 2θ in degrees
   qz: number;             // Scattering vector qz = (4π/λ)sinθ in Å⁻¹
   rCalc: number;          // Calculated specular reflectivity R (0 to 1)
+  rCalcMin?: number;       // Monte Carlo 95% lower confidence bound
+  rCalcMax?: number;       // Monte Carlo 95% upper confidence bound
   rExp?: number;          // Experimental reflectivity (if imported)
   fresnelR?: number;      // Ideal Fresnel reflectivity for single substrate
+  footprintFactor?: number; // Beam footprint spillover factor (0 to 1)
 }
 
 export interface SLDPoint {
@@ -185,13 +197,54 @@ export function calculateReflectivityCurve(
 ): XRRDataPoint[] {
   if (layers.length === 0) return [];
 
-  const { wavelength, angleStart, angleEnd, angleStep, beamDivergence, background, roughnessModel, angleOffset = 0, intensityScale = 1.0 } = config;
+  const {
+    wavelength,
+    angleStart,
+    angleEnd,
+    angleStep,
+    beamDivergence,
+    background,
+    roughnessModel,
+    angleOffset = 0,
+    intensityScale = 1.0,
+    footprintCorrection = false,
+    sampleLengthMm = 20,
+    beamWidthMm = 0.2
+  } = config;
   const numSteps = Math.max(10, Math.floor((angleEnd - angleStart) / angleStep) + 1);
 
-  // Expand layers with grading/interdiffusion if configured
+  // Expand layers with grading/interdiffusion or density gradients if configured
   const processedLayers: XRRLayer[] = [];
   for (const l of layers) {
-    if (l.gradingThickness && l.gradingThickness > 0 && l.thickness > l.gradingThickness) {
+    if (l.gradientType && l.gradientType !== 'none' && l.gradientDeltaDensity && l.thickness > 10) {
+      // Sub-slice layer with continuous density profile into 5 thin slabs
+      const numSlices = 5;
+      const subThick = l.thickness / numSlices;
+      for (let s = 0; s < numSlices; s++) {
+        const normZ = (s + 0.5) / numSlices; // 0 to 1 depth fraction
+        let factor = 0;
+        if (l.gradientType === 'linear') {
+          factor = (normZ - 0.5) * l.gradientDeltaDensity;
+        } else if (l.gradientType === 'exponential') {
+          factor = (Math.exp(normZ) - 1.718) * l.gradientDeltaDensity;
+        } else if (l.gradientType === 'sigmoidal') {
+          factor = (1 / (1 + Math.exp(-6 * (normZ - 0.5))) - 0.5) * l.gradientDeltaDensity;
+        }
+
+        const slabDensity = Math.max(0.1, l.density + factor);
+        const ratio = slabDensity / (l.density || 1);
+        processedLayers.push({
+          ...l,
+          id: `${l.id}-grad-${s}`,
+          name: `${l.name} (Slab ${s + 1})`,
+          thickness: subThick,
+          density: slabDensity,
+          delta: Math.max(0, l.delta * ratio),
+          beta: Math.max(0, l.beta * ratio),
+          roughness: s === 0 ? l.roughness : Math.max(0.8, l.roughness * 0.7)
+        });
+      }
+    } else if (l.gradingThickness && l.gradingThickness > 0 && l.thickness > l.gradingThickness) {
       // Sub-slice interdiffusion zone into 3 graded sub-layers
       const bulkThick = l.thickness - l.gradingThickness;
       processedLayers.push({ ...l, thickness: bulkThick });
@@ -305,8 +358,15 @@ export function calculateReflectivityCurve(
       R_next = cDiv(topTerm, bottomTerm);
     }
 
-    // Reflectivity = |R_0|^2 * intensityScale
-    let rIntensity = cAbs2(R_next) * intensityScale;
+    // Beam Footprint Correction Factor F(θ) = min(1, (L * sinθ) / w)
+    let footprintFactor = 1.0;
+    if (footprintCorrection && sampleLengthMm > 0 && beamWidthMm > 0) {
+      footprintFactor = Math.min(1.0, (sampleLengthMm * Math.sin(thetaRad)) / beamWidthMm);
+      footprintFactor = Math.max(0.01, footprintFactor);
+    }
+
+    // Reflectivity = |R_0|^2 * intensityScale * footprintFactor
+    let rIntensity = cAbs2(R_next) * intensityScale * footprintFactor;
 
     // Apply Background Noise Floor
     rIntensity = Math.max(rIntensity, background);
@@ -316,14 +376,15 @@ export function calculateReflectivityCurve(
     const kzSub = kzLayers[numLayers - 1];
     const numSub = cSub(kz0, kzSub);
     const denSub = cAdd(kz0, kzSub);
-    const fresnelSub = cAbs2(cDiv(numSub, denSub)) * intensityScale;
+    const fresnelSub = cAbs2(cDiv(numSub, denSub)) * intensityScale * footprintFactor;
 
     rawPoints.push({
       theta: rawThetaDeg,
       twoTheta: rawThetaDeg * 2,
       qz: qz,
       rCalc: rIntensity,
-      fresnelR: Math.max(fresnelSub, background)
+      fresnelR: Math.max(fresnelSub, background),
+      footprintFactor: footprintFactor
     });
   }
 
@@ -776,4 +837,53 @@ export function estimateOpticalConstantsFromFormula(
   const delta = Math.round(3.24 * density * wlFactor * 100) / 100;
   const beta = Math.round(0.075 * density * wlFactor * 1000) / 1000;
   return { delta, beta };
+}
+
+/**
+ * Monte Carlo Sensitivity Analysis
+ * Runs N randomized parameter perturbations to compute 95% confidence limits
+ */
+export function calculateMonteCarloConfidenceEnvelope(
+  layers: XRRLayer[],
+  config: XRRSimulationConfig,
+  variationPercent: number = 5.0,
+  numSimulations: number = 30
+): XRRDataPoint[] {
+  const baseCurve = calculateReflectivityCurve(layers, config);
+  if (baseCurve.length === 0) return [];
+
+  const allCurves: number[][] = [];
+
+  for (let s = 0; s < numSimulations; s++) {
+    const perturbedLayers = layers.map(l => {
+      if (l.thickness === 0) return l; // Substrate
+      const pThick = Math.max(5, l.thickness * (1 + (Math.random() - 0.5) * 2 * (variationPercent / 100)));
+      const pRough = Math.max(0.2, l.roughness * (1 + (Math.random() - 0.5) * 2 * (variationPercent / 100)));
+      const pDens = Math.max(0.1, l.density * (1 + (Math.random() - 0.5) * 2 * (variationPercent / 100)));
+      const ratio = pDens / (l.density || 1);
+      return {
+        ...l,
+        thickness: pThick,
+        roughness: pRough,
+        density: pDens,
+        delta: Math.max(0, l.delta * ratio),
+        beta: Math.max(0, l.beta * ratio)
+      };
+    });
+
+    const sim = calculateReflectivityCurve(perturbedLayers, config);
+    allCurves.push(sim.map(pt => pt.rCalc));
+  }
+
+  // Calculate 5th and 95th percentiles for each angle point
+  return baseCurve.map((pt, i) => {
+    const valsAtIndex = allCurves.map(c => c[i] || pt.rCalc).sort((a, b) => a - b);
+    const minIdx = Math.floor(valsAtIndex.length * 0.05);
+    const maxIdx = Math.floor(valsAtIndex.length * 0.95);
+    return {
+      ...pt,
+      rCalcMin: valsAtIndex[minIdx] ?? pt.rCalc,
+      rCalcMax: valsAtIndex[maxIdx] ?? pt.rCalc
+    };
+  });
 }
