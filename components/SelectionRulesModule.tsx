@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { CrystalSystem, SelectionRuleResult } from "../types";
 import { parseHKLString, validateSelectionRule } from "../utils/physics";
 import { ScientificMathControl } from "./ScientificMathControl";
+import { StructureFactorPhasorDiagram } from "./StructureFactorPhasorDiagram";
+import { DiffractionRingVisualizer } from "./DiffractionRingVisualizer";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle2,
@@ -36,6 +38,9 @@ import {
   Activity,
   Compass,
   Sparkles,
+  Radio,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 const Symmetry3DVisualizer = ({
@@ -524,7 +529,7 @@ const Symmetry3DVisualizer = ({
         content: (
           <g key={`node-${idx}`}>
             <circle cx={p.x} cy={p.y} r={5} fill="#0f172a" />
-            <circle cx={p.x} cy={p.y} r={3.5} fill="#cbd5e1" />
+            <circle cx={p.x} cy={p.y} r={3.8} fill="url(#sphere-corner)" stroke="#64748b" strokeWidth={0.6} />
           </g>
         ),
       });
@@ -533,11 +538,11 @@ const Symmetry3DVisualizer = ({
 
   // Draw Basis Atoms
   if (showBasisAtoms) {
-    let basisNodes: { pos: [number, number, number]; color: string; label: string; size: number }[] = [];
+    let basisNodes: { pos: [number, number, number]; color: string; grad: string; label: string; size: number }[] = [];
 
     if (isCubic) {
       if (system === "BCC") {
-        basisNodes.push({ pos: [0, 0, 0], color: "#fbbf24", label: "Body Center (0.5, 0.5, 0.5)", size: 4.5 });
+        basisNodes.push({ pos: [0, 0, 0], color: "#fbbf24", grad: "url(#sphere-amber)", label: "Body Center (0.5, 0.5, 0.5)", size: 4.5 });
       } else if (system === "FCC" || system === "Diamond") {
         const fcs: [number, number, number][] = [
           [0, 0, -1], [0, 0, 1],
@@ -545,7 +550,7 @@ const Symmetry3DVisualizer = ({
           [-1, 0, 0], [1, 0, 0]
         ];
         fcs.forEach((fc, idx) => {
-          basisNodes.push({ pos: fc, color: "#3b82f6", label: `Face Center ${idx+1}`, size: 4 });
+          basisNodes.push({ pos: fc, color: "#3b82f6", grad: "url(#sphere-blue)", label: `Face Center ${idx+1}`, size: 4 });
         });
 
         if (system === "Diamond") {
@@ -556,13 +561,13 @@ const Symmetry3DVisualizer = ({
             [0.5, -0.5, 0.5]
           ];
           tets.forEach((tet, idx) => {
-            basisNodes.push({ pos: tet, color: "#10b981", label: `Tetrahedral basis ${idx+1}`, size: 4 });
+            basisNodes.push({ pos: tet, color: "#10b981", grad: "url(#sphere-emerald)", label: `Tetrahedral basis ${idx+1}`, size: 4 });
           });
         }
       }
     } else if (isHex) {
-      basisNodes.push({ pos: [0, 0, 0.9], color: "#3b82f6", label: "Top Face Center", size: 4 });
-      basisNodes.push({ pos: [0, 0, -0.9], color: "#3b82f6", label: "Bottom Face Center", size: 4 });
+      basisNodes.push({ pos: [0, 0, 0.9], color: "#3b82f6", grad: "url(#sphere-blue)", label: "Top Face Center", size: 4 });
+      basisNodes.push({ pos: [0, 0, -0.9], color: "#3b82f6", grad: "url(#sphere-blue)", label: "Bottom Face Center", size: 4 });
       
       const midPts: [number, number, number][] = [
         [0, 0.6 * 0.9, 0],
@@ -570,7 +575,7 @@ const Symmetry3DVisualizer = ({
         [0.52 * 0.9, -0.3 * 0.9, 0]
       ];
       midPts.forEach((mp, idx) => {
-        basisNodes.push({ pos: mp, color: "#a855f7", label: `HCP Interstitial ${idx+1}`, size: 4.2 });
+        basisNodes.push({ pos: mp, color: "#a855f7", grad: "url(#sphere-purple)", label: `HCP Interstitial ${idx+1}`, size: 4.2 });
       });
     }
 
@@ -582,7 +587,7 @@ const Symmetry3DVisualizer = ({
         content: (
           <g key={`basis-node-${idx}`}>
             <circle cx={p.x} cy={p.y} r={node.size + 1.5} fill="#0f172a" />
-            <circle cx={p.x} cy={p.y} r={node.size} fill={node.color} stroke="#fff" strokeWidth={1} style={{ filter: `drop-shadow(0 0 5px ${node.color})` }} />
+            <circle cx={p.x} cy={p.y} r={node.size} fill={node.grad || node.color} stroke="#fff" strokeWidth={0.8} style={{ filter: `drop-shadow(0 0 6px ${node.color})` }} />
             <title>{node.label}</title>
           </g>
         )
@@ -931,6 +936,31 @@ const Symmetry3DVisualizer = ({
               <stop offset="0%" stopColor="rgba(6,182,212,0.4)" />
               <stop offset="100%" stopColor="rgba(6,182,212,0.1)" />
             </linearGradient>
+            <radialGradient id="sphere-corner" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#f8fafc" />
+              <stop offset="40%" stopColor="#94a3b8" />
+              <stop offset="100%" stopColor="#334155" />
+            </radialGradient>
+            <radialGradient id="sphere-amber" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#fef08a" />
+              <stop offset="40%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#78350f" />
+            </radialGradient>
+            <radialGradient id="sphere-blue" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#93c5fd" />
+              <stop offset="40%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#1e3a8a" />
+            </radialGradient>
+            <radialGradient id="sphere-emerald" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#a7f3d0" />
+              <stop offset="40%" stopColor="#10b981" />
+              <stop offset="100%" stopColor="#064e3b" />
+            </radialGradient>
+            <radialGradient id="sphere-purple" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#e9d5ff" />
+              <stop offset="40%" stopColor="#a855f7" />
+              <stop offset="100%" stopColor="#581c87" />
+            </radialGradient>
             <marker
               id="arrow-head"
               viewBox="0 0 10 10"
@@ -989,6 +1019,26 @@ const Symmetry3DVisualizer = ({
 
         {/* Top Right Control Buttons */}
         <div className="absolute top-3 right-4 flex items-center gap-1.5 z-30">
+          {/* Quick Orientation Buttons */}
+          <div className="hidden sm:flex items-center gap-1 bg-black/60 p-0.5 rounded border border-white/10 mr-1">
+            {[
+              { label: "[100]", x: 0, y: Math.PI / 2, tip: "Look along [100]" },
+              { label: "[010]", x: 0, y: 0, tip: "Look along [010]" },
+              { label: "[001]", x: -Math.PI / 2, y: 0, tip: "Top down [001]" },
+              { label: "[111]", x: -Math.PI / 6, y: Math.PI / 4, tip: "Isometric [111]" },
+            ].map((ori) => (
+              <button
+                key={ori.label}
+                type="button"
+                onClick={() => setRotation({ x: ori.x, y: ori.y })}
+                className="px-1.5 py-0.5 text-[8px] font-mono font-bold text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/20 transition-all rounded"
+                title={ori.tip}
+              >
+                {ori.label}
+              </button>
+            ))}
+          </div>
+
           <button
             type="button"
             onClick={() => setIsAutoSpin(!isAutoSpin)}
@@ -1095,6 +1145,9 @@ export const SelectionRulesModule: React.FC = () => {
   const [results, setResults] = useState<SelectionRuleResult[]>([]);
   const [filter, setFilter] = useState<"All" | "Allowed" | "Forbidden">("All");
   const [maxIndex, setMaxIndex] = useState<number>(3);
+  const [resultsGraphicTab, setResultsGraphicTab] = useState<
+    "DIFFRACTION_RINGS" | "PHASOR_ARGAND" | "VALIDATION_MATRIX"
+  >("DIFFRACTION_RINGS");
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [symmetryTab, setSymmetryTab] = useState<
@@ -1117,6 +1170,8 @@ export const SelectionRulesModule: React.FC = () => {
 
   // Reciprocal space 3D visualizer states
   const [recipRotation, setRecipRotation] = useState({ x: 25, y: -45 });
+  const [recipZoom, setRecipZoom] = useState<number>(1.0);
+  const [recipPan, setRecipPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isRecipDragging, setIsRecipDragging] = useState(false);
   const [recipDragStart, setRecipDragStart] = useState({ x: 0, y: 0 });
   const recipCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -1132,10 +1187,14 @@ export const SelectionRulesModule: React.FC = () => {
     "perspective",
   );
   const [showEwaldSphere, setShowEwaldSphere] = useState<boolean>(true);
+  const [showLimitingSphere, setShowLimitingSphere] = useState<boolean>(false);
+  const [showBrillouinZone, setShowBrillouinZone] = useState<boolean>(false);
+  const [showRecipVectors, setShowRecipVectors] = useState<boolean>(true);
   const [filterAllowedOnly, setFilterAllowedOnly] = useState<boolean>(false);
   const [laueZoneFilter, setLaueZoneFilter] = useState<"ALL" | "ZOLZ" | "FOLZ">("ALL");
   const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka wavelength in Angstroms
   const [latticeParameter, setLatticeParameter] = useState<number>(4.07); // Custom lattice constant 'a' in Angstroms
+  const [beamRotationTheta, setBeamRotationTheta] = useState<number>(0); // Incident beam angle offset (deg)
 
   // Helper to get true reciprocal space coordinates based on crystal system
   const getReciprocalBasisCoord = (h: number, k: number, l: number, currentSystem: string) => {
@@ -1225,6 +1284,15 @@ export const SelectionRulesModule: React.FC = () => {
     if (!canvas) return;
 
     if (isRecipDragging) {
+      if (e.shiftKey || e.button === 1) {
+        // Pan mode with Shift key
+        const dx = e.clientX - recipDragStart.x;
+        const dy = e.clientY - recipDragStart.y;
+        setRecipPan((prev) => ({ x: prev.x + dx * 0.8, y: prev.y + dy * 0.8 }));
+        setRecipDragStart({ x: e.clientX, y: e.clientY });
+        return;
+      }
+
       const dx = e.clientX - recipDragStart.x;
       const dy = e.clientY - recipDragStart.y;
       setRecipRotation((prev) => ({
@@ -1240,12 +1308,12 @@ export const SelectionRulesModule: React.FC = () => {
     const mouseY = e.clientY - rect.top;
 
     let found: [number, number, number] | null = null;
-    let mindist = 15;
+    let mindist = 18;
 
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
+    const cx = rect.width / 2 + recipPan.x;
+    const cy = rect.height / 2 + recipPan.y;
     const maxBound = maxIndex;
-    const scaleBase = Math.min(rect.width, rect.height) * 0.42;
+    const scaleBase = Math.min(rect.width, rect.height) * 0.42 * recipZoom;
     const scale = scaleBase / (maxBound + 0.5);
     const rx = (recipRotation.x * Math.PI) / 180;
     const ry = (recipRotation.y * Math.PI) / 180;
@@ -1285,6 +1353,12 @@ export const SelectionRulesModule: React.FC = () => {
     }
   };
 
+  const handleRecipWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+    setRecipZoom((prev) => Math.max(0.4, Math.min(3.0, prev * zoomFactor)));
+  };
+
   const handleRecipMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsRecipDragging(false);
 
@@ -1300,10 +1374,10 @@ export const SelectionRulesModule: React.FC = () => {
 
       let closest: { h: number; k: number; l: number; dist: number } | null =
         null;
-      const cx = rect.width / 2;
-      const cy = rect.height / 2;
+      const cx = rect.width / 2 + recipPan.x;
+      const cy = rect.height / 2 + recipPan.y;
       const maxBound = maxIndex;
-      const scaleBase = Math.min(rect.width, rect.height) * 0.42;
+      const scaleBase = Math.min(rect.width, rect.height) * 0.42 * recipZoom;
       const scale = scaleBase / (maxBound + 0.5);
       const rx = (recipRotation.x * Math.PI) / 180;
       const ry = (recipRotation.y * Math.PI) / 180;
@@ -1332,7 +1406,7 @@ export const SelectionRulesModule: React.FC = () => {
             const dist = Math.sqrt(
               (clickX - projX) ** 2 + (clickY - projY) ** 2,
             );
-            if (dist < 15) {
+            if (dist < 18) {
               if (!closest || dist < closest.dist) {
                 closest = { h, k, l, dist };
               }
@@ -1366,8 +1440,27 @@ export const SelectionRulesModule: React.FC = () => {
 
     ctx.clearRect(0, 0, width, height);
 
-    const cx = width / 2;
-    const cy = height / 2;
+    // Subtle background grid
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.015)";
+    ctx.lineWidth = 1;
+    const gridSize = 32;
+    for (let x = 0; x < width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    for (let y = 0; y < height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    const cx = width / 2 + recipPan.x;
+    const cy = height / 2 + recipPan.y;
 
     const rx = (recipRotation.x * Math.PI) / 180;
     const ry = (recipRotation.y * Math.PI) / 180;
@@ -1376,8 +1469,8 @@ export const SelectionRulesModule: React.FC = () => {
     const activeNode = hoveredNode || manualProbe;
 
     const projectPhysical = (x: number, y: number, z: number) => {
-      // Dynamic scale based on extent
-      const scaleBase = Math.min(width, height) * 0.42;
+      // Dynamic scale based on extent and user zoom
+      const scaleBase = Math.min(width, height) * 0.42 * recipZoom;
       const scale = scaleBase / (maxBound + 0.5);
       
       const x1 = x * Math.cos(ry) - z * Math.sin(ry);
@@ -1408,9 +1501,9 @@ export const SelectionRulesModule: React.FC = () => {
 
     // Axis projections
     const origin = project(0, 0, 0);
-    const axH = project(maxBound + 0.5, 0, 0);
-    const axK = project(0, maxBound + 0.5, 0);
-    const axL = project(0, 0, maxBound + 0.5);
+    const axH = project(maxBound + 0.6, 0, 0);
+    const axK = project(0, maxBound + 0.6, 0);
+    const axL = project(0, 0, maxBound + 0.6);
 
     const isNodeVisible = (h: number, k: number, l: number) => {
       if (laueZoneFilter === "ZOLZ" && l !== 0) return false;
@@ -1422,6 +1515,13 @@ export const SelectionRulesModule: React.FC = () => {
       }
       return true;
     };
+
+    // Calculate incident wave vector direction considering beam tilt theta
+    const beamRad = (beamRotationTheta * Math.PI) / 180;
+    const xc_val = (-latticeParameter / wavelength) * Math.cos(beamRad);
+    const yc_val = (-latticeParameter / wavelength) * Math.sin(beamRad);
+    const zc_val = 0;
+    const r_val = latticeParameter / wavelength;
 
     // Grid edges and nodes
     for (let h = -maxBound; h <= maxBound; h++) {
@@ -1489,12 +1589,10 @@ export const SelectionRulesModule: React.FC = () => {
           const reason = val.reason;
 
           // Ewald Sphere intersection check inside dimensionless space
-          const xc_val = -latticeParameter / wavelength;
-          const r_val = latticeParameter / wavelength;
           const basis = getReciprocalBasisCoord(h, k, l, system);
-          const distToCenter = Math.sqrt((basis.x - xc_val) ** 2 + basis.y ** 2 + basis.z ** 2);
+          const distToCenter = Math.sqrt((basis.x - xc_val) ** 2 + (basis.y - yc_val) ** 2 + (basis.z - zc_val) ** 2);
           const isEwaldIntersecting =
-            showEwaldSphere && Math.abs(distToCenter - r_val) < 0.25;
+            showEwaldSphere && Math.abs(distToCenter - r_val) < 0.28;
 
           elements.push({
             type: "node",
@@ -1512,18 +1610,86 @@ export const SelectionRulesModule: React.FC = () => {
       }
     }
 
+    // 1st Brillouin Zone Wireframe Box (around origin ±0.5)
+    if (showBrillouinZone) {
+      const bzPoints = [
+        [-0.5, -0.5, -0.5],
+        [0.5, -0.5, -0.5],
+        [0.5, 0.5, -0.5],
+        [-0.5, 0.5, -0.5],
+        [-0.5, -0.5, 0.5],
+        [0.5, -0.5, 0.5],
+        [0.5, 0.5, 0.5],
+        [-0.5, 0.5, 0.5],
+      ].map(([x, y, z]) => project(x, y, z));
+
+      const bzEdges = [
+        [0, 1], [1, 2], [2, 3], [3, 0], // bottom
+        [4, 5], [5, 6], [6, 7], [7, 4], // top
+        [0, 4], [1, 5], [2, 6], [3, 7], // pillars
+      ];
+
+      bzEdges.forEach(([i1, i2]) => {
+        const p1 = bzPoints[i1];
+        const p2 = bzPoints[i2];
+        elements.push({
+          type: "bz-wire",
+          p1,
+          p2,
+          color: "rgba(14, 165, 233, 0.65)",
+          z: (p1.z + p2.z) / 2,
+        });
+      });
+    }
+
+    // Limiting Sphere (Radius = 2/λ, centered at origin)
+    if (showLimitingSphere) {
+      const r_limit = (2 * latticeParameter) / wavelength;
+      const limRings = [
+        { plane: "xy", color: "rgba(244, 63, 94, 0.25)" },
+        { plane: "xz", color: "rgba(244, 63, 94, 0.25)" },
+        { plane: "yz", color: "rgba(244, 63, 94, 0.25)" },
+      ];
+
+      limRings.forEach((ring) => {
+        const ringPoints: any[] = [];
+        const divisions = 48;
+        for (let i = 0; i <= divisions; i++) {
+          const phi = (i / divisions) * 2 * Math.PI;
+          let x = 0, y = 0, z = 0;
+          if (ring.plane === "xy") {
+            x = r_limit * Math.cos(phi);
+            y = r_limit * Math.sin(phi);
+          } else if (ring.plane === "xz") {
+            x = r_limit * Math.cos(phi);
+            z = r_limit * Math.sin(phi);
+          } else if (ring.plane === "yz") {
+            y = r_limit * Math.cos(phi);
+            z = r_limit * Math.sin(phi);
+          }
+          ringPoints.push(projectPhysical(x, y, z));
+        }
+
+        for (let i = 0; i < divisions; i++) {
+          const p1 = ringPoints[i];
+          const p2 = ringPoints[i + 1];
+          elements.push({
+            type: "limiting-sphere-wire",
+            p1,
+            p2,
+            color: ring.color,
+            z: (p1.z + p2.z) / 2,
+          });
+        }
+      });
+    }
+
     // Add Ewald Sphere wireframe
     if (showEwaldSphere) {
-      const xc_val = -latticeParameter / wavelength;
-      const yc_val = 0;
-      const zc_val = 0;
-      const r_val = latticeParameter / wavelength;
-
-      // Draw wireframes
       const rings = [
-        { plane: "xy", color: "rgba(56, 189, 248, 0.22)" },
-        { plane: "xz", color: "rgba(56, 189, 248, 0.22)" },
-        { plane: "yz", color: "rgba(56, 189, 248, 0.22)" },
+        { plane: "xy", color: "rgba(56, 189, 248, 0.35)" },
+        { plane: "xz", color: "rgba(56, 189, 248, 0.35)" },
+        { plane: "yz", color: "rgba(56, 189, 248, 0.35)" },
       ];
 
       rings.forEach((ring) => {
@@ -1573,8 +1739,8 @@ export const SelectionRulesModule: React.FC = () => {
         type: "laue-plane",
         p1, p2, p3, p4,
         z: (p1.z + p2.z + p3.z + p4.z) / 4,
-        label: "ZOLZ (l=0)",
-        color: "rgba(168, 85, 247, 0.05)" // very faint purple
+        label: "ZOLZ (l=0 Plane)",
+        color: "rgba(168, 85, 247, 0.06)" // very faint purple
       });
     }
 
@@ -1582,7 +1748,7 @@ export const SelectionRulesModule: React.FC = () => {
       type: "axis",
       p1: origin,
       p2: axH,
-      label: "h* (a*)",
+      label: "a* [100]",
       color: "#ff4d4d",
       z: origin.z + 0.1,
     });
@@ -1590,7 +1756,7 @@ export const SelectionRulesModule: React.FC = () => {
       type: "axis",
       p1: origin,
       p2: axK,
-      label: "k* (b*)",
+      label: "b* [010]",
       color: "#10b981",
       z: origin.z + 0.1,
     });
@@ -1598,17 +1764,14 @@ export const SelectionRulesModule: React.FC = () => {
       type: "axis",
       p1: origin,
       p2: axL,
-      label: "l* (c*)",
+      label: "c* [001]",
       color: "#0fbcf9",
       z: origin.z + 0.1,
     });
     elements.push({ type: "origin", p: origin, z: origin.z });
 
     // Add Ewald Sphere Center & Wave vectors if sphere is visible
-    if (showEwaldSphere) {
-      const xc_val = -latticeParameter / wavelength;
-      const yc_val = 0;
-      const zc_val = 0;
+    if (showEwaldSphere && showRecipVectors) {
       const c = projectPhysical(xc_val, yc_val, zc_val);
 
       elements.push({ type: "ewald-center", p: c, z: c.z });
@@ -1619,7 +1782,7 @@ export const SelectionRulesModule: React.FC = () => {
         p1: c,
         p2: origin,
         color: "#38bdf8", // sky-400
-        label: "k₀",
+        label: "k₀ (Incident)",
         z: (c.z + origin.z) / 2 + 0.1,
       });
 
@@ -1630,22 +1793,22 @@ export const SelectionRulesModule: React.FC = () => {
           type: "k-vector",
           p1: c,
           p2: p_hover,
-          color: "#a78bfa", // violet-400
-          label: "k",
+          color: "#c084fc", // violet-400
+          label: "k (Diffracted)",
           z: (c.z + p_hover.z) / 2 + 0.1,
         });
       }
     }
 
     // Draw reciprocal standard vector (g*) for active node from origin (0,0,0) to node
-    if (activeNode) {
+    if (activeNode && showRecipVectors) {
       const p_hover = project(activeNode[0], activeNode[1], activeNode[2]);
       elements.push({
         type: "recip-vector",
         p1: origin,
         p2: p_hover,
         color: "#fbbf24", // golden yellow
-        label: "g*",
+        label: `g* (${activeNode[0]} ${activeNode[1]} ${activeNode[2]})`,
         z: (origin.z + p_hover.z) / 2 + 0.2,
       });
     }
@@ -1666,16 +1829,32 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
         ctx.strokeStyle = isHoveredEdge
-          ? "rgba(52, 211, 153, 0.5)"
-          : "rgba(148, 163, 184, 0.1)";
-        ctx.lineWidth = isHoveredEdge ? 1.5 : 0.8;
+          ? "rgba(52, 211, 153, 0.6)"
+          : "rgba(148, 163, 184, 0.12)";
+        ctx.lineWidth = isHoveredEdge ? 1.6 : 0.8;
         ctx.stroke();
-      } else if (el.type === "sphere-wire") {
+      } else if (el.type === "bz-wire") {
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      } else if (el.type === "limiting-sphere-wire") {
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
         ctx.strokeStyle = el.color;
         ctx.lineWidth = 1.0;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (el.type === "sphere-wire") {
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = 1.2;
         ctx.setLineDash([3, 3]);
         ctx.stroke();
         ctx.setLineDash([]);
@@ -1688,11 +1867,11 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.closePath();
         ctx.fillStyle = el.color;
         ctx.fill();
-        ctx.strokeStyle = "rgba(168, 85, 247, 0.2)";
+        ctx.strokeStyle = "rgba(168, 85, 247, 0.25)";
         ctx.lineWidth = 1;
         ctx.stroke();
         
-        ctx.fillStyle = "rgba(168, 85, 247, 0.6)";
+        ctx.fillStyle = "rgba(168, 85, 247, 0.8)";
         ctx.font = "bold 9px monospace";
         ctx.fillText(el.label, el.p4.x + 5, el.p4.y - 5);
       } else if (el.type === "recip-vector") {
@@ -1701,7 +1880,7 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
         ctx.strokeStyle = el.color;
-        ctx.lineWidth = 2.0;
+        ctx.lineWidth = 2.2;
         ctx.stroke();
 
         // Draw arrow head
@@ -1709,12 +1888,12 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.beginPath();
         ctx.moveTo(el.p2.x, el.p2.y);
         ctx.lineTo(
-          el.p2.x - 6 * Math.cos(angle - Math.PI / 6),
-          el.p2.y - 6 * Math.sin(angle - Math.PI / 6),
+          el.p2.x - 7 * Math.cos(angle - Math.PI / 6),
+          el.p2.y - 7 * Math.sin(angle - Math.PI / 6),
         );
         ctx.lineTo(
-          el.p2.x - 6 * Math.cos(angle + Math.PI / 6),
-          el.p2.y - 6 * Math.sin(angle + Math.PI / 6),
+          el.p2.x - 7 * Math.cos(angle + Math.PI / 6),
+          el.p2.y - 7 * Math.sin(angle + Math.PI / 6),
         );
         ctx.closePath();
         ctx.fillStyle = el.color;
@@ -1722,8 +1901,7 @@ export const SelectionRulesModule: React.FC = () => {
 
         if (el.label) {
           ctx.fillStyle = el.color;
-          ctx.font = "bold 10px monospace";
-          // Label slightly offset
+          ctx.font = "bold 9.5px monospace";
           ctx.fillText(el.label, el.p2.x + 8, el.p2.y - 6);
         }
       } else if (el.type === "axis") {
@@ -1731,46 +1909,46 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
         ctx.strokeStyle = el.color;
-        ctx.lineWidth = 1.8;
+        ctx.lineWidth = 2.0;
         ctx.stroke();
 
         ctx.fillStyle = el.color;
-        ctx.font = "bold 9px monospace";
-        ctx.fillText(el.label, el.p2.x + 4, el.p2.y + 4);
+        ctx.font = "bold 9.5px monospace";
+        ctx.fillText(el.label, el.p2.x + 5, el.p2.y + 4);
       } else if (el.type === "origin") {
         ctx.beginPath();
-        ctx.rect(el.p.x - 3, el.p.y - 3, 6, 6);
+        ctx.rect(el.p.x - 3.5, el.p.y - 3.5, 7, 7);
         ctx.fillStyle = "#facc15";
         ctx.fill();
         ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.2;
         ctx.stroke();
         ctx.fillStyle = "#facc15";
-        ctx.font = "bold 8.5px monospace";
+        ctx.font = "bold 9px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("(0,0,0)", el.p.x, el.p.y - 6);
+        ctx.fillText("000", el.p.x, el.p.y - 8);
       } else if (el.type === "ewald-center") {
         ctx.beginPath();
         // Draw a crisp cross for Ewald center
-        ctx.moveTo(el.p.x - 4, el.p.y);
-        ctx.lineTo(el.p.x + 4, el.p.y);
-        ctx.moveTo(el.p.x, el.p.y - 4);
-        ctx.lineTo(el.p.x, el.p.y + 4);
+        ctx.moveTo(el.p.x - 5, el.p.y);
+        ctx.lineTo(el.p.x + 5, el.p.y);
+        ctx.moveTo(el.p.x, el.p.y - 5);
+        ctx.lineTo(el.p.x, el.p.y + 5);
         ctx.strokeStyle = "#38bdf8";
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2.0;
         ctx.stroke();
         ctx.fillStyle = "#38bdf8";
-        ctx.font = "bold 8.5px monospace";
+        ctx.font = "bold 9px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("C", el.p.x, el.p.y - 7);
+        ctx.fillText("C (Ewald Center)", el.p.x, el.p.y - 8);
       } else if (el.type === "k-vector") {
         // Draw dashed wave vector
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
         ctx.strokeStyle = el.color;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([3, 3]);
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([4, 3]);
         ctx.stroke();
         ctx.setLineDash([]);
 
@@ -1781,12 +1959,12 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.beginPath();
         ctx.moveTo(headX, headY);
         ctx.lineTo(
-          headX - 6 * Math.cos(angle - Math.PI / 6),
-          headY - 6 * Math.sin(angle - Math.PI / 6),
+          headX - 7 * Math.cos(angle - Math.PI / 6),
+          headY - 7 * Math.sin(angle - Math.PI / 6),
         );
         ctx.lineTo(
-          headX - 6 * Math.cos(angle + Math.PI / 6),
-          headY - 6 * Math.sin(angle + Math.PI / 6),
+          headX - 7 * Math.cos(angle + Math.PI / 6),
+          headY - 7 * Math.sin(angle + Math.PI / 6),
         );
         ctx.closePath();
         ctx.fillStyle = el.color;
@@ -1797,7 +1975,7 @@ export const SelectionRulesModule: React.FC = () => {
         const midY = (el.p1.y + el.p2.y) / 2;
         ctx.fillStyle = el.color;
         ctx.font = "bold 9px monospace";
-        ctx.fillText(el.label, midX, midY - 5);
+        ctx.fillText(el.label, midX, midY - 6);
       } else if (el.type === "node") {
         const isHovered =
           hoveredNode &&
@@ -1811,34 +1989,35 @@ export const SelectionRulesModule: React.FC = () => {
           manualProbe[2] === el.l;
         const isProbeActive = isHovered || isManual;
 
-        const radius = el.isSelected
+        const baseRadius = el.isSelected
           ? isProbeActive
-            ? 8.5
-            : 6.5
+            ? 9.0
+            : 7.0
           : isProbeActive
-            ? 6.0
-            : 3.5;
+            ? 6.5
+            : 4.0;
+        const radius = baseRadius * Math.min(1.5, Math.max(0.6, recipZoom));
 
         // If node satisfies Ewald Sphere reflection, add a sharp highlight box
         if (el.isEwaldIntersecting) {
           ctx.beginPath();
           ctx.rect(
-            el.p.x - (radius + 2),
-            el.p.y - (radius + 2),
-            (radius + 2) * 2,
-            (radius + 2) * 2
+            el.p.x - (radius + 3),
+            el.p.y - (radius + 3),
+            (radius + 3) * 2,
+            (radius + 3) * 2
           );
           ctx.strokeStyle = "#fbbf24"; // sharp yellow
-          ctx.lineWidth = 1;
+          ctx.lineWidth = 1.5;
           ctx.stroke();
         }
 
         // Draw selection halo/pointer ring for hovered or manually focused probe
         if (isProbeActive) {
           ctx.beginPath();
-          ctx.rect(el.p.x - (radius + 4), el.p.y - (radius + 4), (radius + 4) * 2, (radius + 4) * 2);
-          ctx.strokeStyle = isHovered ? "#10b981" : "#8b5cf6"; // sharp green or purple
-          ctx.lineWidth = 1;
+          ctx.rect(el.p.x - (radius + 5), el.p.y - (radius + 5), (radius + 5) * 2, (radius + 5) * 2);
+          ctx.strokeStyle = isHovered ? "#10b981" : "#a855f7"; // sharp green or purple
+          ctx.lineWidth = 1.2;
           ctx.setLineDash([2, 2]);
           ctx.stroke();
           ctx.setLineDash([]);
@@ -1846,63 +2025,143 @@ export const SelectionRulesModule: React.FC = () => {
 
         ctx.beginPath();
         if (el.status === "Allowed") {
-          ctx.rect(el.p.x - radius, el.p.y - radius, radius * 2, radius * 2);
-          ctx.fillStyle = el.isSelected ? "#10b981" : el.isEwaldIntersecting ? "#fbbf24" : "#059669";
+          const grad = ctx.createRadialGradient(
+            el.p.x - radius * 0.35,
+            el.p.y - radius * 0.35,
+            radius * 0.1,
+            el.p.x,
+            el.p.y,
+            radius
+          );
+          if (el.isEwaldIntersecting) {
+            grad.addColorStop(0, "#fef08a");
+            grad.addColorStop(0.5, "#f59e0b");
+            grad.addColorStop(1, "#78350f");
+          } else if (el.isSelected) {
+            grad.addColorStop(0, "#a7f3d0");
+            grad.addColorStop(0.5, "#10b981");
+            grad.addColorStop(1, "#064e3b");
+          } else {
+            grad.addColorStop(0, "#6ee7b7");
+            grad.addColorStop(0.6, "#059669");
+            grad.addColorStop(1, "#022c22");
+          }
+          ctx.arc(el.p.x, el.p.y, radius, 0, 2 * Math.PI);
+          ctx.fillStyle = grad;
           ctx.strokeStyle = el.isSelected ? "#34d399" : el.isEwaldIntersecting ? "#fcd34d" : "#047857";
-          ctx.lineWidth = el.isSelected || isProbeActive ? 1 : 0.5;
+          ctx.lineWidth = el.isSelected || isProbeActive ? 1.5 : 0.8;
         } else {
-          // Forbidden node - draw as a tiny cross or small diamond
+          // Forbidden node - draw sleek ruby diamond with crossed extinction diagonals
           ctx.moveTo(el.p.x - radius, el.p.y);
           ctx.lineTo(el.p.x, el.p.y - radius);
           ctx.lineTo(el.p.x + radius, el.p.y);
           ctx.lineTo(el.p.x, el.p.y + radius);
           ctx.closePath();
           
-          ctx.fillStyle = el.isSelected ? "#ef4444" : "#450a0a";
-          ctx.strokeStyle = el.isSelected ? "#f87171" : "rgba(153, 27, 27, 0.5)";
-          ctx.lineWidth = el.isSelected || isProbeActive ? 1 : 0.5;
+          const fgrad = ctx.createRadialGradient(
+            el.p.x,
+            el.p.y,
+            0,
+            el.p.x,
+            el.p.y,
+            radius
+          );
+          fgrad.addColorStop(0, el.isSelected ? "#fca5a5" : "#7f1d1d");
+          fgrad.addColorStop(1, el.isSelected ? "#b91c1c" : "#300505");
+          ctx.fillStyle = fgrad;
+          ctx.strokeStyle = el.isSelected ? "#f87171" : "rgba(225, 29, 72, 0.4)";
+          ctx.lineWidth = el.isSelected || isProbeActive ? 1.2 : 0.6;
         }
         
-        ctx.globalAlpha = el.isSelected || isProbeActive || el.isEwaldIntersecting ? 1.0 : 0.6;
+        ctx.globalAlpha = el.isSelected || isProbeActive || el.isEwaldIntersecting ? 1.0 : 0.65;
         ctx.fill();
         ctx.stroke();
         ctx.globalAlpha = 1.0;
-        ctx.shadowBlur = 0; // ensure no shadow blur
+        ctx.shadowBlur = 0;
 
         if (el.isSelected || isProbeActive) {
           ctx.fillStyle = el.isSelected ? "#ffffff" : isHovered ? "#34d399" : "#a855f7";
-          ctx.font = isProbeActive ? "bold 8.5px monospace" : "7.5px monospace";
+          ctx.font = isProbeActive ? "bold 9px monospace" : "8px monospace";
           ctx.textAlign = "center";
           ctx.fillText(
             `(${el.h},${el.k},${el.l})`,
             el.p.x,
-            el.p.y - radius - (isProbeActive ? 6 : 4),
+            el.p.y - radius - (isProbeActive ? 7 : 5),
           );
         }
       }
     });
 
+    // Draw 3D Orientation Gimbal in bottom-left
+    const gx = 45;
+    const gy = height - 45;
+    const gLen = 24;
+    const gProject = (vx: number, vy: number, vz: number) => {
+      const x1 = vx * Math.cos(ry) - vz * Math.sin(ry);
+      const z1 = vx * Math.sin(ry) + vz * Math.cos(ry);
+      const y2 = vy * Math.cos(rx) - z1 * Math.sin(rx);
+      return { x: gx + x1 * gLen, y: gy + y2 * gLen };
+    };
+    const ga = gProject(1, 0, 0);
+    const gb = gProject(0, 1, 0);
+    const gc = gProject(0, 0, 1);
+
+    ctx.beginPath();
+    ctx.arc(gx, gy, 28, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(5, 11, 20, 0.88)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    const gAxes = [
+      { p: ga, color: "#ef4444", label: "a*" },
+      { p: gb, color: "#22c55e", label: "b*" },
+      { p: gc, color: "#38bdf8", label: "c*" },
+    ];
+    gAxes.forEach((axis) => {
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.lineTo(axis.p.x, axis.p.y);
+      ctx.strokeStyle = axis.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(axis.p.x, axis.p.y, 2.5, 0, 2 * Math.PI);
+      ctx.fillStyle = axis.color;
+      ctx.fill();
+      ctx.fillStyle = axis.color;
+      ctx.font = "bold 8.5px monospace";
+      ctx.fillText(axis.label, axis.p.x + (axis.p.x > gx ? 5 : -11), axis.p.y + (axis.p.y > gy ? 6 : -3));
+    });
+
     ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
-    ctx.font = "bold 8px monospace";
+    ctx.fillStyle = "rgba(148, 163, 184, 0.7)";
+    ctx.font = "bold 8.5px monospace";
     ctx.textAlign = "left";
     ctx.fillText(
-      `ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}°`,
+      `ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}° | ZOOM: ${(recipZoom * 100).toFixed(0)}%`,
       10,
       15,
     );
-    ctx.fillText("DRAG ORBIT / CLICK NODE TO TOGGLE ARRAY", 10, 26);
+    ctx.fillText("DRAG ROTATE | SHIFT+DRAG PAN | SCROLL ZOOM | CLICK NODE TO TOGGLE", 10, 27);
   }, [
     hklInput,
     recipRotation,
+    recipZoom,
+    recipPan,
     system,
     hoveredNode,
     manualProbe,
     maxIndex,
     projectionMode,
     showEwaldSphere,
+    showLimitingSphere,
+    showBrillouinZone,
+    showRecipVectors,
     wavelength,
     latticeParameter,
+    beamRotationTheta,
     laueZoneFilter,
     filterAllowedOnly,
   ]);
@@ -2027,8 +2286,7 @@ export const SelectionRulesModule: React.FC = () => {
 
   useEffect(() => {
     handleValidate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [system]);
+  }, [system, hklInput]);
 
   const handleSave = () => {
     if (results.length === 0) return;
@@ -3218,19 +3476,57 @@ export const SelectionRulesModule: React.FC = () => {
                   onMouseDown={handleRecipMouseDown}
                   onMouseMove={handleRecipMouseMove}
                   onMouseUp={handleRecipMouseUp}
+                  onWheel={handleRecipWheel}
                   onMouseLeave={() => {
                     setIsRecipDragging(false);
                     setHoveredNode(null);
                   }}
-                  className="w-full h-[320px] block"
+                  className="w-full h-[330px] block"
                 />
-                <div className="absolute top-3 right-3 flex flex-col items-end gap-2 pointer-events-none">
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+
+                {/* Overlay Interactive Camera & Zoom Controls */}
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 z-20">
+                  <div className="flex rounded-none border border-white/10 bg-black/80 backdrop-blur-md p-0.5 shadow-lg">
+                    <button
+                      type="button"
+                      title="Zoom In"
+                      onClick={() => setRecipZoom((z) => Math.min(3.0, z * 1.15))}
+                      className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 text-xs font-mono font-bold transition-all"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      title="Zoom Out"
+                      onClick={() => setRecipZoom((z) => Math.max(0.4, z / 1.15))}
+                      className="w-6 h-6 flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 text-xs font-mono font-bold transition-all"
+                    >
+                      -
+                    </button>
+                    <button
+                      type="button"
+                      title="Reset Pan & Zoom"
+                      onClick={() => {
+                        setRecipZoom(1.0);
+                        setRecipPan({ x: 0, y: 0 });
+                      }}
+                      className="px-2 h-6 flex items-center justify-center text-slate-400 hover:text-emerald-300 hover:bg-white/10 text-[9px] font-mono font-bold uppercase transition-all border-l border-white/10"
+                    >
+                      1:1
+                    </button>
+                  </div>
+                </div>
+
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-2 pointer-events-none z-20">
+                  <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-none border border-white/10 shadow-lg">
-                      DRAG TO ROTATE
+                      DRAG ROTATE
                     </span>
                     <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-none border border-white/10 shadow-lg">
-                      CLICK TO TOGGLE HKL
+                      SHIFT+DRAG PAN
+                    </span>
+                    <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-none border border-white/10 shadow-lg">
+                      SCROLL ZOOM
                     </span>
                   </div>
                   
@@ -3245,9 +3541,21 @@ export const SelectionRulesModule: React.FC = () => {
                       <span className="text-rose-400">Forbidden</span>
                     </div>
                     {showEwaldSphere && (
-                      <div className="flex items-center gap-2 mt-1 pt-1 border-t border-white/10">
+                      <div className="flex items-center gap-2 mt-0.5 pt-1 border-t border-white/10">
                         <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)] border border-amber-400" />
                         <span className="text-amber-400">Diffracting</span>
+                      </div>
+                    )}
+                    {showLimitingSphere && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-0.5 border-b border-dashed border-rose-400" />
+                        <span className="text-rose-300">2/λ Sphere</span>
+                      </div>
+                    )}
+                    {showBrillouinZone && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-0.5 bg-sky-400" />
+                        <span className="text-sky-300">1st BZ</span>
                       </div>
                     )}
                   </div>
@@ -3500,6 +3808,41 @@ export const SelectionRulesModule: React.FC = () => {
                       </button>
                     </div>
 
+                    {/* Limiting Sphere & Brillouin Zone toggles */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        Limiting Sphere:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowLimitingSphere(!showLimitingSphere)}
+                        className={`px-3 py-1 rounded-none border text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
+                          showLimitingSphere
+                            ? "bg-rose-500/15 border-rose-500/30 text-rose-300 shadow-[inset_0_1px_4px_rgba(244,63,94,0.2)]"
+                            : "bg-black/50 border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20"
+                        }`}
+                      >
+                        {showLimitingSphere ? "2/λ (ON)" : "OFF"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        1st Brillouin Zone:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowBrillouinZone(!showBrillouinZone)}
+                        className={`px-3 py-1 rounded-none border text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
+                          showBrillouinZone
+                            ? "bg-sky-500/15 border-sky-500/30 text-sky-300 shadow-[inset_0_1px_4px_rgba(56,189,248,0.2)]"
+                            : "bg-black/50 border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20"
+                        }`}
+                      >
+                        {showBrillouinZone ? "1st BZ (ON)" : "OFF"}
+                      </button>
+                    </div>
+
                     {/* Filter Allowed Only Toggle */}
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
@@ -3515,6 +3858,24 @@ export const SelectionRulesModule: React.FC = () => {
                         }`}
                       >
                         {filterAllowedOnly ? "ALLOWED ONLY" : "ALL NODES"}
+                      </button>
+                    </div>
+
+                    {/* Wave & Recip Vectors toggle */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        Vectors (k, g*):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowRecipVectors(!showRecipVectors)}
+                        className={`px-3 py-1 rounded-none border text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
+                          showRecipVectors
+                            ? "bg-amber-500/15 border-amber-500/30 text-amber-300 shadow-[inset_0_1px_4px_rgba(245,158,11,0.2)]"
+                            : "bg-black/50 border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20"
+                        }`}
+                      >
+                        {showRecipVectors ? "SHOW" : "HIDE"}
                       </button>
                     </div>
 
@@ -3542,8 +3903,36 @@ export const SelectionRulesModule: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Right Column Sliders */}
+                  {/* Right Column Sliders & Radiation presets */}
                   <div className="space-y-4">
+                    {/* Radiation Presets Quick Bar */}
+                    <div className="space-y-1.5">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest font-mono block">
+                        Radiation Source Preset:
+                      </span>
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { label: "Cu-Kα", wl: 1.5406 },
+                          { label: "Mo-Kα", wl: 0.7107 },
+                          { label: "Co-Kα", wl: 1.7890 },
+                          { label: "Cr-Kα", wl: 2.2897 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => setWavelength(preset.wl)}
+                            className={`px-1.5 py-1 text-[8.5px] font-mono font-bold uppercase tracking-wider rounded-none border transition-all ${
+                              Math.abs(wavelength - preset.wl) < 0.001
+                                ? "bg-sky-500/20 border-sky-500/50 text-sky-300 font-black"
+                                : "bg-black/60 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Wavelength */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-[10px] font-mono">
@@ -3565,6 +3954,40 @@ export const SelectionRulesModule: React.FC = () => {
                         }
                         className="w-full h-1.5 bg-black rounded-none appearance-none cursor-pointer accent-sky-400 transition-all hover:bg-slate-800 border border-white/5"
                       />
+                    </div>
+
+                    {/* Incident Beam Tilt θ_beam */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-slate-500 uppercase tracking-widest font-bold">
+                          Incident Beam Tilt (θ):
+                        </span>
+                        <span className="text-amber-400 font-black drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]">
+                          {beamRotationTheta.toFixed(1)}°
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min="-45"
+                          max="45"
+                          step="1"
+                          value={String(beamRotationTheta) === 'NaN' ? '' : beamRotationTheta}
+                          onChange={(e) =>
+                            setBeamRotationTheta(parseFloat(e.target.value))
+                          }
+                          className="w-full h-1.5 bg-black rounded-none appearance-none cursor-pointer accent-amber-400 transition-all hover:bg-slate-800 border border-white/5"
+                        />
+                        {beamRotationTheta !== 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setBeamRotationTheta(0)}
+                            className="px-1.5 py-0.5 text-[8px] font-mono text-slate-400 hover:text-white border border-white/10 bg-black/60 shrink-0"
+                          >
+                            0°
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Lattice constant a */}
@@ -4714,176 +5137,262 @@ export const SelectionRulesModule: React.FC = () => {
       {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
         
-        <ScientificMathControl
-          title="FCC Structure Factor & Systematic Absences"
-          formula="F_{hkl} = f \cdot [1 + e^{i\pi(h+k)} + e^{i\pi(k+l)} + e^{i\pi(h+l)}]"
-          description="Verify selection rules and systematic absences. FCC reflections are allowed only if all indices (h, k, l) are unmixed (all even or all odd), yielding F = 4f."
-          variables={[
-            { symbol: 'h', name: 'Miller index h', value: (results[0]?.hkl[0] !== undefined ? results[0].hkl[0] : 1), unit: '' },
-            { symbol: 'k', name: 'Miller index k', value: (results[0]?.hkl[1] !== undefined ? results[0].hkl[1] : 1), unit: '' },
-            { symbol: 'l', name: 'Miller index l', value: (results[0]?.hkl[2] !== undefined ? results[0].hkl[2] : 1), unit: '' },
-            { symbol: 'f', name: 'Scattering Factor f', value: 1.0, unit: '' }
-          ]}
-          result={
-            (() => {
-              const h = results[0]?.hkl[0] !== undefined ? results[0].hkl[0] : 1;
-              const k = results[0]?.hkl[1] !== undefined ? results[0].hkl[1] : 1;
-              const l = results[0]?.hkl[2] !== undefined ? results[0].hkl[2] : 1;
-              const hEven = h % 2 === 0;
-              const kEven = k % 2 === 0;
-              const lEven = l % 2 === 0;
-              return (hEven === kEven && kEven === lEven) ? 4.0 : 0.0;
-            })()
-          }
-          resultUnit=""
-          resultName="Structure Factor F"
-        />
+        {/* Graphic Suite Mode Selection Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#050B14]/90 p-2.5 rounded-2xl border border-[#1e293b] backdrop-blur-md">
+          <div className="flex items-center gap-1.5 overflow-x-auto p-1">
+            <button
+              onClick={() => setResultsGraphicTab("DIFFRACTION_RINGS")}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                resultsGraphicTab === "DIFFRACTION_RINGS"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>2D Detector & Ring Graphic</span>
+            </button>
 
-        <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[600px] relative">
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
-          <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-            <div>
-              <h3 className="text-lg font-bold text-white">
-                Validation Results
-              </h3>
-              <p className="text-xs text-slate-400 font-medium mt-1">
-                Systematic absences for{" "}
-                {systemDetails[system as keyof typeof systemDetails].title}
-              </p>
-            </div>
+            <button
+              onClick={() => setResultsGraphicTab("PHASOR_ARGAND")}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                resultsGraphicTab === "PHASOR_ARGAND"
+                  ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-lg shadow-sky-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>F(hkl) Phasor Argand Diagram</span>
+            </button>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-none border border-[#1e293b]">
-                {(["All", "Allowed", "Forbidden"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-none transition-all ${
-                      filter === f
-                        ? "bg-emerald-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-white hover:bg-slate-700"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                onClick={handleSave}
-                disabled={results.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black rounded-none transition-all border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save uppercase tracking-widest"
-              >
-                <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-                Save CSV
-              </button>
-            </div>
+            <button
+              onClick={() => setResultsGraphicTab("VALIDATION_MATRIX")}
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                resultsGraphicTab === "VALIDATION_MATRIX"
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Systematic Absences Table</span>
+              <span className="text-[10px] bg-black/40 px-1.5 py-0.5 rounded text-slate-300">
+                {results.length}
+              </span>
+            </button>
           </div>
 
-          <div className="flex-1 overflow-auto">
-            {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 p-12 text-center border-t border-[#1e293b]/50">
-                <div className="relative group/empty mb-6">
-                  <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-xl group-hover/empty:bg-emerald-500/20 transition-all duration-700" />
-                  <div className="w-20 h-20 rounded-none bg-[#0B1221] border border-[#1e293b] flex items-center justify-center relative z-10 group-hover/empty:border-emerald-500/30 transition-colors">
-                    <Hexagon className="w-10 h-10 text-slate-600 group-hover/empty:text-emerald-500/50 transition-colors" />
-                  </div>
-                </div>
-                <h4 className="text-lg font-black text-white mb-2 tracking-wide">
-                  Awaiting Lattice Vectors
-                </h4>
-                <p className="text-sm font-medium text-slate-500 max-w-sm leading-relaxed">
-                  Enter custom HKL indices in the configuration panel or use the
-                  Index Synthesis engine to generate a theoretical reflection
-                  dataset.
-                </p>
-                <div className="mt-8 flex gap-2 items-center">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500/50 animate-pulse" />
-                  <span className="text-[10px] font-mono text-emerald-400/70 uppercase tracking-widest">
-                    Engine Ready
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-[#0B1221] border-b border-[#1e293b]">
-                    <tr>
-                      <th className="px-8 py-4 font-bold">
-                        Reflection (h k l)
-                      </th>
-                      <th className="px-8 py-4 font-bold">Status</th>
-                      <th className="px-8 py-4 font-bold">Physical Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1e293b]">
-                    <AnimatePresence mode="popLayout">
-                      {filteredResults.map((res, index) => (
-                        <motion.tr
-                          layout
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          key={`${res.hkl.join("-")}-${index}`}
-                          className="group hover:bg-[#0B1221] transition-colors"
-                        >
-                          <td className="px-8 py-5">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-2 h-2 rounded-full ${res.status === "Allowed" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
-                              />
-                              <span className="font-mono font-bold text-white text-base">
-                                ({res.hkl.join(" ")})
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-8 py-5">
-                            <div
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-none text-[10px] font-black uppercase tracking-tighter border ${
-                                res.status === "Allowed"
-                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                  : "bg-red-500/10 text-red-400 border-red-500/20"
-                              }`}
-                            >
-                              {res.status === "Allowed" ? (
-                                <CheckCircle2 className="w-3 h-3" />
-                              ) : (
-                                <XCircle className="w-3 h-3" />
-                              )}
-                              {res.status}
-                            </div>
-                          </td>
-                          <td className="px-8 py-5">
-                            <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-full group-hover:text-slate-300 transition-colors">
-                              {res.reason}
-                            </p>
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </AnimatePresence>
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          <div className="p-4 bg-[#0B1221] border-t border-[#1e293b] flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            <div className="flex gap-6">
-              <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-none border border-emerald-500/20 text-emerald-400">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                Allowed: {results.filter((r) => r.status === "Allowed").length}
-              </span>
-              <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-none border border-red-500/20 text-red-400">
-                <div className="w-2 h-2 rounded-full bg-red-500" />
-                Forbidden:{" "}
-                {results.filter((r) => r.status === "Forbidden").length}
-              </span>
-            </div>
-            <span className="bg-slate-800 px-3 py-1.5 rounded-none border border-slate-700 text-slate-300">
-              Total: {results.length}
+          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 px-3">
+            <span className="flex items-center gap-1 text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {results.filter((r) => r.status === "Allowed").length} Allowed
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="flex items-center gap-1 text-rose-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              {results.filter((r) => r.status === "Forbidden").length} Forbidden
             </span>
           </div>
         </div>
+
+        {/* Dynamic Graphic View based on selected tab */}
+        {resultsGraphicTab === "DIFFRACTION_RINGS" && (
+          <DiffractionRingVisualizer
+            results={results}
+            system={system}
+            latticeParameter={latticeParameter}
+            onSelectHkl={(h, k, l) => {
+              setManualProbe([h, k, l]);
+              setSandboxH(h);
+              setSandboxK(k);
+              setSandboxL(l);
+            }}
+          />
+        )}
+
+        {resultsGraphicTab === "PHASOR_ARGAND" && (
+          <StructureFactorPhasorDiagram
+            system={system}
+            initialH={results[0]?.hkl[0] ?? 1}
+            initialK={results[0]?.hkl[1] ?? 1}
+            initialL={results[0]?.hkl[2] ?? 1}
+            onSelectHkl={(h, k, l) => {
+              setManualProbe([h, k, l]);
+              setSandboxH(h);
+              setSandboxK(k);
+              setSandboxL(l);
+            }}
+          />
+        )}
+
+        {resultsGraphicTab === "VALIDATION_MATRIX" && (
+          <>
+            <ScientificMathControl
+              title={`${system} Structure Factor & Systematic Absences`}
+              formula={systemDetails[system as keyof typeof systemDetails]?.formula || "F_{hkl} = \\sum f_j e^{2\\pi i (h x_j + k y_j + l z_j)}"}
+              description={`Verify selection rules and systematic absences for ${systemDetails[system as keyof typeof systemDetails]?.title || system}. ${systemDetails[system as keyof typeof systemDetails]?.rule || ""}`}
+              variables={[
+                { symbol: 'h', name: 'Miller index h', value: (results[0]?.hkl[0] !== undefined ? results[0].hkl[0] : 1), unit: '' },
+                { symbol: 'k', name: 'Miller index k', value: (results[0]?.hkl[1] !== undefined ? results[0].hkl[1] : 1), unit: '' },
+                { symbol: 'l', name: 'Miller index l', value: (results[0]?.hkl[2] !== undefined ? results[0].hkl[2] : 1), unit: '' },
+                { symbol: 'f', name: 'Scattering Factor f', value: 1.0, unit: '' }
+              ]}
+              result={
+                (() => {
+                  const first = results[0];
+                  if (!first) return 0;
+                  return first.status === "Allowed" ? 4.0 : 0.0;
+                })()
+              }
+              resultUnit=""
+              resultName="Structure Factor |F|"
+            />
+
+            <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[500px] relative">
+              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
+              <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    Validation Results
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium mt-1">
+                    Systematic absences for{" "}
+                    {systemDetails[system as keyof typeof systemDetails].title}
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-none border border-[#1e293b]">
+                    {(["All", "Allowed", "Forbidden"] as const).map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className={`px-4 py-1.5 text-xs font-bold rounded-none transition-all ${
+                          filter === f
+                            ? "bg-emerald-600 text-white shadow-md"
+                            : "text-slate-400 hover:text-white hover:bg-slate-700"
+                        }`}
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleSave}
+                    disabled={results.length === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black rounded-none transition-all border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save uppercase tracking-widest"
+                  >
+                    <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                    Save CSV
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-auto">
+                {results.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 p-12 text-center border-t border-[#1e293b]/50">
+                    <div className="relative group/empty mb-6">
+                      <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-xl group-hover/empty:bg-emerald-500/20 transition-all duration-700" />
+                      <div className="w-20 h-20 rounded-none bg-[#0B1221] border border-[#1e293b] flex items-center justify-center relative z-10 group-hover/empty:border-emerald-500/30 transition-colors">
+                        <Hexagon className="w-10 h-10 text-slate-600 group-hover/empty:text-emerald-500/50 transition-colors" />
+                      </div>
+                    </div>
+                    <h4 className="text-lg font-black text-white mb-2 tracking-wide">
+                      Awaiting Lattice Vectors
+                    </h4>
+                    <p className="text-sm font-medium text-slate-500 max-w-sm leading-relaxed">
+                      Enter custom HKL indices in the configuration panel or use the
+                      Index Synthesis engine to generate a theoretical reflection
+                      dataset.
+                    </p>
+                    <div className="mt-8 flex gap-2 items-center">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500/50 animate-pulse" />
+                      <span className="text-[10px] font-mono text-emerald-400/70 uppercase tracking-widest">
+                        Engine Ready
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-[#0B1221] border-b border-[#1e293b]">
+                        <tr>
+                          <th className="px-8 py-4 font-bold">
+                            Reflection (h k l)
+                          </th>
+                          <th className="px-8 py-4 font-bold">Status</th>
+                          <th className="px-8 py-4 font-bold">Physical Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1e293b]">
+                        <AnimatePresence mode="popLayout">
+                          {filteredResults.map((res, index) => (
+                            <motion.tr
+                              layout
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              key={`${res.hkl.join("-")}-${index}`}
+                              className="group hover:bg-[#0B1221] transition-colors"
+                            >
+                              <td className="px-8 py-5">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`w-2 h-2 rounded-full ${res.status === "Allowed" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
+                                  />
+                                  <span className="font-mono font-bold text-white text-base">
+                                    ({res.hkl.join(" ")})
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <div
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-none text-[10px] font-black uppercase tracking-tighter border ${
+                                    res.status === "Allowed"
+                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                      : "bg-red-500/10 text-red-400 border-red-500/20"
+                                  }`}
+                                >
+                                  {res.status === "Allowed" ? (
+                                    <CheckCircle2 className="w-3 h-3" />
+                                  ) : (
+                                    <XCircle className="w-3 h-3" />
+                                  )}
+                                  {res.status}
+                                </div>
+                              </td>
+                              <td className="px-8 py-5">
+                                <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-full group-hover:text-slate-300 transition-colors">
+                                  {res.reason}
+                                </p>
+                              </td>
+                            </motion.tr>
+                          ))}
+                        </AnimatePresence>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 bg-[#0B1221] border-t border-[#1e293b] flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                <div className="flex gap-6">
+                  <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-none border border-emerald-500/20 text-emerald-400">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Allowed: {results.filter((r) => r.status === "Allowed").length}
+                  </span>
+                  <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-none border border-red-500/20 text-red-400">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    Forbidden:{" "}
+                    {results.filter((r) => r.status === "Forbidden").length}
+                  </span>
+                </div>
+                <span className="bg-slate-800 px-3 py-1.5 rounded-none border border-slate-700 text-slate-300">
+                  Total: {results.length}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

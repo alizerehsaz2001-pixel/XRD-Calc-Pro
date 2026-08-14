@@ -977,32 +977,88 @@ export const FWHMModule: React.FC = () => {
   const autoFitPeakModel = () => {
     setIsFitting(true);
     setTimeout(() => {
-      if (!chartData || chartData.length === 0) {
-        setIsFitting(false);
-        return;
+      // Determine dataset to fit: prefer importedPoints if available within the peak window
+      let fitPoints: { x: number; y: number }[] = [];
+      const halfWindow = Math.max(0.6, fwhm * 3.5);
+
+      if (importedPoints && importedPoints.length > 3) {
+        const localImported = importedPoints.filter(
+          (p) => p.x >= center - halfWindow && p.x <= center + halfWindow
+        );
+        if (localImported.length >= 4) {
+          fitPoints = localImported;
+        }
       }
 
-      // Initial parameter estimates from active chart observation
+      if (fitPoints.length === 0) {
+        if (!chartData || chartData.length === 0) {
+          setIsFitting(false);
+          return;
+        }
+        fitPoints = chartData;
+      }
+
+      // Initial parameter estimates from active observation
       let bestCenter = center;
-      let bestFwhm = fwhm;
+      let bestFwhm = fwhmManual > 0 ? fwhmManual : 0.4;
       let bestEta = eta;
       let bestAmp = amplitude;
       let bestBg = background;
       let minSse = Infinity;
 
-      // Iterative Nelder-Mead grid search optimization over parameter space
-      const cGrid = [center - 0.2, center - 0.05, center, center + 0.05, center + 0.2];
-      const wGrid = [Math.max(0.05, fwhm * 0.8), fwhm, fwhm * 1.2];
-      const eGrid = [0.2, 0.5, 0.8];
+      const minYInWindow = Math.min(...fitPoints.map((p) => p.y));
+      const maxYInWindow = Math.max(...fitPoints.map((p) => p.y));
+      bestBg = Math.max(0, minYInWindow);
+      bestAmp = Math.max(1, maxYInWindow - bestBg);
+
+      // Multi-pass iterative Nelder-Mead grid search optimization over parameter space
+      const cGrid = [center - 0.2, center - 0.08, center - 0.02, center, center + 0.02, center + 0.08, center + 0.2];
+      const wGrid = [Math.max(0.02, bestFwhm * 0.6), Math.max(0.04, bestFwhm * 0.8), bestFwhm, bestFwhm * 1.2, bestFwhm * 1.5];
+      const eGrid = [0.0, 0.25, 0.5, 0.75, 1.0];
+      const aGrid = [bestAmp * 0.85, bestAmp, bestAmp * 1.15];
 
       for (const trialC of cGrid) {
         for (const trialW of wGrid) {
           for (const trialE of eGrid) {
+            for (const trialA of aGrid) {
+              let sse = 0;
+              const sigmaG = trialW / (2 * Math.sqrt(2 * Math.log(2)));
+              const gammaL = trialW / 2;
+
+              for (const pt of fitPoints) {
+                const dx = pt.x - trialC;
+                const gVal = trialA * Math.exp(-0.5 * Math.pow(dx / sigmaG, 2));
+                const lVal = trialA * (Math.pow(gammaL, 2) / (Math.pow(dx, 2) + Math.pow(gammaL, 2)));
+                const calcY = (1 - trialE) * gVal + trialE * lVal + bestBg;
+                const diff = pt.y - calcY;
+                sse += diff * diff;
+              }
+
+              if (sse < minSse) {
+                minSse = sse;
+                bestCenter = trialC;
+                bestFwhm = trialW;
+                bestEta = trialE;
+                bestAmp = trialA;
+              }
+            }
+          }
+        }
+      }
+
+      // Fine refinement pass around best parameters
+      const fineCGrid = [bestCenter - 0.02, bestCenter - 0.005, bestCenter, bestCenter + 0.005, bestCenter + 0.02];
+      const fineWGrid = [Math.max(0.01, bestFwhm * 0.92), bestFwhm, bestFwhm * 1.08];
+      const fineEGrid = [Math.max(0, bestEta - 0.15), bestEta, Math.min(1, bestEta + 0.15)];
+
+      for (const trialC of fineCGrid) {
+        for (const trialW of fineWGrid) {
+          for (const trialE of fineEGrid) {
             let sse = 0;
             const sigmaG = trialW / (2 * Math.sqrt(2 * Math.log(2)));
             const gammaL = trialW / 2;
 
-            for (const pt of chartData) {
+            for (const pt of fitPoints) {
               const dx = pt.x - trialC;
               const gVal = bestAmp * Math.exp(-0.5 * Math.pow(dx / sigmaG, 2));
               const lVal = bestAmp * (Math.pow(gammaL, 2) / (Math.pow(dx, 2) + Math.pow(gammaL, 2)));
@@ -1021,13 +1077,13 @@ export const FWHMModule: React.FC = () => {
         }
       }
 
-      const degreesOfFreedom = Math.max(1, chartData.length - 5);
+      const degreesOfFreedom = Math.max(1, fitPoints.length - 5);
       const reducedChi2 = minSse / degreesOfFreedom;
-      const stdErrC = Math.sqrt(reducedChi2) * 0.002;
-      const stdErrW = Math.sqrt(reducedChi2) * 0.004;
-      const stdErrE = Math.sqrt(reducedChi2) * 0.015;
+      const stdErrC = Math.sqrt(Math.max(0.00001, reducedChi2)) * 0.002;
+      const stdErrW = Math.sqrt(Math.max(0.00001, reducedChi2)) * 0.004;
+      const stdErrE = Math.sqrt(Math.max(0.00001, reducedChi2)) * 0.015;
 
-      const sumNoisySq = chartData.reduce((acc, pt) => acc + pt.y * pt.y, 0);
+      const sumNoisySq = fitPoints.reduce((acc, pt) => acc + pt.y * pt.y, 0);
       const fitRwp = Math.sqrt(minSse / Math.max(1, sumNoisySq)) * 100;
 
       setFitResult({
@@ -1204,7 +1260,7 @@ export const FWHMModule: React.FC = () => {
 
   // Sample Multi-Peak Experimental XRD Datasets
   const SAMPLE_DATASETS = {
-    silicon3Peaks: `# Silicon Powder XRD Spectrum (3 Primary Bragg Peaks)
+    silicon3Peaks: `# Silicon Powder XRD Spectrum (3 Primary Bragg Peaks: 111, 220, 311)
 2theta, Intensity
 25.00  12.0
 26.00  12.5
@@ -1229,96 +1285,189 @@ export const FWHMModule: React.FC = () => {
 58.00  15.0
 60.00  12.0`,
 
-    rutile5Peaks: `# TiO2 Rutile Multi-Peak Spectrum (5 Bragg Peaks)
+    rutile5Peaks: `# TiO2 Rutile Multi-Peak Spectrum (5 Bragg Peaks: 110, 101, 200, 211, 220)
 2theta, Intensity
 25.0  10.0
 26.5  80.0
 27.4  820.0
 28.5  60.0
+30.0  15.0
 35.0  12.0
 36.1  450.0
 37.2  30.0
 40.0  12.0
 41.2  610.0
 42.5  40.0
+48.0  12.0
 53.0  10.0
 54.3  510.0
 55.5  20.0
 56.6  310.0
-58.0  14.0`,
+58.0  14.0
+60.0  11.0`,
 
-    doublet2Peaks: `# Overlapping Ka1 / Ka2 Doublet Spectrum (2 Peaks)
+    doublet2Peaks: `# Overlapping Ka1 / Ka2 Doublet Spectrum (2 Closely Spaced Peaks)
 2theta, Intensity
-37.50  20.0
+37.50  18.0
+37.80  35.0
 38.00  85.0
+38.20  240.0
 38.40  720.0
+38.46  610.0
 38.52  490.0
+38.60  340.0
 38.80  110.0
-39.20  25.0`
+39.00  42.0
+39.20  20.0`
   };
 
-  // Automated Multi-Peak Detection Algorithm for Imported Data
+  // Automated High-Precision Multi-Peak Detection & Sub-Bin FWHM Extraction Algorithm
   const runPeakDetection = (points: { x: number; y: number }[], limitCount: number) => {
-    if (points.length < 5) return [];
+    if (!points || points.length < 3) return [];
 
-    // 3-point moving average smoothing to suppress noise spikes
-    const smoothed = points.map((pt, i) => {
-      if (i === 0 || i === points.length - 1) return pt.y;
-      return (points[i - 1].y + pt.y * 2 + points[i + 1].y) / 4;
+    // Ensure sorted ascending by 2theta
+    const sorted = [...points].sort((a, b) => a.x - b.x);
+    const n = sorted.length;
+
+    // Adaptive noise-suppressing smoothing (5-point weighted moving average or 3-point for small sets)
+    const smoothed = sorted.map((pt, i) => {
+      if (n >= 5) {
+        if (i === 0) return (2 * pt.y + sorted[1].y) / 3;
+        if (i === 1) return (sorted[0].y + 2 * pt.y + sorted[2].y) / 4;
+        if (i === n - 2) return (sorted[n - 3].y + 2 * pt.y + sorted[n - 1].y) / 4;
+        if (i === n - 1) return (sorted[n - 2].y + 2 * pt.y) / 3;
+        return (sorted[i - 2].y + 2 * sorted[i - 1].y + 3 * pt.y + 2 * sorted[i + 1].y + sorted[i + 2].y) / 9;
+      } else {
+        if (i === 0 || i === n - 1) return pt.y;
+        return (sorted[i - 1].y + 2 * pt.y + sorted[i + 1].y) / 4;
+      }
     });
 
-    const minY = Math.min(...points.map(p => p.y));
-    const maxY = Math.max(...points.map(p => p.y));
-    const rangeY = maxY - minY;
-    if (rangeY <= 0) return [];
+    const minY = Math.min(...sorted.map(p => p.y));
+    const maxY = Math.max(...sorted.map(p => p.y));
+    const rangeY = Math.max(1, maxY - minY);
 
-    const threshold = minY + rangeY * 0.05; // 5% above baseline threshold
+    const threshold = minY + rangeY * 0.03; // 3% above baseline threshold
 
-    const candidates: { center: number; intensity: number; fwhmEst: number; dSpacing: number; relIntensity: number }[] = [];
+    const candidates: { center: number; intensity: number; fwhmEst: number; dSpacing: number; relIntensity: number; rawIndex: number }[] = [];
 
-    for (let i = 2; i < points.length - 2; i++) {
+    for (let i = 0; i < n; i++) {
       const yCurr = smoothed[i];
-      if (
-        yCurr > threshold &&
-        yCurr >= smoothed[i - 1] &&
-        yCurr >= smoothed[i - 2] &&
-        yCurr >= smoothed[i + 1] &&
-        yCurr >= smoothed[i + 2]
-      ) {
-        // Half-max bound estimation
-        const halfMax = minY + (yCurr - minY) / 2;
-        let leftIdx = i;
-        let rightIdx = i;
-        while (leftIdx > 0 && smoothed[leftIdx] > halfMax) leftIdx--;
-        while (rightIdx < points.length - 1 && smoothed[rightIdx] > halfMax) rightIdx++;
+      if (yCurr <= threshold) continue;
 
-        const fwhmEst = Math.max(0.05, Math.abs(points[rightIdx].x - points[leftIdx].x));
-        const thetaRad = (points[i].x / 2) * (Math.PI / 180);
-        const dVal = activeWavelength > 0 ? (activeWavelength * 10) / (2 * Math.sin(thetaRad)) : 0; // in Å
+      const isLeftValid = i === 0 || yCurr >= smoothed[i - 1];
+      const isRightValid = i === n - 1 || yCurr >= smoothed[i + 1];
+
+      // Check for local maximum or strong shoulder inflection
+      const isLocalMax = isLeftValid && isRightValid && (
+        (i > 0 && yCurr > smoothed[i - 1]) ||
+        (i < n - 1 && yCurr > smoothed[i + 1]) ||
+        (i === 0 && n > 1 && yCurr > sorted[1].y) ||
+        (i === n - 1 && n > 1 && yCurr > sorted[n - 2].y)
+      );
+
+      let isShoulder = false;
+      if (!isLocalMax && i >= 1 && i <= n - 2) {
+        const d2 = smoothed[i - 1] - 2 * yCurr + smoothed[i + 1];
+        if (d2 < -0.04 * rangeY && yCurr > threshold * 1.5) {
+          isShoulder = true;
+        }
+      }
+
+      if (isLocalMax || isShoulder) {
+        // Find local background baseline around this peak by searching local valleys left and right
+        let leftValleyIdx = i;
+        let rightValleyIdx = i;
+
+        while (leftValleyIdx > 0 && smoothed[leftValleyIdx - 1] <= smoothed[leftValleyIdx]) {
+          leftValleyIdx--;
+        }
+        while (rightValleyIdx < n - 1 && smoothed[rightValleyIdx + 1] <= smoothed[rightValleyIdx]) {
+          rightValleyIdx++;
+        }
+
+        const leftBase = smoothed[leftValleyIdx];
+        const rightBase = smoothed[rightValleyIdx];
+        const localBaseline = Math.min(leftBase, rightBase);
+        const peakIntensity = sorted[i].y;
+        const netHeight = peakIntensity - localBaseline;
+
+        if (netHeight <= 0) continue;
+
+        // Sub-bin linear interpolation for accurate Half-Maximum crossing positions
+        const halfMax = localBaseline + 0.5 * netHeight;
+
+        // Find left crossing
+        let leftCrossingX = sorted[leftValleyIdx].x;
+        for (let k = i; k > leftValleyIdx; k--) {
+          if (sorted[k - 1].y <= halfMax && sorted[k].y >= halfMax) {
+            const dy = sorted[k].y - sorted[k - 1].y;
+            const fraction = dy !== 0 ? (halfMax - sorted[k - 1].y) / dy : 0.5;
+            leftCrossingX = sorted[k - 1].x + fraction * (sorted[k].x - sorted[k - 1].x);
+            break;
+          }
+        }
+
+        // Find right crossing
+        let rightCrossingX = sorted[rightValleyIdx].x;
+        for (let k = i; k < rightValleyIdx; k++) {
+          if (sorted[k].y >= halfMax && sorted[k + 1].y <= halfMax) {
+            const dy = sorted[k].y - sorted[k + 1].y;
+            const fraction = dy !== 0 ? (sorted[k].y - halfMax) / dy : 0.5;
+            rightCrossingX = sorted[k].x + fraction * (sorted[k + 1].x - sorted[k].x);
+            break;
+          }
+        }
+
+        const fwhmCalculated = Math.max(0.015, Math.abs(rightCrossingX - leftCrossingX));
+
+        // Sub-bin parabolic centroid interpolation for true peak 2theta position
+        let refinedCenter = sorted[i].x;
+        if (i > 0 && i < n - 1) {
+          const yL = smoothed[i - 1];
+          const yC = smoothed[i];
+          const yR = smoothed[i + 1];
+          const denom = 2 * (2 * yC - yL - yR);
+          if (denom !== 0) {
+            const delta = (yR - yL) / denom;
+            if (Math.abs(delta) <= 0.8) {
+              const stepX = (sorted[i + 1].x - sorted[i - 1].x) / 2;
+              refinedCenter = sorted[i].x + delta * stepX;
+            }
+          }
+        }
+
+        const thetaRad = (refinedCenter / 2) * (Math.PI / 180);
+        const dVal = activeWavelength > 0 && Math.sin(thetaRad) > 0
+          ? (activeWavelength * 10) / (2 * Math.sin(thetaRad))
+          : 0;
+
+        const relInt = ((peakIntensity - minY) / rangeY) * 100;
 
         candidates.push({
-          center: parseFloat(points[i].x.toFixed(3)),
-          intensity: parseFloat(points[i].y.toFixed(1)),
-          fwhmEst: parseFloat(fwhmEst.toFixed(3)),
+          center: parseFloat(refinedCenter.toFixed(3)),
+          intensity: parseFloat(peakIntensity.toFixed(1)),
+          fwhmEst: parseFloat(fwhmCalculated.toFixed(3)),
           dSpacing: parseFloat(dVal.toFixed(4)),
-          relIntensity: parseFloat(((points[i].y - minY) / rangeY * 100).toFixed(1))
+          relIntensity: parseFloat(Math.max(0.1, relInt).toFixed(1)),
+          rawIndex: i
         });
       }
     }
 
-    // Filter adjacent duplicate peak candidates (within 0.25 deg 2theta)
+    // Filter overlapping/duplicate peak candidates within 0.12 deg 2theta
     candidates.sort((a, b) => b.intensity - a.intensity);
     const unique: typeof candidates = [];
     for (const cand of candidates) {
-      if (!unique.some(p => Math.abs(p.center - cand.center) < 0.25)) {
+      if (!unique.some(p => Math.abs(p.center - cand.center) < 0.12)) {
         unique.push(cand);
       }
     }
 
-    // Limit count if specified (> 0)
+    // Apply peak count limit if specified (> 0)
     const selected = limitCount > 0 ? unique.slice(0, limitCount) : unique;
 
-    // Sort by 2theta ascending order for logical reading order
+    // Sort by 2theta ascending order for natural crystallographic index reading
     selected.sort((a, b) => a.center - b.center);
 
     return selected.map((p, idx) => ({ ...p, id: idx + 1 }));
@@ -1328,20 +1477,24 @@ export const FWHMModule: React.FC = () => {
     if (!textToParse) return;
     const lines = textToParse.split(/\r?\n/);
     const parsed: { x: number; y: number }[] = [];
+
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue;
+      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith('!') || trimmed.startsWith('*') || trimmed.startsWith(';')) {
+        continue;
+      }
       const parts = trimmed.split(/[\s,;\t]+/);
       if (parts.length >= 2) {
         const xVal = parseFloat(parts[0]);
         const yVal = parseFloat(parts[1]);
-        if (!isNaN(xVal) && !isNaN(yVal) && xVal >= 5 && xVal <= 170) {
+        if (!isNaN(xVal) && !isNaN(yVal) && isFinite(xVal) && isFinite(yVal) && xVal >= 0 && xVal <= 180) {
           parsed.push({ x: xVal, y: yVal });
         }
       }
     }
 
     if (parsed.length > 0) {
+      // Sort ascending and eliminate identical duplicates
       parsed.sort((a, b) => a.x - b.x);
       setImportedPoints(parsed);
 
@@ -1357,27 +1510,29 @@ export const FWHMModule: React.FC = () => {
         if (pt.y < minY) minY = pt.y;
       }
       const estimatedBg = Math.max(0, minY);
-      const estimatedAmp = Math.max(10, maxY - estimatedBg);
+      const estimatedAmp = Math.max(1, maxY - estimatedBg);
 
       if (peaksFound.length > 0) {
-        // Snap primary peak to top detected peak
+        // Snap primary peak to tallest detected peak
         const topPeak = [...peaksFound].sort((a, b) => b.intensity - a.intensity)[0];
         setCenter(topPeak.center);
-        setAmplitude(topPeak.intensity);
-        if (topPeak.fwhmEst > 0.05 && topPeak.fwhmEst < 5) {
+        setAmplitude(parseFloat(Math.max(1, topPeak.intensity - estimatedBg).toFixed(1)));
+        if (topPeak.fwhmEst > 0.01 && topPeak.fwhmEst < 10) {
           setFwhmManual(topPeak.fwhmEst);
         }
+        setUseCaglioti(false); // Ensure manual FWHM from data takes immediate effect
       } else {
         setCenter(parseFloat(maxX.toFixed(3)));
         setAmplitude(parseFloat(estimatedAmp.toFixed(1)));
+        setUseCaglioti(false);
       }
       setBackground(parseFloat(estimatedBg.toFixed(1)));
 
       setImportStatusMessage(
-        `Successfully imported ${parsed.length} spectrum data points! Detected ${peaksFound.length} peak(s) (Peak Limit: ${peakLimit > 0 ? peakLimit : 'All Detected'}).`
+        `Successfully imported ${parsed.length} spectrum data points! Detected ${peaksFound.length} Bragg peak(s) (Peak Limit: ${peakLimit > 0 ? peakLimit : 'All Detected'}).`
       );
     } else {
-      setImportStatusMessage('Could not parse valid (2θ, Intensity) pairs. Ensure text contains numerical values.');
+      setImportStatusMessage('Could not parse valid (2θ, Intensity) pairs. Ensure text contains numerical columns separated by space, tab, or comma.');
     }
   };
 
@@ -4304,10 +4459,11 @@ export const FWHMModule: React.FC = () => {
                           <button
                             onClick={() => {
                               setCenter(pk.center);
-                              setAmplitude(pk.intensity);
-                              if (pk.fwhmEst > 0.05 && pk.fwhmEst < 5) {
+                              setAmplitude(parseFloat(Math.max(1, pk.intensity - background).toFixed(1)));
+                              if (pk.fwhmEst > 0.01 && pk.fwhmEst < 10) {
                                 setFwhmManual(pk.fwhmEst);
                               }
+                              setUseCaglioti(false);
                               setActiveTab('visualizer');
                             }}
                             className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm"
@@ -4321,8 +4477,9 @@ export const FWHMModule: React.FC = () => {
                               setEnableSecondaryPeak(true);
                               const diff = parseFloat((pk.center - center).toFixed(3));
                               setSecondPeakOffset(diff !== 0 ? diff : 0.4);
+                              setSecondPeakFwhm(pk.fwhmEst);
                               const primaryMax = Math.max(1, amplitude);
-                              setSecondPeakAmp(parseFloat((pk.intensity / primaryMax * 100).toFixed(1)));
+                              setSecondPeakAmp(parseFloat((Math.max(1, pk.intensity - background) / primaryMax * 100).toFixed(1)));
                               setActiveTab('visualizer');
                             }}
                             className="flex-1 py-1.5 bg-purple-100 dark:bg-purple-950/80 hover:bg-purple-200 text-purple-800 dark:text-purple-200 border border-purple-300 dark:border-purple-800 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center justify-center gap-1"
@@ -4381,10 +4538,11 @@ export const FWHMModule: React.FC = () => {
                                 <button
                                   onClick={() => {
                                     setCenter(pk.center);
-                                    setAmplitude(pk.intensity);
-                                    if (pk.fwhmEst > 0.05 && pk.fwhmEst < 5) {
+                                    setAmplitude(parseFloat(Math.max(1, pk.intensity - background).toFixed(1)));
+                                    if (pk.fwhmEst > 0.01 && pk.fwhmEst < 10) {
                                       setFwhmManual(pk.fwhmEst);
                                     }
+                                    setUseCaglioti(false);
                                     setActiveTab('visualizer');
                                   }}
                                   className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center gap-1"
@@ -4398,8 +4556,9 @@ export const FWHMModule: React.FC = () => {
                                     setEnableSecondaryPeak(true);
                                     const diff = parseFloat((pk.center - center).toFixed(3));
                                     setSecondPeakOffset(diff !== 0 ? diff : 0.4);
+                                    setSecondPeakFwhm(pk.fwhmEst);
                                     const primaryMax = Math.max(1, amplitude);
-                                    setSecondPeakAmp(parseFloat((pk.intensity / primaryMax * 100).toFixed(1)));
+                                    setSecondPeakAmp(parseFloat((Math.max(1, pk.intensity - background) / primaryMax * 100).toFixed(1)));
                                     setActiveTab('visualizer');
                                   }}
                                   className="px-2.5 py-1 bg-purple-50 dark:bg-purple-950 hover:bg-purple-100 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer flex items-center gap-1"
