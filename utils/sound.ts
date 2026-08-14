@@ -2,7 +2,7 @@
  * Web Audio-based scientific synthesizer soundboard
  * Integrates responsive retro chimes and beeps to reinforce tactile UI craftsmanship
  */
-export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch') => {
+export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch' | 'chime' | 'action') => {
   try {
     const isSound = localStorage.getItem('xrd_sound') === 'true';
     if (!isSound) return;
@@ -25,7 +25,7 @@ export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch') => 
       osc.start();
       osc.stop(ctx.currentTime + 0.08);
     } 
-    else if (type === 'success') {
+    else if (type === 'success' || type === 'chime') {
       // Arpeggio chime
       const osc2 = ctx.createOscillator();
       const gainNode2 = ctx.createGain();
@@ -64,7 +64,7 @@ export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch') => 
       osc.start();
       osc.stop(ctx.currentTime + 0.25);
     } 
-    else if (type === 'switch') {
+    else if (type === 'switch' || type === 'action') {
       // Soft modern blip
       osc.type = 'sine';
       osc.frequency.setValueAtTime(329.63, ctx.currentTime); // E4

@@ -114,21 +114,6 @@ async function ensurePythonDependencies() {
     { module: "PIL", pkg: "Pillow" },
     { module: "cv2", pkg: "opencv-python-headless" },
     { module: "matplotlib", pkg: "matplotlib" },
-    { module: "torch", pkg: "torch" },
-    { module: "lmfit", pkg: "lmfit" },
-    { module: "pymatgen", pkg: "pymatgen" },
-    { module: "xrayutilities", pkg: "xrayutilities" },
-    { module: "sklearn", pkg: "scikit-learn" },
-    { module: "seaborn", pkg: "seaborn" },
-    { module: "sympy", pkg: "sympy" },
-    { module: "h5py", pkg: "h5py" },
-    { module: "openpyxl", pkg: "openpyxl" },
-    { module: "periodictable", pkg: "periodictable" },
-    { module: "asteval", pkg: "asteval" },
-    { module: "uncertainties", pkg: "uncertainties" },
-    { module: "statsmodels", pkg: "statsmodels" },
-    { module: "plotly", pkg: "plotly" },
-    { module: "spglib", pkg: "spglib" },
     { checkCmd: "from google import genai", pkg: "google-genai" }
   ];
 
@@ -539,50 +524,6 @@ async function startServer() {
     });
   });
 
-  app.get("/api/python/packages", async (req, res) => {
-    try {
-      const { exec } = await import("child_process");
-      exec("python3 -m pip list --format=json", (error, stdout) => {
-        if (!error && stdout) {
-          try {
-            const pkgs = JSON.parse(stdout);
-            res.json({ success: true, packages: pkgs });
-            return;
-          } catch (e) {}
-        }
-        // Fallback package summary
-        res.json({
-          success: true,
-          packages: [
-            { name: "numpy", version: "2.2.6" },
-            { name: "scipy", version: "1.15.3" },
-            { name: "pandas", version: "2.3.3" },
-            { name: "matplotlib", version: "3.10.9" },
-            { name: "torch", version: "2.13.0+cpu" },
-            { name: "torchvision", version: "0.28.0+cpu" },
-            { name: "torchaudio", version: "2.11.0+cpu" },
-            { name: "lmfit", version: "1.3.4" },
-            { name: "pymatgen", version: "2025.10.7" },
-            { name: "xrayutilities", version: "1.8.0" },
-            { name: "scikit-learn", version: "1.7.2" },
-            { name: "seaborn", version: "0.13.2" },
-            { name: "sympy", version: "1.14.0" },
-            { name: "h5py", version: "3.16.0" },
-            { name: "openpyxl", version: "3.1.5" },
-            { name: "periodictable", version: "2.1.0" },
-            { name: "spglib", version: "2.7.0" },
-            { name: "statsmodels", version: "0.14.6" },
-            { name: "plotly", version: "6.9.0" },
-            { name: "opencv-python-headless", version: "5.0.0.93" },
-            { name: "pillow", version: "12.3.0" }
-          ]
-        });
-      });
-    } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
   app.get("/api/system/stats", async (req, res) => {
     try {
       const getCpuTicks = () => {
@@ -648,6 +589,69 @@ async function startServer() {
     }
   });
 
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  async function callGeminiWithResilientFallback({
+    ai,
+    models,
+    contents,
+    config,
+    maxRetriesPerModel = 2
+  }: {
+    ai: GoogleGenAI;
+    models: string[];
+    contents: any;
+    config?: any;
+    maxRetriesPerModel?: number;
+  }): Promise<{ text: string; modelUsed: string }> {
+    let lastError: any = null;
+
+    for (const model of models) {
+      for (let attempt = 0; attempt <= maxRetriesPerModel; attempt++) {
+        try {
+          const modelConfig = { ...config };
+          // If thinkingLevel is specified, only pass it if model contains 'pro'
+          if (modelConfig?.thinkingConfig && !model.includes("pro")) {
+            delete modelConfig.thinkingConfig;
+          }
+
+          const response = await ai.models.generateContent({
+            model,
+            contents,
+            config: modelConfig
+          });
+
+          if (response && typeof response.text === "string") {
+            return { text: response.text, modelUsed: model };
+          }
+        } catch (err: any) {
+          lastError = err;
+          const errMsg = err?.message || JSON.stringify(err);
+          const isTransient =
+            errMsg.includes("503") ||
+            errMsg.includes("UNAVAILABLE") ||
+            errMsg.includes("429") ||
+            errMsg.includes("RESOURCE_EXHAUSTED") ||
+            errMsg.includes("high demand") ||
+            errMsg.includes("quota") ||
+            errMsg.includes("Overloaded") ||
+            errMsg.includes("500") ||
+            errMsg.includes("ECONNRESET");
+
+          console.warn(`[Gemini Engine] Model '${model}' attempt ${attempt + 1}/${maxRetriesPerModel + 1} failed: ${errMsg}`);
+
+          if (isTransient && attempt < maxRetriesPerModel) {
+            await sleep(500 * (attempt + 1));
+            continue;
+          }
+          break;
+        }
+      }
+    }
+
+    throw lastError || new Error("All Gemini models were temporarily unavailable. Please try again in a moment.");
+  }
+
   app.post("/api/gemini/advisor", async (req, res) => {
     const { prompt, customKey } = req.body;
     try {
@@ -671,8 +675,10 @@ async function startServer() {
         }
       });
       
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+      const models = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
         contents: prompt,
         config: {
           systemInstruction: "You are XRD-Calc Pro's Senior AI Crystallography Expert and Physics Advisor. " +
@@ -682,7 +688,7 @@ async function startServer() {
         }
       });
       
-      res.json({ success: true, text: response.text });
+      res.json({ success: true, text: result.text, modelUsed: result.modelUsed });
     } catch (error: any) {
       console.error("Gemini Advisor Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
@@ -747,40 +753,22 @@ ${ocrMode === 'label_phase' ? 'FOCUS HEAVILY on matching PDF card numbers, space
 ${ocrMode === 'axis_calibration' ? 'FOCUS HEAVILY on graph tick marks, 2-theta numbers along the horizontal axis, and intensity tick values along the vertical axis.' : ''}
 `;
 
-      let primaryModel = "gemini-3.6-flash";
-      let responseText = "";
+      const models = ["gemini-2.5-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: {
+          parts: [
+            { inlineData: { mimeType, data: base64Data } },
+            { text: customPrompt || `Perform full OCR and crystallographic image analysis on this pattern.` }
+          ]
+        },
+        config: {
+          systemInstruction: ocrSystemInstruction
+        }
+      });
 
-      try {
-        const response = await ai.models.generateContent({
-          model: primaryModel,
-          contents: {
-            parts: [
-              { inlineData: { mimeType, data: base64Data } },
-              { text: customPrompt || `Perform full OCR and crystallographic image analysis on this pattern.` }
-            ]
-          },
-          config: {
-            systemInstruction: ocrSystemInstruction
-          }
-        });
-        responseText = response.text || "";
-      } catch (primaryErr: any) {
-        console.warn("Gemini 3.6 Flash OCR failed, trying gemini-3.1-pro-preview fallback...", primaryErr);
-        const fallbackResponse = await ai.models.generateContent({
-          model: "gemini-3.1-pro-preview",
-          contents: {
-            parts: [
-              { inlineData: { mimeType, data: base64Data } },
-              { text: customPrompt || `Perform full OCR and crystallographic image analysis on this pattern.` }
-            ]
-          },
-          config: {
-            systemInstruction: ocrSystemInstruction
-          }
-        });
-        responseText = fallbackResponse.text || "";
-      }
-
+      const responseText = result.text || "";
       let structuredData: any = null;
       const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
       if (jsonMatch && jsonMatch[1]) {
@@ -797,7 +785,8 @@ ${ocrMode === 'axis_calibration' ? 'FOCUS HEAVILY on graph tick marks, 2-theta n
         success: true,
         text: responseText,
         structuredData,
-        engine: "Google Gemini 3.6 Multimodal Vision & Scientific OCR"
+        modelUsed: result.modelUsed,
+        engine: "Google Gemini Scientific OCR & Multimodal Vision"
       });
 
     } catch (error: any) {
@@ -853,8 +842,10 @@ Provide the response in structured markdown with the following specific sections
 4.  **Lattice Strain & Thermodynamics Analysis**: Analyze how the ${doping} mol% dopant level affects the lattice strain (Williamson-Hall profile) and structural coherence in the ${morphology} structure.
 5.  **Quality Control & Secondary Phase Impurity Guidelines**: Provide practical laboratory hints for verifying synthesis completion using X-ray Diffraction (XRD peak movements) and avoiding common impurities.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
         contents: prompt,
         config: {
           systemInstruction: "You are XRD-Calc Pro's Senior AI Materials Synthesis Expert. " +
@@ -864,7 +855,7 @@ Provide the response in structured markdown with the following specific sections
         }
       });
       
-      res.json({ success: true, text: response.text });
+      res.json({ success: true, text: result.text, modelUsed: result.modelUsed });
     } catch (error: any) {
       console.error("Gemini Synthesis Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
@@ -895,8 +886,10 @@ Current baseline instrument setup: ${JSON.stringify(currentSetup)}
 
 Provide a step-by-step strategy for the refinement of this specific system. Outline which parameters to refine first (e.g. scale and background), and when to release constraints on lattice parameters, peak shape (U, V, W), and atomic positions. Warn about possible correlations or parameter instabilities for these specific structures. Address background modelling choices. Format your response strictly in markdown with clear headings and bulleted steps.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
         contents: prompt,
         config: {
           systemInstruction: "You are XRD-Calc Pro's Senior Crystallography and Rietveld Refinement Expert. " +
@@ -907,10 +900,99 @@ Provide a step-by-step strategy for the refinement of this specific system. Outl
         }
       });
       
-      res.json({ success: true, text: response.text });
+      res.json({ success: true, text: result.text, modelUsed: result.modelUsed });
     } catch (error: any) {
       console.error("Gemini Rietveld Advisor Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/gemini/coder-chat", async (req, res) => {
+    const { messages, context, customKey, modelPreference } = req.body;
+    try {
+      if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        res.status(400).json({ success: false, error: "A valid messages array is required." });
+        return;
+      }
+
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-coder-chat',
+          }
+        }
+      });
+
+      const systemInstruction = `You are XRD-Calc Pro's Senior AI Crystallography Coder & Diffraction Analysis Companion, powered directly by Google Gemini.
+Your mission is to converse with crystallographers, materials scientists, and physicists to design, explain, debug, and generate executable Python code for any XRD analysis task.
+
+Capabilities & Scientific Scope:
+1. Bragg d-spacing, Scherrer crystallite sizing with instrumental deconvolution (Gaussian/Lorentzian).
+2. Williamson-Hall (UDM, USDM, UDEDM), Halder-Wagner, and Size-Strain Plot (SSP) analysis.
+3. Warren-Averbach Fourier harmonic nanocrystal column-length distribution.
+4. Cohen least-squares unit cell parameter refinement with Nelson-Riley drift extrapolation.
+5. Metric tensors (direct G and reciprocal G*), plane normals, interplanar angles, and unit cell volume.
+6. Rietveld whole powder pattern fitting strategies (GSAS-II / LMFIT Pseudo-Voigt & Pearson-VII).
+7. Chung RIR quantitative multi-phase mass fraction calculations with analytical covariance error propagation.
+8. Sin²ψ residual stress analysis (Dölle-Hauk method).
+9. Parratt coplanar X-Ray Reflectometry (XRR) with Nevot-Croce roughness and Kiessig fringes.
+10. PyTorch deep learning for spectral diffraction (FT-Transformers, Bochner Fourier embeddings, CRPS loss, Conformal Prediction).
+
+Coding Directives:
+- When the user asks for Python code, provide complete, standalone, production-ready Python 3 code blocks (\`\`\`python ... \`\`\`).
+- Ensure all code is standalone, featuring a dynamic realistic synthetic XRD data fallback if local files (.xy, .csv, .cif) are missing.
+- Include complete mathematical formulas, LaTeX annotations, and publication-quality Matplotlib figures.
+- Also provide clear, helpful, conversational scientific explanations, step-by-step logic, and parameter guidance.
+- When the user asks clarifying questions or wants to modify an existing script, answer concisely and update/refine the Python code accordingly.
+
+Active XRD Workspace Context:
+${JSON.stringify(context || {})}`;
+
+      // Convert conversation messages format to Gemini contents
+      const contents = messages.map((m: any) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content || "" }]
+      }));
+
+      const preferred = modelPreference || "gemini-2.5-flash";
+      const fallbackList = [preferred, "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+      const distinctModels = Array.from(new Set(fallbackList));
+
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models: distinctModels,
+        contents,
+        config: {
+          systemInstruction,
+          tools: [{ googleSearch: {} }]
+        }
+      });
+
+      const replyText = result.text;
+
+      // Extract python code block if present
+      let extractedCode: string | null = null;
+      const codeMatch = replyText.match(/```python\s*([\s\S]*?)\s*```/);
+      if (codeMatch && codeMatch[1]) {
+        extractedCode = codeMatch[1].trim();
+      }
+
+      res.json({
+        success: true,
+        text: replyText,
+        extractedCode,
+        modelUsed: result.modelUsed
+      });
+    } catch (error: any) {
+      console.error("Gemini Coder Chat Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to process chat with Gemini." });
     }
   });
 
@@ -961,34 +1043,18 @@ Core Architectural Directives:
 Context Data to integrate (wavelength, active peaks, phases, background terms, etc.):
 ${JSON.stringify(context || {})}`;
 
-      const modelsToAttempt = ["gemini-3.1-pro-preview", "gemini-3.5-flash", "gemini-2.5-flash"];
-      let codeText = "";
-      let lastError: any = null;
-
-      for (const model of modelsToAttempt) {
-        try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: {
-              systemInstruction,
-              thinkingConfig: model.includes("pro") ? { thinkingLevel: ThinkingLevel.HIGH } : undefined
-            }
-          });
-
-          if (response && response.text) {
-            codeText = response.text;
-            break;
-          }
-        } catch (err: any) {
-          console.warn(`Model ${model} failed in /api/gemini/coder:`, err.message);
-          lastError = err;
+      const models = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction,
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
         }
-      }
+      });
 
-      if (!codeText && lastError) {
-        throw lastError;
-      }
+      let codeText = result.text || "";
       
       // Strip markdown code block boundaries if they are present
       if (codeText.includes("```python")) {
@@ -1004,7 +1070,7 @@ ${JSON.stringify(context || {})}`;
       }
       codeText = codeText.trim();
       
-      res.json({ success: true, text: codeText });
+      res.json({ success: true, text: codeText, modelUsed: result.modelUsed });
     } catch (error: any) {
       console.error("Gemini Coder Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message || "Failed to generate Python script." });
@@ -1101,8 +1167,10 @@ ${JSON.stringify(context || {})}`;
       
       Respond only with the JSON array schema details requested. Ground your response using Google search on academic databases if required. Ensure the output is highly accurate.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+      const models = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }],
@@ -1131,7 +1199,7 @@ ${JSON.stringify(context || {})}`;
         }
       });
 
-      let text = response.text || "[]";
+      let text = result.text || "[]";
       // Clean up markdown block wrapping if returned
       text = text.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
       
@@ -1140,7 +1208,6 @@ ${JSON.stringify(context || {})}`;
         results = JSON.parse(text);
       } catch (prsErr) {
         console.error("JSON parsing failed, retrying manual clean", prsErr, text);
-        // Fallback simple extract if some wrapping survived
         const firstArr = text.indexOf('[');
         const lastArr = text.lastIndexOf(']');
         if (firstArr !== -1 && lastArr !== -1) {
@@ -1150,7 +1217,7 @@ ${JSON.stringify(context || {})}`;
         }
       }
 
-      res.json({ success: true, materials: results });
+      res.json({ success: true, materials: results, modelUsed: result.modelUsed });
     } catch (error: any) {
       console.error("Gemini Global Sync Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });

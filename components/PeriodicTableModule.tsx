@@ -14,6 +14,9 @@ import {
 import { playSynthTone } from '../utils/sound';
 import { getFactualProperties, getElectronConfig, ScientificProperties } from './ChemicalPhysicalPropertiesDb';
 import { ScientificMathControl } from './ScientificMathControl';
+import { FormFactorChart } from './FormFactorChart';
+import { ElementalDiffractionPredictor } from './ElementalDiffractionPredictor';
+import { CompoundAttenuationCalculator } from './CompoundAttenuationCalculator';
 
 export interface FamousCompound {
   formula: string;
@@ -2269,7 +2272,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [activeTab, setActiveTab] = useState<'grid' | 'compare'>('grid');
   const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
   const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
-  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'chemical' | 'physical' | 'stp'>('lattice');
+  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'xray' | 'attenuation' | 'chemical' | 'physical' | 'stp'>('lattice');
   const [temperature, setTemperature] = useState<number>(25); // °C
   const [stpCalcMolesStr, setStpCalcMolesStr] = useState<string>('1');
   const [stpStandard, setStpStandard] = useState<'STP' | 'SATP'>('STP');
@@ -2962,6 +2965,13 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       return el.category === categoryFilter && matchQuery;
     });
   }, [fullElementsGrid, searchQuery, categoryFilter]);
+
+  const elementWeightsMap = useMemo(() => {
+    return fullElementsGrid.reduce((acc, el) => {
+      acc[el.symbol] = { z: el.number, weight: el.weight };
+      return acc;
+    }, {} as Record<string, { z: number; weight: number }>);
+  }, [fullElementsGrid]);
 
   const activeElementInfo = useMemo(() => {
     return fullElementsGrid.find(el => el.number === selectedElement) || null;
@@ -3941,6 +3951,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                       <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-fuchsia-500/5 to-emerald-500/0 pointer-events-none" />
                       {([
                         { id: 'lattice', label: 'Lattice', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/10 border-rose-500/20' },
+                        { id: 'xray', label: 'X-Ray & XRD', icon: Zap, color: 'text-amber-400', activeBg: 'bg-amber-500/10 border-amber-500/20' },
+                        { id: 'attenuation', label: 'Attenuation & Alloy', icon: ShieldAlert, color: 'text-purple-400', activeBg: 'bg-purple-500/10 border-purple-500/20' },
                         { id: 'chemical', label: 'Chemical', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/10 border-indigo-500/20' },
                         { id: 'physical', label: 'Physical', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/10 border-emerald-500/20' },
                         { id: 'stp', label: 'STP', icon: Cloud, color: 'text-sky-400', activeBg: 'bg-sky-500/10 border-sky-500/20' }
@@ -3962,7 +3974,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             }`}
                           >
                             <Icon className={`w-3.5 h-3.5 ${active ? '' : 'opacity-70'}`} />
-                            <span>{tab.label}</span>
+                            <span className="hidden sm:inline">{tab.label}</span>
                           </button>
                         );
                       })}
@@ -4133,6 +4145,28 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             />
                           </div>
                         </div>
+                      </div>
+                    )}
+
+                    {detailSubTab === 'xray' && (
+                      <div className="space-y-6 animate-fadeIn">
+                        <FormFactorChart 
+                          atomicNumber={activeElementInfo.number} 
+                          symbol={activeElementInfo.symbol} 
+                          name={activeElementInfo.name} 
+                        />
+                        <ElementalDiffractionPredictor 
+                          element={activeElementInfo} 
+                        />
+                      </div>
+                    )}
+
+                    {detailSubTab === 'attenuation' && (
+                      <div className="space-y-6 animate-fadeIn">
+                        <CompoundAttenuationCalculator 
+                          initialFormula={activeElementInfo.symbol} 
+                          elementWeightsMap={elementWeightsMap}
+                        />
                       </div>
                     )}
 

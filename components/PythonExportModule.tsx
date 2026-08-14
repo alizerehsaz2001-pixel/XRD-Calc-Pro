@@ -26,11 +26,14 @@ import {
   GitBranch,
   ShieldCheck,
   Workflow,
-  Microscope
+  Microscope,
+  MessageSquare
 } from "lucide-react";
+import { GeminiCoderChat } from "./GeminiCoderChat";
 
 export const PythonExportModule: React.FC = () => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState<"chat" | "forge">("chat");
   const [scriptContent, setScriptContent] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
   const [selectedLibrary, setSelectedLibrary] = useState<
@@ -1323,7 +1326,7 @@ print("=" * 60)
             {/* Library Selector */}
             <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5">
               <Database className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target Stack:</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lib:</span>
               <select
                 value={selectedLibrary}
                 onChange={(e) => {
@@ -1332,18 +1335,13 @@ print("=" * 60)
                 }}
                 className="bg-transparent text-slate-200 text-xs font-semibold outline-none cursor-pointer"
               >
-                <option value="pysyn" className="bg-slate-900">SciPy / NumPy / Pandas</option>
-                <option value="lmfit" className="bg-slate-900">LMFIT (Peak & Doublet Fitting)</option>
-                <option value="pymatgen" className="bg-slate-900">PyMatGen (CIF / XRD Diffraction)</option>
-                <option value="xrayutilities" className="bg-slate-900">xrayutilities (RSM / Reflectivity)</option>
-                <option value="pytorch_ml" className="bg-slate-900">PyTorch (Deep Learning / Embeddings)</option>
-                <option value="scikit_learn" className="bg-slate-900">scikit-learn (Clustering / PCA)</option>
-                <option value="seaborn" className="bg-slate-900">Seaborn / Matplotlib (600 DPI)</option>
-                <option value="sympy" className="bg-slate-900">SymPy (Symbolic Crystallography)</option>
-                <option value="periodictable" className="bg-slate-900">periodictable (Form Factors / Attenuation)</option>
-                <option value="h5py" className="bg-slate-900">H5Py (NeXus / Synchrotron HDF5)</option>
-                <option value="gsas2" className="bg-slate-900">GSAS-II API (Rietveld)</option>
-                <option value="diffpy_cmi" className="bg-slate-900">DiffPy-CMI (PDF Analysis)</option>
+                <option value="pysyn" className="bg-slate-900">SciPy / NumPy</option>
+                <option value="lmfit" className="bg-slate-900">LMFIT (Deconvolution)</option>
+                <option value="gsas2" className="bg-slate-900">GSAS-II (Rietveld)</option>
+                <option value="xrayutilities" className="bg-slate-900">xrayutilities (RSM)</option>
+                <option value="pymatgen" className="bg-slate-900">PyMatGen (CIF/XRD)</option>
+                <option value="pytorch_ml" className="bg-slate-900">PyTorch (Deep Learning)</option>
+                <option value="diffpy_cmi" className="bg-slate-900">DiffPy-CMI (PDF)</option>
               </select>
             </div>
 
@@ -1368,231 +1366,228 @@ print("=" * 60)
           </div>
         </div>
 
-        {/* INSTALLED SCIENTIFIC PYTHON ECOSYSTEM BAR */}
-        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/40 border border-slate-800">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-800/80">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                <CheckCircle2 className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-xs font-black uppercase text-slate-200 tracking-wider">
-                  Active Scientific Python 3.10 Runtime Environment
-                </span>
-                <p className="text-[10px] text-slate-400">
-                  All critical crystallography, diffraction, optimization, and deep learning libraries pre-installed and verified on server
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                21 Libraries Active & Ready
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
-            {[
-              { name: "torch (PyTorch)", ver: "v2.13", role: "Deep Learning" },
-              { name: "numpy", ver: "v2.2", role: "Linear Algebra" },
-              { name: "scipy", ver: "v1.15", role: "Scientific Math" },
-              { name: "pandas", ver: "v2.3", role: "DataFrames" },
-              { name: "matplotlib", ver: "v3.10", role: "600 DPI Plots" },
-              { name: "seaborn", ver: "v0.13", role: "Statistical Viz" },
-              { name: "lmfit", ver: "v1.3", role: "Nonlinear Fit" },
-              { name: "pymatgen", ver: "v2025.10", role: "CIF & Structures" },
-              { name: "xrayutilities", ver: "v1.8", role: "RSM / Reflectivity" },
-              { name: "scikit-learn", ver: "v1.7", role: "ML & Clustering" },
-              { name: "sympy", ver: "v1.14", role: "Symbolic Math" },
-              { name: "periodictable", ver: "v2.1", role: "X-ray Form Factors" },
-              { name: "spglib", ver: "v2.7", role: "Space Groups" },
-              { name: "h5py", ver: "v3.16", role: "HDF5 & NeXus" },
-            ].map((lib, idx) => (
-              <div
-                key={idx}
-                className="p-2 rounded-xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between hover:border-indigo-500/40 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono font-bold text-slate-200 truncate">
-                    {lib.name}
-                  </span>
-                  <span className="text-[8px] font-mono text-emerald-400 bg-emerald-950/60 px-1 rounded">
-                    {lib.ver}
-                  </span>
-                </div>
-                <span className="text-[9px] text-slate-500 font-medium truncate mt-0.5">
-                  {lib.role}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* METHOD TEMPLATES HORIZONTAL SCROLL / WRAP */}
-        <div className="mb-6 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Code className="w-4 h-4 text-indigo-400" />
-              <span className="text-[11px] font-black uppercase text-slate-300 tracking-wider">
-                Select Scientific Method Template ({templates.length} Modules)
-              </span>
-            </div>
-            <span className="text-[9px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
-              INSTANT COMPUTE
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {templates.map((tpl) => {
-              const isSelected = selectedTemplate === tpl.id && !isAiMode;
-              const IconComp = tpl.icon;
-              return (
-                <button
-                  key={tpl.id}
-                  onClick={() => {
-                    setSelectedTemplate(tpl.id);
-                    setIsAiMode(false);
-                    setUserEdited(false);
-                    setAiPrompt("");
-                    setExecutionOutput(null);
-                  }}
-                  className={`flex flex-col items-start p-2.5 rounded-xl text-left border transition-all ${
-                    isSelected
-                      ? "bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30 scale-[1.02]"
-                      : "bg-slate-950/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:bg-slate-900"
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full mb-1">
-                    <IconComp size={14} className={isSelected ? "text-white" : "text-indigo-400"} />
-                    <span className={`text-[8px] font-bold uppercase px-1.5 py-0.2 rounded ${
-                      isSelected ? "bg-white/20 text-white" : "bg-slate-800 text-slate-500"
-                    }`}>
-                      {tpl.category}
-                    </span>
-                  </div>
-                  <span className="text-[11px] font-bold truncate w-full">{tpl.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* AI NEURAL SCRIPT FORGE */}
-        <div className="mb-6 rounded-2xl p-5 bg-gradient-to-br from-slate-900/90 to-purple-950/20 border border-fuchsia-500/25 shadow-xl relative">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-fuchsia-500/30">
-                <Brain size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-white flex items-center gap-2">
-                  Gemini AI Custom Script Synthesizer
-                  <span className="text-[9px] bg-fuchsia-500/20 text-fuchsia-300 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border border-fuchsia-500/30">
-                    High Thinking
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Describe any custom mathematical, physical, or deep learning analysis request to generate complete Python code
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-400">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Multi-Model Resilient Engine</span>
-            </div>
-          </div>
-
-          <div className="relative mb-3">
-            <textarea
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="Describe your custom XRD Python script request (e.g. 'Build a PyTorch model with Bochner Fourier embeddings and CRPS loss for XRD peak regression with Conformal Prediction', or 'Write an XRR Kiessig fringe fitting script using Parratt formalism')..."
-              className="w-full bg-[#070A12] border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/10 min-h-[90px] leading-relaxed resize-y font-mono"
-            />
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Primary View Mode Switcher: Interactive AI Chat vs Classic Templates */}
+        <div className="flex items-center justify-between mb-6 p-1.5 rounded-2xl bg-slate-900/90 border border-slate-800 flex-wrap gap-2">
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={() => handleAIGenerate()}
-              disabled={isGenerating || !aiPrompt.trim()}
-              className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 shrink-0 ${
-                isGenerating
-                  ? "bg-slate-800 text-slate-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 hover:from-fuchsia-500 hover:to-cyan-500 text-white shadow-fuchsia-500/20"
+              onClick={() => setActiveTab("chat")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "chat"
+                  ? "bg-gradient-to-r from-cyan-600 via-indigo-600 to-fuchsia-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
               }`}
             >
-              {isGenerating ? (
-                <>
-                  <Activity size={16} className="animate-spin" /> Synthesizing Code...
-                </>
-              ) : (
-                <>
-                  <Zap size={16} /> Generate Python Script
-                </>
-              )}
+              <MessageSquare size={14} />
+              <span>Chat with Gemini Flash AI (Direct XRD & Python)</span>
+              <span className="px-1.5 py-0.5 rounded text-[8px] bg-cyan-400/20 text-cyan-300 uppercase font-mono">
+                Interactive
+              </span>
             </button>
 
-            <span className="text-[10px] text-slate-400 font-medium">
-              💡 Click any instant prompt chip below to synthesize immediately
-            </span>
+            <button
+              onClick={() => setActiveTab("forge")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === "forge"
+                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-[1.02]"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800"
+              }`}
+            >
+              <Code size={14} />
+              <span>Standard Method Templates ({templates.length})</span>
+            </button>
           </div>
 
-          {/* Categorized Prompt Chips */}
-          <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-2.5">
-            {Object.entries(aiSuggestionsByCategory).map(([category, prompts]) => (
-              <div key={category} className="space-y-1.5">
-                <span className="text-[9px] font-black uppercase text-indigo-400/90 tracking-wider">
-                  {category}
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {prompts.map((p, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setAiPrompt(p);
-                        handleAIGenerate(p);
-                      }}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-950/80 hover:bg-indigo-950/60 border border-slate-800 hover:border-indigo-500/50 text-[10px] text-slate-300 hover:text-indigo-200 transition-all text-left truncate max-w-md"
-                      title={p}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center gap-2 px-3 py-1 text-[10px] text-slate-400 font-mono">
+            <span>Powered by</span>
+            <span className="font-bold text-cyan-400">Google Gemini Flash</span>
           </div>
+        </div>
 
-          {/* Compilation Logs */}
-          {isGenerating && neuralLogs.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-black/90 border border-fuchsia-500/30 font-mono text-[10px] text-fuchsia-300 space-y-1 mt-4">
-              <div className="flex items-center justify-between border-b border-fuchsia-500/20 pb-1 mb-1 text-white font-bold">
-                <span className="flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-fuchsia-400 animate-pulse" /> Compilation Pipeline
-                </span>
-                <span className="text-[8px] bg-fuchsia-500/20 px-1.5 py-0.5 rounded">
-                  ACTIVE // 8 PHASES
-                </span>
-              </div>
-              {neuralLogs.map((log, idx) => (
-                <div key={idx} className="flex items-start gap-1.5">
-                  <span className="text-fuchsia-500">[{idx + 1}/8]</span>
-                  <span className={idx === neuralLogs.length - 1 ? "text-white font-bold animate-pulse" : "opacity-75"}>
-                    {log}
+        {/* TAB 1: INTERACTIVE GEMINI FLASH CHAT */}
+        {activeTab === "chat" && (
+          <div className="mb-6">
+            <GeminiCoderChat
+              onApplyCodeToEditor={(code) => {
+                setScriptContent(code);
+                setUserEdited(true);
+                setIsAiMode(true);
+              }}
+              selectedLibrary={selectedLibrary}
+              currentCode={scriptContent}
+            />
+          </div>
+        )}
+
+        {/* TAB 2: TEMPLATE SELECTOR & ONE-SHOT AI FORGE */}
+        {activeTab === "forge" && (
+          <>
+            {/* METHOD TEMPLATES HORIZONTAL SCROLL / WRAP */}
+            <div className="mb-6 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Code className="w-4 h-4 text-indigo-400" />
+                  <span className="text-[11px] font-black uppercase text-slate-300 tracking-wider">
+                    Select Scientific Method Template ({templates.length} Modules)
                   </span>
                 </div>
-              ))}
-            </div>
-          )}
+                <span className="text-[9px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
+                  INSTANT COMPUTE
+                </span>
+              </div>
 
-          {aiError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-2 mt-3">
-              <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-              Generation Error: {aiError}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                {templates.map((tpl) => {
+                  const isSelected = selectedTemplate === tpl.id && !isAiMode;
+                  const IconComp = tpl.icon;
+                  return (
+                    <button
+                      key={tpl.id}
+                      onClick={() => {
+                        setSelectedTemplate(tpl.id);
+                        setIsAiMode(false);
+                        setUserEdited(false);
+                        setAiPrompt("");
+                        setExecutionOutput(null);
+                      }}
+                      className={`flex flex-col items-start p-2.5 rounded-xl text-left border transition-all ${
+                        isSelected
+                          ? "bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30 scale-[1.02]"
+                          : "bg-slate-950/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:bg-slate-900"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <IconComp size={14} className={isSelected ? "text-white" : "text-indigo-400"} />
+                        <span className={`text-[8px] font-bold uppercase px-1.5 py-0.2 rounded ${
+                          isSelected ? "bg-white/20 text-white" : "bg-slate-800 text-slate-500"
+                        }`}>
+                          {tpl.category}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold truncate w-full">{tpl.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* AI NEURAL SCRIPT FORGE */}
+            <div className="mb-6 rounded-2xl p-5 bg-gradient-to-br from-slate-900/90 to-purple-950/20 border border-fuchsia-500/25 shadow-xl relative">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-fuchsia-500/30">
+                    <Brain size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white flex items-center gap-2">
+                      Gemini AI Custom Script Synthesizer
+                      <span className="text-[9px] bg-fuchsia-500/20 text-fuchsia-300 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border border-fuchsia-500/30">
+                        High Thinking
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Describe any custom mathematical, physical, or deep learning analysis request to generate complete Python code
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] font-mono text-emerald-400">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Multi-Model Resilient Engine</span>
+                </div>
+              </div>
+
+              <div className="relative mb-3">
+                <textarea
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="Describe your custom XRD Python script request (e.g. 'Build a PyTorch model with Bochner Fourier embeddings and CRPS loss for XRD peak regression with Conformal Prediction', or 'Write an XRR Kiessig fringe fitting script using Parratt formalism')..."
+                  className="w-full bg-[#070A12] border border-slate-700/80 rounded-xl p-3.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-fuchsia-500/60 focus:ring-2 focus:ring-fuchsia-500/10 min-h-[90px] leading-relaxed resize-y font-mono"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <button
+                  onClick={() => handleAIGenerate()}
+                  disabled={isGenerating || !aiPrompt.trim()}
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 shrink-0 ${
+                    isGenerating
+                      ? "bg-slate-800 text-slate-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-600 hover:from-fuchsia-500 hover:to-cyan-500 text-white shadow-fuchsia-500/20"
+                  }`}
+                >
+                  {isGenerating ? (
+                    <>
+                      <Activity size={16} className="animate-spin" /> Synthesizing Code...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} /> Generate Python Script
+                    </>
+                  )}
+                </button>
+
+                <span className="text-[10px] text-slate-400 font-medium">
+                  💡 Click any instant prompt chip below to synthesize immediately
+                </span>
+              </div>
+
+              {/* Categorized Prompt Chips */}
+              <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-2.5">
+                {Object.entries(aiSuggestionsByCategory).map(([category, prompts]) => (
+                  <div key={category} className="space-y-1.5">
+                    <span className="text-[9px] font-black uppercase text-indigo-400/90 tracking-wider">
+                      {category}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {prompts.map((p, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setAiPrompt(p);
+                            handleAIGenerate(p);
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-950/80 hover:bg-indigo-950/60 border border-slate-800 hover:border-indigo-500/50 text-[10px] text-slate-300 hover:text-indigo-200 transition-all text-left truncate max-w-md"
+                          title={p}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Compilation Logs */}
+              {isGenerating && neuralLogs.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-black/90 border border-fuchsia-500/30 font-mono text-[10px] text-fuchsia-300 space-y-1 mt-4">
+                  <div className="flex items-center justify-between border-b border-fuchsia-500/20 pb-1 mb-1 text-white font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-fuchsia-400 animate-pulse" /> Compilation Pipeline
+                    </span>
+                    <span className="text-[8px] bg-fuchsia-500/20 px-1.5 py-0.5 rounded">
+                      ACTIVE // 8 PHASES
+                    </span>
+                  </div>
+                  {neuralLogs.map((log, idx) => (
+                    <div key={idx} className="flex items-start gap-1.5">
+                      <span className="text-fuchsia-500">[{idx + 1}/8]</span>
+                      <span className={idx === neuralLogs.length - 1 ? "text-white font-bold animate-pulse" : "opacity-75"}>
+                        {log}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {aiError && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-2 mt-3">
+                  <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  Generation Error: {aiError}
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* CODE EDITOR & RUNNER PANEL */}
         <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-[#040711]">
