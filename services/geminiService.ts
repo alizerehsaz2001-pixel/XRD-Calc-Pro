@@ -537,3 +537,124 @@ export const createSupportChat = (isSmart: boolean = false): Chat => {
     }
   });
 };
+
+export interface FlashMaterialSearchResult {
+  name: string;
+  formula: string;
+  crystalSystem: string;
+  spaceGroup: string;
+  spaceGroupNumber?: number;
+  latticeParams?: {
+    a: number;
+    b?: number;
+    c?: number;
+    alpha?: number;
+    beta?: number;
+    gamma?: number;
+    volume?: number;
+  };
+  density?: number;
+  molecularWeight?: number;
+  elasticModulus?: number;
+  zValue?: number;
+  databaseSource?: string;
+  databaseCardId?: string;
+  description?: string;
+  type?: string;
+  applications?: string[];
+  elements?: string[];
+  peaks: Array<{
+    twoTheta: number;
+    intensity: number;
+    h: number;
+    k: number;
+    l: number;
+    hkl?: string;
+    dSpacing: number;
+    fwhm?: number;
+  }>;
+  pattern: string;
+  synthesisRef?: string;
+  confidenceScore?: number;
+  isLearned?: boolean;
+  learnedAt?: string;
+}
+
+export const searchMaterialWithGeminiFlash = async (
+  query: string,
+  wavelength: number = 1.54059,
+  customKey?: string
+): Promise<{ success: boolean; material?: FlashMaterialSearchResult; error?: string; modelUsed?: string }> => {
+  try {
+    const keyToUse = customKey || localStorage.getItem('gemini_custom_api_key') || "";
+    const response = await fetch('/api/gemini/material-search-flash', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        wavelength,
+        customKey: keyToUse
+      })
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error("Gemini Flash Material Search Client Error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to connect to Gemini 3.6 Flash search service."
+    };
+  }
+};
+
+export const fetchLearnedMaterials = async (): Promise<FlashMaterialSearchResult[]> => {
+  try {
+    const res = await fetch('/api/materials/learned');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.materials)) {
+      return data.materials;
+    }
+    return [];
+  } catch (err) {
+    console.error("Error fetching learned materials:", err);
+    return [];
+  }
+};
+
+export const saveLearnedMaterial = async (
+  material: FlashMaterialSearchResult,
+  rawExperimentalData?: Array<{ twoTheta: number; intensity: number }>
+): Promise<{ success: boolean; message?: string; material?: FlashMaterialSearchResult; error?: string }> => {
+  try {
+    const payload = {
+      ...material,
+      rawExperimentalData: rawExperimentalData || null
+    };
+
+    const res = await fetch('/api/materials/learn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    console.error("Error saving learned material:", err);
+    return { success: false, error: err.message };
+  }
+};
+
+export const deleteLearnedMaterial = async (name: string): Promise<boolean> => {
+  try {
+    const res = await fetch(`/api/materials/learned/${encodeURIComponent(name)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    return !!data.success;
+  } catch (err) {
+    console.error("Error deleting learned material:", err);
+    return false;
+  }
+};

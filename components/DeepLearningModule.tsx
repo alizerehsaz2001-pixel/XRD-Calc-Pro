@@ -36,6 +36,7 @@ import {
   Layers,
   Zap,
   ChevronDown,
+  ChevronUp,
   MoveRight,
   FlaskConical,
   Loader2,
@@ -43,20 +44,26 @@ import {
   FileText,
   Trash2,
   Settings,
+  Settings2,
   Info,
+  HelpCircle,
   Calculator,
   Plus,
   X,
   ShieldAlert,
   Focus,
   Eye,
+  EyeOff,
   Scan,
   BookOpen,
   Microscope,
   Cpu,
   RefreshCw,
+  Sliders,
   SlidersHorizontal,
   Sparkles,
+  Wand2,
+  CheckCircle2,
   Timer,
   Thermometer,
   Droplets,
@@ -68,6 +75,7 @@ import {
   Network
 } from "lucide-react";
 
+import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
 import { getActiveMaterials } from "../utils/materialsHelper";
 const MATERIAL_DB = getActiveMaterials();
 
@@ -617,6 +625,12 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [showConfigImportExport, setShowConfigImportExport] = useState(false);
   const [importJsonText, setImportJsonText] = useState("");
   const [configFeedback, setConfigFeedback] = useState("");
+
+  // User-Friendly Mode & Optional Sections progressive disclosure state
+  const [viewMode, setViewMode] = useState<'standard' | 'expert'>('standard');
+  const [showAdvancedHyperparameters, setShowAdvancedHyperparameters] = useState<boolean>(false);
+  const [showArchitectureDiagnostics, setShowArchitectureDiagnostics] = useState<boolean>(false);
+  const [showQuickGuide, setShowQuickGuide] = useState<boolean>(false);
 
   const runAutoTuner = () => {
     setIsAutoTuning(true);
@@ -1443,6 +1457,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const searchResults = getFilteredMaterials();
 
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showGeminiSearch, setShowGeminiSearch] = useState(false);
   const [usePythonRAG, setUsePythonRAG] = useState(false);
   const [pythonRAGResults, setPythonRAGResults] = useState<any>(null);
 
@@ -4532,52 +4547,208 @@ if __name__ == '__main__':
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
+      {/* Top Header & Mode Switcher Bar */}
+      <div className="lg:col-span-12 bg-gradient-to-r from-[#070D1D] via-[#0A1124] to-[#070D1D] p-5 sm:p-6 rounded-3xl border border-indigo-500/20 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
+              <Brain className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Deep Learning XRD Phase Identification
+                </h1>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-black text-emerald-400 uppercase tracking-widest">
+                  AI Ready
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Multi-phase identification, crystal structure indexing, and automated Rietveld quantification
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Guide & Mode Toggle */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setShowQuickGuide(!showQuickGuide)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                showQuickGuide 
+                  ? "bg-indigo-600/30 border-indigo-400 text-indigo-200" 
+                  : "bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600"
+              }`}
+            >
+              <HelpCircle className="w-4 h-4 text-indigo-400" />
+              <span>{showQuickGuide ? "Hide Guide" : "Quick Guide"}</span>
+            </button>
+
+            {/* Mode Switcher */}
+            <div className="bg-[#03060C] p-1 rounded-2xl border border-slate-800 flex items-center">
+              <button
+                onClick={() => {
+                  setViewMode('standard');
+                  setShowAdvancedHyperparameters(false);
+                  setShowArchitectureDiagnostics(false);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  viewMode === 'standard'
+                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>Standard (Friendly)</span>
+              </button>
+              <button
+                onClick={() => {
+                  setViewMode('expert');
+                  setShowAdvancedHyperparameters(true);
+                  setShowArchitectureDiagnostics(true);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  viewMode === 'expert'
+                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5 text-cyan-300" />
+                <span>Expert Tuning</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Expandable Quick Guide Banner */}
+        {showQuickGuide && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-5 pt-5 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4"
+          >
+            <div className="bg-[#050A14] p-4 rounded-2xl border border-indigo-500/20">
+              <div className="flex items-center gap-2 mb-1.5 text-indigo-400 text-xs font-black uppercase tracking-wider">
+                <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px]">1</div>
+                Choose XRD Data
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Click any of the <strong className="text-white">Quick Presets</strong> below (like LiCoO₂, Silicon 640d, or TiO₂) or upload your own 2θ-Intensity XRD text file.
+              </p>
+            </div>
+            <div className="bg-[#050A14] p-4 rounded-2xl border border-violet-500/20">
+              <div className="flex items-center gap-2 mb-1.5 text-violet-400 text-xs font-black uppercase tracking-wider">
+                <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center text-[10px]">2</div>
+                Click Initialize
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Hit <strong className="text-white">Initialize Deep Phase ID</strong>. The pre-trained ResNet-1D model extracts peak footprints in milliseconds.
+              </p>
+            </div>
+            <div className="bg-[#050A14] p-4 rounded-2xl border border-emerald-500/20">
+              <div className="flex items-center gap-2 mb-1.5 text-emerald-400 text-xs font-black uppercase tracking-wider">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">3</div>
+                Explore Results
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Inspect matched phases, crystal symmetry, space groups, and quantitative weight fractions in the interactive visualizer.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
       {/* Input Configuration & Top Panels */}
       <div className="lg:col-span-12 flex flex-col gap-8">
-        {/* Advanced Engine Configuration */}
-        <div className="bg-[#050A14] p-6 rounded-[2rem] shadow-2xl border border-slate-800/80/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500">
-          {/* Custom Background Graphic */}
-          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
-            <img src={convolutionalEngineBg} alt="Advanced Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-          </div>
-          <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-700 pointer-events-none" />
-
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden">
-                <div className="absolute inset-0 bg-indigo-500/10 blur-md rounded-full pointer-events-none" />
-                <Settings className="w-6 h-6 text-indigo-400 relative z-10" />
+        {/* Advanced Engine Configuration (Collapsible for cleaner friendly view) */}
+        {!showAdvancedHyperparameters && viewMode === 'standard' ? (
+          <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                <Settings2 className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-black text-white text-md tracking-tight">
-                  Engine Hyperparameters
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
-                  Neural Network Core
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-white">Engine Hyperparameters & Calibration</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-[9px] font-mono font-bold text-indigo-300">
+                    Auto-Tuned (Optimized)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  ResNet-{engineConfig.depth} • {engineConfig.activation} • Kernel {engineConfig.kernelSize} • LR {engineConfig.learningRate} • Caglioti Broadening Active
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
                 onClick={runAutoTuner}
                 disabled={isAutoTuning}
-                className="flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-[9px] tracking-widest px-3 py-1.5 rounded-full border border-violet-500/30 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 inline-flex align-middle"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300 text-xs font-bold transition-all disabled:opacity-50"
               >
-                <Sparkles className="w-3 h-3 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
+                <Sparkles className="w-3.5 h-3.5 text-violet-300 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "4s" }} />
                 <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
               </button>
-              <div className="bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-inner">
-                <div
-                  className={`w-2 h-2 rounded-full ${isSimulating || isAutoTuning ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-500"}`}
-                />
-                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                  {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
-                </span>
-              </div>
+              <button
+                onClick={() => setShowAdvancedHyperparameters(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-all"
+              >
+                <span>Customize Parameters</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
             </div>
           </div>
+        ) : (
+          <div className="bg-[#050A14] p-6 rounded-[2rem] shadow-2xl border border-slate-800/80/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500">
+            {/* Custom Background Graphic */}
+            <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
+              <img src={convolutionalEngineBg} alt="Advanced Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+            </div>
+            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-700 pointer-events-none" />
+
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden">
+                  <div className="absolute inset-0 bg-indigo-500/10 blur-md rounded-full pointer-events-none" />
+                  <Settings className="w-6 h-6 text-indigo-400 relative z-10" />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-md tracking-tight">
+                    Engine Hyperparameters
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
+                    Neural Network Core
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={runAutoTuner}
+                  disabled={isAutoTuning}
+                  className="flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-[9px] tracking-widest px-3 py-1.5 rounded-full border border-violet-500/30 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 inline-flex align-middle"
+                >
+                  <Sparkles className="w-3 h-3 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
+                  <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
+                </button>
+                <div className="bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-inner">
+                  <div
+                    className={`w-2 h-2 rounded-full ${isSimulating || isAutoTuning ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-500"}`}
+                  />
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                    {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowAdvancedHyperparameters(false)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all ml-1"
+                >
+                  <span>Hide</span>
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              </div>
+            </div>
 
           {/* Network Topology Visualization */}
           <div className="mb-6 bg-[#050A14]/80 backdrop-blur-md border border-slate-800/80 hover:border-slate-700 shadow-inner rounded-2xl relative z-10 p-5 overflow-hidden group">
@@ -5350,6 +5521,7 @@ if __name__ == '__main__':
              </button>
           </div>
         </div>
+        )}
 
         <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800/80 transition-all duration-500 group/phaseid relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl group-hover/phaseid:bg-violet-500/10 transition-all duration-1000" />
@@ -5423,19 +5595,34 @@ if __name__ == '__main__':
                 </button>
               </div>
 
+              <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/40">
+                <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Local database contains standard crystallographic references</span>
+                </span>
+                <button
+                  onClick={() => setShowGeminiSearch(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600/30 via-indigo-600/30 to-purple-600/30 hover:from-cyan-600/50 hover:via-indigo-600/50 hover:to-purple-600/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded-xl text-xs font-black uppercase tracking-wider text-cyan-200 hover:text-white transition-all shadow-lg hover:shadow-cyan-500/20 active:scale-95 group cursor-pointer"
+                  title="Search 500,000+ open-access crystal structures in COD and ICDD with Gemini Flash"
+                >
+                  <Sparkles className="w-4 h-4 text-cyan-300 group-hover:scale-125 transition-transform animate-pulse" />
+                  <span>Search Global Databases (COD/ICDD) via Gemini Flash</span>
+                </button>
+              </div>
+
               {/* Suggestions Dropdown */}
               {showSuggestions && (
-                <div className="absolute top-full left-0 right-0 mt-3 bg-slate-800 rounded-2xl shadow-[0_15px_40px_-5px_rgba(0,0,0,0.5)] border border-slate-700 z-50 max-h-[400px] overflow-y-auto animate-in slide-in-from-top-2 duration-200 custom-scrollbar">
+                <div className="absolute top-full left-0 right-0 mt-3 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_-5px_rgba(0,0,0,0.8)] border border-slate-700/80 z-50 max-h-[450px] overflow-y-auto animate-in slide-in-from-top-2 duration-200 custom-scrollbar divide-y divide-slate-800/80">
                   {searchResults.length > 0 ? (
-                    <div className="p-2">
+                    <div className="p-2 space-y-1">
                       {searchResults.map((material: any, idx: number) => (
                         <button
                           key={`${material.name}-${idx}`}
                           onClick={() => handleMaterialSelect(material)}
-                          className="w-full text-left px-5 py-4 hover:bg-slate-700/80 flex items-center justify-between group rounded-xl transition-colors border border-transparent hover:border-slate-600 mb-1 last:mb-0"
+                          className="w-full text-left px-5 py-3.5 hover:bg-slate-800/90 flex items-center justify-between group rounded-xl transition-all border border-transparent hover:border-violet-500/30"
                         >
                           <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-[#050A14] border border-slate-700 flex items-center justify-center text-slate-400 text-sm font-black group-hover:bg-violet-500/20 group-hover:text-violet-300 group-hover:border-violet-500/30 transition-all shadow-inner">
+                            <div className="w-10 h-10 rounded-lg bg-[#050A14] border border-slate-700 flex items-center justify-center text-cyan-300 text-sm font-black group-hover:bg-violet-500/20 group-hover:text-violet-300 group-hover:border-violet-500/40 transition-all shadow-inner">
                               {material.formula.substring(0, 2)}
                             </div>
                             <div>
@@ -5449,7 +5636,7 @@ if __name__ == '__main__':
                                 {material.elements && material.elements.length > 0 && (
                                   <div className="flex gap-1">
                                     {material.elements.slice(0, 5).map((el: string, elIdx: number) => (
-                                      <span key={elIdx} className="text-[9px] px-1 py-0.5 font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                      <span key={elIdx} className="text-[9px] px-1.5 py-0.5 font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                         {el}
                                       </span>
                                     ))}
@@ -5468,19 +5655,43 @@ if __name__ == '__main__':
                           </span>
                         </button>
                       ))}
+
+                      <div className="pt-2 border-t border-slate-800/80 p-2">
+                        <button
+                          onClick={() => {
+                            setShowSuggestions(false);
+                            setShowGeminiSearch(true);
+                          }}
+                          className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-950/40 via-indigo-950/40 to-purple-950/40 hover:from-cyan-900/50 hover:via-indigo-900/50 hover:to-purple-900/50 border border-cyan-500/30 hover:border-cyan-400/60 rounded-xl text-xs font-bold text-cyan-300 hover:text-white flex items-center justify-center gap-2 transition-all"
+                        >
+                          <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+                          <span>Search global COD/ICDD via Gemini Flash for "{searchTerm || 'all novel materials'}"</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="p-8 flex flex-col items-center justify-center text-center">
-                      <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-3 border border-slate-700">
-                        <Search className="w-8 h-8 text-slate-500/50" />
+                    <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
+                      <div className="w-14 h-14 bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-inner">
+                        <Sparkles className="w-7 h-7 text-cyan-400 animate-pulse" />
                       </div>
-                      <p className="text-slate-300 text-sm font-bold mb-1">
-                        Not in local database
-                      </p>
-                      <p className="text-slate-500 text-xs max-w-xs leading-relaxed">
-                        The neural network can still analyze raw peak patterns to
-                        identify potential structure matches via probability hashing.
-                      </p>
+                      <div className="space-y-1 max-w-sm">
+                        <p className="text-slate-200 text-sm font-bold">
+                          Phase '{searchTerm}' not found locally
+                        </p>
+                        <p className="text-slate-400 text-xs leading-relaxed">
+                          Query 500,000+ open-access crystal structures in COD and ICDD using Gemini Flash to retrieve 2θ Bragg peaks, space groups, and unit cell parameters.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowSuggestions(false);
+                          setShowGeminiSearch(true);
+                        }}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:via-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-cyan-500/20 border border-cyan-400/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+                        <span>Search COD / ICDD for "{searchTerm}"</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -7213,10 +7424,36 @@ if __name__ == '__main__':
               </button>
             </div>
           </div>
-        </div>
 
         {/* Deep Learning Architecture Status */}
-        <div className="bg-[#050A14] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800/80/80 hover:border-slate-700">
+        {viewMode === 'standard' && !showArchitectureDiagnostics ? (
+          <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-300 flex-shrink-0">
+                <Brain className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-black text-white">Neural Network Architecture & Diagnostics</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-[9px] font-mono font-bold text-violet-300">
+                    ResNet-{engineConfig.depth} Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Convolutional Saliency Map, Tensor Strides, and Multi-Scale Feature Extractors (Optional Diagnostic)
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowArchitectureDiagnostics(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-all self-end sm:self-auto"
+            >
+              <span>Show Diagnostics</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          </div>
+        ) : (
+          <div className="bg-[#050A14] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800/80/80 hover:border-slate-700">
           {/* Custom Background Graphic */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover/engine:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
             <img src={convolutionalEngineBg} alt="Convolutional Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -7257,21 +7494,31 @@ if __name__ == '__main__':
                   </div>
                 </div>
               </div>
-              <div className="hidden md:flex flex-col items-end">
-                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5 flex items-center gap-1">
-                  <Cpu className="w-3 h-3 text-violet-400/70" /> Compute Core
-                </span>
-                <div className="relative overflow-hidden group/status rounded-lg border border-violet-500/30 bg-violet-500/10 transition-all duration-300 hover:border-violet-400/50 hover:bg-violet-500/20">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/status:translate-x-full transition-transform duration-1000" />
-                  <span className="text-xs font-mono font-black text-violet-300 px-3 py-1.5 flex items-center gap-2 relative z-10 tracking-widest uppercase">
-                    <div
-                      className={`w-2 h-2 rounded-full ${isSimulating ? "bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(167,139,250,0.6)]" : "bg-slate-500"}`}
-                    />
-                    {isSimulating ? "Processing" : "Standby"}
+              <div className="hidden md:flex flex-row items-center gap-3">
+                <div className="flex flex-col items-end">
+                  <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5 flex items-center gap-1">
+                    <Cpu className="w-3 h-3 text-violet-400/70" /> Compute Core
                   </span>
+                  <div className="relative overflow-hidden group/status rounded-lg border border-violet-500/30 bg-violet-500/10 transition-all duration-300 hover:border-violet-400/50 hover:bg-violet-500/20">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/status:translate-x-full transition-transform duration-1000" />
+                    <span className="text-xs font-mono font-black text-violet-300 px-3 py-1.5 flex items-center gap-2 relative z-10 tracking-widest uppercase">
+                      <div
+                        className={`w-2 h-2 rounded-full ${isSimulating ? "bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(167,139,250,0.6)]" : "bg-slate-500"}`}
+                      />
+                      {isSimulating ? "Processing" : "Standby"}
+                    </span>
+                  </div>
                 </div>
+                {viewMode === 'standard' && (
+                  <button
+                    onClick={() => setShowArchitectureDiagnostics(false)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all ml-2"
+                  >
+                    <span>Hide</span>
+                    <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                  </button>
+                )}
               </div>
-            </div>
 
             <div className="flex gap-2.5 mb-2 relative z-10 md:ml-[76px] flex-wrap">
               <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
@@ -7811,6 +8058,8 @@ if __name__ == '__main__':
             </div>
           </div>
         </div>
+      </div>
+    )}
       </div>
 
       {/* Results Section */}
@@ -13229,6 +13478,18 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showGeminiSearch && (
+        <GeminiFlashMaterialSearch
+          initialQuery={searchTerm}
+          onClose={() => setShowGeminiSearch(false)}
+          onSelectMaterial={(material) => {
+            handleMaterialSelect(material);
+            setShowGeminiSearch(false);
+          }}
+        />
+      )}
+    </div>
     </div>
   );
 };

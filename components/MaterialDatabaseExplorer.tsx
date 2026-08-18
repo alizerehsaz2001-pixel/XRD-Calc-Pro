@@ -44,6 +44,9 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 import { db, useAuth, auth } from '../services/firebase';
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { bulkSaveOfflineMaterials } from '../utils/offlineDb';
+import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
+import { MaterialParameterStudioModal } from './MaterialParameterStudioModal';
+import { fetchLearnedMaterials } from '../services/geminiService';
 
 const LOCAL_STORAGE_KEY = 'crystal_suite_materials_v1';
 
@@ -824,6 +827,52 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const [selectedCrystalSystem, setSelectedCrystalSystem] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'name' | 'density' | 'molecularWeight' | 'elasticModulus'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Gemini 3.6 Flash Intelligent Search & Learning state
+  const [showGeminiFlashSearch, setShowGeminiFlashSearch] = useState<boolean>(false);
+  const [geminiFlashInitialQuery, setGeminiFlashInitialQuery] = useState<string>('');
+
+  // Load any server-side learned materials & listen for real-time learned broadcasts
+  useEffect(() => {
+    const loadServerLearned = async () => {
+      try {
+        const learned = await fetchLearnedMaterials();
+        if (learned && learned.length > 0) {
+          setMaterials(prev => {
+            const existingNames = new Set(prev.map(m => m.name));
+            const newOnes = learned.filter(l => !existingNames.has(l.name));
+            if (newOnes.length > 0) {
+              return [...newOnes, ...prev];
+            }
+            return prev;
+          });
+        }
+      } catch (e) {
+        console.error("Could not sync server learned materials:", e);
+      }
+    };
+
+    loadServerLearned();
+
+    const handleMaterialLearnedEvent = (e: any) => {
+      const learnedMat = e.detail;
+      if (learnedMat && learnedMat.name) {
+        setMaterials(prev => {
+          const filtered = prev.filter(m => m.name !== learnedMat.name);
+          return [learnedMat, ...filtered];
+        });
+        setSelectedMaterialName(learnedMat.name);
+        setTimeout(() => {
+          inspectorRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    };
+
+    window.addEventListener('material-learned', handleMaterialLearnedEvent);
+    return () => {
+      window.removeEventListener('material-learned', handleMaterialLearnedEvent);
+    };
+  }, []);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -3359,23 +3408,23 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
         <div className="lg:col-span-7 space-y-6">
           
           {/* Controls Bar */}
-          <div className="bg-black/40 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/5 shadow-2xl flex flex-col gap-5 relative z-20 hover:border-indigo-500/20 transition-colors">
+          <div className="bg-black/60 backdrop-blur-2xl p-6 rounded-[2.5rem] border border-cyan-500/20 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.8),inset_0_1px_2px_rgba(255,255,255,0.1)] flex flex-col gap-5 relative z-20 hover:border-cyan-400/40 transition-colors">
             
             {/* Direct Search Input with Custom Standard Add option */}
-            <div className="flex gap-3 items-center">
-              <div className="relative flex-1 group">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+            <div className="flex flex-col xl:flex-row gap-4 items-center">
+              <div className="relative flex-1 group w-full">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-500/50 group-focus-within:text-cyan-400 transition-colors" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder={t("Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...", "Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...")}
-                  className="w-full pl-14 pr-12 py-3.5 bg-[#0A101D] border border-indigo-500/30 text-slate-100 outline-none rounded-2xl focus:border-indigo-400 focus:bg-[#0D1526] focus:ring-2 focus:ring-indigo-500/50 placeholder:text-slate-500 transition-all text-xs font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] select-none"
+                  className="w-full pl-14 pr-12 py-4 bg-[#050B14]/80 border border-white/5 text-slate-100 outline-none rounded-[1.25rem] focus:border-cyan-500/50 focus:bg-[#07101E] focus:ring-4 focus:ring-cyan-500/20 placeholder:text-slate-500 transition-all text-sm font-bold shadow-[inset_0_2px_15px_rgba(0,0,0,0.7)] select-none"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors p-1"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors p-1 bg-black/40 rounded-full"
                     title="Clear query"
                   >
                     <X className="w-4 h-4" />
@@ -3383,14 +3432,26 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 )}
               </div>
 
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-3 items-center flex-wrap sm:flex-nowrap w-full xl:w-auto">
+                <button
+                  onClick={() => {
+                    setGeminiFlashInitialQuery(searchQuery);
+                    setShowGeminiFlashSearch(true);
+                  }}
+                  className="flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:via-indigo-500 hover:to-purple-500 text-white rounded-[1.25rem] text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(6,182,212,0.4),inset_0_1px_1px_rgba(255,255,255,0.2)] border border-cyan-400/50 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[54px] select-none group"
+                  title="Search external databases (COD, ICDD, ICSD) via Gemini 3.6 Flash and learn novel material patterns"
+                >
+                  <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse group-hover:scale-125 transition-transform" />
+                  <span>Gemini (COD/ICDD)</span>
+                </button>
+
                 <button
                   onClick={handleStartCreate}
-                  className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(79,70,229,0.5)] border border-indigo-400 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[46px] select-none"
+                  className="flex-1 xl:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-indigo-500 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 text-white rounded-[1.25rem] text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(79,70,229,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] border border-indigo-400/80 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[54px] select-none"
                   title={t('Create a novel custom standard to index in the database', 'Create a novel custom standard to index in the database')}
                 >
                   <Plus className="w-5 h-5 text-white stroke-[3px]" />
-                  <span>Add New Custom Material</span>
+                  <span>Add Custom</span>
                 </button>
                 
                 <div className="flex items-center gap-1 bg-black/40 border border-slate-700/50 p-1 rounded-2xl h-[46px]">
@@ -4183,27 +4244,30 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 })()}
 
                 {/* Diagnostics Broadband and Network Latency Pinger */}
-                <div className="bg-black/40 border border-slate-800/80 rounded-2xl p-4 space-y-3">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="bg-gradient-to-r from-slate-900/80 to-[#030712]/90 backdrop-blur-xl border border-blue-500/10 rounded-[1.5rem] p-5 space-y-4 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.05)] relative overflow-hidden">
+                  {/* Decorative background element */}
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[50px] rounded-full pointer-events-none" />
+
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 relative z-10">
                     <div>
-                      <h4 className="text-[11px] font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                        <Activity className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
-                        Academic Registry Gateway & Connection Diagnostics
+                      <h4 className="text-[12px] font-black text-blue-100 uppercase tracking-[0.15em] flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-cyan-400 animate-pulse drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                        Academic Registry Gateway Diagnostics
                       </h4>
-                      <p className="text-[9px] text-slate-400">Measure roundtrip API handshake latency to premium and public crystallographic server clusters.</p>
+                      <p className="text-[10px] text-slate-400 mt-1 font-medium">Measure roundtrip API handshake latency to premium crystallographic server clusters.</p>
                     </div>
                     <button
                       type="button"
                       onClick={handlePingAllRegistries}
                       disabled={isPingingAll}
-                      className="px-3 py-1 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 rounded-lg text-[9px] uppercase tracking-widest font-mono font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 bg-gradient-to-b from-blue-500/20 to-blue-600/10 hover:from-blue-500/30 hover:to-blue-600/20 border border-blue-500/30 text-blue-200 rounded-xl text-[9px] uppercase tracking-[0.2em] font-black transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] active:scale-95"
                     >
-                      <RefreshCcw className={`w-2.5 h-2.5 ${isPingingAll ? 'animate-spin text-blue-400' : ''}`} />
-                      {isPingingAll ? 'Pinging...' : 'Diagnostics & Ping'}
+                      <RefreshCcw className={`w-3 h-3 ${isPingingAll ? 'animate-spin text-cyan-300' : 'text-blue-400'}`} />
+                      {isPingingAll ? 'Pinging Nodes...' : 'Run Diagnostics'}
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+                  <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-3 relative z-10">
                     {[
                       { id: 'materials_project', name: 'Materials Project' },
                       { id: 'stanford_ssrl', name: 'Stanford SSRL' },
@@ -4217,16 +4281,17 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                       const ping = registryPings[item.id];
                       const status = ping?.status || 'idle';
                       return (
-                        <div key={item.id} className="p-2 rounded-lg border bg-black/50 border-white/5 flex flex-col justify-between min-h-[55px] text-left">
-                          <span className="text-[8px] font-bold text-slate-300 truncate" title={item.name}>{item.name}</span>
-                          <div className="flex items-center justify-between gap-1 mt-1">
-                            <span className={`text-[7px] font-mono font-black uppercase ${
-                              status === 'online' ? 'text-green-400' : status === 'testing' ? 'text-amber-400 animate-pulse' : status === 'offline' ? 'text-red-400' : 'text-slate-500'
+                        <div key={item.id} className="p-3 rounded-xl border bg-black/40 border-white/5 flex flex-col justify-between min-h-[60px] text-left hover:border-blue-500/20 hover:bg-blue-900/10 transition-colors shadow-inner group">
+                          <span className="text-[9px] font-bold text-slate-300 truncate group-hover:text-white transition-colors" title={item.name}>{item.name}</span>
+                          <div className="flex items-center justify-between gap-1 mt-2">
+                            <span className={`text-[8px] font-mono font-black uppercase flex items-center gap-1 ${
+                              status === 'online' ? 'text-emerald-400' : status === 'testing' ? 'text-amber-400 animate-pulse' : status === 'offline' ? 'text-rose-400' : 'text-slate-500'
                             }`}>
-                              ● {status}
+                              <span className={`w-1.5 h-1.5 rounded-full ${status === 'online' ? 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]' : status === 'testing' ? 'bg-amber-400' : status === 'offline' ? 'bg-rose-400' : 'bg-slate-500'}`} />
+                              {status}
                             </span>
                             {status === 'online' && (
-                              <span className="text-[8px] font-mono font-bold text-indigo-300">{ping?.latency}ms</span>
+                              <span className="text-[9px] font-mono font-bold text-cyan-300 bg-cyan-900/30 px-1.5 py-0.5 rounded-md border border-cyan-500/20">{ping?.latency}ms</span>
                             )}
                           </div>
                         </div>
@@ -4796,8 +4861,8 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
 
                 // Color classes
                 const activeBorderColor = isSelected 
-                  ? 'border-indigo-500/80 shadow-[0_8px_32px_-4px_rgba(99,102,241,0.25),inset_0_1px_1px_rgba(255,255,255,0.1)] bg-gradient-to-b from-indigo-950/30 to-indigo-950/10 scale-[1.01]' 
-                  : 'border-white/5 hover:border-indigo-500/40 bg-gradient-to-b from-slate-900/40 to-black/60 hover:from-slate-900/60 hover:to-black/80 hover:-translate-y-1';
+                  ? 'border-cyan-400/60 shadow-[0_8px_32px_-4px_rgba(34,211,238,0.35),inset_0_1px_2px_rgba(255,255,255,0.2)] bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-cyan-950/40 scale-[1.02] ring-1 ring-cyan-400/50 z-10' 
+                  : 'border-white/10 hover:border-indigo-400/50 bg-gradient-to-br from-slate-900/50 to-black/80 hover:from-slate-800/60 hover:to-slate-900/90 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(99,102,241,0.25)]';
 
                 const indicatorBadgeTheme: any = {
                   amber: 'text-amber-300 bg-amber-500/20 border-amber-500/30 text-shadow-amber',
@@ -4823,12 +4888,25 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                       setSelectedMaterialName(material.name);
                       setIsEditing(false); // Close edit mode on change
                     }}
-                    className={`group relative p-5 rounded-[2rem] cursor-pointer transition-all duration-500 flex flex-col justify-between backdrop-blur-sm border hover:shadow-2xl overflow-hidden ${activeBorderColor}`}
+                    className={`group relative p-5 rounded-[2rem] cursor-pointer transition-all duration-500 flex flex-col justify-between backdrop-blur-md border overflow-hidden ${activeBorderColor}`}
                   >
-                    {/* Top decoration line for selected */}
-                    {isSelected && <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-500 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />}
+                    {/* Bountiful Ambient Background Effects */}
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMiIvPjwvc3ZnPg==')] opacity-50 mix-blend-overlay pointer-events-none" />
                     
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-[30px] group-hover:bg-indigo-500/10 transition-all duration-700 pointer-events-none" />
+                    {/* Geometric Crystal SVG decoration in background */}
+                    <svg className="absolute -bottom-10 -right-10 w-48 h-48 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-700 text-white pointer-events-none transform group-hover:scale-110 group-hover:rotate-12" viewBox="0 0 100 100" fill="currentColor">
+                      <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" stroke="currentColor" strokeWidth="2" fill="none" />
+                      <line x1="50" y1="5" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
+                      <line x1="95" y1="25" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
+                      <line x1="5" y1="25" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
+                      <line x1="50" y1="95" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+
+                    {/* Top decoration line for selected */}
+                    {isSelected && <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-500 shadow-[0_0_20px_rgba(34,211,238,0.9)]" />}
+                    
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-[40px] group-hover:bg-cyan-500/10 transition-all duration-700 pointer-events-none" />
+                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-[30px] group-hover:bg-indigo-500/15 transition-all duration-700 pointer-events-none" />
 
                     <div className="relative z-10">
                       <div className="flex justify-between items-start gap-4 mb-4">
@@ -4836,7 +4914,7 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                           <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-lg inline-flex items-center w-fit border shadow-inner ${indicatorBadgeTheme[themeColor] || indicatorBadgeTheme.slate}`}>
                             {material.type || 'Custom'}
                           </span>
-                          <span className="text-base font-black text-slate-100 flex items-center gap-2 mt-2 truncate max-w-[180px] drop-shadow-md group-hover:text-indigo-200 transition-colors" title={material.name}>
+                          <span className={`text-lg font-black flex items-center gap-2 mt-2 truncate max-w-[180px] drop-shadow-md transition-colors ${isSelected ? 'text-white' : 'text-slate-100 group-hover:text-cyan-100'}`} title={material.name}>
                             {isItemModified && (
                               <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)] animate-pulse inline-block shrink-0" title="Has manual overrides" />
                             )}
@@ -4844,44 +4922,44 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                           </span>
                         </div>
                         <div className="text-right flex flex-col items-end gap-2 shrink-0">
-                          <span className="text-[11px] text-cyan-300 font-bold bg-black/60 px-2.5 py-1.5 rounded-xl border border-white/10 shadow-inner group-hover:border-cyan-500/30 transition-colors">
+                          <span className="text-[12px] text-cyan-300 font-bold bg-black/60 px-3 py-1.5 rounded-xl border border-white/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] group-hover:border-cyan-500/40 transition-colors backdrop-blur-md">
                             {material.formula}
                           </span>
                           <button
                             onClick={(e) => handleToggleCompare(material.name, e)}
-                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${
                               comparedMaterials.includes(material.name)
-                                ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                                : 'bg-black/60 text-slate-400 hover:text-white border border-white/5 hover:border-slate-600/40'
+                                ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                                : 'bg-black/60 text-slate-400 hover:text-white border border-white/10 hover:border-slate-500/50 hover:bg-white/5'
                             }`}
                             title={comparedMaterials.includes(material.name) ? t("Remove from comparison", "Remove from comparison") : t("Add to side-by-side comparison", "Add to side-by-side comparison")}
                           >
-                            <Scale className="w-3 h-3" />
+                            <Scale className="w-3.5 h-3.5" />
                             <span>{comparedMaterials.includes(material.name) ? t('Compared', 'Compared') : t('Compare', 'Compare')}</span>
                           </button>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 mt-4 bg-black/20 p-3 rounded-2xl border border-white/5 font-mono">
-                        <div className="flex flex-col gap-1 text-center border-r border-white/5 pr-3">
-                          <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Crystal System</span>
-                          <span className="text-[11px] font-bold text-slate-300 truncate rounded">{material.crystalSystem || 'Crystalline'}</span>
+                      <div className="grid grid-cols-2 gap-3 mt-4 bg-gradient-to-b from-black/40 to-black/20 p-3.5 rounded-2xl border border-white/10 font-mono shadow-inner backdrop-blur-sm">
+                        <div className="flex flex-col gap-1 text-center border-r border-white/10 pr-3">
+                          <span className="text-[8px] text-slate-400/80 uppercase font-black tracking-widest">Crystal System</span>
+                          <span className="text-[11px] font-bold text-slate-200 truncate rounded">{material.crystalSystem || 'Crystalline'}</span>
                         </div>
                         <div className="flex flex-col gap-1 text-center pl-3">
-                          <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Space Group</span>
+                          <span className="text-[8px] text-slate-400/80 uppercase font-black tracking-widest">Space Group</span>
                           <span className="text-[11px] text-indigo-300 font-bold">{material.spaceGroup || 'Unknown'}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/5 text-[10px] font-mono text-slate-500 relative z-10">
-                      <span className="flex items-center gap-2 bg-emerald-500/5 px-2.5 py-1 rounded-lg border border-emerald-500/10">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                        ρ: <span className="text-emerald-400 font-bold ml-0.5">{material.density ? material.density.toFixed(2) : '-'}</span>
+                    <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-white/10 text-[10px] font-mono text-slate-500 relative z-10">
+                      <span className="flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/5 px-3 py-1.5 rounded-xl border border-emerald-500/20 shadow-sm">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
+                        <span className="text-slate-400">ρ:</span> <span className="text-emerald-400 font-bold ml-0.5">{material.density ? material.density.toFixed(2) : '-'}</span>
                       </span>
-                      <span className="flex items-center gap-1.5 bg-indigo-500/5 px-2.5 py-1 rounded-lg border border-indigo-500/10">
-                        <Activity className="w-3.5 h-3.5 text-indigo-400/70" /> 
-                        <span className="text-indigo-400 font-black">{countOfPeaks}</span> <span className="text-[8px] uppercase tracking-widest text-slate-500">Peaks</span>
+                      <span className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-500/10 to-purple-500/5 px-3 py-1.5 rounded-xl border border-indigo-500/20 shadow-sm">
+                        <Activity className="w-3.5 h-3.5 text-indigo-400" /> 
+                        <span className="text-indigo-400 font-black text-[11px]">{countOfPeaks}</span> <span className="text-[8px] uppercase tracking-widest text-indigo-300/70">Peaks</span>
                       </span>
                     </div>
                   </div>
@@ -4889,24 +4967,42 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
               })}
 
               {filteredAndSortedMaterials.length === 0 && (
-                <div className="col-span-2 py-16 text-center text-slate-500 space-y-2 border border-dashed border-slate-800 rounded-3xl">
-                  <ShieldAlert className="w-8 h-8 text-slate-600 mx-auto" />
-                  <p className="text-sm font-bold uppercase tracking-wider font-mono">No matching standards found</p>
-                  <p className="text-[10px] text-slate-600 font-mono">Try adjusting your filtration criteria or spellings.</p>
+                <div className="col-span-2 py-12 px-6 text-center text-slate-400 space-y-4 bg-gradient-to-b from-cyan-950/20 via-black/40 to-black/60 border border-cyan-500/30 rounded-3xl backdrop-blur-md shadow-2xl">
+                  <div className="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+                    <Sparkles className="w-7 h-7 text-cyan-400 animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-base font-black text-white font-mono">Material not found locally</p>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      Search external databases (Crystallography Open Database, ICDD, ICSD) with <strong>Gemini 3.6 Flash</strong> to compute Bragg 2θ angles, relative intensities, and hkl indices.
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        setGeminiFlashInitialQuery(searchQuery);
+                        setShowGeminiFlashSearch(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:via-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-cyan-500/20 border border-cyan-400/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-cyan-200" />
+                      <span>Search COD / ICDD via Gemini 3.6 Flash</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto bg-black/40 backdrop-blur-md border border-white/5 rounded-[2.5rem] shadow-2xl">
+            <div className="overflow-x-auto bg-gradient-to-b from-black/60 to-black/40 backdrop-blur-2xl border border-indigo-500/10 rounded-[2.5rem] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] relative z-10">
               <table className="w-full text-left border-collapse text-xs font-mono">
                 <thead>
-                  <tr className="border-b border-white/10 bg-indigo-500/5 text-slate-400 select-none">
-                    <th className="py-4 px-6 font-black uppercase tracking-[0.2em] text-[9px] w-5/12">Formula & Name</th>
-                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px]">Lattice System</th>
-                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right">Density (g/cm³)</th>
-                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right">Modulus (GPa)</th>
-                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-center">XRD Peaks</th>
-                    <th className="py-4 px-6 font-black uppercase tracking-[0.2em] text-[9px] text-center">Compare</th>
+                  <tr className="border-b border-indigo-500/20 bg-indigo-500/5 text-slate-400 select-none backdrop-blur-xl">
+                    <th className="py-5 px-6 font-black uppercase tracking-[0.2em] text-[9px] w-5/12 text-indigo-300">Formula & Name</th>
+                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-indigo-300">Lattice System</th>
+                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right text-indigo-300">Density (g/cm³)</th>
+                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right text-indigo-300">Modulus (GPa)</th>
+                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-center text-indigo-300">XRD Peaks</th>
+                    <th className="py-5 px-6 font-black uppercase tracking-[0.2em] text-[9px] text-center text-indigo-300">Compare</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -4920,37 +5016,37 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                           setSelectedMaterialName(material.name);
                           setIsEditing(false);
                         }}
-                        className={`cursor-pointer transition-all duration-300 group hover:bg-white/5 text-slate-300 ${isSelected ? 'bg-indigo-500/10 text-indigo-100 font-bold shadow-inner' : 'bg-transparent'}`}
+                        className={`cursor-pointer transition-all duration-300 group hover:bg-white/5 text-slate-300 ${isSelected ? 'bg-gradient-to-r from-indigo-500/20 to-indigo-900/10 text-indigo-100 font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-1px_0_rgba(255,255,255,0.05)]' : 'bg-transparent'}`}
                       >
-                        <td className="py-4 px-6 relative">
-                          {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]" />}
+                        <td className="py-5 px-6 relative">
+                          {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.9)]" />}
                           <div className="font-extrabold flex items-center gap-3 font-sans text-xs">
-                            <span className="text-[10px] text-cyan-300 font-mono font-bold bg-black/60 px-2 py-1 rounded-lg border border-white/10 group-hover:border-cyan-500/30 transition-colors shadow-inner">
+                            <span className="text-[11px] text-cyan-300 font-mono font-bold bg-black/60 px-2.5 py-1 rounded-xl border border-white/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] group-hover:border-cyan-500/30 transition-colors">
                               {material.formula}
                             </span>
-                            <span className="truncate max-w-[180px] drop-shadow-md group-hover:text-white transition-colors" title={material.name}>{material.name}</span>
+                            <span className={`truncate max-w-[180px] drop-shadow-md transition-colors ${isSelected ? 'text-white' : 'group-hover:text-cyan-100'}`} title={material.name}>{material.name}</span>
                           </div>
                         </td>
-                        <td className="py-4 px-4">
-                          <div className="text-slate-200 font-sans text-[11px] font-bold">{material.crystalSystem || 'N/A'}</div>
-                          <div className="text-[9px] text-indigo-300 font-mono tracking-wider mt-1">{material.spaceGroup || 'N/A'}</div>
+                        <td className="py-5 px-4">
+                          <div className="text-slate-200 font-sans text-[12px] font-bold">{material.crystalSystem || 'N/A'}</div>
+                          <div className="text-[10px] text-indigo-300 font-mono tracking-wider mt-1">{material.spaceGroup || 'N/A'}</div>
                         </td>
-                        <td className="py-4 px-4 text-right font-mono text-emerald-400 font-bold text-xs">
+                        <td className="py-5 px-4 text-right font-mono text-emerald-400 font-bold text-xs">
                           {material.density ? material.density.toFixed(2) : '-'}
                         </td>
-                        <td className="py-4 px-4 text-right font-mono text-amber-400 font-bold text-xs">
+                        <td className="py-5 px-4 text-right font-mono text-amber-400 font-bold text-xs">
                           {material.elasticModulus || '-'}
                         </td>
-                        <td className="py-4 px-4 text-center font-mono font-black text-indigo-400 text-xs">
+                        <td className="py-5 px-4 text-center font-mono font-black text-indigo-400 text-xs">
                           {countOfPeaks}
                         </td>
-                        <td className="py-4 px-6 text-center" onClick={(e) => e.stopPropagation()}>
+                        <td className="py-5 px-6 text-center" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={(e) => handleToggleCompare(material.name, e)}
-                            className={`p-2 rounded-xl transition-all duration-300 cursor-pointer inline-flex items-center justify-center ${
+                            className={`p-2.5 rounded-xl transition-all duration-300 cursor-pointer inline-flex items-center justify-center ${
                               comparedMaterials.includes(material.name)
-                                ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
-                                : 'bg-black/60 text-slate-400 hover:text-white border border-white/5 hover:border-slate-600/40'
+                                ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
+                                : 'bg-black/60 text-slate-400 hover:text-white border border-white/10 hover:border-slate-500/50 hover:bg-white/5'
                             }`}
                             title={comparedMaterials.includes(material.name) ? t("Remove from comparison", "Remove from comparison") : t("Add to side-by-side comparison", "Add to side-by-side comparison")}
                           >
@@ -4964,9 +5060,21 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
               </table>
 
               {filteredAndSortedMaterials.length === 0 && (
-                <div className="py-20 text-center text-slate-500 space-y-3">
-                  <ShieldAlert className="w-10 h-10 text-slate-600 mx-auto" />
-                  <p className="text-xs font-black uppercase tracking-[0.2em] font-mono">No matching standards found</p>
+                <div className="py-12 px-6 text-center text-slate-400 space-y-4">
+                  <div className="w-12 h-12 mx-auto rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
+                  </div>
+                  <p className="text-sm font-bold uppercase tracking-wider font-mono text-white">No matching standards found</p>
+                  <button
+                    onClick={() => {
+                      setGeminiFlashInitialQuery(searchQuery);
+                      setShowGeminiFlashSearch(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow border border-cyan-400/40 transition-all cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-cyan-200" />
+                    <span>Search COD / ICDD via Gemini 3.6 Flash</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -5008,380 +5116,24 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
             <div ref={inspectorRef} className="bg-[#050B14]/90 rounded-[2rem] border border-indigo-500/30 p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
               
-              {isCreating ? (
-                
-                /* ================= CREATE NOVEL STANDARD MODE ================= */
-                <div className="space-y-5 relative z-10 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Plus className="w-4 h-4 text-indigo-400" />
-                      <h3 className="font-extrabold text-white text-sm tracking-tight">
-                        {t('Create Novel Material Standard', 'Create Novel Material Standard')}
-                      </h3>
-                    </div>
-                    <button
-                      onClick={() => setIsCreating(false)}
-                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                      title={t('Cancel creation', 'Cancel creation')}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {editError && (
-                    <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[10px] rounded-xl font-mono leading-relaxed font-bold">
-                      {editError}
-                    </div>
-                  )}
-
-                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                    
-                    {/* Material Name input */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Material Registry Name</label>
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors"
-                        placeholder="e.g. Cobalt Antimonide (CoSb3 Skutterudite)"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Chemical Formula */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Formula</label>
-                        <input
-                          type="text"
-                          value={editFormula}
-                          onChange={e => setEditFormula(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. CoSb3"
-                        />
-                      </div>
-
-                      {/* Space group */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Space Group</label>
-                        <input
-                          type="text"
-                          value={editSpaceGroup}
-                          onChange={e => setEditSpaceGroup(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. Im-3"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Crystal System */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Crystal System</label>
-                        <select
-                          value={editCrystalSystem}
-                          onChange={e => setEditCrystalSystem(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors cursor-pointer"
-                        >
-                          <option value="Cubic">Cubic</option>
-                          <option value="Hexagonal">Hexagonal</option>
-                          <option value="Tetragonal">Tetragonal</option>
-                          <option value="Orthorhombic">Orthorhombic</option>
-                          <option value="Monoclinic">Monoclinic</option>
-                          <option value="Triclinic">Triclinic</option>
-                          <option value="Trigonal">Trigonal</option>
-                          <option value="Rhombohedral">Rhombohedral</option>
-                          <option value="Amorphous">Amorphous</option>
-                          <option value="Other">Other / Mixed</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Integrated Characterization, Thermodynamics & Symmetries parameters */}
-                    {renderCharacterizationSubForm()}
-
-                    {/* Description Textarea */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Chemical Description</label>
-                      <textarea
-                        value={editDescription}
-                        onChange={e => setEditDescription(e.target.value)}
-                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors h-16 resize-none"
-                        placeholder="Description of structure and properties..."
-                      />
-                    </div>
-
-                    {/* XRD Peak settings (2θ, intensity) */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-baseline">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">XRD Diffraction Pattern Peaks (2θ, Intensity)</label>
-                        <span className="text-[8px] font-mono text-slate-500 font-bold">One pair per line</span>
-                      </div>
-                      <textarea
-                        value={editPattern}
-                        onChange={e => setEditPattern(e.target.value)}
-                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors h-24 font-mono resize-y"
-                        placeholder="Format: 2theta, Intensity&#10;e.g.&#10;15.2, 50&#10;24.8, 100&#10;36.1, 75"
-                      />
-                    </div>
-
-                    {/* Applications Tag Selector */}
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Key Industrial Applications</label>
-                      
-                      <div className="flex gap-1.5 flex-wrap">
-                        {editApplications.map(tag => (
-                          <span key={tag} className="flex items-center gap-1 text-[9px] font-sans font-bold px-2.5 py-1 rounded-lg bg-indigo-500/10 text-slate-100 border border-indigo-500/20">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveAppTag(tag)}
-                              className="text-slate-400 hover:text-rose-400 focus:outline-none cursor-pointer"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newAppText}
-                          onChange={e => setNewAppText(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddAppTag();
-                            }
-                          }}
-                          className="flex-1 bg-black/60 border border-slate-800 text-xs px-3 py-1.5 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors"
-                          placeholder="Add custom application role..."
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddAppTag}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs cursor-pointer transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add</span>
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Form Trigger Actions */}
-                  <div className="flex gap-3 pt-3 border-t border-slate-800">
-                    <button
-                      onClick={handleSaveEdit}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-98 transition-all cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Create Standard</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => setIsCreating(false)}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-
-              ) : !selectedMaterial ? (
+              {!selectedMaterial ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center text-slate-500 space-y-4">
-                  <Database className="w-12 h-12 text-slate-600 animate-pulse" />
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                    <Database className="w-8 h-8 text-indigo-400 animate-pulse" />
+                  </div>
                   <div>
-                    <h3 className="font-extrabold uppercase text-white tracking-widest text-xs">Crystallographic Inspector</h3>
-                    <p className="text-[10px] font-mono text-slate-500 mt-1 max-w-[250px]">Select any material from the database registry grid to view details and live diffraction projection.</p>
+                    <h3 className="font-extrabold uppercase text-white tracking-widest text-xs">Crystallographic Material Dossier</h3>
+                    <p className="text-[10px] font-mono text-slate-400 mt-1 max-w-[280px]">Select any material from the Document Index to view its official crystallographic dossier and live diffraction projection.</p>
                   </div>
+                  <button
+                    onClick={handleStartCreate}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/20 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create Novel Standard</span>
+                  </button>
                 </div>
-              ) : isEditing ? (
-                
-                /* ================= EDIT PARAMETERS MODE ================= */
-                <div className="space-y-5 relative z-10 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Edit2 className="w-4 h-4 text-indigo-400" />
-                      <h3 className="font-extrabold text-white text-sm tracking-tight">
-                        {t('Edit Material Attributes', 'Edit Material Attributes')}
-                      </h3>
-                    </div>
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                      title={t('Cancel editing', 'Cancel editing')}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {editError && (
-                    <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[10px] rounded-xl font-mono leading-relaxed font-bold">
-                      {editError}
-                    </div>
-                  )}
-
-                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                    
-                    {/* Material Name input */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Material Registry Name</label>
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={e => setEditName(e.target.value)}
-                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors"
-                        placeholder="e.g. Uranium Dioxide (UO2 Nuclear Fuel)"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Chemical Formula */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Formula</label>
-                        <input
-                          type="text"
-                          value={editFormula}
-                          onChange={e => setEditFormula(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. UO2"
-                        />
-                      </div>
-
-                      {/* Space group */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Space Group</label>
-                        <input
-                          type="text"
-                          value={editSpaceGroup}
-                          onChange={e => setEditSpaceGroup(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. Fm-3m"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Crystal System */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Crystal System</label>
-                        <select
-                          value={editCrystalSystem}
-                          onChange={e => setEditCrystalSystem(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors cursor-pointer"
-                        >
-                          <option value="Cubic">Cubic</option>
-                          <option value="Hexagonal">Hexagonal</option>
-                          <option value="Tetragonal">Tetragonal</option>
-                          <option value="Orthorhombic">Orthorhombic</option>
-                          <option value="Monoclinic">Monoclinic</option>
-                          <option value="Triclinic">Triclinic</option>
-                          <option value="Trigonal">Trigonal</option>
-                          <option value="Rhombohedral">Rhombohedral</option>
-                          <option value="Amorphous">Amorphous</option>
-                          <option value="Other">Other / Mixed</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Integrated Characterization, Thermodynamics & Symmetries parameters */}
-                    {renderCharacterizationSubForm()}
-
-                    {/* Description Textarea */}
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Chemical Description</label>
-                      <textarea
-                        value={editDescription}
-                        onChange={e => setEditDescription(e.target.value)}
-                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors h-16 resize-none"
-                        placeholder="Description of structure and properties..."
-                      />
-                    </div>
-
-                    {/* XRD Peak settings (2θ, intensity) */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-baseline">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">XRD Diffraction Pattern Peaks (2θ, Intensity)</label>
-                        <span className="text-[8px] font-mono text-slate-500 font-bold">One pair per line</span>
-                      </div>
-                      <textarea
-                        value={editPattern}
-                        onChange={e => setEditPattern(e.target.value)}
-                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors h-24 font-mono resize-y"
-                        placeholder="Format: 2theta, Intensity&#10;e.g.&#10;28.3, 100&#10;32.8, 45&#10;47.1, 55"
-                      />
-                    </div>
-
-                    {/* Applications Tag Selector */}
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Key Industrial Applications</label>
-                      
-                      <div className="flex gap-1.5 flex-wrap">
-                        {editApplications.map(tag => (
-                          <span key={tag} className="flex items-center gap-1 text-[9px] font-sans font-bold px-2.5 py-1 rounded-lg bg-indigo-500/10 text-slate-100 border border-indigo-500/20">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveAppTag(tag)}
-                              className="text-slate-400 hover:text-rose-400 focus:outline-none cursor-pointer"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newAppText}
-                          onChange={e => setNewAppText(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddAppTag();
-                            }
-                          }}
-                          className="flex-1 bg-black/60 border border-slate-800 text-xs px-3 py-1.5 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors"
-                          placeholder="Add custom application role..."
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAddAppTag}
-                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs cursor-pointer transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add</span>
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Form Trigger Actions */}
-                  <div className="flex gap-3 pt-3 border-t border-slate-800">
-                    <button
-                      onClick={handleSaveEdit}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-98 transition-all cursor-pointer"
-                    >
-                      <Save className="w-4 h-4" />
-                      <span>Save Parameters</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-
               ) : (
-
                 /* ================= STANDARD DETAILS & READ MODE ================= */
                 <div className="space-y-6 relative z-10">
                   
@@ -6104,6 +5856,85 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* GEMINI 3.6 FLASH MATERIAL SEARCH & LEARNING MODAL */}
+      <AnimatePresence>
+        {showGeminiFlashSearch && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10 bg-black/80 backdrop-blur-xl overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-5xl my-auto"
+            >
+              <GeminiFlashMaterialSearch
+                initialQuery={geminiFlashInitialQuery}
+                onClose={() => setShowGeminiFlashSearch(false)}
+                onSelectMaterial={(material) => {
+                  setMaterials(prev => {
+                    const exists = prev.some(m => m.name === material.name);
+                    if (!exists) {
+                      return [material, ...prev];
+                    }
+                    return prev;
+                  });
+                  setSelectedMaterialName(material.name);
+                  setShowGeminiFlashSearch(false);
+                  setTimeout(() => {
+                    inspectorRef.current?.scrollIntoView({ behavior: 'smooth' });
+                  }, 100);
+                }}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CENTERED MATERIAL PARAMETER STUDIO & DELETER MODAL */}
+      <MaterialParameterStudioModal
+        isOpen={isEditing || isCreating}
+        isCreating={isCreating}
+        material={isCreating ? null : selectedMaterial}
+        allMaterials={materials}
+        onClose={() => {
+          setIsEditing(false);
+          setIsCreating(false);
+        }}
+        onSave={(updatedMaterial, isNew) => {
+          let next: any[];
+          if (isNew || isCreating) {
+            next = [updatedMaterial, ...materials];
+            setIsCreating(false);
+          } else {
+            next = materials.map(m => m.name === selectedMaterial?.name ? updatedMaterial : m);
+            setIsEditing(false);
+          }
+          saveMaterials(next);
+          setSelectedMaterialName(updatedMaterial.name);
+        }}
+        onDelete={(nameToDelete) => {
+          const remaining = materials.filter(m => m.name !== nameToDelete);
+          saveMaterials(remaining);
+          if (selectedMaterialName === nameToDelete) {
+            if (remaining.length > 0) {
+              setSelectedMaterialName(remaining[0].name);
+            } else {
+              setSelectedMaterialName('');
+            }
+          }
+          setIsEditing(false);
+          setIsCreating(false);
+        }}
+        onResetDefaults={(matName) => {
+          const original = MATERIAL_DB.find(m => m.name === matName);
+          if (original) {
+            const next = materials.map(m => m.name === matName ? original : m);
+            saveMaterials(next);
+            setIsEditing(false);
+          }
+        }}
+        isModified={isSelectedMaterialModified}
+      />
 
     </div>
   );

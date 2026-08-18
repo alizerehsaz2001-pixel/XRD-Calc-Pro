@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.41.0",
+    "@types/compression": "^1.8.1",
+    "compression": "^1.8.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",

@@ -3,6 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import hpp from "hpp";
+import compression from "compression";
 import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
@@ -17,6 +18,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const USERS_FILE = path.join(__dirname, "users.json");
+const LEARNED_MATERIALS_FILE = path.join(__dirname, "learned_materials.json");
+const TRANSLATIONS_FILE = path.join(__dirname, "translation_cache.json");
+
+// Multi-Client Gemini Pooling & In-Memory Response Caching
+const geminiClientsMap = new Map<string, GoogleGenAI>();
+
+function getOrCreateGeminiClient(customKey?: string): GoogleGenAI {
+  const key = customKey || process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error("GEMINI_API_KEY is not defined inside environment secrets or request payload.");
+  }
+  if (!geminiClientsMap.has(key)) {
+    const client = new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build-high-speed',
+        }
+      }
+    });
+    geminiClientsMap.set(key, client);
+  }
+  return geminiClientsMap.get(key)!;
+}
 
 let aiInstance: any = null;
 function getGeminiClient() {
@@ -25,16 +50,34 @@ function getGeminiClient() {
     if (!key) {
       throw new Error("GEMINI_API_KEY is not defined inside current environment secrets.");
     }
-    aiInstance = new GoogleGenAI({
-      apiKey: key,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
+    aiInstance = getOrCreateGeminiClient(key);
   }
   return aiInstance;
+}
+
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+const apiCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 Hour High Speed TTL
+
+function getFromApiCache(key: string): any | null {
+  const entry = apiCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    apiCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setToApiCache(key: string, data: any) {
+  if (apiCache.size > 300) {
+    const oldestKey = apiCache.keys().next().value;
+    if (oldestKey) apiCache.delete(oldestKey);
+  }
+  apiCache.set(key, { data, timestamp: Date.now() });
 }
 
 let pythonDepsReady = false;
@@ -266,6 +309,12 @@ async function startServer() {
   // Trust the proxy (needed for Cloud Run/Nginx) so req.ip and rate-limiting work properly
   app.set('trust proxy', 1);
 
+  // Enable HTTP Gzip / Brotli payload compression for high-speed API responses and assets
+  app.use(compression({
+    level: 6,
+    threshold: 512, // Compress anything larger than 512 bytes
+  }));
+
   // Cybersecurity & Best Practices Setup
   // 1. Helmet: Sets various HTTP headers to secure the app
   app.use(helmet({
@@ -338,6 +387,20 @@ async function startServer() {
   }
 
   const translationCache: Record<string, Record<string, string>> = {};
+  try {
+    if (fs.existsSync(TRANSLATIONS_FILE)) {
+      const raw = fs.readFileSync(TRANSLATIONS_FILE, "utf-8");
+      Object.assign(translationCache, JSON.parse(raw));
+    }
+  } catch (err) {
+    console.warn("Could not load translation_cache.json:", err);
+  }
+
+  function saveTranslationCacheAsync() {
+    try {
+      fs.writeFile(TRANSLATIONS_FILE, JSON.stringify(translationCache, null, 2), "utf-8", () => {});
+    } catch (e) {}
+  }
 
   app.post("/api/translate", async (req, res) => {
     const { keys, to } = req.body;
@@ -480,6 +543,7 @@ async function startServer() {
               result[key] = val;
             }
           });
+          saveTranslationCacheAsync();
         } else {
           console.log("[i18n] Dynamic translation fallback applied.");
         }
@@ -1085,20 +1149,18 @@ ${JSON.stringify(context || {})}`;
         return;
       }
 
-      const keyToUse = customKey || process.env.GEMINI_API_KEY;
-      if (!keyToUse) {
-        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+      const cacheKey = `global_sync:${query.toLowerCase().trim()}:${databaseId || 'all'}`;
+      const cached = getFromApiCache(cacheKey);
+      if (cached) {
+        res.json({
+          success: true,
+          materials: cached,
+          modelUsed: "In-Memory Accelerated Cache (0ms)"
+        });
         return;
       }
 
-      const ai = new GoogleGenAI({
-        apiKey: keyToUse,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build-global-sync',
-          }
-        }
-      });
+      const ai = getOrCreateGeminiClient(customKey);
 
       const dbMapping: Record<string, string> = {
         materials_project: "UC Berkeley Materials Project (LBNL)",
@@ -1217,10 +1279,244 @@ ${JSON.stringify(context || {})}`;
         }
       }
 
+      if (Array.isArray(results) && results.length > 0) {
+        setToApiCache(cacheKey, results);
+      }
+
       res.json({ success: true, materials: results, modelUsed: result.modelUsed });
     } catch (error: any) {
       console.error("Gemini Global Sync Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Dedicated Gemini 3.6/3.7 Flash Crystallography Database Search Engine (COD / ICDD / ICSD / Materials Project)
+  app.post("/api/gemini/material-search-flash", async (req, res) => {
+    const { query, wavelength = 1.54059, databaseTargets, customKey } = req.body;
+    try {
+      if (!query || typeof query !== 'string' || !query.trim()) {
+        res.status(400).json({ success: false, error: "A valid material search query or chemical formula is required." });
+        return;
+      }
+
+      const lambdaVal = Number(wavelength) || 1.54059;
+      const cacheKey = `material_search:${query.toLowerCase().trim()}:${lambdaVal}`;
+      const cached = getFromApiCache(cacheKey);
+      if (cached) {
+        res.json({
+          success: true,
+          material: cached,
+          modelUsed: "In-Memory Accelerated Cache (0ms)",
+          searchedWavelength: lambdaVal
+        });
+        return;
+      }
+
+      const ai = getOrCreateGeminiClient(customKey);
+
+      const prompt = `You are Gemini 3.6 Flash - Elite Crystallographic & Powder Diffraction Database Agent.
+Search for authentic crystallography, unit cell parameters, and X-ray diffraction (XRD) powder pattern data for the material: "${query.trim()}".
+Query academic and open crystal repositories including Crystallography Open Database (COD), ICDD PDF (Powder Diffraction File) standards, ICSD (Inorganic Crystal Structure Database), Materials Project, and peer-reviewed literature.
+
+Radiation Source: Cu K-alpha (Wavelength λ = ${lambdaVal} Å).
+
+Provide the output strictly in the following JSON schema:
+{
+  "name": "Full systematic and mineral/phase name (e.g. Yttrium Barium Copper Oxide / YBCO-123)",
+  "formula": "Clean standard chemical formula (e.g. YBa2Cu3O7)",
+  "crystalSystem": "One of: Cubic, Hexagonal, Tetragonal, Orthorhombic, Monoclinic, Triclinic, Trigonal / Rhombohedral",
+  "spaceGroup": "Full Hermann-Mauguin space group with number, e.g. 'Pmmm (No. 47)' or 'Fm-3m (No. 225)'",
+  "spaceGroupNumber": 47,
+  "latticeParams": {
+    "a": 3.82,
+    "b": 3.89,
+    "c": 11.68,
+    "alpha": 90,
+    "beta": 90,
+    "gamma": 90,
+    "volume": 173.5
+  },
+  "density": 6.38,
+  "molecularWeight": 666.19,
+  "elasticModulus": 140,
+  "zValue": 1,
+  "databaseSource": "Crystallography Open Database (COD) & ICDD PDF Database",
+  "databaseCardId": "COD: 1000045 / ICDD: 00-038-1433",
+  "description": "Comprehensive crystallographic and physical description detailing phase stability, coordination, and diffraction highlights.",
+  "type": "Superconductors & Quantum Oxides",
+  "applications": ["High-Tc Superconductivity", "Magnetic Levitation", "Quantum Sensing", "Cryogenic Devices"],
+  "elements": ["Y", "Ba", "Cu", "O"],
+  "peaks": [
+    {
+      "twoTheta": 22.84,
+      "intensity": 45,
+      "h": 0,
+      "k": 0,
+      "l": 3,
+      "hkl": "003",
+      "dSpacing": 3.89,
+      "fwhm": 0.22
+    },
+    {
+      "twoTheta": 32.81,
+      "intensity": 100,
+      "h": 1,
+      "k": 0,
+      "l": 3,
+      "hkl": "103",
+      "dSpacing": 2.73,
+      "fwhm": 0.24
+    }
+  ],
+  "pattern": "22.84, 45, 0, 0, 3\\n32.81, 100, 1, 0, 3\\n...",
+  "synthesisRef": "Solid-state reaction or hydrothermal synthesis route reference",
+  "confidenceScore": 96
+}
+
+CRITICAL RULES:
+1. Ensure all 2-theta angles correspond accurately to wavelength λ = ${lambdaVal} Å using Bragg's law (d = λ / (2 * sin(θ))).
+2. Provide at least 8-15 major characteristic diffraction peaks with accurate Miller indices (h, k, l) obeying space group systematic extinction rules.
+3. The 'pattern' field must be formatted with each line containing "twoTheta, intensity, h, k, l".
+4. Ground your response using Google search on academic databases (COD, ICDD, ICSD, Springer, MP).`;
+
+      const models = ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-pro-preview"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+        }
+      });
+
+      let text = (result.text || "").trim();
+      text = text.replace(/```json\n?/gi, "").replace(/\n?```/g, "").trim();
+
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        text = text.substring(firstBrace, lastBrace + 1);
+      }
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        console.error("JSON parse error from Gemini Flash material search:", err, text);
+        // Sanitize trailing commas
+        const sanitized = text.replace(/,\s*([}\]])/g, '$1');
+        parsed = JSON.parse(sanitized);
+      }
+
+      // Ensure peaks array and pattern string are properly formatted
+      if (parsed && Array.isArray(parsed.peaks)) {
+        if (!parsed.pattern || typeof parsed.pattern !== 'string') {
+          parsed.pattern = parsed.peaks.map((p: any) => {
+            const h = p.h !== undefined ? p.h : (p.hkl ? p.hkl[0] : 1);
+            const k = p.k !== undefined ? p.k : (p.hkl ? p.hkl[1] : 0);
+            const l = p.l !== undefined ? p.l : (p.hkl ? p.hkl[2] : 0);
+            return `${Number(p.twoTheta).toFixed(3)}, ${Number(p.intensity).toFixed(1)}, ${h}, ${k}, ${l}`;
+          }).join('\n');
+        }
+      }
+
+      if (parsed) {
+        setToApiCache(cacheKey, parsed);
+      }
+
+      res.json({
+        success: true,
+        material: parsed,
+        modelUsed: result.modelUsed,
+        searchedWavelength: lambdaVal
+      });
+
+    } catch (error: any) {
+      console.error("Gemini Flash Material Search Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to search external crystallographic databases via Gemini Flash." });
+    }
+  });
+
+  // Learned Materials Persistent Storage Endpoints
+  app.get("/api/materials/learned", (req, res) => {
+    try {
+      if (fs.existsSync(LEARNED_MATERIALS_FILE)) {
+        const raw = fs.readFileSync(LEARNED_MATERIALS_FILE, "utf-8");
+        const list = JSON.parse(raw);
+        res.json({ success: true, materials: Array.isArray(list) ? list : [] });
+      } else {
+        res.json({ success: true, materials: [] });
+      }
+    } catch (err: any) {
+      console.error("Error reading learned materials:", err);
+      res.json({ success: true, materials: [] });
+    }
+  });
+
+  app.post("/api/materials/learn", (req, res) => {
+    try {
+      const materialData = req.body;
+      if (!materialData || !materialData.name) {
+        res.status(400).json({ success: false, error: "Valid material payload with 'name' is required." });
+        return;
+      }
+
+      let list: any[] = [];
+      if (fs.existsSync(LEARNED_MATERIALS_FILE)) {
+        try {
+          const raw = fs.readFileSync(LEARNED_MATERIALS_FILE, "utf-8");
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) list = parsed;
+        } catch (e) {}
+      }
+
+      const learnedItem = {
+        ...materialData,
+        isLearned: true,
+        learnedAt: new Date().toISOString(),
+        verified: true
+      };
+
+      // Upsert by name
+      const existingIdx = list.findIndex(m => m.name.toLowerCase() === materialData.name.toLowerCase());
+      if (existingIdx >= 0) {
+        list[existingIdx] = learnedItem;
+      } else {
+        list.unshift(learnedItem);
+      }
+
+      fs.writeFileSync(LEARNED_MATERIALS_FILE, JSON.stringify(list, null, 2), "utf-8");
+      console.log(`[Learned DB] Successfully persisted new learned material: ${materialData.name}`);
+
+      res.json({ success: true, message: `Material '${materialData.name}' learned and permanently saved.`, material: learnedItem });
+    } catch (err: any) {
+      console.error("Error persisting learned material:", err);
+      res.status(500).json({ success: false, error: err.message || "Failed to persist learned material." });
+    }
+  });
+
+  app.delete("/api/materials/learned/:name", (req, res) => {
+    try {
+      const name = decodeURIComponent(req.params.name);
+      if (!name) {
+        res.status(400).json({ success: false, error: "Material name required" });
+        return;
+      }
+
+      if (fs.existsSync(LEARNED_MATERIALS_FILE)) {
+        const raw = fs.readFileSync(LEARNED_MATERIALS_FILE, "utf-8");
+        const list = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          const filtered = list.filter(m => m.name !== name);
+          fs.writeFileSync(LEARNED_MATERIALS_FILE, JSON.stringify(filtered, null, 2), "utf-8");
+        }
+      }
+
+      res.json({ success: true, message: `Material '${name}' removed from learned database.` });
+    } catch (err: any) {
+      console.error("Error removing learned material:", err);
+      res.status(500).json({ success: false, error: err.message });
     }
   });
 

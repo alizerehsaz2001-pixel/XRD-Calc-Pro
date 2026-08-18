@@ -50,7 +50,7 @@ import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { ScientificModuleNavigator } from './components/ScientificModuleNavigator';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
@@ -58,6 +58,15 @@ import { useAuth, db, handleFirestoreError, OperationType } from './services/fir
 import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
 import { syncOfflineHelper } from './utils/materialsHelper';
+import { 
+  getNetworkQualityInfo, 
+  getStoredAutoSyncConfig, 
+  saveStoredAutoSyncConfig, 
+  measureNetworkLatency, 
+  subscribeToNetworkChanges, 
+  NetworkQualityInfo, 
+  AutoSyncConfig 
+} from './utils/networkUtils';
 
 import { ResidualStressModule } from './components/ResidualStressModule';
 import { XRRModule } from './components/XRRModule';
@@ -358,6 +367,52 @@ const App: React.FC = () => {
     syncedMaterials: 0,
   });
 
+  // Automatic Sync & Network Quality Detection States
+  const [autoSyncConfig, setAutoSyncConfig] = useState<AutoSyncConfig>(() => getStoredAutoSyncConfig());
+  const [networkQuality, setNetworkQuality] = useState<NetworkQualityInfo>(() => getNetworkQualityInfo());
+  const [isTestingSpeed, setIsTestingSpeed] = useState<boolean>(false);
+
+  const runSpeedTest = async () => {
+    setIsTestingSpeed(true);
+    try {
+      const latency = await measureNetworkLatency();
+      const quality = getNetworkQualityInfo(latency, autoSyncConfig);
+      setNetworkQuality(quality);
+      return quality;
+    } catch (e) {
+      const quality = getNetworkQualityInfo(null, autoSyncConfig);
+      setNetworkQuality(quality);
+      return quality;
+    } finally {
+      setIsTestingSpeed(false);
+    }
+  };
+
+  const handleToggleAutoSync = (enabled: boolean) => {
+    const updated = saveStoredAutoSyncConfig({ enabled });
+    setAutoSyncConfig(updated);
+    playSynthTone('switch');
+
+    const quality = getNetworkQualityInfo(networkQuality.measuredLatencyMs, updated);
+    setNetworkQuality(quality);
+
+    if (enabled && isOnline && (!updated.highSpeedOnly || quality.isHighSpeed)) {
+      syncOfflineHelper()
+        .then(() => syncIndexedDBWithFirestore(false))
+        .then(() => refreshOfflineAnalyses())
+        .catch(console.error);
+    }
+  };
+
+  const handleToggleHighSpeedOnly = (highSpeedOnly: boolean) => {
+    const updated = saveStoredAutoSyncConfig({ highSpeedOnly });
+    setAutoSyncConfig(updated);
+    playSynthTone('switch');
+
+    const quality = getNetworkQualityInfo(networkQuality.measuredLatencyMs, updated);
+    setNetworkQuality(quality);
+  };
+
   const formatLastSyncTimestamp = (timestamp: string | null) => {
     if (!timestamp) return t('Never synced yet', 'Never synced yet');
     try {
@@ -572,7 +627,7 @@ const App: React.FC = () => {
     }
   };
 
-  // Monitor online status and retrieve cached records
+  // Monitor online status, network speed quality, and retrieve cached records
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -584,26 +639,54 @@ const App: React.FC = () => {
       }
     };
 
-    const handleOnline = () => {
-      setIsOnline(true);
+    const triggerAutoSyncIfEligible = (quality: NetworkQualityInfo) => {
+      if (!autoSyncConfig.enabled) {
+        setFirestoreSyncStatus(t('Auto-Sync Disabled (Manual Sync Only)', 'Auto-Sync Disabled (Manual Sync Only)'));
+        updateOfflineData();
+        return;
+      }
+
+      if (autoSyncConfig.highSpeedOnly && !quality.isHighSpeed) {
+        setFirestoreSyncStatus(t('Auto-Sync Paused (Slow Network / Data Saver Active)', 'Auto-Sync Paused (Slow Network / Data Saver Active)'));
+        updateOfflineData();
+        return;
+      }
+
       syncOfflineHelper()
-        .then(() => syncIndexedDBWithFirestore())
+        .then(() => syncIndexedDBWithFirestore(false))
         .then(() => updateOfflineData())
         .catch(console.error);
     };
 
+    const handleOnline = () => {
+      setIsOnline(true);
+      const quality = getNetworkQualityInfo(null, autoSyncConfig);
+      setNetworkQuality(quality);
+      triggerAutoSyncIfEligible(quality);
+    };
+
     const handleOffline = () => {
       setIsOnline(false);
+      const quality = getNetworkQualityInfo(null, autoSyncConfig);
+      setNetworkQuality(quality);
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial sync and fetch
-    syncOfflineHelper()
-      .then(() => syncIndexedDBWithFirestore())
-      .then(() => updateOfflineData())
-      .catch(console.error);
+    // Initial check & auto-sync trigger
+    const initialQuality = getNetworkQualityInfo(null, autoSyncConfig);
+    setNetworkQuality(initialQuality);
+    triggerAutoSyncIfEligible(initialQuality);
+
+    // Subscribe to network connection speed/type changes (W3C Network Information API)
+    const unsubscribeNetwork = subscribeToNetworkChanges(() => {
+      const q = getNetworkQualityInfo(null, autoSyncConfig);
+      setNetworkQuality(q);
+      if (autoSyncConfig.enabled && (!autoSyncConfig.highSpeedOnly || q.isHighSpeed)) {
+        triggerAutoSyncIfEligible(q);
+      }
+    });
 
     // Initial check for Python Engine
     const checkPythonStatus = async () => {
@@ -627,9 +710,10 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      unsubscribeNetwork();
       clearInterval(interval);
     };
-  }, [pythonReady]);
+  }, [pythonReady, autoSyncConfig]);
 
   // Fetch Bragg history when user logs in
   useEffect(() => {
@@ -2401,6 +2485,137 @@ const App: React.FC = () => {
                       >
                         {!isOnline ? t('Offline Mode Active', 'Offline Mode Active') : t('Force Offline', 'Force Offline')}
                       </button>
+                    </div>
+
+                    {/* Automatic Sync & Network Guard Controls */}
+                    <div className="p-4 bg-slate-950/60 border border-indigo-500/20 rounded-xl space-y-3.5">
+                      <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <Gauge className="w-4 h-4 text-indigo-400" />
+                          <span className="text-xs font-bold text-white uppercase tracking-wide">
+                            {t('Automatic Sync Settings', 'Automatic Sync Settings')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${
+                            !autoSyncConfig.enabled
+                              ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                              : networkQuality.isHighSpeed
+                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                          }`}>
+                            {!autoSyncConfig.enabled
+                              ? t('Auto-Sync OFF', 'Auto-Sync OFF')
+                              : networkQuality.isHighSpeed
+                              ? t('High-Speed Active', 'High-Speed Active')
+                              : t('Data Guard Active', 'Data Guard Active')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Toggle Switch 1: Automatic Sync */}
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <span className="block text-xs font-bold text-slate-200">
+                            {t('Automatic Background Sync', 'Automatic Background Sync')}
+                          </span>
+                          <span className="block text-[10px] text-slate-400 mt-0.5 leading-snug">
+                            {t('Automatically sync IndexedDB data with Firestore when online.', 'Automatically sync IndexedDB data with Firestore when online.')}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAutoSync(!autoSyncConfig.enabled)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            autoSyncConfig.enabled ? 'bg-indigo-600' : 'bg-slate-700'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                              autoSyncConfig.enabled ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Toggle Switch 2: High-Speed Network Requirement */}
+                      {autoSyncConfig.enabled && (
+                        <div className="flex items-center justify-between gap-4 pt-2 border-t border-white/5">
+                          <div>
+                            <span className="block text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                              {t('Require High-Speed Network (4G/5G/WiFi)', 'Require High-Speed Network (4G/5G/WiFi)')}
+                            </span>
+                            <span className="block text-[10px] text-slate-400 mt-0.5 leading-snug">
+                              {t('Pauses auto-sync on metered/slow connections (2G/3G) or when Data Saver is active to conserve mobile bandwidth.', 'Pauses auto-sync on metered/slow connections (2G/3G) or when Data Saver is active to conserve mobile bandwidth.')}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleHighSpeedOnly(!autoSyncConfig.highSpeedOnly)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                              autoSyncConfig.highSpeedOnly ? 'bg-emerald-600' : 'bg-slate-700'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                                autoSyncConfig.highSpeedOnly ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Network Quality & Live Diagnostics Box */}
+                      <div className="p-3 bg-black/40 border border-white/5 rounded-xl space-y-2 font-mono text-[10px]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <Wifi className="w-3.5 h-3.5 text-indigo-400" />
+                            {t('Live Connection Diagnostics', 'Live Connection Diagnostics')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={runSpeedTest}
+                            disabled={isTestingSpeed}
+                            className="px-2 py-0.5 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 font-bold border border-indigo-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <RefreshCw className={`w-3 h-3 ${isTestingSpeed ? 'animate-spin' : ''}`} />
+                            {isTestingSpeed ? t('Testing...', 'Testing...') : t('Test Speed', 'Test Speed')}
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-[10px] pt-1">
+                          <div className="p-2 rounded-lg bg-black/30 border border-white/5">
+                            <span className="text-slate-500 block text-[9px] uppercase">{t('Speed & Quality', 'Speed & Quality')}</span>
+                            <span className="font-bold text-white text-xs block mt-0.5 capitalize">
+                              {networkQuality.speedCategory.replace('-', ' ')}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-black/30 border border-white/5">
+                            <span className="text-slate-500 block text-[9px] uppercase">{t('Connection Type', 'Connection Type')}</span>
+                            <span className="font-bold text-indigo-300 text-xs block mt-0.5 uppercase">
+                              {networkQuality.effectiveType} ({networkQuality.connectionType})
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-black/30 border border-white/5">
+                            <span className="text-slate-500 block text-[9px] uppercase">{t('Est. Bandwidth', 'Est. Bandwidth')}</span>
+                            <span className="font-bold text-emerald-400 text-xs block mt-0.5">
+                              {networkQuality.downlink ? `${networkQuality.downlink.toFixed(1)} Mbps` : 'N/A'}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-black/30 border border-white/5">
+                            <span className="text-slate-500 block text-[9px] uppercase">{t('Latency (RTT)', 'Latency (RTT)')}</span>
+                            <span className="font-bold text-cyan-400 text-xs block mt-0.5">
+                              {networkQuality.rtt ? `${networkQuality.rtt} ms` : networkQuality.measuredLatencyMs ? `${Math.round(networkQuality.measuredLatencyMs)} ms` : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-[9.5px] text-slate-400 pt-1 flex items-start gap-1.5 leading-relaxed border-t border-white/5">
+                          <span className="shrink-0 text-indigo-400">ℹ️</span>
+                          <span>{networkQuality.reason}</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Live IndexedDB <-> Firestore Sync Status Card */}
