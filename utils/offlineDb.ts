@@ -30,12 +30,30 @@ export interface OfflineAnalysisResult {
 const DB_NAME = 'XRD_CrystalPro_OfflineDB';
 const DB_VERSION = 2;
 
+let cachedDbPromise: Promise<IDBDatabase> | null = null;
+
 export function openOfflineDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (cachedDbPromise) {
+    return cachedDbPromise;
+  }
+
+  cachedDbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => {
+      cachedDbPromise = null;
+      reject(request.error);
+    };
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      db.onclose = () => { cachedDbPromise = null; };
+      db.onversionchange = () => {
+        db.close();
+        cachedDbPromise = null;
+      };
+      resolve(db);
+    };
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       const db = request.result;
@@ -53,6 +71,8 @@ export function openOfflineDB(): Promise<IDBDatabase> {
       }
     };
   });
+
+  return cachedDbPromise;
 }
 
 // --- Materials Storage ---

@@ -10,6 +10,7 @@ export function parseCIF(cifContent: string, fileName: string): RietveldPhaseInp
   let inLoop = false;
   let loopHeaders: string[] = [];
   let atomSiteLoop = false;
+  let cachedIndices: { labelIdx: number; xIdx: number; yIdx: number; zIdx: number; occIdx: number; uIsoIdx: number } | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
@@ -45,6 +46,7 @@ export function parseCIF(cifContent: string, fileName: string): RietveldPhaseInp
       inLoop = true;
       loopHeaders = [];
       atomSiteLoop = false;
+      cachedIndices = null;
       continue;
     }
 
@@ -57,16 +59,22 @@ export function parseCIF(cifContent: string, fileName: string): RietveldPhaseInp
         continue;
       } else {
         if (atomSiteLoop) {
+          if (!cachedIndices) {
+            cachedIndices = {
+              labelIdx: loopHeaders.findIndex(h => h === '_atom_site_label' || h === '_atom_site_type_symbol'),
+              xIdx: loopHeaders.findIndex(h => h === '_atom_site_fract_x'),
+              yIdx: loopHeaders.findIndex(h => h === '_atom_site_fract_y'),
+              zIdx: loopHeaders.findIndex(h => h === '_atom_site_fract_z'),
+              occIdx: loopHeaders.findIndex(h => h === '_atom_site_occupancy'),
+              uIsoIdx: loopHeaders.findIndex(h => h === '_atom_site_u_iso_or_equiv' || h === '_atom_site_b_iso_or_equiv'),
+            };
+          }
+
+          const { labelIdx, xIdx, yIdx, zIdx, occIdx, uIsoIdx } = cachedIndices;
+
           // Parse atom row
           let element = 'X';
           let x = 0, y = 0, z = 0, occ = 1, bIso = 0.5;
-
-          const labelIdx = loopHeaders.findIndex(h => h === '_atom_site_label' || h === '_atom_site_type_symbol');
-          const xIdx = loopHeaders.findIndex(h => h === '_atom_site_fract_x');
-          const yIdx = loopHeaders.findIndex(h => h === '_atom_site_fract_y');
-          const zIdx = loopHeaders.findIndex(h => h === '_atom_site_fract_z');
-          const occIdx = loopHeaders.findIndex(h => h === '_atom_site_occupancy');
-          const uIsoIdx = loopHeaders.findIndex(h => h === '_atom_site_u_iso_or_equiv' || h === '_atom_site_b_iso_or_equiv');
 
           if (labelIdx !== -1 && tokens[labelIdx]) {
             element = tokens[labelIdx].replace(/[^A-Za-z]/g, '');
@@ -90,8 +98,6 @@ export function parseCIF(cifContent: string, fileName: string): RietveldPhaseInp
             bIso: Math.max(0.1, bIso)
           });
         }
-        
-        // If it's a loop row, we stay in loop, but if the next line starts with '_' and not data, it breaks, but for CIF, we only break if it's the end or a new tag or data_
       }
     }
     

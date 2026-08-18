@@ -3,8 +3,13 @@ import { GoogleGenAI, Type, Chat, GroundingChunk, ThinkingLevel } from "@google/
 import { AIResponse, GroundingSource, StandardWavelength } from '../types';
 import { MATERIAL_DB } from "../utils/materialDB";
 
-// Initialize Gemini Client using process.env.GEMINI_API_KEY directly
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+// Dynamic client getter supporting user custom key overrides
+const getGeminiClient = (): GoogleGenAI => {
+  const customKey = typeof window !== 'undefined'
+    ? (localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || process.env.GEMINI_API_KEY)
+    : process.env.GEMINI_API_KEY;
+  return new GoogleGenAI({ apiKey: (customKey || process.env.GEMINI_API_KEY) as string });
+};
 
 const extractSources = (metadata: any): GroundingSource[] => {
   if (!metadata?.groundingChunks) return [];
@@ -57,7 +62,7 @@ export const generateScientificImage = async (
   aspectRatio: '1:1' | '16:9' | '4:3' | '3:4' = '1:1'
 ): Promise<string | null> => {
   // Create a new instance to ensure the most up-to-date API key is used (if selected via UI)
-  const dynamicAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+  const dynamicAi = getGeminiClient();
   const styleContext = styleLabel ? ` in the style of a ${styleLabel}` : '';
   const fullPrompt = `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis${styleContext}. Prompt: ${prompt}`;
 
@@ -123,7 +128,7 @@ export const generateScientificImage = async (
 export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> => {
   try {
     const model = 'gemini-3.5-flash';
-    const response = await ai.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model,
       contents: `Search for and provide a comprehensive list of the most current and accurate standard characteristic X-ray wavelengths (K-alpha weighted averages for Cu, Mo, Co, Fe, Cr, Ag) and common neutron wavelengths (standard thermal and cold source averages). 
       Return the data in a structured JSON list.`,
@@ -167,7 +172,7 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
   try {
     const model = 'gemini-3.5-flash';
     
-    const response = await ai.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model,
       contents: `Provide characteristic crystallography data and major diffraction peaks for the material or query: "${query}". 
       Assume a standard X-ray wavelength of Cu K-alpha (1.5406 Angstrom) unless the user specifies otherwise. 
@@ -254,7 +259,7 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
 export const explainResults = async (resultsSummary: string): Promise<string> => {
    try {
     const model = 'gemini-3.5-flash';
-    const response = await ai.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model,
       contents: `As a crystallography expert, briefly interpret these diffraction results: ${resultsSummary}. Focus on d-spacing trends and potential crystal quality indicators. Keep it under 50 words.`,
       config: {
@@ -411,7 +416,7 @@ export const analyzePhaseID = async (xrdDataText: string): Promise<string> => {
       ragContext += "No highly similar reference patterns were matching inside the current local PDF standard suite. Please perform full scientific inductive search.\n";
     }
 
-    const response = await ai.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model,
       contents: `You are an expert Crystallographer and Materials Science AI. Your task is to analyze the provided X-ray Diffraction (XRD) data (2-theta positions, d-spacing, and relative intensities) to identify the material phase and distinguish between closely related crystal structures.
 
@@ -467,7 +472,7 @@ export const enhanceScientificPrompt = async (
       if (config.addForceVectors) systemDetails += `- Add clean vector force arrows (indicating atomic displacements, stress fields, or wave vectors).\n`;
     }
     
-    const response = await ai.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model,
       contents: `You are an expert scientific illustrator working for academic journals. Transform the following user description into a detailed, high-quality, professional image generation prompt.
 
@@ -491,10 +496,7 @@ export const generateMatplotlibCode = async (prompt: string, presetType?: string
     const model = 'gemini-3.5-flash';
     const presetContext = presetType ? `The user is starting from a preset plot type of: "${presetType}". ` : '';
     
-    // Create dynamic customer AI client
-    const dynamicAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-    
-    const response = await dynamicAi.models.generateContent({
+    const response = await getGeminiClient().models.generateContent({
       model,
       contents: `You are an expert scientific data visualizer who writes high-quality Python code using Matplotlib and NumPy.
       Write a complete, professional, and visually stunning Python script to generate a scientific plot or mathematical model illustration based on this prompt: "${prompt}".
@@ -529,7 +531,7 @@ export const generateMatplotlibCode = async (prompt: string, presetType?: string
 };
 
 export const createSupportChat = (isSmart: boolean = false): Chat => {
-  return ai.chats.create({
+  return getGeminiClient().chats.create({
     model: 'gemini-3.5-flash',
     config: {
       systemInstruction: "You are 'Crystal', the AI support assistant for the Bragg-Engine crystallography app. You are helpful, scientifically accurate, and concise. You help users (especially Raf) understand diffraction concepts (Bragg's law, Scherrer equation, Rietveld refinement) and navigate the app. Use the Google Search tool to provide accurate, up-to-date scientific information.",

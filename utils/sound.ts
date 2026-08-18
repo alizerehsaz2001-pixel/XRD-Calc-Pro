@@ -2,16 +2,30 @@
  * Web Audio-based scientific synthesizer soundboard
  * Integrates responsive retro chimes and beeps to reinforce tactile UI craftsmanship
  */
+let sharedAudioCtx: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new AudioContextClass();
+  } else if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume().catch(() => {});
+  }
+  return sharedAudioCtx;
+}
+
 export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch' | 'chime' | 'action') => {
   try {
     const isSound = localStorage.getItem('xrd_sound') === 'true';
     if (!isSound) return;
 
     // Retrieve or initialize audio context
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
     
-    const ctx = new AudioContextClass();
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
