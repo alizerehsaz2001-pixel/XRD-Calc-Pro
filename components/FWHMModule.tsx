@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle, Download, BookOpen, HelpCircle,
   Sliders, Eye, ZoomIn, ZoomOut, Crosshair, TrendingUp, BarChart2, Split, Maximize2, Sparkles, SlidersHorizontal,
-  Wand2, Check, Scale, Calculator, Camera, Image, Gauge, X, Info, UploadCloud, List, Grid, Radio
+  Wand2, Check, Scale, Calculator, Camera, Image, Gauge, X, Info, UploadCloud, List, Grid, Radio,
+  Ruler, Copy, Minimize2, GitCompare, FileSpreadsheet, Palette, Plus
 } from 'lucide-react';
 import { simulatePeak } from '../utils/physics';
-import { FWHMResult } from '../types';
+import { FWHMResult, CustomPeak, CustomPeakMetrics } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
+import { MultiPeakManager, SCIENTIFIC_PEAK_COLORS } from './MultiPeakManager';
 import {
   ComposedChart,
   Area,
@@ -384,8 +386,49 @@ export const FWHMModule: React.FC = () => {
   const [secondPeakAmp, setSecondPeakAmp] = useState<number>(40); // % of primary peak
   const [applyLpFactor, setApplyLpFactor] = useState<boolean>(false); // Lorentz-Polarization correction
 
-  // Module Active Main Tab: 'visualizer' | 'theory' | 'import'
-  const [activeTab, setActiveTab] = useState<'visualizer' | 'theory' | 'import'>('visualizer');
+  // Module Active Main Tab: 'visualizer' | 'multipeak' | 'theory' | 'import'
+  const [activeTab, setActiveTab] = useState<'visualizer' | 'multipeak' | 'theory' | 'import'>('visualizer');
+
+  // Custom Multi-Peak Manual Builder & Deconvolution State
+  const [enableMultiPeakMode, setEnableMultiPeakMode] = useState<boolean>(false);
+  const [customPeaks, setCustomPeaks] = useState<CustomPeak[]>([
+    {
+      id: 'peak-1',
+      name: 'Peak 1 - α (111)',
+      color: '#6366f1', // Indigo
+      enabled: true,
+      center: 28.44,
+      fwhm: 0.22,
+      amplitude: 140,
+      shape: 'Pseudo-Voigt',
+      eta: 0.5,
+      asymmetry: 1.0
+    },
+    {
+      id: 'peak-2',
+      name: 'Peak 2 - β (200)',
+      color: '#ec4899', // Pink
+      enabled: true,
+      center: 29.25,
+      fwhm: 0.32,
+      amplitude: 75,
+      shape: 'Pseudo-Voigt',
+      eta: 0.55,
+      asymmetry: 1.0
+    },
+    {
+      id: 'peak-3',
+      name: 'Peak 3 - γ (220)',
+      color: '#10b981', // Emerald
+      enabled: true,
+      center: 30.60,
+      fwhm: 0.28,
+      amplitude: 50,
+      shape: 'Gaussian',
+      eta: 0.3,
+      asymmetry: 1.0
+    }
+  ]);
 
   // Experimental Raw Data Upload / Paste & Multi-Peak Extraction State
   const [rawDatasetText, setRawDatasetText] = useState<string>('');
@@ -408,9 +451,83 @@ export const FWHMModule: React.FC = () => {
   const [showNoisyCurve, setShowNoisyCurve] = useState<boolean>(true); // Red raw/noisy experimental peak curve
   const [isSolitudeMode, setIsSolitudeMode] = useState<boolean>(false); // Pure clean solo peak view
   const [showHalfMaxBounds, setShowHalfMaxBounds] = useState<boolean>(true); // 2theta_1 and 2theta_2 markers
+  const [showFwtmBounds, setShowFwtmBounds] = useState<boolean>(false); // Full Width Tenth Maximum (FWTM) bounds
   const [showIntegralBreadthBox, setShowIntegralBreadthBox] = useState<boolean>(true); // I_max * beta box
   const [showSigmaSpan, setShowSigmaSpan] = useState<boolean>(true); // Gaussian c = sigma span
   const [showImaxLines, setShowImaxLines] = useState<boolean>(true); // I_max and I_max/2 lines
+  const [showModelComparison, setShowModelComparison] = useState<boolean>(false); // Overlay Gauss vs Lorentz vs Pearson VII
+  const [isCaliperMode, setIsCaliperMode] = useState<boolean>(false); // Interactive 2-point angle/d-spacing measurement caliper
+  const [caliperPointA, setCaliperPointA] = useState<number | null>(null);
+  const [caliperPointB, setCaliperPointB] = useState<number | null>(null);
+  const [isExpandedChart, setIsExpandedChart] = useState<boolean>(false);
+  const [copiedFormula, setCopiedFormula] = useState<boolean>(false);
+
+  // Quick Preset Scenario loader
+  const applyPeakScenarioPreset = (scenario: 'nist_si' | 'nano_tio2' | 'strained_alloy' | 'ka_doublet' | 'polymer_halo') => {
+    if (scenario === 'nist_si') {
+      setType('Pseudo-Voigt');
+      setCenter(28.44);
+      setFwhmManual(0.058);
+      setEta(0.35);
+      setAmplitude(150);
+      setBackground(10);
+      setNoiseLevel(1.5);
+      setEnableKaDoublet(false);
+      setEnableSecondaryPeak(false);
+      setEnableAmorphousHalo(false);
+      setMicrostrain(0.0);
+    } else if (scenario === 'nano_tio2') {
+      setType('Pseudo-Voigt');
+      setCenter(25.28);
+      setFwhmManual(0.42);
+      setEta(0.75);
+      setAmplitude(110);
+      setBackground(15);
+      setNoiseLevel(3.0);
+      setEnableKaDoublet(false);
+      setEnableSecondaryPeak(false);
+      setEnableAmorphousHalo(false);
+      setMicrostrain(0.001);
+    } else if (scenario === 'strained_alloy') {
+      setType('Pseudo-Voigt');
+      setCenter(43.60);
+      setFwhmManual(0.38);
+      setEta(0.55);
+      setAmplitude(130);
+      setBackground(12);
+      setNoiseLevel(2.5);
+      setEnableKaDoublet(false);
+      setEnableSecondaryPeak(false);
+      setEnableAmorphousHalo(false);
+      setMicrostrain(0.0045);
+    } else if (scenario === 'ka_doublet') {
+      setType('Pseudo-Voigt');
+      setCenter(69.13);
+      setFwhmManual(0.18);
+      setEta(0.5);
+      setAmplitude(140);
+      setBackground(8);
+      setNoiseLevel(2.0);
+      setEnableKaDoublet(true);
+      setKa2Ratio(0.5);
+      setEnableSecondaryPeak(false);
+      setEnableAmorphousHalo(false);
+    } else if (scenario === 'polymer_halo') {
+      setType('Pseudo-Voigt');
+      setCenter(21.50);
+      setFwhmManual(0.85);
+      setEta(0.8);
+      setAmplitude(95);
+      setBackground(8);
+      setNoiseLevel(4.0);
+      setEnableKaDoublet(false);
+      setEnableSecondaryPeak(false);
+      setEnableAmorphousHalo(true);
+      setAmorphousCenter(20.0);
+      setAmorphousFwhm(11.0);
+      setAmorphousAmp(30.0);
+    }
+  };
 
   // Toggle Solitude / Pure Solo Peak View (Clutter-Free Pure Peak)
   const toggleSolitudeMode = () => {
@@ -592,6 +709,75 @@ export const FWHMModule: React.FC = () => {
   
   const [chartData, setChartData] = useState<any[]>([]);
   const [stats, setStats] = useState<FWHMResult | null>(null);
+
+  // Custom Multi-Peak Metrics Computation
+  const customPeakMetrics: CustomPeakMetrics[] = useMemo(() => {
+    const activeW = activeWavelength * 10; // in Å
+    const maxAmp = Math.max(...customPeaks.map(p => p.enabled ? p.amplitude : 0), 1);
+    
+    const rawMetrics = customPeaks.map(p => {
+      const thetaRad = (p.center / 2) * (Math.PI / 180);
+      const sinTheta = Math.sin(thetaRad);
+      const dSpacing = sinTheta > 0 ? activeW / (2 * sinTheta) : 0;
+      
+      let areaFactor = 1.064467;
+      if (p.shape === 'Gaussian') areaFactor = 1.064467;
+      else if (p.shape === 'Lorentzian') areaFactor = 1.570796;
+      else if (p.shape === 'Pseudo-Voigt') areaFactor = (1 - p.eta) * 1.064467 + p.eta * 1.570796;
+      else if (p.shape === 'Pearson VII') areaFactor = 1.25;
+
+      const area = p.enabled ? p.amplitude * p.fwhm * areaFactor : 0;
+      const integralBreadth = p.amplitude > 0 ? area / p.amplitude : p.fwhm;
+
+      const betaRad = p.fwhm * (Math.PI / 180);
+      const cosTheta = Math.cos(thetaRad);
+      const sizeNm = (betaRad > 0 && cosTheta > 0) ? (scherrerK * activeWavelength * 10) / (betaRad * cosTheta) : 0;
+
+      const tanTheta = Math.tan(thetaRad);
+      const microstrainPercent = (tanTheta > 0) ? ((betaRad / (4 * tanTheta)) * 100) : 0;
+
+      return {
+        peak: p,
+        dSpacing,
+        area,
+        areaPercent: 0,
+        integralBreadth,
+        crystalliteSizeNm: sizeNm,
+        microstrainPercent,
+        theta1: p.center - p.fwhm / 2,
+        theta2: p.center + p.fwhm / 2,
+        maxIntensity: p.amplitude,
+        relIntensityPercent: (p.amplitude / maxAmp) * 100
+      };
+    });
+
+    const totalArea = rawMetrics.reduce((sum, m) => sum + (m.peak.enabled ? m.area : 0), 0);
+
+    return rawMetrics.map(m => ({
+      ...m,
+      areaPercent: totalArea > 0 ? (m.area / totalArea) * 100 : 0
+    }));
+  }, [customPeaks, activeWavelength, scherrerK]);
+
+  const handleExportMultiPeakCsv = () => {
+    let csv = `Peak Name,Enabled,Centroid 2Theta (deg),FWHM Beta (deg),d-spacing (Angstrom),Max Intensity (cps),Rel Intensity (%),Integrated Area (cps.deg),Area Fraction (%),Integral Breadth (deg),Crystallite Size D (nm),Microstrain (%),Shape,Eta / Decays\n`;
+    customPeakMetrics.forEach(m => {
+      csv += `"${m.peak.name}",${m.peak.enabled},${m.peak.center.toFixed(4)},${m.peak.fwhm.toFixed(4)},${m.dSpacing.toFixed(4)},${m.maxIntensity.toFixed(2)},${m.relIntensityPercent.toFixed(2)},${m.area.toFixed(3)},${m.areaPercent.toFixed(2)},${m.integralBreadth.toFixed(4)},${m.crystalliteSizeNm.toFixed(3)},${m.microstrainPercent.toFixed(4)},"${m.peak.shape}",${m.peak.eta.toFixed(2)}\n`;
+    });
+    
+    csv += `\n2-Theta (deg),Total Composite Intensity (cps)\n`;
+    chartData.forEach(pt => {
+      csv += `${pt.x.toFixed(4)},${(pt._cleanY || 0).toFixed(3)}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `XRD_MultiPeak_Deconvolution_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
   
   const resetToDefaults = () => {
     setType('Pseudo-Voigt');
@@ -637,8 +823,20 @@ export const FWHMModule: React.FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   const extSim = useMemo(() => {
-    const halfWidth = fwhm * 4.5 * zoomRange;
-    const range: [number, number] = [Math.max(5, center - halfWidth), Math.min(170, center + halfWidth)];
+    let halfWidth = fwhm * 4.5 * zoomRange;
+    let range: [number, number] = [Math.max(5, center - halfWidth), Math.min(170, center + halfWidth)];
+
+    if (enableMultiPeakMode) {
+      const activeP = customPeaks.filter(p => p.enabled);
+      if (activeP.length > 0) {
+        const minCenter = Math.min(...activeP.map(p => p.center - p.fwhm * 3.5));
+        const maxCenter = Math.max(...activeP.map(p => p.center + p.fwhm * 3.5));
+        const span = Math.max(2.0, (maxCenter - minCenter) * zoomRange);
+        const mid = (minCenter + maxCenter) / 2;
+        range = [Math.max(5, mid - span * 0.65), Math.min(175, mid + span * 0.65)];
+      }
+    }
+
     const steps = 600; // High resolution sampling grid
     const start = range[0];
     const end = range[1];
@@ -738,7 +936,36 @@ export const FWHMModule: React.FC = () => {
         pkSecVal = pkSec.val;
       }
 
-      let cleanSum = pk1.val + pk2Val + pkSecVal;
+      let customPeakTotal = 0;
+      const customPeakMap: Record<string, number> = {};
+
+      if (enableMultiPeakMode) {
+        customPeaks.forEach(p => {
+          if (!p.enabled) return;
+          const pAsym = x < p.center ? p.asymmetry : 1 / p.asymmetry;
+          const pEffFwhm = Math.max(0.001, p.fwhm * pAsym);
+          const pSigma = Math.max(0.0001, pEffFwhm / (2 * Math.sqrt(2 * Math.log(2))));
+          const pGamma = Math.max(0.0001, pEffFwhm / 2);
+          const pW = Math.max(0.0001, pEffFwhm / (2 * Math.sqrt(Math.pow(2, 1 / 2) - 1)));
+          let v = 0;
+          if (p.shape === 'Gaussian') {
+            v = p.amplitude * Math.exp(-0.5 * Math.pow((x - p.center) / pSigma, 2));
+          } else if (p.shape === 'Lorentzian') {
+            v = p.amplitude * (Math.pow(pGamma, 2) / (Math.pow(x - p.center, 2) + Math.pow(pGamma, 2)));
+          } else if (p.shape === 'Pseudo-Voigt') {
+            const g = p.amplitude * Math.exp(-0.5 * Math.pow((x - p.center) / pSigma, 2));
+            const l = p.amplitude * (Math.pow(pGamma, 2) / (Math.pow(x - p.center, 2) + Math.pow(pGamma, 2)));
+            v = (1 - p.eta) * g + p.eta * l;
+          } else if (p.shape === 'Pearson VII') {
+            const pM = Math.max(1, p.eta * 5);
+            v = p.amplitude * Math.pow(1 + Math.pow((x - p.center) / pW, 2), -pM);
+          }
+          customPeakMap[p.id] = v + Math.max(0, currentBg);
+          customPeakTotal += v;
+        });
+      }
+
+      let cleanSum = enableMultiPeakMode ? customPeakTotal : (pk1.val + pk2Val + pkSecVal);
 
       if (applyLpFactor) {
         // Monochromator polarization factor Km
@@ -778,6 +1005,14 @@ export const FWHMModule: React.FC = () => {
       comNumerator += x * purePeak;
       comDenominator += purePeak;
 
+      const effSigma_m = Math.max(0.0001, effFwhmWithStrain / (2 * Math.sqrt(2 * Math.log(2))));
+      const effGamma_m = Math.max(0.0001, effFwhmWithStrain / 2);
+      const effW_m = effFwhmWithStrain / (2 * Math.sqrt(Math.pow(2, 1 / 2) - 1)); // Pearson VII m=2
+
+      const yGaussModel = showModelComparison ? amplitude * Math.exp(-0.5 * Math.pow((x - center) / effSigma_m, 2)) + Math.max(0, currentBg) : undefined;
+      const yLorentzModel = showModelComparison ? amplitude * (Math.pow(effGamma_m, 2) / (Math.pow(x - center, 2) + Math.pow(effGamma_m, 2))) + Math.max(0, currentBg) : undefined;
+      const yPearsonModel = showModelComparison ? amplitude * Math.pow(1 + Math.pow((x - center) / effW_m, 2), -2) + Math.max(0, currentBg) : undefined;
+
       points.push({
         x,
         y: noisyY,
@@ -787,7 +1022,11 @@ export const FWHMModule: React.FC = () => {
         yKa1: enableKaDoublet ? pk1.val + Math.max(0, currentBg) : undefined,
         yKa2: enableKaDoublet ? pk2Val + Math.max(0, currentBg) : undefined,
         yPeak2: enableSecondaryPeak ? pkSecVal + Math.max(0, currentBg) : undefined,
-        residual
+        yGaussModel,
+        yLorentzModel,
+        yPearsonModel,
+        residual,
+        ...customPeakMap
       });
     }
 
@@ -897,6 +1136,8 @@ export const FWHMModule: React.FC = () => {
       centerKa2: number;
       theta1: number;
       theta2: number;
+      theta1Tenth: number;
+      theta2Tenth: number;
       gaussianSigmaC: number;
       fwtm: number;
       fwtmRatio: number;
@@ -933,6 +1174,8 @@ export const FWHMModule: React.FC = () => {
       centerKa2,
       theta1,
       theta2,
+      theta1Tenth: leftTenth,
+      theta2Tenth: rightTenth,
       gaussianSigmaC,
       fwtm,
       fwtmRatio,
@@ -963,9 +1206,10 @@ export const FWHMModule: React.FC = () => {
   }, [
     type, center, fwhm, eta, amplitude, background, bgSlope, noiseLevel, zoomRange,
     enableKaDoublet, ka2Ratio, asymmetry, enableSecondaryPeak, secondPeakOffset,
-    secondPeakFwhm, secondPeakAmp, showComponents, activeWavelength, applyLpFactor,
+    secondPeakFwhm, secondPeakAmp, showComponents, showModelComparison, activeWavelength, applyLpFactor,
     voigtFormulation, enableInstCorrection, instBroadening, microstrain, monochromatorType,
-    enableAmorphousHalo, amorphousCenter, amorphousFwhm, amorphousAmp
+    enableAmorphousHalo, amorphousCenter, amorphousFwhm, amorphousAmp,
+    enableMultiPeakMode, customPeaks
   ]);
 
   useEffect(() => {
@@ -2971,6 +3215,24 @@ export const FWHMModule: React.FC = () => {
             </button>
 
             <button
+              onClick={() => {
+                setActiveTab('multipeak');
+                setEnableMultiPeakMode(true);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'multipeak'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md font-extrabold'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Palette className="w-4 h-4 text-purple-400" />
+              Multi-Peak Deconv & Colors
+              <span className="bg-purple-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold">
+                {customPeaks.filter(p => p.enabled).length}/{customPeaks.length}
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('import')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'import'
@@ -3020,7 +3282,7 @@ export const FWHMModule: React.FC = () => {
           {/* Header & Controls Toolbar */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-3 z-10">
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <h3 className="text-xl lg:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5">
                   <Activity className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-pulse" />
                   Line Profile Peak Visualizer
@@ -3031,9 +3293,20 @@ export const FWHMModule: React.FC = () => {
                 <span className="px-3 py-1 rounded-full text-xs font-mono font-extrabold bg-purple-100 dark:bg-purple-950 text-purple-900 dark:text-purple-200 border-2 border-purple-400 dark:border-purple-700 shadow-sm">
                   FWHM β_obs = {extSim.stats.effTchFwhm.toFixed(4)}°
                 </span>
+                {showModelComparison && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse">
+                    Multi-Model Comparison Active
+                  </span>
+                )}
+                {isCaliperMode && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 animate-pulse flex items-center gap-1">
+                    <Ruler className="w-3 h-3" />
+                    Caliper Active
+                  </span>
+                )}
               </div>
               <p className="text-xs lg:text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">
-                Interactive Bragg peak profile fitting & deconvolution. Click on chart to snap peak centroid.
+                Interactive Bragg peak profile fitting, multi-model comparison, and precision caliper deconvolution.
               </p>
             </div>
 
@@ -3042,6 +3315,19 @@ export const FWHMModule: React.FC = () => {
               {/* Primary Actions Group */}
               <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
                 <button
+                  onClick={() => setEnableMultiPeakMode(!enableMultiPeakMode)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                    enableMultiPeakMode 
+                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border border-purple-400 font-extrabold shadow-md' 
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                  }`}
+                  title="Toggle Custom Multi-Peak Manual Deconvolution Mode: multiple peaks with distinct colors, shapes, and calculated FWHM curves"
+                >
+                  <Palette className={`w-3.5 h-3.5 ${enableMultiPeakMode ? 'text-purple-200' : 'text-purple-500'}`} />
+                  {enableMultiPeakMode ? `Multi-Peak (${customPeaks.filter(p => p.enabled).length})` : 'Multi-Peak'}
+                </button>
+
+                <button
                   onClick={autoFitPeakModel}
                   disabled={isFitting}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm disabled:opacity-50 hover:scale-105 active:scale-95"
@@ -3049,6 +3335,25 @@ export const FWHMModule: React.FC = () => {
                 >
                   <Wand2 className={`w-3.5 h-3.5 ${isFitting ? 'animate-spin' : ''}`} />
                   {isFitting ? 'Fitting...' : 'Auto-Fit'}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsCaliperMode(!isCaliperMode);
+                    if (isCaliperMode) {
+                      setCaliperPointA(null);
+                      setCaliperPointB(null);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                    isCaliperMode 
+                      ? 'bg-emerald-600 text-white border border-emerald-400 font-extrabold shadow-md' 
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                  }`}
+                  title="Toggle 2-Point Caliper Measurement: Click two positions on graph to calculate separation, d-spacing span & resolution"
+                >
+                  <Ruler className="w-3.5 h-3.5 text-emerald-400" />
+                  {isCaliperMode ? 'Caliper On' : 'Caliper'}
                 </button>
 
                 <button
@@ -3080,6 +3385,17 @@ export const FWHMModule: React.FC = () => {
 
               {/* Physical Layers & Model Components Group */}
               <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => setShowModelComparison(!showModelComparison)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                    showModelComparison ? 'bg-amber-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                  title="Compare Gaussian vs Lorentzian vs Pseudo-Voigt vs Pearson VII models simultaneously"
+                >
+                  <GitCompare className="w-3.5 h-3.5" />
+                  Compare Models
+                </button>
+
                 <button
                   onClick={() => setShowComponents(!showComponents)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
@@ -3114,17 +3430,6 @@ export const FWHMModule: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => setApplyLpFactor(!applyLpFactor)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    applyLpFactor ? 'bg-cyan-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                  title="Toggle Lorentz-Polarization geometric correction factor"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-500" />
-                  Lp
-                </button>
-
-                <button
                   onClick={() => setShowLiveSummary(!showLiveSummary)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
                     showLiveSummary ? 'bg-purple-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -3150,12 +3455,54 @@ export const FWHMModule: React.FC = () => {
               {/* Utility Tools Group */}
               <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
                 <button
+                  onClick={() => {
+                    const sigmaVal = (fwhm / (2 * Math.sqrt(2 * Math.log(2)))).toFixed(4);
+                    const gammaVal = (fwhm / 2).toFixed(4);
+                    let latexFormula = '';
+                    if (type === 'Gaussian') {
+                      latexFormula = `I(2\\theta) = ${amplitude} \\cdot \\exp\\left(-\\frac{(2\\theta - ${center.toFixed(3)})^2}{2 \\cdot (${sigmaVal})^2}\\right) + ${background}`;
+                    } else if (type === 'Lorentzian') {
+                      latexFormula = `I(2\\theta) = ${amplitude} \\cdot \\left[\\frac{(${gammaVal})^2}{(2\\theta - ${center.toFixed(3)})^2 + (${gammaVal})^2}\\right] + ${background}`;
+                    } else if (type === 'Pseudo-Voigt') {
+                      latexFormula = `I(2\\theta) = ${amplitude} \\left[ (1 - ${eta.toFixed(2)}) \\exp\\left(-\\frac{(2\\theta - ${center.toFixed(3)})^2}{2 \\cdot (${sigmaVal})^2}\\right) + ${eta.toFixed(2)} \\frac{(${gammaVal})^2}{(2\\theta - ${center.toFixed(3)})^2 + (${gammaVal})^2} \\right] + ${background}`;
+                    } else {
+                      latexFormula = `I(2\\theta) = ${amplitude} \\left[ 1 + \\left(\\frac{2\\theta - ${center.toFixed(3)}}{${(fwhm/2).toFixed(4)}}\\right)^2 \\right]^{-${(eta*10).toFixed(1)}} + ${background}`;
+                    }
+                    navigator.clipboard.writeText(latexFormula);
+                    setCopiedFormula(true);
+                    setTimeout(() => setCopiedFormula(false), 2200);
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  title="Copy analytical LaTeX formula for publication"
+                >
+                  {copiedFormula ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-indigo-500" />}
+                  {copiedFormula ? 'Copied' : 'LaTeX'}
+                </button>
+
+                <button
+                  onClick={handleExportData}
+                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  title="Export simulation profile dataset as CSV"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                  CSV
+                </button>
+
+                <button
                   onClick={() => handleExportGraphImage('png')}
                   className="px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
                   title="Capture high-resolution PNG image"
                 >
                   <Camera className="w-3.5 h-3.5 text-indigo-500" />
                   PNG
+                </button>
+
+                <button
+                  onClick={() => setIsExpandedChart(!isExpandedChart)}
+                  className="px-2 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  title="Toggle Large Expanded Canvas"
+                >
+                  {isExpandedChart ? <Minimize2 className="w-3.5 h-3.5 text-purple-500" /> : <Maximize2 className="w-3.5 h-3.5 text-purple-500" />}
                 </button>
 
                 <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
@@ -3184,6 +3531,113 @@ export const FWHMModule: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Quick Scientific Scenario Presets Bar */}
+          <div className="flex flex-wrap items-center gap-1.5 p-2.5 mb-3 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800/60 text-xs">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 px-1 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              Scientific Presets:
+            </span>
+            <button
+              onClick={() => applyPeakScenarioPreset('nist_si')}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              title="Standard NIST Silicon 640 (Sharp Bragg Peak, 28.44°)"
+            >
+              🔬 NIST Si SRM 640 (Sharp)
+            </button>
+            <button
+              onClick={() => applyPeakScenarioPreset('nano_tio2')}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              title="Nanocrystalline TiO2 Anatase (Size-broadened peak, 25.28°)"
+            >
+              🧪 TiO₂ Anatase (Size-Broadened)
+            </button>
+            <button
+              onClick={() => applyPeakScenarioPreset('strained_alloy')}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              title="Deformed Austenitic Alloy (Strain-broadened peak, 43.60°, 0.45% strain)"
+            >
+              🛡️ Strained Alloy (Microstrain)
+            </button>
+            <button
+              onClick={() => applyPeakScenarioPreset('ka_doublet')}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              title="Cu Kα1/Kα2 High Angle Splitting (69.13°)"
+            >
+              ⚡ Cu Kα Doublet (69.13°)
+            </button>
+            <button
+              onClick={() => applyPeakScenarioPreset('polymer_halo')}
+              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              title="Semicrystalline Polymer with Amorphous Halo Background (21.50°)"
+            >
+              🌀 Polymer + Amorphous Halo
+            </button>
+          </div>
+
+          {/* Caliper HUD Measurement Bar (When Caliper is Active) */}
+          {isCaliperMode && (
+            <div className="p-3 mb-3 bg-emerald-950/90 text-white rounded-xl border-2 border-emerald-500/80 shadow-lg flex flex-wrap items-center justify-between gap-3 text-xs font-mono animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="flex items-center gap-3">
+                <span className="p-1.5 bg-emerald-500/20 rounded-lg text-emerald-300 font-extrabold flex items-center gap-1.5">
+                  <Ruler className="w-4 h-4 text-emerald-400" />
+                  CALIPER RULER:
+                </span>
+                <span className="text-emerald-200">
+                  {caliperPointA === null 
+                    ? 'Step 1: Click 1st point on graph to set Pt A' 
+                    : caliperPointB === null 
+                    ? `Pt A: 2θ = ${caliperPointA.toFixed(3)}° | Click 2nd point to set Pt B` 
+                    : `Pt A: ${caliperPointA.toFixed(3)}° | Pt B: ${caliperPointB.toFixed(3)}°`}
+                </span>
+              </div>
+
+              {caliperPointA !== null && caliperPointB !== null && (
+                <div className="flex items-center gap-4 bg-black/40 px-3 py-1.5 rounded-lg border border-emerald-500/40">
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Span Δ2θ:</span>
+                    <strong className="text-emerald-300 font-bold text-sm">
+                      {Math.abs(caliperPointB - caliperPointA).toFixed(4)}°
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Span Δd:</span>
+                    <strong className="text-amber-300 font-bold text-sm">
+                      {Math.abs((activeWavelength * 10) / (2 * Math.sin((caliperPointB / 2) * Math.PI / 180)) - (activeWavelength * 10) / (2 * Math.sin((caliperPointA / 2) * Math.PI / 180))).toFixed(4)} Å
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Resolving Ratio:</span>
+                    <strong className="text-cyan-300 font-bold text-sm">
+                      {(Math.abs(caliperPointB - caliperPointA) / Math.max(0.001, extSim.stats.effTchFwhm)).toFixed(2)} × FWHM
+                    </strong>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setCaliperPointA(null);
+                    setCaliperPointB(null);
+                  }}
+                  className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all cursor-pointer"
+                >
+                  Clear Points
+                </button>
+                <button
+                  onClick={() => {
+                    setIsCaliperMode(false);
+                    setCaliperPointA(null);
+                    setCaliperPointB(null);
+                  }}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                >
+                  Close Caliper
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Interactive Chart Overlays & Display Toggles Bar */}
           <div className="flex flex-wrap items-center gap-1.5 p-2 mb-4 bg-slate-50 dark:bg-slate-950/70 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium">
@@ -3216,6 +3670,19 @@ export const FWHMModule: React.FC = () => {
             >
               <span className={`w-2 h-2 rounded-full ${showHalfMaxBounds ? 'bg-amber-600 dark:bg-amber-400' : 'bg-slate-400'}`} />
               FWHM 2θ₁/2θ₂ Bounds
+            </button>
+
+            <button
+              onClick={() => setShowFwtmBounds(!showFwtmBounds)}
+              className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
+                showFwtmBounds 
+                  ? 'bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-200 border border-teal-300 dark:border-teal-700 font-bold shadow-sm' 
+                  : 'bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}
+              title="Toggle Full Width at Tenth Maximum (FWTM 10%) boundaries"
+            >
+              <span className={`w-2 h-2 rounded-full ${showFwtmBounds ? 'bg-teal-600 dark:bg-teal-400' : 'bg-slate-400'}`} />
+              FWTM (10%) Bounds
             </button>
 
             <button
@@ -3258,6 +3725,43 @@ export const FWHMModule: React.FC = () => {
             </button>
           </div>
 
+          {/* Interactive Multi-Peak On-Chart Chips Strip */}
+          {enableMultiPeakMode && customPeaks.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-2 pb-1 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                <Palette className="w-3 h-3" />
+                Active Deconvoluted Peaks:
+              </span>
+              {customPeaks.map((p, pIdx) => (
+                <button
+                  key={`chip-${p.id}`}
+                  onClick={() => {
+                    const next = customPeaks.map(pk => pk.id === p.id ? { ...pk, enabled: !pk.enabled } : pk);
+                    setCustomPeaks(next);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 font-mono text-xs cursor-pointer border ${
+                    p.enabled 
+                      ? 'bg-white dark:bg-slate-800 shadow-sm border-slate-300 dark:border-slate-700 font-bold' 
+                      : 'bg-slate-100 dark:bg-slate-900/60 text-slate-400 border-slate-200 dark:border-slate-800 opacity-60 line-through'
+                  }`}
+                  title={`Click to toggle ${p.name} on/off (2θ = ${p.center.toFixed(2)}°, FWHM = ${p.fwhm.toFixed(3)}°)`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                  <span className="font-sans">{p.name}:</span>
+                  <span style={{ color: p.color }}>{p.center.toFixed(2)}°</span>
+                  <span className="text-[10px] text-slate-400">(β={p.fwhm.toFixed(2)}°)</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setActiveTab('multipeak')}
+                className="px-2 py-1 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1"
+                title="Open full multi-peak configuration workspace"
+              >
+                Configure All →
+              </button>
+            </div>
+          )}
+
           {/* Optional Floating On-Chart Live Scientific Summary Badge */}
           {showLiveSummary && (
             <div className="absolute top-20 right-8 z-30 pointer-events-auto flex flex-col gap-2 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md text-white p-4 rounded-xl border-2 border-indigo-500/70 text-xs font-mono shadow-2xl min-w-[260px] max-w-[320px] animate-in fade-in zoom-in-95 duration-150">
@@ -3284,6 +3788,9 @@ export const FWHMModule: React.FC = () => {
 
                 <div className="text-slate-400 font-medium">Observed FWHM (β_obs):</div>
                 <div className="font-extrabold text-indigo-400 text-right font-mono">{extSim.stats.effTchFwhm.toFixed(4)}°</div>
+
+                <div className="text-slate-400 font-medium">FWTM / Ratio:</div>
+                <div className="font-extrabold text-teal-300 text-right font-mono">{extSim.stats.fwtm.toFixed(3)}° ({extSim.stats.fwtmRatio.toFixed(2)})</div>
 
                 {enableInstCorrection && (
                   <>
@@ -3317,14 +3824,24 @@ export const FWHMModule: React.FC = () => {
           )}
 
           {/* Recharts Figure */}
-          <div className="w-full h-[460px] lg:h-[520px] min-h-[400px] relative z-10">
+          <div className={`w-full transition-all duration-300 relative z-10 ${isExpandedChart ? 'h-[640px] lg:h-[720px]' : 'h-[460px] lg:h-[520px]'}`}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart 
                 data={chartData} 
                 margin={{ top: 20, right: 35, left: 15, bottom: 25 }}
                 onClick={(e: any) => {
                   if (e && e.activeLabel !== undefined) {
-                    setCenter(Number(e.activeLabel));
+                    const clickX = Number(e.activeLabel);
+                    if (isCaliperMode) {
+                      if (caliperPointA === null || (caliperPointA !== null && caliperPointB !== null)) {
+                        setCaliperPointA(clickX);
+                        setCaliperPointB(null);
+                      } else {
+                        setCaliperPointB(clickX);
+                      }
+                    } else {
+                      setCenter(clickX);
+                    }
                   }
                 }}
               >
@@ -3364,9 +3881,11 @@ export const FWHMModule: React.FC = () => {
                       const dataPoint = payload[0].payload;
                       const thetaRad = (dataPoint.x / 2) * Math.PI / 180;
                       const localSize = activeWavelength * scherrerK / ((fwhm * Math.PI / 180) * Math.cos(thetaRad));
+                      const dSpace = (activeWavelength * 10) / (2 * Math.sin(thetaRad));
+                      const qVec = (4 * Math.PI * Math.sin(thetaRad)) / (activeWavelength * 10);
                       
                       return (
-                        <div className="bg-slate-900 text-slate-100 p-4 rounded-xl shadow-2xl text-xs border-2 border-indigo-500/80 min-w-[240px] backdrop-blur-md">
+                        <div className="bg-slate-900 text-slate-100 p-4 rounded-xl shadow-2xl text-xs border-2 border-indigo-500/80 min-w-[250px] backdrop-blur-md">
                           <div className="font-extrabold border-b border-slate-700 pb-2 mb-2 text-indigo-400 flex items-center justify-between">
                             <span>Angle 2θ: {dataPoint.x.toFixed(4)}°</span>
                             <span className="text-[10px] bg-indigo-950 px-2 py-0.5 rounded font-mono text-indigo-300 border border-indigo-700">{type}</span>
@@ -3411,15 +3930,47 @@ export const FWHMModule: React.FC = () => {
                               </div>
                             )}
                             <div className="flex justify-between pt-1.5 border-t border-slate-700">
+                              <span className="text-slate-400">d-Spacing:</span>
+                              <span className="font-extrabold text-amber-300">{dSpace.toFixed(4)} Å</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Q-Vector:</span>
+                              <span className="font-extrabold text-cyan-300">{qVec.toFixed(4)} Å⁻¹</span>
+                            </div>
+                            <div className="flex justify-between">
                               <span className="text-slate-400">Local Coherence:</span>
                               <span className="font-extrabold text-emerald-400">{localSize.toFixed(1)} nm</span>
                             </div>
                             {applyLpFactor && (
                               <div className="flex justify-between">
-                                <span className="text-slate-400">Lp Factor (local):</span>
+                                <span className="text-slate-400">Lp Factor:</span>
                                 <span className="font-extrabold text-cyan-300">
                                   {((1 + Math.pow(Math.cos(2 * thetaRad), 2)) / (Math.pow(Math.sin(thetaRad), 2) * Math.cos(thetaRad))).toFixed(2)}
                                 </span>
+                              </div>
+                            )}
+
+                            {/* Multi-Peak Contributions in Tooltip */}
+                            {enableMultiPeakMode && (
+                              <div className="pt-2 mt-2 border-t border-slate-700/80 space-y-1">
+                                <div className="text-[10px] uppercase font-extrabold text-purple-300 flex items-center justify-between">
+                                  <span>Deconvoluted Components:</span>
+                                  <span className="text-[9px] bg-purple-950 text-purple-200 px-1 rounded">{customPeaks.filter(p => p.enabled).length} Active</span>
+                                </div>
+                                {customPeaks.map(p => {
+                                  if (!p.enabled || dataPoint[p.id] === undefined) return null;
+                                  return (
+                                    <div key={p.id} className="flex justify-between items-center text-[10px] font-mono">
+                                      <span className="flex items-center gap-1.5" style={{ color: p.color }}>
+                                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: p.color }} />
+                                        {p.name}:
+                                      </span>
+                                      <span className="font-extrabold" style={{ color: p.color }}>
+                                        {dataPoint[p.id].toFixed(1)} cps
+                                      </span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
@@ -3472,6 +4023,55 @@ export const FWHMModule: React.FC = () => {
                     <ReferenceDot x={extSim.stats.theta1} y={amplitude / 2 + background} r={6} fill="#f59e0b" stroke="#ffffff" strokeWidth={2} />
                     <ReferenceDot x={extSim.stats.theta2} y={amplitude / 2 + background} r={6} fill="#f59e0b" stroke="#ffffff" strokeWidth={2} />
                   </>
+                )}
+
+                {/* FWTM (10%) Reference Bounds and Markers */}
+                {extSim.stats && showFwtmBounds && (
+                  <>
+                    <ReferenceLine 
+                      segment={[{ x: extSim.stats.theta1Tenth, y: amplitude * 0.10 + background }, { x: extSim.stats.theta2Tenth, y: amplitude * 0.10 + background }]} 
+                      stroke="#0d9488" 
+                      strokeWidth={2.5}
+                      strokeDasharray="4 4"
+                    >
+                      <Label value={`FWTM = ${extSim.stats.fwtm.toFixed(4)}° (FWTM/FWHM = ${extSim.stats.fwtmRatio.toFixed(2)})`} position="bottom" fill="#0f766e" fontSize={11} fontWeight="800" offset={6} />
+                    </ReferenceLine>
+                    <ReferenceLine x={extSim.stats.theta1Tenth} stroke="#0d9488" strokeDasharray="2 2" strokeWidth={1.5}>
+                      <Label value="2θ_1/10" position="top" fill="#0d9488" fontSize={10} fontWeight="800" offset={4} />
+                    </ReferenceLine>
+                    <ReferenceLine x={extSim.stats.theta2Tenth} stroke="#0d9488" strokeDasharray="2 2" strokeWidth={1.5}>
+                      <Label value="2θ_9/10" position="top" fill="#0d9488" fontSize={10} fontWeight="800" offset={4} />
+                    </ReferenceLine>
+                    <ReferenceDot x={extSim.stats.theta1Tenth} y={amplitude * 0.10 + background} r={5} fill="#0d9488" stroke="#ffffff" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.theta2Tenth} y={amplitude * 0.10 + background} r={5} fill="#0d9488" stroke="#ffffff" strokeWidth={2} />
+                  </>
+                )}
+
+                {/* Caliper Reference Markers & Connected Distance Span */}
+                {caliperPointA !== null && (
+                  <>
+                    <ReferenceLine x={caliperPointA} stroke="#10b981" strokeWidth={2.5}>
+                      <Label value={`Pt A: ${caliperPointA.toFixed(3)}°`} position="insideTopLeft" fill="#059669" fontSize={11} fontWeight="800" offset={10} />
+                    </ReferenceLine>
+                    <ReferenceDot x={caliperPointA} y={amplitude * 0.85 + background} r={7} fill="#10b981" stroke="#ffffff" strokeWidth={2.5} />
+                  </>
+                )}
+                {caliperPointB !== null && (
+                  <>
+                    <ReferenceLine x={caliperPointB} stroke="#059669" strokeWidth={2.5}>
+                      <Label value={`Pt B: ${caliperPointB.toFixed(3)}°`} position="insideTopRight" fill="#047857" fontSize={11} fontWeight="800" offset={10} />
+                    </ReferenceLine>
+                    <ReferenceDot x={caliperPointB} y={amplitude * 0.85 + background} r={7} fill="#059669" stroke="#ffffff" strokeWidth={2.5} />
+                  </>
+                )}
+                {caliperPointA !== null && caliperPointB !== null && (
+                  <ReferenceLine 
+                    segment={[{ x: caliperPointA, y: amplitude * 0.85 + background }, { x: caliperPointB, y: amplitude * 0.85 + background }]} 
+                    stroke="#10b981" 
+                    strokeWidth={3}
+                  >
+                    <Label value={`Δ2θ = ${Math.abs(caliperPointB - caliperPointA).toFixed(4)}°`} position="top" fill="#047857" fontSize={12} fontWeight="800" offset={8} />
+                  </ReferenceLine>
                 )}
 
                 {/* Gaussian Standard Deviation c = sigma span */}
@@ -3570,6 +4170,39 @@ export const FWHMModule: React.FC = () => {
                   />
                 )}
 
+                {/* Multi-Model Comparison Curves */}
+                {showModelComparison && (
+                  <>
+                    <Line 
+                      type="monotone" 
+                      dataKey="yGaussModel" 
+                      stroke="#3b82f6" 
+                      strokeWidth={2.5} 
+                      strokeDasharray="6 4" 
+                      dot={false} 
+                      isAnimationActive={false} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="yLorentzModel" 
+                      stroke="#f59e0b" 
+                      strokeWidth={2.5} 
+                      strokeDasharray="4 4" 
+                      dot={false} 
+                      isAnimationActive={false} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="yPearsonModel" 
+                      stroke="#10b981" 
+                      strokeWidth={2.5} 
+                      strokeDasharray="2 3" 
+                      dot={false} 
+                      isAnimationActive={false} 
+                    />
+                  </>
+                )}
+
                 {/* Kα1 Profile */}
                 {enableKaDoublet && (
                   <Line 
@@ -3608,13 +4241,65 @@ export const FWHMModule: React.FC = () => {
                   />
                 )}
 
+                {/* Multi-Peak Individual Colored Component Curves */}
+                {enableMultiPeakMode && customPeaks.map(p => {
+                  if (!p.enabled) return null;
+                  return (
+                    <Area
+                      key={`area-peak-${p.id}`}
+                      type="monotone"
+                      dataKey={p.id}
+                      name={p.name}
+                      stroke={p.color}
+                      strokeWidth={2.8}
+                      fill={p.color}
+                      fillOpacity={0.18}
+                      isAnimationActive={false}
+                      activeDot={false}
+                    />
+                  );
+                })}
+
+                {/* Multi-Peak Reference Lines & Apex Centroids */}
+                {enableMultiPeakMode && customPeaks.map(p => {
+                  if (!p.enabled) return null;
+                  const halfY = p.amplitude / 2 + background;
+                  return (
+                    <React.Fragment key={`multi-mark-${p.id}`}>
+                      <ReferenceLine
+                        segment={[{ x: p.center - p.fwhm / 2, y: halfY }, { x: p.center + p.fwhm / 2, y: halfY }]}
+                        stroke={p.color}
+                        strokeWidth={2.5}
+                        strokeDasharray="3 3"
+                      >
+                        <Label 
+                          value={`${p.name.split(' ')[0] || 'Pk'}: β=${p.fwhm.toFixed(3)}°`} 
+                          position="top" 
+                          fill={p.color} 
+                          fontSize={11} 
+                          fontWeight="800" 
+                          offset={4} 
+                        />
+                      </ReferenceLine>
+                      <ReferenceDot 
+                        x={p.center} 
+                        y={p.amplitude + background} 
+                        r={5.5} 
+                        fill={p.color} 
+                        stroke="#ffffff" 
+                        strokeWidth={2} 
+                      />
+                    </React.Fragment>
+                  );
+                })}
+
                 {/* Clean Peak Curve */}
                 <Area 
                    type="monotone" 
                    dataKey="_cleanY" 
-                   stroke="#4f46e5" 
+                   stroke={enableMultiPeakMode ? "#8b5cf6" : "#4f46e5"} 
                    strokeWidth={3.5}
-                   fillOpacity={1} 
+                   fillOpacity={enableMultiPeakMode ? 0.05 : 1} 
                    fill="url(#colorY)" 
                    isAnimationActive={false}
                    activeDot={false}
@@ -3637,6 +4322,74 @@ export const FWHMModule: React.FC = () => {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Model Comparison Legend & Metrics Table (When Compare Mode is active) */}
+          {showModelComparison && (
+            <div className="mt-4 bg-slate-900 text-white p-4 rounded-xl border-2 border-amber-500/70 shadow-lg text-xs animate-in fade-in duration-200">
+              <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                <span className="font-extrabold text-amber-300 flex items-center gap-2 text-sm">
+                  <GitCompare className="w-4 h-4 text-amber-400" />
+                  Simultaneous Multi-Model Peak Shape Comparison
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  Same FWHM ({fwhm.toFixed(4)}°) & Intensity ({amplitude} cps)
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-slate-800/80 p-3 rounded-lg border-l-4 border-indigo-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-indigo-300">Active: {type}</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    {type === 'Pseudo-Voigt' ? `Linear combo (1-η)G + ηL with η=${(extSim.stats.effEta*100).toFixed(0)}%` : 'Active analytical profile equation'}
+                  </p>
+                  <div className="mt-2 text-[10px] font-mono text-indigo-200 bg-indigo-950/60 p-1.5 rounded">
+                    Shape: {extSim.stats.fwtmRatio.toFixed(2)} FWTM/FWHM
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-lg border-l-4 border-blue-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-blue-300">Pure Gaussian</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Fast exponential decay tails: exp(-x²/2σ²). FWTM/FWHM = 1.82.
+                  </p>
+                  <div className="mt-2 text-[10px] font-mono text-blue-200 bg-blue-950/60 p-1.5 rounded">
+                    Theoretical FWTM/FWHM = 1.82
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-lg border-l-4 border-amber-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-amber-300">Pure Lorentzian</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Slow asymptotic tails: 1/(1 + x²/γ²). FWTM/FWHM = 3.00.
+                  </p>
+                  <div className="mt-2 text-[10px] font-mono text-amber-200 bg-amber-950/60 p-1.5 rounded">
+                    Theoretical FWTM/FWHM = 3.00
+                  </div>
+                </div>
+
+                <div className="bg-slate-800/80 p-3 rounded-lg border-l-4 border-emerald-500">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-emerald-300">Pearson VII (m=2)</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Variable power law: [1 + (x/w)²]⁻ᵐ for intermediate decays.
+                  </p>
+                  <div className="mt-2 text-[10px] font-mono text-emerald-200 bg-emerald-950/60 p-1.5 rounded">
+                    m=2.0 (Moderately Heavy Tails)
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Synchronized Difference Residuals Pane */}
           {showResiduals && chartData.length > 0 && (
@@ -3743,6 +4496,45 @@ export const FWHMModule: React.FC = () => {
                 <span className="font-bold text-emerald-400">{fitResult.chi2}</span>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Multi-Peak Dynamic Manager Panel (When Multi-Peak Mode is Enabled) */}
+        {enableMultiPeakMode && (
+          <div className="bg-slate-50 dark:bg-slate-900/60 p-4 lg:p-6 rounded-2xl border-2 border-purple-400 dark:border-purple-800 shadow-md animate-in fade-in duration-300">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-purple-600 text-white shadow-sm">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                    Multi-Peak Manual Deconvolution & Color Configuration
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Add, edit, toggle, and customize multiple overlapping Bragg peaks with distinct scientific colors and individual FWHM calculations.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveTab('multipeak')}
+                  className="px-3 py-1.5 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 hover:bg-purple-200 border border-purple-300 dark:border-purple-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Full Multi-Peak View →
+                </button>
+              </div>
+            </div>
+
+            <MultiPeakManager
+              peaks={customPeaks}
+              onPeaksChange={(newPeaks) => setCustomPeaks(newPeaks)}
+              peakMetrics={customPeakMetrics}
+              activeWavelength={activeWavelength}
+              scherrerK={scherrerK}
+              onExportCsv={handleExportMultiPeakCsv}
+            />
           </div>
         )}
 
@@ -4577,6 +5369,21 @@ export const FWHMModule: React.FC = () => {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 2: MULTI-PEAK DECONVOLUTION & COLOR PEAKS */}
+        {activeTab === 'multipeak' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Interactive Multi-Peak Management Panel */}
+            <MultiPeakManager
+              peaks={customPeaks}
+              onPeaksChange={(newPeaks) => setCustomPeaks(newPeaks)}
+              peakMetrics={customPeakMetrics}
+              activeWavelength={activeWavelength}
+              scherrerK={scherrerK}
+              onExportCsv={handleExportMultiPeakCsv}
+            />
           </div>
         )}
 

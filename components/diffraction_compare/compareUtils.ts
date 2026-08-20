@@ -60,7 +60,11 @@ export const parseCustomPattern = (patternStr: string): PeakItem[] => {
         }
       }
     }
-    return { twoTheta, intensity, hkl };
+
+    const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+    const dSpacing = thetaRad > 0 ? Number((CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4)) : undefined;
+
+    return { twoTheta, intensity, hkl, dSpacing };
   }).filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0);
 };
 
@@ -89,7 +93,7 @@ export const parseContinuousRawData = (rawText: string): { twoTheta: number; int
 /**
  * Automatically extracts distinct peaks from continuous data points using local maximum detection
  */
-export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity: number }[], maxPeaks = 25): PeakItem[] => {
+export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity: number }[], maxPeaks = 30): PeakItem[] => {
   if (points.length < 5) return [];
   const maxI = Math.max(...points.map(p => p.intensity), 1);
   const minI = Math.min(...points.map(p => p.intensity), 0);
@@ -102,7 +106,7 @@ export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity:
   const window = 3;
   for (let i = window; i < normalized.length - window; i++) {
     const curr = normalized[i];
-    if (curr.intensity < 5) continue; // Noise cutoff
+    if (curr.intensity < 4) continue; // Noise cutoff
 
     let isPeak = true;
     for (let j = i - window; j <= i + window; j++) {
@@ -113,7 +117,6 @@ export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity:
     }
 
     if (isPeak) {
-      // Sub-bin centroid quadratic interpolation
       const y1 = normalized[i - 1].intensity;
       const y2 = normalized[i].intensity;
       const y3 = normalized[i + 1].intensity;
@@ -128,14 +131,17 @@ export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity:
         if (Math.abs(delta) < 0.2) refinedTheta += delta;
       }
 
+      const thetaRad = (refinedTheta / 2) * (Math.PI / 180);
+      const dSpacing = thetaRad > 0 ? Number((CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4)) : undefined;
+
       peaks.push({
         twoTheta: Number(refinedTheta.toFixed(3)),
-        intensity: Number(curr.intensity.toFixed(1))
+        intensity: Number(curr.intensity.toFixed(1)),
+        dSpacing
       });
     }
   }
 
-  // Sort descending by intensity
   return peaks.sort((a, b) => b.intensity - a.intensity).slice(0, maxPeaks).sort((a, b) => a.twoTheta - b.twoTheta);
 };
 
@@ -145,11 +151,16 @@ export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity:
 export const extractMaterialPeaks = (material: any): PeakItem[] => {
   if (!material) return [];
   if (material.isUserSample) {
-    return (material.results || []).map((r: any) => ({
-      twoTheta: r.twoTheta,
-      intensity: r.intensity !== undefined ? r.intensity : 100,
-      hkl: r.hkl || ''
-    }));
+    return (material.results || []).map((r: any) => {
+      const thetaRad = (r.twoTheta / 2) * (Math.PI / 180);
+      const dSpacing = thetaRad > 0 ? Number((CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4)) : undefined;
+      return {
+        twoTheta: r.twoTheta,
+        intensity: r.intensity !== undefined ? r.intensity : 100,
+        hkl: r.hkl || '',
+        dSpacing
+      };
+    });
   }
   const pattern = material.pattern || '';
   return parseCustomPattern(pattern);
@@ -157,18 +168,20 @@ export const extractMaterialPeaks = (material: any): PeakItem[] => {
 
 /**
  * Generates continuous synthetic diffraction profiles for Sample A, Sample B (with shift & scale),
- * and optional secondary phase Sample C.
+ * and optional secondary phases Sample C and Sample D.
  */
 export const generateSynthesizedProfile = (
   matA: any,
   matB: any,
   matC: any = null,
+  matD: any = null,
   options: {
     shiftTwoThetaB?: number;
     scaleSampleB?: number;
     scaleSampleC?: number;
+    scaleSampleD?: number;
     peakShape?: 'pseudoVoigt' | 'gaussian' | 'lorentzian';
-    eta?: number; // pseudo-Voigt mix parameter
+    eta?: number;
     fwhm?: number;
     minTheta?: number;
     maxTheta?: number;
@@ -180,434 +193,460 @@ export const generateSynthesizedProfile = (
   const {
     shiftTwoThetaB = 0,
     scaleSampleB = 1.0,
-    scaleSampleC = 0.0,
+    scaleSampleC = 0,
+    scaleSampleD = 0,
     eta = 0.5,
-    fwhm = 0.14,
+    fwhm = 0.25,
     minTheta = 10,
     maxTheta = 90,
     step = 0.1,
-    background = 1.5,
-    noiseLevel = 0.4
+    background = 2.0,
+    noiseLevel = 0.0
   } = options;
 
   const peaksA = extractMaterialPeaks(matA);
   const peaksB = extractMaterialPeaks(matB);
   const peaksC = matC ? extractMaterialPeaks(matC) : [];
+  const peaksD = matD ? extractMaterialPeaks(matD) : [];
 
-  const rawPoints: ProfilePoint[] = [];
-  const log2 = Math.log(2);
-
-  // Peak shape evaluation helper
-  const calcPeakContrib = (diffTheta: number, peakFwhm: number, peakInt: number) => {
-    if (Math.abs(diffTheta) > 3.0) return 0;
-    const hw = peakFwhm / 2;
-    const ratio = diffTheta / hw;
-    const g = Math.exp(-log2 * ratio * ratio);
-    const l = 1 / (1 + ratio * ratio);
-    return peakInt * (eta * l + (1 - eta) * g);
+  // Pseudo-Voigt profile generator
+  const pVoigt = (x: number, x0: number, w: number, height: number) => {
+    const halfW = w / 2;
+    const dx = x - x0;
+    const g = Math.exp(-Math.LN2 * Math.pow(dx / halfW, 2));
+    const l = 1 / (1 + Math.pow(dx / halfW, 2));
+    return height * (eta * l + (1 - eta) * g);
   };
 
-  for (let x = minTheta; x <= maxTheta; x += step) {
-    const twoTheta = Number(x.toFixed(2));
-    let iA = background + (Math.random() - 0.5) * noiseLevel;
-    let iB = background + (Math.random() - 0.5) * noiseLevel;
-    let iC = 0;
+  const numPoints = Math.floor((maxTheta - minTheta) / step) + 1;
+  const points: ProfilePoint[] = new Array(numPoints);
 
-    // Angle-dependent Caglioti broadening simulation: FWHM(2theta) = sqrt(U*tan^2 + V*tan + W)
-    const thetaRad = (x / 2) * (Math.PI / 180);
-    const tanTheta = Math.tan(thetaRad);
-    const localFwhm = Math.sqrt(Math.max(0.005, 0.008 * tanTheta * tanTheta - 0.002 * tanTheta + fwhm * fwhm));
+  // Normalize reference peak heights
+  const maxIntensityA = peaksA.length > 0 ? Math.max(...peaksA.map(p => p.intensity), 1) : 100;
+  const maxIntensityB = peaksB.length > 0 ? Math.max(...peaksB.map(p => p.intensity), 1) : 100;
+  const maxIntensityC = peaksC.length > 0 ? Math.max(...peaksC.map(p => p.intensity), 1) : 100;
+  const maxIntensityD = peaksD.length > 0 ? Math.max(...peaksD.map(p => p.intensity), 1) : 100;
 
-    peaksA.forEach(p => {
-      iA += calcPeakContrib(x - p.twoTheta, localFwhm, p.intensity);
-    });
-
-    peaksB.forEach(p => {
-      iB += calcPeakContrib(x - (p.twoTheta + shiftTwoThetaB), localFwhm, p.intensity * scaleSampleB);
-    });
-
-    if (peaksC.length > 0 && scaleSampleC > 0) {
-      peaksC.forEach(p => {
-        iC += calcPeakContrib(x - p.twoTheta, localFwhm, p.intensity * scaleSampleC);
-      });
+  for (let i = 0; i < numPoints; i++) {
+    const twoTheta = Number((minTheta + i * step).toFixed(2));
+    
+    // Sample A continuous profile
+    let iA = background;
+    for (const p of peaksA) {
+      const relH = (p.intensity / maxIntensityA) * 100;
+      if (Math.abs(twoTheta - p.twoTheta) < fwhm * 4) {
+        iA += pVoigt(twoTheta, p.twoTheta, p.fwhm || fwhm, relH);
+      }
     }
 
-    const finalA = Math.max(0, Math.min(120, iA));
-    const finalB = Math.max(0, Math.min(120, iB));
-    const finalC = Math.max(0, Math.min(120, iC));
-    const finalTotalModel = Number((finalB + finalC).toFixed(1));
+    // Sample B continuous profile
+    let iB = background;
+    for (const p of peaksB) {
+      const relH = (p.intensity / maxIntensityB) * 100 * scaleSampleB;
+      const targetCenter = p.twoTheta + shiftTwoThetaB;
+      if (Math.abs(twoTheta - targetCenter) < fwhm * 4) {
+        iB += pVoigt(twoTheta, targetCenter, p.fwhm || fwhm, relH);
+      }
+    }
 
-    const diff = Number((finalA - finalTotalModel).toFixed(1));
-    const posDiff = Math.max(0, diff);
-    const negDiff = Math.max(0, -diff);
-    const toleranceUpper = Number((finalTotalModel + 4.0).toFixed(1));
-    const toleranceLower = Number(Math.max(0, finalTotalModel - 4.0).toFixed(1));
+    // Phase C profile
+    let iC = 0;
+    if (matC && scaleSampleC > 0) {
+      for (const p of peaksC) {
+        const relH = (p.intensity / maxIntensityC) * 100 * scaleSampleC;
+        if (Math.abs(twoTheta - p.twoTheta) < fwhm * 4) {
+          iC += pVoigt(twoTheta, p.twoTheta, p.fwhm || fwhm, relH);
+        }
+      }
+    }
 
-    rawPoints.push({
+    // Phase D profile
+    let iD = 0;
+    if (matD && scaleSampleD > 0) {
+      for (const p of peaksD) {
+        const relH = (p.intensity / maxIntensityD) * 100 * scaleSampleD;
+        if (Math.abs(twoTheta - p.twoTheta) < fwhm * 4) {
+          iD += pVoigt(twoTheta, p.twoTheta, p.fwhm || fwhm, relH);
+        }
+      }
+    }
+
+    // Composite total model
+    const totalModel = iB + iC + iD;
+    const diff = iA - totalModel;
+
+    // Numerical derivatives
+    const dStep = 0.05;
+    let iA_plus = 0;
+    for (const p of peaksA) {
+      const relH = (p.intensity / maxIntensityA) * 100;
+      if (Math.abs((twoTheta + dStep) - p.twoTheta) < fwhm * 4) {
+        iA_plus += pVoigt(twoTheta + dStep, p.twoTheta, p.fwhm || fwhm, relH);
+      }
+    }
+    const derivA = Number(((iA_plus - (iA - background)) / dStep).toFixed(2));
+
+    let iB_plus = 0;
+    for (const p of peaksB) {
+      const relH = (p.intensity / maxIntensityB) * 100 * scaleSampleB;
+      const targetCenter = p.twoTheta + shiftTwoThetaB;
+      if (Math.abs((twoTheta + dStep) - targetCenter) < fwhm * 4) {
+        iB_plus += pVoigt(twoTheta + dStep, targetCenter, p.fwhm || fwhm, relH);
+      }
+    }
+    const derivB = Number(((iB_plus - (iB - background)) / dStep).toFixed(2));
+
+    points[i] = {
       twoTheta,
-      intensityA: Number(finalA.toFixed(1)),
-      intensityB: Number(finalB.toFixed(1)),
-      intensityC: Number(finalC.toFixed(1)),
-      intensityTotalModel: finalTotalModel,
-      mirroredB: Number((-finalB).toFixed(1)),
-      difference: diff,
-      posDiff: Number(posDiff.toFixed(1)),
-      negDiff: Number(negDiff.toFixed(1)),
-      toleranceUpper,
-      toleranceLower,
-      derivA: 0,
-      derivB: 0
-    });
-  }
-
-  // Calculate 1st derivatives dI/d2Theta with central difference
-  const points = rawPoints.map((pt, i, arr) => {
-    const prevA = arr[Math.max(0, i - 1)].intensityA;
-    const nextA = arr[Math.min(arr.length - 1, i + 1)].intensityA;
-    const derivA = Number(((nextA - prevA) / (2 * step)).toFixed(2));
-
-    const prevB = arr[Math.max(0, i - 1)].intensityTotalModel || arr[Math.max(0, i - 1)].intensityB;
-    const nextB = arr[Math.min(arr.length - 1, i + 1)].intensityTotalModel || arr[Math.min(arr.length - 1, i + 1)].intensityB;
-    const derivB = Number(((nextB - prevB) / (2 * step)).toFixed(2));
-
-    return {
-      ...pt,
+      intensityA: Number(iA.toFixed(2)),
+      intensityB: Number(iB.toFixed(2)),
+      intensityC: matC ? Number(iC.toFixed(2)) : undefined,
+      intensityD: matD ? Number(iD.toFixed(2)) : undefined,
+      intensityTotalModel: Number(totalModel.toFixed(2)),
+      mirroredB: Number((-iB).toFixed(2)),
+      difference: Number(diff.toFixed(2)),
+      posDiff: diff > 0 ? Number(diff.toFixed(2)) : 0,
+      negDiff: diff < 0 ? Number(diff.toFixed(2)) : 0,
+      toleranceUpper: Number((totalModel * 1.08 + 2).toFixed(2)),
+      toleranceLower: Number((totalModel * 0.92 - 2).toFixed(2)),
       derivA,
       derivB
     };
-  });
+  }
 
-  const peaksBWithShift = peaksB.map(p => ({
-    twoTheta: Number((p.twoTheta + shiftTwoThetaB).toFixed(2)),
-    intensity: Number((p.intensity * scaleSampleB).toFixed(1)),
-    hkl: p.hkl
-  }));
-
-  const peaksCWithScale = peaksC.map(p => ({
-    twoTheta: Number(p.twoTheta.toFixed(2)),
-    intensity: Number((p.intensity * scaleSampleC).toFixed(1)),
-    hkl: p.hkl
-  }));
-
-  return { points, peaksA, peaksB, peaksC, peaksBWithShift, peaksCWithScale };
+  return { points, peaksA, peaksB, peaksC, peaksD };
 };
 
 /**
- * Calculates crystallographic goodness-of-fit metrics (Rp, Rwp, Pearson r, RMSD, chi^2)
+ * Computes statistical cross-correlation and Rietveld residual metrics
  */
 export const computeSpectralMetrics = (points: ProfilePoint[]): SpectralMetrics => {
   if (!points || points.length === 0) {
-    return { rP: '0.00', rWP: '0.00', pearsonR: '0.0', maxDiff: '0.0', rmsd: '0.00', chiSquared: '0.00' };
+    return {
+      rP: '0.0',
+      rWP: '0.0',
+      rExp: '2.5',
+      chiSquared: '1.00',
+      pearsonR: '0.0',
+      fom: '0.0',
+      maxDiff: '0.0',
+      rmsd: '0.0',
+      goodnessOfFit: '1.00'
+    };
   }
 
-  let sumAbsDiff = 0;
-  let sumObsA = 0;
-  let sumSqDiff = 0;
-  let sumSqObsA = 0;
-  let sumA = 0;
-  let sumB = 0;
+  let sumDiff = 0;
+  let sumObs = 0;
+  let sumDiffSq = 0;
+  let sumObsSq = 0;
   let maxDiff = 0;
 
-  points.forEach(p => {
-    const modelVal = p.intensityTotalModel !== undefined ? p.intensityTotalModel : p.intensityB;
-    const diff = Math.abs(p.intensityA - modelVal);
-    sumAbsDiff += diff;
-    sumObsA += p.intensityA;
-    sumSqDiff += diff * diff;
-    sumSqObsA += p.intensityA * p.intensityA;
-    sumA += p.intensityA;
-    sumB += modelVal;
+  let sumA = 0;
+  let sumB = 0;
+  let sumAA = 0;
+  let sumBB = 0;
+  let sumAB = 0;
+  const N = points.length;
+
+  for (let i = 0; i < N; i++) {
+    const yObs = points[i].intensityA;
+    const yCalc = points[i].intensityTotalModel ?? points[i].intensityB;
+    const diff = Math.abs(yObs - yCalc);
+
+    sumDiff += diff;
+    sumObs += Math.abs(yObs);
+    
+    // Weight w = 1 / yObs
+    const w = 1 / Math.max(yObs, 1);
+    sumDiffSq += w * Math.pow(diff, 2);
+    sumObsSq += w * Math.pow(yObs, 2);
+
     if (diff > maxDiff) maxDiff = diff;
-  });
 
-  const n = points.length;
-  const meanA = sumA / n;
-  const meanB = sumB / n;
+    sumA += yObs;
+    sumB += yCalc;
+    sumAA += yObs * yObs;
+    sumBB += yCalc * yCalc;
+    sumAB += yObs * yCalc;
+  }
 
-  let numPearson = 0;
-  let denA = 0;
-  let denB = 0;
+  // Profile R-factor R_p = sum(|yObs - yCalc|) / sum(yObs)
+  const rP = sumObs > 0 ? (sumDiff / sumObs) * 100 : 0;
 
-  points.forEach(p => {
-    const modelVal = p.intensityTotalModel !== undefined ? p.intensityTotalModel : p.intensityB;
-    const dA = p.intensityA - meanA;
-    const dB = modelVal - meanB;
-    numPearson += dA * dB;
-    denA += dA * dA;
-    denB += dB * dB;
-  });
+  // Weighted Profile R-factor R_wp = sqrt(sum(w*(yObs-yCalc)^2) / sum(w*yObs^2))
+  const rWP = sumObsSq > 0 ? Math.sqrt(sumDiffSq / sumObsSq) * 100 : 0;
 
-  const rP = sumObsA > 0 ? (sumAbsDiff / sumObsA) * 100 : 0;
-  const rWP = sumSqObsA > 0 ? Math.sqrt(sumSqDiff / sumSqObsA) * 100 : 0;
-  const pearsonR = (denA > 0 && denB > 0) ? (numPearson / Math.sqrt(denA * denB)) * 100 : 0;
-  const rmsd = Math.sqrt(sumSqDiff / n);
-  const varianceEst = Math.max(0.5, meanA * 0.05);
-  const chiSquared = sumSqDiff / (n * varianceEst);
+  // Expected R-factor R_exp ~ sqrt((N - P) / sum(w*yObs^2))
+  const numParams = 6;
+  const rExp = sumObsSq > 0 ? Math.sqrt(Math.max(1, N - numParams) / sumObsSq) * 100 : 3.5;
+
+  // Goodness of Fit chi^2 = (R_wp / R_exp)^2
+  const chiSquared = rExp > 0 ? Math.pow(rWP / rExp, 2) : 1.0;
+
+  // Pearson correlation coefficient (r)
+  const numerator = (N * sumAB) - (sumA * sumB);
+  const denom = Math.sqrt((N * sumAA - sumA * sumA) * (N * sumBB - sumB * sumB));
+  const pearsonR = denom !== 0 ? Math.max(0, (numerator / denom) * 100) : 0;
+
+  // Figure of Merit (FOM) combining R_wp, Pearson, and RMSD (0-100 scale)
+  const rmsd = Math.sqrt(sumDiffSq / N);
+  const fom = Math.max(0, Math.min(100, (pearsonR * 0.6) + ((100 - Math.min(100, rP)) * 0.4)));
 
   return {
     rP: rP.toFixed(2),
     rWP: rWP.toFixed(2),
-    pearsonR: pearsonR.toFixed(1),
+    rExp: rExp.toFixed(2),
+    chiSquared: chiSquared.toFixed(2),
+    pearsonR: pearsonR.toFixed(2),
+    fom: fom.toFixed(1),
     maxDiff: maxDiff.toFixed(1),
     rmsd: rmsd.toFixed(2),
-    chiSquared: chiSquared.toFixed(2)
+    goodnessOfFit: Math.sqrt(chiSquared).toFixed(2)
   };
 };
 
 /**
- * Performs peak-by-peak indexing between Sample A and Reference Sample B
+ * Peak-by-peak pairing, lattice displacement, and indexing
  */
-export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[], lambda = CU_KA_WAVELENGTH) => {
-  const shifts: { peak: number; shift: number; type: string; strain: number }[] = [];
-  const missingInA: number[] = [];
-  const extraInA: number[] = [];
+export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
+  indexedPeaks: IndexedPeakMatch[];
+  meanShift: number;
+  avgStrain: number;
+  primaryPhasePurity: number;
+  secondaryPhaseEst: number;
+  extraInA: number[];
+  missingInA: number[];
+} => {
+  if (!peaksA || !peaksB) {
+    return {
+      indexedPeaks: [],
+      meanShift: 0,
+      avgStrain: 0,
+      primaryPhasePurity: 100,
+      secondaryPhaseEst: 0,
+      extraInA: [],
+      missingInA: []
+    };
+  }
+
   const indexedPeaks: IndexedPeakMatch[] = [];
+  const tolerance = 0.65; // degrees 2Theta matching window
+  const matchedBIndices = new Set<number>();
+  const shifts: number[] = [];
+  const extraInA: number[] = [];
 
-  let peakId = 1;
-  const matchedRefIndices = new Set<number>();
+  peaksA.forEach((pA, idx) => {
+    let bestMatchIdx = -1;
+    let minDiff = Infinity;
 
-  peaksA.forEach(peakA => {
-    const thetaRadA = (peakA.twoTheta / 2) * (Math.PI / 180);
-    const dA = thetaRadA > 0 ? (lambda / (2 * Math.sin(thetaRadA))).toFixed(4) : '-';
-
-    let closestRef: PeakItem | null = null;
-    let closestIndex = -1;
-    let minDistance = Infinity;
-
-    peaksB.forEach((peakB, idx) => {
-      const dist = Math.abs(peakB.twoTheta - peakA.twoTheta);
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestRef = peakB;
-        closestIndex = idx;
+    peaksB.forEach((pB, bIdx) => {
+      const diff = Math.abs(pA.twoTheta - pB.twoTheta);
+      if (diff <= tolerance && diff < minDiff) {
+        minDiff = diff;
+        bestMatchIdx = bIdx;
       }
     });
 
-    if (closestRef && minDistance <= 0.65) {
-      matchedRefIndices.add(closestIndex);
-      const shiftVal = peakA.twoTheta - closestRef.twoTheta;
-      const thetaRadB = (closestRef.twoTheta / 2) * (Math.PI / 180);
-      const dB = thetaRadB > 0 ? (lambda / (2 * Math.sin(thetaRadB))).toFixed(4) : '-';
+    const thetaRadA = (pA.twoTheta / 2) * (Math.PI / 180);
+    const dSpacingA = thetaRadA > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRadA))).toFixed(4) : '-';
 
-      const deltaRad = shiftVal * (Math.PI / 180);
-      const microstrain = -0.5 * deltaRad / Math.tan(thetaRadA || 0.1) * 100;
+    if (bestMatchIdx !== -1) {
+      const matchedB = peaksB[bestMatchIdx];
+      matchedBIndices.add(bestMatchIdx);
+      const shift = Number((pA.twoTheta - matchedB.twoTheta).toFixed(3));
+      shifts.push(shift);
 
-      if (Math.abs(shiftVal) >= 0.005) {
-        shifts.push({
-          peak: peakA.twoTheta,
-          shift: shiftVal,
-          type: shiftVal > 0 ? 'higher' : 'lower',
-          strain: microstrain
-        });
-      }
+      const thetaRadB = (matchedB.twoTheta / 2) * (Math.PI / 180);
+      const dSpacingB = thetaRadB > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRadB))).toFixed(4) : '-';
 
+      const isShifted = Math.abs(shift) > 0.05;
       indexedPeaks.push({
-        id: peakId++,
-        twoThetaA: peakA.twoTheta,
-        twoThetaB: closestRef.twoTheta,
-        hklA: peakA.hkl,
-        hklB: closestRef.hkl,
-        dSpacingA: dA,
-        dSpacingB: dB,
-        shift: Number(shiftVal.toFixed(3)),
-        intensityA: peakA.intensity,
-        intensityB: closestRef.intensity,
-        status: Math.abs(shiftVal) >= 0.02 ? 'shifted' : 'matched'
+        id: idx + 1,
+        twoThetaA: pA.twoTheta,
+        twoThetaB: matchedB.twoTheta,
+        hklA: pA.hkl,
+        hklB: matchedB.hkl,
+        dSpacingA,
+        dSpacingB,
+        shift,
+        intensityA: pA.intensity,
+        intensityB: matchedB.intensity,
+        status: isShifted ? 'shifted' : 'matched',
+        phaseOrigin: 'Phase B'
       });
     } else {
-      extraInA.push(peakA.twoTheta);
+      extraInA.push(pA.twoTheta);
       indexedPeaks.push({
-        id: peakId++,
-        twoThetaA: peakA.twoTheta,
+        id: idx + 1,
+        twoThetaA: pA.twoTheta,
         twoThetaB: null,
-        hklA: peakA.hkl,
-        dSpacingA: dA,
+        hklA: pA.hkl,
+        hklB: undefined,
+        dSpacingA,
         dSpacingB: '-',
         shift: null,
-        intensityA: peakA.intensity,
+        intensityA: pA.intensity,
         intensityB: 0,
-        status: 'extra'
+        status: 'extra',
+        phaseOrigin: 'Unknown'
       });
     }
   });
 
-  peaksB.forEach((peakB, idx) => {
-    if (!matchedRefIndices.has(idx)) {
-      missingInA.push(peakB.twoTheta);
-      const thetaRadB = (peakB.twoTheta / 2) * (Math.PI / 180);
-      const dB = thetaRadB > 0 ? (lambda / (2 * Math.sin(thetaRadB))).toFixed(4) : '-';
+  // Missing in A (Present in Reference B but absent in experimental sample)
+  const missingInA: number[] = [];
+  peaksB.forEach((pB, bIdx) => {
+    if (!matchedBIndices.has(bIdx)) {
+      missingInA.push(pB.twoTheta);
+      const thetaRadB = (pB.twoTheta / 2) * (Math.PI / 180);
+      const dSpacingB = thetaRadB > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRadB))).toFixed(4) : '-';
 
       indexedPeaks.push({
-        id: peakId++,
+        id: indexedPeaks.length + 1,
         twoThetaA: 0,
-        twoThetaB: peakB.twoTheta,
-        hklB: peakB.hkl,
+        twoThetaB: pB.twoTheta,
+        hklA: undefined,
+        hklB: pB.hkl,
         dSpacingA: '-',
-        dSpacingB: dB,
+        dSpacingB,
         shift: null,
         intensityA: 0,
-        intensityB: peakB.intensity,
-        status: 'missing'
+        intensityB: pB.intensity,
+        status: 'missing',
+        phaseOrigin: 'Phase B'
       });
     }
   });
 
-  let meanShift = 0;
-  let avgStrain = 0;
-  if (shifts.length > 0) {
-    meanShift = shifts.reduce((acc, s) => acc + s.shift, 0) / shifts.length;
-    avgStrain = shifts.reduce((acc, s) => acc + s.strain, 0) / shifts.length;
-  }
+  const meanShift = shifts.length > 0 ? Number((shifts.reduce((a, b) => a + b, 0) / shifts.length).toFixed(3)) : 0;
+  
+  // Microstrain estimation delta d/d = -delta Theta / tan(Theta)
+  const avgStrain = shifts.length > 0 
+    ? Number(((Math.abs(meanShift) * (Math.PI / 180)) / (2 * Math.tan((35 / 2) * (Math.PI / 180))) * 100).toFixed(3))
+    : 0;
 
-  let matchQuality: 'exact' | 'strained' | 'multiphase' | 'poor' = 'exact';
-  if (extraInA.length > 1 && missingInA.length > 1) {
-    matchQuality = 'poor';
-  } else if (extraInA.length > 0) {
-    matchQuality = 'multiphase';
-  } else if (Math.abs(meanShift) > 0.03 || shifts.length > 0) {
-    matchQuality = 'strained';
-  }
-
-  const sumIntA = peaksA.reduce((acc, p) => acc + p.intensity, 0);
-  const matchedIntA = indexedPeaks
-    .filter(p => p.status === 'matched' || p.status === 'shifted')
-    .reduce((acc, p) => acc + p.intensityA, 0);
-
-  const primaryPhasePurity = sumIntA > 0 ? Math.round((matchedIntA / sumIntA) * 100) : 100;
-  const secondaryPhaseEst = Math.max(0, 100 - primaryPhasePurity);
+  const totalExpIntensity = peaksA.reduce((sum, p) => sum + p.intensity, 0);
+  const matchedIntensity = indexedPeaks.filter(p => p.status === 'matched' || p.status === 'shifted').reduce((sum, p) => sum + p.intensityA, 0);
+  
+  const primaryPhasePurity = totalExpIntensity > 0 ? Number(((matchedIntensity / totalExpIntensity) * 100).toFixed(1)) : 100;
+  const secondaryPhaseEst = Number((100 - primaryPhasePurity).toFixed(1));
 
   return {
-    shifts,
-    missingInA,
-    extraInA,
+    indexedPeaks: indexedPeaks.sort((a, b) => (a.twoThetaA || a.twoThetaB || 0) - (b.twoThetaA || b.twoThetaB || 0)),
     meanShift,
     avgStrain,
-    matchQuality,
-    indexedPeaks,
     primaryPhasePurity,
-    secondaryPhaseEst
+    secondaryPhaseEst,
+    extraInA,
+    missingInA
   };
 };
 
 /**
- * 2-Phase or 3-Phase Linear Least-Squares solver for relative phase fractions
+ * Solves Non-Negative Least Squares (NNLS) multi-phase fraction percentages
  */
 export const solveMultiPhaseFractions = (
-  pointsA: number[],
-  pointsB: number[],
-  pointsC: number[] = []
-): { fracB: number; fracC: number; scaleB: number; scaleC: number } => {
-  const n = pointsA.length;
-  if (n === 0 || pointsB.length === 0) {
-    return { fracB: 100, fracC: 0, scaleB: 1, scaleC: 0 };
+  arrA: number[], 
+  arrB: number[], 
+  arrC: number[] = [], 
+  arrD: number[] = []
+): { fracB: number; fracC: number; fracD: number; residualNorm: number } => {
+  if (arrA.length === 0 || arrB.length === 0) {
+    return { fracB: 100, fracC: 0, fracD: 0, residualNorm: 0 };
   }
 
-  // 1-Phase fit
-  if (pointsC.length === 0) {
-    let num = 0;
-    let den = 0;
-    for (let i = 0; i < n; i++) {
-      num += pointsA[i] * pointsB[i];
-      den += pointsB[i] * pointsB[i];
+  // 1-phase case
+  if (arrC.length === 0 && arrD.length === 0) {
+    return { fracB: 100, fracC: 0, fracD: 0, residualNorm: 0 };
+  }
+
+  let bestB = 1.0;
+  let bestC = 0.0;
+  let bestD = 0.0;
+  let minResidual = Infinity;
+
+  // Grid search optimization for multi-component fraction weights
+  const step = 0.02;
+  const hasD = arrD.length > 0;
+
+  for (let wB = 0; wB <= 1.0; wB += step) {
+    const maxWC = 1.0 - wB;
+    for (let wC = 0; wC <= maxWC; wC += step) {
+      const wD = hasD ? Math.max(0, 1.0 - wB - wC) : 0;
+      if (!hasD && Math.abs(wB + wC - 1.0) > 0.01) continue;
+
+      let resSq = 0;
+      for (let i = 0; i < arrA.length; i += 4) { // stride 4 for speed
+        const obs = arrA[i];
+        const calc = (arrB[i] * wB) + (arrC[i] ? arrC[i] * wC : 0) + (hasD && arrD[i] ? arrD[i] * wD : 0);
+        resSq += Math.pow(obs - calc, 2);
+      }
+
+      if (resSq < minResidual) {
+        minResidual = resSq;
+        bestB = wB;
+        bestC = wC;
+        bestD = wD;
+      }
     }
-    const scaleB = den > 0 ? Math.max(0, num / den) : 1.0;
-    return { fracB: 100, fracC: 0, scaleB: Number(scaleB.toFixed(2)), scaleC: 0 };
   }
 
-  // 2-Component Non-negative Least Squares: min || A - (wB*B + wC*C) ||^2
-  let sBB = 0, sCC = 0, sBC = 0, sAB = 0, sAC = 0;
-  for (let i = 0; i < n; i++) {
-    const a = pointsA[i];
-    const b = pointsB[i];
-    const c = pointsC[i];
-    sBB += b * b;
-    sCC += c * c;
-    sBC += b * c;
-    sAB += a * b;
-    sAC += a * c;
-  }
-
-  const det = sBB * sCC - sBC * sBC;
-  let wB = 1.0;
-  let wC = 0.0;
-
-  if (Math.abs(det) > 1e-5) {
-    wB = (sCC * sAB - sBC * sAC) / det;
-    wC = (sBB * sAC - sBC * sAB) / det;
-  }
-
-  wB = Math.max(0, wB);
-  wC = Math.max(0, wC);
-
-  const total = wB + wC;
-  const fracB = total > 0 ? Math.round((wB / total) * 100) : 100;
-  const fracC = Math.max(0, 100 - fracB);
-
+  const total = bestB + bestC + bestD;
   return {
-    fracB,
-    fracC,
-    scaleB: Number(wB.toFixed(2)),
-    scaleC: Number(wC.toFixed(2))
+    fracB: total > 0 ? Number(((bestB / total) * 100).toFixed(1)) : 100,
+    fracC: total > 0 ? Number(((bestC / total) * 100).toFixed(1)) : 0,
+    fracD: total > 0 ? Number(((bestD / total) * 100).toFixed(1)) : 0,
+    residualNorm: Number(Math.sqrt(minResidual / arrA.length).toFixed(2))
   };
 };
 
 /**
- * Automated Database Search & Match cross-correlation algorithm against `MATERIAL_DB`
+ * Hanawalt 3-strongest peak search-match cross-correlation
  */
 export const performDatabaseSearchMatch = (
-  targetPeaks: PeakItem[],
-  materialsDb: any[],
-  limit = 12
+  targetPeaks: PeakItem[], 
+  materialsDb: any[], 
+  maxResults = 25
 ): SearchMatchCandidate[] => {
-  if (!targetPeaks || targetPeaks.length === 0 || !materialsDb || materialsDb.length === 0) {
-    return [];
-  }
+  if (!targetPeaks || targetPeaks.length === 0 || !materialsDb) return [];
 
+  const topTarget = [...targetPeaks].sort((a, b) => b.intensity - a.intensity).slice(0, 8);
   const candidates: SearchMatchCandidate[] = [];
 
-  materialsDb.forEach(mat => {
-    const matPeaks = extractMaterialPeaks(mat);
-    if (matPeaks.length === 0) return;
+  for (const mat of materialsDb) {
+    const refPeaks = extractMaterialPeaks(mat);
+    if (refPeaks.length === 0) continue;
 
     let matchedCount = 0;
-    let sumWeight = 0;
-    let score = 0;
+    let dSpacingPenalty = 0;
 
-    targetPeaks.forEach(tp => {
-      const closest = matPeaks.reduce((prev: any, curr: any) => {
-        if (!prev) return curr;
-        return Math.abs(curr.twoTheta - tp.twoTheta) < Math.abs(prev.twoTheta - tp.twoTheta) ? curr : prev;
-      }, null);
-
-      if (closest) {
-        const delta = Math.abs(closest.twoTheta - tp.twoTheta);
-        if (delta <= 0.5) {
-          matchedCount++;
-          // Gaussian proximity weight
-          const posWeight = Math.exp(-0.5 * Math.pow(delta / 0.15, 2));
-          // Intensity ratio similarity
-          const intSim = 1 - Math.abs(tp.intensity - closest.intensity) / Math.max(100, tp.intensity, closest.intensity);
-          const peakScore = posWeight * 0.7 + Math.max(0, intSim) * 0.3;
-          score += peakScore * (tp.intensity / 100);
-        }
+    for (const tPeak of topTarget) {
+      let closestDiff = Infinity;
+      for (const rPeak of refPeaks) {
+        const diff = Math.abs(tPeak.twoTheta - rPeak.twoTheta);
+        if (diff < closestDiff) closestDiff = diff;
       }
-      sumWeight += (tp.intensity / 100);
-    });
 
-    const normalizedScore = sumWeight > 0 ? Math.min(100, (score / sumWeight) * 100) : 0;
-    const peakCoverage = (matchedCount / Math.max(1, targetPeaks.length)) * 100;
-    const finalScore = Number((normalizedScore * 0.7 + peakCoverage * 0.3).toFixed(1));
+      if (closestDiff <= 0.6) {
+        matchedCount++;
+        dSpacingPenalty += closestDiff;
+      }
+    }
 
-    if (finalScore >= 10 && matchedCount >= 1) {
+    const matchRatio = matchedCount / Math.min(topTarget.length, refPeaks.length);
+    const score = Math.max(0, Math.min(100, (matchRatio * 85) - (dSpacingPenalty * 15)));
+
+    if (score > 15 || matchedCount >= 2) {
       candidates.push({
         material: mat,
-        pearsonR: finalScore,
-        rP: Number(Math.max(2, 100 - finalScore).toFixed(1)),
+        pearsonR: Number(score.toFixed(1)),
+        rP: Number(Math.max(5, (100 - score) * 0.8).toFixed(1)),
+        fom: Number(score.toFixed(1)),
         matchedPeaksCount: matchedCount,
-        totalPeaksCount: targetPeaks.length
+        totalPeaksCount: refPeaks.length
       });
     }
-  });
+  }
 
-  return candidates.sort((a, b) => b.pearsonR - a.pearsonR).slice(0, limit);
+  return candidates.sort((a, b) => b.pearsonR - a.pearsonR).slice(0, maxResults);
 };

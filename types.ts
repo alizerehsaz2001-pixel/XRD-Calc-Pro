@@ -538,3 +538,30 @@ export interface DLPhaseResult {
   module: string;
   candidates: DLPhaseCandidate[];
 }
+
+export interface CustomPeak {
+  id: string;
+  name: string;
+  color: string;
+  enabled: boolean;
+  center: number;
+  fwhm: number;
+  amplitude: number;
+  shape: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII';
+  eta: number; // For Pseudo-Voigt (0-1) or Pearson VII exponent m
+  asymmetry: number;
+}
+
+export interface CustomPeakMetrics {
+  peak: CustomPeak;
+  dSpacing: number; // Å
+  area: number; // cps·deg
+  areaPercent: number; // % of total sum
+  integralBreadth: number; // deg
+  crystalliteSizeNm: number; // nm (Scherrer)
+  microstrainPercent: number; // %
+  theta1: number; // deg (half-max left)
+  theta2: number; // deg (half-max right)
+  maxIntensity: number; // cps
+  relIntensityPercent: number; // % of dominant peak
+}

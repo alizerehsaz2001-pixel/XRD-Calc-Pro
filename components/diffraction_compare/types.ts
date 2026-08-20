@@ -5,6 +5,7 @@ export interface PeakItem {
   intensity: number;
   hkl?: string;
   fwhm?: number;
+  dSpacing?: number;
 }
 
 export interface MaterialPhase {
@@ -26,6 +27,7 @@ export interface ProfilePoint {
   intensityA: number;
   intensityB: number;
   intensityC?: number;
+  intensityD?: number;
   intensityTotalModel?: number;
   mirroredB: number;
   difference: number;
@@ -50,25 +52,30 @@ export interface IndexedPeakMatch {
   intensityA: number;
   intensityB: number;
   status: 'matched' | 'shifted' | 'extra' | 'missing';
+  phaseOrigin?: 'Phase B' | 'Phase C' | 'Phase D' | 'Unknown';
 }
 
 export interface SpectralMetrics {
   rP: string;
   rWP: string;
+  rExp: string;
+  chiSquared: string;
   pearsonR: string;
+  fom: string; // Figure of Merit (0-100)
   maxDiff: string;
   rmsd: string;
-  chiSquared: string;
+  goodnessOfFit: string;
 }
 
 export interface SearchMatchCandidate {
   material: any;
   pearsonR: number;
   rP: number;
+  fom: number;
   matchedPeaksCount: number;
   totalPeaksCount: number;
 }
 
 export type CompareViewMode = 'stacked' | 'unified' | 'mirrored' | 'derivative' | 'multiphase';
-export type DiffTheme = 'neon' | 'emerald' | 'amber' | 'cyan' | 'monochrome';
+export type DiffTheme = 'neon' | 'emerald' | 'amber' | 'cyan' | 'monochrome' | 'cyberpunk';
 export type DiagTabMode = 'cards' | 'table' | 'quant' | 'strain' | 'search';
