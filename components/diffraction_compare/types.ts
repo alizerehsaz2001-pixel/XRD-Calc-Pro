@@ -76,6 +76,60 @@ export interface SearchMatchCandidate {
   totalPeaksCount: number;
 }
 
-export type CompareViewMode = 'stacked' | 'unified' | 'mirrored' | 'derivative' | 'multiphase';
-export type DiffTheme = 'neon' | 'emerald' | 'amber' | 'cyan' | 'monochrome' | 'cyberpunk';
+export type CompareViewMode = 'stacked' | 'unified' | 'mirrored' | 'derivative' | 'multiphase' | 'split';
+export type CurveVisibilityFilter = 'both' | 'only_a' | 'only_b' | 'all' | 'custom';
+
+export interface CurveVisibilityState {
+  showA: boolean;
+  showB: boolean;
+  showC: boolean;
+  showD: boolean;
+  showDiff: boolean;
+  showTotalModel: boolean;
+}
+
+export type DiffTheme = 
+  | 'neon' 
+  | 'emerald' 
+  | 'amber' 
+  | 'cyan' 
+  | 'cyberpunk' 
+  | 'monochrome' 
+  | 'solar' 
+  | 'crimson' 
+  | 'violet' 
+  | 'high-contrast'
+  | 'custom';
+
 export type DiagTabMode = 'cards' | 'table' | 'quant' | 'strain' | 'search';
+
+export interface CurveColorPalette {
+  colorA: string;
+  colorB: string;
+  colorC: string;
+  colorD: string;
+  colorDiff: string;
+  posDiff: string;
+  negDiff: string;
+  colorTotalModel: string;
+}
+
+export type PeakShapeFunction = 'pseudoVoigt' | 'pearsonVII' | 'gaussian' | 'lorentzian';
+export type ChartBackgroundTheme = 'dark-obsidian' | 'deep-black' | 'midnight-navy' | 'high-contrast-light';
+export type LineStrokeStyle = 'solid' | 'dashed' | 'dotted';
+
+export interface CompareEngineSettings {
+  peakShape: PeakShapeFunction;
+  fwhm: number;
+  eta: number; // Lorentzian fraction (0 to 1) for pseudoVoigt
+  pearsonM?: number; // Exponent for Pearson VII
+  backgroundLevel: number;
+  noiseLevel: number;
+  normalizationMode: 'max100' | 'unitArea' | 'raw';
+  strokeWidth: number;
+  enableGlow: boolean;
+  areaOpacity: number;
+  bgTheme: ChartBackgroundTheme;
+  styleB: LineStrokeStyle;
+}
+

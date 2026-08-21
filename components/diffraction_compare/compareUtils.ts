@@ -1,7 +1,168 @@
-import { PeakItem, ProfilePoint, IndexedPeakMatch, SpectralMetrics, SearchMatchCandidate } from './types';
+import { 
+  PeakItem, 
+  ProfilePoint, 
+  IndexedPeakMatch, 
+  SpectralMetrics, 
+  SearchMatchCandidate,
+  DiffTheme,
+  CurveColorPalette
+} from './types';
 
 // Standard Cu-Ka X-ray wavelength in Angstroms
 export const CU_KA_WAVELENGTH = 1.5406;
+
+/**
+ * High-Contrast Color Theme Palettes with optimal visual contrast and accessibility
+ */
+export const THEME_PALETTES: Record<DiffTheme, CurveColorPalette> = {
+  neon: {
+    colorA: '#6366f1', // Indigo Neon
+    colorB: '#06b6d4', // Cyan Vivid
+    colorC: '#d946ef', // Magenta
+    colorD: '#f59e0b', // Amber
+    colorDiff: '#f43f5e', // Rose
+    posDiff: '#10b981',
+    negDiff: '#f43f5e',
+    colorTotalModel: '#f8fafc'
+  },
+  emerald: {
+    colorA: '#10b981', // Emerald Mint
+    colorB: '#06b6d4', // Sky Blue
+    colorC: '#a855f7', // Purple
+    colorD: '#f43f5e', // Rose
+    colorDiff: '#f59e0b', // Amber
+    posDiff: '#10b981',
+    negDiff: '#ef4444',
+    colorTotalModel: '#ffffff'
+  },
+  amber: {
+    colorA: '#f59e0b', // Golden Amber
+    colorB: '#ec4899', // Pink Flame
+    colorC: '#8b5cf6', // Violet
+    colorD: '#06b6d4', // Cyan
+    colorDiff: '#06b6d4',
+    posDiff: '#f59e0b',
+    negDiff: '#ec4899',
+    colorTotalModel: '#fef08a'
+  },
+  cyan: {
+    colorA: '#00e5ff', // Electric Cyan
+    colorB: '#ff3366', // Hot Coral
+    colorC: '#ffd600', // Yellow
+    colorD: '#7c4dff', // Deep Purple
+    colorDiff: '#00e676', // Bright Green
+    posDiff: '#00e5ff',
+    negDiff: '#ff3366',
+    colorTotalModel: '#ffffff'
+  },
+  cyberpunk: {
+    colorA: '#00ffcc', // Cyber Mint
+    colorB: '#ff007f', // Hot Neon Pink
+    colorC: '#ffe600', // Cyber Yellow
+    colorD: '#9d00ff', // Violet Laser
+    colorDiff: '#00f0ff',
+    posDiff: '#00ffcc',
+    negDiff: '#ff007f',
+    colorTotalModel: '#ffffff'
+  },
+  solar: {
+    colorA: '#ff6b00', // Solar Flare Orange
+    colorB: '#ff0055', // Crimson Sunset
+    colorC: '#ffcc00', // Sunburst Gold
+    colorD: '#00d2ff', // Electric Sky
+    colorDiff: '#00f5d4',
+    posDiff: '#ff6b00',
+    negDiff: '#ff0055',
+    colorTotalModel: '#fff'
+  },
+  crimson: {
+    colorA: '#f43f5e', // Ruby Crimson
+    colorB: '#38bdf8', // Ice Blue
+    colorC: '#fbbf24', // Amber
+    colorD: '#c084fc', // Lilac
+    colorDiff: '#34d399', // Mint
+    posDiff: '#f43f5e',
+    negDiff: '#38bdf8',
+    colorTotalModel: '#ffffff'
+  },
+  violet: {
+    colorA: '#a855f7', // Vivid Purple
+    colorB: '#22d3ee', // Cyan
+    colorC: '#f472b6', // Pink
+    colorD: '#facc15', // Yellow
+    colorDiff: '#4ade80', // Light Green
+    posDiff: '#a855f7',
+    negDiff: '#f472b6',
+    colorTotalModel: '#ffffff'
+  },
+  'high-contrast': {
+    colorA: '#ffffff', // Crisp Pure White
+    colorB: '#38bdf8', // High-Contrast Light Blue
+    colorC: '#facc15', // Vivid Yellow
+    colorD: '#4ade80', // Crisp Mint
+    colorDiff: '#f43f5e', // Hot Coral Red
+    posDiff: '#4ade80',
+    negDiff: '#f43f5e',
+    colorTotalModel: '#e2e8f0'
+  },
+  monochrome: {
+    colorA: '#f8fafc',
+    colorB: '#94a3b8',
+    colorC: '#64748b',
+    colorD: '#475569',
+    colorDiff: '#f43f5e',
+    posDiff: '#cbd5e1',
+    negDiff: '#64748b',
+    colorTotalModel: '#ffffff'
+  },
+  custom: {
+    colorA: '#38bdf8',
+    colorB: '#f43f5e',
+    colorC: '#a855f7',
+    colorD: '#f59e0b',
+    colorDiff: '#10b981',
+    posDiff: '#38bdf8',
+    negDiff: '#f43f5e',
+    colorTotalModel: '#ffffff'
+  }
+};
+
+/**
+ * Returns active palette, applying user overrides if provided
+ */
+export const getActivePalette = (
+  theme: DiffTheme, 
+  customOverrides?: Partial<CurveColorPalette>
+): CurveColorPalette => {
+  const base = THEME_PALETTES[theme] || THEME_PALETTES.neon;
+  if (!customOverrides) return base;
+  return {
+    ...base,
+    ...customOverrides,
+    posDiff: customOverrides.posDiff || customOverrides.colorA || base.posDiff,
+    negDiff: customOverrides.negDiff || customOverrides.colorB || base.negDiff
+  };
+};
+
+/**
+ * Curated Vibrant Color Swatches for quick selection
+ */
+export const PRESET_COLOR_SWATCHES = [
+  { name: 'Electric Cyan', hex: '#00e5ff' },
+  { name: 'Sky Blue', hex: '#38bdf8' },
+  { name: 'Indigo Neon', hex: '#6366f1' },
+  { name: 'Emerald Mint', hex: '#10b981' },
+  { name: 'Lime Electric', hex: '#84cc16' },
+  { name: 'Sunburst Amber', hex: '#f59e0b' },
+  { name: 'Solar Orange', hex: '#ff6b00' },
+  { name: 'Ruby Crimson', hex: '#f43f5e' },
+  { name: 'Hot Neon Pink', hex: '#ec4899' },
+  { name: 'Cyber Magenta', hex: '#d946ef' },
+  { name: 'Vivid Violet', hex: '#a855f7' },
+  { name: 'Pure White', hex: '#ffffff' },
+  { name: 'Slate Light', hex: '#cbd5e1' },
+  { name: 'Gold Flare', hex: '#eab308' }
+];
 
 /**
  * Robust string parser for peak lists in multiple scientific formats:
@@ -180,14 +341,16 @@ export const generateSynthesizedProfile = (
     scaleSampleB?: number;
     scaleSampleC?: number;
     scaleSampleD?: number;
-    peakShape?: 'pseudoVoigt' | 'gaussian' | 'lorentzian';
+    peakShape?: 'pseudoVoigt' | 'pearsonVII' | 'gaussian' | 'lorentzian';
     eta?: number;
+    pearsonM?: number;
     fwhm?: number;
     minTheta?: number;
     maxTheta?: number;
     step?: number;
     background?: number;
     noiseLevel?: number;
+    normalizationMode?: 'max100' | 'unitArea' | 'raw';
   } = {}
 ) => {
   const {
@@ -195,13 +358,16 @@ export const generateSynthesizedProfile = (
     scaleSampleB = 1.0,
     scaleSampleC = 0,
     scaleSampleD = 0,
+    peakShape = 'pseudoVoigt',
     eta = 0.5,
+    pearsonM = 1.5,
     fwhm = 0.25,
     minTheta = 10,
     maxTheta = 90,
     step = 0.1,
     background = 2.0,
-    noiseLevel = 0.0
+    noiseLevel = 0.0,
+    normalizationMode = 'max100'
   } = options;
 
   const peaksA = extractMaterialPeaks(matA);
@@ -209,13 +375,26 @@ export const generateSynthesizedProfile = (
   const peaksC = matC ? extractMaterialPeaks(matC) : [];
   const peaksD = matD ? extractMaterialPeaks(matD) : [];
 
-  // Pseudo-Voigt profile generator
-  const pVoigt = (x: number, x0: number, w: number, height: number) => {
-    const halfW = w / 2;
+  // Mathematical Peak Shape Function Evaluator
+  const evalPeakShape = (x: number, x0: number, w: number, height: number): number => {
+    const halfW = Math.max(w / 2, 0.01);
     const dx = x - x0;
-    const g = Math.exp(-Math.LN2 * Math.pow(dx / halfW, 2));
-    const l = 1 / (1 + Math.pow(dx / halfW, 2));
-    return height * (eta * l + (1 - eta) * g);
+
+    if (peakShape === 'gaussian') {
+      return height * Math.exp(-Math.LN2 * Math.pow(dx / halfW, 2));
+    } else if (peakShape === 'lorentzian') {
+      return height / (1 + Math.pow(dx / halfW, 2));
+    } else if (peakShape === 'pearsonVII') {
+      const m = Math.max(pearsonM, 0.5);
+      const c = Math.pow(2, 1 / m) - 1;
+      return height / Math.pow(1 + 4 * c * Math.pow(dx / w, 2), m);
+    } else {
+      // Default: Pseudo-Voigt
+      const g = Math.exp(-Math.LN2 * Math.pow(dx / halfW, 2));
+      const l = 1 / (1 + Math.pow(dx / halfW, 2));
+      const safeEta = Math.max(0, Math.min(1, eta));
+      return height * (safeEta * l + (1 - safeEta) * g);
+    }
   };
 
   const numPoints = Math.floor((maxTheta - minTheta) / step) + 1;
@@ -230,22 +409,29 @@ export const generateSynthesizedProfile = (
   for (let i = 0; i < numPoints; i++) {
     const twoTheta = Number((minTheta + i * step).toFixed(2));
     
+    // Deterministic pseudo-noise
+    const noise = noiseLevel > 0 
+      ? (Math.sin(twoTheta * 97.3) * Math.cos(twoTheta * 31.7) * noiseLevel * 2) 
+      : 0;
+
     // Sample A continuous profile
-    let iA = background;
+    let iA = background + noise;
     for (const p of peaksA) {
       const relH = (p.intensity / maxIntensityA) * 100;
-      if (Math.abs(twoTheta - p.twoTheta) < fwhm * 4) {
-        iA += pVoigt(twoTheta, p.twoTheta, p.fwhm || fwhm, relH);
+      const peakFwhm = p.fwhm || fwhm;
+      if (Math.abs(twoTheta - p.twoTheta) < peakFwhm * 4.5) {
+        iA += evalPeakShape(twoTheta, p.twoTheta, peakFwhm, relH);
       }
     }
 
     // Sample B continuous profile
-    let iB = background;
+    let iB = background + noise;
     for (const p of peaksB) {
       const relH = (p.intensity / maxIntensityB) * 100 * scaleSampleB;
       const targetCenter = p.twoTheta + shiftTwoThetaB;
-      if (Math.abs(twoTheta - targetCenter) < fwhm * 4) {
-        iB += pVoigt(twoTheta, targetCenter, p.fwhm || fwhm, relH);
+      const peakFwhm = p.fwhm || fwhm;
+      if (Math.abs(twoTheta - targetCenter) < peakFwhm * 4.5) {
+        iB += evalPeakShape(twoTheta, targetCenter, peakFwhm, relH);
       }
     }
 
@@ -254,8 +440,9 @@ export const generateSynthesizedProfile = (
     if (matC && scaleSampleC > 0) {
       for (const p of peaksC) {
         const relH = (p.intensity / maxIntensityC) * 100 * scaleSampleC;
-        if (Math.abs(twoTheta - p.twoTheta) < fwhm * 4) {
-          iC += pVoigt(twoTheta, p.twoTheta, p.fwhm || fwhm, relH);
+        const peakFwhm = p.fwhm || fwhm;
+        if (Math.abs(twoTheta - p.twoTheta) < peakFwhm * 4.5) {
+          iC += evalPeakShape(twoTheta, p.twoTheta, peakFwhm, relH);
         }
       }
     }
@@ -265,8 +452,9 @@ export const generateSynthesizedProfile = (
     if (matD && scaleSampleD > 0) {
       for (const p of peaksD) {
         const relH = (p.intensity / maxIntensityD) * 100 * scaleSampleD;
-        if (Math.abs(twoTheta - p.twoTheta) < fwhm * 4) {
-          iD += pVoigt(twoTheta, p.twoTheta, p.fwhm || fwhm, relH);
+        const peakFwhm = p.fwhm || fwhm;
+        if (Math.abs(twoTheta - p.twoTheta) < peakFwhm * 4.5) {
+          iD += evalPeakShape(twoTheta, p.twoTheta, peakFwhm, relH);
         }
       }
     }
@@ -280,29 +468,31 @@ export const generateSynthesizedProfile = (
     let iA_plus = 0;
     for (const p of peaksA) {
       const relH = (p.intensity / maxIntensityA) * 100;
-      if (Math.abs((twoTheta + dStep) - p.twoTheta) < fwhm * 4) {
-        iA_plus += pVoigt(twoTheta + dStep, p.twoTheta, p.fwhm || fwhm, relH);
+      const peakFwhm = p.fwhm || fwhm;
+      if (Math.abs((twoTheta + dStep) - p.twoTheta) < peakFwhm * 4.5) {
+        iA_plus += evalPeakShape(twoTheta + dStep, p.twoTheta, peakFwhm, relH);
       }
     }
-    const derivA = Number(((iA_plus - (iA - background)) / dStep).toFixed(2));
+    const derivA = Number(((iA_plus - (iA - background - noise)) / dStep).toFixed(2));
 
     let iB_plus = 0;
     for (const p of peaksB) {
       const relH = (p.intensity / maxIntensityB) * 100 * scaleSampleB;
       const targetCenter = p.twoTheta + shiftTwoThetaB;
-      if (Math.abs((twoTheta + dStep) - targetCenter) < fwhm * 4) {
-        iB_plus += pVoigt(twoTheta + dStep, targetCenter, p.fwhm || fwhm, relH);
+      const peakFwhm = p.fwhm || fwhm;
+      if (Math.abs((twoTheta + dStep) - targetCenter) < peakFwhm * 4.5) {
+        iB_plus += evalPeakShape(twoTheta + dStep, targetCenter, peakFwhm, relH);
       }
     }
-    const derivB = Number(((iB_plus - (iB - background)) / dStep).toFixed(2));
+    const derivB = Number(((iB_plus - (iB - background - noise)) / dStep).toFixed(2));
 
     points[i] = {
       twoTheta,
-      intensityA: Number(iA.toFixed(2)),
-      intensityB: Number(iB.toFixed(2)),
-      intensityC: matC ? Number(iC.toFixed(2)) : undefined,
-      intensityD: matD ? Number(iD.toFixed(2)) : undefined,
-      intensityTotalModel: Number(totalModel.toFixed(2)),
+      intensityA: Math.max(0, Number(iA.toFixed(2))),
+      intensityB: Math.max(0, Number(iB.toFixed(2))),
+      intensityC: matC ? Math.max(0, Number(iC.toFixed(2))) : undefined,
+      intensityD: matD ? Math.max(0, Number(iD.toFixed(2))) : undefined,
+      intensityTotalModel: Math.max(0, Number(totalModel.toFixed(2))),
       mirroredB: Number((-iB).toFixed(2)),
       difference: Number(diff.toFixed(2)),
       posDiff: diff > 0 ? Number(diff.toFixed(2)) : 0,
@@ -650,3 +840,117 @@ export const performDatabaseSearchMatch = (
 
   return candidates.sort((a, b) => b.pearsonR - a.pearsonR).slice(0, maxResults);
 };
+
+/**
+ * Fast cross-correlation 2Theta shift & scale optimization engine
+ */
+export const optimizeAlignmentAndScale = (
+  peaksA: PeakItem[],
+  peaksB: PeakItem[]
+): { optimalShift: number; optimalScale: number; bestCorrelation: number } => {
+  if (!peaksA.length || !peaksB.length) {
+    return { optimalShift: 0, optimalScale: 1.0, bestCorrelation: 0 };
+  }
+
+  // Find strongest peaks in Sample A and Reference B
+  const topA = [...peaksA].sort((a, b) => b.intensity - a.intensity).slice(0, 5);
+  const topB = [...peaksB].sort((a, b) => b.intensity - a.intensity).slice(0, 5);
+
+  let bestShift = 0;
+  let bestScale = 1.0;
+  let maxScore = -Infinity;
+
+  // Sweep shift from -2.00 to +2.00 in 0.02 deg steps
+  for (let shift = -2.00; shift <= 2.00; shift += 0.02) {
+    let matchedScore = 0;
+    let sumWeight = 0;
+
+    for (const pa of topA) {
+      for (const pb of topB) {
+        const shiftedB = pb.twoTheta + shift;
+        const diff = Math.abs(pa.twoTheta - shiftedB);
+        if (diff <= 0.45) {
+          const proximity = Math.max(0, 1 - diff / 0.45);
+          const intensitySim = 1 - Math.min(1, Math.abs(pa.intensity - pb.intensity) / 100);
+          matchedScore += proximity * (0.7 + 0.3 * intensitySim) * (pa.intensity / 100);
+          sumWeight += (pa.intensity / 100);
+        }
+      }
+    }
+
+    if (matchedScore > maxScore) {
+      maxScore = matchedScore;
+      bestShift = Number(shift.toFixed(2));
+    }
+  }
+
+  // Optimize scale factor
+  const strongestA = topA[0];
+  const matchingB = topB.find(p => Math.abs(p.twoTheta + bestShift - strongestA.twoTheta) < 0.4);
+  if (matchingB && matchingB.intensity > 0) {
+    bestScale = Number((strongestA.intensity / matchingB.intensity).toFixed(2));
+    bestScale = Math.max(0.2, Math.min(3.0, bestScale));
+  }
+
+  return {
+    optimalShift: bestShift,
+    optimalScale: bestScale,
+    bestCorrelation: Number(maxScore.toFixed(2))
+  };
+};
+
+/**
+ * Exports compare profile dataset as downloadable CSV
+ */
+export const exportCompareDataAsCSV = (
+  points: ProfilePoint[], 
+  nameA: string, 
+  nameB: string,
+  nameC?: string,
+  nameD?: string
+) => {
+  if (!points || points.length === 0) return;
+
+  const headers = [
+    '2Theta_deg',
+    'dSpacing_Angstrom',
+    `Intensity_A_${nameA.replace(/[^a-zA-Z0-9]/g, '_')}`,
+    `Intensity_B_${nameB.replace(/[^a-zA-Z0-9]/g, '_')}`,
+    nameC ? `Intensity_C_${nameC.replace(/[^a-zA-Z0-9]/g, '_')}` : null,
+    nameD ? `Intensity_D_${nameD.replace(/[^a-zA-Z0-9]/g, '_')}` : null,
+    'Intensity_TotalModel',
+    'Difference_Residual',
+    'Deriv_A',
+    'Deriv_B'
+  ].filter(Boolean).join(',');
+
+  const rows = points.map(pt => {
+    const thetaRad = (pt.twoTheta / 2) * (Math.PI / 180);
+    const dVal = thetaRad > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4) : '';
+    
+    const rowVals = [
+      pt.twoTheta.toFixed(2),
+      dVal,
+      pt.intensityA.toFixed(2),
+      pt.intensityB.toFixed(2),
+      nameC ? (pt.intensityC !== undefined ? pt.intensityC.toFixed(2) : '') : null,
+      nameD ? (pt.intensityD !== undefined ? pt.intensityD.toFixed(2) : '') : null,
+      pt.intensityTotalModel?.toFixed(2) ?? '',
+      pt.difference.toFixed(2),
+      pt.derivA.toFixed(2),
+      pt.derivB.toFixed(2)
+    ].filter(v => v !== null).join(',');
+
+    return rowVals;
+  });
+
+  const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `XRD_Compare_${nameA}_vs_${nameB}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+

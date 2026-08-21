@@ -23,11 +23,24 @@ import {
   Activity,
   Layers,
   HelpCircle,
-  Maximize2
+  Maximize2,
+  AlertTriangle,
+  Info,
+  X
 } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
 
 export type Module = string;
+
+export interface ToastAlert {
+  id: string;
+  type: 'success' | 'error' | 'info';
+  title: string;
+  message: string;
+  timestamp: number;
+  actionLabel?: string;
+  onAction?: () => void;
+}
 
 export type ThemeType = 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai';
 
@@ -136,9 +149,89 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showSystemMenu, setShowSystemMenu] = useState(false);
   const [showSyncTooltip, setShowSyncTooltip] = useState(false);
+  const [activeToast, setActiveToast] = useState<ToastAlert | null>(null);
   
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const systemMenuRef = useRef<HTMLDivElement>(null);
+  const prevSyncTypeRef = useRef<string>(firestoreSyncType);
+  const prevOnlineRef = useRef<boolean>(isOnline);
+  const toastTimerRef = useRef<any>(null);
+
+  // Helper to show non-intrusive toast alert
+  const showToast = (toast: Omit<ToastAlert, 'id' | 'timestamp'>) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    const newToast: ToastAlert = {
+      ...toast,
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: Date.now()
+    };
+    setActiveToast(newToast);
+
+    // Auto dismiss after 4.5s for normal/success, 6s for errors
+    const duration = toast.type === 'error' ? 6000 : 4200;
+    toastTimerRef.current = setTimeout(() => {
+      setActiveToast(null);
+    }, duration);
+  };
+
+  const dismissToast = () => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setActiveToast(null);
+  };
+
+  // 1. Detect sync state transitions (syncing -> success / error)
+  useEffect(() => {
+    const prevSyncType = prevSyncTypeRef.current;
+    prevSyncTypeRef.current = firestoreSyncType;
+
+    // Trigger on sync success
+    if (prevSyncType === 'syncing' && firestoreSyncType === 'success') {
+      showToast({
+        type: 'success',
+        title: t('Database Synced', 'Database Synced'),
+        message: firestoreSyncStatus || t('All offline IndexedDB records successfully mirrored to Firestore.', 'All offline IndexedDB records successfully mirrored to Firestore.')
+      });
+      playSynthTone('chime');
+    } 
+    // Trigger on sync failure / error
+    else if (firestoreSyncType === 'error' && prevSyncType !== 'error') {
+      showToast({
+        type: 'error',
+        title: t('Sync Alert', 'Sync Alert'),
+        message: firestoreSyncStatus || t('Could not complete remote database sync. Local records remain safely preserved in IndexedDB.', 'Could not complete remote database sync. Local records remain safely preserved in IndexedDB.'),
+        actionLabel: isOnline ? t('Retry', 'Retry') : undefined,
+        onAction: isOnline ? () => syncIndexedDBWithFirestore(true) : undefined
+      });
+      playSynthTone('error');
+    }
+  }, [firestoreSyncType, firestoreSyncStatus, isOnline, syncIndexedDBWithFirestore, playSynthTone, t]);
+
+  // 2. Detect online / offline network state changes
+  useEffect(() => {
+    const prevOnline = prevOnlineRef.current;
+    prevOnlineRef.current = isOnline;
+
+    if (prevOnline === true && isOnline === false) {
+      showToast({
+        type: 'info',
+        title: t('Offline Mode Active', 'Offline Mode Active'),
+        message: t('Operating in local mode. All XRD calculations and materials will persist in IndexedDB.', 'Operating in local mode. All XRD calculations and materials will persist in IndexedDB.')
+      });
+    } else if (prevOnline === false && isOnline === true) {
+      showToast({
+        type: 'success',
+        title: t('Connection Restored', 'Connection Restored'),
+        message: t('Network online. Ready to synchronize local cache with cloud database.', 'Network online. Ready to synchronize local cache with cloud database.'),
+        actionLabel: t('Sync Now', 'Sync Now'),
+        onAction: () => syncIndexedDBWithFirestore(true)
+      });
+      playSynthTone('chime');
+    }
+  }, [isOnline, syncIndexedDBWithFirestore, playSynthTone, t]);
 
   // Close menus on outside click
   useEffect(() => {
@@ -774,6 +867,112 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
         </div>
       </header>
+
+      {/* Non-Intrusive Floating Toast Alert */}
+      <AnimatePresence>
+        {activeToast && (
+          <motion.div
+            key={activeToast.id}
+            id="topbar-toast-alert"
+            role="status"
+            aria-live="polite"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -16, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className={`fixed top-16 md:top-14 z-50 max-w-sm sm:max-w-md w-[calc(100%-2rem)] sm:w-auto sm:min-w-[340px] shadow-2xl rounded-2xl p-3.5 border backdrop-blur-xl transition-all select-none ${
+              isRTL ? 'left-4 sm:left-8' : 'right-4 sm:right-8'
+            } ${
+              theme === 'cyberpunk'
+                ? activeToast.type === 'error'
+                  ? 'bg-black/95 border-pink-500 text-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.35)]'
+                  : activeToast.type === 'success'
+                  ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_30px_rgba(0,255,255,0.35)]'
+                  : 'bg-black/95 border-purple-500 text-purple-300 shadow-[0_0_30px_rgba(168,85,247,0.35)]'
+                : activeToast.type === 'error'
+                ? 'bg-rose-950/95 dark:bg-rose-950/95 border-rose-500/40 text-rose-100 shadow-rose-950/40'
+                : activeToast.type === 'success'
+                ? 'bg-slate-900/95 dark:bg-slate-950/95 border-emerald-500/40 text-slate-100 shadow-slate-950/50'
+                : 'bg-slate-900/95 dark:bg-slate-950/95 border-indigo-500/40 text-slate-100 shadow-slate-950/50'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              {/* Icon Status */}
+              <div className="shrink-0 mt-0.5">
+                {activeToast.type === 'success' ? (
+                  <div className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                ) : activeToast.type === 'error' ? (
+                  <div className="w-7 h-7 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 animate-pulse">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                ) : (
+                  <div className="w-7 h-7 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+                    <Info className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+
+              {/* Text Information */}
+              <div className="flex-1 min-w-0 pr-1 rtl:pr-0 rtl:pl-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="text-xs font-black tracking-tight leading-tight">
+                    {activeToast.title}
+                  </h4>
+                  <span className="text-[9px] font-mono opacity-50 shrink-0">
+                    {t('just now', 'just now')}
+                  </span>
+                </div>
+                <p className="text-[11px] opacity-90 mt-0.5 leading-snug break-words">
+                  {activeToast.message}
+                </p>
+
+                {/* Optional Retry Action button */}
+                {activeToast.actionLabel && activeToast.onAction && (
+                  <div className="mt-2.5 flex justify-start">
+                    <button
+                      id="topbar-toast-action-btn"
+                      onClick={() => {
+                        activeToast.onAction?.();
+                        dismissToast();
+                      }}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>{activeToast.actionLabel}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Dismiss Button */}
+              <button
+                id="topbar-toast-close-btn"
+                onClick={dismissToast}
+                className="p-1 rounded-lg hover:bg-white/10 opacity-60 hover:opacity-100 transition-all text-slate-300 hover:text-white shrink-0 -mr-1 -mt-1 cursor-pointer"
+                title={t('Dismiss', 'Dismiss')}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Subtle Progress Bar */}
+            <motion.div
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: activeToast.type === 'error' ? 6 : 4.2, ease: 'linear' }}
+              className={`h-0.5 mt-2.5 rounded-full origin-left rtl:origin-right ${
+                activeToast.type === 'error'
+                  ? 'bg-rose-500/60'
+                  : activeToast.type === 'success'
+                  ? 'bg-emerald-400/60'
+                  : 'bg-indigo-400/60'
+              }`}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };

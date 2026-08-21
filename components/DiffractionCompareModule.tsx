@@ -7,14 +7,18 @@ import {
   Search,
   HelpCircle,
   FileSpreadsheet,
-  CheckCircle2
+  CheckCircle2,
+  Check,
+  X
 } from 'lucide-react';
 import { BraggResult } from '../types';
 import { MATERIAL_DB } from '../utils/materialDB';
 import { 
   CompareViewMode, 
   DiffTheme, 
-  PeakItem 
+  PeakItem,
+  CurveColorPalette,
+  CompareEngineSettings 
 } from './diffraction_compare/types';
 import { 
   generateSynthesizedProfile, 
@@ -22,7 +26,9 @@ import {
   computePeakIndexing, 
   solveMultiPhaseFractions,
   extractMaterialPeaks,
-  parseCustomPattern
+  parseCustomPattern,
+  getActivePalette,
+  optimizeAlignmentAndScale
 } from './diffraction_compare/compareUtils';
 import { PresetScenariosRibbon } from './diffraction_compare/PresetScenariosRibbon';
 import { SampleConfigurationPanel } from './diffraction_compare/SampleConfigurationPanel';
@@ -44,6 +50,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
   // Materials database list
   const materialsDb = MATERIAL_DB;
+
+  // Toast Feedback State
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
+
+  const showToast = (text: string, type: 'success' | 'info' = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => {
+      setToastMessage((curr) => (curr?.text === text ? null : curr));
+    }, 3500);
+  };
 
   // Sample A State
   const [sampleAInputMode, setSampleAInputMode] = useState<'active' | 'custom' | 'file'>(
@@ -74,9 +90,27 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   const [selectedPhaseDIndex, setSelectedPhaseDIndex] = useState(2);
   const [scalePhaseD, setScalePhaseD] = useState(0.20);
 
+  // Color & Theme Customization State
+  const [diffTheme, setDiffTheme] = useState<DiffTheme>('neon');
+  const [customColors, setCustomColors] = useState<Partial<CurveColorPalette>>({});
+
+  // Compare Engine Physics & Rendering Settings
+  const [engineSettings, setEngineSettings] = useState<CompareEngineSettings>({
+    peakShape: 'pseudoVoigt',
+    fwhm: 0.28,
+    eta: 0.50,
+    backgroundLevel: 1.0,
+    noiseLevel: 0.0,
+    normalizationMode: 'max100',
+    strokeWidth: 2.8,
+    enableGlow: true,
+    areaOpacity: 0.25,
+    bgTheme: 'dark-obsidian',
+    styleB: 'solid'
+  });
+
   // Chart & Display State
   const [viewMode, setViewMode] = useState<CompareViewMode>('unified');
-  const [diffTheme, setDiffTheme] = useState<DiffTheme>('neon');
   const [showDiffArea, setShowDiffArea] = useState(true);
   const [showPeakMarkers, setShowPeakMarkers] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
@@ -89,6 +123,16 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   // Modals
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isSearchMatchOpen, setIsSearchMatchOpen] = useState(false);
+
+  // Derived Active Color Palette
+  const activePalette = useMemo(() => {
+    return getActivePalette(diffTheme, customColors);
+  }, [diffTheme, customColors]);
+
+  const handleUpdateCustomColor = useCallback((key: keyof CurveColorPalette, color: string) => {
+    setCustomColors(prev => ({ ...prev, [key]: color }));
+    setDiffTheme('custom');
+  }, []);
 
   // Derived Material A
   const materialA = useMemo(() => {
@@ -137,7 +181,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   const peaksC = useMemo(() => materialC ? extractMaterialPeaks(materialC) : [], [materialC]);
   const peaksD = useMemo(() => materialD ? extractMaterialPeaks(materialD) : [], [materialD]);
 
-  // Generate continuous synthetic profiles
+  // Generate continuous synthetic profiles with updated engine settings
   const profileSynthesis = useMemo(() => {
     return generateSynthesizedProfile(materialA, materialB, materialC, materialD, {
       shiftTwoThetaB: shiftTwoTheta,
@@ -146,9 +190,26 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       scaleSampleD: hasPhaseD ? scalePhaseD : 0,
       minTheta: 10,
       maxTheta: 90,
-      step: 0.1
+      step: 0.1,
+      fwhm: engineSettings.fwhm,
+      eta: engineSettings.eta,
+      peakShape: engineSettings.peakShape,
+      noiseLevel: engineSettings.noiseLevel,
+      background: engineSettings.backgroundLevel
     });
-  }, [materialA, materialB, materialC, materialD, shiftTwoTheta, scaleSampleB, hasPhaseC, scalePhaseC, hasPhaseD, scalePhaseD]);
+  }, [
+    materialA, 
+    materialB, 
+    materialC, 
+    materialD, 
+    shiftTwoTheta, 
+    scaleSampleB, 
+    hasPhaseC, 
+    scalePhaseC, 
+    hasPhaseD, 
+    scalePhaseD,
+    engineSettings
+  ]);
 
   // Compute crystallographic metrics
   const metrics = useMemo(() => {
@@ -169,28 +230,18 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     return solveMultiPhaseFractions(arrA, arrB, arrC, arrD);
   }, [profileSynthesis.points, hasPhaseC, hasPhaseD]);
 
-  // Auto-alignment handler
+  // Cross-Correlation Auto-Alignment solver
   const handleAutoAlign = useCallback(() => {
     const pA = extractMaterialPeaks(materialA);
     const pB = extractMaterialPeaks(materialB);
     if (pA.length === 0 || pB.length === 0) return;
 
-    const strongestA = [...pA].sort((a, b) => b.intensity - a.intensity)[0];
-    let bestB: PeakItem | null = null;
-    let minDiff = Infinity;
-
-    pB.forEach(p => {
-      const diff = Math.abs(p.twoTheta - strongestA.twoTheta);
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestB = p;
-      }
-    });
-
-    if (bestB && minDiff <= 1.5) {
-      const requiredShift = Number((strongestA.twoTheta - bestB.twoTheta).toFixed(2));
-      setShiftTwoTheta(requiredShift);
+    const opt = optimizeAlignmentAndScale(pA, pB);
+    setShiftTwoTheta(opt.optimalShift);
+    if (opt.optimalScale > 0) {
+      setScaleSampleB(opt.optimalScale);
     }
+    showToast(`Auto-Alignment applied: Shift ${opt.optimalShift > 0 ? `+${opt.optimalShift.toFixed(2)}` : opt.optimalShift.toFixed(2)}° 2θ, Scale ${(opt.optimalScale * 100).toFixed(0)}%`);
   }, [materialA, materialB]);
 
   // Swap Samples A and B
@@ -209,6 +260,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     setCustomFormulaB(oldFormulaA);
     setCustomPatternB(oldPatternA);
     setSampleBInputMode('custom');
+    showToast('Swapped Sample A and Reference B roles');
   }, [customNameA, customFormulaA, customPatternA, materialB]);
 
   // Scenario Presets Handler
@@ -227,6 +279,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('25.87(30), 31.77(100), 32.19(70), 32.90(60), 34.04(25), 39.81(20), 46.71(35), 49.46(30)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      showToast('Loaded Scenario: Pure Hydroxyapatite');
     } else if (key === 'strained-ha') {
       setCustomNameA('Strained Zn-HAp (Lattice Distortion)');
       setCustomFormulaA('Ca9.5Zn0.5(PO4)6(OH)2');
@@ -237,6 +290,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('25.87(30), 31.77(100), 32.19(70), 32.90(60), 34.04(25), 39.81(20), 46.71(35), 49.46(30)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      showToast('Loaded Scenario: Lattice Strained Zn-HAp');
     } else if (key === 'biphasic-ha-tcp') {
       setCustomNameA('Biphasic Bioceramic (65% HAp / 35% β-TCP)');
       setCustomFormulaA('HAp / β-TCP');
@@ -248,6 +302,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setHasPhaseC(true);
       setScalePhaseC(0.5);
       setHasPhaseD(false);
+      showToast('Loaded Scenario: Biphasic HAp / β-TCP Mixture');
     } else if (key === 'triphasic-tio2') {
       setCustomNameA('TiO2 Polymorph Mix (Anatase + Rutile + Brookite)');
       setCustomFormulaA('TiO2');
@@ -260,6 +315,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setScalePhaseC(0.45);
       setHasPhaseD(true);
       setScalePhaseD(0.25);
+      showToast('Loaded Scenario: Tri-Phasic TiO₂ Polymorphs');
     } else if (key === 'battery-lifepo4') {
       setCustomNameA('LiFePO4 Cathode (Delithiated / FePO4)');
       setCustomFormulaA('Li1-xFePO4');
@@ -270,6 +326,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('17.10(20), 20.50(25), 25.40(100), 29.50(40), 32.00(25), 35.40(75), 36.30(35)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      showToast('Loaded Scenario: LiFePO₄ Battery Cathode');
     } else if (key === 'quartz') {
       setCustomNameA('Alpha-Quartz Mineral Specimen');
       setCustomFormulaA('SiO2');
@@ -280,6 +337,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('20.86(22), 26.64(100), 36.54(12), 39.46(8), 40.29(7), 42.45(8), 45.79(3), 50.14(14), 59.96(9)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      showToast('Loaded Scenario: Alpha-Quartz NIST Standard');
     } else if (key === 'perovskite-batio3') {
       setCustomNameA('BaTiO3 Tetragonal Split (P4mm)');
       setCustomFormulaA('BaTiO3');
@@ -290,6 +348,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('22.15(25), 31.55(100), 38.88(20), 45.30(90), 50.85(15), 56.20(40)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      showToast('Loaded Scenario: BaTiO₃ Tetragonal/Cubic Transition');
     } else if (key === 'graphene-intercalation') {
       setCustomNameA('Graphene Oxide (Expanded d002 Interlayer)');
       setCustomFormulaA('C_x O_y H_z');
@@ -300,6 +359,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('26.55(100), 42.30(10), 44.55(20), 54.65(25)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      showToast('Loaded Scenario: Graphene vs Graphite Interlayer');
     }
   };
 
@@ -331,6 +391,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     link.download = `XRD_Compare_${materialA.name.replace(/\s+/g, '_')}_vs_${materialB.name.replace(/\s+/g, '_')}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+    showToast('Comprehensive XRD Report (.csv) downloaded');
   };
 
   // Jump to peak position on chart
@@ -338,10 +399,27 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     const leftVal = Math.max(10, Math.floor(twoTheta - 5));
     const rightVal = Math.min(90, Math.ceil(twoTheta + 5));
     setZoomRange({ left: leftVal, right: rightVal });
+    showToast(`Focused chart on peak at 2θ = ${twoTheta.toFixed(2)}°`, 'info');
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 animate-in fade-in duration-300 relative">
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-900/95 border border-cyan-500/50 text-slate-100 shadow-2xl backdrop-blur-md font-mono text-xs animate-in slide-in-from-top-3 duration-200">
+          <div className="p-1 rounded-full bg-cyan-500/20 text-cyan-400">
+            <Check className="w-3.5 h-3.5" />
+          </div>
+          <span>{toastMessage.text}</span>
+          <button 
+            onClick={() => setToastMessage(null)}
+            className="p-1 text-slate-400 hover:text-white rounded ml-2"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* 1. Top Ribbon: Scenarios & Quick Actions */}
       <PresetScenariosRibbon
         onSelectScenario={handleSelectScenario}
@@ -389,7 +467,13 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         scalePhaseD={scalePhaseD}
         setScalePhaseD={setScalePhaseD}
 
+        activePalette={activePalette}
+        onUpdateCustomColor={handleUpdateCustomColor}
+        engineSettings={engineSettings}
+        setEngineSettings={setEngineSettings}
+
         onSwapSamples={handleSwapSamples}
+        onOpenSearchMatch={() => setIsSearchMatchOpen(true)}
       />
 
       {/* 3. Main Recharts Diffraction Profile Viewer */}
@@ -399,6 +483,10 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         setViewMode={setViewMode}
         diffTheme={diffTheme}
         setDiffTheme={setDiffTheme}
+        customPalette={customColors}
+        onUpdateCustomColor={handleUpdateCustomColor}
+        engineSettings={engineSettings}
+        setEngineSettings={setEngineSettings}
         showDiffArea={showDiffArea}
         setShowDiffArea={setShowDiffArea}
         showPeakMarkers={showPeakMarkers}
@@ -464,6 +552,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
             setCustomPatternB(mat.pattern || '');
             setSampleBInputMode('custom');
           }
+          showToast(`Reference B set to: ${mat.name}`);
         }}
         onSelectAsPhaseC={(mat) => {
           const idx = materialsDb.findIndex(m => m.name === mat.name);
@@ -471,6 +560,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
             setSelectedPhaseCIndex(idx);
           }
           setHasPhaseC(true);
+          showToast(`Secondary Phase C added: ${mat.name}`);
         }}
       />
 

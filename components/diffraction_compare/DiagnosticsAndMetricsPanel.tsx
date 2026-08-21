@@ -17,7 +17,10 @@ import {
   Maximize2,
   Filter,
   Search,
-  ArrowRight
+  ArrowRight,
+  HelpCircle,
+  Zap,
+  Check
 } from 'lucide-react';
 import { SpectralMetrics, IndexedPeakMatch, DiagTabMode } from './types';
 
@@ -70,7 +73,7 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
   const fomNum = parseFloat(metrics.fom || '0');
 
   const isExcellentMatch = pearsonNum >= 90 && rpNum < 15;
-  const isStrained = Math.abs(meanShift) > 0.03 && !isExcellentMatch;
+  const isStrained = Math.abs(meanShift) > 0.03;
   const isMultiphase = extraInA.length > 0 || fracC > 0 || fracD > 0;
 
   const filteredPeaks = indexedPeaks.filter(p => {
@@ -83,21 +86,103 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
     return matchesStatus && matchesSearch;
   });
 
+  // Plain-English Verdict Generator
+  const getVerdict = () => {
+    if (isExcellentMatch && !isStrained && extraInA.length === 0) {
+      return {
+        type: 'success',
+        title: 'High-Purity Single Phase Match',
+        badge: 'High Fidelity Match',
+        description: `Experimental "${materialAName}" matches the standard "${materialBName}" with excellent crystallographic agreement (${pearsonNum.toFixed(1)}% correlation, Rwp = ${rwpNum.toFixed(1)}%). Zero significant secondary phases detected.`
+      };
+    }
+    if (isStrained && pearsonNum >= 80) {
+      return {
+        type: 'warning',
+        title: 'Lattice Strain / Solid Solution Detected',
+        badge: 'Peak Shift Detected',
+        description: `Systematic peak displacement of ${meanShift > 0 ? `+${meanShift.toFixed(3)}` : meanShift.toFixed(3)}° 2θ indicates uniform lattice ${meanShift < 0 ? 'expansion (tensile strain)' : 'contraction (compressive strain)'} of ~${Math.abs(avgStrain).toFixed(3)}% Δd/d, characteristic of cation substitution or thermal residual strain.`
+      };
+    }
+    if (isMultiphase) {
+      return {
+        type: 'purple',
+        title: 'Multi-Phase Ceramic / Mixture Detected',
+        badge: 'Multi-Phase Composite',
+        description: `Sample contains composite phases: Primary ${materialBName} (~${fracB.toFixed(1)}%)${fracC > 0 ? ` + Secondary ${materialCName || 'Phase C'} (~${fracC.toFixed(1)}%)` : ''}${fracD > 0 ? ` + Tertiary ${materialDName || 'Phase D'} (~${fracD.toFixed(1)}%)` : ''}. ${extraInA.length} unindexed reflection(s) identified.`
+      };
+    }
+    return {
+      type: 'info',
+      title: 'Moderate Phase Agreement',
+      badge: 'Partial Fit',
+      description: `Comparison yields ${pearsonNum.toFixed(1)}% spectral correlation and Rwp = ${rwpNum.toFixed(1)}%. Inspect residual trace and unindexed reflections table below.`
+    };
+  };
+
+  const verdict = getVerdict();
+
   return (
-    <div className="bg-[#080d1a] border-2 border-slate-800/90 p-5 rounded-2xl shadow-xl space-y-4">
-      {/* Navigation Sub-Tabs */}
+    <div className="bg-[#080d1a] border-2 border-slate-800/90 p-4 lg:p-5 rounded-2xl shadow-xl space-y-4">
+      {/* 1. Executive Plain-English Summary Banner */}
+      <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+        verdict.type === 'success'
+          ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+          : verdict.type === 'warning'
+          ? 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+          : verdict.type === 'purple'
+          ? 'bg-purple-950/40 border-purple-500/40 text-purple-200'
+          : 'bg-cyan-950/40 border-cyan-500/40 text-cyan-200'
+      }`}>
+        <div className="flex items-start gap-3">
+          <div className={`p-2 rounded-lg mt-0.5 ${
+            verdict.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' :
+            verdict.type === 'warning' ? 'bg-amber-500/20 text-amber-300' :
+            verdict.type === 'purple' ? 'bg-purple-500/20 text-purple-300' :
+            'bg-cyan-500/20 text-cyan-300'
+          }`}>
+            {verdict.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> :
+             verdict.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> :
+             verdict.type === 'purple' ? <Layers3 className="w-5 h-5" /> :
+             <Activity className="w-5 h-5" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-sm font-bold text-slate-100">{verdict.title}</h4>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                verdict.type === 'success' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                verdict.type === 'warning' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                verdict.type === 'purple' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' :
+                'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+              }`}>
+                {verdict.badge}
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 leading-relaxed font-sans font-medium">
+              {verdict.description}
+            </p>
+          </div>
+        </div>
+
+        <div className="text-right sm:self-center shrink-0">
+          <span className="text-[10px] font-mono uppercase text-slate-400 block">Spectral Match</span>
+          <span className="text-xl font-mono font-extrabold text-cyan-400">{pearsonNum.toFixed(1)}%</span>
+        </div>
+      </div>
+
+      {/* 2. Navigation Sub-Tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-cyan-400" />
           <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
-            Diagnostic & Quantitative Analysis Engine
+            Quantitative Diagnostics & Microstructure Engine
           </span>
         </div>
 
         <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5 rounded-xl overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab('cards')}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all whitespace-nowrap cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'cards'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -108,38 +193,38 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
 
           <button
             onClick={() => setActiveTab('table')}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'table'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Table className="w-3 h-3" />
-            <span>Indexed Reflections Table ({indexedPeaks.length})</span>
+            <Table className="w-3.5 h-3.5" />
+            <span>(hkl) Indexing Table ({indexedPeaks.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('quant')}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'quant'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <PieChart className="w-3 h-3 text-purple-400" />
-            <span>Multi-Phase Solver</span>
+            <PieChart className="w-3.5 h-3.5 text-purple-400" />
+            <span>Phase Solver (NNLS)</span>
           </button>
 
           <button
             onClick={() => setActiveTab('strain')}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'strain'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <TrendingUp className="w-3 h-3 text-amber-400" />
-            <span>Lattice Strain</span>
+            <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
+            <span>Strain (Δd/d)</span>
           </button>
         </div>
       </div>
@@ -161,21 +246,23 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
                       ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                       : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                   }`}>
-                    {isExcellentMatch ? 'Grade: High Precision' : 'Grade: Moderate Fit'}
+                    {isExcellentMatch ? 'Rwp < 15% (Good)' : 'Rwp > 15% (Moderate)'}
                   </span>
                 </div>
 
                 <div className="space-y-2 mt-3 text-xs font-mono">
                   <div className="flex justify-between items-center py-1 border-b border-slate-900">
-                    <span className="text-slate-400">Profile R-factor (R_p):</span>
+                    <span className="text-slate-400 flex items-center gap-1" title="Profile Residual Factor">
+                      <span>Profile R-factor (R_p):</span>
+                    </span>
                     <span className="font-bold text-slate-200">{metrics.rP}%</span>
                   </div>
                   <div className="flex justify-between items-center py-1 border-b border-slate-900">
-                    <span className="text-slate-400">Weighted Profile (R_wp):</span>
+                    <span className="text-slate-400" title="Weighted Profile Residual Factor">Weighted Profile (R_wp):</span>
                     <span className="font-bold text-cyan-400">{metrics.rWP}%</span>
                   </div>
                   <div className="flex justify-between items-center py-1 border-b border-slate-900">
-                    <span className="text-slate-400">Goodness of Fit (χ²):</span>
+                    <span className="text-slate-400" title="Goodness of Fit">Goodness of Fit (χ²):</span>
                     <span className="font-bold text-amber-400">{metrics.chiSquared}</span>
                   </div>
                   <div className="flex justify-between items-center py-1">
@@ -185,8 +272,9 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
                 </div>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-900 text-[10px] text-slate-500 font-mono">
-                Pearson Correlation (r): <strong className="text-slate-300">{metrics.pearsonR}%</strong>
+              <div className="mt-3 pt-2 border-t border-slate-900 text-[10px] text-slate-500 font-mono flex justify-between">
+                <span>Pearson Correlation (r):</span>
+                <strong className="text-slate-300">{metrics.pearsonR}%</strong>
               </div>
             </div>
 
@@ -203,7 +291,7 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
                       : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                   }`}>
-                    {Math.abs(meanShift) > 0.05 ? 'Shift Detected' : 'Aligned'}
+                    {Math.abs(meanShift) > 0.05 ? 'Shift Detected' : 'Aligned (Δ2θ ≈ 0)'}
                   </span>
                 </div>
 
@@ -232,7 +320,7 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
               </div>
 
               <div className="mt-3 pt-2 border-t border-slate-900 text-[10px] text-slate-500 font-mono">
-                {meanShift < -0.02 ? 'Lattice Expansion (Tensile)' : meanShift > 0.02 ? 'Lattice Contraction (Compressive)' : 'Zero Apparent Net Strain'}
+                {meanShift < -0.02 ? 'Lattice Expansion (Tensile)' : meanShift > 0.02 ? 'Lattice Contraction (Compressive)' : 'Zero Net Lattice Shift'}
               </div>
             </div>
 
@@ -376,8 +464,9 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
                         <button
                           onClick={() => onJumpToPeak(p.twoThetaA || p.twoThetaB || 25)}
                           className="px-2 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white rounded text-[10px] transition-all cursor-pointer"
+                          title="Center chart around this peak"
                         >
-                          Zoom
+                          Zoom to Peak
                         </button>
                       </td>
                     </tr>
