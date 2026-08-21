@@ -351,6 +351,9 @@ export const generateSynthesizedProfile = (
     background?: number;
     noiseLevel?: number;
     normalizationMode?: 'max100' | 'unitArea' | 'raw';
+    differenceMode?: 'residual' | 'relative' | 'chi' | 'squared';
+    smoothingFilter?: 'none' | 'savitzky-golay' | 'moving-avg';
+    stripBackground?: boolean;
   } = {}
 ) => {
   const {
@@ -461,7 +464,16 @@ export const generateSynthesizedProfile = (
 
     // Composite total model
     const totalModel = iB + iC + iD;
-    const diff = iA - totalModel;
+    
+    // Difference calculation based on mode
+    let diff = iA - totalModel;
+    if (options.differenceMode === 'relative') {
+      diff = (Math.abs(iA - totalModel) / Math.max(totalModel, 1)) * 100;
+    } else if (options.differenceMode === 'chi') {
+      diff = (iA - totalModel) / Math.sqrt(Math.max(iA, 1));
+    } else if (options.differenceMode === 'squared') {
+      diff = Math.pow(iA - totalModel, 2) / 100;
+    }
 
     // Numerical derivatives
     const dStep = 0.05;
@@ -504,7 +516,69 @@ export const generateSynthesizedProfile = (
     };
   }
 
+  // Apply optional Savitzky-Golay or moving-average smoothing if requested
+  if (options.smoothingFilter === 'savitzky-golay' || options.smoothingFilter === 'moving-avg') {
+    const isSg = options.smoothingFilter === 'savitzky-golay';
+    // 5-point SG quadratic coefficients: [-3, 12, 17, 12, -3] / 35
+    for (let i = 2; i < points.length - 2; i++) {
+      if (isSg) {
+        const smoothA = (-3 * points[i - 2].intensityA + 12 * points[i - 1].intensityA + 17 * points[i].intensityA + 12 * points[i + 1].intensityA - 3 * points[i + 2].intensityA) / 35;
+        points[i].intensityA = Math.max(0, Number(smoothA.toFixed(2)));
+      } else {
+        const avgA = (points[i - 1].intensityA + points[i].intensityA + points[i + 1].intensityA) / 3;
+        points[i].intensityA = Math.max(0, Number(avgA.toFixed(2)));
+      }
+    }
+  }
+
+  // Apply optional baseline background stripping
+  if (options.stripBackground) {
+    const minA = Math.min(...points.map(p => p.intensityA));
+    const minB = Math.min(...points.map(p => p.intensityB));
+    for (let i = 0; i < points.length; i++) {
+      points[i].intensityA = Math.max(0, Number((points[i].intensityA - minA).toFixed(2)));
+      points[i].intensityB = Math.max(0, Number((points[i].intensityB - minB).toFixed(2)));
+      if (points[i].intensityTotalModel !== undefined) {
+        points[i].intensityTotalModel = Math.max(0, Number(((points[i].intensityTotalModel ?? 0) - minB).toFixed(2)));
+      }
+    }
+  }
+
   return { points, peaksA, peaksB, peaksC, peaksD };
+};
+
+/**
+ * Calculates high-precision crystallographic difference and strain metrics between two caliper points
+ */
+export const calculateCaliperMetrics = (p1: { twoTheta: number; intensity: number }, p2: { twoTheta: number; intensity: number }) => {
+  const theta1Rad = (p1.twoTheta / 2) * (Math.PI / 180);
+  const theta2Rad = (p2.twoTheta / 2) * (Math.PI / 180);
+
+  const d1 = theta1Rad > 0 ? CU_KA_WAVELENGTH / (2 * Math.sin(theta1Rad)) : 0;
+  const d2 = theta2Rad > 0 ? CU_KA_WAVELENGTH / (2 * Math.sin(theta2Rad)) : 0;
+
+  const q1 = theta1Rad > 0 ? (4 * Math.PI * Math.sin(theta1Rad)) / CU_KA_WAVELENGTH : 0;
+  const q2 = theta2Rad > 0 ? (4 * Math.PI * Math.sin(theta2Rad)) / CU_KA_WAVELENGTH : 0;
+
+  const deltaTwoTheta = Number((p2.twoTheta - p1.twoTheta).toFixed(3));
+  const deltaTwoThetaArcmin = Number((deltaTwoTheta * 60).toFixed(1));
+  const deltaD = Number((d2 - d1).toFixed(4));
+  const strainPercent = d1 > 0 ? Number((((d2 - d1) / d1) * 100).toFixed(3)) : 0;
+  const intensityRatio = p1.intensity > 0 ? Number((p2.intensity / p1.intensity).toFixed(2)) : 1;
+  const deltaQ = Number((q2 - q1).toFixed(4));
+
+  return {
+    deltaTwoTheta,
+    deltaTwoThetaArcmin,
+    deltaD,
+    strainPercent,
+    intensityRatio,
+    deltaQ,
+    d1: d1.toFixed(4),
+    d2: d2.toFixed(4),
+    q1: q1.toFixed(3),
+    q2: q2.toFixed(3)
+  };
 };
 
 /**

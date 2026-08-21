@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ResponsiveContainer,
@@ -35,7 +35,12 @@ import {
   CircleDot,
   SplitSquareVertical,
   FlaskConical,
-  Bookmark
+  Ruler,
+  Camera,
+  ArrowLeftRight,
+  SlidersHorizontal,
+  Wand2,
+  Scissors
 } from 'lucide-react';
 import { 
   ProfilePoint, 
@@ -46,13 +51,18 @@ import {
   CompareEngineSettings,
   ChartBackgroundTheme,
   CurveVisibilityState,
-  CurveVisibilityFilter
+  CurveVisibilityFilter,
+  CaliperPoint,
+  DifferenceMode,
+  SmoothingFilter
 } from './types';
 import { 
   getActivePalette, 
   THEME_PALETTES, 
   PRESET_COLOR_SWATCHES,
-  exportCompareDataAsCSV 
+  exportCompareDataAsCSV,
+  calculateCaliperMetrics,
+  CU_KA_WAVELENGTH
 } from './compareUtils';
 
 interface CompareChartViewerProps {
@@ -95,6 +105,7 @@ interface CompareChartViewerProps {
   peaksD?: PeakItem[];
   hasPhaseC?: boolean;
   hasPhaseD?: boolean;
+  onSwapSamples?: () => void;
 }
 
 export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
@@ -131,7 +142,8 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   peaksC,
   peaksD,
   hasPhaseC,
-  hasPhaseD
+  hasPhaseD,
+  onSwapSamples
 }) => {
   const { t } = useTranslation();
   const [refAreaLeft, setRefAreaLeft] = useState<number | null>(null);
@@ -141,7 +153,15 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   const [selectedColorTarget, setSelectedColorTarget] = useState<keyof CurveColorPalette>('colorA');
   const [curveInterpolation, setCurveInterpolation] = useState<'monotone' | 'linear'>('monotone');
   
-  // Curve Visibility Engine State (Single Curve / Reference / Material / Compare)
+  // Interactive Peak Caliper / Delta Measurement State
+  const [isCaliperActive, setIsCaliperActive] = useState(false);
+  const [caliperP1, setCaliperP1] = useState<CaliperPoint | null>(null);
+  const [caliperP2, setCaliperP2] = useState<CaliperPoint | null>(null);
+  const [isFigureExportOpen, setIsFigureExportOpen] = useState(false);
+  const [exportBgTheme, setExportBgTheme] = useState<'light' | 'dark'>('light');
+  const [exportDpi, setExportDpi] = useState<number>(2);
+
+  // Curve Visibility State
   const [visibleCurves, setVisibleCurves] = useState<CurveVisibilityState>({
     showA: true,
     showB: true,
@@ -161,6 +181,8 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   } | null>(null);
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const miniMapRef = useRef<HTMLDivElement>(null);
+  const [isDraggingMiniMap, setIsDraggingMiniMap] = useState(false);
 
   // Compute active colors with full fallback & custom color override support
   const pal = getActivePalette(diffTheme, customPalette);
@@ -182,7 +204,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
     return 'custom';
   }, [visibleCurves, hasPhaseC, hasPhaseD]);
 
-  // Curve filter selection handler
+  // Handle preset curve filter
   const handleSelectCurveFilter = (filter: CurveVisibilityFilter) => {
     switch (filter) {
       case 'only_a':
@@ -232,7 +254,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   const toggleCurve = (key: keyof CurveVisibilityState) => {
     setVisibleCurves(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      // Safety guard: ensure at least one main curve remains visible
       if (!next.showA && !next.showB && !next.showC && !next.showD) {
         return prev;
       }
@@ -285,6 +306,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
   const bgStyle = getChartBgStyle();
 
+  // Zoom handling
   const handleZoom = () => {
     if (refAreaLeft === refAreaRight || refAreaRight === null || refAreaLeft === null) {
       setRefAreaLeft(null);
@@ -299,22 +321,46 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   };
 
   const handleChartMouseDown = (e: any) => {
-    if (e && e.activeLabel !== undefined && e.activeLabel !== null) {
-      const val = typeof e.activeLabel === 'number' ? e.activeLabel : parseFloat(String(e.activeLabel));
-      if (!isNaN(val)) setRefAreaLeft(val);
+    if (!e || e.activeLabel === undefined || e.activeLabel === null) return;
+    const val = typeof e.activeLabel === 'number' ? e.activeLabel : parseFloat(String(e.activeLabel));
+    if (isNaN(val)) return;
+
+    if (isCaliperActive) {
+      // Find intensity at this theta
+      const pt = points.find(p => Math.abs(p.twoTheta - val) < 0.15) || points[0];
+      const thetaRad = (val / 2) * (Math.PI / 180);
+      const dSpacing = thetaRad > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4) : '-';
+      const qVector = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / CU_KA_WAVELENGTH).toFixed(4) : '-';
+
+      const calPoint: CaliperPoint = {
+        twoTheta: val,
+        intensity: pt ? (pt.intensityA || pt.intensityB || 50) : 50,
+        dSpacing,
+        qVector
+      };
+
+      if (!caliperP1 || (caliperP1 && caliperP2)) {
+        setCaliperP1(calPoint);
+        setCaliperP2(null);
+      } else {
+        setCaliperP2(calPoint);
+      }
+      return;
     }
+
+    setRefAreaLeft(val);
   };
 
   const handleChartMouseMove = (e: any) => {
-    if (refAreaLeft !== null && e && e.activeLabel !== undefined && e.activeLabel !== null) {
+    if (!isCaliperActive && refAreaLeft !== null && e && e.activeLabel !== undefined && e.activeLabel !== null) {
       const val = typeof e.activeLabel === 'number' ? e.activeLabel : parseFloat(String(e.activeLabel));
       if (!isNaN(val)) setRefAreaRight(val);
     }
     if (e && e.activePayload && e.activePayload.length) {
       const theta = Number(e.activeLabel);
       const thetaRad = (theta / 2) * (Math.PI / 180);
-      const dSpacing = thetaRad > 0 ? (1.5406 / (2 * Math.sin(thetaRad))).toFixed(4) : '-';
-      const qVector = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / 1.5406).toFixed(4) : '-';
+      const dSpacing = thetaRad > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4) : '-';
+      const qVector = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / CU_KA_WAVELENGTH).toFixed(4) : '-';
 
       const valA = visibleCurves.showA ? (e.activePayload.find((p: any) => p.dataKey === 'intensityA')?.value ?? null) : null;
       const valB = visibleCurves.showB ? (e.activePayload.find((p: any) => p.dataKey === 'intensityB')?.value ?? null) : null;
@@ -331,17 +377,64 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
     }
   };
 
+  // Compute live caliper metrics when both markers are placed
+  const caliperMetrics = useMemo(() => {
+    if (!caliperP1 || !caliperP2) return null;
+    return calculateCaliperMetrics(caliperP1, caliperP2);
+  }, [caliperP1, caliperP2]);
+
+  // Snap Caliper to nearest detected peaks
+  const handleSnapCaliperToPeaks = () => {
+    if (!peaksA.length && !peaksB.length) return;
+    const allPeaks = [...peaksA, ...peaksB].sort((a, b) => a.twoTheta - b.twoTheta);
+    if (allPeaks.length >= 2) {
+      const p1 = allPeaks[0];
+      const p2 = allPeaks[1];
+      const theta1Rad = (p1.twoTheta / 2) * (Math.PI / 180);
+      const theta2Rad = (p2.twoTheta / 2) * (Math.PI / 180);
+
+      setCaliperP1({
+        twoTheta: p1.twoTheta,
+        intensity: p1.intensity,
+        dSpacing: (CU_KA_WAVELENGTH / (2 * Math.sin(theta1Rad))).toFixed(4),
+        qVector: ((4 * Math.PI * Math.sin(theta1Rad)) / CU_KA_WAVELENGTH).toFixed(4),
+        sourceCurve: 'A'
+      });
+      setCaliperP2({
+        twoTheta: p2.twoTheta,
+        intensity: p2.intensity,
+        dSpacing: (CU_KA_WAVELENGTH / (2 * Math.sin(theta2Rad))).toFixed(4),
+        qVector: ((4 * Math.PI * Math.sin(theta2Rad)) / CU_KA_WAVELENGTH).toFixed(4),
+        sourceCurve: 'B'
+      });
+    }
+  };
+
   const handleExportCSV = () => {
     exportCompareDataAsCSV(points, materialAName, materialBName, hasPhaseC ? materialCName : undefined, hasPhaseD ? materialDName : undefined);
   };
 
-  // Custom High-Precision Scientific Tooltip (Filtering for visible curves)
+  // Mini-map click/drag handler
+  const handleMiniMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!miniMapRef.current) return;
+    const rect = miniMapRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    const targetTheta = 10 + ratio * (90 - 10);
+    const span = right - left;
+    const halfSpan = span / 2;
+    const newLeft = Math.max(10, Math.round(targetTheta - halfSpan));
+    const newRight = Math.min(90, Math.round(targetTheta + halfSpan));
+    onZoomChange(newLeft, newRight);
+  };
+
+  // Custom Scientific Tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const theta = Number(label);
       const thetaRad = (theta / 2) * (Math.PI / 180);
-      const dSpacing = thetaRad > 0 ? (1.5406 / (2 * Math.sin(thetaRad))).toFixed(4) : '-';
-      const qVector = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / 1.5406).toFixed(4) : '-';
+      const dSpacing = thetaRad > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4) : '-';
+      const qVector = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / CU_KA_WAVELENGTH).toFixed(4) : '-';
 
       const valA = payload.find((p: any) => p.dataKey === 'intensityA')?.value ?? '-';
       const valB = payload.find((p: any) => p.dataKey === 'intensityB')?.value ?? '-';
@@ -408,7 +501,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               <div className="flex justify-between items-center pt-1.5 border-t border-slate-800" style={{ color: pal.colorDiff }}>
                 <span className="font-medium flex items-center gap-1">
                   <Sparkles className="w-3 h-3" />
-                  <span>Δ Residual (A - Calc):</span>
+                  <span>Δ Difference:</span>
                 </span>
                 <span className="font-bold">
                   {typeof valDiff === 'number' ? (valDiff > 0 ? `+${valDiff.toFixed(1)}%` : `${valDiff.toFixed(1)}%`) : valDiff}
@@ -427,7 +520,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
     return null;
   };
 
-  // Curve stroke properties based on settings
   const strokeW = engineSettings.strokeWidth || 2.8;
   const dashB = engineSettings.styleB === 'dashed' ? '5 4' : engineSettings.styleB === 'dotted' ? '2 3' : undefined;
 
@@ -440,7 +532,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
     >
       {/* Top Toolbar */}
       <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-        {/* Left: View Mode Tabs */}
+        {/* Left: View Mode Tabs & Caliper Toggle */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
@@ -471,6 +563,40 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             ))}
           </div>
 
+          {/* Caliper / Delta Measurement Mode Toggle */}
+          <button
+            id="btn-toggle-caliper"
+            onClick={() => {
+              setIsCaliperActive(!isCaliperActive);
+              if (isCaliperActive) {
+                setCaliperP1(null);
+                setCaliperP2(null);
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
+              isCaliperActive 
+                ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/40 animate-pulse' 
+                : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
+            }`}
+            title="Click two peaks or points on chart to measure peak shift, lattice strain, intensity ratio, and d-spacing delta"
+          >
+            <Ruler className="w-3.5 h-3.5 text-emerald-300" />
+            <span>{isCaliperActive ? 'Caliper Active' : 'Caliper Tool'}</span>
+          </button>
+
+          {/* Quick Swap A/B Button */}
+          {onSwapSamples && (
+            <button
+              id="btn-swap-samples-toolbar"
+              onClick={onSwapSamples}
+              className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Swap Sample A and Reference B roles"
+            >
+              <ArrowLeftRight className="w-3 h-3 text-cyan-400" />
+              <span>Swap A/B</span>
+            </button>
+          )}
+
           <button
             id="btn-reset-zoom"
             onClick={onResetZoom}
@@ -482,9 +608,24 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           </button>
         </div>
 
-        {/* Right: Color Studio, Contrast Controls, Residual, Grid, Export */}
+        {/* Right Toolbar Controls */}
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Custom Color & Contrast Studio Button */}
+          {/* Difference Mode Selector */}
+          <div className="flex items-center bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-lg text-xs font-mono">
+            <span className="text-[10px] text-slate-400 mr-1.5 font-bold">Δ Mode:</span>
+            <select
+              value={engineSettings.differenceMode || 'residual'}
+              onChange={(e) => setEngineSettings(prev => ({ ...prev, differenceMode: e.target.value as DifferenceMode }))}
+              className="bg-slate-800 text-cyan-300 text-[11px] font-mono rounded px-1.5 py-0.5 border border-slate-700 outline-none cursor-pointer"
+            >
+              <option value="residual">Residual (IA - Icalc)</option>
+              <option value="relative">Relative Discrepancy %</option>
+              <option value="chi">Chi Standardized χ</option>
+              <option value="squared">Square Error (Δ²)</option>
+            </select>
+          </div>
+
+          {/* Color Studio Button */}
           <button
             id="btn-open-color-studio"
             onClick={() => setIsColorStudioOpen(!isColorStudioOpen)}
@@ -496,7 +637,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             title="Customize Curve Colors, Contrast, Glow, Line Width, and Background Theme"
           >
             <Palette className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Color & Curve Studio</span>
+            <span>Color Studio</span>
             <div className="flex items-center -space-x-1 ml-0.5">
               <span className="w-2.5 h-2.5 rounded-full border border-black" style={{ backgroundColor: pal.colorA }} />
               <span className="w-2.5 h-2.5 rounded-full border border-black" style={{ backgroundColor: pal.colorB }} />
@@ -512,10 +653,10 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm' 
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
             }`}
-            title="Toggle Difference Area Fill (Sample A vs Reference Model)"
+            title="Toggle Difference Area Fill"
           >
             <Sparkles className="w-3 h-3 text-amber-400" />
-            <span>Δ Residual Fill</span>
+            <span>Δ Fill</span>
           </button>
 
           {/* Peak Markers Stick-pattern toggle */}
@@ -578,7 +719,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             <span>Show Curve:</span>
           </span>
 
-          {/* Preset: Both (Compare) */}
           <button
             id="btn-curve-both"
             onClick={() => handleSelectCurveFilter('both')}
@@ -595,7 +735,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             <span>Both (Compare)</span>
           </button>
 
-          {/* Preset: Only Material A */}
           <button
             id="btn-curve-only-a"
             onClick={() => handleSelectCurveFilter('only_a')}
@@ -609,7 +748,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             <span>Only Sample A (Exp)</span>
           </button>
 
-          {/* Preset: Only Reference B */}
           <button
             id="btn-curve-only-b"
             onClick={() => handleSelectCurveFilter('only_b')}
@@ -623,7 +761,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             <span>Only Reference B (Std)</span>
           </button>
 
-          {/* Preset: All (Multi-Phase) */}
           {(hasPhaseC || hasPhaseD) && (
             <button
               id="btn-curve-all"
@@ -640,11 +777,10 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           )}
         </div>
 
-        {/* Right: Fine-Grained Individual Curve Toggle Chips */}
+        {/* Right: Individual Curve Toggle Chips */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] text-slate-500 font-bold uppercase mr-1">Toggles:</span>
 
-          {/* Toggle Sample A */}
           <button
             id="toggle-curve-a"
             onClick={() => toggleCurve('showA')}
@@ -653,14 +789,12 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 ? 'bg-slate-800 border-cyan-500/60 text-cyan-300 shadow-sm'
                 : 'bg-slate-950/80 border-slate-850 text-slate-600 line-through'
             }`}
-            title="Toggle Sample A visibility"
           >
             {visibleCurves.showA ? <Eye className="w-3 h-3 text-cyan-400" /> : <EyeOff className="w-3 h-3 text-slate-600" />}
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pal.colorA }} />
             <span>A</span>
           </button>
 
-          {/* Toggle Reference B */}
           <button
             id="toggle-curve-b"
             onClick={() => toggleCurve('showB')}
@@ -669,14 +803,12 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 ? 'bg-slate-800 border-indigo-500/60 text-indigo-300 shadow-sm'
                 : 'bg-slate-950/80 border-slate-850 text-slate-600 line-through'
             }`}
-            title="Toggle Reference B visibility"
           >
             {visibleCurves.showB ? <Eye className="w-3 h-3 text-indigo-400" /> : <EyeOff className="w-3 h-3 text-slate-600" />}
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pal.colorB }} />
             <span>B</span>
           </button>
 
-          {/* Toggle Phase C */}
           {hasPhaseC && (
             <button
               id="toggle-curve-c"
@@ -686,7 +818,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                   ? 'bg-slate-800 border-emerald-500/60 text-emerald-300 shadow-sm'
                   : 'bg-slate-950/80 border-slate-850 text-slate-600 line-through'
               }`}
-              title="Toggle Phase C visibility"
             >
               {visibleCurves.showC ? <Eye className="w-3 h-3 text-emerald-400" /> : <EyeOff className="w-3 h-3 text-slate-600" />}
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pal.colorC }} />
@@ -694,7 +825,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             </button>
           )}
 
-          {/* Toggle Phase D */}
           {hasPhaseD && (
             <button
               id="toggle-curve-d"
@@ -704,7 +834,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                   ? 'bg-slate-800 border-amber-500/60 text-amber-300 shadow-sm'
                   : 'bg-slate-950/80 border-slate-850 text-slate-600 line-through'
               }`}
-              title="Toggle Phase D visibility"
             >
               {visibleCurves.showD ? <Eye className="w-3 h-3 text-amber-400" /> : <EyeOff className="w-3 h-3 text-slate-600" />}
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pal.colorD }} />
@@ -712,7 +841,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             </button>
           )}
 
-          {/* Toggle Difference Residual */}
           <button
             id="toggle-curve-diff"
             onClick={() => toggleCurve('showDiff')}
@@ -721,7 +849,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 ? 'bg-slate-800 border-pink-500/60 text-pink-300 shadow-sm'
                 : 'bg-slate-950/80 border-slate-850 text-slate-600 line-through'
             }`}
-            title="Toggle Δ Residual curve visibility"
           >
             {visibleCurves.showDiff ? <Eye className="w-3 h-3 text-pink-400" /> : <EyeOff className="w-3 h-3 text-slate-600" />}
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: pal.colorDiff }} />
@@ -729,6 +856,100 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           </button>
         </div>
       </div>
+
+      {/* CALIPER LIVE MEASUREMENT FLOATING HUD */}
+      {isCaliperActive && (
+        <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900/95 to-cyan-950/90 border-2 border-emerald-500/60 rounded-xl p-3 my-2 shadow-2xl backdrop-blur-xl text-xs font-mono ring-1 ring-emerald-500/30 animate-in fade-in duration-200">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-slate-800 pb-2 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-md bg-emerald-500/20 text-emerald-400">
+                <Ruler className="w-4 h-4" />
+              </span>
+              <span className="font-bold text-white uppercase tracking-wider">
+                Precision Peak Caliper & Strain Analyzer
+              </span>
+              <span className="text-[10px] text-emerald-300 bg-emerald-950/80 border border-emerald-700/50 px-2 py-0.5 rounded-full">
+                {!caliperP1 ? 'Click chart to set Point 1' : !caliperP2 ? 'Click chart to set Point 2' : '2 Points Anchored'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSnapCaliperToPeaks}
+                className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded border border-slate-700 cursor-pointer shadow-sm active:scale-95"
+              >
+                <Wand2 className="w-3 h-3 text-cyan-400" />
+                <span>Snap to Peaks</span>
+              </button>
+              <button
+                onClick={() => { setCaliperP1(null); setCaliperP2(null); }}
+                className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 cursor-pointer shadow-sm"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-400" />
+                <span>Clear Markers</span>
+              </button>
+              <button
+                onClick={() => setIsCaliperActive(false)}
+                className="p-1 text-slate-400 hover:text-white rounded hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[11px]">
+            <div className="p-2 rounded-lg bg-slate-900/80 border border-cyan-500/40">
+              <span className="text-[10px] text-cyan-400 font-bold block">Marker 1 (C1)</span>
+              <span className="font-bold text-white text-xs">{caliperP1 ? `${caliperP1.twoTheta.toFixed(2)}°` : '—'}</span>
+              <span className="text-[10px] text-slate-400 block">d: {caliperP1 ? `${caliperP1.dSpacing} Å` : '—'}</span>
+            </div>
+
+            <div className="p-2 rounded-lg bg-slate-900/80 border border-pink-500/40">
+              <span className="text-[10px] text-pink-400 font-bold block">Marker 2 (C2)</span>
+              <span className="font-bold text-white text-xs">{caliperP2 ? `${caliperP2.twoTheta.toFixed(2)}°` : '—'}</span>
+              <span className="text-[10px] text-slate-400 block">d: {caliperP2 ? `${caliperP2.dSpacing} Å` : '—'}</span>
+            </div>
+
+            <div className="p-2 rounded-lg bg-slate-900/80 border border-amber-500/40">
+              <span className="text-[10px] text-amber-400 font-bold block">Δ2θ Shift</span>
+              <span className="font-bold text-white text-xs">
+                {caliperMetrics ? `${caliperMetrics.deltaTwoTheta > 0 ? `+${caliperMetrics.deltaTwoTheta}` : caliperMetrics.deltaTwoTheta}°` : '—'}
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                {caliperMetrics ? `${caliperMetrics.deltaTwoThetaArcmin} arcmin` : '—'}
+              </span>
+            </div>
+
+            <div className="p-2 rounded-lg bg-slate-900/80 border border-emerald-500/40">
+              <span className="text-[10px] text-emerald-400 font-bold block">Δd Interplanar</span>
+              <span className="font-bold text-white text-xs">
+                {caliperMetrics ? `${caliperMetrics.deltaD > 0 ? `+${caliperMetrics.deltaD}` : caliperMetrics.deltaD} Å` : '—'}
+              </span>
+              <span className="text-[10px] text-slate-400 block">d2 - d1</span>
+            </div>
+
+            <div className="p-2 rounded-lg bg-slate-900/80 border border-purple-500/40">
+              <span className="text-[10px] text-purple-400 font-bold block">Lattice Strain ε</span>
+              <span className="font-bold text-white text-xs">
+                {caliperMetrics ? `${caliperMetrics.strainPercent > 0 ? `+${caliperMetrics.strainPercent}` : caliperMetrics.strainPercent}%` : '—'}
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                {caliperMetrics ? (caliperMetrics.strainPercent > 0 ? 'Tensile (+)' : 'Compressive (-)') : '—'}
+              </span>
+            </div>
+
+            <div className="p-2 rounded-lg bg-slate-900/80 border border-indigo-500/40">
+              <span className="text-[10px] text-indigo-400 font-bold block">Intensity Ratio (I2/I1)</span>
+              <span className="font-bold text-white text-xs">
+                {caliperMetrics ? `${caliperMetrics.intensityRatio.toFixed(2)}x` : '—'}
+              </span>
+              <span className="text-[10px] text-slate-400 block">
+                ΔQ: {caliperMetrics ? `${caliperMetrics.deltaQ} nm⁻¹` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* COLOR & CONTRAST STUDIO POPOVER PANEL */}
       {isColorStudioOpen && (
@@ -779,13 +1000,12 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </div>
             </div>
 
-            {/* Column 2: Individual Curve Color Overrides & Swatches */}
+            {/* Column 2: Curve Overrides */}
             <div className="space-y-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Target Curve Color Picker
               </span>
 
-              {/* Target selector buttons */}
               <div className="flex flex-wrap gap-1">
                 {[
                   { key: 'colorA', label: 'Sample A', color: pal.colorA },
@@ -809,12 +1029,11 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 ))}
               </div>
 
-              {/* Quick Swatches + Native Hex Picker */}
               <div className="pt-1">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] text-slate-400">Color for <strong className="text-cyan-400">{selectedColorTarget}</strong>:</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-slate-500 font-mono">Custom Hex:</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Hex:</span>
                     <input
                       type="color"
                       value={pal[selectedColorTarget] || '#6366f1'}
@@ -825,7 +1044,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                         }
                       }}
                       className="w-6 h-6 rounded cursor-pointer border border-slate-700 bg-transparent p-0"
-                      title="Choose Custom Color"
                     />
                   </div>
                 </div>
@@ -853,13 +1071,13 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </div>
             </div>
 
-            {/* Column 3: Contrast, Stroke Thickness, Glow, Background Theme */}
+            {/* Column 3: Canvas Physics */}
             <div className="space-y-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Curve Physics & Canvas Backdrop
+                Curve Physics & Backdrop
               </span>
 
-              {/* Stroke Width / Thickness */}
+              {/* Stroke Width */}
               <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
                 <span className="text-[11px] text-slate-300">Stroke Width:</span>
                 <div className="flex items-center gap-1">
@@ -883,48 +1101,35 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 </div>
               </div>
 
-              {/* Curve Interpolation */}
+              {/* Curve Smoothing Filter */}
               <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                <span className="text-[11px] text-slate-300">Spline Curve:</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurveInterpolation('monotone')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                      curveInterpolation === 'monotone'
-                        ? 'bg-cyan-600 text-white shadow'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    Smooth (Cubic)
-                  </button>
-                  <button
-                    onClick={() => setCurveInterpolation('linear')}
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                      curveInterpolation === 'linear'
-                        ? 'bg-cyan-600 text-white shadow'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    Linear (Raw)
-                  </button>
-                </div>
+                <span className="text-[11px] text-slate-300">Smoothing:</span>
+                <select
+                  value={engineSettings.smoothingFilter || 'none'}
+                  onChange={(e) => setEngineSettings(prev => ({ ...prev, smoothingFilter: e.target.value as SmoothingFilter }))}
+                  className="bg-slate-800 text-slate-200 text-[10px] font-mono rounded px-2 py-0.5 border border-slate-700 outline-none cursor-pointer"
+                >
+                  <option value="none">Raw (No Filter)</option>
+                  <option value="savitzky-golay">Savitzky-Golay (5-pt)</option>
+                  <option value="moving-avg">Moving Average (3-pt)</option>
+                </select>
               </div>
 
-              {/* Glow Filter Toggle */}
+              {/* Baseline Stripping */}
               <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
-                <span className="text-[11px] text-slate-300 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  Laser Glow Filter:
+                <span className="text-[11px] text-slate-300 flex items-center gap-1">
+                  <Scissors className="w-3 h-3 text-cyan-400" />
+                  Strip Baseline:
                 </span>
                 <button
-                  onClick={() => setEngineSettings(prev => ({ ...prev, enableGlow: !prev.enableGlow }))}
+                  onClick={() => setEngineSettings(prev => ({ ...prev, stripBackground: !prev.stripBackground }))}
                   className={`px-2.5 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                    engineSettings.enableGlow
-                      ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    engineSettings.stripBackground
+                      ? 'bg-cyan-500 text-slate-950 font-extrabold shadow-sm'
                       : 'bg-slate-800 text-slate-400'
                   }`}
                 >
-                  {engineSettings.enableGlow ? 'ACTIVE' : 'OFF'}
+                  {engineSettings.stripBackground ? 'STRIPPED' : 'RAW'}
                 </button>
               </div>
 
@@ -974,7 +1179,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               <button
                 onClick={() => setShiftTwoTheta(0)}
                 className="text-[10px] text-slate-500 hover:text-slate-300 ml-1 underline cursor-pointer"
-                title="Reset Shift to 0°"
               >
                 Reset
               </button>
@@ -1037,7 +1241,6 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
       {/* Main Interactive Chart Display Area */}
       <div className="flex-1 min-h-[470px] mt-1 relative">
-        {/* SVG Filters & Gradients for High-Contrast Luminescent Graphics */}
         <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true" focusable="false">
           <defs>
             <filter id="neonGlowA" x="-20%" y="-20%" width="140%" height="140%">
@@ -1052,7 +1255,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           </defs>
         </svg>
 
-        {/* Real-time Scientific Cursor HUD Overlay */}
+        {/* Real-time Scientific Cursor HUD */}
         {liveCursorData && (
           <div className="absolute top-2 right-4 z-20 hidden md:flex items-center gap-2.5 px-3 py-1 rounded-lg bg-[#030712]/90 border border-slate-700/80 backdrop-blur-md text-[11px] font-mono shadow-xl pointer-events-none">
             <span className="flex items-center gap-1 font-bold text-slate-200">
@@ -1079,501 +1282,468 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           </div>
         )}
 
-        {/* VIEW 1: UNIFIED OVERLAY WITH INTERACTIVE CLICKABLE LEGEND */}
+        {/* VIEW 1: UNIFIED OVERLAY */}
         {(viewMode === 'unified' || viewMode === 'multiphase') && (
           <div className={`w-full h-[480px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner transition-colors`}>
             {/* Interactive Clickable Legend Header */}
             <div className="flex items-center justify-between mb-1 z-10 px-2 flex-wrap gap-2">
               <div className="flex items-center gap-3 flex-wrap">
-                {/* Sample A Legend item (clickable toggle) */}
                 <button 
                   onClick={() => toggleCurve('showA')}
-                  className={`flex items-center gap-1.5 text-xs font-mono font-bold transition-all cursor-pointer rounded px-1.5 py-0.5 ${
-                    visibleCurves.showA ? 'opacity-100 hover:opacity-80' : 'opacity-40 line-through hover:opacity-60 bg-slate-900/50'
+                  className={`flex items-center gap-1.5 text-xs font-mono font-bold cursor-pointer transition-all ${
+                    visibleCurves.showA ? 'opacity-100' : 'opacity-40 line-through'
                   }`}
                   style={{ color: pal.colorA }}
-                  title="Click to toggle Sample A curve"
                 >
-                  {visibleCurves.showA ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3 text-slate-500" />}
-                  <span className="w-2.5 h-2.5 rounded-full border border-black/40 shadow-sm" style={{ backgroundColor: pal.colorA }} />
-                  <span>{materialAName} (A)</span>
+                  <span className="w-3 h-1 rounded" style={{ backgroundColor: pal.colorA }} />
+                  <span>Sample A: {materialAName}</span>
                 </button>
 
-                {/* Reference B Legend item (clickable toggle) */}
                 <button 
                   onClick={() => toggleCurve('showB')}
-                  className={`flex items-center gap-1.5 text-xs font-mono font-bold transition-all cursor-pointer rounded px-1.5 py-0.5 ${
-                    visibleCurves.showB ? 'opacity-100 hover:opacity-80' : 'opacity-40 line-through hover:opacity-60 bg-slate-900/50'
+                  className={`flex items-center gap-1.5 text-xs font-mono font-bold cursor-pointer transition-all ${
+                    visibleCurves.showB ? 'opacity-100' : 'opacity-40 line-through'
                   }`}
                   style={{ color: pal.colorB }}
-                  title="Click to toggle Reference B curve"
                 >
-                  {visibleCurves.showB ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3 text-slate-500" />}
-                  <span className="w-2.5 h-2.5 rounded-full border border-black/40 shadow-sm" style={{ backgroundColor: pal.colorB }} />
-                  <span>{materialBName} (B)</span>
+                  <span className="w-3 h-1 rounded border-b border-dashed" style={{ backgroundColor: pal.colorB }} />
+                  <span>Ref B: {materialBName}</span>
                 </button>
 
-                {/* Phase C Legend item */}
                 {hasPhaseC && (
                   <button 
                     onClick={() => toggleCurve('showC')}
-                    className={`flex items-center gap-1.5 text-xs font-mono font-bold transition-all cursor-pointer rounded px-1.5 py-0.5 ${
-                      visibleCurves.showC ? 'opacity-100 hover:opacity-80' : 'opacity-40 line-through hover:opacity-60 bg-slate-900/50'
+                    className={`flex items-center gap-1.5 text-xs font-mono font-bold cursor-pointer transition-all ${
+                      visibleCurves.showC ? 'opacity-100' : 'opacity-40 line-through'
                     }`}
                     style={{ color: pal.colorC }}
-                    title="Click to toggle Phase C curve"
                   >
-                    {visibleCurves.showC ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3 text-slate-500" />}
-                    <span className="w-2.5 h-2.5 rounded-full border border-black/40 shadow-sm" style={{ backgroundColor: pal.colorC }} />
-                    <span>{materialCName || 'Phase C'}</span>
+                    <span className="w-3 h-1 rounded" style={{ backgroundColor: pal.colorC }} />
+                    <span>Phase C: {materialCName || 'Secondary'}</span>
                   </button>
                 )}
 
-                {/* Phase D Legend item */}
                 {hasPhaseD && (
                   <button 
                     onClick={() => toggleCurve('showD')}
-                    className={`flex items-center gap-1.5 text-xs font-mono font-bold transition-all cursor-pointer rounded px-1.5 py-0.5 ${
-                      visibleCurves.showD ? 'opacity-100 hover:opacity-80' : 'opacity-40 line-through hover:opacity-60 bg-slate-900/50'
+                    className={`flex items-center gap-1.5 text-xs font-mono font-bold cursor-pointer transition-all ${
+                      visibleCurves.showD ? 'opacity-100' : 'opacity-40 line-through'
                     }`}
                     style={{ color: pal.colorD }}
-                    title="Click to toggle Phase D curve"
                   >
-                    {visibleCurves.showD ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3 text-slate-500" />}
-                    <span className="w-2.5 h-2.5 rounded-full border border-black/40 shadow-sm" style={{ backgroundColor: pal.colorD }} />
-                    <span>{materialDName || 'Phase D'}</span>
-                  </button>
-                )}
-
-                {(hasPhaseC || hasPhaseD) && visibleCurves.showTotalModel && (
-                  <button 
-                    onClick={() => toggleCurve('showTotalModel')}
-                    className={`flex items-center gap-1.5 text-xs font-mono font-bold text-slate-300 transition-all cursor-pointer rounded px-1.5 py-0.5 ${
-                      visibleCurves.showTotalModel ? 'opacity-100' : 'opacity-40 line-through'
-                    }`}
-                  >
-                    <span className="w-2.5 h-1 border-t-2 border-dashed border-white" />
-                    <span>Composite Model</span>
+                    <span className="w-3 h-1 rounded" style={{ backgroundColor: pal.colorD }} />
+                    <span>Phase D: {materialDName || 'Tertiary'}</span>
                   </button>
                 )}
               </div>
 
-              <span className="text-[10px] font-mono text-slate-400 font-bold">
-                Drag to zoom | Click legend items to toggle curve
-              </span>
+              <div className="text-[11px] font-mono text-slate-500 hidden sm:block">
+                Drag on chart to Zoom • Click in Caliper mode to measure
+              </div>
             </div>
 
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={points}
-                margin={{ top: 15, right: 15, bottom: 25, left: 10 }}
-                onMouseDown={handleChartMouseDown}
-                onMouseMove={handleChartMouseMove}
-                onMouseUp={handleZoom}
-                onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); setLiveCursorData(null); }}
-              >
-                <defs>
-                  <linearGradient id="colorA_grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.45} />
-                    <stop offset="60%" stopColor={pal.colorA} stopOpacity={0.12} />
-                    <stop offset="95%" stopColor={pal.colorA} stopOpacity={0.01} />
-                  </linearGradient>
-                  <linearGradient id="colorB_grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={pal.colorB} stopOpacity={0.25} />
-                    <stop offset="95%" stopColor={pal.colorB} stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="colorDiffPos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={pal.posDiff} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={pal.posDiff} stopOpacity={0.05} />
-                  </linearGradient>
-                  <linearGradient id="colorDiffNeg" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={pal.negDiff} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={pal.negDiff} stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-
-                {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.75} />}
-                <XAxis 
-                  dataKey="twoTheta" 
-                  type="number" 
-                  domain={[left, right]} 
-                  allowDataOverflow={true} 
-                  tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} 
-                  axisLine={{ stroke: bgStyle.axisLine }} 
-                  tickLine={{ stroke: bgStyle.axisLine }} 
-                  label={{ value: 'Diffraction Angle [°2θ (Cu-Kα)]', position: 'bottom', offset: 5, fill: bgStyle.axisText, fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
-                />
-                <YAxis 
-                  domain={[0, 115]} 
-                  tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} 
-                  axisLine={{ stroke: bgStyle.axisLine }} 
-                  tickLine={{ stroke: bgStyle.axisLine }} 
-                  label={{ value: 'Normalized Intensity [a.u.]', angle: -90, position: 'left', offset: 0, fill: bgStyle.axisText, fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
-                />
-                <Tooltip content={<CustomTooltip />} />
-
-                {/* Optional Residual Shaded Area (shown if enabled & diff active) */}
-                {showDiffArea && visibleCurves.showDiff && visibleCurves.showA && visibleCurves.showB && (
-                  <Area type={curveInterpolation} dataKey="posDiff" fill="url(#colorDiffPos)" stroke="none" isAnimationActive={false} />
-                )}
-
-                {/* Sample A Primary Trace */}
-                {visibleCurves.showA && (
-                  <Area 
-                    type={curveInterpolation} 
-                    dataKey="intensityA" 
-                    fill="url(#colorA_grad)" 
-                    stroke={pal.colorA} 
-                    strokeWidth={strokeW} 
-                    dot={false} 
-                    isAnimationActive={false}
-                    filter={engineSettings.enableGlow ? 'url(#neonGlowA)' : undefined}
+            <div className="flex-1 w-full min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={points}
+                  onMouseDown={handleChartMouseDown}
+                  onMouseMove={handleChartMouseMove}
+                  onMouseUp={handleZoom}
+                  margin={{ top: 15, right: 20, bottom: 20, left: 10 }}
+                >
+                  {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
+                  <XAxis
+                    dataKey="twoTheta"
+                    type="number"
+                    domain={[left, right]}
+                    allowDataOverflow
+                    stroke={bgStyle.axisLine}
+                    tick={{ fill: bgStyle.axisText, fontSize: 11, fontFamily: 'monospace' }}
+                    unit="°"
                   />
-                )}
-
-                {/* Reference Model B Trace */}
-                {visibleCurves.showB && (
-                  <Line 
-                    type={curveInterpolation} 
-                    dataKey="intensityB" 
-                    stroke={pal.colorB} 
-                    strokeWidth={strokeW} 
-                    strokeDasharray={dashB || (hasPhaseC ? '5 4' : undefined)} 
-                    dot={false} 
-                    isAnimationActive={false}
-                    filter={engineSettings.enableGlow ? 'url(#neonGlowB)' : undefined}
+                  <YAxis
+                    stroke={bgStyle.axisLine}
+                    tick={{ fill: bgStyle.axisText, fontSize: 11, fontFamily: 'monospace' }}
+                    unit="%"
+                    domain={['auto', 'auto']}
                   />
-                )}
+                  <Tooltip content={<CustomTooltip />} />
 
-                {/* Optional Phase C trace */}
-                {hasPhaseC && visibleCurves.showC && (
-                  <Line type={curveInterpolation} dataKey="intensityC" stroke={pal.colorC} strokeWidth={Math.max(1.8, strokeW - 0.6)} dot={false} isAnimationActive={false} />
-                )}
+                  {/* Residual Area Fill */}
+                  {showDiffArea && visibleCurves.showDiff && visibleCurves.showA && visibleCurves.showB && (
+                    <Area
+                      type={curveInterpolation}
+                      dataKey="difference"
+                      fill={pal.colorDiff}
+                      fillOpacity={engineSettings.areaOpacity || 0.25}
+                      stroke="none"
+                      isAnimationActive={false}
+                    />
+                  )}
 
-                {/* Optional Phase D trace */}
-                {hasPhaseD && visibleCurves.showD && (
-                  <Line type={curveInterpolation} dataKey="intensityD" stroke={pal.colorD} strokeWidth={Math.max(1.8, strokeW - 0.6)} dot={false} isAnimationActive={false} />
-                )}
+                  {/* Curve A */}
+                  {visibleCurves.showA && (
+                    <Line
+                      type={curveInterpolation}
+                      dataKey="intensityA"
+                      stroke={pal.colorA}
+                      strokeWidth={strokeW}
+                      dot={false}
+                      isAnimationActive={false}
+                      filter={engineSettings.enableGlow ? 'url(#neonGlowA)' : undefined}
+                    />
+                  )}
 
-                {/* Total Model (if multiphase) */}
-                {(hasPhaseC || hasPhaseD) && visibleCurves.showTotalModel && (
-                  <Line type={curveInterpolation} dataKey="intensityTotalModel" stroke={pal.colorTotalModel || '#ffffff'} strokeWidth={1.8} strokeDasharray="3 3" dot={false} isAnimationActive={false} />
-                )}
+                  {/* Curve B */}
+                  {visibleCurves.showB && (
+                    <Line
+                      type={curveInterpolation}
+                      dataKey="intensityB"
+                      stroke={pal.colorB}
+                      strokeWidth={strokeW}
+                      strokeDasharray={dashB}
+                      dot={false}
+                      isAnimationActive={false}
+                      filter={engineSettings.enableGlow ? 'url(#neonGlowB)' : undefined}
+                    />
+                  )}
 
-                {/* Peak Reflection Markers / Sticks for Sample A */}
-                {showPeakMarkers && visibleCurves.showA && peaksA.filter(p => p.twoTheta >= left && p.twoTheta <= right).map((p, idx) => (
-                  <ReferenceLine
-                    key={`pA_${idx}`}
-                    x={p.twoTheta}
-                    stroke={pal.colorA}
-                    strokeDasharray="2 2"
-                    strokeWidth={1.2}
-                    label={p.hkl ? { value: p.hkl, position: 'top', fill: pal.colorA, fontSize: 9, fontFamily: 'monospace', fontWeight: 'bold' } : undefined}
-                  />
-                ))}
+                  {/* Phase C */}
+                  {hasPhaseC && visibleCurves.showC && (
+                    <Line
+                      type={curveInterpolation}
+                      dataKey="intensityC"
+                      stroke={pal.colorC}
+                      strokeWidth={Math.max(1.5, strokeW - 0.6)}
+                      strokeDasharray="4 3"
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  )}
 
-                {/* Peak Reflection Markers / Sticks for Reference B */}
-                {showPeakMarkers && visibleCurves.showB && peaksB.filter(p => p.twoTheta >= left && p.twoTheta <= right).map((p, idx) => (
-                  <ReferenceLine
-                    key={`pB_${idx}`}
-                    x={p.twoTheta}
-                    stroke={pal.colorB}
-                    strokeDasharray="1 3"
-                    strokeWidth={1.2}
-                  />
-                ))}
+                  {/* Phase D */}
+                  {hasPhaseD && visibleCurves.showD && (
+                    <Line
+                      type={curveInterpolation}
+                      dataKey="intensityD"
+                      stroke={pal.colorD}
+                      strokeWidth={Math.max(1.5, strokeW - 0.6)}
+                      strokeDasharray="2 2"
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  )}
 
-                {refAreaLeft && refAreaRight ? (
-                  <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.6} fill="#6366f1" fillOpacity={0.25} />
-                ) : null}
-              </ComposedChart>
-            </ResponsiveContainer>
+                  {/* Difference Line */}
+                  {visibleCurves.showDiff && visibleCurves.showA && visibleCurves.showB && (
+                    <Line
+                      type={curveInterpolation}
+                      dataKey="difference"
+                      stroke={pal.colorDiff}
+                      strokeWidth={1.8}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  )}
+
+                  {/* Bragg Reflection Stick Markers */}
+                  {showPeakMarkers && peaksA.map((pk, idx) => (
+                    pk.twoTheta >= left && pk.twoTheta <= right && (
+                      <ReferenceLine
+                        key={`pkA-${idx}`}
+                        x={pk.twoTheta}
+                        stroke={pal.colorA}
+                        strokeDasharray="2 2"
+                        strokeWidth={1.2}
+                        label={{
+                          value: pk.hkl ? `(${pk.hkl})` : `${pk.twoTheta.toFixed(1)}°`,
+                          position: 'top',
+                          fill: pal.colorA,
+                          fontSize: 9,
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    )
+                  ))}
+
+                  {showPeakMarkers && peaksB.map((pk, idx) => {
+                    const shiftedPos = pk.twoTheta + shiftTwoTheta;
+                    return shiftedPos >= left && shiftedPos <= right && (
+                      <ReferenceLine
+                        key={`pkB-${idx}`}
+                        x={shiftedPos}
+                        stroke={pal.colorB}
+                        strokeDasharray="2 2"
+                        strokeWidth={1.2}
+                        label={{
+                          value: pk.hkl ? `[${pk.hkl}]` : `${shiftedPos.toFixed(1)}°`,
+                          position: 'bottom',
+                          fill: pal.colorB,
+                          fontSize: 9,
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    );
+                  })}
+
+                  {/* Caliper Reference Markers & Highlight Area */}
+                  {caliperP1 && (
+                    <ReferenceLine
+                      x={caliperP1.twoTheta}
+                      stroke="#22d3ee"
+                      strokeWidth={2.2}
+                      strokeDasharray="4 3"
+                      label={{
+                        value: `C1: ${caliperP1.twoTheta.toFixed(2)}°`,
+                        position: 'insideTopLeft',
+                        fill: '#22d3ee',
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                  )}
+
+                  {caliperP2 && (
+                    <ReferenceLine
+                      x={caliperP2.twoTheta}
+                      stroke="#f43f5e"
+                      strokeWidth={2.2}
+                      strokeDasharray="4 3"
+                      label={{
+                        value: `C2: ${caliperP2.twoTheta.toFixed(2)}°`,
+                        position: 'insideTopRight',
+                        fill: '#f43f5e',
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                  )}
+
+                  {caliperP1 && caliperP2 && (
+                    <ReferenceArea
+                      x1={Math.min(caliperP1.twoTheta, caliperP2.twoTheta)}
+                      x2={Math.max(caliperP1.twoTheta, caliperP2.twoTheta)}
+                      fill="#10b981"
+                      fillOpacity={0.12}
+                    />
+                  )}
+
+                  {/* Zoom Dragging Selection Box */}
+                  {refAreaLeft && refAreaRight && (
+                    <ReferenceArea
+                      x1={refAreaLeft}
+                      x2={refAreaRight}
+                      strokeOpacity={0.4}
+                      fill="#38bdf8"
+                      fillOpacity={0.25}
+                    />
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
-        {/* VIEW 2: DUAL SYNCHRONIZED SPLIT SCREEN */}
+        {/* VIEW 2: DUAL-SPLIT SIDE-BY-SIDE */}
         {viewMode === 'split' && (
-          <div className={`w-full grid gap-3 ${
-            visibleCurves.showA && visibleCurves.showB ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'
-          }`}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 h-[480px]">
             {/* Split Left: Sample A */}
-            {visibleCurves.showA && (
-              <div className={`w-full h-[470px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner`}>
-                <div className="flex items-center justify-between mb-1 z-10 px-2">
-                  <span className="text-xs font-mono font-bold flex items-center gap-1.5" style={{ color: pal.colorA }}>
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorA }} />
-                    Sample A: {materialAName}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">Experimental Trace</span>
-                </div>
+            <div className={`h-full ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-3 flex flex-col shadow-inner`}>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-mono font-bold" style={{ color: pal.colorA }}>
+                  Experimental Sample A: {materialAName}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">100% Normalized</span>
+              </div>
+              <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={points}
-                    margin={{ top: 15, right: 15, bottom: 25, left: 10 }}
-                    onMouseDown={handleChartMouseDown}
-                    onMouseMove={handleChartMouseMove}
-                    onMouseUp={handleZoom}
-                    onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
-                  >
-                    <defs>
-                      <linearGradient id="split_colorA_grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.45} />
-                        <stop offset="95%" stopColor={pal.colorA} stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.7} />}
-                    <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} axisLine={{ stroke: bgStyle.axisLine }} />
-                    <YAxis domain={[0, 115]} tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} axisLine={{ stroke: bgStyle.axisLine }} />
+                  <ComposedChart data={points} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                    {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
+                    <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="%" />
                     <Tooltip content={<CustomTooltip />} />
-                    <Area type={curveInterpolation} dataKey="intensityA" fill="url(#split_colorA_grad)" stroke={pal.colorA} strokeWidth={strokeW} dot={false} isAnimationActive={false} filter={engineSettings.enableGlow ? 'url(#neonGlowA)' : undefined} />
-                    {showPeakMarkers && peaksA.filter(p => p.twoTheta >= left && p.twoTheta <= right).map((p, idx) => (
-                      <ReferenceLine key={`pA_split_${idx}`} x={p.twoTheta} stroke={pal.colorA} strokeDasharray="2 2" strokeWidth={1.2} label={p.hkl ? { value: p.hkl, position: 'top', fill: pal.colorA, fontSize: 9, fontFamily: 'monospace', fontWeight: 'bold' } : undefined} />
-                    ))}
-                    {refAreaLeft && refAreaRight ? <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.6} fill="#6366f1" fillOpacity={0.25} /> : null}
+                    <Line type={curveInterpolation} dataKey="intensityA" stroke={pal.colorA} strokeWidth={strokeW} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            )}
+            </div>
 
             {/* Split Right: Reference B */}
-            {visibleCurves.showB && (
-              <div className={`w-full h-[470px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner`}>
-                <div className="flex items-center justify-between mb-1 z-10 px-2">
-                  <span className="text-xs font-mono font-bold flex items-center gap-1.5" style={{ color: pal.colorB }}>
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorB }} />
-                    Reference B: {materialBName}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">Reference Model</span>
-                </div>
+            <div className={`h-full ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-3 flex flex-col shadow-inner`}>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-mono font-bold" style={{ color: pal.colorB }}>
+                  Reference B: {materialBName} {shiftTwoTheta !== 0 ? `(Shifted ${shiftTwoTheta > 0 ? `+${shiftTwoTheta}` : shiftTwoTheta}°)` : ''}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">{(scaleSampleB * 100).toFixed(0)}% Scale</span>
+              </div>
+              <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={points}
-                    margin={{ top: 15, right: 15, bottom: 25, left: 10 }}
-                    onMouseDown={handleChartMouseDown}
-                    onMouseMove={handleChartMouseMove}
-                    onMouseUp={handleZoom}
-                    onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
-                  >
-                    <defs>
-                      <linearGradient id="split_colorB_grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={pal.colorB} stopOpacity={0.45} />
-                        <stop offset="95%" stopColor={pal.colorB} stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.7} />}
-                    <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} axisLine={{ stroke: bgStyle.axisLine }} />
-                    <YAxis domain={[0, 115]} tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} axisLine={{ stroke: bgStyle.axisLine }} />
+                  <ComposedChart data={points} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                    {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
+                    <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="%" />
                     <Tooltip content={<CustomTooltip />} />
-                    <Area type={curveInterpolation} dataKey="intensityB" fill="url(#split_colorB_grad)" stroke={pal.colorB} strokeWidth={strokeW} dot={false} isAnimationActive={false} filter={engineSettings.enableGlow ? 'url(#neonGlowB)' : undefined} />
-                    {showPeakMarkers && peaksB.filter(p => p.twoTheta >= left && p.twoTheta <= right).map((p, idx) => (
-                      <ReferenceLine key={`pB_split_${idx}`} x={p.twoTheta} stroke={pal.colorB} strokeDasharray="2 2" strokeWidth={1.2} label={p.hkl ? { value: p.hkl, position: 'top', fill: pal.colorB, fontSize: 9, fontFamily: 'monospace', fontWeight: 'bold' } : undefined} />
-                    ))}
-                    {refAreaLeft && refAreaRight ? <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.6} fill="#6366f1" fillOpacity={0.25} /> : null}
+                    <Line type={curveInterpolation} dataKey="intensityB" stroke={pal.colorB} strokeWidth={strokeW} strokeDasharray={dashB} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* VIEW 3: BUTTERFLY MIRRORED VIEW */}
-        {viewMode === 'mirrored' && (
-          <div className={`w-full h-[480px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner transition-colors`}>
-            <div className="flex items-center justify-between mb-1 z-10 px-2">
-              <div className="flex items-center gap-3">
-                {visibleCurves.showA && (
-                  <span className="flex items-center gap-1.5 text-xs font-mono font-bold" style={{ color: pal.colorA }}>
-                    <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: pal.colorA }} />
-                    {materialAName} (Top Hemisphere +)
-                  </span>
-                )}
-                {visibleCurves.showB && (
-                  <span className="flex items-center gap-1.5 text-xs font-mono font-bold" style={{ color: pal.colorB }}>
-                    <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: pal.colorB }} />
-                    {materialBName} (Mirrored Bottom -)
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider">
-                Butterfly Dual-Hemisphere Reflection
-              </span>
             </div>
-
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={points}
-                margin={{ top: 15, right: 15, bottom: 25, left: 10 }}
-                onMouseDown={handleChartMouseDown}
-                onMouseMove={handleChartMouseMove}
-                onMouseUp={handleZoom}
-                onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
-              >
-                {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.7} />}
-                <XAxis 
-                  dataKey="twoTheta" 
-                  type="number" 
-                  domain={[left, right]} 
-                  allowDataOverflow={true} 
-                  tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} 
-                  axisLine={{ stroke: bgStyle.axisLine }} 
-                  tickLine={{ stroke: bgStyle.axisLine }} 
-                  label={{ value: 'Diffraction Angle [°2θ (Cu-Kα)]', position: 'bottom', offset: 5, fill: bgStyle.axisText, fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
-                />
-                <YAxis domain={[-110, 110]} tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} axisLine={{ stroke: bgStyle.axisLine }} tickLine={{ stroke: bgStyle.axisLine }} />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.5} />
-
-                {visibleCurves.showA && (
-                  <Line type={curveInterpolation} dataKey="intensityA" stroke={pal.colorA} strokeWidth={strokeW} dot={false} isAnimationActive={false} filter={engineSettings.enableGlow ? 'url(#neonGlowA)' : undefined} />
-                )}
-                {visibleCurves.showB && (
-                  <Line type={curveInterpolation} dataKey="mirroredB" stroke={pal.colorB} strokeWidth={strokeW} dot={false} isAnimationActive={false} filter={engineSettings.enableGlow ? 'url(#neonGlowB)' : undefined} />
-                )}
-
-                {refAreaLeft && refAreaRight ? (
-                  <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.6} fill="#6366f1" fillOpacity={0.25} />
-                ) : null}
-              </ComposedChart>
-            </ResponsiveContainer>
           </div>
         )}
 
-        {/* VIEW 4: 1ST DERIVATIVE */}
-        {viewMode === 'derivative' && (
-          <div className={`w-full h-[480px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner transition-colors`}>
-            <div className="flex items-center justify-between mb-1 z-10 px-2">
-              <div className="flex items-center gap-3">
-                {visibleCurves.showA && (
-                  <span className="flex items-center gap-1.5 text-xs font-mono font-bold" style={{ color: pal.colorA }}>
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorA }} />
-                    dI/d2θ ({materialAName})
-                  </span>
-                )}
-                {visibleCurves.showB && (
-                  <span className="flex items-center gap-1.5 text-xs font-mono font-bold" style={{ color: pal.colorB }}>
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorB }} />
-                    dI/d2θ ({materialBName})
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] font-mono text-purple-400 font-bold uppercase tracking-wider">
-                Inflection & Asymmetry Analysis (1st Derivative)
-              </span>
-            </div>
-
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={points}
-                margin={{ top: 15, right: 15, bottom: 25, left: 10 }}
-                onMouseDown={handleChartMouseDown}
-                onMouseMove={handleChartMouseMove}
-                onMouseUp={handleZoom}
-                onMouseLeave={() => { setRefAreaLeft(null); setRefAreaRight(null); }}
-              >
-                {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.7} />}
-                <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} axisLine={{ stroke: bgStyle.axisLine }} tickLine={{ stroke: bgStyle.axisLine }} />
-                <YAxis tick={{ fontSize: 10, fill: bgStyle.axisText, fontFamily: 'monospace' }} axisLine={{ stroke: bgStyle.axisLine }} tickLine={{ stroke: bgStyle.axisLine }} />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={0} stroke="#475569" strokeWidth={1.5} strokeDasharray="2 2" />
-
-                {visibleCurves.showA && (
-                  <Line type={curveInterpolation} dataKey="derivA" stroke={pal.colorA} strokeWidth={strokeW - 0.4} dot={false} isAnimationActive={false} />
-                )}
-                {visibleCurves.showB && (
-                  <Line type={curveInterpolation} dataKey="derivB" stroke={pal.colorB} strokeWidth={strokeW - 0.4} strokeDasharray="4 2" dot={false} isAnimationActive={false} />
-                )}
-
-                {refAreaLeft && refAreaRight ? (
-                  <ReferenceArea x1={refAreaLeft} x2={refAreaRight} strokeOpacity={0.6} fill="#a855f7" fillOpacity={0.25} />
-                ) : null}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {/* VIEW 5: 3-PANE STACKED VIEW */}
+        {/* VIEW 3: STACKED 3-PANE */}
         {viewMode === 'stacked' && (
-          <div className="w-full flex flex-col gap-3">
-            {/* Pane 1: Sample A */}
-            {visibleCurves.showA && (
-              <div className={`w-full h-[180px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner`}>
-                <div className="flex items-center justify-between mb-1 z-10 px-2">
-                  <span className="text-xs font-mono font-bold flex items-center gap-1.5" style={{ color: pal.colorA }}>
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pal.colorA }} />
-                    Sample A: {materialAName}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">Pane 1 (Experimental)</span>
-                </div>
+          <div className="grid grid-rows-3 gap-2 h-[520px]">
+            {/* Row 1: Sample A */}
+            <div className={`${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 flex flex-col shadow-inner`}>
+              <span className="text-[11px] font-mono font-bold px-2" style={{ color: pal.colorA }}>
+                (1) Sample A: {materialAName}
+              </span>
+              <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 15, left: 10 }}>
-                    <defs>
-                      <linearGradient id="stack_colorA_grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={pal.colorA} stopOpacity={0.4} />
-                        <stop offset="95%" stopColor={pal.colorA} stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.7} />}
-                    <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 9, fill: bgStyle.axisText, fontFamily: 'monospace' }} />
-                    <YAxis domain={[0, 110]} tick={{ fontSize: 9, fill: bgStyle.axisText, fontFamily: 'monospace' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type={curveInterpolation} dataKey="intensityA" fill="url(#stack_colorA_grad)" stroke={pal.colorA} strokeWidth={strokeW} dot={false} isAnimationActive={false} filter={engineSettings.enableGlow ? 'url(#neonGlowA)' : undefined} />
+                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
+                    {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
+                    <XAxis dataKey="twoTheta" domain={[left, right]} hide />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
+                    <Line type={curveInterpolation} dataKey="intensityA" stroke={pal.colorA} strokeWidth={2.4} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            )}
+            </div>
 
-            {/* Pane 2: Sample B */}
-            {visibleCurves.showB && (
-              <div className={`w-full h-[180px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner`}>
-                <div className="flex items-center justify-between mb-1 z-10 px-2">
-                  <span className="text-xs font-mono font-bold flex items-center gap-1.5" style={{ color: pal.colorB }}>
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pal.colorB }} />
-                    Sample B: {materialBName}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">Pane 2 (Reference Standard)</span>
-                </div>
+            {/* Row 2: Reference B */}
+            <div className={`${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 flex flex-col shadow-inner`}>
+              <span className="text-[11px] font-mono font-bold px-2" style={{ color: pal.colorB }}>
+                (2) Reference B: {materialBName}
+              </span>
+              <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 15, left: 10 }}>
-                    <defs>
-                      <linearGradient id="stack_colorB_grad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={pal.colorB} stopOpacity={0.4} />
-                        <stop offset="95%" stopColor={pal.colorB} stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.7} />}
-                    <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 9, fill: bgStyle.axisText, fontFamily: 'monospace' }} />
-                    <YAxis domain={[0, 110]} tick={{ fontSize: 9, fill: bgStyle.axisText, fontFamily: 'monospace' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area type={curveInterpolation} dataKey="intensityB" fill="url(#stack_colorB_grad)" stroke={pal.colorB} strokeWidth={strokeW} dot={false} isAnimationActive={false} filter={engineSettings.enableGlow ? 'url(#neonGlowB)' : undefined} />
+                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
+                    {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
+                    <XAxis dataKey="twoTheta" domain={[left, right]} hide />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
+                    <Line type={curveInterpolation} dataKey="intensityB" stroke={pal.colorB} strokeWidth={2.4} strokeDasharray={dashB} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            )}
+            </div>
 
-            {/* Pane 3: Residual Profile */}
-            {visibleCurves.showDiff && visibleCurves.showA && visibleCurves.showB && (
-              <div className={`w-full h-[140px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner`}>
-                <div className="flex items-center justify-between mb-1 z-10 px-2">
-                  <span className="text-xs font-mono font-bold flex items-center gap-1.5" style={{ color: pal.colorDiff }}>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    Δ Residual Profile (I_Obs - I_Calc)
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">Pane 3 (Residual Differential)</span>
-                </div>
+            {/* Row 3: Difference Residual */}
+            <div className={`${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 flex flex-col shadow-inner`}>
+              <span className="text-[11px] font-mono font-bold px-2" style={{ color: pal.colorDiff }}>
+                (3) Difference Residual (A - B)
+              </span>
+              <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 20, left: 10 }}>
-                    {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={bgStyle.grid} opacity={0.7} />}
-                    <XAxis dataKey="twoTheta" type="number" domain={[left, right]} allowDataOverflow={true} tick={{ fontSize: 9, fill: bgStyle.axisText, fontFamily: 'monospace' }} />
-                    <YAxis domain={[-80, 80]} tick={{ fontSize: 9, fill: bgStyle.axisText, fontFamily: 'monospace' }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <ReferenceLine y={0} stroke="#475569" strokeWidth={1} strokeDasharray="3 3"/>
-                    <Line type={curveInterpolation} dataKey="difference" stroke={pal.colorDiff} strokeWidth={strokeW} dot={false} isAnimationActive={false} />
+                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 20, left: 5 }}>
+                    {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
+                    <XAxis dataKey="twoTheta" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
+                    <Line type={curveInterpolation} dataKey="difference" stroke={pal.colorDiff} strokeWidth={1.8} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            )}
+            </div>
           </div>
         )}
+
+        {/* VIEW 4: BUTTERFLY MIRRORED */}
+        {viewMode === 'mirrored' && (
+          <div className={`w-full h-[480px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner`}>
+            <div className="flex items-center justify-between mb-1 px-2">
+              <span className="text-xs font-mono font-bold flex items-center gap-2">
+                <span style={{ color: pal.colorA }}>▲ +{materialAName} (Upper)</span>
+                <span className="text-slate-600">vs</span>
+                <span style={{ color: pal.colorB }}>▼ -{materialBName} (Mirrored Lower)</span>
+              </span>
+              <span className="text-[11px] font-mono text-slate-400">Peak-to-Peak Butterfly Symmetry</span>
+            </div>
+            <div className="flex-1 w-full min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={points} margin={{ top: 15, right: 20, bottom: 20, left: 10 }}>
+                  {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
+                  <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} unit="°" />
+                  <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} domain={[-100, 100]} unit="%" />
+                  <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.5} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type={curveInterpolation} dataKey="intensityA" fill={pal.colorA} fillOpacity={0.3} stroke={pal.colorA} strokeWidth={2.2} dot={false} />
+                  <Area type={curveInterpolation} dataKey="mirroredB" fill={pal.colorB} fillOpacity={0.3} stroke={pal.colorB} strokeWidth={2.2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 5: FIRST DERIVATIVE */}
+        {viewMode === 'derivative' && (
+          <div className={`w-full h-[480px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner`}>
+            <div className="flex items-center justify-between mb-1 px-2">
+              <span className="text-xs font-mono font-bold flex items-center gap-2">
+                <span style={{ color: pal.colorA }}>d(IA)/d(2θ)</span>
+                <span className="text-slate-600">vs</span>
+                <span style={{ color: pal.colorB }}>d(IB)/d(2θ)</span>
+              </span>
+              <span className="text-[11px] font-mono text-amber-400">Zero-Crossing Inflection Point & FWHM Analysis</span>
+            </div>
+            <div className="flex-1 w-full min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={points} margin={{ top: 15, right: 20, bottom: 20, left: 10 }}>
+                  {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
+                  <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} unit="°" />
+                  <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} unit="ΔI/Δθ" />
+                  <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.5} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type={curveInterpolation} dataKey="derivA" stroke={pal.colorA} strokeWidth={2.2} dot={false} isAnimationActive={false} />
+                  <Line type={curveInterpolation} dataKey="derivB" stroke={pal.colorB} strokeWidth={2.2} strokeDasharray="4 3" dot={false} isAnimationActive={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MINI-MAP SPECTRUM NAVIGATION STRIP (BRUSH OVERVIEW) */}
+      <div className="mt-3 pt-2 border-t border-slate-800">
+        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1">
+          <span className="font-bold flex items-center gap-1">
+            <Compass className="w-3 h-3 text-cyan-400" />
+            Full Spectrum Domain Overview (10° - 90° 2θ)
+          </span>
+          <span className="text-cyan-300">
+            Active Viewport: <strong className="text-white">{left}° - {right}°</strong> (Span: {right - left}°)
+          </span>
+        </div>
+
+        <div 
+          ref={miniMapRef}
+          onClick={handleMiniMapClick}
+          className="w-full h-10 bg-[#030712] rounded-lg border border-slate-800 relative cursor-crosshair overflow-hidden shadow-inner flex items-center"
+          title="Click anywhere on the spectrum overview to center zoom domain"
+        >
+          {/* Miniature Spectrum Trace */}
+          <div className="w-full h-full opacity-60 pointer-events-none">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={points} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
+                <Line type="linear" dataKey="intensityA" stroke={pal.colorA} strokeWidth={1} dot={false} isAnimationActive={false} />
+                <Line type="linear" dataKey="intensityB" stroke={pal.colorB} strokeWidth={1} strokeDasharray="2 2" dot={false} isAnimationActive={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Active Viewport Shaded Window Indicator */}
+          <div 
+            className="absolute top-0 bottom-0 bg-cyan-500/20 border-x-2 border-cyan-400 pointer-events-none shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center justify-between px-1"
+            style={{
+              left: `${((left - 10) / (90 - 10)) * 100}%`,
+              width: `${((right - left) / (90 - 10)) * 100}%`
+            }}
+          >
+            <span className="w-1 h-4 bg-cyan-400 rounded-full" />
+            <span className="w-1 h-4 bg-cyan-400 rounded-full" />
+          </div>
+        </div>
       </div>
     </div>
   );

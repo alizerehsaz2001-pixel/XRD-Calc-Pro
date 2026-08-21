@@ -195,7 +195,10 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       eta: engineSettings.eta,
       peakShape: engineSettings.peakShape,
       noiseLevel: engineSettings.noiseLevel,
-      background: engineSettings.backgroundLevel
+      background: engineSettings.backgroundLevel,
+      differenceMode: engineSettings.differenceMode,
+      smoothingFilter: engineSettings.smoothingFilter,
+      stripBackground: engineSettings.stripBackground
     });
   }, [
     materialA, 
@@ -512,6 +515,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         peaksD={peaksD}
         hasPhaseC={hasPhaseC}
         hasPhaseD={hasPhaseD}
+        onSwapSamples={handleSwapSamples}
       />
 
       {/* 4. Quantitative Diagnostics & Metrics Sub-Engine */}

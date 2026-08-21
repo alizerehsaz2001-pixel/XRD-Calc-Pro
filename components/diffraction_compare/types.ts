@@ -117,6 +117,28 @@ export interface CurveColorPalette {
 export type PeakShapeFunction = 'pseudoVoigt' | 'pearsonVII' | 'gaussian' | 'lorentzian';
 export type ChartBackgroundTheme = 'dark-obsidian' | 'deep-black' | 'midnight-navy' | 'high-contrast-light';
 export type LineStrokeStyle = 'solid' | 'dashed' | 'dotted';
+export type DifferenceMode = 'residual' | 'relative' | 'chi' | 'squared';
+export type SmoothingFilter = 'none' | 'savitzky-golay' | 'moving-avg';
+export type IntensityScaleType = 'linear' | 'log10' | 'sqrt';
+
+export interface CaliperPoint {
+  twoTheta: number;
+  intensity: number;
+  dSpacing: string;
+  qVector: string;
+  sourceCurve?: 'A' | 'B' | 'C' | 'D' | 'General';
+}
+
+export interface CaliperMeasurement {
+  p1: CaliperPoint;
+  p2: CaliperPoint;
+  deltaTwoTheta: number;
+  deltaTwoThetaArcmin: number;
+  deltaD: number;
+  strainPercent: number;
+  intensityRatio: number;
+  deltaQ: number;
+}
 
 export interface CompareEngineSettings {
   peakShape: PeakShapeFunction;
@@ -131,5 +153,10 @@ export interface CompareEngineSettings {
   areaOpacity: number;
   bgTheme: ChartBackgroundTheme;
   styleB: LineStrokeStyle;
+  differenceMode?: DifferenceMode;
+  smoothingFilter?: SmoothingFilter;
+  intensityScale?: IntensityScaleType;
+  stripBackground?: boolean;
 }
+
 

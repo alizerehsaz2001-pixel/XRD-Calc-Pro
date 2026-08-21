@@ -534,26 +534,84 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
       {/* TAB 4: LATTICE STRAIN & WILLIAMSON-HALL */}
       {activeTab === 'strain' && (
         <div className="space-y-4">
-          <div className="p-4 bg-[#030712] rounded-xl border border-slate-800 space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4" />
-              Lattice Strain & Microstructural Distortion Model
-            </h4>
+          <div className="p-4 bg-[#030712] rounded-xl border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5 font-mono">
+                <TrendingUp className="w-4 h-4" />
+                Williamson-Hall & Microstructural Distortion Engine
+              </h4>
+              <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-800/50 px-2 py-0.5 rounded">
+                Cu Kα (λ = 1.5406 Å)
+              </span>
+            </div>
+
             <p className="text-xs text-slate-400 leading-relaxed font-mono">
-              Peak shift Δ2θ relates to uniform lattice strain via Bragg&apos;s differential law: <br />
-              <strong className="text-cyan-400">ε = Δd / d = - (Δ2θ / 2) · cot(θ)</strong>
+              Individual reflection shifts Δ2θ decompose into uniform macrostrain (Δd/d) and size-induced peak broadening via the Williamson-Hall relation: <br />
+              <strong className="text-cyan-400">β · cos(θ) = (K · λ / D) + 4 · ε · sin(θ)</strong>, where <strong className="text-amber-300">ε = -½ · Δ2θ · cot(θ)</strong>.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono pt-2">
-              <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-800">
-                <span className="text-slate-400 block text-[10px]">Net Lattice Strain (ε):</span>
-                <span className="text-base font-bold text-amber-400">{avgStrain.toFixed(4)}%</span>
-              </div>
-              <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-800">
-                <span className="text-slate-400 block text-[10px]">Dominant Shift Vector:</span>
-                <span className="text-base font-bold text-cyan-400">
-                  {meanShift > 0 ? `+${meanShift.toFixed(3)}° (Lattice Contraction)` : `${meanShift.toFixed(3)}° (Lattice Expansion)`}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+              <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-800">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Net Microstrain (ε):</span>
+                <span className="text-base font-bold text-amber-400">
+                  {avgStrain > 0 ? `+${avgStrain.toFixed(4)}%` : `${avgStrain.toFixed(4)}%`}
                 </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  {meanShift < 0 ? 'Tensile Lattice Expansion (+)' : meanShift > 0 ? 'Compressive Contraction (-)' : 'Neutral / Zero Net Strain'}
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-800">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Mean 2θ Shift (Δ2θ):</span>
+                <span className="text-base font-bold text-cyan-400">
+                  {meanShift > 0 ? `+${meanShift.toFixed(3)}°` : `${meanShift.toFixed(3)}°`}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  {(meanShift * 60).toFixed(1)} arcminutes
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-900/70 rounded-lg border border-slate-800">
+                <span className="text-slate-400 block text-[10px] font-bold uppercase">Indexed Peak Pairs:</span>
+                <span className="text-base font-bold text-emerald-400">
+                  {indexedPeaks.filter(p => p.shift !== null).length} paired reflections
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Confidence FOM: {metrics.fom}%
+                </span>
+              </div>
+            </div>
+
+            {/* Shift Breakdown per reflection */}
+            <div className="mt-3">
+              <h5 className="text-[11px] font-bold uppercase text-slate-400 mb-2 font-mono flex items-center gap-1">
+                <span>Individual Peak Strain Vector Breakdown:</span>
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-[220px] overflow-y-auto pr-1 font-mono text-xs">
+                {indexedPeaks.filter(p => p.shift !== null).map((p, i) => {
+                  const theta = (p.twoThetaA || p.twoThetaB || 30) / 2;
+                  const thetaRad = theta * (Math.PI / 180);
+                  const shiftDeg = p.shift || 0;
+                  const shiftRad = shiftDeg * (Math.PI / 180);
+                  const peakStrain = thetaRad > 0 ? -0.5 * shiftRad * (1 / Math.tan(thetaRad)) * 100 : 0;
+
+                  return (
+                    <div key={i} className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-all">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-cyan-300">
+                          {p.hklA || p.hklB || `Peak #${p.id}`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          2θ = {(p.twoThetaA || p.twoThetaB || 0).toFixed(2)}°
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Δ2θ: <strong className={shiftDeg !== 0 ? 'text-amber-400' : 'text-slate-300'}>{shiftDeg > 0 ? `+${shiftDeg.toFixed(3)}°` : `${shiftDeg.toFixed(3)}°`}</strong></span>
+                        <span className="text-slate-400">ε: <strong className={peakStrain > 0 ? 'text-emerald-400' : peakStrain < 0 ? 'text-rose-400' : 'text-slate-300'}>{peakStrain > 0 ? `+${peakStrain.toFixed(3)}%` : `${peakStrain.toFixed(3)}%`}</strong></span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
