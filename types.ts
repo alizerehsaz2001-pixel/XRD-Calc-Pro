@@ -206,10 +206,27 @@ export interface DoubleVoigtResult {
 }
 
 export interface WHPoint {
-  x: number; // 4 * sin(theta)
-  y: number; // beta * cos(theta)
+  x: number; // 4 * sin(theta) or model-dependent X
+  y: number; // beta * cos(theta) or model-dependent Y
   twoTheta: number;
   hkl?: [number, number, number];
+  isExcluded?: boolean;
+  residual?: number;
+  apparentSizeNm?: number;
+  contrastFactorC?: number;
+}
+
+export interface WHModelComparisonItem {
+  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens';
+  label: string;
+  sizeNm: number;
+  strainPercent: number;
+  stressMPa?: number;
+  energyDensityKjM3?: number;
+  rSquared: number;
+  slope: number;
+  intercept: number;
+  description: string;
 }
 
 export interface WHResult {
@@ -219,11 +236,21 @@ export interface WHResult {
     slope: number;
     intercept: number;
     rSquared: number;
+    adjustedRSquared?: number;
+    pearsonR?: number;
+    stdErrorSlope?: number;
+    stdErrorIntercept?: number;
+    rmse?: number;
+    durbinWatson?: number;
+    fStatistic?: number;
   };
   stephensParams?: {
     S400: number;
     S220: number;
   };
+  dislocationDensityM2?: number;
+  dislocationDensity10_14?: number;
+  specificSurfaceAreaM2g?: number;
   points: WHPoint[];
   stressMPa?: number;
   energyDensityKjM3?: number;
@@ -236,7 +263,17 @@ export interface WHResult {
     x: number;
     y: number;
     singlePeakSizeNm: number;
+    dSpacing?: number;
+    qVector?: number;
+    residual?: number;
+    hkl?: [number, number, number];
+    isExcluded?: boolean;
+    contrastFactorC?: number;
+    dislocationDensity10_14?: number;
   }[];
+  modelComparisons?: WHModelComparisonItem[];
+  separationMethodUsed?: string;
+  broadeningModelUsed?: string;
 }
 
 export interface IntegralBreadthInput {
@@ -254,12 +291,25 @@ export interface IntegralBreadthResult {
   betaObsDeg?: number;
   betaInstDeg?: number;
   betaSampleDeg?: number;
+  fwhmObs?: number;
+  pseudoVoigtEta?: number;
+  lorentzianSizeNm?: number;
+  gaussianStrainRms?: number;
+  dislocationDensityM2?: number;
+  dislocationDensity10_14?: number;
+  specificSurfaceAreaM2g?: number;
+  coherencePlanesN?: number;
+  coherenceVolumeNm3?: number;
+  dSpacing?: number;
+  qVector?: number;
 }
 
 export interface IBAdvancedInput {
   twoTheta: number;
   area: number;
   iMax: number;
+  fwhm?: number;
+  hkl?: [number, number, number];
 }
 
 export interface IBAdvancedResult {
@@ -269,10 +319,16 @@ export interface IBAdvancedResult {
     slope: number;
     intercept: number;
     rSquared: number;
+    adjustedRSquared?: number;
+    pearsonR?: number;
+    stdErrorSlope?: number;
+    stdErrorIntercept?: number;
   };
-  points: { x: number; y: number; twoTheta: number; betaSample: number }[];
+  points: { x: number; y: number; twoTheta: number; betaSample: number; residual?: number }[];
   stressMPa?: number;
   energyDensityKjM3?: number;
+  separationMethodUsed?: string;
+  decouplingMethodUsed?: string;
   pointsExtended?: {
     twoTheta: number;
     betaObsDeg: number;
@@ -281,6 +337,11 @@ export interface IBAdvancedResult {
     x: number;
     y: number;
     singlePeakSizeNm: number;
+    dSpacing?: number;
+    residual?: number;
+    hkl?: [number, number, number];
+    dislocationDensity10_14?: number;
+    specificSurfaceAreaM2g?: number;
   }[];
 }
 

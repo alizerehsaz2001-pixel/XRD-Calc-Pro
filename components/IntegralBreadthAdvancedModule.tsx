@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseIBAdvancedInput, calculateIBAdvanced, XRAY_WAVELENGTHS } from '../utils/physics';
 import { IBAdvancedResult } from '../types';
@@ -16,16 +16,44 @@ import {
   ResponsiveContainer,
   Scatter,
   Legend,
-  Area
+  Area,
+  BarChart,
+  Bar,
+  Cell
 } from 'recharts';
-import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download, Database, Activity, Layers, CheckCircle, FlaskConical, Loader2, Box } from 'lucide-react';
+import { 
+  RefreshCw, 
+  Trash2, 
+  Settings2, 
+  Info, 
+  FileText, 
+  ArrowUpRight, 
+  TrendingUp, 
+  ChevronDown, 
+  Zap, 
+  Download, 
+  Database, 
+  Activity, 
+  Layers, 
+  CheckCircle, 
+  FlaskConical, 
+  Loader2, 
+  Box,
+  Sparkles,
+  Copy,
+  Cpu,
+  BarChart2,
+  Sliders,
+  Check
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GoogleGenAI, Type } from '@google/genai';
 
 const MATERIAL_PRESETS = [
   { 
-    label: 'Silicon (Si) Standard', 
+    label: 'Silicon (Si) NIST 640', 
     data: "28.44, 230, 1000\n47.30, 280, 950\n56.12, 350, 900\n69.13, 400, 850\n76.38, 450, 800",
-    desc: 'NIST 640 Silicon peaks',
+    desc: 'Standard Reference Material',
     youngsModulus: 130
   },
   { 
@@ -33,6 +61,18 @@ const MATERIAL_PRESETS = [
     data: "28.55, 310, 1200\n33.08, 410, 1100\n47.48, 550, 1000\n56.33, 620, 950\n59.08, 680, 900",
     desc: 'Nanocrystalline Ceria (High Strain)',
     youngsModulus: 220
+  },
+  { 
+    label: 'Titanium Dioxide (Anatase)', 
+    data: "25.28, 380, 1150\n37.80, 440, 1020\n48.05, 520, 980\n53.89, 580, 920\n55.06, 610, 890\n62.69, 700, 840",
+    desc: 'Tetragonal Anatase Nanopowder',
+    youngsModulus: 178
+  },
+  { 
+    label: 'Zinc Oxide (ZnO)', 
+    data: "31.77, 300, 1200\n34.42, 340, 1150\n36.25, 310, 1250\n47.54, 430, 1050\n56.60, 500, 980\n62.86, 560, 930",
+    desc: 'Wurtzite Nanorods (Anisotropic)',
+    youngsModulus: 140
   },
   { 
     label: 'Aluminum (Al)', 
@@ -51,52 +91,53 @@ const MATERIAL_PRESETS = [
     data: "43.6, 320, 1000\n50.8, 380, 950\n74.7, 450, 850\n90.7, 520, 800\n95.9, 580, 750",
     desc: 'Austenitic SS (Cold Worked)',
     youngsModulus: 193
-  },
-  { 
-    label: 'Ti-6Al-4V (Grade 5)', 
-    data: "35.1, 410, 1100\n38.4, 460, 1050\n40.2, 490, 1000\n53.0, 580, 900\n63.3, 650, 850",
-    desc: 'Alpha-phase Titanium Alloy',
-    youngsModulus: 113
   }
 ];
 
 const K_FACTORS = [
-  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
-  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles (FWHM-based)', icon: '⚪' },
+  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown morphologies', icon: '⚡' },
+  { label: 'Integral Breadth', value: 1.0, desc: 'Exact factor when using Integral Breadth (Recommended)', icon: '∫' },
+  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles', icon: '⚪' },
   { label: 'Cubic {100}', value: 0.943, desc: 'Exact factor for cubic crystallites with {100} facets', icon: '⬜' },
   { label: 'Cubic {111}', value: 0.84, desc: 'Calculated for cubic shapes with {111} orientation', icon: '🧊' },
   { label: 'Octahedral', value: 0.94, desc: 'Common for spinel/diamond structured materials', icon: '◇' },
-  { label: 'Tetrahedral', value: 0.73, desc: 'Calculated for triangular/tetrahedral geometries', icon: '▲' },
   { label: 'Platelets/Disks', value: 0.89, desc: 'Low aspect ratio plate-like grains', icon: '▤' },
   { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
-  { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM', icon: '∫' },
   { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
 ];
 
 export const IntegralBreadthAdvancedModule: React.FC = () => {
   const { lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
-  const [constantK, setConstantK] = useState<number>(0.9);
-  const [instBetaIB, setInstBetaIB] = useState<number>(0.1);
+  const [constantK, setConstantK] = useState<number>(1.0);
+  const [instBetaIB, setInstBetaIB] = useState<number>(0.05);
   const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
   const [cagliotiU, setCagliotiU] = useState<number>(0.005);
   const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
   const [cagliotiW, setCagliotiW] = useState<number>(0.015);
   const [decouplingMethod, setDecouplingMethod] = useState<'linear' | 'squared'>('linear');
-  const [separationMethod, setSeparationMethod] = useState<'udm' | 'hw' | 'ssp'>('udm');
+  const [separationMethod, setSeparationMethod] = useState<'udm' | 'hw' | 'ssp' | 'udedm'>('udm');
   const [youngsModulusGPa, setYoungsModulusGPa] = useState<number>(130);
 
-  // Default Data: 2Theta, Area, Imax
+  // Active diagnostic visualizer tab
+  const [activeChartTab, setActiveChartTab] = useState<'fit' | 'residuals' | 'apparentSizes' | 'elasticState'>('fit');
+
+  // Input Data: 2Theta, Area, Imax
   const [inputData, setInputData] = useState<string>("28.44, 230, 1000\n47.30, 280, 950\n56.12, 350, 900\n69.13, 400, 850\n76.38, 450, 800");
   const [result, setResult] = useState<IBAdvancedResult | null>(null);
   
   const [isWavelengthMenuOpen, setIsWavelengthMenuOpen] = useState(false);
   const [isMaterialMenuOpen, setIsMaterialMenuOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<string>(MATERIAL_PRESETS[0].label);
-  const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
+  const [selectedKType, setSelectedKType] = useState<string>('Integral Breadth');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   const [showInfiniteExpl, setShowInfiniteExpl] = useState(false);
   const [showStrainExpl, setShowStrainExpl] = useState(false);
+
+  // AI smart load
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const matMenuRef = useRef<HTMLDivElement>(null);
@@ -120,8 +161,9 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
 
   const handleReset = () => {
     setWavelength(1.5406);
-    setConstantK(0.9);
-    setInstBetaIB(0.1);
+    setConstantK(1.0);
+    setSelectedKType('Integral Breadth');
+    setInstBetaIB(0.05);
     setInputData(MATERIAL_PRESETS[0].data);
     setSelectedMaterial(MATERIAL_PRESETS[0].label);
     setInstrumentalMode('constant');
@@ -146,10 +188,10 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     setIsSimulationRunning(true);
     setSimulationStep(1);
     
-    setTimeout(() => setSimulationStep(2), 600);
-    setTimeout(() => setSimulationStep(3), 1400);
-    setTimeout(() => setSimulationStep(4), 2200);
-    setTimeout(() => setSimulationStep(5), 3000);
+    setTimeout(() => setSimulationStep(2), 400);
+    setTimeout(() => setSimulationStep(3), 900);
+    setTimeout(() => setSimulationStep(4), 1400);
+    setTimeout(() => setSimulationStep(5), 1900);
     
     setTimeout(() => {
       setIsSimulationRunning(false);
@@ -166,46 +208,127 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
         separationMethod
       );
       setResult(computed);
-    }, 3800);
+    }, 2400);
+  };
+
+  const handleSmartLoad = async () => {
+    if (!searchQuery.trim()) return;
+    setIsThinking(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: `Generate realistic multi-reflection XRD integral breadth data for ${searchQuery} using Cu K-alpha (1.5406 Å).
+        Provide 5 to 7 high-quality peaks. For each peak, provide:
+        - twoTheta (between 20 and 90 degrees)
+        - area (integrated intensity area in counts*deg, e.g. 200 to 750)
+        - imax (maximum peak intensity counts, e.g. 700 to 1400)
+        Ensure realistic progression where beta = Area/Imax increases with 2theta.
+        Return ONLY a JSON array of objects.`,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                twoTheta: { type: Type.NUMBER },
+                area: { type: Type.NUMBER },
+                imax: { type: Type.NUMBER }
+              },
+              required: ["twoTheta", "area", "imax"]
+            }
+          }
+        }
+      });
+
+      if (response.text) {
+        let rawText = response.text;
+        rawText = rawText.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
+        const data = JSON.parse(rawText);
+        const formattedData = data.map((p: any) => `${p.twoTheta.toFixed(2)}, ${p.area.toFixed(1)}, ${p.imax.toFixed(0)}`).join('\n');
+        setInputData(formattedData);
+        setSelectedMaterial(`AI: ${searchQuery}`);
+      }
+    } catch (error: any) {
+      console.error("Error generating advanced IB data:", error);
+    } finally {
+      setIsThinking(false);
+    }
   };
 
   useEffect(() => {
-    setResult(null); // Clear result when inputs change to enforce re-analyzing
-  }, [wavelength, constantK, instBetaIB, inputData, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, decouplingMethod, youngsModulusGPa, separationMethod]);
+    // Recompute automatically if result is active
+    if (result && !isSimulationRunning) {
+      const peaks = parseIBAdvancedInput(inputData);
+      if (peaks.length >= 2) {
+        const computed = calculateIBAdvanced(
+          wavelength,
+          constantK,
+          instBetaIB,
+          peaks,
+          instrumentalMode,
+          { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+          decouplingMethod,
+          youngsModulusGPa > 0 ? youngsModulusGPa : undefined,
+          separationMethod
+        );
+        setResult(computed);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wavelength, constantK, instBetaIB, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, decouplingMethod, youngsModulusGPa, separationMethod]);
 
   const handleDownloadCSV = () => {
     if (!result) return;
-    const header = "2Theta,4sin(theta),beta_IB*cos(theta),Fit\n";
-    const rows = chartData.map(d => `${d.twoTheta?.toFixed(4) || 0},${d.x.toFixed(6)},${d.y.toFixed(6)},${d.fit.toFixed(6)}`).join("\n");
+    const header = "2Theta,d_spacing_A,beta_Sample_deg,X_Coord,Y_Coord,Y_Fit,Residual,Single_Peak_Size_nm\n";
+    const rows = (result.pointsExtended || []).map((p, idx) => {
+      const pt = result.points[idx] || { x: 0, y: 0 };
+      const fitY = result.regression.slope * pt.x + result.regression.intercept;
+      return `${p.twoTheta.toFixed(4)},${p.dSpacing?.toFixed(4) || ''},${p.betaSampleDeg.toFixed(4)},${pt.x.toFixed(6)},${pt.y.toFixed(6)},${fitY.toFixed(6)},${(pt.y - fitY).toFixed(6)},${p.singlePeakSizeNm.toFixed(2)}`;
+    }).join("\n");
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ib_advanced_plot_${new Date().getTime()}.csv`;
+    a.download = `ib_advanced_${separationMethod}_${Date.now()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
+  const handleCopyJSON = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+    setCopiedNotification(true);
+    setTimeout(() => setCopiedNotification(false), 2000);
+  };
+
   // Prepare chart data
-  const chartData = result ? result.points.map(p => {
-    const fitY = result.regression.slope * p.x + result.regression.intercept;
+  const chartData = useMemo(() => {
+    if (!result) return [];
     const stdDev = Math.sqrt(
       result.points.reduce((sum, pt) => {
         const yPred = result.regression.slope * pt.x + result.regression.intercept;
         return sum + Math.pow(pt.y - yPred, 2);
       }, 0) / Math.max(1, result.points.length - 2)
     );
-    const confidenceBound = stdDev * 2.1; // 95% CI roughly
-    return {
-      x: p.x,
-      y: p.y,
-      fit: fitY,
-      fitRange: [Math.max(0, fitY - confidenceBound), fitY + confidenceBound],
-      deviation: p.y - fitY,
-      twoTheta: p.twoTheta,
-      betaSample: p.betaSample
-    };
-  }).sort((a,b) => a.x - b.x) : [];
+    const confidenceBound = stdDev * 2.0;
+
+    return result.points.map((p, i) => {
+      const fitY = result.regression.slope * p.x + result.regression.intercept;
+      const ext = result.pointsExtended ? result.pointsExtended[i] : null;
+      return {
+        x: p.x,
+        y: p.y,
+        fit: fitY,
+        fitRange: [Math.max(0, fitY - confidenceBound), fitY + confidenceBound],
+        residual: p.y - fitY,
+        twoTheta: p.twoTheta || ext?.twoTheta,
+        betaSample: p.betaSample || ext?.betaSampleDeg,
+        singleSize: ext?.singlePeakSizeNm || 0
+      };
+    }).sort((a, b) => a.x - b.x);
+  }, [result]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -219,19 +342,25 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
       } else if (separationMethod === 'ssp') {
         xLabel = 'X (d²·βcosθ)';
         yLabel = 'Y (d·βcosθ)²';
+      } else if (separationMethod === 'udedm') {
+        xLabel = 'X (4sinθ/√(E/2))';
+        yLabel = 'Y (βcosθ)';
       }
 
       return (
         <div className="bg-[#0A101C] text-white p-4 rounded-xl shadow-[0_0_30px_rgba(244,114,182,0.15)] border border-pink-500/30 text-xs font-mono">
-          <p className="font-black mb-3 text-pink-400 border-b border-white/5 pb-2 uppercase tracking-widest">Peak at {d.twoTheta?.toFixed(2)}°</p>
+          <p className="font-black mb-3 text-pink-400 border-b border-white/5 pb-2 uppercase tracking-widest">
+            Reflection at {d.twoTheta?.toFixed(2)}° 2θ
+          </p>
           <div className="space-y-2 text-[10px]">
-            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">β_IB Sample</span> <span className="text-pink-300 font-bold">{d.betaSample?.toFixed(4)}°</span></p>
+            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">β_sample</span> <span className="text-pink-300 font-bold">{d.betaSample?.toFixed(4)}°</span></p>
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">{xLabel}</span> <span className="text-cyan-300 font-bold">{d.x?.toExponential(3)}</span></p>
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">{yLabel}</span> <span className="text-cyan-300 font-bold">{d.y?.toExponential(3)}</span></p>
+            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Apparent Size</span> <span className="text-emerald-300 font-bold">{d.singleSize > 0 ? `${d.singleSize.toFixed(1)} nm` : '> 200 nm'}</span></p>
             <p className="flex justify-between gap-6 border-t border-white/5 pt-2 mt-2">
-              <span className="text-slate-500 uppercase">Deviation</span>
-              <span className={`font-bold ${d.deviation > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {d.deviation > 0 ? '+' : ''}{d.deviation?.toExponential(2)}
+              <span className="text-slate-500 uppercase">Residual (ΔY)</span>
+              <span className={`font-bold ${d.residual > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                {d.residual > 0 ? '+' : ''}{d.residual?.toExponential(2)}
               </span>
             </p>
           </div>
@@ -241,9 +370,23 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     return null;
   };
 
+  const getMethodFormula = () => {
+    switch (separationMethod) {
+      case 'hw':
+        return "\\left(\\frac{\\beta}{\\tan\\theta}\\right)^2 = \\frac{K\\lambda}{D} \\left(\\frac{\\beta}{\\tan\\theta \\sin\\theta}\\right) + 16\\varepsilon^2";
+      case 'ssp':
+        return "\\left(d_{hkl} \\beta \\cos\\theta\\right)^2 = \\frac{K\\lambda}{D} \\left(d_{hkl}^2 \\beta \\cos\\theta\\right) + \\frac{\\varepsilon^2}{4}";
+      case 'udedm':
+        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4 \\sin\\theta \\sqrt{\\frac{2u}{E}}";
+      case 'udm':
+      default:
+        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4 \\varepsilon \\sin\\theta";
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
-      {/* Configuration */}
+      {/* Configuration Column */}
       <div className="lg:col-span-4 space-y-6">
         <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
           {/* Custom Background Graphic */}
@@ -251,11 +394,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
             <img src={voigtBg} alt="Voigt Configuration" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/80 to-[#050A14]/30" />
           </div>
-          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl group-hover:bg-pink-500/20 transition-all duration-700 pointer-events-none"></div>
-          <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-pink-600/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-pink-500/20 transition-all duration-700"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl translate-y-16 -translate-x-16 group-hover:bg-purple-500/20 transition-all duration-700"></div>
-          </div>
+          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl group-hover:bg-pink-500/20 transition-all duration-700 pointer-events-none" />
 
           <div className="flex justify-between items-start mb-8 relative z-10">
             <div className="flex items-center gap-3">
@@ -268,7 +407,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               <div>
                 <h2 className="text-xl font-black text-white tracking-widest uppercase">IB Adv Config</h2>
                 <p className="text-[10px] text-slate-500 mt-1 uppercase font-black tracking-widest">
-                  Size-strain separation
+                  Size-strain deconvolution
                 </p>
               </div>
             </div>
@@ -282,11 +421,40 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
           </div>
 
           <div className="space-y-6 relative z-10">
+            {/* AI Smart Load Input */}
+            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-pink-500/30 transition-all group/load relative overflow-hidden">
+              <label className="block text-[10px] font-black text-pink-400/80 mb-3 uppercase tracking-[0.2em] flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-pink-500" />
+                AI Smart Load
+              </label>
+              <div className="flex gap-2 relative">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                  <span className="text-slate-600 font-mono text-xs">&gt;_</span>
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g. Ceria, Anatase, Zinc Oxide"
+                  className="flex-1 pl-8 pr-4 py-2.5 bg-[#0A101C] text-pink-300 border border-white/10 focus:border-pink-500/50 rounded-lg focus:ring-1 focus:ring-pink-500/20 outline-none text-xs transition-all placeholder:text-slate-700 font-mono"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSmartLoad()}
+                />
+                <button
+                  onClick={handleSmartLoad}
+                  disabled={isThinking || !searchQuery.trim()}
+                  className="px-3 py-2.5 bg-pink-500/10 hover:bg-pink-500/20 disabled:bg-slate-800/10 disabled:text-slate-700 text-pink-400 hover:text-pink-300 font-bold rounded-lg transition-all flex items-center justify-center min-w-[75px] gap-1.5 border border-pink-500/30 hover:border-pink-500/60 disabled:border-slate-800 text-xs"
+                >
+                  {isThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  <span className="font-mono uppercase tracking-widest font-black">Load</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Parameters Box */}
             <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-pink-500/30 transition-colors shadow-inner relative overflow-hidden group/params">
-              <div className="absolute top-0 right-0 p-4 opacity-5 bg-gradient-to-br from-pink-500 to-purple-500 rounded-bl-full pointer-events-none group-hover/params:opacity-10 transition-opacity"></div>
               <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <Zap className="w-3.5 h-3.5 text-pink-400" />
-                Parameters
+                Diffraction Parameters
               </h3>
 
               <div className="space-y-4">
@@ -332,11 +500,9 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                         onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
                         className="flex-1 px-4 py-2.5 bg-[#0A101C] text-pink-300 border border-white/10 hover:border-pink-500/40 rounded-lg outline-none transition-all flex items-center justify-between group shadow-inner"
                        >
-                         <div className="flex items-center gap-2">
-                           <span className="text-[10px] font-mono font-black text-pink-400 truncate max-w-[100px]">
-                            {selectedKType}
-                           </span>
-                         </div>
+                         <span className="text-[10px] font-mono font-black text-pink-400 truncate max-w-[120px]">
+                           {selectedKType}
+                         </span>
                          <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
                        </button>
                        <input
@@ -384,13 +550,10 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   {/* Instrumental Broadening Mode Picker */}
                   <div className="pt-3 mt-3 border-t border-white/5 space-y-4">
                     <h4 className="flex justify-between items-center text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">
-                      <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Instrumental Broadening</span>
+                      <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Instrumental Resolution</span>
                     </h4>
 
                     <div>
-                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-widest flex justify-between items-center">
-                        <span>Calibration Mapping Curve</span>
-                      </label>
                       <div className="grid grid-cols-2 gap-2 mb-3">
                         <button
                           type="button"
@@ -412,22 +575,18 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                               : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
                           }`}
                         >
-                          Caglioti Polynomial
+                          Caglioti Curve
                         </button>
                       </div>
 
                       {instrumentalMode === 'constant' ? (
                         <div className="space-y-2">
-                          <label className="block text-[9px] font-black text-slate-600 mb-1.5 uppercase tracking-[0.15em] flex justify-between items-center">
-                            <span>Resolution β_IB (DEG)</span>
-                            <span className="text-[8px] text-amber-600/60 font-mono">Constant</span>
-                          </label>
                           <input
                             type="number"
-                            step="0.01"
+                            step="0.005"
                             value={String(instBetaIB) === 'NaN' ? '' : instBetaIB}
                             onChange={(e) => setInstBetaIB(parseFloat(e.target.value) || 0)}
-                            className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
+                            className="w-full px-4 py-2 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-xs transition-all"
                             placeholder="e.g. 0.05"
                           />
                           <div className="flex gap-2">
@@ -444,61 +603,36 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-2.5 bg-[#0A101C] p-3 rounded-xl border border-amber-500/10 shadow-inner">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-amber-500/80 block">
-                              Polynomial: β_inst² = U·tan²θ + V·tanθ + W
-                            </span>
-                            <div className="flex gap-1">
-                              {[
-                                { name: '0 (Raw)', u: 0, v: 0, w: 0 },
-                                { name: 'Lab XRD', u: 0.005, v: -0.002, w: 0.015 },
-                                { name: 'Synchrotron', u: 0.0002, v: -0.0001, w: 0.001 }
-                              ].map((preset) => (
-                                <button
-                                  key={preset.name}
-                                  type="button"
-                                  onClick={() => {
-                                    setCagliotiU(preset.u);
-                                    setCagliotiV(preset.v);
-                                    setCagliotiW(preset.w);
-                                  }}
-                                  className="px-1.5 py-0.5 bg-[#070D18] border border-amber-500/20 rounded text-[8px] font-mono text-amber-300 hover:bg-amber-500/10"
-                                >
-                                  {preset.name}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                        <div className="space-y-2 bg-[#0A101C] p-3 rounded-xl border border-amber-500/10 shadow-inner">
                           <div className="grid grid-cols-3 gap-2">
                             <div>
-                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">U-param</span>
+                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">U</span>
                               <input
                                 type="number"
                                 step="0.001"
                                 value={String(cagliotiU) === 'NaN' ? '' : cagliotiU}
                                 onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center focus:ring-1 focus:ring-amber-500/20 outline-none"
+                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 rounded text-center outline-none"
                               />
                             </div>
                             <div>
-                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">V-param</span>
+                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">V</span>
                               <input
                                 type="number"
                                 step="0.001"
                                 value={String(cagliotiV) === 'NaN' ? '' : cagliotiV}
                                 onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center focus:ring-1 focus:ring-amber-500/20 outline-none"
+                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 rounded text-center outline-none"
                               />
                             </div>
                             <div>
-                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">W-param</span>
+                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">W</span>
                               <input
                                 type="number"
                                 step="0.001"
                                 value={String(cagliotiW) === 'NaN' ? '' : cagliotiW}
                                 onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center focus:ring-1 focus:ring-amber-500/20 outline-none"
+                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 rounded text-center outline-none"
                               />
                             </div>
                           </div>
@@ -510,103 +644,59 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   {/* Size-Strain Separation Model section */}
                   <div className="pt-3 mt-3 border-t border-white/5 space-y-4">
                     <h4 className="flex justify-between items-center text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">
-                      <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Size-Strain Separation</span>
+                      <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Separation Method</span>
                     </h4>
                     
-                    <div>
-                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-widest flex items-center gap-1.5">
-                        Profile Broadening Deconvolution
-                        <span title="Governs how the instrumental error is subtracted mathematically from observed breadth">
-                          <Info className="w-3 h-3 text-slate-600 cursor-help" />
-                        </span>
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'udm', label: 'UDM (W-H)', desc: 'Uniform Deformation' },
+                        { id: 'hw', label: 'Halder-Wagner', desc: 'Parabolic Voigt' },
+                        { id: 'ssp', label: 'SSP Plot', desc: 'Size-Strain Plot' },
+                        { id: 'udedm', label: 'UDEDM', desc: 'Strain Energy Model' }
+                      ].map(m => (
                         <button
+                          key={m.id}
                           type="button"
-                          onClick={() => setDecouplingMethod('linear')}
-                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
-                            decouplingMethod === 'linear'
-                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
-                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          onClick={() => setSeparationMethod(m.id as any)}
+                          className={`py-2 px-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border text-center ${
+                            separationMethod === m.id
+                              ? 'bg-pink-500/20 border-pink-500/60 text-pink-300 shadow-inner'
+                              : 'bg-[#0A101C] border-white/5 text-slate-500 hover:text-slate-300'
                           }`}
-                          title="Linear subtraction appropriate for Lorentzian/Cauchy peak profiles (β_sample = β_obs - β_inst)"
+                          title={m.desc}
                         >
-                          Linear (Lorentz)
+                          {m.label}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setDecouplingMethod('squared')}
-                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
-                            decouplingMethod === 'squared'
-                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
-                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                          }`}
-                          title="Quadratic separation appropriate for pure Gaussian peak profiles (β_sample² = β_obs² - β_inst²)"
-                        >
-                          Squared (Gauss)
-                        </button>
-                      </div>
-                      <div className="mt-2 flex flex-col gap-1 text-[8.5px] font-bold text-slate-400 bg-[#0A101C]/80 p-2.5 rounded-lg border border-pink-500/10 font-mono">
-                        <div className="flex items-center gap-1.5 text-pink-400 uppercase tracking-wider">
-                          <span className="text-pink-500">&gt;</span> Method: {decouplingMethod === 'linear' ? 'Linear Subtraction' : 'Quadratic Subtraction'}
-                        </div>
-                        <div className="text-slate-500 leading-normal uppercase">
-                          {decouplingMethod === 'linear'
-                            ? 'Mathematical Best-Fit for Lorentzian/Cauchy profiles.'
-                            : 'Mathematical Best-Fit for Gaussian / Dislocation profiles.'}
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
-                    <div className="pt-2">
-                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-widest flex items-center gap-1.5">
-                        Separation Method (Plot)
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSeparationMethod('udm')}
-                          className={`py-2 px-1 rounded-lg text-[8.5px] font-black uppercase tracking-widest transition-all border ${
-                            separationMethod === 'udm'
-                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
-                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                          }`}
-                          title="Uniform Deformation Model (Standard W-H)"
-                        >
-                          UDM (W-H)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSeparationMethod('hw')}
-                          className={`py-2 px-1 rounded-lg text-[8.5px] font-black uppercase tracking-widest transition-all border ${
-                            separationMethod === 'hw'
-                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
-                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                          }`}
-                          title="Halder-Wagner Method"
-                        >
-                          Halder-Wagner
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSeparationMethod('ssp')}
-                          className={`py-2 px-1 rounded-lg text-[8.5px] font-black uppercase tracking-widest transition-all border ${
-                            separationMethod === 'ssp'
-                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
-                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                          }`}
-                          title="Size-Strain Plot (SSP)"
-                        >
-                          SSP
-                        </button>
-                      </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setDecouplingMethod('linear')}
+                        className={`py-2 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                          decouplingMethod === 'linear'
+                            ? 'bg-pink-500/15 border-pink-500/50 text-pink-300'
+                            : 'bg-[#0A101C] border-white/5 text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        Linear (Lorentz)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDecouplingMethod('squared')}
+                        className={`py-2 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                          decouplingMethod === 'squared'
+                            ? 'bg-pink-500/15 border-pink-500/50 text-pink-300'
+                            : 'bg-[#0A101C] border-white/5 text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        Squared (Gauss)
+                      </button>
                     </div>
 
                     <div>
-                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-[0.2em] flex justify-between items-center">
-                        <span>Uniform Stress Deformation (USDM)</span>
-                      </label>
-                      <div className="bg-[#0A101C] rounded-lg border border-white/5 p-4 space-y-3 shadow-inner">
+                      <div className="bg-[#0A101C] rounded-lg border border-white/5 p-3 space-y-2 shadow-inner">
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] font-bold text-slate-400 uppercase">Young's Modulus (E)</span>
                           <span className="text-xs font-mono font-black text-pink-400">{youngsModulusGPa} GPa</span>
@@ -620,9 +710,6 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                           onChange={(e) => setYoungsModulusGPa(parseInt(e.target.value) || 130)}
                           className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
                         />
-                        <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-normal pt-2 border-t border-white/5">
-                          Translates mechanical microstrain into physical internal lattice stresses (MPa) & volumetric strain energy density (kJ/m³).
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -630,22 +717,30 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               </div>
             </div>
 
+            {/* Presets & Peak Data */}
             <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-colors shadow-inner relative group/params">
-              <div className="absolute top-0 right-0 p-4 opacity-5 bg-gradient-to-br from-pink-500 to-purple-500 rounded-bl-full pointer-events-none group-hover/params:opacity-10 transition-opacity overflow-hidden"></div>
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5 text-pink-400" />
-                Material Presets
-              </h3>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 text-pink-400" />
+                  Presets & Data
+                </h3>
+                <button 
+                  onClick={handleClear}
+                  className="text-[8px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1 bg-red-500/10 hover:bg-red-500/20 px-2 py-0.5 rounded border border-red-500/30"
+                >
+                  <Trash2 className="w-2.5 h-2.5" /> Clear
+                </button>
+              </div>
               
-              <div className={`relative mb-6 ${isMaterialMenuOpen ? 'z-50' : 'z-10'}`} ref={matMenuRef}>
+              <div className={`relative mb-4 ${isMaterialMenuOpen ? 'z-50' : 'z-10'}`} ref={matMenuRef}>
                 <button
                   onClick={() => setIsMaterialMenuOpen(!isMaterialMenuOpen)}
-                  className="w-full px-4 py-2.5 bg-[#0A101C] border border-white/10 hover:border-emerald-500/40 rounded-lg outline-none transition-all flex items-center justify-between shadow-inner"
+                  className="w-full px-3 py-2 bg-[#0A101C] border border-white/10 hover:border-emerald-500/40 rounded-lg outline-none transition-all flex items-center justify-between shadow-inner"
                 >
-                  <span className="text-sm font-black text-emerald-300">
+                  <span className="text-xs font-black text-emerald-300 truncate">
                     {selectedMaterial}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 <AnimatePresence>
@@ -654,58 +749,34 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute top-full left-0 right-0 mt-2 bg-slate-950/95 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-50 p-1.5 backdrop-blur-3xl ring-1 ring-white/10"
+                      className="absolute top-full left-0 right-0 mt-2 bg-slate-950/95 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-50 p-1.5 backdrop-blur-3xl"
                     >
-                      <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
                         {MATERIAL_PRESETS.map((m) => (
                           <button
                             key={m.label}
                             onClick={() => {
                               setSelectedMaterial(m.label);
                               setInputData(m.data);
-                              if (m.youngsModulus) {
-                                setYoungsModulusGPa(m.youngsModulus);
-                              }
+                              if (m.youngsModulus) setYoungsModulusGPa(m.youngsModulus);
                               setIsMaterialMenuOpen(false);
                             }}
-                            className={`w-full px-4 py-3 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-emerald-500/10' : ''}`}
+                            className={`w-full px-3 py-2 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-emerald-500/10' : ''}`}
                           >
-                            <span className={`text-sm font-black ${selectedMaterial === m.label ? 'text-emerald-400' : 'text-slate-300'}`}>
+                            <span className={`text-xs font-black ${selectedMaterial === m.label ? 'text-emerald-400' : 'text-slate-300'}`}>
                               {m.label}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
                               {m.desc}
                             </span>
                           </button>
                         ))}
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelectedMaterial('Custom Data');
-                          setIsMaterialMenuOpen(false);
-                        }}
-                        className={`w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === 'Custom Data' ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-300'}`}
-                      >
-                        <span className="text-sm font-black">Custom Data</span>
-                        <Settings2 className="w-3.5 h-3.5 opacity-50" />
-                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              <div className="flex justify-between items-end mb-4">
-                <label className="block text-[10px] font-black text-emerald-400/80 uppercase tracking-widest flex items-center gap-2">
-                  <FileText className="w-3.5 h-3.5" />
-                  Peak Data Input
-                </label>
-                <button 
-                  onClick={handleClear}
-                  className="text-[8px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1 transition-colors bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded border border-red-500/30"
-                >
-                  <Trash2 className="w-2.5 h-2.5" /> Clear
-                </button>
-              </div>
               <div className="relative font-mono text-xs">
                 <textarea
                   value={inputData}
@@ -717,20 +788,8 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   className="w-full h-32 px-4 py-3 bg-[#0A101C] text-emerald-300 border border-white/10 focus:border-emerald-500/50 rounded-lg focus:ring-1 focus:ring-emerald-500/20 outline-none custom-scrollbar transition-all leading-relaxed placeholder:text-slate-700 shadow-inner"
                   spellCheck="false"
                 />
-                <div className="absolute top-2 right-2 text-[8px] font-black text-slate-500 uppercase tracking-widest bg-black px-2 py-1 rounded border border-white/10 shadow-md">
-                  FMT: 2θ, Area, Imax
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-4 bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 font-mono">
-                   <div className="w-1 h-1 rounded-full bg-emerald-500/50" />
-                   β = <span className="text-emerald-400">A / I0</span>
-                </div>
-                <div className="flex items-center gap-2">
-                   <span className="text-[8px] text-slate-500 font-mono font-black uppercase">Vecs:</span>
-                   <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded shadow-sm border ${parseIBAdvancedInput(inputData).length >= 2 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>
-                     {parseIBAdvancedInput(inputData).length}
-                   </span>
+                <div className="absolute top-2 right-2 text-[8px] font-black text-slate-500 uppercase tracking-widest bg-black px-2 py-0.5 rounded border border-white/10">
+                  2θ, Area, Imax
                 </div>
               </div>
             </div>
@@ -745,613 +804,378 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                      : 'bg-[#070D18] text-slate-600 cursor-not-allowed border border-white/5 shadow-inner'
                 }`}
               >
-                {parseIBAdvancedInput(inputData).length >= 2 && <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />}
-                <TrendingUp className={`w-5 h-5 ${parseIBAdvancedInput(inputData).length >= 2 ? 'group-hover:scale-110 transition-transform' : ''}`} />
-                Analyze Data
+                <TrendingUp className="w-5 h-5" />
+                Analyze Model
               </button>
             ) : (
               <div className="bg-[#070D18] p-5 rounded-2xl border border-pink-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(244,114,182,0.05)]">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-2xl rounded-full" />
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 text-pink-400 animate-spin" /> Advanced Analysis Running
+                  <Loader2 className="w-4 h-4 text-pink-400 animate-spin" /> Advanced Regression Processing
                 </h4>
-                <div className="space-y-3 relative z-10 w-full flex flex-col">
+                <div className="space-y-2.5 relative z-10 w-full flex flex-col">
                   {[
-                    { step: 1, label: 'Parsing Reflectivity Integrals', icon: Database },
-                    { step: 2, label: instrumentalMode === 'constant' ? 'Applying Constant β_inst' : 'Computing Caglioti IRF', icon: FlaskConical },
-                    { step: 3, label: decouplingMethod === 'linear' ? 'Lorentzian Deconvolution' : 'Gaussian Deconvolution', icon: Activity },
-                    { step: 4, label: 'Computing W-H Regression Matrix', icon: Layers },
-                    { step: 5, label: 'Extracting Elastic Tensors', icon: CheckCircle }
+                    { step: 1, label: 'Parsing Profile Breadths', icon: Database },
+                    { step: 2, label: 'Calibrating Instrumental Broadening', icon: FlaskConical },
+                    { step: 3, label: 'Decoupling Sample Broadening', icon: Activity },
+                    { step: 4, label: `Executing ${separationMethod.toUpperCase()} Regression`, icon: Layers },
+                    { step: 5, label: 'Deriving Elastic Stress & Energy Tensors', icon: CheckCircle }
                   ].map((s) => {
                      const Icon = s.icon;
                      const isActive = simulationStep === s.step;
                      const isDone = simulationStep > s.step;
                      return (
-                       <div key={s.step} className={`flex items-center gap-3 w-full transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : isDone ? 'opacity-50' : 'opacity-20'}`}>
+                       <div key={s.step} className={`flex items-center gap-2.5 w-full transition-all ${isActive ? 'opacity-100' : isDone ? 'opacity-50' : 'opacity-20'}`}>
                          <div className={`p-1.5 rounded-lg border flex-shrink-0 ${isActive ? 'bg-pink-500/20 border-pink-500/50 text-pink-400' : isDone ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-800 border-white/5 text-slate-500'}`}>
-                           <Icon className={`w-3.5 h-3.5 ${isActive ? 'animate-pulse' : ''}`} />
+                           <Icon className="w-3 h-3" />
                          </div>
-                         <div className="flex-1 flex flex-col">
-                           <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-pink-300' : isDone ? 'text-emerald-300/80' : 'text-slate-500'}`}>
-                             {s.label}
-                           </span>
-                           {isActive && <div className="h-0.5 bg-gradient-to-r from-pink-500 to-transparent w-full mt-1.5 animate-pulse rounded-full" />}
-                         </div>
+                         <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-pink-300' : isDone ? 'text-emerald-300/80' : 'text-slate-500'}`}>
+                           {s.label}
+                         </span>
                        </div>
                      );
                   })}
                 </div>
               </div>
             )}
-
-            {result && (
-              <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 flex flex-col gap-3 shadow-inner">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Calculated Size</span>
-                  <span className="text-sm font-black font-mono text-emerald-400">{result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? result.sizeInterceptNm.toFixed(2) : '> 250 nm (∞)'} <span className="text-[10px] opacity-50 font-sans tracking-widest uppercase">NM</span></span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Microstrain</span>
-                  <span className="text-sm font-black font-mono text-cyan-400">{(result.strainPercent / 100 * 10000).toFixed(2)} <span className="text-[10px] opacity-50 font-sans tracking-widest uppercase">× 10⁻⁴</span></span>
-                </div>
-              </div>
-            )}
-            
-            <div className="bg-[#0A101C] rounded-xl p-4 border border-white/5 overflow-hidden relative group/json shadow-inner">
-               <div className="flex justify-between items-center mb-3 pb-2 border-b border-white/5">
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Output JSON</span>
-                 <button onClick={() => result && navigator.clipboard.writeText(JSON.stringify(result,null,2))} className="text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-pink-400 transition-colors bg-white/5 hover:bg-pink-500/10 px-2 py-1 rounded border border-white/10 hover:border-pink-500/30">Copy</button>
-               </div>
-               <pre className="text-[9px] font-mono text-slate-400 overflow-x-auto max-h-32 custom-scrollbar opacity-70 group-hover/json:opacity-100 transition-opacity">
-                 {result ? JSON.stringify({
-                   module: "IB-Advanced",
-                   method: "W-H Plot",
-                   correction: "Linear",
-                   results: {
-                     strain_percent: result.strainPercent,
-                     size_intercept_nm: result.sizeInterceptNm,
-                     r_squared: result.regression.rSquared
-                   }
-                 }, null, 2) : "// No data calculated"}
-               </pre>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Results */}
+      {/* Results Column */}
       <div className="lg:col-span-8 space-y-6">
         {result && (
           <ScientificMathControl
-            title="Advanced Integral Breadth / UDM Verification"
-            formula="\beta \cos(\theta) = \frac{K \lambda}{D} + 4 \varepsilon \sin(\theta)"
-            description="Uniform Deformation Model (UDM) formulation displaying the linear regression line parameters (slope translates to strain, intercept translates to crystallite size)."
+            title={`Size-Strain Separation (${separationMethod.toUpperCase()} Model)`}
+            formula={getMethodFormula()}
+            description={`${separationMethod === 'udm' ? 'Uniform Deformation Model (UDM)' : separationMethod === 'hw' ? 'Halder-Wagner (HW) Voigt parabolic deconvolution' : separationMethod === 'ssp' ? 'Size-Strain Plot (SSP) method' : 'Uniform Deformation Energy Density Model (UDEDM)'} separating strain and crystallite size contributions.`}
             variables={[
-              { symbol: 'Slope (4ε)', name: 'Microstrain Regression Factor', value: result.regression.slope, unit: '' },
-              { symbol: 'Intercept (c)', name: 'Reciprocal Dimension Intercept', value: result.regression.intercept, unit: `${lengthUnit}⁻¹` },
-              { symbol: 'R²', name: 'Least-Squares Fit Confidence', value: result.regression.rSquared, unit: '' },
-              { symbol: 'E', name: 'Material Young\'s Modulus', value: youngsModulusGPa, unit: 'GPa' }
+              { symbol: 'Slope', name: 'Regression Slope', value: result.regression.slope, unit: '' },
+              { symbol: 'Intercept', name: 'Regression Intercept', value: result.regression.intercept, unit: '' },
+              { symbol: 'R²', name: 'Coefficient of Determination', value: result.regression.rSquared, unit: '' },
+              { symbol: 'Adj R²', name: 'Adjusted R-Squared', value: result.regression.adjustedRSquared || result.regression.rSquared, unit: '' },
+              { symbol: 'E', name: 'Young\'s Modulus', value: youngsModulusGPa, unit: 'GPa' }
             ]}
             result={result.sizeInterceptNm}
             resultUnit="nm"
-            resultName="Crystallite Grain Size (D)"
+            resultName="Unified Crystallite Size (D)"
           />
         )}
-        {/* Results Summary */}
+
+        {/* Multi-Card Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-           {/* Card 1: Microstrain */}
-           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 rounded-3xl border border-cyan-500/20 shadow-2xl relative overflow-hidden group/size-card flex flex-col justify-between transition-all duration-500">
-             {/* Custom Background Graphic */}
-             <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
-               <img src={voigtBg} alt="Size Result" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-             </div>
-             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] transition-all duration-700 pointer-events-none group-hover:bg-cyan-500/20 translate-x-10 -translate-y-10" />
-             <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full blur-[30px] transition-all duration-700 pointer-events-none group-hover:bg-blue-500/20 -translate-x-10 translate-y-10" />
-             
-             <div>
-               <div className="flex items-center gap-3 mb-4 relative z-10">
-                 <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-[inset_0_2px_10px_rgba(34,211,238,0.2)]">
-                   <Activity className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
-                 </div>
-                 <p className="text-[10px] font-black text-cyan-400/80 uppercase tracking-[0.3em]">Microstrain (ε)</p>
-               </div>
-               
-               <div className="flex flex-col mt-2 relative z-10">
-                 <div className="flex items-baseline gap-2">
-                   <p className="text-3xl sm:text-4xl font-black text-white group-hover:text-cyan-50 transition-colors drop-shadow-[0_0_20px_rgba(34,211,238,0.3)] font-mono tracking-tight tracking-tighter">
-                     {result ? (result.strainPercent / 100).toExponential(2).split('e')[0] : '-'}
-                   </p>
-                   {result && (
-                     <span className="text-sm font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
-                       × 10<sup className="text-[10px]">{result.strainPercent === 0 ? '0' : (result.strainPercent / 100).toExponential(2).split('e')[1].replace('+', '')}</sup>
-                     </span>
-                   )}
-                 </div>
-                 {result && (
-                   <div className="inline-flex items-center gap-2 mt-3 bg-[#0A1526]/60 border border-cyan-500/30 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
-                     <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-500"></span></div>
-                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-500/80">Real Value:</span>
-                     <span className="text-[10px] font-mono font-bold text-cyan-300">{(result.strainPercent / 100).toExponential(8)}</span>
-                   </div>
-                 )}
-                 
-                 {result && (
-                   <div className="flex items-center gap-2 mt-3">
-                     <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/50 to-transparent" />
-                     <p className="text-xs text-slate-400 font-mono font-medium">
-                       <span className="text-slate-500 mr-1">Percentage:</span>
-                       <span className="text-cyan-200/70">{result.strainPercent.toFixed(4)}%</span>
-                     </p>
-                   </div>
-                 )}
-               </div>
-             </div>
-             
-             <div className="flex items-center justify-between mt-6 relative z-10 w-full pt-4 border-t border-white/5">
-                <span className="text-[9px] font-black text-cyan-500 bg-cyan-500/5 px-2 py-1.5 rounded-lg border border-cyan-500/10 uppercase tracking-widest flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  W-H Slope Derived
+          {/* Crystallite Size */}
+          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-3xl border border-emerald-500/20 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                  <Box className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Unified Size (D)</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-white font-mono">
+                  {result && result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? result.sizeInterceptNm.toFixed(1) : '> 250'}
                 </span>
-                <button
-                  onClick={() => {
-                    setShowStrainExpl(!showStrainExpl);
-                    setShowInfiniteExpl(false);
-                  }}
-                  className="text-[9px] font-black text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1.5 rounded-lg border border-cyan-500/20 uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
-                >
-                  <span>{showStrainExpl ? 'Close Help' : 'What is Strain?'}</span>
-                  <Info className="w-3.5 h-3.5 text-cyan-400" />
-                </button>
-             </div>
-           </div>
-           
-           {/* Card 2: Crystallite Size */}
-           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-6 rounded-3xl border border-emerald-500/20 shadow-2xl relative overflow-hidden group/size-card flex flex-col justify-between transition-all duration-500">
-             {/* Custom Background Graphic */}
-             <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
-               <img src={voigtBg} alt="Strain Result" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-             </div>
-             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700 translate-x-10 -translate-y-10" />
-             
-             <div>
-               <div className="flex items-center gap-3 mb-4 relative z-10">
-                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[inset_0_2px_10px_rgba(16,185,129,0.2)]">
-                   <Box className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                 </div>
-                 <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.3em]">Crystallite Size</p>
-               </div>
-               
-               <div className="relative z-10 mt-2">
-                 {result ? (
-                   result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? (
-                     <div className="flex flex-col">
-                       <div className="flex items-baseline gap-2">
-                         <p className="text-3xl sm:text-4xl font-black text-white group-hover:text-emerald-50 transition-colors drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] font-mono tracking-tighter">
-                           {result.sizeInterceptNm.toFixed(1)}
-                         </p>
-                         <span className="text-sm font-black text-emerald-500/80 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">nm</span>
-                       </div>
-                       <div className="inline-flex items-center gap-2 mt-3 bg-[#0A1526]/60 border border-emerald-500/30 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
-                         <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span></div>
-                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/80">Real Value:</span>
-                         <span className="text-[10px] font-mono font-bold text-emerald-300">{result.sizeInterceptNm.toFixed(6)} nm</span>
-                       </div>
-                       <div className="flex items-center gap-2 mt-3">
-                         <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent" />
-                         <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
-                           Global W-H Intercept
-                         </p>
-                       </div>
-                     </div>
-                   ) : (
-                     <div className="flex flex-col justify-center h-[70px] bg-amber-500/5 rounded-2xl border border-amber-500/10 px-4 py-2">
-                       <div className="flex items-baseline gap-2">
-                         <p className="text-2xl font-black text-amber-400 tracking-tight font-mono">
-                           &gt; 250 <span className="text-sm text-amber-500/80 uppercase">nm</span>
-                         </p>
-                         <span className="text-[10px] font-bold text-amber-500/70 font-mono bg-amber-500/10 px-1.5 py-0.5 rounded">
-                           ({result.regression.intercept <= 0 ? 'Negative / ∞' : '∞'})
-                         </span>
-                       </div>
-                       <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest mt-1">
-                         Beyond typical XRD resolution limit
-                       </p>
-                     </div>
-                   )
-                 ) : (
-                   <p className="text-3xl font-black text-white font-mono opacity-50">- <span className="text-sm uppercase tracking-widest text-slate-600">nm</span></p>
-                 )}
-               </div>
-             </div>
-             
-             {result && result.pointsExtended && result.pointsExtended.length > 0 && (
-               <div className="mt-4 pt-3 border-t border-white/5 relative z-10 flex-1 flex flex-col">
-                 <p className="text-[8px] font-black text-emerald-400/60 uppercase tracking-widest flex items-center justify-between mb-2">
-                    <span>Individual Peak Estimates</span>
-                    <span className="text-slate-500">Apparent Size</span>
-                 </p>
-                 <div className="space-y-1.5 max-h-[85px] overflow-y-auto custom-scrollbar pr-1 flex-1">
-                   {result.pointsExtended.map((p, i) => (
-                     <div key={i} className="flex justify-between items-center text-[10px] font-mono bg-emerald-500/5 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/10 transition-colors">
-                       <span className="text-slate-400 font-medium">{p.twoTheta.toFixed(2)}° <span className="text-[8px] text-slate-600 font-sans ml-0.5">2θ</span></span>
-                       {p.singlePeakSizeNm > 0 && p.singlePeakSizeNm < 1000 ? (
-                         <span className="text-emerald-300 font-bold">{p.singlePeakSizeNm.toFixed(1)} <span className="text-[8px] font-sans text-emerald-500/50 ml-0.5">nm</span></span>
-                       ) : (
-                         <span className="text-amber-400/80 font-bold text-[9px] flex items-center gap-1">
-                           &gt; 200 nm <span className="text-[8px] text-amber-600 font-sans tracking-none">(∞)</span>
-                         </span>
-                       )}
-                     </div>
-                   ))}
-                 </div>
-               </div>
-             )}
+                <span className="text-sm font-black text-emerald-400 uppercase">nm</span>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[9px] text-slate-500 uppercase tracking-wider font-mono">
+              Intercept Derived
+            </div>
+          </div>
 
-             <div className="flex items-center justify-between mt-4 relative z-10 w-full pt-4 border-t border-white/5">
-               <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/5 px-2 py-1.5 rounded-lg border border-emerald-500/10 uppercase tracking-widest flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Y-Intercept Derived
-               </span>
-               {result && (result.sizeInterceptNm <= 0 || result.pointsExtended?.some(p => p.singlePeakSizeNm <= 0 || p.singlePeakSizeNm >= 1000)) && (
-                 <button
-                   onClick={() => setShowInfiniteExpl(!showInfiniteExpl)}
-                   className="text-[9px] font-black text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-lg border border-amber-500/20 uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5"
-                 >
-                   <span>{showInfiniteExpl ? 'Close Help' : 'Why Infinite?'}</span>
-                   <Info className="w-3 h-3" />
-                 </button>
-               )}
-             </div>
-           </div>
-
-           {/* Card 3: Isotropic Elastic Stress */}
-           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-[2rem] border border-cyan-400/20 shadow-2xl relative overflow-hidden group/size-card hover:border-cyan-400/40 transition-all flex flex-col justify-between">
-                {/* Custom Background Graphic */}
-                <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
-                  <img src={voigtBg} alt="Lorentzian Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+          {/* Microstrain */}
+          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-3xl border border-cyan-500/20 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                  <Activity className="w-4 h-4" />
                 </div>
-             <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-400/5 rounded-bl-full transition-all group-hover:scale-110" />
-             <div>
-               <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Elastic Properties</p>
-               {result && result.stressMPa !== undefined ? (
-                 <div className="mt-2 relative z-10 space-y-1">
-                   <div>
-                     <span className="text-[8px] font-bold text-slate-500 uppercase block">Stress (σ)</span>
-                     <p className="text-xl font-black text-white hover:text-cyan-50 transition-colors">
-                       {result.stressMPa.toFixed(1)} <span className="text-xs text-slate-400 font-mono tracking-wider uppercase">MPa</span>
-                     </p>
-                   </div>
-                   <div>
-                     <span className="text-[8px] font-bold text-slate-500 uppercase block">Energy Den. (u)</span>
-                     <p className="text-xs font-black text-cyan-300 font-mono">
-                       {result.energyDensityKjM3?.toFixed(2)} <span className="text-[9px] text-slate-500 uppercase">kJ/m³</span>
-                     </p>
-                   </div>
-                 </div>
-               ) : (
-                 <div className="mt-2 relative z-10 text-slate-600 text-xs py-1.5 uppercase font-black tracking-widest">
-                   No Modulus Set
-                 </div>
-               )}
-             </div>
-             <p className="text-[8px] font-black text-cyan-400 bg-cyan-400/15 px-2 py-1 rounded inline-block mt-3 border border-cyan-400/20 uppercase tracking-widest relative z-10 w-fit">
-               {youngsModulusGPa && youngsModulusGPa > 0 ? `E = ${youngsModulusGPa} GPa` : 'Isotropic Model'}
-             </p>
-           </div>
+                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Microstrain (ε)</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-white font-mono">
+                  {result ? (result.strainPercent / 100 * 1000).toFixed(2) : '-'}
+                </span>
+                <span className="text-xs font-bold text-cyan-400">× 10⁻³</span>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[9px] text-slate-500 uppercase tracking-wider font-mono">
+              {result ? `${result.strainPercent.toFixed(3)}% strain` : '-'}
+            </div>
+          </div>
 
-           {/* Card 4: Fit Quality */}
-           <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-[2rem] border border-purple-500/20 shadow-2xl relative overflow-hidden group/size-card hover:border-purple-500/40 transition-all flex flex-col justify-between">
-                {/* Custom Background Graphic */}
-                <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover/size-card:opacity-20 transition-opacity duration-1000 mix-blend-screen">
-                  <img src={voigtBg} alt="Gaussian Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+          {/* Stress & Energy */}
+          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-3xl border border-pink-500/20 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-pink-500/10 border border-pink-500/30 text-pink-400">
+                  <Cpu className="w-4 h-4" />
                 </div>
-             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-bl-full transition-all group-hover:scale-110" />
-             <div>
-               <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Fit Quality (R²)</p>
-               <p className="text-2xl font-black text-white relative z-10 drop-shadow-[0_0_15px_rgba(168,85,247,0.4)] mt-2">
-                 {result ? result.regression.rSquared.toFixed(4) : '-'}
-               </p>
-             </div>
-             <div className="mt-4 text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 relative z-10">
-               {result && result.regression.rSquared > 0.95 ? (
-                  <span className="text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20"><ArrowUpRight className="w-3.5 h-3.5" /> Excellent Fit</span>
-               ) : result && result.regression.rSquared > 0.8 ? (
-                  <span className="text-amber-400 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">Acceptable Fit</span>
-               ) : result ? (
-                  <span className="text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20">Poor Fit</span>
-               ) : (
-                  <span className="text-slate-600 bg-white/5 opacity-50 px-2 py-1 rounded border border-white/10">AWAITING DATA</span>
-               )}
-             </div>
-           </div>
+                <span className="text-[10px] font-black text-pink-400 uppercase tracking-widest">Internal Stress (σ)</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-white font-mono">
+                  {result && result.stressMPa !== undefined ? result.stressMPa.toFixed(1) : '-'}
+                </span>
+                <span className="text-xs font-bold text-pink-400">MPa</span>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[9px] text-slate-500 uppercase tracking-wider font-mono">
+              u = {result?.energyDensityKjM3?.toFixed(2) || '-'} kJ/m³
+            </div>
+          </div>
+
+          {/* Fit Quality R² */}
+          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-5 rounded-3xl border border-purple-500/20 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-400">
+                  <Sliders className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Fit Quality (R²)</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-white font-mono">
+                  {result ? result.regression.rSquared.toFixed(4) : '-'}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-white/5 text-[9px] text-slate-500 uppercase tracking-wider font-mono flex items-center justify-between">
+              <span>Adj R²: {result?.regression.adjustedRSquared ? result.regression.adjustedRSquared.toFixed(3) : '-'}</span>
+              <span>r = {result?.regression.pearsonR ? result.regression.pearsonR.toFixed(3) : '-'}</span>
+            </div>
+          </div>
         </div>
 
-        {/* Collapsible Scientific Explanation sheet for Infinities */}
-        <AnimatePresence>
-          {showInfiniteExpl && result && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
-              className="overflow-hidden mb-6"
-            >
-              <div className="bg-[#050A14] border border-amber-500/25 rounded-3xl p-6 text-slate-300 space-y-4 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/[0.02] rounded-bl-full pointer-events-none" />
-                
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-amber-500/15 rounded-xl border border-amber-500/30 text-amber-400 mt-0.5 animate-pulse-slow">
-                    <Info className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-xs font-black text-white uppercase tracking-[0.2em] mb-1">
-                      Scientific Advisory: Resolving "Infinite" Crystallite Sizes
-                    </h4>
-                    <p className="text-[10px] text-amber-400 uppercase font-black tracking-widest font-mono">
-                      Physics &amp; Numerical Regression Analysis Guidelines
-                    </p>
-                  </div>
-                </div>
+        {/* Visualizer Tabs Header */}
+        <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative flex flex-col overflow-hidden">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b border-white/5 relative z-10">
+            <div className="flex items-center gap-2">
+              {[
+                { id: 'fit', label: `${separationMethod.toUpperCase()} Regression Plot`, icon: TrendingUp },
+                { id: 'residuals', label: 'Residuals Diagnostic', icon: Activity },
+                { id: 'apparentSizes', label: 'Reflection Apparent Sizes', icon: BarChart2 },
+                { id: 'elasticState', label: 'Microstructural Tensors', icon: Cpu }
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeChartTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveChartTab(tab.id as any)}
+                    className={`px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                      isActive
+                        ? 'bg-pink-500/20 text-pink-300 border border-pink-500/40 shadow-inner'
+                        : 'bg-[#070D18] text-slate-500 hover:text-slate-300 border border-white/5'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/5 text-[11px] leading-relaxed font-sans">
-                  <div className="space-y-2">
-                    <p className="font-bold text-slate-200">
-                      1. Why does the calculation return <span className="text-emerald-400 font-mono italic">Infinite (&infin;)</span>?
-                    </p>
-                    <p className="text-slate-400 text-[10.5px]">
-                      The Williamson-Hall equation calculates crystallite size from the y-intercept of the regression line, where:
-                      <br />
-                      <span className="block my-2 py-1.5 bg-black/40 text-center rounded font-mono text-xs text-white border border-white/5">
-                        D = ( K &middot; &lambda; ) / ( &beta;_intercept &middot; cos &theta; &middot; 10 )
-                      </span>
-                      If the trendline's y-intercept (&beta;_intercept) is <span className="font-semibold text-amber-400">equal to or less than zero</span>, solving for crystallite size (D) yields infinitely large or physically impossible negative values. In materials science, this confirms that size-broadening is entirely negligible compared to strain.
-                    </p>
-                    
-                    <p className="font-bold text-slate-200 pt-2">
-                      2. Physical Resolution Limits (&gt; 200 nm):
-                    </p>
-                    <p className="text-slate-400 text-[10.5px]">
-                      In standard diffractometers, peak broadening has an instrumental threshold. When crystallite sizes exceed **100&ndash;300 nm**, their size-broadening contribution becomes so microscopically small that the observed peak width (&beta;_obs) matches the instrumental width (&beta;_inst). Net sample broadening becomes &beta;_sample &approx; 0. Physically, the material has transitioned from nano-crystalline to macro-crystalline.
-                    </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDownloadCSV}
+                className="px-3 py-1.5 bg-[#070D18] hover:bg-pink-500/10 text-slate-400 hover:text-pink-300 border border-white/5 hover:border-pink-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
+              >
+                <Download className="w-3 h-3" /> Export CSV
+              </button>
+              <button
+                onClick={handleCopyJSON}
+                className="px-3 py-1.5 bg-[#070D18] hover:bg-purple-500/10 text-slate-400 hover:text-purple-300 border border-white/5 hover:border-purple-500/30 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5"
+              >
+                <Copy className="w-3 h-3" /> {copiedNotification ? 'Copied!' : 'Copy JSON'}
+              </button>
+            </div>
+          </div>
+
+          {/* Tab 1: Regression Chart */}
+          {activeChartTab === 'fit' && (
+            <div className="flex flex-col h-[400px]">
+              <div className="flex justify-between items-center mb-2 px-2 text-[10px] font-mono text-slate-400">
+                <span>Model: <span className="text-pink-400 font-bold">{separationMethod.toUpperCase()}</span></span>
+                {result && (
+                  <span className="text-cyan-300">
+                    y = {result.regression.slope.toFixed(5)}x + {result.regression.intercept.toFixed(5)}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 w-full min-h-0 bg-[#070D18] rounded-2xl p-4 border border-white/5">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis 
+                      dataKey="x" 
+                      type="number" 
+                      domain={['auto', 'auto']}
+                      label={{ value: separationMethod === 'hw' ? 'X = β/(tanθ·sinθ)' : separationMethod === 'ssp' ? 'X = d²·βcosθ' : separationMethod === 'udedm' ? 'X = 4sinθ/√(E/2)' : 'X = 4 sin(θ)', position: 'bottom', offset: 20, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                      tickFormatter={(val) => val.toExponential(1)}
+                    />
+                    <YAxis 
+                      domain={['auto', 'auto']}
+                      label={{ value: separationMethod === 'hw' ? 'Y = (β/tanθ)²' : separationMethod === 'ssp' ? 'Y = (d·βcosθ)²' : 'Y = β_sample cos(θ)', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                      tickFormatter={(val) => val.toExponential(1)}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase' }} />
+                    <Area
+                      type="monotone"
+                      dataKey="fitRange"
+                      stroke="none"
+                      fill="#fb7185"
+                      fillOpacity={0.1}
+                      name="95% Confidence Band"
+                    />
+                    <Scatter 
+                      name="Reflections" 
+                      dataKey="y" 
+                      fill="#f472b6" 
+                      shape="circle"
+                      r={5}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="fit" 
+                      stroke="#fb7185" 
+                      strokeWidth={2} 
+                      dot={false} 
+                      name="Fitted Regression Line"
+                      activeDot={false}
+                      strokeDasharray="5 5"
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: Residuals */}
+          {activeChartTab === 'residuals' && (
+            <div className="flex flex-col h-[400px]">
+              <div className="mb-2 text-[10px] font-mono text-slate-400">
+                Fit Residuals (Observed Y - Fitted Y) across reflection angles 2θ (Checks for systematic strain anisotropy)
+              </div>
+              <div className="flex-1 w-full bg-[#070D18] rounded-2xl p-4 border border-white/5">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis 
+                      dataKey="twoTheta" 
+                      type="number"
+                      domain={['auto', 'auto']}
+                      label={{ value: 'Diffraction Angle 2θ (°)', position: 'bottom', offset: 20, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                    />
+                    <YAxis 
+                      label={{ value: 'Residual (Y - Fit)', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                      tickFormatter={(val) => val.toExponential(1)}
+                    />
+                    <Tooltip />
+                    <Line type="monotone" dataKey={() => 0} stroke="#64748b" strokeDasharray="3 3" name="Zero Error Baseline" dot={false} />
+                    <Scatter name="Residuals" dataKey="residual" fill="#38bdf8" shape="circle" r={6} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Reflection Apparent Sizes */}
+          {activeChartTab === 'apparentSizes' && (
+            <div className="flex flex-col h-[400px]">
+              <div className="mb-2 text-[10px] font-mono text-slate-400">
+                Local Apparent Crystallite Size Dhkl for each reflection compared to Global W-H Size
+              </div>
+              <div className="flex-1 w-full bg-[#070D18] rounded-2xl p-4 border border-white/5">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis 
+                      dataKey="twoTheta" 
+                      tickFormatter={(val) => `${val.toFixed(1)}°`}
+                      label={{ value: 'Reflection 2θ (°)', position: 'bottom', offset: 20, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                    />
+                    <YAxis 
+                      label={{ value: 'Apparent Size (nm)', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                    />
+                    <Tooltip />
+                    <Bar dataKey="singleSize" name="Apparent Size (nm)" fill="#10b981" radius={[4, 4, 0, 0]}>
+                      {chartData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#34d399'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 4: Elastic State */}
+          {activeChartTab === 'elasticState' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[400px] overflow-y-auto custom-scrollbar">
+              <div className="bg-[#070D18] p-5 rounded-2xl border border-white/5 space-y-3">
+                <h4 className="text-xs font-black text-pink-400 uppercase tracking-widest flex items-center gap-2">
+                  <Cpu className="w-4 h-4" /> Continuum Elastic Properties
+                </h4>
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Young's Modulus (E):</span>
+                    <span className="text-white font-bold">{youngsModulusGPa} GPa</span>
                   </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/10 font-mono">Likely Diagnoses</span>
-                      <ul className="list-disc pl-4 mt-2 space-y-1.5 text-slate-400 text-[10.5px]">
-                        <li>
-                          <strong className="text-slate-200">Microstrain Dominance:</strong> High lattice deformation creates a steep slope on the W-H plot, pulling the y-axis intersection below zero.
-                        </li>
-                        <li>
-                          <strong className="text-slate-200">Overstated Resolution (&beta;_inst):</strong> If configured instrumental width was set too close to or exceeds observed peaks, the sample broadening calculates to &le; 0.
-                        </li>
-                        <li>
-                          <strong className="text-slate-200">Anisotropic Broadening:</strong> Different peak families (hkl directions) widen unevenly, skewing the global linear trendline fit.
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="bg-black/30 p-3 rounded-xl border border-white/5 space-y-1.5">
-                      <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest block font-mono">Suggested Fixes:</span>
-                      <ul className="list-decimal pl-4 space-y-0.5 text-slate-400 text-[10px]">
-                        <li>Slightly reduce <span className="text-amber-400 font-mono">&beta;_inst</span> in the "Instrumental Broadening" panel.</li>
-                        <li>Review and trim noisy high-angle peaks causing trendline skew.</li>
-                        <li>Try toggling the <span className="text-pink-400 font-semibold font-mono">Profile Deconvolution</span> from Linear to Squared.</li>
-                        <li>Consider transitioning to the <strong className="text-emerald-400">Warren-Averbach</strong> Fourier module for strain/size allocation.</li>
-                      </ul>
-                    </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Microstrain (ε):</span>
+                    <span className="text-cyan-300 font-bold">{result ? (result.strainPercent / 100).toExponential(3) : '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Internal Lattice Stress (σ = ε·E):</span>
+                    <span className="text-pink-300 font-bold">{result?.stressMPa?.toFixed(2) || '-'} MPa</span>
+                  </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Strain Energy Density (u = ½·ε²·E):</span>
+                    <span className="text-amber-300 font-bold">{result?.energyDensityKjM3?.toFixed(3) || '-'} kJ/m³</span>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* Collapsible Scientific Explanation sheet for Microstrain */}
-        <AnimatePresence>
-          {showStrainExpl && result && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.4, ease: 'easeInOut' }}
-              className="overflow-hidden mb-6"
-            >
-              <div className="bg-[#050A14] border border-cyan-500/20 rounded-3xl p-6 text-slate-300 space-y-4 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/[0.02] rounded-bl-full pointer-events-none" />
-                
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-cyan-500/15 rounded-xl border border-cyan-500/30 text-cyan-400 mt-0.5 animate-pulse-slow font-sans text-sm">
-                    <Activity className="w-4 h-4" />
+              <div className="bg-[#070D18] p-5 rounded-2xl border border-white/5 space-y-3">
+                <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                  <Sliders className="w-4 h-4" /> Regression Statistical Metrics
+                </h4>
+                <div className="space-y-2 text-xs font-mono">
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Coefficient of Determination (R²):</span>
+                    <span className="text-purple-300 font-bold">{result?.regression.rSquared.toFixed(5) || '-'}</span>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="text-xs font-black text-white uppercase tracking-[0.2em] mb-1">
-                      Crystallographic Microstrain (ε) Physical Foundations
-                    </h4>
-                    <p className="text-[10px] text-cyan-400 uppercase font-black tracking-widest font-mono">
-                      Mathematical separation of size-strain broadening effects
-                    </p>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Adjusted R²:</span>
+                    <span className="text-purple-300 font-bold">{result?.regression.adjustedRSquared?.toFixed(5) || '-'}</span>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3 border-t border-white/5 text-[11px] leading-relaxed font-sans">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="font-bold text-slate-200">
-                        1. Theoretical Separation Model
-                      </p>
-                      <p className="text-slate-400 text-[10.5px] mt-1 text-justify">
-                        Peak broadening in X-ray diffraction patterns arises from two non-instrumental, sample-dependent phenomena: finite grain sizes (<span className="text-emerald-400 italic font-medium">Size Broadening</span>) and structural irregularities within the grains (<span className="text-cyan-400 italic font-medium">Strain Broadening</span>).
-                      </p>
-                    </div>
-
-                    <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-3">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block font-mono border-b border-white/5 pb-1">Governing Equations & Models:</span>
-                      <div className="text-slate-400 text-[10.5px] space-y-3">
-                        <div>
-                          <span className="text-[10px] font-medium text-slate-300">The Scherrer model for size effect:</span>
-                          <div 
-                            className="my-1.5 p-2 bg-black/50 text-emerald-400 rounded-lg border border-emerald-500/10 overflow-x-auto text-center font-sans"
-                            dangerouslySetInnerHTML={{ __html: katex.renderToString('\\beta_{\\text{size}} = \\frac{K \\cdot \\lambda}{D_v \\cdot \\cos(\\theta)}', { throwOnError: false, displayMode: true }) }}
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-medium text-slate-300">The Wilson equation for inhomogeneous microstrain:</span>
-                          <div 
-                            className="my-1.5 p-2 bg-black/50 text-cyan-400 rounded-lg border border-cyan-500/10 overflow-x-auto text-center font-sans"
-                            dangerouslySetInnerHTML={{ __html: katex.renderToString('\\beta_{\\text{strain}} = 4 \\cdot \\varepsilon \\cdot \\tan(\\theta)', { throwOnError: false, displayMode: true }) }}
-                          />
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-medium text-slate-300">Lorentzian peak deconvolution linear combination:</span>
-                          <div 
-                            className="my-1.5 p-2 bg-black/50 text-pink-400 rounded-lg border border-pink-500/10 overflow-x-auto text-center font-sans"
-                            dangerouslySetInnerHTML={{ __html: katex.renderToString('\\beta_{\\text{total}} \\cdot \\cos(\\theta) = \\frac{K \\cdot \\lambda}{D} + 4 \\cdot \\varepsilon \\cdot \\sin(\\theta)', { throwOnError: false, displayMode: true }) }}
-                          />
-                        </div>
-                        <p className="text-[9.5px] font-sans mt-2 leading-relaxed">
-                          The slope of the linear fit is <span className="text-cyan-400 font-bold">ε</span> (Crystallographic Microstrain) and the y-intercept yields <span className="text-emerald-400 font-bold">D</span> (Unified average crystallite size).
-                        </p>
-                      </div>
-                    </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Pearson Correlation (r):</span>
+                    <span className="text-emerald-300 font-bold">{result?.regression.pearsonR?.toFixed(5) || '-'}</span>
                   </div>
-
-                  <div className="space-y-3">
-                    <div className="text-justify">
-                      <span className="text-[9px] font-black uppercase text-cyan-500 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/10 font-mono">Physical Origins of Microstrain</span>
-                      <p className="text-slate-400 text-[10.5px] mt-2">
-                        Unlike macroscopic tensile stress which uniformally shifts peak centers, <strong className="text-slate-200">microstrain (ε)</strong> represents random deviations in interplanar <span className="italic font-medium">d-spacing</span> (Δd/d) within individual crystal planes, generating peak broadening:
-                      </p>
-                      <ul className="list-disc pl-4 mt-2 space-y-1.5 text-slate-400 text-[10.5px]">
-                        <li>
-                          <strong className="text-slate-200">Dislocation Core Strain:</strong> Distortions of atom alignments adjacent to defects, generating deep localized mechanical strain fields.
-                        </li>
-                        <li>
-                          <strong className="text-slate-200">Grain Boundary Friction:</strong> Misorientations and atom constraints at nanocrystalline boundaries.
-                        </li>
-                        <li>
-                          <strong className="text-slate-200">Residual Stress:</strong> Structural tension conserved after processing, plastic deformation, or intense mechanical cold working.
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="bg-cyan-500/[0.02] p-3 rounded-xl border border-cyan-500/10 space-y-1.5">
-                      <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest block font-mono">Thermodynamics & Strain-Energy:</span>
-                      <p className="text-slate-400 text-[10px] text-justify leading-normal">
-                        Using isotropic linear elastic models, the crystalline stress (σ) is determined as <code className="text-white font-mono font-bold bg-[#040810]/80 px-1 py-0.5 rounded border border-white/5">σ = ε · E</code>, and stored strain-energy density (u) as <code className="text-white font-mono font-bold bg-[#040810]/80 px-1 py-0.5 rounded border border-white/5">u = ½ · ε² · E</code>, where E is the isotropic Young's Modulus.
-                      </p>
-                    </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Slope Standard Error:</span>
+                    <span className="text-cyan-300 font-bold">{result?.regression.stdErrorSlope?.toExponential(3) || '-'}</span>
+                  </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Intercept Standard Error:</span>
+                    <span className="text-cyan-300 font-bold">{result?.regression.stdErrorIntercept?.toExponential(3) || '-'}</span>
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Chart */}
-        <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative flex flex-col h-[700px] overflow-hidden group">
-          {/* Custom Background Graphic */}
-          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
-            <img src={voigtBg} alt="Deconvolution Chart" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
-          </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-pink-500/10 transition-all duration-700" />
-          
-          <div className="flex justify-between items-center mb-6 relative z-10 px-2">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
-              <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Integral Breadth W-H Plot</h3>
-            </div>
-            <div className="flex items-center gap-3">
-              {result && (
-                <div className="text-[10px] font-mono font-black border border-white/5 bg-[#070D18] px-3 py-1.5 rounded-lg text-pink-400 shadow-inner">
-                  y = <span className="text-white">{result.regression.slope.toFixed(5)}</span>x + <span className="text-white">{result.regression.intercept.toFixed(5)}</span>
-                </div>
-              )}
-              {result && result.points.length >= 2 && (
-                <button
-                  onClick={handleDownloadCSV}
-                  className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-pink-400 bg-[#070D18] hover:bg-pink-500/10 px-3 py-1.5 rounded-lg border border-white/5 hover:border-pink-500/30 transition-all flex items-center gap-2"
-                >
-                  <Download className="w-3 h-3" /> Export CSV
-                </button>
-              )}
-            </div>
-          </div>
-          
-          {!result || result.points.length < 2 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 border border-dashed border-white/10 m-2 rounded-2xl bg-[#070D18] relative z-10 overflow-hidden">
-               <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05]" />
-               <TrendingUp className="w-12 h-12 mb-4 opacity-20 text-pink-500" />
-               <p className="font-black uppercase tracking-widest text-slate-400 mb-2">Insufficient data</p>
-               <p className="text-xs font-mono text-slate-600">Need at least 2 valid peaks.</p>
-            </div>
-          ) : (
-            <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#070D18] border border-white/5 rounded-2xl p-4 shadow-inner">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 40 }}>
-                  <defs>
-                    <filter id="neonGlowIB" x="-50%" y="-50%" width="200%" height="200%">
-                      <feGaussianBlur stdDeviation="4" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis 
-                    dataKey="x" 
-                    type="number" 
-                    domain={['auto', 'auto']}
-                    label={{ value: separationMethod === 'hw' ? 'β/(tanθ·sinθ)' : separationMethod === 'ssp' ? 'd²·βcosθ' : '4 sin(θ)', position: 'bottom', offset: 20, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
-                    tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700, fontFamily: 'monospace' }}
-                    tickFormatter={(val) => val.toExponential(1)}
-                    tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                  />
-                  <YAxis 
-                    domain={['auto', 'auto']}
-                    label={{ value: separationMethod === 'hw' ? '(β/tanθ)²' : separationMethod === 'ssp' ? '(d·βcosθ)²' : 'β_IB cos(θ)', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
-                    tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700, fontFamily: 'monospace' }}
-                    tickFormatter={(val) => val.toExponential(1)}
-                    tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                    axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.1)' }} />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="fitRange"
-                    stroke="none"
-                    fill="#fb7185"
-                    fillOpacity={0.1}
-                    name="95% Confidence Band"
-                  />
-                  <Scatter 
-                    name="Observed Data" 
-                    dataKey="y" 
-                    fill="#f472b6" 
-                    shape="circle"
-                    r={5}
-                    style={{ filter: 'url(#neonGlowIB)' }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="fit" 
-                    stroke="#fb7185" 
-                    strokeWidth={2} 
-                    dot={false} 
-                    name="Linear Regression"
-                    activeDot={false}
-                    strokeDasharray="5 5"
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
             </div>
           )}
         </div>
@@ -1359,19 +1183,15 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
         {/* Peak Deconstruction Table */}
         {result && result.pointsExtended && result.pointsExtended.length > 0 && (
           <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-          {/* Custom Background Graphic */}
-          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
-            <img src={voigtBg} alt="Deconvoluted Profiles" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
-          </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-500/10 transition-all duration-700" />
             <div className="flex items-center gap-3 mb-6 relative z-10 px-2">
               <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
                 <Database className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
                 <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Peak Deconstruction & Calculated Sizes</h3>
-                <p className="text-[9px] text-slate-500 mt-0.5 uppercase tracking-wider">Individual reflection analysis under {decouplingMethod === 'linear' ? 'Lorentzian' : 'Gaussian'} model</p>
+                <p className="text-[9px] text-slate-500 mt-0.5 uppercase tracking-wider">
+                  Individual reflection analysis under {decouplingMethod === 'linear' ? 'Lorentzian' : 'Gaussian'} deconvolution
+                </p>
               </div>
             </div>
 
@@ -1380,58 +1200,42 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                 <thead>
                   <tr className="border-b border-white/5 bg-white/5 text-[9px] text-slate-500 font-sans uppercase tracking-widest font-black">
                     <th className="px-4 py-3 text-emerald-400">Reflection (2θ)</th>
-                    <th className="px-4 py-3">β_Obs (deg)</th>
-                    <th className="px-4 py-3">β_Inst (deg)</th>
-                    <th className="px-4 py-3">β_Sample (deg)</th>
-                    <th className="px-4 py-3 font-sans font-black text-pink-400">Calculated Size (nm)</th>
-                    <th className="px-4 py-3 text-right">W-H Coord (X, Y)</th>
+                    <th className="px-4 py-3">β_Obs (°)</th>
+                    <th className="px-4 py-3">β_Inst (°)</th>
+                    <th className="px-4 py-3">β_Sample (°)</th>
+                    <th className="px-4 py-3 font-sans font-black text-pink-400">Apparent Size (nm)</th>
+                    <th className="px-4 py-3 text-right">Regression (X, Y)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 text-slate-300">
                   {result.pointsExtended.map((p, idx) => (
                     <tr key={idx} className="hover:bg-white/5 transition-colors group/row">
-                      <td className="px-4 py-3.5 font-bold text-emerald-400 group-hover/row:text-emerald-300 transition-colors">
+                      <td className="px-4 py-3 font-bold text-emerald-400">
                         {p.twoTheta.toFixed(3)}°
                       </td>
-                      <td className="px-4 py-3.5 text-slate-400">
+                      <td className="px-4 py-3 text-slate-400">
                         {p.betaObsDeg.toFixed(4)}°
                       </td>
-                      <td className="px-4 py-3.5 text-slate-500">
+                      <td className="px-4 py-3 text-slate-500">
                         {p.betaInstDeg.toFixed(4)}°
                       </td>
-                      <td className="px-4 py-3.5 text-slate-400">
-                        {p.betaSampleDeg > 0 ? `${p.betaSampleDeg.toFixed(4)}°` : '0.0000° (Below Limit)'}
+                      <td className="px-4 py-3 text-slate-400">
+                        {p.betaSampleDeg > 0 ? `${p.betaSampleDeg.toFixed(4)}°` : '0.0000°'}
                       </td>
-                      <td className="px-4 py-3.5 font-bold text-pink-400">
-                        {p.betaSampleDeg > 0 && p.singlePeakSizeNm > 0 && p.singlePeakSizeNm < 1000 ? (
-                          <span>
-                            {p.singlePeakSizeNm.toFixed(2)}{' '}
-                            <span className="text-[10px] text-slate-500 font-sans tracking-wide">nm</span>
-                          </span>
-                        ) : p.betaSampleDeg > 0 ? (
-                          <span className="text-amber-400 text-[10px] uppercase font-black tracking-wider">
-                            &gt; 200 nm <span className="opacity-60 text-[8px] font-mono">(∞)</span>
-                          </span>
+                      <td className="px-4 py-3 font-bold text-pink-400">
+                        {p.singlePeakSizeNm > 0 && p.singlePeakSizeNm < 1000 ? (
+                          `${p.singlePeakSizeNm.toFixed(2)} nm`
                         ) : (
-                          <span className="text-slate-600 text-[10px]">Too small / Infinite</span>
+                          <span className="text-amber-400 text-[10px] uppercase font-black">&gt; 200 nm (∞)</span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-right font-mono text-[10px] text-slate-500">
+                      <td className="px-4 py-3 text-right font-mono text-[10px] text-slate-500">
                         ({p.x.toFixed(4)}, {p.y.toExponential(3)})
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            <div className="mt-4 p-4 rounded-xl bg-black/40 border border-white/5 text-[10px] text-slate-500 leading-relaxed font-sans">
-              <p className="font-bold text-slate-400 uppercase tracking-widest text-[8px] mb-1 flex items-center gap-1">
-                <Info className="w-3 h-3 text-pink-400" /> Physical Context Notes
-              </p>
-              In the size-strain separation plot (W-H), the net sample integrated breadth is plotted as Y (β cos θ) vs X (4 sin θ). 
-              The slope determines the overall <span className="text-cyan-400 font-black">Microstrain (ε)</span>, while the y-intercept determines the unified average crystallite size. 
-              The <span className="text-pink-400 font-black">Individual Calculated Sizes</span> above represent local grain estimations at specific hkl reflections (assuming zero strain for that single peak's estimation), showing the anisotropic crystallite dimensions variation.
             </div>
           </div>
         )}
