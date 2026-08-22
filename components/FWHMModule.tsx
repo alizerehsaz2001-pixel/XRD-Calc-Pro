@@ -462,6 +462,25 @@ export const FWHMModule: React.FC = () => {
   const [isExpandedChart, setIsExpandedChart] = useState<boolean>(false);
   const [copiedFormula, setCopiedFormula] = useState<boolean>(false);
 
+  // Enhanced Visualizer Capabilities & Controls
+  const [yScaleMode, setYScaleMode] = useState<'linear' | 'log10' | 'sqrt'>('linear');
+  const [showNetIntensity, setShowNetIntensity] = useState<boolean>(false);
+  const [showRachingerStripped, setShowRachingerStripped] = useState<boolean>(false);
+  const [showQuickSliders, setShowQuickSliders] = useState<boolean>(true);
+  const [plotTheme, setPlotTheme] = useState<'default' | 'lab_dark' | 'journal' | 'monochrome'>('default');
+  const [hoveredPointData, setHoveredPointData] = useState<{ x: number; y: number; cleanY: number; dSpacing: number; qVector: number; relPct: number } | null>(null);
+  const [clickAction, setClickAction] = useState<'centroid' | 'caliper'>('centroid');
+
+  // Enhanced FWHM & Profile Analysis Overlays
+  const [sliceMode, setSliceMode] = useState<'fwhm' | 'fwtm' | 'fwfm' | 'fwem' | 'custom'>('fwhm');
+  const [sliceFraction, setSliceFraction] = useState<number>(0.5); // 0.5 = FWHM (50%), 0.1 = FWTM (10%), 0.2 = FWFM (20%), 0.368 = FWeM (1/e)
+  const [showDerivativePane, setShowDerivativePane] = useState<boolean>(false);
+  const [derivativeMode, setDerivativeMode] = useState<'both' | '1st' | '2nd'>('both');
+  const [showAsymmetryHwhm, setShowAsymmetryHwhm] = useState<boolean>(true); // Left/Right HWHM visual bracket
+  const [showInflectionMarkers, setShowInflectionMarkers] = useState<boolean>(false); // 2nd derivative inflection roots (d²I/d2θ² = 0)
+  const [showDeconvBreakdown, setShowDeconvBreakdown] = useState<boolean>(true); // Instrumental & specimen deconvolution HUD card
+  const [showShapeFactorMeter, setShowShapeFactorMeter] = useState<boolean>(true); // Shape factor phi meter
+
   // Quick Preset Scenario loader
   const applyPeakScenarioPreset = (scenario: 'nist_si' | 'nano_tio2' | 'strained_alloy' | 'ka_doublet' | 'polymer_halo') => {
     if (scenario === 'nist_si') {
@@ -723,7 +742,7 @@ export const FWHMModule: React.FC = () => {
       let areaFactor = 1.064467;
       if (p.shape === 'Gaussian') areaFactor = 1.064467;
       else if (p.shape === 'Lorentzian') areaFactor = 1.570796;
-      else if (p.shape === 'Pseudo-Voigt') areaFactor = (1 - p.eta) * 1.064467 + p.eta * 1.570796;
+      else if (p.shape === 'Pseudo-Voigt' || p.shape === 'Split-Pseudo-Voigt') areaFactor = (1 - p.eta) * 1.064467 + p.eta * 1.570796;
       else if (p.shape === 'Pearson VII') areaFactor = 1.25;
 
       const area = p.enabled ? p.amplitude * p.fwhm * areaFactor : 0;
@@ -747,7 +766,8 @@ export const FWHMModule: React.FC = () => {
         theta1: p.center - p.fwhm / 2,
         theta2: p.center + p.fwhm / 2,
         maxIntensity: p.amplitude,
-        relIntensityPercent: (p.amplitude / maxAmp) * 100
+        relIntensityPercent: (p.amplitude / maxAmp) * 100,
+        phase: p.phase || 'Default'
       };
     });
 
@@ -760,9 +780,9 @@ export const FWHMModule: React.FC = () => {
   }, [customPeaks, activeWavelength, scherrerK]);
 
   const handleExportMultiPeakCsv = () => {
-    let csv = `Peak Name,Enabled,Centroid 2Theta (deg),FWHM Beta (deg),d-spacing (Angstrom),Max Intensity (cps),Rel Intensity (%),Integrated Area (cps.deg),Area Fraction (%),Integral Breadth (deg),Crystallite Size D (nm),Microstrain (%),Shape,Eta / Decays\n`;
+    let csv = `Peak Name,Phase Tag,Enabled,Centroid 2Theta (deg),FWHM Beta (deg),d-spacing (Angstrom),Max Intensity (cps),Rel Intensity (%),Integrated Area (cps.deg),Area Fraction (%),Integral Breadth (deg),Crystallite Size D (nm),Microstrain (%),Shape,Eta / Decays\n`;
     customPeakMetrics.forEach(m => {
-      csv += `"${m.peak.name}",${m.peak.enabled},${m.peak.center.toFixed(4)},${m.peak.fwhm.toFixed(4)},${m.dSpacing.toFixed(4)},${m.maxIntensity.toFixed(2)},${m.relIntensityPercent.toFixed(2)},${m.area.toFixed(3)},${m.areaPercent.toFixed(2)},${m.integralBreadth.toFixed(4)},${m.crystalliteSizeNm.toFixed(3)},${m.microstrainPercent.toFixed(4)},"${m.peak.shape}",${m.peak.eta.toFixed(2)}\n`;
+      csv += `"${m.peak.name}","${m.peak.phase || 'Default'}",${m.peak.enabled},${m.peak.center.toFixed(4)},${m.peak.fwhm.toFixed(4)},${m.dSpacing.toFixed(4)},${m.maxIntensity.toFixed(2)},${m.relIntensityPercent.toFixed(2)},${m.area.toFixed(3)},${m.areaPercent.toFixed(2)},${m.integralBreadth.toFixed(4)},${m.crystalliteSizeNm.toFixed(3)},${m.microstrainPercent.toFixed(4)},"${m.peak.shape}",${m.peak.eta.toFixed(2)}\n`;
     });
     
     csv += `\n2-Theta (deg),Total Composite Intensity (cps)\n`;
@@ -956,6 +976,16 @@ export const FWHMModule: React.FC = () => {
             const g = p.amplitude * Math.exp(-0.5 * Math.pow((x - p.center) / pSigma, 2));
             const l = p.amplitude * (Math.pow(pGamma, 2) / (Math.pow(x - p.center, 2) + Math.pow(pGamma, 2)));
             v = (1 - p.eta) * g + p.eta * l;
+          } else if (p.shape === 'Split-Pseudo-Voigt') {
+            const asymRatio = p.asymmetry || 1.0;
+            const hwhmLeft = (p.fwhm * 2) / (1 + asymRatio);
+            const hwhmRight = hwhmLeft * asymRatio;
+            const currentHwhm = x < p.center ? hwhmLeft : hwhmRight;
+            const sSigma = Math.max(0.0001, currentHwhm / Math.sqrt(2 * Math.log(2)));
+            const sGamma = Math.max(0.0001, currentHwhm);
+            const g = p.amplitude * Math.exp(-0.5 * Math.pow((x - p.center) / sSigma, 2));
+            const l = p.amplitude * (Math.pow(sGamma, 2) / (Math.pow(x - p.center, 2) + Math.pow(sGamma, 2)));
+            v = (1 - p.eta) * g + p.eta * l;
           } else if (p.shape === 'Pearson VII') {
             const pM = Math.max(1, p.eta * 5);
             v = p.amplitude * Math.pow(1 + Math.pow((x - p.center) / pW, 2), -pM);
@@ -1002,6 +1032,8 @@ export const FWHMModule: React.FC = () => {
       sumNoisy += noisyY;
 
       const purePeak = Math.max(0, cleanSum - Math.max(0, currentBg));
+      const netNoisy = Math.max(0, noisyY - Math.max(0, currentBg));
+      const yRachinger = enableKaDoublet ? pk1.val + Math.max(0, currentBg) : undefined;
       comNumerator += x * purePeak;
       comDenominator += purePeak;
 
@@ -1016,11 +1048,14 @@ export const FWHMModule: React.FC = () => {
       points.push({
         x,
         y: noisyY,
+        y_net: netNoisy,
         _cleanY: cleanSum,
+        _cleanY_net: purePeak,
         yG: (type === 'Pseudo-Voigt' && showComponents) ? pk1.gVal + Math.max(0, currentBg) : undefined,
         yL: (type === 'Pseudo-Voigt' && showComponents) ? pk1.lVal + Math.max(0, currentBg) : undefined,
         yKa1: enableKaDoublet ? pk1.val + Math.max(0, currentBg) : undefined,
         yKa2: enableKaDoublet ? pk2Val + Math.max(0, currentBg) : undefined,
+        yRachinger,
         yPeak2: enableSecondaryPeak ? pkSecVal + Math.max(0, currentBg) : undefined,
         yGaussModel,
         yLorentzModel,
@@ -1029,6 +1064,82 @@ export const FWHMModule: React.FC = () => {
         ...customPeakMap
       });
     }
+
+    // Numerical 1st and 2nd Derivatives computation on clean profile
+    let maxAbsD1 = 0.0001;
+    let maxAbsD2 = 0.0001;
+
+    for (let i = 0; i < points.length; i++) {
+      let d1 = 0;
+      let d2 = 0;
+      if (i > 0 && i < points.length - 1) {
+        d1 = (points[i + 1]._cleanY - points[i - 1]._cleanY) / (2 * stepSize);
+        d2 = (points[i + 1]._cleanY - 2 * points[i]._cleanY + points[i - 1]._cleanY) / (stepSize * stepSize);
+      } else if (i === 0) {
+        d1 = (points[1]._cleanY - points[0]._cleanY) / stepSize;
+        d2 = (points[2]._cleanY - 2 * points[1]._cleanY + points[0]._cleanY) / (stepSize * stepSize);
+      } else {
+        d1 = (points[i]._cleanY - points[i - 1]._cleanY) / stepSize;
+        d2 = (points[i]._cleanY - 2 * points[i - 1]._cleanY + points[i - 2]._cleanY) / (stepSize * stepSize);
+      }
+      points[i].d1y = d1;
+      points[i].d2y = d2;
+      if (Math.abs(d1) > maxAbsD1) maxAbsD1 = Math.abs(d1);
+      if (Math.abs(d2) > maxAbsD2) maxAbsD2 = Math.abs(d2);
+    }
+
+    // Scaled derivatives for synchronized sub-charts
+    for (let i = 0; i < points.length; i++) {
+      points[i].d1y_scaled = (points[i].d1y / maxAbsD1) * 100;
+      points[i].d2y_scaled = (points[i].d2y / maxAbsD2) * 100;
+    }
+
+    // Inflection point detection (roots of 2nd derivative d²I/d2θ² = 0)
+    let thetaInfLeft = center - (effTchFwhm / (2 * Math.sqrt(2 * Math.log(2))));
+    let thetaInfRight = center + (effTchFwhm / (2 * Math.sqrt(2 * Math.log(2))));
+    
+    // Find d2y zero crossings
+    const midIdx = Math.floor(points.length / 2);
+    for (let i = 1; i < midIdx; i++) {
+      if ((points[i - 1].d2y <= 0 && points[i].d2y > 0) || (points[i - 1].d2y >= 0 && points[i].d2y < 0)) {
+        if (Math.abs(points[i].x - center) < effTchFwhm * 1.5) {
+          thetaInfLeft = points[i].x;
+          break;
+        }
+      }
+    }
+    for (let i = midIdx; i < points.length - 1; i++) {
+      if ((points[i].d2y <= 0 && points[i + 1].d2y > 0) || (points[i].d2y >= 0 && points[i + 1].d2y < 0)) {
+        if (Math.abs(points[i].x - center) < effTchFwhm * 1.5) {
+          thetaInfRight = points[i].x;
+          break;
+        }
+      }
+    }
+    const inflectionSpan = Math.max(0.0001, thetaInfRight - thetaInfLeft);
+
+    // Custom Fraction Slice Calculation
+    const effectiveSliceFrac = Math.max(0.02, Math.min(0.98, sliceFraction));
+    const targetSlice = amplitude * effectiveSliceFrac;
+    let thetaSlice1 = center - effTchFwhm / 2;
+    let thetaSlice2 = center + effTchFwhm / 2;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i]._cleanY - (background + bgSlope * (points[i].x - center));
+      const p2 = points[i + 1]._cleanY - (background + bgSlope * (points[i + 1].x - center));
+      if (p1 <= targetSlice && p2 >= targetSlice) {
+        thetaSlice1 = points[i].x + (targetSlice - p1) * (points[i + 1].x - points[i].x) / Math.max(0.0001, p2 - p1);
+        break;
+      }
+    }
+    for (let i = points.length - 1; i > 0; i--) {
+      const p1 = points[i]._cleanY - (background + bgSlope * (points[i].x - center));
+      const p2 = points[i - 1]._cleanY - (background + bgSlope * (points[i - 1].x - center));
+      if (p1 <= targetSlice && p2 >= targetSlice) {
+        thetaSlice2 = points[i].x - (targetSlice - p1) * (points[i].x - points[i - 1].x) / Math.max(0.0001, p2 - p1);
+        break;
+      }
+    }
+    const deltaThetaSlice = Math.max(0.0001, thetaSlice2 - thetaSlice1);
 
     // Centroid Center of Mass (2θ_CoM)
     const centroid = comDenominator > 0 ? comNumerator / comDenominator : center;
@@ -1094,13 +1205,23 @@ export const FWHMModule: React.FC = () => {
     const fwtm = Math.max(fwhm, rightTenth - leftTenth);
     const fwtmRatio = fwtm / Math.max(0.0001, effTchFwhm);
 
+    // Half-Widths at Half-Maximum & Peak Asymmetry Factor
+    const hwhmLeft = Math.max(0.0001, center - theta1);
+    const hwhmRight = Math.max(0.0001, theta2 - center);
+    const asymmetryFactor = hwhmRight / hwhmLeft;
+
     // Instrument Broadening Deconvolution
     const betaObs = effTchFwhm;
     const betaInst = enableInstCorrection ? Math.min(betaObs - 0.001, instBroadening) : 0;
     const betaSample = Math.sqrt(Math.max(0.00001, Math.pow(betaObs, 2) - Math.pow(betaInst, 2)));
 
+    // Instrumental vs Specimen Broadening Ratio
+    const instFractionPct = Math.min(100, Math.max(0, (Math.pow(betaInst, 2) / Math.max(0.00001, Math.pow(betaObs, 2))) * 100));
+    const sampleFractionPct = Math.max(0, 100 - instFractionPct);
+
     const integralBreadth = amplitude > 0 ? totalArea / amplitude : 0.01;
     const shapeFactor = effTchFwhm / integralBreadth;
+    const voigtLorentzFraction = Math.max(0, Math.min(1, (0.9394 - shapeFactor) / (0.9394 - 0.6366)));
 
     // de Keijser Rigorous Voigt Deconvolution Method
     // Deconstruct Integral Breadth into Lorentzian (betaL) and Gaussian (betaG) components
@@ -1138,6 +1259,21 @@ export const FWHMModule: React.FC = () => {
       theta2: number;
       theta1Tenth: number;
       theta2Tenth: number;
+      thetaSlice1: number;
+      thetaSlice2: number;
+      deltaThetaSlice: number;
+      sliceFraction: number;
+      thetaInfLeft: number;
+      thetaInfRight: number;
+      inflectionSpan: number;
+      hwhmLeft: number;
+      hwhmRight: number;
+      asymmetryFactor: number;
+      instFractionPct: number;
+      sampleFractionPct: number;
+      voigtLorentzFraction: number;
+      maxAbsD1: number;
+      maxAbsD2: number;
       gaussianSigmaC: number;
       fwtm: number;
       fwtmRatio: number;
@@ -1176,6 +1312,21 @@ export const FWHMModule: React.FC = () => {
       theta2,
       theta1Tenth: leftTenth,
       theta2Tenth: rightTenth,
+      thetaSlice1,
+      thetaSlice2,
+      deltaThetaSlice,
+      sliceFraction: effectiveSliceFrac,
+      thetaInfLeft,
+      thetaInfRight,
+      inflectionSpan,
+      hwhmLeft,
+      hwhmRight,
+      asymmetryFactor,
+      instFractionPct,
+      sampleFractionPct,
+      voigtLorentzFraction,
+      maxAbsD1,
+      maxAbsD2,
       gaussianSigmaC,
       fwtm,
       fwtmRatio,
@@ -1209,7 +1360,7 @@ export const FWHMModule: React.FC = () => {
     secondPeakFwhm, secondPeakAmp, showComponents, showModelComparison, activeWavelength, applyLpFactor,
     voigtFormulation, enableInstCorrection, instBroadening, microstrain, monochromatorType,
     enableAmorphousHalo, amorphousCenter, amorphousFwhm, amorphousAmp,
-    enableMultiPeakMode, customPeaks
+    enableMultiPeakMode, customPeaks, sliceFraction
   ]);
 
   useEffect(() => {
@@ -3418,6 +3569,30 @@ export const FWHMModule: React.FC = () => {
                   Doublet
                 </button>
 
+                {enableKaDoublet && (
+                  <button
+                    onClick={() => setShowRachingerStripped(!showRachingerStripped)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                      showRachingerStripped ? 'bg-emerald-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                    title="Toggle Rachinger pure Kα₁ isolated profile deconvolution"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    Pure Kα₁ (Rachinger)
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setShowNetIntensity(!showNetIntensity)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                    showNetIntensity ? 'bg-indigo-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                  title="Toggle Background Subtraction: display net peak intensity I_net = I - I_bg"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+                  {showNetIntensity ? 'Net (I - I_bg)' : 'Total (I_obs)'}
+                </button>
+
                 <button
                   onClick={() => setEnableSecondaryPeak(!enableSecondaryPeak)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
@@ -3450,6 +3625,63 @@ export const FWHMModule: React.FC = () => {
                   <Activity className="w-3.5 h-3.5 text-rose-500" />
                   Residuals
                 </button>
+              </div>
+
+              {/* Y-Scale & Theme Selector Group */}
+              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] font-bold text-slate-500 uppercase px-1">Scale:</span>
+                <button
+                  onClick={() => setYScaleMode('linear')}
+                  className={`px-2 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
+                    yScaleMode === 'linear' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  }`}
+                  title="Linear Intensity scale (cps)"
+                >
+                  Lin
+                </button>
+                <button
+                  onClick={() => setYScaleMode('log10')}
+                  className={`px-2 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
+                    yScaleMode === 'log10' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  }`}
+                  title="Logarithmic Intensity scale (Log₁₀ I) for tail inspection"
+                >
+                  Log₁₀
+                </button>
+                <button
+                  onClick={() => setYScaleMode('sqrt')}
+                  className={`px-2 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
+                    yScaleMode === 'sqrt' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  }`}
+                  title="Square Root Intensity scale (√I) for Poisson counting statistics"
+                >
+                  √I
+                </button>
+
+                <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-0.5" />
+
+                <button
+                  onClick={() => setShowQuickSliders(!showQuickSliders)}
+                  className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 cursor-pointer transition-all ${
+                    showQuickSliders ? 'bg-purple-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  }`}
+                  title="Toggle Quick-Tune Sliders Bar directly on the visualizer"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-purple-300" />
+                  Dials
+                </button>
+
+                <select
+                  value={plotTheme}
+                  onChange={(e) => setPlotTheme(e.target.value as any)}
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-200 dark:border-slate-700 cursor-pointer"
+                  title="Visualizer Color Theme"
+                >
+                  <option value="default">Indigo Theme</option>
+                  <option value="lab_dark">Lab Dark Mode</option>
+                  <option value="journal">Clean Journal (White)</option>
+                  <option value="monochrome">Monochrome Print</option>
+                </select>
               </div>
 
               {/* Utility Tools Group */}
@@ -3575,6 +3807,368 @@ export const FWHMModule: React.FC = () => {
             </button>
           </div>
 
+          {/* Real-Time Live Crosshair & Crystallographic Coordinate Ticker Bar */}
+          <div className="p-3 mb-3 bg-slate-900 text-slate-100 rounded-xl border-2 border-indigo-500/60 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 bg-indigo-600/30 rounded-lg text-indigo-300 font-extrabold flex items-center gap-1.5 text-xs">
+                <Crosshair className="w-4 h-4 text-indigo-400 animate-spin-slow" />
+                {hoveredPointData ? 'INSPECTOR CROSSHAIR:' : 'CENTROID SUMMARY:'}
+              </span>
+
+              {hoveredPointData ? (
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Angle 2θ:</span>
+                    <strong className="text-amber-300 font-bold text-sm">
+                      {hoveredPointData.x.toFixed(4)}°
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">{showNetIntensity ? 'Net Intensity:' : 'Obs Intensity:'}</span>
+                    <strong className="text-indigo-300 font-bold text-sm">
+                      {showNetIntensity ? Math.max(0, hoveredPointData.cleanY - background).toFixed(1) : hoveredPointData.cleanY.toFixed(1)} cps
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Relative I/I_max:</span>
+                    <strong className="text-emerald-300 font-bold text-sm">
+                      {hoveredPointData.relPct.toFixed(1)}%
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">d-Spacing:</span>
+                    <strong className="text-cyan-300 font-bold text-sm">
+                      {hoveredPointData.dSpacing.toFixed(4)} Å
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Q-Vector:</span>
+                    <strong className="text-purple-300 font-bold text-sm">
+                      {hoveredPointData.qVector.toFixed(4)} Å⁻¹
+                    </strong>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Centroid 2θ₀:</span>
+                    <strong className="text-white font-bold text-sm">{center.toFixed(4)}°</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">FWHM β:</span>
+                    <strong className="text-indigo-300 font-bold text-sm">{extSim.stats.effTchFwhm.toFixed(4)}°</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">d-Spacing d₀:</span>
+                    <strong className="text-emerald-300 font-bold text-sm">{extSim.stats.dSpacing.toFixed(4)} Å</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Peak Height I₀:</span>
+                    <strong className="text-amber-300 font-bold text-sm">{amplitude.toFixed(0)} cps</strong>
+                  </div>
+                  <span className="text-[11px] text-slate-400 hidden xl:inline-block ml-2 border-l border-slate-700 pl-3">
+                    Hover graph to trace point coordinates • Click graph to reposition centroid
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Zoom Presets & Click Mode */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700">
+                <span className="text-[10px] font-sans font-bold text-slate-400 px-1">Zoom:</span>
+                <button
+                  onClick={() => setZoomRange(0.4)}
+                  className="px-2 py-0.5 bg-slate-700 hover:bg-indigo-600 rounded text-[11px] font-bold text-white transition-all cursor-pointer"
+                  title="Focus tightly on peak core (±3β window)"
+                >
+                  ±3β
+                </button>
+                <button
+                  onClick={() => setZoomRange(0.7)}
+                  className="px-2 py-0.5 bg-slate-700 hover:bg-indigo-600 rounded text-[11px] font-bold text-white transition-all cursor-pointer"
+                  title="Standard Bragg peak viewing window (±6β window)"
+                >
+                  ±6β
+                </button>
+                <button
+                  onClick={() => setZoomRange(1.4)}
+                  className="px-2 py-0.5 bg-slate-700 hover:bg-indigo-600 rounded text-[11px] font-bold text-white transition-all cursor-pointer"
+                  title="Wide tails and background view (±15β window)"
+                >
+                  ±15β
+                </button>
+                <button
+                  onClick={() => setZoomRange(1.0)}
+                  className="px-2 py-0.5 bg-indigo-600/80 hover:bg-indigo-600 rounded text-[11px] font-bold text-white transition-all cursor-pointer"
+                  title="Reset Zoom to 1.0x"
+                >
+                  1.0x
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700">
+                <span className="text-[10px] font-sans font-bold text-slate-400 px-1">Click Action:</span>
+                <button
+                  onClick={() => {
+                    setClickAction('centroid');
+                    setIsCaliperMode(false);
+                  }}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    clickAction === 'centroid' && !isCaliperMode ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                  title="Clicking on chart repositions peak centroid 2θ₀"
+                >
+                  Set 2θ₀
+                </button>
+                <button
+                  onClick={() => {
+                    setClickAction('caliper');
+                    setIsCaliperMode(true);
+                  }}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    isCaliperMode ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                  title="Clicking on chart places caliper measurement markers"
+                >
+                  Caliper
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive On-Canvas Quick-Tune Sliders Ribbon */}
+          {showQuickSliders && (
+            <div className="p-3 mb-3 bg-gradient-to-r from-slate-50 to-indigo-50/50 dark:from-slate-900 dark:to-indigo-950/30 rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                  Quick-Tune Peak Parameters:
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                  Live on-canvas precision adjustments
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                {/* 1. Centroid 2theta */}
+                <div className="bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Centroid (2θ₀):</span>
+                    <strong className="font-mono text-indigo-600 dark:text-indigo-400">{center.toFixed(3)}°</strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="120"
+                    step={highPrecisionControls ? 0.005 : 0.02}
+                    value={center}
+                    onChange={(e) => setCenter(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-600 cursor-pointer h-1.5 mb-1.5"
+                  />
+                  <div className="flex justify-between gap-1">
+                    <button
+                      onClick={() => setCenter(prev => parseFloat(Math.max(10, prev - 0.05).toFixed(3)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -0.05°
+                    </button>
+                    <button
+                      onClick={() => setCenter(prev => parseFloat(Math.max(10, prev - 0.01).toFixed(3)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -0.01°
+                    </button>
+                    <button
+                      onClick={() => setCenter(prev => parseFloat(Math.min(120, prev + 0.01).toFixed(3)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +0.01°
+                    </button>
+                    <button
+                      onClick={() => setCenter(prev => parseFloat(Math.min(120, prev + 0.05).toFixed(3)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +0.05°
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. FWHM beta */}
+                <div className="bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">FWHM (β):</span>
+                    <strong className="font-mono text-purple-600 dark:text-purple-400">{extSim.stats.effTchFwhm.toFixed(4)}°</strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.01"
+                    max="2.5"
+                    step={highPrecisionControls ? 0.002 : 0.01}
+                    value={fwhm}
+                    onChange={(e) => setFwhmManual(parseFloat(e.target.value))}
+                    className="w-full accent-purple-600 cursor-pointer h-1.5 mb-1.5"
+                  />
+                  <div className="flex justify-between gap-1">
+                    <button
+                      onClick={() => setFwhmManual(prev => parseFloat(Math.max(0.01, prev - 0.02).toFixed(4)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -0.02°
+                    </button>
+                    <button
+                      onClick={() => setFwhmManual(prev => parseFloat(Math.max(0.01, prev - 0.005).toFixed(4)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -0.005°
+                    </button>
+                    <button
+                      onClick={() => setFwhmManual(prev => parseFloat(Math.min(2.5, prev + 0.005).toFixed(4)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +0.005°
+                    </button>
+                    <button
+                      onClick={() => setFwhmManual(prev => parseFloat(Math.min(2.5, prev + 0.02).toFixed(4)))}
+                      className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +0.02°
+                    </button>
+                  </div>
+                </div>
+
+                {/* 3. Amplitude I0 */}
+                <div className="bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Height (I₀):</span>
+                    <strong className="font-mono text-emerald-600 dark:text-emerald-400">{amplitude.toFixed(0)} cps</strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="10"
+                    max="5000"
+                    step="10"
+                    value={amplitude}
+                    onChange={(e) => setAmplitude(parseFloat(e.target.value))}
+                    className="w-full accent-emerald-600 cursor-pointer h-1.5 mb-1.5"
+                  />
+                  <div className="flex justify-between gap-1">
+                    <button
+                      onClick={() => setAmplitude(prev => Math.max(10, prev - 50))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -50
+                    </button>
+                    <button
+                      onClick={() => setAmplitude(prev => Math.max(10, prev - 10))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -10
+                    </button>
+                    <button
+                      onClick={() => setAmplitude(prev => prev + 10)}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +10
+                    </button>
+                    <button
+                      onClick={() => setAmplitude(prev => prev + 50)}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +50
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4. Mixing eta */}
+                <div className="bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Mix (η / L%):</span>
+                    <strong className="font-mono text-cyan-600 dark:text-cyan-400">{(eta * 100).toFixed(0)}%</strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={eta}
+                    onChange={(e) => setEta(parseFloat(e.target.value))}
+                    className="w-full accent-cyan-600 cursor-pointer h-1.5 mb-1.5"
+                  />
+                  <div className="flex justify-between gap-1">
+                    <button
+                      onClick={() => setEta(prev => Math.max(0, parseFloat((prev - 0.1).toFixed(2))))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -10%
+                    </button>
+                    <button
+                      onClick={() => setEta(prev => Math.max(0, parseFloat((prev - 0.02).toFixed(2))))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -2%
+                    </button>
+                    <button
+                      onClick={() => setEta(prev => Math.min(1, parseFloat((prev + 0.02).toFixed(2))))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +2%
+                    </button>
+                    <button
+                      onClick={() => setEta(prev => Math.min(1, parseFloat((prev + 0.1).toFixed(2))))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +10%
+                    </button>
+                  </div>
+                </div>
+
+                {/* 5. Background I_bg */}
+                <div className="bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Background (I_bg):</span>
+                    <strong className="font-mono text-amber-600 dark:text-amber-400">{background.toFixed(1)} cps</strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={background}
+                    onChange={(e) => setBackground(parseFloat(e.target.value))}
+                    className="w-full accent-amber-600 cursor-pointer h-1.5 mb-1.5"
+                  />
+                  <div className="flex justify-between gap-1">
+                    <button
+                      onClick={() => setBackground(prev => Math.max(0, prev - 5))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -5
+                    </button>
+                    <button
+                      onClick={() => setBackground(prev => Math.max(0, prev - 1))}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      -1
+                    </button>
+                    <button
+                      onClick={() => setBackground(prev => prev + 1)}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +1
+                    </button>
+                    <button
+                      onClick={() => setBackground(prev => prev + 5)}
+                      className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded font-mono text-[10px] font-bold cursor-pointer"
+                    >
+                      +5
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Caliper HUD Measurement Bar (When Caliper is Active) */}
           {isCaliperMode && (
             <div className="p-3 mb-3 bg-emerald-950/90 text-white rounded-xl border-2 border-emerald-500/80 shadow-lg flex flex-wrap items-center justify-between gap-3 text-xs font-mono animate-in fade-in slide-in-from-top-1 duration-200">
@@ -3585,7 +4179,7 @@ export const FWHMModule: React.FC = () => {
                 </span>
                 <span className="text-emerald-200">
                   {caliperPointA === null 
-                    ? 'Step 1: Click 1st point on graph to set Pt A' 
+                    ? 'Step 1: Click 1st point on graph or use auto-snaps' 
                     : caliperPointB === null 
                     ? `Pt A: 2θ = ${caliperPointA.toFixed(3)}° | Click 2nd point to set Pt B` 
                     : `Pt A: ${caliperPointA.toFixed(3)}° | Pt B: ${caliperPointB.toFixed(3)}°`}
@@ -3615,7 +4209,43 @@ export const FWHMModule: React.FC = () => {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    if (extSim.stats) {
+                      setCaliperPointA(extSim.stats.theta1);
+                      setCaliperPointB(extSim.stats.theta2);
+                    }
+                  }}
+                  className="px-2 py-1 bg-emerald-900/80 hover:bg-emerald-800 text-emerald-200 border border-emerald-700/60 rounded-md text-[11px] font-bold transition-all cursor-pointer"
+                  title="Snap Caliper directly to FWHM (2θ₁ and 2θ₂ half-maximum bounds)"
+                >
+                  ⚡ Snap FWHM
+                </button>
+                <button
+                  onClick={() => {
+                    if (extSim.stats) {
+                      setCaliperPointA(extSim.stats.theta1Tenth);
+                      setCaliperPointB(extSim.stats.theta2Tenth);
+                    }
+                  }}
+                  className="px-2 py-1 bg-teal-900/80 hover:bg-teal-800 text-teal-200 border border-teal-700/60 rounded-md text-[11px] font-bold transition-all cursor-pointer"
+                  title="Snap Caliper directly to FWTM (10% bounds)"
+                >
+                  ⚡ Snap FWTM
+                </button>
+                <button
+                  onClick={() => {
+                    if (extSim.stats) {
+                      setCaliperPointA(extSim.stats.thetaInfLeft);
+                      setCaliperPointB(extSim.stats.thetaInfRight);
+                    }
+                  }}
+                  className="px-2 py-1 bg-pink-900/80 hover:bg-pink-800 text-pink-200 border border-pink-700/60 rounded-md text-[11px] font-bold transition-all cursor-pointer"
+                  title="Snap Caliper to 2nd Derivative Inflection Roots (~2σ)"
+                >
+                  ⚡ Snap Inflections
+                </button>
                 <button
                   onClick={() => {
                     setCaliperPointA(null);
@@ -3638,6 +4268,149 @@ export const FWHMModule: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Interactive Fractional Peak Slicing & Fine-Tuning Bar */}
+          <div className="p-3 mb-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500" />
+                Profile Cut Slice:
+              </span>
+              <button
+                onClick={() => {
+                  setSliceMode('fwhm');
+                  setSliceFraction(0.5);
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer border ${
+                  sliceMode === 'fwhm'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                }`}
+                title="Full Width at Half Maximum (50% Peak Height)"
+              >
+                FWHM (50%)
+              </button>
+              <button
+                onClick={() => {
+                  setSliceMode('fwtm');
+                  setSliceFraction(0.10);
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer border ${
+                  sliceMode === 'fwtm'
+                    ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                }`}
+                title="Full Width at Tenth Maximum (10% Peak Height)"
+              >
+                FWTM (10%)
+              </button>
+              <button
+                onClick={() => {
+                  setSliceMode('fwfm');
+                  setSliceFraction(0.20);
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer border ${
+                  sliceMode === 'fwfm'
+                    ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                }`}
+                title="Full Width at Fifth Maximum (20% Peak Height)"
+              >
+                FWFM (20%)
+              </button>
+              <button
+                onClick={() => {
+                  setSliceMode('fwem');
+                  setSliceFraction(0.367879);
+                }}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer border ${
+                  sliceMode === 'fwem'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                }`}
+                title="Full Width at 1/e Maximum (36.8% Peak Height - Gaussian 2σ marker)"
+              >
+                FWeM (1/e)
+              </button>
+              <button
+                onClick={() => setSliceMode('custom')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-xs transition-all cursor-pointer border ${
+                  sliceMode === 'custom'
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                }`}
+                title="Custom arbitrary fraction slice cut"
+              >
+                Custom %
+              </button>
+
+              {sliceMode === 'custom' && (
+                <div className="flex items-center gap-1.5 ml-1 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
+                  <input
+                    type="range"
+                    min="0.05"
+                    max="0.95"
+                    step="0.01"
+                    value={sliceFraction}
+                    onChange={(e) => setSliceFraction(parseFloat(e.target.value))}
+                    className="w-20 accent-rose-600 cursor-pointer h-1.5"
+                  />
+                  <span className="font-mono text-[11px] font-extrabold text-rose-600 dark:text-rose-400">
+                    {(sliceFraction * 100).toFixed(0)}%
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Live Slice Width Readout & Micro-Nudges */}
+            <div className="flex flex-wrap items-center gap-3 font-mono text-[11px]">
+              <div className="bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/60">
+                <span className="text-slate-500 dark:text-slate-400 font-sans mr-1">Δ2θ:</span>
+                <strong className="text-indigo-600 dark:text-indigo-300 font-bold">
+                  {extSim.stats.deltaThetaSlice.toFixed(4)}°
+                </strong>
+                <span className="text-slate-400 dark:text-slate-500 text-[10px] ml-1">
+                  ({(extSim.stats.thetaSlice1).toFixed(3)}° → {(extSim.stats.thetaSlice2).toFixed(3)}°)
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1 font-sans">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Nudge 2θ₀:</span>
+                <button
+                  onClick={() => setCenter(prev => parseFloat((prev - 0.02).toFixed(3)))}
+                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[10px] font-mono font-bold cursor-pointer"
+                  title="Shift peak centroid left by 0.02°"
+                >
+                  -0.02°
+                </button>
+                <button
+                  onClick={() => setCenter(prev => parseFloat((prev + 0.02).toFixed(3)))}
+                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[10px] font-mono font-bold cursor-pointer"
+                  title="Shift peak centroid right by 0.02°"
+                >
+                  +0.02°
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1 font-sans">
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Nudge FWHM:</span>
+                <button
+                  onClick={() => setFwhmManual(prev => Math.max(0.01, parseFloat((prev - 0.01).toFixed(4))))}
+                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[10px] font-mono font-bold cursor-pointer text-indigo-600 dark:text-indigo-400"
+                  title="Narrow FWHM by 0.01°"
+                >
+                  -0.01°
+                </button>
+                <button
+                  onClick={() => setFwhmManual(prev => parseFloat((prev + 0.01).toFixed(4)))}
+                  className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-[10px] font-mono font-bold cursor-pointer text-indigo-600 dark:text-indigo-400"
+                  title="Widen FWHM by 0.01°"
+                >
+                  +0.01°
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Interactive Chart Overlays & Display Toggles Bar */}
           <div className="flex flex-wrap items-center gap-1.5 p-2 mb-4 bg-slate-50 dark:bg-slate-950/70 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-medium">
@@ -3686,6 +4459,32 @@ export const FWHMModule: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setShowAsymmetryHwhm(!showAsymmetryHwhm)}
+              className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
+                showAsymmetryHwhm 
+                  ? 'bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200 border border-violet-300 dark:border-violet-700 font-bold shadow-sm' 
+                  : 'bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}
+              title="Toggle Left/Right HWHM asymmetry bracket (HWHM_L vs HWHM_R)"
+            >
+              <span className={`w-2 h-2 rounded-full ${showAsymmetryHwhm ? 'bg-violet-600 dark:bg-violet-400' : 'bg-slate-400'}`} />
+              HWHM Asymmetry
+            </button>
+
+            <button
+              onClick={() => setShowInflectionMarkers(!showInflectionMarkers)}
+              className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
+                showInflectionMarkers 
+                  ? 'bg-pink-100 text-pink-900 dark:bg-pink-950 dark:text-pink-200 border border-pink-300 dark:border-pink-700 font-bold shadow-sm' 
+                  : 'bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}
+              title="Toggle Inflection Points roots where 2nd derivative d²I/d2θ² = 0 (~2σ)"
+            >
+              <span className={`w-2 h-2 rounded-full ${showInflectionMarkers ? 'bg-pink-600 dark:bg-pink-400' : 'bg-slate-400'}`} />
+              Inflections (d²I=0)
+            </button>
+
+            <button
               onClick={() => setShowIntegralBreadthBox(!showIntegralBreadthBox)}
               className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
                 showIntegralBreadthBox 
@@ -3722,6 +4521,32 @@ export const FWHMModule: React.FC = () => {
             >
               <span className={`w-2 h-2 rounded-full ${showImaxLines ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-slate-400'}`} />
               I_max Baselines
+            </button>
+
+            <button
+              onClick={() => setShowDerivativePane(!showDerivativePane)}
+              className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
+                showDerivativePane 
+                  ? 'bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200 border border-cyan-300 dark:border-cyan-700 font-bold shadow-sm' 
+                  : 'bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}
+              title="Toggle 1st (dI/d2θ) and 2nd (d²I/d2θ²) numerical derivative analysis pane"
+            >
+              <span className={`w-2 h-2 rounded-full ${showDerivativePane ? 'bg-cyan-600 dark:bg-cyan-400' : 'bg-slate-400'}`} />
+              Derivatives (dI, d²I)
+            </button>
+
+            <button
+              onClick={() => setShowDeconvBreakdown(!showDeconvBreakdown)}
+              className={`px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
+                showDeconvBreakdown 
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-bold shadow-sm' 
+                  : 'bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+              }`}
+              title="Toggle Instrument vs Specimen Broadening and Voigt Shape Factor HUD"
+            >
+              <span className={`w-2 h-2 rounded-full ${showDeconvBreakdown ? 'bg-amber-600 dark:bg-amber-400' : 'bg-slate-400'}`} />
+              Broadening & Shape HUD
             </button>
           </div>
 
@@ -3824,11 +4649,37 @@ export const FWHMModule: React.FC = () => {
           )}
 
           {/* Recharts Figure */}
-          <div className={`w-full transition-all duration-300 relative z-10 ${isExpandedChart ? 'h-[640px] lg:h-[720px]' : 'h-[460px] lg:h-[520px]'}`}>
+          <div className={`w-full transition-all duration-300 relative z-10 ${
+            plotTheme === 'lab_dark' ? 'bg-slate-950 p-3 rounded-2xl border border-slate-800' :
+            plotTheme === 'journal' ? 'bg-white p-3 rounded-2xl border border-slate-300 shadow-sm' :
+            plotTheme === 'monochrome' ? 'bg-zinc-50 dark:bg-zinc-900 p-3 rounded-2xl border border-zinc-400' : ''
+          } ${isExpandedChart ? 'h-[640px] lg:h-[720px]' : 'h-[460px] lg:h-[520px]'}`}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart 
                 data={chartData} 
                 margin={{ top: 20, right: 35, left: 15, bottom: 25 }}
+                onMouseMove={(state: any) => {
+                  if (state && state.activePayload && state.activePayload.length) {
+                    const pt = state.activePayload[0].payload;
+                    if (pt) {
+                      const thetaRad = (pt.x / 2) * Math.PI / 180;
+                      const dSpace = (activeWavelength * 10) / (2 * Math.sin(thetaRad));
+                      const qVec = (4 * Math.PI * Math.sin(thetaRad)) / (activeWavelength * 10);
+                      const cleanVal = pt._cleanY ?? pt.y;
+                      const maxVal = amplitude + background;
+                      const relPct = maxVal > 0 ? (cleanVal / maxVal) * 100 : 0;
+                      setHoveredPointData({
+                        x: pt.x,
+                        y: pt.y,
+                        cleanY: cleanVal,
+                        dSpacing: dSpace,
+                        qVector: qVec,
+                        relPct
+                      });
+                    }
+                  }
+                }}
+                onMouseLeave={() => setHoveredPointData(null)}
                 onClick={(e: any) => {
                   if (e && e.activeLabel !== undefined) {
                     const clickX = Number(e.activeLabel);
@@ -3847,32 +4698,56 @@ export const FWHMModule: React.FC = () => {
               >
                 <defs>
                   <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="0%" stopColor="#6366f1" stopOpacity={0.65}/>
-                     <stop offset="50%" stopColor="#6366f1" stopOpacity={0.25}/>
-                     <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05}/>
+                     <stop offset="0%" stopColor={plotTheme === 'monochrome' ? '#52525b' : '#6366f1'} stopOpacity={0.65}/>
+                     <stop offset="50%" stopColor={plotTheme === 'monochrome' ? '#71717a' : '#6366f1'} stopOpacity={0.25}/>
+                     <stop offset="100%" stopColor={plotTheme === 'monochrome' ? '#a1a1aa' : '#6366f1'} stopOpacity={0.05}/>
                   </linearGradient>
                   <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                    <rect width="1.5" height="6" transform="translate(0,0)" fill="#475569" opacity="0.35"></rect>
+                    <rect width="1.5" height="6" transform="translate(0,0)" fill={plotTheme === 'lab_dark' ? '#334155' : '#475569'} opacity="0.35"></rect>
                   </pattern>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#94a3b8" strokeOpacity={0.5} strokeWidth={1.2} />
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  stroke={plotTheme === 'lab_dark' ? '#334155' : plotTheme === 'journal' ? '#cbd5e1' : '#94a3b8'} 
+                  strokeOpacity={plotTheme === 'lab_dark' ? 0.6 : 0.5} 
+                  strokeWidth={1.2} 
+                />
                 
                 <XAxis 
                   dataKey="x" 
                   type="number" 
                   domain={['dataMin', 'dataMax']} 
-                  tick={{fontSize: 12, fill: '#334155', fontWeight: 700}}
-                  label={{ value: 'Diffraction Angle 2θ (°)', position: 'bottom', offset: 5, fill: '#0f172a', fontSize: 13, fontWeight: 800 }}
+                  tick={{fontSize: 12, fill: plotTheme === 'lab_dark' ? '#cbd5e1' : '#334155', fontWeight: 700}}
+                  label={{ 
+                    value: 'Diffraction Angle 2θ (°)', 
+                    position: 'bottom', 
+                    offset: 5, 
+                    fill: plotTheme === 'lab_dark' ? '#e2e8f0' : '#0f172a', 
+                    fontSize: 13, 
+                    fontWeight: 800 
+                  }}
                   tickFormatter={(val) => val.toFixed(2)}
-                  axisLine={{ stroke: '#475569', strokeWidth: 2 }}
-                  tickLine={{ stroke: '#475569', strokeWidth: 2 }}
+                  axisLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
+                  tickLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
                 />
                 <YAxis 
-                  domain={[0, amplitude * 1.35]} 
-                  width={45} 
-                  tick={{fontSize: 12, fill: '#334155', fontWeight: 700}}
-                  axisLine={{ stroke: '#475569', strokeWidth: 2 }}
-                  tickLine={{ stroke: '#475569', strokeWidth: 2 }}
+                  domain={yScaleMode === 'log10' ? [0.1, 'auto'] : [0, 'auto']} 
+                  scale={yScaleMode === 'log10' ? 'log' : 'auto'}
+                  width={55} 
+                  tick={{fontSize: 12, fill: plotTheme === 'lab_dark' ? '#cbd5e1' : '#334155', fontWeight: 700}}
+                  axisLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
+                  tickLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
+                  tickFormatter={(val) => {
+                    if (yScaleMode === 'log10') return `10^${Math.round(Math.log10(Math.max(0.1, val)))}`;
+                    return val >= 1000 ? `${(val/1000).toFixed(1)}k` : `${Math.round(val)}`;
+                  }}
+                  label={{
+                    value: yScaleMode === 'log10' ? 'Log₁₀ Intensity' : yScaleMode === 'sqrt' ? '√Intensity (cps^½)' : showNetIntensity ? 'Net Intensity (I - I_bg)' : 'Intensity I (cps)',
+                    angle: -90,
+                    position: 'insideLeft',
+                    offset: 10,
+                    style: { textAnchor: 'middle', fill: plotTheme === 'lab_dark' ? '#cbd5e1' : '#0f172a', fontSize: 12, fontWeight: 800 }
+                  }}
                 />
                 
                 <Tooltip 
@@ -3885,7 +4760,7 @@ export const FWHMModule: React.FC = () => {
                       const qVec = (4 * Math.PI * Math.sin(thetaRad)) / (activeWavelength * 10);
                       
                       return (
-                        <div className="bg-slate-900 text-slate-100 p-4 rounded-xl shadow-2xl text-xs border-2 border-indigo-500/80 min-w-[250px] backdrop-blur-md">
+                        <div className="bg-slate-900 text-slate-100 p-4 rounded-xl shadow-2xl text-xs border-2 border-indigo-500/80 min-w-[260px] backdrop-blur-md">
                           <div className="font-extrabold border-b border-slate-700 pb-2 mb-2 text-indigo-400 flex items-center justify-between">
                             <span>Angle 2θ: {dataPoint.x.toFixed(4)}°</span>
                             <span className="text-[10px] bg-indigo-950 px-2 py-0.5 rounded font-mono text-indigo-300 border border-indigo-700">{type}</span>
@@ -3899,6 +4774,12 @@ export const FWHMModule: React.FC = () => {
                               <span className="text-slate-400">Y_calc (Clean):</span>
                               <span className="font-extrabold text-indigo-300">{dataPoint._cleanY?.toFixed(1) || '-'} cps</span>
                             </div>
+                            {showNetIntensity && (
+                              <div className="flex justify-between">
+                                <span className="text-cyan-400">Y_net (I - I_bg):</span>
+                                <span className="font-extrabold text-cyan-300">{dataPoint.y_net?.toFixed(1) || '-'} cps</span>
+                              </div>
+                            )}
                             {dataPoint.residual !== undefined && (
                               <div className="flex justify-between">
                                 <span className="text-slate-400">Residual:</span>
@@ -3927,6 +4808,12 @@ export const FWHMModule: React.FC = () => {
                               <div className="flex justify-between">
                                 <span className="text-amber-400">Kα₂ Peak:</span>
                                 <span className="font-extrabold text-amber-300">{dataPoint.yKa2.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            {dataPoint.yRachinger !== undefined && showRachingerStripped && (
+                              <div className="flex justify-between">
+                                <span className="text-emerald-400">Rachinger Kα₁:</span>
+                                <span className="font-extrabold text-emerald-300">{dataPoint.yRachinger.toFixed(1)} cps</span>
                               </div>
                             )}
                             <div className="flex justify-between pt-1.5 border-t border-slate-700">
@@ -4144,6 +5031,64 @@ export const FWHMModule: React.FC = () => {
                 <ReferenceDot x={center - fwhm / 2} y={amplitude / 2 + background} r={6} fill="#4338ca" stroke="#ffffff" strokeWidth={2} />
                 <ReferenceDot x={center + fwhm / 2} y={amplitude / 2 + background} r={6} fill="#4338ca" stroke="#ffffff" strokeWidth={2} />
 
+                {/* Asymmetry HWHM Split Segment Markers */}
+                {extSim.stats && showAsymmetryHwhm && (
+                  <>
+                    <ReferenceLine 
+                      segment={[{ x: extSim.stats.theta1, y: amplitude / 2 + background }, { x: center, y: amplitude / 2 + background }]} 
+                      stroke="#8b5cf6" 
+                      strokeWidth={4}
+                    >
+                      <Label value={`HWHM_L=${extSim.stats.hwhmLeft.toFixed(3)}°`} position="bottom" fill="#7c3aed" fontSize={10} fontWeight="800" offset={4} />
+                    </ReferenceLine>
+                    <ReferenceLine 
+                      segment={[{ x: center, y: amplitude / 2 + background }, { x: extSim.stats.theta2, y: amplitude / 2 + background }]} 
+                      stroke="#06b6d4" 
+                      strokeWidth={4}
+                    >
+                      <Label value={`HWHM_R=${extSim.stats.hwhmRight.toFixed(3)}° (Asym=${extSim.stats.asymmetryFactor.toFixed(2)})`} position="bottom" fill="#0891b2" fontSize={10} fontWeight="800" offset={4} />
+                    </ReferenceLine>
+                  </>
+                )}
+
+                {/* 2nd Derivative Inflection Points (~2σ markers) */}
+                {extSim.stats && showInflectionMarkers && (
+                  <>
+                    <ReferenceLine x={extSim.stats.thetaInfLeft} stroke="#ec4899" strokeDasharray="3 3" strokeWidth={2}>
+                      <Label value="θ_inf,L" position="top" fill="#db2777" fontSize={10} fontWeight="800" offset={4} />
+                    </ReferenceLine>
+                    <ReferenceLine x={extSim.stats.thetaInfRight} stroke="#ec4899" strokeDasharray="3 3" strokeWidth={2}>
+                      <Label value="θ_inf,R" position="top" fill="#db2777" fontSize={10} fontWeight="800" offset={4} />
+                    </ReferenceLine>
+                    <ReferenceLine 
+                      segment={[{ x: extSim.stats.thetaInfLeft, y: amplitude * 0.606 + background }, { x: extSim.stats.thetaInfRight, y: amplitude * 0.606 + background }]} 
+                      stroke="#ec4899" 
+                      strokeWidth={2.5}
+                      strokeDasharray="2 2"
+                    >
+                      <Label value={`Inflection Span Δ2θ_inf = ${extSim.stats.inflectionSpan.toFixed(4)}° (d²I=0)`} position="insideBottom" fill="#be185d" fontSize={10} fontWeight="800" offset={6} />
+                    </ReferenceLine>
+                    <ReferenceDot x={extSim.stats.thetaInfLeft} y={amplitude * 0.606 + background} r={5} fill="#ec4899" stroke="#ffffff" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.thetaInfRight} y={amplitude * 0.606 + background} r={5} fill="#ec4899" stroke="#ffffff" strokeWidth={2} />
+                  </>
+                )}
+
+                {/* Arbitrary / Custom Fractional Slice Line */}
+                {extSim.stats && (sliceMode !== 'fwhm' || sliceFraction !== 0.5) && (
+                  <>
+                    <ReferenceLine 
+                      segment={[{ x: extSim.stats.thetaSlice1, y: amplitude * extSim.stats.sliceFraction + background }, { x: extSim.stats.thetaSlice2, y: amplitude * extSim.stats.sliceFraction + background }]} 
+                      stroke="#e11d48" 
+                      strokeWidth={3}
+                      strokeDasharray="4 2"
+                    >
+                      <Label value={`Slice (${(extSim.stats.sliceFraction * 100).toFixed(1)}% Max): Δ2θ = ${extSim.stats.deltaThetaSlice.toFixed(4)}°`} position="top" fill="#be123c" fontSize={11} fontWeight="800" offset={6} />
+                    </ReferenceLine>
+                    <ReferenceDot x={extSim.stats.thetaSlice1} y={amplitude * extSim.stats.sliceFraction + background} r={5} fill="#e11d48" stroke="#ffffff" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.thetaSlice2} y={amplitude * extSim.stats.sliceFraction + background} r={5} fill="#e11d48" stroke="#ffffff" strokeWidth={2} />
+                  </>
+                )}
+
                 {/* Gaussian Sub-Curve Component */}
                 {type === 'Pseudo-Voigt' && showComponents && (
                   <Line 
@@ -4228,6 +5173,20 @@ export const FWHMModule: React.FC = () => {
                   />
                 )}
 
+                {/* Rachinger Stripped Pure Kα1 Profile */}
+                {showRachingerStripped && enableKaDoublet && (
+                  <Line 
+                    type="monotone" 
+                    dataKey="yRachinger" 
+                    stroke="#10b981" 
+                    strokeWidth={2.8} 
+                    strokeDasharray="4 4" 
+                    dot={false} 
+                    isAnimationActive={false} 
+                    name="Rachinger Pure Kα₁"
+                  />
+                )}
+
                 {/* Secondary Overlapping Reflection */}
                 {enableSecondaryPeak && (
                   <Line 
@@ -4263,7 +5222,7 @@ export const FWHMModule: React.FC = () => {
                 {/* Multi-Peak Reference Lines & Apex Centroids */}
                 {enableMultiPeakMode && customPeaks.map(p => {
                   if (!p.enabled) return null;
-                  const halfY = p.amplitude / 2 + background;
+                  const halfY = showNetIntensity ? p.amplitude / 2 : p.amplitude / 2 + background;
                   return (
                     <React.Fragment key={`multi-mark-${p.id}`}>
                       <ReferenceLine
@@ -4283,7 +5242,7 @@ export const FWHMModule: React.FC = () => {
                       </ReferenceLine>
                       <ReferenceDot 
                         x={p.center} 
-                        y={p.amplitude + background} 
+                        y={showNetIntensity ? p.amplitude : p.amplitude + background} 
                         r={5.5} 
                         fill={p.color} 
                         stroke="#ffffff" 
@@ -4296,8 +5255,8 @@ export const FWHMModule: React.FC = () => {
                 {/* Clean Peak Curve */}
                 <Area 
                    type="monotone" 
-                   dataKey="_cleanY" 
-                   stroke={enableMultiPeakMode ? "#8b5cf6" : "#4f46e5"} 
+                   dataKey={showNetIntensity ? "_cleanY_net" : "_cleanY"} 
+                   stroke={plotTheme === 'monochrome' ? "#18181b" : enableMultiPeakMode ? "#8b5cf6" : "#4f46e5"} 
                    strokeWidth={3.5}
                    fillOpacity={enableMultiPeakMode ? 0.05 : 1} 
                    fill="url(#colorY)" 
@@ -4309,13 +5268,13 @@ export const FWHMModule: React.FC = () => {
                 {showNoisyCurve && (
                   <Area 
                      type="monotone" 
-                     dataKey="y" 
+                     dataKey={showNetIntensity ? "y_net" : "y"} 
                      stroke="#ff2a5f" 
                      strokeWidth={1.8}
                      strokeOpacity={0.85}
                      fillOpacity={0} 
                      fill="none" 
-                     isAnimationActive={false}
+                     isAnimationActive={false} 
                      activeDot={false}
                   />
                 )}
@@ -4415,6 +5374,188 @@ export const FWHMModule: React.FC = () => {
                     <Line type="monotone" dataKey="residual" stroke="#ff2a5f" strokeWidth={1.8} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Synchronized Numerical 1st and 2nd Derivative Inspection Window */}
+          {showDerivativePane && chartData.length > 0 && (
+            <div className="mt-4 bg-slate-900 text-white p-4 rounded-xl border-2 border-cyan-500/70 shadow-lg text-xs animate-in fade-in duration-300">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2 border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 bg-cyan-500/20 text-cyan-400 rounded">
+                    <Activity className="w-4 h-4" />
+                  </span>
+                  <span className="font-extrabold text-cyan-300 text-sm">
+                    Numerical Derivative Profile Spectrum
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <span className="flex items-center gap-1.5 text-cyan-300">
+                    <span className="w-2.5 h-0.5 bg-cyan-400 inline-block" />
+                    1st Deriv dI/d2θ (Extrema Zero-Cross)
+                  </span>
+                  <span className="flex items-center gap-1.5 text-pink-300">
+                    <span className="w-2.5 h-0.5 bg-pink-400 inline-block border-t border-dashed" />
+                    2nd Deriv d²I/d2θ² (Inflection Roots)
+                  </span>
+                  <span className="text-slate-400">
+                    Inflection Span: <strong className="text-pink-400">{extSim.stats.inflectionSpan.toFixed(4)}°</strong>
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-[140px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 8, right: 35, left: 15, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="2 2" stroke="#334155" strokeOpacity={0.6} />
+                    <XAxis dataKey="x" stroke="#64748b" tickFormatter={(val) => `${val.toFixed(2)}°`} fontSize={10} domain={['dataMin', 'dataMax']} />
+                    <YAxis stroke="#64748b" fontSize={10} />
+                    <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1.5} />
+                    <ReferenceLine x={center} stroke="#818cf8" strokeDasharray="3 3" strokeWidth={1.5} />
+                    <ReferenceLine x={extSim.stats.thetaInfLeft} stroke="#ec4899" strokeDasharray="2 2" strokeWidth={1.5} />
+                    <ReferenceLine x={extSim.stats.thetaInfRight} stroke="#ec4899" strokeDasharray="2 2" strokeWidth={1.5} />
+                    <Line type="monotone" dataKey="d1" stroke="#06b6d4" strokeWidth={2} dot={false} isAnimationActive={false} name="dI/d2θ" />
+                    <Line type="monotone" dataKey="d2" stroke="#ec4899" strokeWidth={2} strokeDasharray="3 3" dot={false} isAnimationActive={false} name="d²I/d2θ²" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* Deconvoluted Physical Broadening & Voigt Shape Factor HUD */}
+          {showDeconvBreakdown && (
+            <div className="mt-4 bg-slate-900 text-slate-100 p-4 rounded-xl border-2 border-amber-500/70 shadow-lg text-xs animate-in fade-in duration-300">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 bg-amber-500/20 text-amber-400 rounded font-bold">
+                    🔬
+                  </span>
+                  <span className="font-extrabold text-amber-300 text-sm">
+                    Physical Peak Broadening & Voigt Shape Architecture
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+                  <span>Instrument β_inst: <strong className="text-amber-300">{extSim.stats.betaInst.toFixed(4)}°</strong></span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. Broadening Partition Bar */}
+                <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-slate-200">Broadening Deconvolution Partition</span>
+                    <span className="text-[10px] font-mono text-slate-400">Quadratic Subtraction</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400">Observed β_obs:</span>
+                      <strong className="text-indigo-400">{extSim.stats.effTchFwhm.toFixed(4)}°</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400">Instrumental β_inst:</span>
+                      <strong className="text-amber-400">{extSim.stats.betaInst.toFixed(4)}°</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono border-t border-slate-700 pt-1">
+                      <span className="text-emerald-400 font-bold">Specimen Pure β_sample:</span>
+                      <strong className="text-emerald-300 font-bold">{extSim.stats.betaSample.toFixed(4)}°</strong>
+                    </div>
+
+                    {/* Proportional visual bar */}
+                    {(() => {
+                      const total = Math.max(0.001, extSim.stats.effTchFwhm);
+                      const instPct = Math.min(100, Math.max(0, (extSim.stats.betaInst / total) * 100));
+                      const samplePct = Math.max(0, 100 - instPct);
+                      return (
+                        <div className="mt-2">
+                          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden flex">
+                            <div style={{ width: `${instPct}%` }} className="bg-amber-500 h-full" title={`Instrument: ${instPct.toFixed(1)}%`} />
+                            <div style={{ width: `${samplePct}%` }} className="bg-emerald-500 h-full" title={`Specimen: ${samplePct.toFixed(1)}%`} />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
+                            <span className="text-amber-400">Inst: {instPct.toFixed(0)}%</span>
+                            <span className="text-emerald-400">Sample: {samplePct.toFixed(0)}%</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* 2. Asymmetry & Peak Skewness */}
+                <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-slate-200">Asymmetry & Skewness</span>
+                    <span className="text-[10px] font-mono text-purple-400">HWHM_R / HWHM_L</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-violet-400">Left HWHM_L:</span>
+                      <strong>{extSim.stats.hwhmLeft.toFixed(4)}°</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-cyan-400">Right HWHM_R:</span>
+                      <strong>{extSim.stats.hwhmRight.toFixed(4)}°</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono border-t border-slate-700 pt-1">
+                      <span className="text-slate-300 font-bold">Asymmetry Factor (A):</span>
+                      <strong className={`font-bold ${Math.abs(extSim.stats.asymmetryFactor - 1.0) < 0.05 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {extSim.stats.asymmetryFactor.toFixed(3)}
+                      </strong>
+                    </div>
+                    <p className="text-[10px] text-slate-400 pt-1">
+                      {Math.abs(extSim.stats.asymmetryFactor - 1.0) < 0.05 
+                        ? '✓ Highly symmetric Bragg peak profile' 
+                        : extSim.stats.asymmetryFactor > 1.0 
+                        ? 'High-angle tailing (Axial divergence / flat specimen error)' 
+                        : 'Low-angle tailing (Transparency / absorption distortion)'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* 3. Voigt Shape Factor φ = FWHM / β_int */}
+                <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-slate-200">Voigt Shape Factor (φ)</span>
+                    <span className="text-[10px] font-mono text-cyan-400">FWHM / β_int</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400">Integral Breadth (β_int):</span>
+                      <strong className="text-indigo-300">{extSim.stats.integralBreadth.toFixed(4)}°</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-400">Shape Factor φ:</span>
+                      <strong className="text-cyan-300 font-bold">{extSim.stats.shapeFactor.toFixed(3)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                      <span>Gaussian: 0.939</span>
+                      <span>Lorentzian: 0.637</span>
+                    </div>
+
+                    {/* Visual Shape Gauge Meter */}
+                    <div className="mt-1">
+                      <div className="w-full bg-slate-950 h-2.5 rounded-full relative overflow-hidden border border-slate-700">
+                        {(() => {
+                          // Scale 0.637 (Lorentzian) to 0.939 (Gaussian)
+                          const minPhi = 0.637;
+                          const maxPhi = 0.939;
+                          const norm = Math.max(0, Math.min(1, (extSim.stats.shapeFactor - minPhi) / (maxPhi - minPhi)));
+                          return (
+                            <div
+                              style={{ left: `${norm * 90}%` }}
+                              className="absolute top-0 bottom-0 w-3 bg-cyan-400 rounded-full shadow-xs"
+                            />
+                          );
+                        })()}
+                      </div>
+                      <div className="flex justify-between text-[9px] text-slate-400 mt-1 font-mono">
+                        <span className="text-cyan-400">Lorentzian-like</span>
+                        <span className="text-purple-400">Gaussian-like</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

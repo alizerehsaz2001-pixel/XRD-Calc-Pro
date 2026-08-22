@@ -580,14 +580,21 @@ export const calculateScherrer = (
   K: number, 
   instFwhm: number, 
   peak: ScherrerInput,
-  broadeningModel: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' = 'Gaussian'
+  broadeningModel: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'de Keijser' | 'Halder-Wagner' = 'Gaussian',
+  materialDensityGcm3: number = 2.33, // Default Silicon density = 2.33 g/cm^3
+  pseudoVoigtEta: number = 0.5
 ): ScherrerResult | null => {
   if (wavelength <= 0) return null;
-  const { twoTheta, fwhmObs, intensity } = peak;
+  const { twoTheta, fwhmObs, intensity, hkl } = peak;
   if (twoTheta <= 0 || twoTheta >= 180 || fwhmObs <= 0) return null;
   const thetaRad = (twoTheta / 2) * (Math.PI / 180);
   const betaObsRad = fwhmObs * (Math.PI / 180);
   const betaInstRad = instFwhm * (Math.PI / 180);
+
+  // Bragg geometry metrics
+  const sinTheta = Math.sin(thetaRad);
+  const dSpacing = sinTheta > 0 ? wavelength / (2 * sinTheta) : 0; // in Angstroms
+  const qVector = (4 * Math.PI * sinTheta) / wavelength; // in Angstrom^-1
 
   if (betaObsRad <= betaInstRad) {
     return { 
@@ -596,21 +603,54 @@ export const calculateScherrer = (
       betaCorrected: 0, 
       sizeNm: 0, 
       intensity,
-      error: "Corrected FWHM is zero or negative, cannot calculate size for this peak." 
+      hkl,
+      dSpacing,
+      qVector,
+      error: "Observed FWHM is equal to or smaller than instrumental resolution limit (β_obs ≤ β_inst). Finite crystallite size cannot be resolved." 
     };
   }
 
   let betaSampleRad = 0;
+  let deKeijserLorentzianSizeNm: number | undefined = undefined;
+  let deKeijserGaussianStrainRms: number | undefined = undefined;
+
   if (broadeningModel === 'Gaussian') {
-    betaSampleRad = Math.sqrt(Math.pow(betaObsRad, 2) - Math.pow(betaInstRad, 2));
+    betaSampleRad = Math.sqrt(Math.max(0, Math.pow(betaObsRad, 2) - Math.pow(betaInstRad, 2)));
   } else if (broadeningModel === 'Lorentzian') {
-    betaSampleRad = betaObsRad - betaInstRad;
-  } else {
-    // Pseudo-Voigt approximation (de Keijser method / improved decoupling)
-    // Beta_sample = Beta_obs * (1 - (Beta_inst/Beta_obs)^2) for Gaussian
-    // But for a mix, we use the intermediate approximation:
+    betaSampleRad = Math.max(0, betaObsRad - betaInstRad);
+  } else if (broadeningModel === 'Halder-Wagner') {
+    // Halder-Wagner Voigt Parabolic approximation:
+    // (beta_sample / beta_obs)^2 = 1 - (beta_inst / beta_obs)^2
     const rho = betaInstRad / betaObsRad;
-    betaSampleRad = betaObsRad * (1 - rho * rho); // Improved approximation for general XRD peaks
+    const factor = Math.max(0.00001, 1 - rho * rho);
+    betaSampleRad = betaObsRad * Math.sqrt(factor);
+  } else if (broadeningModel === 'de Keijser') {
+    // Rigorous de Keijser Voigt Deconvolution Method
+    // Integral breadth / FWHM partitioning into Lorentzian and Gaussian breadths:
+    const effEta = Math.max(0, Math.min(1, pseudoVoigtEta));
+    const betaL_obs = betaObsRad * (0.0146 + 0.99395 * effEta - 0.0083 * Math.pow(effEta, 2));
+    const betaG_obs = betaObsRad * (1.0016 - 0.52115 * effEta - 0.47885 * Math.pow(effEta, 2));
+
+    const betaL_inst = betaInstRad * (0.0146 + 0.99395 * 0.5 - 0.0083 * 0.25);
+    const betaG_inst = betaInstRad * (1.0016 - 0.52115 * 0.5 - 0.47885 * 0.25);
+
+    const betaL_sample = Math.max(0.000001, betaL_obs - betaL_inst);
+    const betaG_sample = Math.sqrt(Math.max(0.000001, Math.pow(betaG_obs, 2) - Math.pow(betaG_inst, 2)));
+
+    // Lorentzian size (de Keijser)
+    const cosTheta = Math.cos(thetaRad);
+    deKeijserLorentzianSizeNm = cosTheta > 0 ? (K * wavelength) / (betaL_sample * cosTheta) / 10 : 0;
+
+    // Gaussian microstrain (de Keijser RMS strain)
+    const tanTheta = Math.tan(thetaRad);
+    deKeijserGaussianStrainRms = tanTheta > 0 ? betaG_sample / (4 * tanTheta) : 0;
+
+    // Overall effective sample width
+    betaSampleRad = betaL_sample + 0.5346 * betaG_sample + Math.sqrt(0.2166 * betaG_sample * betaG_sample + betaL_sample * betaL_sample);
+  } else {
+    // Pseudo-Voigt mixed decoupling approximation:
+    const rho = betaInstRad / betaObsRad;
+    betaSampleRad = betaObsRad * Math.max(0.00001, 1 - rho * rho);
   }
 
   const betaCorrectedDeg = betaSampleRad * (180 / Math.PI);
@@ -622,14 +662,56 @@ export const calculateScherrer = (
       betaCorrected: 0, 
       sizeNm: 0, 
       intensity,
+      hkl,
+      dSpacing,
+      qVector,
       error: "Zero physical broadening detected, size cannot be determined." 
     };
   }
 
   const cosTheta = Math.cos(thetaRad);
   if (Math.abs(cosTheta) < 1e-10) return null;
+
+  // D = (K * lambda) / (beta_sample_rad * cos(theta)) in Angstroms -> / 10 to convert to nm
   const sizeNm = (K * wavelength) / (betaSampleRad * cosTheta) / 10;
-  return { twoTheta, fwhmObs, betaCorrected: betaCorrectedDeg, sizeNm, intensity };
+
+  // Microstructural physical metrics:
+  // Dislocation density delta = 1 / D^2 (in m^-2)
+  // D in meters = sizeNm * 1e-9 m => delta = 1 / (sizeNm * 1e-9)^2 = 1e18 / (sizeNm^2)
+  const sizeMeters = Math.max(1e-12, sizeNm * 1e-9);
+  const dislocationDensityM2 = 1 / Math.pow(sizeMeters, 2);
+  const dislocationDensity10_14 = dislocationDensityM2 / 1e14; // in units of 10^14 m^-2
+
+  // Specific Surface Area SSA = 6 / (rho * D) in m^2 / g
+  // rho in g/cm^3, D in nm: SSA = 6 * 10^3 / (rho * D_nm)
+  const density = Math.max(0.01, materialDensityGcm3);
+  const specificSurfaceAreaM2g = sizeNm > 0 ? (6 * 1000) / (density * sizeNm) : 0;
+
+  // Coherent lattice plane count N = D_nm / d_nm = (sizeNm) / (dSpacing / 10)
+  const dSpacingNm = dSpacing / 10;
+  const coherencePlanesN = dSpacingNm > 0 ? Math.round(sizeNm / dSpacingNm) : undefined;
+
+  // Coherence domain volume (spherical approximation V = pi/6 * D^3) in nm^3
+  const coherenceVolumeNm3 = (Math.PI / 6) * Math.pow(sizeNm, 3);
+
+  return { 
+    twoTheta, 
+    fwhmObs, 
+    betaCorrected: betaCorrectedDeg, 
+    sizeNm: deKeijserLorentzianSizeNm && broadeningModel === 'de Keijser' ? deKeijserLorentzianSizeNm : sizeNm, 
+    intensity,
+    hkl,
+    dSpacing,
+    qVector,
+    dislocationDensityM2,
+    dislocationDensity10_14,
+    specificSurfaceAreaM2g,
+    coherencePlanesN,
+    coherenceVolumeNm3,
+    microstrainDeKeijser: deKeijserGaussianStrainRms,
+    lorentzianSizeNm: deKeijserLorentzianSizeNm,
+    gaussianStrainRms: deKeijserGaussianStrainRms
+  };
 };
 
 export const getEhkl = (

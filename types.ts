@@ -77,6 +77,17 @@ export interface ScherrerResult {
   betaCorrected: number; // degrees
   sizeNm: number;
   intensity?: number;
+  hkl?: [number, number, number];
+  dSpacing?: number; // Angstroms
+  qVector?: number; // Angstrom^-1
+  dislocationDensityM2?: number; // lines/m^2 (delta = 1/D^2)
+  dislocationDensity10_14?: number; // 10^14 m^-2
+  specificSurfaceAreaM2g?: number; // m^2 / g
+  coherencePlanesN?: number; // N = D / d_hkl
+  coherenceVolumeNm3?: number; // nm^3
+  microstrainDeKeijser?: number; // microstrain extracted via Voigt method
+  lorentzianSizeNm?: number;
+  gaussianStrainRms?: number;
   error?: string;
 }
 
@@ -547,9 +558,17 @@ export interface CustomPeak {
   center: number;
   fwhm: number;
   amplitude: number;
-  shape: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII';
+  shape: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII' | 'Split-Pseudo-Voigt';
   eta: number; // For Pseudo-Voigt (0-1) or Pearson VII exponent m
   asymmetry: number;
+  phase?: string;
+  hkl?: [number, number, number];
+  lockedCenter?: boolean;
+  lockedFwhm?: boolean;
+  lockedAmplitude?: boolean;
+  lockedEta?: boolean;
+  isDoubletChild?: boolean;
+  doubletParentId?: string;
 }
 
 export interface CustomPeakMetrics {
@@ -564,4 +583,10 @@ export interface CustomPeakMetrics {
   theta2: number; // deg (half-max right)
   maxIntensity: number; // cps
   relIntensityPercent: number; // % of dominant peak
+  hwhmLeft?: number;
+  hwhmRight?: number;
+  phase?: string;
+  gaussianSigma?: number;
+  lorentzianGamma?: number;
+  voigtPhi?: number;
 }
