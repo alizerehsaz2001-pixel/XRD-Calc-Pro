@@ -47,111 +47,140 @@ export const FullAppTranslator: React.FC = () => {
       return str;
     };
 
-    // Helper to translate a single text node or element attribute
-    const translateNode = (node: Node) => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const parent = node.parentElement;
-        if (!parent) return;
+      // Helper to translate a single text node or element attribute
+      const translateNode = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const parent = node.parentElement;
+          if (!parent) return;
 
-        const tagName = parent.tagName;
-        if (
-          ['SCRIPT', 'STYLE', 'CODE', 'PRE', 'SVG', 'PATH', 'MATH', 'CANVAS'].includes(tagName)
-        ) {
-          return;
-        }
-
-        if (
-          parent.closest('.notranslate') ||
-          parent.closest('.skiptranslate') ||
-          parent.closest('[data-no-translate]')
-        ) {
-          return;
-        }
-
-        const rawText = node.nodeValue || '';
-        const trimmed = rawText.trim();
-
-        if (!trimmed || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-          return;
-        }
-
-        // Store original English text if not yet stored
-        if (!(node as any).__origEnglishText) {
-          (node as any).__origEnglishText = rawText;
-        }
-
-        const origRaw = (node as any).__origEnglishText;
-
-        if (!currentLang || currentLang === 'en') {
-          // Restore English if active language is English
-          if (node.nodeValue !== origRaw) {
-            node.nodeValue = origRaw;
+          const tagName = parent.tagName;
+          if (
+            ['SCRIPT', 'STYLE', 'CODE', 'PRE', 'SVG', 'PATH', 'MATH', 'CANVAS'].includes(tagName)
+          ) {
+            return;
           }
-          return;
-        }
 
-        // Active language is non-English -> translate via i18n
-        const translatedRaw = translateStringWithNumbers(origRaw);
-        if (translatedRaw && translatedRaw !== origRaw && node.nodeValue !== translatedRaw) {
-          node.nodeValue = translatedRaw;
-        }
-      } else if (node.nodeType === Node.ELEMENT_NODE) {
-        const el = node as HTMLElement;
-        const tagName = el.tagName;
+          if (
+            parent.closest('.notranslate') ||
+            parent.closest('.skiptranslate') ||
+            parent.closest('[data-no-translate]')
+          ) {
+            return;
+          }
 
-        if (
-          ['SCRIPT', 'STYLE', 'CODE', 'PRE', 'SVG', 'PATH', 'MATH', 'CANVAS'].includes(tagName) ||
-          el.classList.contains('notranslate') ||
-          el.classList.contains('skiptranslate') ||
-          el.hasAttribute('data-no-translate')
-        ) {
-          return;
-        }
+          const rawText = node.nodeValue || '';
+          const trimmed = rawText.trim();
 
-        // Handle placeholder attribute for inputs/textareas
-        if ((tagName === 'INPUT' || tagName === 'TEXTAREA') && el.hasAttribute('placeholder')) {
-          const placeholder = el.getAttribute('placeholder') || '';
-          if (placeholder.trim()) {
-            if (!(el as any).__origPlaceholder) {
-              (el as any).__origPlaceholder = placeholder;
+          if (!trimmed || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            return;
+          }
+
+          // Detect if React or the app changed the text underneath us
+          const lastTrans = (node as any).__lastTranslatedText;
+          const origEng = (node as any).__origEnglishText;
+          
+          if (origEng === undefined || (rawText !== lastTrans && rawText !== origEng)) {
+            (node as any).__origEnglishText = rawText;
+          }
+
+          const origRaw = (node as any).__origEnglishText;
+
+          if (!currentLang || currentLang === 'en') {
+            // Restore English if active language is English
+            if (node.nodeValue !== origRaw) {
+              node.nodeValue = origRaw;
             }
-            const origPh = (el as any).__origPlaceholder;
-            if (!currentLang || currentLang === 'en') {
-              el.setAttribute('placeholder', origPh);
-            } else {
-              const transPh = translateStringWithNumbers(origPh);
-              if (transPh && transPh !== origPh) {
-                el.setAttribute('placeholder', transPh);
+            (node as any).__lastTranslatedText = origRaw;
+            return;
+          }
+
+          // Active language is non-English -> translate via i18n
+          const translatedRaw = translateStringWithNumbers(origRaw);
+          if (translatedRaw && node.nodeValue !== translatedRaw) {
+            node.nodeValue = translatedRaw;
+            (node as any).__lastTranslatedText = translatedRaw;
+          } else if (!lastTrans) {
+            (node as any).__lastTranslatedText = node.nodeValue;
+          }
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          const el = node as HTMLElement;
+          const tagName = el.tagName;
+
+          if (
+            ['SCRIPT', 'STYLE', 'CODE', 'PRE', 'SVG', 'PATH', 'MATH', 'CANVAS'].includes(tagName) ||
+            el.classList.contains('notranslate') ||
+            el.classList.contains('skiptranslate') ||
+            el.hasAttribute('data-no-translate')
+          ) {
+            return;
+          }
+
+          // Handle placeholder attribute for inputs/textareas
+          if ((tagName === 'INPUT' || tagName === 'TEXTAREA') && el.hasAttribute('placeholder')) {
+            const placeholder = el.getAttribute('placeholder') || '';
+            if (placeholder.trim()) {
+              const lastPhTrans = (el as any).__lastPhTrans;
+              const origPh = (el as any).__origPlaceholder;
+
+              if (origPh === undefined || (placeholder !== lastPhTrans && placeholder !== origPh)) {
+                (el as any).__origPlaceholder = placeholder;
+              }
+
+              const currentOrigPh = (el as any).__origPlaceholder;
+
+              if (!currentLang || currentLang === 'en') {
+                if (placeholder !== currentOrigPh) {
+                  el.setAttribute('placeholder', currentOrigPh);
+                }
+                (el as any).__lastPhTrans = currentOrigPh;
+              } else {
+                const transPh = translateStringWithNumbers(currentOrigPh);
+                if (transPh && placeholder !== transPh) {
+                  el.setAttribute('placeholder', transPh);
+                  (el as any).__lastPhTrans = transPh;
+                } else if (!lastPhTrans) {
+                  (el as any).__lastPhTrans = placeholder;
+                }
               }
             }
           }
-        }
 
-        // Handle title attribute for tooltips
-        if (el.hasAttribute('title')) {
-          const titleAttr = el.getAttribute('title') || '';
-          if (titleAttr.trim()) {
-            if (!(el as any).__origTitle) {
-              (el as any).__origTitle = titleAttr;
-            }
-            const origTitle = (el as any).__origTitle;
-            if (!currentLang || currentLang === 'en') {
-              el.setAttribute('title', origTitle);
-            } else {
-              const transTitle = translateStringWithNumbers(origTitle);
-              if (transTitle && transTitle !== origTitle) {
-                el.setAttribute('title', transTitle);
+          // Handle title attribute for tooltips
+          if (el.hasAttribute('title')) {
+            const titleAttr = el.getAttribute('title') || '';
+            if (titleAttr.trim()) {
+              const lastTitleTrans = (el as any).__lastTitleTrans;
+              const origTitle = (el as any).__origTitle;
+
+              if (origTitle === undefined || (titleAttr !== lastTitleTrans && titleAttr !== origTitle)) {
+                (el as any).__origTitle = titleAttr;
+              }
+
+              const currentOrigTitle = (el as any).__origTitle;
+
+              if (!currentLang || currentLang === 'en') {
+                if (titleAttr !== currentOrigTitle) {
+                  el.setAttribute('title', currentOrigTitle);
+                }
+                (el as any).__lastTitleTrans = currentOrigTitle;
+              } else {
+                const transTitle = translateStringWithNumbers(currentOrigTitle);
+                if (transTitle && titleAttr !== transTitle) {
+                  el.setAttribute('title', transTitle);
+                  (el as any).__lastTitleTrans = transTitle;
+                } else if (!lastTitleTrans) {
+                  (el as any).__lastTitleTrans = titleAttr;
+                }
               }
             }
           }
-        }
 
-        // Recurse child nodes
-        for (let i = 0; i < el.childNodes.length; i++) {
-          translateNode(el.childNodes[i]);
+          // Recurse child nodes
+          for (let i = 0; i < el.childNodes.length; i++) {
+            translateNode(el.childNodes[i]);
+          }
         }
-      }
-    };
+      };
 
     const scanAndTranslate = () => {
       if (isScanning) return;

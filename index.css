@@ -438,17 +438,28 @@ body {
 .monokai .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
 .monokai .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-monokai-comment); }
 
-/* Google Translate styling integration & complete popup/banner suppression */
+/* Google Translate styling integration & complete popup/banner/iframe suppression */
+.skiptranslate, 
 .goog-te-banner-frame, 
 .goog-te-banner-frame.skiptranslate, 
 .goog-te-gadget-icon,
 iframe.goog-te-banner-frame,
+iframe.goog-te-menu-frame,
+iframe.skiptranslate,
+.goog-te-menu-frame,
+.goog-te-menu,
+.goog-te-menu2,
 #goog-gt-tt,
 #goog-gt-vt,
+#goog-gt-src,
 .goog-te-balloon-frame,
 .VIpgJd-yD32b-Lg26de,
 .VIpgJd-yD32b-Lg26de-VIpgJd-bl2p3b,
 .VIpgJd-ZA163e-jA320-i3383e,
+.VIpgJd-ZA163e-jA320-i3383e-aL1v3e,
+div[class*="VIpgJd"],
+iframe[src*="translate.google.com"],
+iframe[id*="goog"],
 .goog-text-highlight,
 .goog-tooltip,
 .goog-tooltip:hover {
@@ -456,6 +467,11 @@ iframe.goog-te-banner-frame,
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
 }
 body {
   top: 0 !important;

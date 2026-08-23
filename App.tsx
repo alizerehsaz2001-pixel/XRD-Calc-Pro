@@ -155,6 +155,7 @@ const getModuleIcon = (id: Module, active: boolean) => {
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { isRTL } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
     return !!localStorage.getItem('xrd_user_registration');
@@ -1460,8 +1461,6 @@ const App: React.FC = () => {
       />
     );
   }
-
-  const { isRTL } = useI18n();
 
   return (
     <SettingsContext.Provider value={{

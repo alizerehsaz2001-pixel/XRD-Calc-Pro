@@ -1090,65 +1090,83 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         )}
 
         {/* Top Metric Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Crystallite Size */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-4.5 rounded-2xl border border-emerald-500/20 shadow-xl relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-2">
-              <Ruler className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Crystallite Size</span>
+          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-emerald-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-3">
+              <Ruler className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Crystallite Size</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-white font-mono">
-              {result && result.sizeInterceptNm > 0 && result.sizeInterceptNm < 500
-                ? result.sizeInterceptNm.toFixed(1)
-                : '> 250'}
-              <span className="text-xs text-emerald-400 ml-1">nm</span>
-            </p>
-            <p className="text-[8px] font-mono text-slate-500 mt-1 uppercase">
-              {result && result.sizeInterceptNm > 0 ? `Exact: ${result.sizeInterceptNm.toFixed(3)} nm` : 'Bulk / Strain-Dominated'}
-            </p>
+            <div>
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono flex items-baseline">
+                {result && result.sizeInterceptNm > 0 && result.sizeInterceptNm < 500
+                  ? result.sizeInterceptNm.toFixed(1)
+                  : '> 250'}
+                <span className="text-sm font-bold text-emerald-400 ml-1.5">nm</span>
+              </p>
+              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate" title={result && result.sizeInterceptNm > 0 ? `Exact: ${result.sizeInterceptNm.toFixed(3)} nm` : 'Bulk / Strain-Dominated'}>
+                {result && result.sizeInterceptNm > 0 ? `Exact: ${result.sizeInterceptNm.toFixed(3)} nm` : 'Bulk / Strain-Dominated'}
+              </p>
+            </div>
           </div>
 
           {/* Microstrain */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-4.5 rounded-2xl border border-cyan-500/20 shadow-xl relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Microstrain (ε)</span>
+          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-cyan-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+              <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Microstrain (ε)</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-white font-mono">
-              {result ? `${result.strainPercent.toFixed(3)}%` : '-'}
-            </p>
-            <p className="text-[8px] font-mono text-slate-500 mt-1 uppercase">
-              {result ? `ε = ${(result.strainPercent / 100).toExponential(3)}` : '-'}
-            </p>
+            <div>
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono">
+                {result ? `${result.strainPercent.toFixed(3)}%` : '-'}
+              </p>
+              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate" title={result ? `ε = ${(result.strainPercent / 100).toExponential(3)}` : ''}>
+                {result ? `ε = ${(result.strainPercent / 100).toExponential(3)}` : '-'}
+              </p>
+            </div>
           </div>
 
           {/* Fit Quality R² */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-4.5 rounded-2xl border border-purple-500/20 shadow-xl relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-2">
-              <Activity className="w-3.5 h-3.5 text-purple-400" />
-              <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Fit Quality (R²)</span>
+          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-purple-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-purple-400" />
+              <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest truncate">Fit Quality (R²)</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-white font-mono">
-              {result ? result.regression.rSquared.toFixed(4) : '-'}
-            </p>
-            <p className="text-[8px] font-mono text-slate-500 mt-1 uppercase">
-              {result && result.regression.rSquared > 0.9 ? 'Strong Linearity' : 'High Anisotropy'}
-            </p>
+            <div>
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono">
+                {result ? result.regression.rSquared.toFixed(4) : '-'}
+              </p>
+              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate">
+                {result && result.regression.rSquared > 0.9 ? 'Strong Linearity' : 'High Anisotropy'}
+              </p>
+            </div>
           </div>
 
           {/* Dislocation Density */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-4.5 rounded-2xl border border-rose-500/20 shadow-xl relative overflow-hidden">
-            <div className="flex items-center gap-2 mb-2">
-              <Layers className="w-3.5 h-3.5 text-rose-400" />
-              <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest">Dislocations (ρ)</span>
+          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-rose-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-3">
+              <Layers className="w-4 h-4 text-rose-400" />
+              <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest truncate">Dislocations (ρ)</span>
             </div>
-            <p className="text-2xl sm:text-3xl font-black text-white font-mono">
-              {result?.dislocationDensity10_14 !== undefined ? result.dislocationDensity10_14.toFixed(2) : '-'}
-              <span className="text-[10px] text-rose-400 ml-1">×10¹⁴</span>
-            </p>
-            <p className="text-[8px] font-mono text-slate-500 mt-1 uppercase">
-              m⁻² (Williamson-Smallman)
-            </p>
+            <div>
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono flex items-baseline">
+                {(() => {
+                  if (result?.dislocationDensity10_14 === undefined) return '-';
+                  const val = result.dislocationDensity10_14 * 1e14;
+                  if (val === 0) return '0';
+                  const [mantissa, exp] = val.toExponential(2).split('e');
+                  return (
+                    <>
+                      {mantissa}
+                      <span className="text-sm font-bold text-rose-400 ml-1 font-sans tracking-normal">×10<sup className="font-mono">{exp.replace('+', '')}</sup></span>
+                    </>
+                  );
+                })()}
+              </p>
+              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate">
+                m⁻² (Williamson-Smallman)
+              </p>
+            </div>
           </div>
         </div>
 

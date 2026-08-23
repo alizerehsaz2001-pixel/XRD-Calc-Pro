@@ -3606,7 +3606,8 @@ export const SelectionRulesModule: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
+      <div className="lg:col-span-8 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
         {/* Physical Context Card */}
         <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] group-hover:bg-blue-500/20 transition-all duration-700"></div>
@@ -4340,7 +4341,7 @@ export const SelectionRulesModule: React.FC = () => {
       </div>
 
       {/* Results Section */}
-      <div className="lg:col-span-8 space-y-6">
+      <div className="space-y-6">
         
         {/* Graphic Suite Mode Selection Tabs */}
         <div className="flex flex-wrap items-center justify-between gap-3 bg-[#050B14]/90 p-2.5 rounded-2xl border border-[#1e293b] backdrop-blur-md">
@@ -4600,5 +4601,6 @@ export const SelectionRulesModule: React.FC = () => {
         )}
       </div>
     </div>
-  );
+  </div>
+);
 };

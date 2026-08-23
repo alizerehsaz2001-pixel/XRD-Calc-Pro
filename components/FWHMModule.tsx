@@ -3433,55 +3433,94 @@ export const FWHMModule: React.FC = () => {
           {/* Header & Controls Toolbar */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-3 z-10">
             <div>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h3 className="text-xl lg:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5">
-                  <Activity className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-pulse" />
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-xl lg:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-indigo-500" />
                   Line Profile Peak Visualizer
                 </h3>
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700 shadow-sm">
-                  {type} {type === 'Pseudo-Voigt' ? `(η=${(extSim.stats.effEta * 100).toFixed(0)}%)` : ''}
-                </span>
-                <span className="px-3 py-1 rounded-full text-xs font-mono font-extrabold bg-purple-100 dark:bg-purple-950 text-purple-900 dark:text-purple-200 border-2 border-purple-400 dark:border-purple-700 shadow-sm">
-                  FWHM β_obs = {extSim.stats.effTchFwhm.toFixed(4)}°
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  {type} {type === 'Pseudo-Voigt' ? `(η=${(extSim.stats.effEta * 100).toFixed(0)}%)` : ''} • β_obs = {extSim.stats.effTchFwhm.toFixed(4)}°
                 </span>
                 {showModelComparison && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse">
-                    Multi-Model Comparison Active
+                  <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    Model Compare Active
                   </span>
                 )}
                 {isCaliperMode && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 animate-pulse flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
                     <Ruler className="w-3 h-3" />
                     Caliper Active
                   </span>
                 )}
               </div>
-              <p className="text-xs lg:text-sm text-slate-600 dark:text-slate-400 font-medium mt-1">
-                Interactive Bragg peak profile fitting, multi-model comparison, and precision caliper deconvolution.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Bragg peak profile fitting, multi-model comparison, and precision caliper deconvolution.
               </p>
             </div>
 
             {/* Quick Action Toolbar - Organized into logical groups */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Primary Actions Group */}
-              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+              {/* Primary Modes Group */}
+              <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700/80">
+                <button
+                  onClick={() => {
+                    setEnableMultiPeakMode(false);
+                    setShowModelComparison(false);
+                    setEnableKaDoublet(false);
+                  }}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                    !enableMultiPeakMode && !showModelComparison && !enableKaDoublet
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Single Peak Standard Mode"
+                >
+                  Single Peak
+                </button>
                 <button
                   onClick={() => setEnableMultiPeakMode(!enableMultiPeakMode)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
                     enableMultiPeakMode 
-                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border border-purple-400 font-extrabold shadow-md' 
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                      ? 'bg-purple-600 text-white shadow-2xs font-semibold' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
-                  title="Toggle Custom Multi-Peak Manual Deconvolution Mode: multiple peaks with distinct colors, shapes, and calculated FWHM curves"
+                  title="Toggle Custom Multi-Peak Manual Deconvolution Mode"
                 >
-                  <Palette className={`w-3.5 h-3.5 ${enableMultiPeakMode ? 'text-purple-200' : 'text-purple-500'}`} />
+                  <Palette className="w-3.5 h-3.5" />
                   {enableMultiPeakMode ? `Multi-Peak (${customPeaks.filter(p => p.enabled).length})` : 'Multi-Peak'}
                 </button>
+                <button
+                  onClick={() => setShowModelComparison(!showModelComparison)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    showModelComparison 
+                      ? 'bg-amber-600 text-white shadow-2xs font-semibold' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Compare Gaussian vs Lorentzian vs Pseudo-Voigt vs Pearson VII models"
+                >
+                  <GitCompare className="w-3.5 h-3.5" />
+                  Compare Models
+                </button>
+                <button
+                  onClick={() => setEnableKaDoublet(!enableKaDoublet)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    enableKaDoublet 
+                      ? 'bg-amber-600 text-white shadow-2xs font-semibold' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Toggle Cu Kα₁/Kα₂ Doublet Splitting"
+                >
+                  <Split className="w-3.5 h-3.5" />
+                  Doublet
+                </button>
+              </div>
 
+              {/* Primary Actions */}
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={autoFitPeakModel}
                   disabled={isFitting}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm disabled:opacity-50 hover:scale-105 active:scale-95"
+                  className="px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs disabled:opacity-50"
                   title="Perform Non-Linear Least Squares Auto-Fit on observed peak data"
                 >
                   <Wand2 className={`w-3.5 h-3.5 ${isFitting ? 'animate-spin' : ''}`} />
@@ -3496,196 +3535,160 @@ export const FWHMModule: React.FC = () => {
                       setCaliperPointB(null);
                     }
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer border ${
                     isCaliperMode 
-                      ? 'bg-emerald-600 text-white border border-emerald-400 font-extrabold shadow-md' 
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                      ? 'bg-emerald-600 text-white border-emerald-500 font-semibold' 
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
-                  title="Toggle 2-Point Caliper Measurement: Click two positions on graph to calculate separation, d-spacing span & resolution"
+                  title="Toggle 2-Point Caliper Measurement"
                 >
-                  <Ruler className="w-3.5 h-3.5 text-emerald-400" />
+                  <Ruler className="w-3.5 h-3.5" />
                   {isCaliperMode ? 'Caliper On' : 'Caliper'}
                 </button>
 
                 <button
                   onClick={toggleSolitudeMode}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer border ${
                     isSolitudeMode 
-                      ? 'bg-amber-500 text-white border border-amber-300 dark:border-amber-400 font-extrabold animate-pulse' 
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                      ? 'bg-amber-500 text-white border-amber-400 font-semibold' 
+                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
-                  title="Toggle Solitude View: Instantly hide all noise, residuals, and clutter for pure clean peak curve"
+                  title="Toggle Solitude View: Instantly hide noise and clutter for pure clean peak curve"
                 >
-                  <Sparkles className={`w-3.5 h-3.5 ${isSolitudeMode ? 'text-amber-100' : 'text-amber-500'}`} />
-                  {isSolitudeMode ? 'Solitude' : 'Solitude View'}
-                </button>
-
-                <button
-                  onClick={() => setHighPrecisionControls(!highPrecisionControls)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    highPrecisionControls 
-                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-200 border border-purple-300 dark:border-purple-700 font-extrabold' 
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                  title="Toggle High-Precision Controls (0.001° step size)"
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-purple-500" />
-                  {highPrecisionControls ? 'Fine Step' : 'Coarse'}
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Solitude
                 </button>
               </div>
 
-              {/* Physical Layers & Model Components Group */}
-              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
-                <button
-                  onClick={() => setShowModelComparison(!showModelComparison)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    showModelComparison ? 'bg-amber-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                  title="Compare Gaussian vs Lorentzian vs Pseudo-Voigt vs Pearson VII models simultaneously"
-                >
-                  <GitCompare className="w-3.5 h-3.5" />
-                  Compare Models
-                </button>
-
+              {/* Display Components & Overlays Toolbar Row */}
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700/80">
                 <button
                   onClick={() => setShowComponents(!showComponents)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    showComponents ? 'bg-indigo-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    showComponents ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Toggle Gaussian & Lorentzian sub-components"
                 >
-                  <Eye className="w-3.5 h-3.5" />
+                  <Eye className="w-3 h-3" />
                   G/L Parts
                 </button>
 
                 <button
-                  onClick={() => setEnableKaDoublet(!enableKaDoublet)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    enableKaDoublet ? 'bg-amber-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                  }`}
-                  title="Toggle Cu Kα₁/Kα₂ Doublet Splitting"
-                >
-                  <Split className="w-3.5 h-3.5 text-amber-500" />
-                  Doublet
-                </button>
-
-                {enableKaDoublet && (
-                  <button
-                    onClick={() => setShowRachingerStripped(!showRachingerStripped)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                      showRachingerStripped ? 'bg-emerald-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                    title="Toggle Rachinger pure Kα₁ isolated profile deconvolution"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                    Pure Kα₁ (Rachinger)
-                  </button>
-                )}
-
-                <button
                   onClick={() => setShowNetIntensity(!showNetIntensity)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    showNetIntensity ? 'bg-indigo-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    showNetIntensity ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Toggle Background Subtraction: display net peak intensity I_net = I - I_bg"
                 >
-                  <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+                  <TrendingUp className="w-3 h-3" />
                   {showNetIntensity ? 'Net (I - I_bg)' : 'Total (I_obs)'}
                 </button>
 
                 <button
                   onClick={() => setEnableSecondaryPeak(!enableSecondaryPeak)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    enableSecondaryPeak ? 'bg-emerald-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    enableSecondaryPeak ? 'bg-emerald-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Toggle Secondary Peak Deconvolution"
                 >
-                  <Layers className="w-3.5 h-3.5 text-emerald-500" />
+                  <Layers className="w-3 h-3" />
                   2nd Peak
                 </button>
 
                 <button
                   onClick={() => setShowLiveSummary(!showLiveSummary)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    showLiveSummary ? 'bg-purple-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    showLiveSummary ? 'bg-purple-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Toggle On-Chart Live Scientific Summary HUD Overlay"
                 >
-                  <Gauge className="w-3.5 h-3.5 text-purple-500" />
+                  <Gauge className="w-3 h-3" />
                   HUD
                 </button>
 
                 <button
                   onClick={() => setShowResiduals(!showResiduals)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer ${
-                    showResiduals ? 'bg-rose-600 text-white shadow-sm font-extrabold' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    showResiduals ? 'bg-rose-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                   title="Toggle Residuals Pane"
                 >
-                  <Activity className="w-3.5 h-3.5 text-rose-500" />
+                  <Activity className="w-3 h-3" />
                   Residuals
                 </button>
+
+                {enableKaDoublet && (
+                  <button
+                    onClick={() => setShowRachingerStripped(!showRachingerStripped)}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                      showRachingerStripped ? 'bg-emerald-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                    title="Toggle Rachinger pure Kα₁ isolated profile deconvolution"
+                  >
+                    Pure Kα₁
+                  </button>
+                )}
               </div>
 
-              {/* Y-Scale & Theme Selector Group */}
-              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
-                <span className="text-[10px] font-bold text-slate-500 uppercase px-1">Scale:</span>
+              {/* Y-Scale & Theme Controls */}
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700/80">
+                <span className="text-[10px] font-medium text-slate-400 px-1">Scale:</span>
                 <button
                   onClick={() => setYScaleMode('linear')}
-                  className={`px-2 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
-                    yScaleMode === 'linear' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  className={`px-1.5 py-0.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    yScaleMode === 'linear' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
-                  title="Linear Intensity scale (cps)"
+                  title="Linear Intensity scale"
                 >
                   Lin
                 </button>
                 <button
                   onClick={() => setYScaleMode('log10')}
-                  className={`px-2 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
-                    yScaleMode === 'log10' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  className={`px-1.5 py-0.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    yScaleMode === 'log10' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
-                  title="Logarithmic Intensity scale (Log₁₀ I) for tail inspection"
+                  title="Logarithmic Intensity scale"
                 >
                   Log₁₀
                 </button>
                 <button
                   onClick={() => setYScaleMode('sqrt')}
-                  className={`px-2 py-1 rounded text-xs font-mono font-bold cursor-pointer transition-all ${
-                    yScaleMode === 'sqrt' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  className={`px-1.5 py-0.5 rounded text-xs font-mono transition-all cursor-pointer ${
+                    yScaleMode === 'sqrt' ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
-                  title="Square Root Intensity scale (√I) for Poisson counting statistics"
+                  title="Square Root Intensity scale"
                 >
                   √I
                 </button>
 
-                <div className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-0.5" />
+                <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700 mx-0.5" />
 
                 <button
                   onClick={() => setShowQuickSliders(!showQuickSliders)}
-                  className={`px-2 py-1 rounded text-xs font-bold flex items-center gap-1 cursor-pointer transition-all ${
-                    showQuickSliders ? 'bg-purple-600 text-white shadow-xs' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  className={`px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 cursor-pointer transition-all ${
+                    showQuickSliders ? 'bg-purple-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
-                  title="Toggle Quick-Tune Sliders Bar directly on the visualizer"
+                  title="Toggle Quick-Tune Sliders Bar"
                 >
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-purple-300" />
+                  <SlidersHorizontal className="w-3 h-3" />
                   Dials
                 </button>
 
                 <select
                   value={plotTheme}
                   onChange={(e) => setPlotTheme(e.target.value as any)}
-                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold px-2 py-1 rounded border border-slate-200 dark:border-slate-700 cursor-pointer"
+                  className="bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 cursor-pointer"
                   title="Visualizer Color Theme"
                 >
                   <option value="default">Indigo Theme</option>
                   <option value="lab_dark">Lab Dark Mode</option>
-                  <option value="journal">Clean Journal (White)</option>
-                  <option value="monochrome">Monochrome Print</option>
+                  <option value="journal">Clean Journal</option>
+                  <option value="monochrome">Monochrome</option>
                 </select>
               </div>
 
-              {/* Utility Tools Group */}
-              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+              {/* Export & Canvas Utilities */}
+              <div className="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700/80">
                 <button
                   onClick={() => {
                     const sigmaVal = (fwhm / (2 * Math.sqrt(2 * Math.log(2)))).toFixed(4);
@@ -3704,57 +3707,59 @@ export const FWHMModule: React.FC = () => {
                     setCopiedFormula(true);
                     setTimeout(() => setCopiedFormula(false), 2200);
                   }}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  title="Copy analytical LaTeX formula for publication"
+                  className="px-2 py-0.5 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  title="Copy analytical LaTeX formula"
                 >
-                  {copiedFormula ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-indigo-500" />}
+                  {copiedFormula ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-indigo-500" />}
                   {copiedFormula ? 'Copied' : 'LaTeX'}
                 </button>
 
                 <button
                   onClick={handleExportData}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  title="Export simulation profile dataset as CSV"
+                  className="px-2 py-0.5 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  title="Export dataset CSV"
                 >
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+                  <FileSpreadsheet className="w-3 h-3 text-emerald-500" />
                   CSV
                 </button>
 
                 <button
                   onClick={() => handleExportGraphImage('png')}
-                  className="px-2.5 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  title="Capture high-resolution PNG image"
+                  className="px-2 py-0.5 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  title="Capture PNG image"
                 >
-                  <Camera className="w-3.5 h-3.5 text-indigo-500" />
+                  <Camera className="w-3 h-3 text-indigo-500" />
                   PNG
                 </button>
 
+                <div className="w-px h-3.5 bg-slate-300 dark:bg-slate-700 mx-0.5" />
+
                 <button
                   onClick={() => setIsExpandedChart(!isExpandedChart)}
-                  className="px-2 py-1.5 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-1 cursor-pointer bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="p-1 rounded text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
                   title="Toggle Large Expanded Canvas"
                 >
                   {isExpandedChart ? <Minimize2 className="w-3.5 h-3.5 text-purple-500" /> : <Maximize2 className="w-3.5 h-3.5 text-purple-500" />}
                 </button>
 
-                <div className="flex items-center gap-0.5 bg-white dark:bg-slate-900 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-0.5">
                   <button
                     onClick={() => setZoomRange(prev => Math.max(0.3, prev - 0.2))}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-700 dark:text-slate-200 cursor-pointer"
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-300 cursor-pointer"
                     title="Zoom In"
                   >
-                    <ZoomIn className="w-3.5 h-3.5" />
+                    <ZoomIn className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => setZoomRange(prev => Math.min(2.5, prev + 0.2))}
-                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-700 dark:text-slate-200 cursor-pointer"
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-700 dark:text-slate-300 cursor-pointer"
                     title="Zoom Out"
                   >
-                    <ZoomOut className="w-3.5 h-3.5" />
+                    <ZoomOut className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => setZoomRange(1.0)}
-                    className="px-1.5 py-0.5 text-[11px] font-extrabold text-slate-700 dark:text-slate-200 hover:text-indigo-600 cursor-pointer"
+                    className="px-1 text-[11px] font-mono font-bold text-slate-600 dark:text-slate-400 hover:text-indigo-500 cursor-pointer"
                     title="Reset Zoom"
                   >
                     1x
@@ -3765,45 +3770,45 @@ export const FWHMModule: React.FC = () => {
           </div>
 
           {/* Quick Scientific Scenario Presets Bar */}
-          <div className="flex flex-wrap items-center gap-1.5 p-2.5 mb-3 bg-indigo-50/80 dark:bg-indigo-950/40 rounded-xl border border-indigo-200 dark:border-indigo-800/60 text-xs">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-900 dark:text-indigo-300 px-1 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              Scientific Presets:
+          <div className="flex flex-wrap items-center gap-1.5 p-2 mb-3 bg-slate-100/60 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 px-1 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-indigo-500" />
+              Presets:
             </span>
             <button
               onClick={() => applyPeakScenarioPreset('nist_si')}
-              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              className="px-2.5 py-0.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-all cursor-pointer text-xs"
               title="Standard NIST Silicon 640 (Sharp Bragg Peak, 28.44°)"
             >
-              🔬 NIST Si SRM 640 (Sharp)
+              NIST Si SRM 640 (Sharp)
             </button>
             <button
               onClick={() => applyPeakScenarioPreset('nano_tio2')}
-              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              className="px-2.5 py-0.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-all cursor-pointer text-xs"
               title="Nanocrystalline TiO2 Anatase (Size-broadened peak, 25.28°)"
             >
-              🧪 TiO₂ Anatase (Size-Broadened)
+              TiO₂ Anatase (Size-Broadened)
             </button>
             <button
               onClick={() => applyPeakScenarioPreset('strained_alloy')}
-              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              className="px-2.5 py-0.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-all cursor-pointer text-xs"
               title="Deformed Austenitic Alloy (Strain-broadened peak, 43.60°, 0.45% strain)"
             >
-              🛡️ Strained Alloy (Microstrain)
+              Strained Alloy (Microstrain)
             </button>
             <button
               onClick={() => applyPeakScenarioPreset('ka_doublet')}
-              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              className="px-2.5 py-0.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-all cursor-pointer text-xs"
               title="Cu Kα1/Kα2 High Angle Splitting (69.13°)"
             >
-              ⚡ Cu Kα Doublet (69.13°)
+              Cu Kα Doublet (69.13°)
             </button>
             <button
               onClick={() => applyPeakScenarioPreset('polymer_halo')}
-              className="px-2.5 py-1 bg-white dark:bg-slate-900 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-slate-700 dark:text-slate-200 font-semibold rounded-lg border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer shadow-xs text-xs"
+              className="px-2.5 py-0.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md border border-slate-200 dark:border-slate-700 transition-all cursor-pointer text-xs"
               title="Semicrystalline Polymer with Amorphous Halo Background (21.50°)"
             >
-              🌀 Polymer + Amorphous Halo
+              Polymer + Amorphous Halo
             </button>
           </div>
 
