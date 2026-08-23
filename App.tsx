@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useI18n } from './components/I18nProvider';
 import { FullAppTranslator } from './components/FullAppTranslator';
 import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
@@ -1460,7 +1461,7 @@ const App: React.FC = () => {
     );
   }
 
-  const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
+  const { isRTL } = useI18n();
 
   return (
     <SettingsContext.Provider value={{
