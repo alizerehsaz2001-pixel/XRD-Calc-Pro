@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
+import { playSynthTone } from '../utils/sound';
 import { 
   Grid, 
   Calculator, 
   Layers, 
   Box, 
   Sparkles, 
-  RotateCcw, 
+ 
   Info, 
   Check, 
   Copy, 
@@ -43,7 +44,8 @@ import {
   Target,
   Atom,
   EyeOff,
-  CircleDot
+  CircleDot,
+  RotateCcw
 } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
 
@@ -183,6 +185,8 @@ export const SupercellTransformationModule: React.FC<{ pythonFeaturesEnabled?: b
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'setup' | 'matrix' | 'mapping' | 'results'>('setup');
+  const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
+  const [computingStep, setComputingStep] = useState<number>(-1);
 
   // Python Features State (Disabled by default)
   const [showPythonPanel, setShowPythonPanel] = useState<boolean>(pythonFeaturesEnabled);
@@ -348,6 +352,27 @@ export const SupercellTransformationModule: React.FC<{ pythonFeaturesEnabled?: b
 
     return { aPrime, bPrime, cPrime, alphaPrime, betaPrime, gammaPrime, volumePrime };
   }, [transformedG, parentVolume, absDetP]);
+
+  const startComputation = () => {
+    setAppState('computing');
+    setComputingStep(0);
+    playSynthTone('tick');
+    setTimeout(() => {
+      setComputingStep(1);
+      playSynthTone('tick');
+    }, 600);
+    setTimeout(() => {
+      setComputingStep(2);
+      playSynthTone('tick');
+    }, 1200);
+    setTimeout(() => {
+      setComputingStep(3);
+      playSynthTone('chime');
+    }, 1800);
+    setTimeout(() => {
+      setAppState('results');
+    }, 2400);
+  };
 
   // Miller Index Transformation (h', k', l') = P * (h, k, l)^T
   const transformedMiller = useMemo(() => {
@@ -955,30 +980,41 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950/80 rounded-2xl overflow-x-auto hide-scrollbar border border-slate-800/80 shadow-md">
-        {[
-          { id: 'setup', icon: Box, label: 'Parent Setup & Presets' },
-          { id: 'matrix', icon: Grid, label: 'Matrix Engine (P)' },
-          { id: 'mapping', icon: ArrowRightLeft, label: 'Coordinate & Miller Mapping' },
-          { id: 'results', icon: Maximize2, label: '2D Projections & Metrics' }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === tab.id
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:bg-slate-900/80 hover:text-slate-200 border border-transparent'
-            }`}
-          >
-            <tab.icon className="w-4 h-4" />
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      {appState === 'setup' && (
+        <>
+          {/* Tab Navigation */}
+          <div className="flex flex-wrap gap-2 p-1.5 bg-slate-950/80 rounded-2xl overflow-x-auto hide-scrollbar border border-slate-800/80 shadow-md">
+            {[
+              { id: 'setup', icon: Box, label: 'Parent Setup & Presets' },
+              { id: 'matrix', icon: Grid, label: 'Matrix Engine (P)' },
+              { id: 'mapping', icon: ArrowRightLeft, label: 'Coordinate & Miller Mapping' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
+                    : 'text-slate-400 hover:bg-slate-900/80 hover:text-slate-200 border border-transparent'
+                }`}
+              >
+                <tab.icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+            
+            <div className="flex-1" />
+            
+            <button
+              onClick={startComputation}
+              className="px-6 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2"
+            >
+              Compute Transformation
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
 
-      <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
         {activeTab === 'setup' && (
           <motion.div
             key="setup"
@@ -1230,15 +1266,230 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
           </motion.div>
         )}
 
-        {activeTab === 'results' && (
+        {activeTab === 'mapping' && (
           <motion.div
-            key="results"
+            key="mapping"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
+      {/* Miller Indices & Atomic Coordinate Mapping Engine */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Miller Index Mapping Engine */}
+        <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-5">
+          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+            <Calculator className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-base font-bold text-white">
+              Miller Indices Reciprocal Mapping
+            </h3>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Parent plane indices (h k l) transform to supercell indices (h' k' l') via matrix P:
+          </p>
+
+          <div className="flex flex-col xl:flex-row items-center gap-4 mt-4">
+            <div className="flex-1 w-full bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between shadow-inner">
+              <span className="text-sm font-mono text-slate-400 font-bold">(h k l) =</span>
+              <div className="flex items-center gap-2">
+                {[
+                  { label: 'h', val: h, set: setH },
+                  { label: 'k', val: k, set: setK },
+                  { label: 'l', val: l, set: setL },
+                ].map((item) => (
+                  <input
+                    key={item.label}
+                    type="number"
+                    value={item.val}
+                    onChange={(e) => item.set(parseInt(e.target.value, 10) || 0)}
+                    className="w-12 h-10 bg-slate-950 text-white font-mono font-bold text-center text-base rounded-lg border border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all"
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center shrink-0">
+               <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.2)]">
+                  <ArrowRight className="w-5 h-5 text-cyan-400" />
+               </div>
+            </div>
+
+            <div className="flex-1 w-full bg-gradient-to-br from-cyan-950/40 to-slate-900/60 p-4 rounded-2xl border border-cyan-500/30 flex items-center justify-between shadow-inner">
+              <span className="text-sm font-mono text-cyan-400/80 font-bold">(h' k' l') =</span>
+              <div className="text-cyan-300 font-mono font-bold text-xl tracking-widest bg-slate-950/50 px-4 py-1.5 rounded-lg border border-cyan-500/20 shadow-sm">
+                {transformedMiller.hPrime} {transformedMiller.kPrime} {transformedMiller.lPrime}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Atomic Coordinates Fractional Mapping */}
+        <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <Table className="w-5 h-5 text-violet-400" />
+              <h3 className="text-base font-bold text-white">
+                Atomic Site Fractional Mapping
+              </h3>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto max-h-48 border border-slate-800 rounded-xl">
+            <table className="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr className="bg-slate-900/80 text-slate-400 border-b border-slate-800">
+                  <th className="py-3 px-3">Site</th>
+                  <th className="py-3 px-3">Parent (x, y, z)</th>
+                  <th className="py-3 px-3 text-violet-300">Mapped (x', y', z')</th>
+                  <th className="py-3 px-3 text-cyan-300">Wrapped [0, 1)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 bg-slate-950/50">
+                {transformedAtoms.map((atom) => (
+                  <tr key={atom.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-2.5 px-3 font-bold text-white whitespace-nowrap">{atom.element} <span className="text-slate-500 font-normal">({atom.label})</span></td>
+                    <td className="py-2.5 px-3 text-slate-300 whitespace-nowrap">({atom.x}, {atom.y}, {atom.z})</td>
+                    <td className="py-2.5 px-3 text-violet-300 whitespace-nowrap">
+                      ({fmt(atom.xPrime, 3)}, {fmt(atom.yPrime, 3)}, {fmt(atom.zPrime, 3)})
+                    </td>
+                    <td className="py-2.5 px-3 font-bold text-cyan-300 whitespace-nowrap bg-cyan-950/10">
+                      ({fmt(atom.xWrap, 3)}, {fmt(atom.yWrap, 3)}, {fmt(atom.zWrap, 3)})
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Add Site Row */}
+          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex flex-wrap items-center gap-3 shadow-inner mt-4">
+            <span className="text-xs font-bold text-slate-400">Add Site:</span>
+            <input
+              type="text"
+              placeholder="Elem"
+              value={newAtomElem}
+              onChange={(e) => setNewAtomElem(e.target.value)}
+              className="w-16 bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all"
+            />
+            <div className="flex items-center gap-2 bg-slate-950 px-2 py-1 rounded-lg border border-slate-700">
+              <span className="text-slate-500 font-mono text-xs">(</span>
+              <input
+                type="number"
+                step="0.05"
+                placeholder="x"
+                value={newAtomX}
+                onChange={(e) => setNewAtomX(parseFloat(e.target.value) || 0)}
+                className="w-14 bg-transparent text-white font-mono font-bold text-sm text-center outline-none"
+              />
+              <span className="text-slate-500 font-mono text-xs">,</span>
+              <input
+                type="number"
+                step="0.05"
+                placeholder="y"
+                value={newAtomY}
+                onChange={(e) => setNewAtomY(parseFloat(e.target.value) || 0)}
+                className="w-14 bg-transparent text-white font-mono font-bold text-sm text-center outline-none"
+              />
+              <span className="text-slate-500 font-mono text-xs">,</span>
+              <input
+                type="number"
+                step="0.05"
+                placeholder="z"
+                value={newAtomZ}
+                onChange={(e) => setNewAtomZ(parseFloat(e.target.value) || 0)}
+                className="w-14 bg-transparent text-white font-mono font-bold text-sm text-center outline-none"
+              />
+              <span className="text-slate-500 font-mono text-xs">)</span>
+            </div>
+            <button
+              onClick={() => {
+                if (!newAtomElem.trim()) return;
+                setAtomSites(prev => [
+                  ...prev,
+                  {
+                    id: Date.now().toString(),
+                    element: newAtomElem,
+                    x: newAtomX,
+                    y: newAtomY,
+                    z: newAtomZ,
+                    label: `${newAtomElem}${prev.length + 1}`
+                  }
+                ]);
+              }}
+              className="ml-auto flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-md shadow-violet-500/20"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Site</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+      </motion.div>
+      )}
+      </AnimatePresence>
+      </>
+      )}
+
+      {appState === 'computing' && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-300 min-h-[400px]">
+          <div className="relative w-28 h-28 flex items-center justify-center">
+            <div className="absolute inset-0 border-4 border-slate-100 dark:border-slate-800 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin"></div>
+            <Activity className="w-10 h-10 text-cyan-500 animate-pulse" />
+          </div>
+          
+          <div className="space-y-4 w-full max-w-lg">
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 0 ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">1</span>
+                Constructing Metric Tensor G...
+              </span>
+              {computingStep > 0 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
+            
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 1 ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">2</span>
+                Inverting Transformation Matrix P⁻¹...
+              </span>
+              {computingStep > 1 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
+            
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 2 ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">3</span>
+                Applying Coordinate Mapping...
+              </span>
+              {computingStep > 2 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
+            
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 3 ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">4</span>
+                Supercell Complete!
+              </span>
+              {computingStep > 3 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
+          </div>
+        </div>
+      )}
+{appState === 'results' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex justify-end pt-4 pb-2">
+            <button 
+              onClick={() => setAppState('setup')}
+              className="px-4 py-2.5 rounded-xl bg-cyan-950 hover:bg-cyan-900 text-cyan-100 text-xs font-bold transition-all border border-cyan-800 flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Edit Transformation Parameters
+            </button>
+          </div>
+
+
       {/* Comparison: Parent vs Transformed Cell Metrics & 2D Projection Canvas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -1484,176 +1735,7 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
         </div>
 
       </div>
-          </motion.div>
-        )}
-
-        {activeTab === 'mapping' && (
-          <motion.div
-            key="mapping"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-6"
-          >
-      {/* Miller Indices & Atomic Coordinate Mapping Engine */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Miller Index Mapping Engine */}
-        <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-5">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
-            <Calculator className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-base font-bold text-white">
-              Miller Indices Reciprocal Mapping
-            </h3>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            Parent plane indices (h k l) transform to supercell indices (h' k' l') via matrix P:
-          </p>
-
-          <div className="flex flex-col xl:flex-row items-center gap-4 mt-4">
-            <div className="flex-1 w-full bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex items-center justify-between shadow-inner">
-              <span className="text-sm font-mono text-slate-400 font-bold">(h k l) =</span>
-              <div className="flex items-center gap-2">
-                {[
-                  { label: 'h', val: h, set: setH },
-                  { label: 'k', val: k, set: setK },
-                  { label: 'l', val: l, set: setL },
-                ].map((item) => (
-                  <input
-                    key={item.label}
-                    type="number"
-                    value={item.val}
-                    onChange={(e) => item.set(parseInt(e.target.value, 10) || 0)}
-                    className="w-12 h-10 bg-slate-950 text-white font-mono font-bold text-center text-base rounded-lg border border-slate-700 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all"
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center shrink-0">
-               <div className="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_10px_rgba(34,211,238,0.2)]">
-                  <ArrowRight className="w-5 h-5 text-cyan-400" />
-               </div>
-            </div>
-
-            <div className="flex-1 w-full bg-gradient-to-br from-cyan-950/40 to-slate-900/60 p-4 rounded-2xl border border-cyan-500/30 flex items-center justify-between shadow-inner">
-              <span className="text-sm font-mono text-cyan-400/80 font-bold">(h' k' l') =</span>
-              <div className="text-cyan-300 font-mono font-bold text-xl tracking-widest bg-slate-950/50 px-4 py-1.5 rounded-lg border border-cyan-500/20 shadow-sm">
-                {transformedMiller.hPrime} {transformedMiller.kPrime} {transformedMiller.lPrime}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Atomic Coordinates Fractional Mapping */}
-        <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-2.5">
-              <Table className="w-5 h-5 text-violet-400" />
-              <h3 className="text-base font-bold text-white">
-                Atomic Site Fractional Mapping
-              </h3>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto max-h-48 border border-slate-800 rounded-xl">
-            <table className="w-full text-left text-xs font-mono border-collapse">
-              <thead>
-                <tr className="bg-slate-900/80 text-slate-400 border-b border-slate-800">
-                  <th className="py-3 px-3">Site</th>
-                  <th className="py-3 px-3">Parent (x, y, z)</th>
-                  <th className="py-3 px-3 text-violet-300">Mapped (x', y', z')</th>
-                  <th className="py-3 px-3 text-cyan-300">Wrapped [0, 1)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 bg-slate-950/50">
-                {transformedAtoms.map((atom) => (
-                  <tr key={atom.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-2.5 px-3 font-bold text-white whitespace-nowrap">{atom.element} <span className="text-slate-500 font-normal">({atom.label})</span></td>
-                    <td className="py-2.5 px-3 text-slate-300 whitespace-nowrap">({atom.x}, {atom.y}, {atom.z})</td>
-                    <td className="py-2.5 px-3 text-violet-300 whitespace-nowrap">
-                      ({fmt(atom.xPrime, 3)}, {fmt(atom.yPrime, 3)}, {fmt(atom.zPrime, 3)})
-                    </td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-300 whitespace-nowrap bg-cyan-950/10">
-                      ({fmt(atom.xWrap, 3)}, {fmt(atom.yWrap, 3)}, {fmt(atom.zWrap, 3)})
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Add Site Row */}
-          <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex flex-wrap items-center gap-3 shadow-inner mt-4">
-            <span className="text-xs font-bold text-slate-400">Add Site:</span>
-            <input
-              type="text"
-              placeholder="Elem"
-              value={newAtomElem}
-              onChange={(e) => setNewAtomElem(e.target.value)}
-              className="w-16 bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 outline-none transition-all"
-            />
-            <div className="flex items-center gap-2 bg-slate-950 px-2 py-1 rounded-lg border border-slate-700">
-              <span className="text-slate-500 font-mono text-xs">(</span>
-              <input
-                type="number"
-                step="0.05"
-                placeholder="x"
-                value={newAtomX}
-                onChange={(e) => setNewAtomX(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-transparent text-white font-mono font-bold text-sm text-center outline-none"
-              />
-              <span className="text-slate-500 font-mono text-xs">,</span>
-              <input
-                type="number"
-                step="0.05"
-                placeholder="y"
-                value={newAtomY}
-                onChange={(e) => setNewAtomY(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-transparent text-white font-mono font-bold text-sm text-center outline-none"
-              />
-              <span className="text-slate-500 font-mono text-xs">,</span>
-              <input
-                type="number"
-                step="0.05"
-                placeholder="z"
-                value={newAtomZ}
-                onChange={(e) => setNewAtomZ(parseFloat(e.target.value) || 0)}
-                className="w-14 bg-transparent text-white font-mono font-bold text-sm text-center outline-none"
-              />
-              <span className="text-slate-500 font-mono text-xs">)</span>
-            </div>
-            <button
-              onClick={() => {
-                if (!newAtomElem.trim()) return;
-                setAtomSites(prev => [
-                  ...prev,
-                  {
-                    id: Date.now().toString(),
-                    element: newAtomElem,
-                    x: newAtomX,
-                    y: newAtomY,
-                    z: newAtomZ,
-                    label: `${newAtomElem}${prev.length + 1}`
-                  }
-                ]);
-              }}
-              className="ml-auto flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shadow-md shadow-violet-500/20"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Site</span>
-            </button>
-          </div>
-        </div>
-
-      </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Python Scripting Engine & Supercell Transformation (PyMatGen & DiffPy) */}
+        {/* Python Scripting Engine & Supercell Transformation (PyMatGen & DiffPy) */}
       {showPythonPanel && (
         <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-amber-500/40 shadow-2xl space-y-6 relative overflow-hidden animate-in fade-in duration-300">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
@@ -1801,6 +1883,8 @@ hkl_super = P @ hkl_parent`}
         </div>
       )}
 
+        </div>
+      )}
     </div>
   );
 };

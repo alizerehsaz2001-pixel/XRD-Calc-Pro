@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { parseWAInput, calculateWarrenAverbach } from '../utils/physics';
-import { WAResult } from '../types';
+import { WAResult, WAMetrics } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
-import { LineChart,
+import { WarrenAverbachMetricsSummary } from './WarrenAverbachMetricsSummary';
+import { WarrenAverbachPeakConverterModal } from './WarrenAverbachPeakConverterModal';
+import { 
+  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -16,73 +19,266 @@ import { LineChart,
   ComposedChart,
   Scatter,
   ZAxis,
-  Cell } from 'recharts';
-import {  Info, BookOpen, Activity, TrendingDown, Sparkles, Loader2, Atom, Binary, ShieldQuestion, Ruler, Zap, Database, Settings, FlaskConical, Network, Component, ChevronDown, RefreshCw, Trash2, Download , Layers } from 'lucide-react';
+  Cell,
+  ReferenceLine
+} from 'recharts';
+import {  
+  Info, 
+  BookOpen, 
+  Activity, 
+  TrendingDown, 
+  Sparkles, 
+  Loader2, 
+  Atom, 
+  Binary, 
+  Ruler, 
+  Zap, 
+  Database, 
+  Settings, 
+  FlaskConical, 
+  Network, 
+  ChevronDown, 
+  RefreshCw, 
+  Trash2, 
+  Download, 
+  Layers,
+  Wand2,
+  Sliders,
+  BarChart3,
+  GitBranch,
+  ShieldCheck,
+  Flame,
+  FileText
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
-const MATERIAL_PRESETS = [
+interface MaterialPreset {
+  label: string;
+  d1: number;
+  d2: number;
+  d3?: number;
+  burgersVector: number; // nm
+  youngsModulus: number; // GPa
+  desc: string;
+  data: string;
+}
+
+const MATERIAL_PRESETS: MaterialPreset[] = [
   { 
-    label: 'Gold (Au)', 
+    label: 'Gold (Au) Nanocrystals', 
     d1: 2.3551, 
-    d2: 1.1776, 
-    desc: '(111) and (222) reflections',
-    data: "# L[nm], A(d1), A(d2)\n1, 0.98, 0.95\n2, 0.95, 0.88\n3, 0.92, 0.82\n4, 0.89, 0.76\n5, 0.86, 0.71\n8, 0.78, 0.58\n10, 0.73, 0.51\n15, 0.62, 0.36\n20, 0.53, 0.25"
+    d2: 1.1776,
+    d3: 0.7850,
+    burgersVector: 0.288,
+    youngsModulus: 78,
+    desc: 'FCC (111), (222), and (333) reflections',
+    data: `# L[nm], A(d1), A(d2), A(d3)
+1, 0.985, 0.952, 0.910
+2, 0.960, 0.895, 0.820
+3, 0.932, 0.835, 0.730
+4, 0.901, 0.774, 0.640
+5, 0.868, 0.712, 0.555
+6, 0.832, 0.650, 0.475
+8, 0.755, 0.530, 0.335
+10, 0.680, 0.425, 0.225
+12, 0.605, 0.330, 0.145
+15, 0.500, 0.215, 0.070
+20, 0.360, 0.095, 0.015
+25, 0.240, 0.035, 0.002`
   },
   { 
-    label: 'Silicon (Si)', 
+    label: 'Copper (Cu) ECAP Deformed', 
+    d1: 2.0871, 
+    d2: 1.0435,
+    burgersVector: 0.256,
+    youngsModulus: 128,
+    desc: 'High dislocation density FCC (111)/(222)',
+    data: `# L[nm], A(d1), A(d2)
+1, 0.970, 0.885
+2, 0.925, 0.770
+3, 0.875, 0.665
+4, 0.820, 0.570
+5, 0.765, 0.485
+6, 0.710, 0.410
+8, 0.605, 0.285
+10, 0.510, 0.190
+15, 0.330, 0.065
+20, 0.200, 0.015
+25, 0.110, 0.002`
+  },
+  { 
+    label: 'Silicon (Si) SRM 640', 
     d1: 3.1355, 
     d2: 1.5678, 
-    desc: '(111) and (222) reflections',
-    data: "# L[nm], A(d1), A(d2)\n1, 0.99, 0.98\n2, 0.98, 0.96\n3, 0.97, 0.94\n4, 0.96, 0.92\n5, 0.95, 0.90\n8, 0.92, 0.84\n10, 0.90, 0.80\n20, 0.80, 0.60"
+    burgersVector: 0.384,
+    youngsModulus: 130,
+    desc: 'NIST Standard low-strain (111)/(222)',
+    data: `# L[nm], A(d1), A(d2)
+1, 0.995, 0.988
+2, 0.988, 0.972
+3, 0.980, 0.954
+4, 0.971, 0.935
+5, 0.962, 0.915
+8, 0.930, 0.850
+10, 0.905, 0.805
+15, 0.835, 0.685
+20, 0.755, 0.560
+25, 0.670, 0.440
+30, 0.585, 0.330`
   },
   { 
-    label: 'Aluminum (Al)', 
-    d1: 2.338, 
-    d2: 1.169, 
-    desc: '(111) and (222) reflections',
-    data: "# L[nm], A(d1), A(d2)\n1, 0.97, 0.92\n2, 0.93, 0.84\n3, 0.89, 0.76\n4, 0.85, 0.69\n5, 0.81, 0.63\n8, 0.71, 0.48\n10, 0.64, 0.40\n15, 0.50, 0.25"
+    label: 'Nickel (Ni) Ball-Milled', 
+    d1: 2.0340, 
+    d2: 1.0170, 
+    burgersVector: 0.249,
+    youngsModulus: 200,
+    desc: 'Nanocrystalline Ni (111) & (222)',
+    data: `# L[nm], A(d1), A(d2)
+1, 0.965, 0.870
+2, 0.915, 0.745
+3, 0.860, 0.630
+4, 0.800, 0.525
+5, 0.740, 0.435
+8, 0.580, 0.235
+10, 0.485, 0.145
+15, 0.300, 0.040
+20, 0.175, 0.008`
   },
   { 
-    label: 'Copper (Cu)', 
-    d1: 2.087, 
-    d2: 1.0435, 
-    desc: '(111) and (222) reflections',
-    data: "# L[nm], A(d1), A(d2)\n1, 0.95, 0.88\n2, 0.89, 0.77\n3, 0.83, 0.67\n4, 0.78, 0.58\n5, 0.73, 0.51\n8, 0.61, 0.35\n10, 0.54, 0.27\n15, 0.41, 0.15"
+    label: 'Stainless Steel 316L', 
+    d1: 2.0780, 
+    d2: 1.0390, 
+    burgersVector: 0.254,
+    youngsModulus: 193,
+    desc: 'Austenitic work-hardened (111)/(222)',
+    data: `# L[nm], A(d1), A(d2)
+1, 0.960, 0.880
+2, 0.910, 0.765
+3, 0.855, 0.655
+4, 0.798, 0.552
+5, 0.740, 0.460
+8, 0.585, 0.260
+10, 0.490, 0.170
+15, 0.315, 0.055
+20, 0.190, 0.012`
   },
   { 
-    label: 'Nickel (Ni)', 
-    d1: 2.034, 
-    d2: 1.017, 
-    desc: '(111) and (222) reflections',
-    data: "# L[nm], A(d1), A(d2)\n1, 0.94, 0.85\n2, 0.87, 0.72\n3, 0.81, 0.61\n4, 0.75, 0.52\n5, 0.70, 0.44\n8, 0.57, 0.28\n10, 0.49, 0.21\n15, 0.35, 0.10"
+    label: 'Tungsten (W) Heavy Alloy', 
+    d1: 2.2380, 
+    d2: 1.1190, 
+    burgersVector: 0.274,
+    youngsModulus: 411,
+    desc: 'BCC Refractory (110) & (220)',
+    data: `# L[nm], A(d1), A(d2)
+1, 0.975, 0.920
+2, 0.940, 0.835
+3, 0.900, 0.745
+4, 0.855, 0.655
+5, 0.810, 0.575
+8, 0.680, 0.380
+10, 0.595, 0.280
+15, 0.420, 0.120
+20, 0.285, 0.040`
   },
-  { label: 'Silver (Ag)', d1: 2.359, d2: 1.179, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.96, 0.90\n2, 0.92, 0.81" },
-  { label: 'Platinum (Pt)', d1: 2.265, d2: 1.132, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.98, 0.94\n2, 0.95, 0.87" },
-  { label: 'Iron (alpha-Fe)', d1: 2.027, d2: 1.0135, desc: '(110) and (220) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.93, 0.82\n2, 0.85, 0.68" },
-  { label: 'MgO', d1: 2.106, d2: 1.053, desc: '(200) and (400) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.99, 0.97\n2, 0.98, 0.94" },
-  { label: 'Zirconia (ZrO2)', d1: 2.966, d2: 1.483, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.97, 0.93\n2, 0.94, 0.85" },
-  { label: 'Zinc Oxide (ZnO)', d1: 2.814, d2: 1.407, desc: '(100) and (200) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.96, 0.91\n2, 0.92, 0.82" },
-  { label: 'Ti-6Al-4V (alpha)', d1: 2.342, d2: 1.171, desc: '(101) and (202) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.92, 0.80\n2, 0.84, 0.65" },
-  { label: 'Stainless Steel 316L', d1: 2.078, d2: 1.039, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.94, 0.86\n2, 0.87, 0.74" }
+  { 
+    label: 'Ceria (CeO2) Catalyst', 
+    d1: 3.1240, 
+    d2: 1.5620, 
+    burgersVector: 0.383,
+    youngsModulus: 220,
+    desc: 'Fluorite oxide nanocrystals (111)/(222)',
+    data: `# L[nm], A(d1), A(d2)
+1, 0.975, 0.930
+2, 0.935, 0.845
+3, 0.885, 0.750
+4, 0.835, 0.660
+5, 0.780, 0.575
+8, 0.630, 0.370
+10, 0.535, 0.265
+15, 0.350, 0.105
+20, 0.215, 0.030`
+  },
+  { 
+    label: 'Zinc Oxide (ZnO) Nanorods', 
+    d1: 2.8140, 
+    d2: 1.4070, 
+    burgersVector: 0.325,
+    youngsModulus: 140,
+    desc: 'Wurtzite hexagonal (100)/(200)',
+    data: `# L[nm], A(d1), A(d2)
+1, 0.970, 0.920
+2, 0.930, 0.830
+3, 0.880, 0.735
+4, 0.825, 0.640
+5, 0.770, 0.550
+8, 0.615, 0.340
+10, 0.515, 0.230
+15, 0.320, 0.075`
+  }
 ];
 
 export const WarrenAverbachModule: React.FC = () => {
-  const [d1, setD1] = useState<number>(2.3551);
-  const [d2, setD2] = useState<number>(1.1776);
+  const [d1, setD1] = useState<number>(MATERIAL_PRESETS[0].d1);
+  const [d2, setD2] = useState<number>(MATERIAL_PRESETS[0].d2);
+  const [d3, setD3] = useState<number | undefined>(MATERIAL_PRESETS[0].d3);
+  const [d4, setD4] = useState<number | undefined>(undefined);
+  const [showOrder3, setShowOrder3] = useState<boolean>(true);
+  const [showOrder4, setShowOrder4] = useState<boolean>(false);
+
   const [selectedMaterial, setSelectedMaterial] = useState<string>(MATERIAL_PRESETS[0].label);
   const [isMaterialMenuOpen, setIsMaterialMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const [inputData, setInputData] = useState<string>(MATERIAL_PRESETS[0].data);
+  const [result, setResult] = useState<WAResult | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isThinking, setIsThinking] = useState<boolean>(false);
+  const [shapeFactor, setShapeFactor] = useState<number>(1.0);
+  const [instrumentalCorrection, setInstrumentalCorrection] = useState<string>('Stokes');
+  const [backgroundModel, setBackgroundModel] = useState<string>('Linear');
+  const [strainModel, setStrainModel] = useState<string>('Dislocation (Wilkens)');
+  const [hookCorrectionMode, setHookCorrectionMode] = useState<'linear_tangent' | 'polynomial' | 'none'>('linear_tangent');
+  
+  // Advanced Refinement Parameters
+  const [instrumentalFactor, setInstrumentalFactor] = useState<number>(0.005);
+  const [backgroundOffset, setBackgroundOffset] = useState<number>(0.02);
+  const [cutoffRadiusValue, setCutoffRadiusValue] = useState<number>(50.0); // nm
+
+  const [selectedDomainIndex, setSelectedDomainIndex] = useState<number>(0);
+  const [selectedOrderPlotL, setSelectedOrderPlotL] = useState<number>(5);
+  const [burgersVector, setBurgersVector] = useState<number>(MATERIAL_PRESETS[0].burgersVector);
+  const [youngsModulus, setYoungsModulus] = useState<number>(MATERIAL_PRESETS[0].youngsModulus);
+
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'size_pv' | 'strain_wilkens' | 'order_plots' | 'defect_topography' | 'metrics_report'>('size_pv');
+  const [isConverterOpen, setIsConverterOpen] = useState(false);
+  const [isDEstimatorOpen, setIsDEstimatorOpen] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [calcMode, setCalcMode] = useState<'bragg' | 'bragghkl'>('bragg');
+  const [calcLambda, setCalcLambda] = useState(1.5406);
+  const [calc2Theta1, setCalc2Theta1] = useState(38.18);
+  const [calc2Theta2, setCalc2Theta2] = useState(81.72);
+  const [calcLatticeA, setCalcLatticeA] = useState(4.078);
+  const [calcHKL1, setCalcHKL1] = useState('1 1 1');
+  const [calcHKL2, setCalcHKL2] = useState('2 2 2');
+
   const handleReset = () => {
-    setD1(MATERIAL_PRESETS[0].d1);
-    setD2(MATERIAL_PRESETS[0].d2);
-    setSelectedMaterial(MATERIAL_PRESETS[0].label);
-    setInputData(defaultData);
+    const defaultPreset = MATERIAL_PRESETS[0];
+    setD1(defaultPreset.d1);
+    setD2(defaultPreset.d2);
+    setD3(defaultPreset.d3);
+    setD4(undefined);
+    setShowOrder3(true);
+    setShowOrder4(false);
+    setSelectedMaterial(defaultPreset.label);
+    setInputData(defaultPreset.data);
+    setBurgersVector(defaultPreset.burgersVector);
+    setYoungsModulus(defaultPreset.youngsModulus);
     setShapeFactor(1.0);
-    setStrainModel('Gaussian');
+    setStrainModel('Dislocation (Wilkens)');
     setInstrumentalCorrection('Stokes');
     setBackgroundModel('Linear');
+    setHookCorrectionMode('linear_tangent');
     setInstrumentalFactor(0.005);
     setBackgroundOffset(0.02);
     setCutoffRadiusValue(50.0);
@@ -94,16 +290,17 @@ export const WarrenAverbachModule: React.FC = () => {
 
   const handleDownloadCSV = () => {
     if (!result) return;
-    const header = "L_nm,A_size,RMS_Strain\n";
+    const header = "L_nm,A_size,P_V_L,RMS_Strain,MS_Strain\n";
     const rows = result.sizeDistribution.map((row, i) => {
       const strain = result.strainDistribution[i]?.rms_strain || 0;
-      return `${row.L_nm.toFixed(2)},${row.A_size.toFixed(6)},${strain.toExponential(6)}`;
+      const msStrain = result.strainDistribution[i]?.ms_strain || 0;
+      return `${row.L_nm.toFixed(2)},${row.A_size.toFixed(6)},${(row.Pv_L || 0).toFixed(6)},${strain.toExponential(6)},${msStrain.toExponential(6)}`;
     }).join("\n");
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `wa_analysis_${new Date().getTime()}.csv`;
+    a.download = `warren_averbach_analysis_${selectedMaterial.toLowerCase().replace(/[^a-z0-9]/g, '_')}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -117,111 +314,6 @@ export const WarrenAverbachModule: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
-  // Default Data: Simulated coefficients for a nanomaterial
-  const defaultData = `# L[nm], A(d1), A(d2)
-1, 0.95, 0.90
-2, 0.90, 0.81
-3, 0.85, 0.73
-4, 0.80, 0.66
-5, 0.76, 0.59
-6, 0.72, 0.53
-8, 0.65, 0.43
-10, 0.58, 0.35
-15, 0.42, 0.20
-20, 0.30, 0.11
-25, 0.21, 0.05`;
-
-  const [inputData, setInputData] = useState<string>(defaultData);
-  const [result, setResult] = useState<WAResult | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isThinking, setIsThinking] = useState<boolean>(false);
-  const [shapeFactor, setShapeFactor] = useState<number>(1.0);
-  const [instrumentalCorrection, setInstrumentalCorrection] = useState<string>('Stokes');
-  const [backgroundModel, setBackgroundModel] = useState<string>('Linear');
-  const [strainModel, setStrainModel] = useState<string>('Gaussian');
-  
-  // Advanced Refinement Parameters
-  const [instrumentalFactor, setInstrumentalFactor] = useState<number>(0.005);
-  const [backgroundOffset, setBackgroundOffset] = useState<number>(0.02);
-  const [cutoffRadiusValue, setCutoffRadiusValue] = useState<number>(50.0); // nm
-
-  const [selectedDomainIndex, setSelectedDomainIndex] = useState<number>(0);
-  const [burgersVector, setBurgersVector] = useState<number>(0.25); // nm
-  const [youngsModulus, setYoungsModulus] = useState<number>(110); // GPa
-
-  const [isDEstimatorOpen, setIsDEstimatorOpen] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [calcMode, setCalcMode] = useState<'bragg' | 'bragghkl'>('bragg');
-  const [calcLambda, setCalcLambda] = useState(1.5406);
-  const [calc2Theta1, setCalc2Theta1] = useState(38.18); // Gold 111 example
-  const [calc2Theta2, setCalc2Theta2] = useState(81.72);
-  const [calcLatticeA, setCalcLatticeA] = useState(4.078);
-  const [calcHKL1, setCalcHKL1] = useState('1 1 1');
-  const [calcHKL2, setCalcHKL2] = useState('2 2 2');
-
-  const loadTestData = (type: 'high-strain' | 'large-size') => {
-    if (type === 'high-strain') {
-      setInputData(`# L[nm], A(d1), A(d2)\n1, 0.96, 0.75\n2, 0.92, 0.60\n3, 0.88, 0.45\n4, 0.84, 0.35\n5, 0.80, 0.25\n6, 0.77, 0.18\n8, 0.71, 0.08\n10, 0.65, 0.03\n15, 0.50, 0.01\n20, 0.35, 0.00`);
-    } else {
-      setInputData(`# L[nm], A(d1), A(d2)\n1, 0.99, 0.98\n2, 0.98, 0.96\n3, 0.97, 0.94\n4, 0.96, 0.92\n5, 0.95, 0.90\n6, 0.94, 0.88\n8, 0.92, 0.84\n10, 0.90, 0.80\n15, 0.85, 0.70\n20, 0.80, 0.60\n25, 0.75, 0.50`);
-    }
-  };
-
-  const handleSmartLoad = async () => {
-    if (!searchQuery.trim()) return;
-    setIsThinking(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: `Generate realistic Fourier coefficients for Warren-Averbach analysis of ${searchQuery}.
-        Provide 8 to 12 data points. For each point, provide:
-        - L (column length in nm, starting from 1 or 2, increasing)
-        - A1 (Fourier coefficient for the first reflection, e.g., 111, starting near 1.0 and decaying)
-        - A2 (Fourier coefficient for the second order reflection, e.g., 222, starting near 1.0 but decaying faster than A1)
-        Make sure the decay is physically realistic (A2 decays faster due to strain).
-        Return ONLY a JSON array of objects.`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                L: { type: Type.NUMBER },
-                A1: { type: Type.NUMBER },
-                A2: { type: Type.NUMBER }
-              },
-              required: ["L", "A1", "A2"]
-            }
-          }
-        }
-      });
-
-      if (response.text) {
-        let rawText = response.text;
-        rawText = rawText.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
-        const data = JSON.parse(rawText);
-        const header = "# L[nm], A(d1), A(d2)\n";
-        const formattedData = data.map((p: any) => `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}`).join('\n');
-        setInputData(header + formattedData);
-      }
-    } catch (error: any) {
-      console.error("Error generating data:", error);
-      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-      const isQuota = errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED');
-      const isPermission = errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED') || errorStr.includes('permission');
-      
-      if (isQuota) {
-        alert("Neural link quota exhausted. Please wait for buffer reset.");
-      } else if (isPermission) {
-        alert("Neural link access restricted (403). Permission denied for AI data generation.");
-      }
-    } finally {
-      setIsThinking(false);
-    }
-  };
 
   const handleCalculate = () => {
     setIsAnalyzing(true);
@@ -237,19 +329,89 @@ export const WarrenAverbachModule: React.FC = () => {
         backgroundModel,
         instrumentalFactor,
         backgroundOffset,
-        cutoffRadiusValue
+        cutoffRadiusValue,
+        hookCorrectionMode,
+        showOrder3 ? d3 : undefined,
+        showOrder4 ? d4 : undefined,
+        burgersVector,
+        youngsModulus
       );
       setResult(computed);
       setIsAnalyzing(false);
       
-      // Allow DOM to update then scroll
+      // Auto-set selected order plot point if available
+      if (computed.orderPlots && computed.orderPlots.length > 0) {
+        const defaultPt = computed.orderPlots.find(p => p.L_nm >= 4) || computed.orderPlots[0];
+        setSelectedOrderPlotL(defaultPt.L_nm);
+      }
+
       setTimeout(() => {
         document.getElementById('wa-results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
-    }, 600);
+    }, 300);
   };
 
-  const parsedPointsForMath = React.useMemo(() => {
+  // Run calculation on mount once
+  useEffect(() => {
+    handleCalculate();
+  }, []);
+
+  const handleSmartLoad = async () => {
+    if (!searchQuery.trim()) return;
+    setIsThinking(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: `Generate realistic Fourier coefficients for Warren-Averbach XRD analysis of ${searchQuery}.
+        Provide 10 data points sorted by L (column length in nm: 1, 2, 3, 4, 5, 6, 8, 10, 15, 20).
+        For each point, provide:
+        - L (column length in nm)
+        - A1 (Fourier coefficient for the first reflection order d1, starting around 0.98 and decaying)
+        - A2 (Fourier coefficient for the second order reflection d2, decaying faster due to microstrain)
+        - A3 (Fourier coefficient for third order d3, decaying fastest)
+        Make sure the decay is strictly monotonic and physically authentic.
+        Return ONLY a JSON array of objects.`,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                L: { type: Type.NUMBER },
+                A1: { type: Type.NUMBER },
+                A2: { type: Type.NUMBER },
+                A3: { type: Type.NUMBER }
+              },
+              required: ["L", "A1", "A2"]
+            }
+          }
+        }
+      });
+
+      if (response.text) {
+        let rawText = response.text;
+        rawText = rawText.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
+        const data = JSON.parse(rawText);
+        const header = "# L[nm], A(d1), A(d2), A(d3)\n";
+        const formattedData = data.map((p: any) => {
+          if (p.A3 !== undefined) {
+            return `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}, ${p.A3.toFixed(3)}`;
+          }
+          return `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}`;
+        }).join('\n');
+        setInputData(header + formattedData);
+        setSelectedMaterial(`AI: ${searchQuery}`);
+      }
+    } catch (error) {
+      console.error("Error generating data:", error);
+    } finally {
+      setIsThinking(false);
+    }
+  };
+
+  const parsedPointsForMath = useMemo(() => {
     try {
       const pts = parseWAInput(inputData);
       const targetPt = pts.find(p => p.L_nm >= 5) || pts[0] || { L_nm: 5, A1: 0.85, A2: 0.70 };
@@ -259,69 +421,72 @@ export const WarrenAverbachModule: React.FC = () => {
     }
   }, [inputData]);
 
+  // Selected Order Plot Line for Regression Tab
+  const activeOrderPlot = useMemo(() => {
+    if (!result?.orderPlots) return null;
+    return result.orderPlots.find(p => Math.abs(p.L_nm - selectedOrderPlotL) < 0.1) || result.orderPlots[0];
+  }, [result, selectedOrderPlotL]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
-      {/* Input Configuration */}
+      
+      {/* Input Configuration Column */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#050914]/90 backdrop-blur-3xl p-6 lg:p-8 rounded-[2rem] border border-white/5 shadow-2xl relative group transition-all z-20">
-          <div className="absolute inset-0 rounded-[2.5rem] overflow-hidden pointer-events-none z-0">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-600/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-rose-500/20 transition-all duration-700"></div>
-          </div>
+        <div className="bg-[#050914]/90 backdrop-blur-3xl p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative group transition-all z-20 ring-1 ring-white/10 ring-inset">
           
-          <div className="flex justify-between items-start mb-8 relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-rose-500/20 blur-xl rounded-full"></div>
-                <div className="p-3 bg-gradient-to-br from-rose-500/10 to-orange-500/10 rounded-2xl border border-rose-500/30 text-rose-400 relative backdrop-blur-sm">
-                  <Settings className="w-6 h-6" />
-                </div>
+          {/* Header */}
+          <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 bg-gradient-to-br from-rose-500/20 to-orange-500/20 rounded-2xl border border-rose-500/30 text-rose-400">
+                <Settings className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 tracking-tight font-sans">
-                  WA Config
+                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-300 tracking-tight font-sans">
+                  WA Engine
                 </h2>
-                <p className="text-[10px] text-rose-400 mt-1 uppercase font-black tracking-[0.2em] font-mono flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Warren-Averbach Engine
+                <p className="text-[10px] text-rose-400 mt-0.5 uppercase font-bold tracking-[0.2em] font-mono flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" /> Warren-Averbach Suite
                 </p>
               </div>
             </div>
+
             <button 
               onClick={handleReset}
-              className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 px-4 py-2 rounded-xl border border-white/10 hover:border-rose-500/30 transition-all flex items-center gap-2 mt-1 relative overflow-hidden group/btn font-mono shadow-md"
-              title="Reset config to defaults"
+              className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 px-3.5 py-2 rounded-xl border border-white/10 hover:border-rose-500/30 transition-all flex items-center gap-2 font-mono shadow-sm"
+              title="Reset config to default material"
             >
-              <RefreshCw className="w-3.5 h-3.5 group-hover/btn:rotate-180 transition-transform duration-500" /> 
+              <RefreshCw className="w-3 h-3" /> 
               <span>Reset</span>
             </button>
           </div>
 
-          <div className="space-y-6 relative z-10 custom-scrollbar">
-            {/* Material Presets */}
-            <div className={`p-5 rounded-2xl border transition-all relative ${isMaterialMenuOpen ? "border-rose-500/30 bg-black/60 z-[100] shadow-2xl shadow-rose-900/20" : "border-white/5 bg-black/40 hover:border-white/10 z-10"}`}>
-              <div className="absolute top-0 right-0 p-4 opacity-5 bg-gradient-to-br from-rose-500 to-orange-500 rounded-bl-full pointer-events-none group-hover/params:opacity-10 transition-opacity overflow-hidden"></div>
-              <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-3">
-                Material Preset
+          <div className="space-y-5 relative z-10">
+            
+            {/* Material Presets Selector */}
+            <div className="p-4 rounded-2xl border border-white/5 bg-black/40 relative z-30">
+              <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-2.5">
+                Crystallographic Material Preset
               </label>
-              <div className="relative z-[100]" ref={menuRef}>
+              <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setIsMaterialMenuOpen(!isMaterialMenuOpen)}
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 hover:border-white/10 rounded-lg outline-none transition-all flex items-center justify-between shadow-inner"
+                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 hover:border-rose-500/30 rounded-xl outline-none transition-all flex items-center justify-between shadow-inner"
                 >
-                  <span className="text-sm font-bold text-rose-400">
+                  <span className="text-xs font-bold text-rose-400 truncate">
                     {selectedMaterial}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 <AnimatePresence>
                   {isMaterialMenuOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute top-[calc(100%+8px)] left-0 right-0 bg-[#0A101C] border border-white/10 rounded-xl shadow-[0_30px_70px_rgba(0,0,0,0.9)] overflow-hidden z-[100] py-2 backdrop-blur-3xl"
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      className="absolute top-[calc(100%+8px)] left-0 right-0 bg-[#0A101C] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[100] py-2 backdrop-blur-3xl"
                     >
-                      <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <div className="max-h-[280px] overflow-y-auto custom-scrollbar">
                         {MATERIAL_PRESETS.map((m) => (
                           <button
                             key={m.label}
@@ -329,534 +494,292 @@ export const WarrenAverbachModule: React.FC = () => {
                               setSelectedMaterial(m.label);
                               setD1(m.d1);
                               setD2(m.d2);
-                              if (m.data) setInputData(m.data);
+                              if (m.d3) {
+                                setD3(m.d3);
+                                setShowOrder3(true);
+                              } else {
+                                setShowOrder3(false);
+                              }
+                              setBurgersVector(m.burgersVector);
+                              setYoungsModulus(m.youngsModulus);
+                              setInputData(m.data);
                               setIsMaterialMenuOpen(false);
                             }}
-                            className={`w-full px-4 py-2.5 flex flex-col items-start hover:bg-white/5 transition-colors ${selectedMaterial === m.label ? 'bg-rose-500/10' : ''}`}
+                            className={`w-full px-4 py-2.5 flex flex-col items-start hover:bg-white/5 transition-colors text-left ${selectedMaterial === m.label ? 'bg-rose-500/10' : ''}`}
                           >
-                            <span className={`text-sm font-bold ${selectedMaterial === m.label ? 'text-rose-400' : 'text-slate-300'}`}>
+                            <span className={`text-xs font-bold ${selectedMaterial === m.label ? 'text-rose-400' : 'text-slate-200'}`}>
                               {m.label}
                             </span>
-                            <span className="text-[9px] text-slate-500 font-bold font-mono uppercase tracking-widest mt-0.5">
-                              {m.desc}
+                            <span className="text-[9px] text-slate-500 font-mono mt-0.5">
+                              {m.desc} (E={m.youngsModulus}GPa, b={m.burgersVector}nm)
                             </span>
                           </button>
                         ))}
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelectedMaterial('Custom');
-                          setIsMaterialMenuOpen(false);
-                        }}
-                        className={`w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors border-t border-white/5 mt-1 ${selectedMaterial === 'Custom' ? 'bg-rose-500/10 text-rose-400' : 'text-slate-300'}`}
-                      >
-                        <span className="text-sm font-bold">Custom Parameters</span>
-                        <Settings className="w-3.5 h-3.5 opacity-50" />
-                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             </div>
 
-            {/* Smart Load Section */}
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all group/smart shadow-inner ring-1 ring-white/5 ring-inset backdrop-blur-md">
-              <div className="flex items-center gap-2 mb-3">
+            {/* Quick Action Tools Bar: Peak Converter & AI Synthesizer */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setIsConverterOpen(true)}
+                className="p-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 hover:border-rose-500/40 rounded-xl text-[9px] font-bold font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                <span>Peak to Fourier</span>
+              </button>
+
+              <button
+                onClick={() => setIsDEstimatorOpen(!isDEstimatorOpen)}
+                className="p-2.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/20 hover:border-purple-500/40 rounded-xl text-[9px] font-bold font-mono uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+              >
+                <Atom className="w-3.5 h-3.5" />
+                <span>d-Spacing Tool</span>
+              </button>
+            </div>
+
+            {/* AI Synthesizer */}
+            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2">
+              <div className="flex items-center gap-2">
                 <Database className="w-3.5 h-3.5 text-rose-400" />
                 <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-                  Synthesis Engine
+                  AI Material Generator
                 </label>
               </div>
-              <div className="flex gap-2 relative z-10">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="e.g. Nanocrystalline Gold"
-                  className="flex-1 px-4 py-2.5 bg-black/60 text-rose-400 border border-white/10 rounded-lg focus:ring-1 focus:ring-rose-500/20 focus:border-white/20 outline-none text-sm transition-all shadow-inner"
+                  placeholder="e.g., Cold-rolled Brass (70/30)"
+                  className="flex-1 px-3.5 py-2 bg-black/60 text-slate-200 placeholder:text-slate-600 border border-white/10 rounded-xl text-xs font-sans outline-none focus:border-rose-500/40 transition-colors"
                   onKeyDown={(e) => e.key === 'Enter' && handleSmartLoad()}
                 />
                 <button
                   onClick={handleSmartLoad}
                   disabled={isThinking || !searchQuery.trim()}
-                  className="px-4 py-2.5 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 disabled:from-[#0A101C] disabled:to-[#0A101C] disabled:text-slate-600 disabled:border-white/5 text-white font-bold rounded-lg transition-all flex items-center gap-2 border border-white/20 active:scale-95 shadow-[0_0_15px_rgba(244,63,94,0.3)] disabled:shadow-none"
+                  className="px-3.5 py-2 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 disabled:opacity-40 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5"
                 >
-                  {isThinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 shrink-0 text-white" />}
+                  {isThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all relative z-0 group">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-1 max-w-fit bg-rose-500/10 rounded border border-rose-500/20">
-                     <Ruler className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <label className="text-[9px] font-bold text-slate-400 group-hover:text-rose-400 uppercase tracking-widest font-mono transition-colors">
-                    d₁ (Peak 1)
-                  </label>
-                </div>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={String(d1) === 'NaN' ? '' : d1}
-                    onChange={(e) => {
-                      setD1(parseFloat(e.target.value));
-                      setSelectedMaterial('Custom');
-                    }}
-                    className="w-full px-4 py-2.5 bg-black/60 text-slate-200 focus:text-rose-400 border border-white/10 rounded-lg focus:ring-1 focus:ring-rose-500/30 focus:border-rose-500/30 outline-none font-mono text-sm transition-all shadow-inner"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold font-mono text-slate-500 uppercase">Å</span>
+            {/* Reflection Orders d-Spacings */}
+            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-3">
+              <div className="flex justify-between items-center">
+                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                  <Ruler className="w-3.5 h-3.5 text-rose-400" />
+                  Reflection Orders (d-spacings)
+                </label>
+                <div className="flex gap-2 text-[9px] font-mono">
+                  <button
+                    onClick={() => setShowOrder3(!showOrder3)}
+                    className={`px-2 py-0.5 rounded border transition-colors ${showOrder3 ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-black/40 border-white/10 text-slate-500'}`}
+                  >
+                    Order 3 (d₃)
+                  </button>
                 </div>
               </div>
-              <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-rose-500/30 transition-all relative z-0 group">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-1 max-w-fit bg-rose-500/10 rounded border border-rose-500/20">
-                     <Ruler className="w-3.5 h-3.5 text-rose-400 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <label className="text-[9px] font-bold text-slate-400 group-hover:text-rose-400 uppercase tracking-widest font-mono transition-colors">
-                    d₂ (Peak 2)
-                  </label>
-                </div>
-                <div className="relative">
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono">d₁ (Order 1, Å)</label>
                   <input
                     type="number"
                     step="0.0001"
-                    value={String(d2) === 'NaN' ? '' : d2}
+                    value={d1}
                     onChange={(e) => {
-                      setD2(parseFloat(e.target.value));
+                      setD1(parseFloat(e.target.value) || 2.3551);
                       setSelectedMaterial('Custom');
                     }}
-                    className="w-full px-4 py-2.5 bg-black/60 text-slate-200 focus:text-rose-400 border border-white/10 rounded-lg focus:ring-1 focus:ring-rose-500/30 focus:border-rose-500/30 outline-none font-mono text-sm transition-all shadow-inner"
+                    className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-xl text-xs font-mono font-bold outline-none"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold font-mono text-slate-500 uppercase">Å</span>
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono">d₂ (Order 2, Å)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={d2}
+                    onChange={(e) => {
+                      setD2(parseFloat(e.target.value) || 1.1776);
+                      setSelectedMaterial('Custom');
+                    }}
+                    className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-xl text-xs font-mono font-bold outline-none"
+                  />
+                </div>
+
+                {showOrder3 && (
+                  <div className="space-y-1 col-span-2 sm:col-span-1">
+                    <label className="text-[9px] text-slate-500 font-mono">d₃ (Order 3, Å)</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={d3 || ''}
+                      placeholder="e.g. 0.7850"
+                      onChange={(e) => {
+                        setD3(parseFloat(e.target.value) || undefined);
+                        setSelectedMaterial('Custom');
+                      }}
+                      className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-xl text-xs font-mono font-bold outline-none"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Advanced d-Spacing Estimator */}
-            {/* Advanced Analytical Parameters */}
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all space-y-4 relative z-0">
-              <div className="flex justify-between items-center mb-2 pb-3 border-b border-white/5">
-                <div className="flex items-center gap-2">
-                   <div className="p-1.5 bg-rose-500/10 rounded-lg">
-                     <Settings className="w-3.5 h-3.5 text-rose-400" />
-                   </div>
-                   <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">
-                     Refinement Parameters
-                   </label>
-                </div>
+            {/* Hook Effect & Advanced Physics Controls */}
+            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+                <Sliders className="w-3.5 h-3.5 text-rose-400" />
+                <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">
+                  Physics & Hook Effect Controls
+                </label>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 group">
-                  <label className="text-[9px] font-bold text-slate-500 group-hover:text-rose-400 transition-colors uppercase tracking-widest font-mono">Shape Factor (K)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={String(shapeFactor) === 'NaN' ? '' : shapeFactor}
-                    onChange={(e) => setShapeFactor(parseFloat(e.target.value) || 1.0)}
-                    className="w-full px-3 py-2.5 bg-black/60 text-slate-200 focus:text-rose-400 border border-white/10 rounded-xl text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/30 focus:border-rose-500/30 transition-all shadow-inner"
-                  />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono uppercase">Hook Correction</label>
+                  <select
+                    value={hookCorrectionMode}
+                    onChange={(e) => setHookCorrectionMode(e.target.value as any)}
+                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
+                  >
+                    <option value="linear_tangent">Tangent Linearization</option>
+                    <option value="polynomial">Monotonic Regularization</option>
+                    <option value="none">Raw (No Hook Corr.)</option>
+                  </select>
                 </div>
-                <div className="space-y-2 group">
-                  <label className="text-[9px] font-bold text-slate-500 group-hover:text-rose-400 transition-colors uppercase tracking-widest font-mono">Strain Model</label>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono uppercase">Strain Model</label>
                   <select
                     value={strainModel}
                     onChange={(e) => setStrainModel(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-black/60 text-slate-200 focus:text-rose-400 border border-white/10 rounded-xl text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/30 focus:border-rose-500/30 transition-all shadow-inner "
+                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
                   >
-                    <option value="Gaussian">Gaussian</option>
-                    <option value="Lorentzian">Lorentzian</option>
-                    <option value="Dislocation (Wilkens)">Wilkens Disl.</option>
+                    <option value="Dislocation (Wilkens)">Wilkens Dislocation</option>
+                    <option value="Gaussian">Gaussian Model</option>
+                    <option value="Lorentzian">Lorentzian Model</option>
                   </select>
                 </div>
-                <div className="space-y-2 group">
-                  <label className="text-[9px] font-bold text-slate-500 group-hover:text-rose-400 transition-colors uppercase tracking-widest font-mono">Inst. Broadening</label>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono uppercase">Inst. Broadening</label>
                   <select
                     value={instrumentalCorrection}
                     onChange={(e) => setInstrumentalCorrection(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-black/60 text-slate-200 focus:text-rose-400 border border-white/10 rounded-xl text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/30 focus:border-rose-500/30 transition-all shadow-inner "
+                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
                   >
-                    <option value="Stokes">Stokes Deconv</option>
-                    <option value="Voigt">Voigt Func</option>
+                    <option value="Stokes">Stokes Deconvolution</option>
+                    <option value="Voigt">Voigt Broadening</option>
                     <option value="None">None</option>
                   </select>
                 </div>
-                <div className="space-y-2 group">
-                  <label className="text-[9px] font-bold text-slate-500 group-hover:text-rose-400 transition-colors uppercase tracking-widest font-mono">Background</label>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono uppercase">Background</label>
                   <select
                     value={backgroundModel}
                     onChange={(e) => setBackgroundModel(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-black/60 text-slate-200 focus:text-rose-400 border border-white/10 rounded-xl text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/30 focus:border-rose-500/30 transition-all shadow-inner "
+                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
                   >
-                    <option value="Linear">Linear </option>
-                    <option value="Spline">B-Spline</option>
+                    <option value="Linear">Linear Baseline</option>
+                    <option value="Spline">Exponential Decay</option>
                     <option value="None">None</option>
                   </select>
                 </div>
               </div>
-
-              {/* Dynamic Adjustable Advanced Refinement sliders */}
-              {(instrumentalCorrection !== 'None' || backgroundModel !== 'None' || strainModel === 'Dislocation (Wilkens)') && (
-                <div className="pt-4 border-t border-white/5 space-y-4">
-                  {instrumentalCorrection !== 'None' && (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold uppercase tracking-widest">
-                        <span>Inst. Decay Factor (α)</span>
-                        <span className="text-rose-400 font-mono font-bold">{instrumentalFactor.toFixed(4)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.001"
-                        max="0.020"
-                        step="0.001"
-                        value={String(instrumentalFactor) === 'NaN' ? '' : instrumentalFactor}
-                        onChange={(e) => setInstrumentalFactor(parseFloat(e.target.value))}
-                        className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  )}
-
-                  {backgroundModel !== 'None' && (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold uppercase tracking-widest">
-                        <span>Bkg Baseline Offset</span>
-                        <span className="text-rose-400 font-mono font-bold">{backgroundOffset.toFixed(3)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.000"
-                        max="0.150"
-                        step="0.005"
-                        value={String(backgroundOffset) === 'NaN' ? '' : backgroundOffset}
-                        onChange={(e) => setBackgroundOffset(parseFloat(e.target.value))}
-                        className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  )}
-
-                  {strainModel === 'Dislocation (Wilkens)' && (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold uppercase tracking-widest">
-                        <span>Outer Cutoff Radius (Re)</span>
-                        <span className="text-rose-400 font-mono font-bold">{cutoffRadiusValue.toFixed(1)} nm</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="10.0"
-                        max="150.0"
-                        step="5.0"
-                        value={String(cutoffRadiusValue) === 'NaN' ? '' : cutoffRadiusValue}
-                        onChange={(e) => setCutoffRadiusValue(parseFloat(e.target.value))}
-                        className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all relative z-0">
-              <button
-                onClick={() => setIsDEstimatorOpen(!isDEstimatorOpen)}
-                className="w-full text-[9px] font-bold text-slate-400 hover:text-rose-400 uppercase tracking-widest font-mono flex items-center justify-between transition-colors"
-                title="Calculate d-spacing from peak angles or Miller indices"
-              >
-                <div className="flex items-center gap-2">
-                  <Atom className="w-3.5 h-3.5" />
-                  d-Spacing Calculator
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isDEstimatorOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {isDEstimatorOpen && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="pt-4 mt-4 border-t border-white/5 space-y-4">
-                      {/* Calculator Modes */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => setCalcMode('bragg')}
-                          className={`py-2 px-3 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest transition-all ${
-                            calcMode === 'bragg' ? 'bg-rose-500/20 text-rose-400 border border-white/20' : 'bg-black/60 text-slate-500 border border-white/10'
-                          }`}
-                        >
-                          From 2θ (Bragg Law)
-                        </button>
-                        <button
-                          onClick={() => setCalcMode('bragghkl')}
-                          className={`py-2 px-3 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest transition-all ${
-                            calcMode === 'bragghkl' ? 'bg-rose-500/20 text-rose-400 border border-white/20' : 'bg-black/60 text-slate-500 border border-white/10'
-                          }`}
-                        >
-                          From (hkl) + Lattice
-                        </button>
-                      </div>
-
-                      {calcMode === 'bragg' ? (
-                        <div className="space-y-4 bg-black/20 p-4 rounded-lg border border-white/5">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block font-mono">Wavelength (λ) Å</label>
-                              <input
-                                type="number" step="0.0001"
-                                value={String(calcLambda) === 'NaN' ? '' : calcLambda}
-                                onChange={(e) => setCalcLambda(parseFloat(e.target.value))}
-                                className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none"
-                              />
-                            </div>
-                            <div>
-                               <div className="text-[9px] font-bold text-slate-500 font-mono uppercase tracking-widest mb-1.5 flex gap-2">Presets</div>
-                               <div className="grid grid-cols-2 gap-1.5">
-                                  <button onClick={() => setCalcLambda(1.5406)} className="text-[8px] py-2 bg-white/5 hover:bg-white/10 rounded font-mono text-slate-300 border border-white/5 uppercase">Cu Kα</button>
-                                  <button onClick={() => setCalcLambda(1.7890)} className="text-[8px] py-2 bg-white/5 hover:bg-white/10 rounded font-mono text-slate-300 border border-white/5 uppercase">Co Kα</button>
-                               </div>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block text-center font-mono">Peak 1 (2θ)</label>
-                              <input
-                                type="number" step="0.01"
-                                value={String(calc2Theta1) === 'NaN' ? '' : calc2Theta1}
-                                onChange={(e) => setCalc2Theta1(parseFloat(e.target.value))}
-                                className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block text-center font-mono">Peak 2 (2θ)</label>
-                              <input
-                                type="number" step="0.01"
-                                value={String(calc2Theta2) === 'NaN' ? '' : calc2Theta2}
-                                onChange={(e) => setCalc2Theta2(parseFloat(e.target.value))}
-                                className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="pt-2">
-                            <button
-                              onClick={() => {
-                                const d_1 = calcLambda / (2 * Math.sin((calc2Theta1 / 2) * (Math.PI / 180)));
-                                const d_2 = calcLambda / (2 * Math.sin((calc2Theta2 / 2) * (Math.PI / 180)));
-                                setD1(parseFloat(d_1.toFixed(4)));
-                                setD2(parseFloat(d_2.toFixed(4)));
-                                setSelectedMaterial('Custom');
-                              }}
-                              className="w-full py-2 bg-rose-500 hover:bg-rose-400 text-white font-bold text-[9px] tracking-widest font-mono uppercase rounded flex items-center justify-center gap-2 transition-colors"
-                            >
-                              <Sparkles className="w-3 h-3" /> Compute & Apply Spacings
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4 bg-black/20 p-4 rounded-lg border border-white/5">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block font-mono">Lattice (a) Å</label>
-                              <input
-                                type="number" step="0.0001"
-                                value={String(calcLatticeA) === 'NaN' ? '' : calcLatticeA}
-                                onChange={(e) => setCalcLatticeA(parseFloat(e.target.value))}
-                                className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none"
-                              />
-                            </div>
-                            <div className="flex flex-col justify-end">
-                               <p className="text-[8px] text-slate-500 italic pb-1">Cubic crystal systems only.</p>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                             <div>
-                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block text-center font-mono">Peak 1 (h k l)</label>
-                                <input
-                                  type="text" placeholder="e.g. 1 1 1"
-                                  value={calcHKL1}
-                                  onChange={(e) => setCalcHKL1(e.target.value)}
-                                  className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
-                                />
-                             </div>
-                             <div>
-                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block text-center font-mono">Peak 2 (h k l)</label>
-                                <input
-                                  type="text" placeholder="e.g. 2 2 2"
-                                  value={calcHKL2}
-                                  onChange={(e) => setCalcHKL2(e.target.value)}
-                                  className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
-                                />
-                             </div>
-                          </div>
-
-                          <div className="pt-2">
-                            <button
-                              onClick={() => {
-                                const parseHKL = (str: string) => str.split(/\s+/).map(Number).filter(n => !isNaN(n));
-                                const hkl1 = parseHKL(calcHKL1);
-                                const hkl2 = parseHKL(calcHKL2);
-                                if(hkl1.length === 3 && hkl2.length === 3) {
-                                  const d_1 = calcLatticeA / Math.sqrt(hkl1[0]**2 + hkl1[1]**2 + hkl1[2]**2);
-                                  const d_2 = calcLatticeA / Math.sqrt(hkl2[0]**2 + hkl2[1]**2 + hkl2[2]**2);
-                                  setD1(parseFloat(d_1.toFixed(4)));
-                                  setD2(parseFloat(d_2.toFixed(4)));
-                                  setSelectedMaterial('Custom');
-                                } else {
-                                  alert("Please enter h k l values correctly space delimited.");
-                                }
-                              }}
-                              className="w-full py-2 bg-rose-500 hover:bg-rose-400 text-white font-bold text-[9px] tracking-widest font-mono uppercase rounded flex items-center justify-center gap-2 transition-colors"
-                            >
-                              <Sparkles className="w-3 h-3" /> Compute & Apply Spacings
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all relative overflow-hidden z-0">
-              <div className="flex items-center justify-between mb-4 relative z-10">
+            {/* Fourier Array Text Input */}
+            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2.5">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Binary className="w-4 h-4 text-rose-400" />
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-                    Fourier Array
+                    Fourier Harmonic Coefficients
                   </label>
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex items-center gap-1.5 bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20">
-                    <span className="text-[8px] font-black text-rose-400 uppercase tracking-widest font-mono">L[nm], A(d₁), A(d₂)</span>
-                  </div>
-                  <button 
-                    onClick={handleClear}
-                    className="text-[8px] font-bold font-mono text-red-500 uppercase tracking-widest flex items-center gap-1 transition-colors bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded border border-red-500/30"
-                  >
-                    <Trash2 className="w-2.5 h-2.5" /> Clear
-                  </button>
-                </div>
+                <button
+                  onClick={handleClear}
+                  className="text-[9px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 uppercase"
+                >
+                  <Trash2 className="w-3 h-3" /> Clear
+                </button>
               </div>
-              
-              <div className="relative group/textarea z-10">
-                <textarea
-                  value={inputData}
-                  onChange={(e) => {
-                    setInputData(e.target.value);
-                    setSelectedMaterial('Custom');
-                  }}
-                  placeholder="L_nm, A(d1), A(d2)&#10;1, 0.95, 0.90&#10;2, 0.90, 0.81&#10;3, 0.85, 0.73"
-                  className="w-full h-40 px-5 py-4 bg-black/60 text-rose-400 border border-white/10 rounded-lg focus:ring-1 focus:ring-rose-500/20 focus:border-white/20 outline-none font-mono text-xs leading-loose resize-none transition-all shadow-inner custom-scrollbar"
-                  spellCheck={false}
-                />
-              </div>
-              
-              <div className="mt-4 flex flex-col gap-3 relative z-10">
-                <div className="flex items-start gap-2 text-[9px] font-bold text-slate-400 bg-black/40 p-2.5 rounded-lg border border-white/5">
-                  <span className="leading-tight uppercase tracking-widest font-mono text-rose-500/80">
-                     <span className="text-rose-500 mr-1">&gt;</span> Req: <span className="text-rose-400">L</span> (nm), <span className="text-rose-400">A(L)</span> ordered.
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold font-mono uppercase tracking-widest text-slate-400 border border-white/5 bg-black/60 px-2 py-1.5 rounded-md text-nowrap">Load Test:</span>
-                  <button
-                    onClick={() => loadTestData('high-strain')}
-                    className="flex-1 text-[8px] font-bold font-mono uppercase tracking-widest text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 px-2 py-1.5 rounded-md border border-orange-500/30 transition-all text-center"
-                  >
-                    High Strain
-                  </button>
-                  <button
-                    onClick={() => loadTestData('large-size')}
-                    className="flex-1 text-[8px] font-bold font-mono uppercase tracking-widest text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-1.5 rounded-md border border-emerald-500/30 transition-all text-center"
-                  >
-                    Large Size
-                  </button>
-                </div>
-              </div>
+
+              <textarea
+                value={inputData}
+                onChange={(e) => {
+                  setInputData(e.target.value);
+                  setSelectedMaterial('Custom');
+                }}
+                className="w-full h-36 px-4 py-3 bg-black/60 text-rose-400 border border-white/10 rounded-xl font-mono text-xs leading-relaxed resize-none focus:outline-none focus:border-rose-500/40 custom-scrollbar shadow-inner"
+                spellCheck={false}
+              />
             </div>
 
+            {/* Analyze Action Button */}
             <button
               onClick={handleCalculate}
               disabled={isAnalyzing}
-              className={`w-full py-4 uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${
-                isAnalyzing 
-                  ? 'bg-rose-500/50 text-white cursor-wait' 
-                  : 'bg-white text-black hover:bg-rose-400 hover:text-black font-bold shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.4)]'
-              }`}
+              className="w-full py-4 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-white font-bold text-xs uppercase tracking-[0.2em] font-mono rounded-2xl shadow-xl shadow-rose-950/40 transition-all flex items-center justify-center gap-2.5 active:scale-[0.98]"
             >
-              {!isAnalyzing && <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />}
               {isAnalyzing ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Computing Harmonics...</span>
+                </>
               ) : (
-                <FlaskConical className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
+                <>
+                  <FlaskConical className="w-4 h-4" />
+                  <span>Execute Warren-Averbach Analysis</span>
+                </>
               )}
-              {isAnalyzing ? 'Analyzing...' : 'Analyze Data'}
             </button>
+
           </div>
         </div>
 
-        {/* Scientific Context Card */}
-        <div className="bg-slate-950/80 backdrop-blur-2xl p-8 rounded-[2.5rem] ring-1 ring-white/10 ring-inset text-white border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.05)] relative overflow-hidden group hover:border-white/10 transition-all">
-          <div className="absolute top-0 left-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -translate-y-16 -translate-x-16 group-hover:bg-rose-500/20 transition-all duration-700"></div>
-          
-          <div className="flex items-center gap-4 mb-6 relative z-10">
-            <div className="p-2.5 bg-black/40 rounded-xl border border-rose-500/30">
-              <BookOpen className="w-5 h-5 text-rose-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-medium tracking-tight font-sans text-slate-100">Context</h3>
-              <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold font-mono mt-1">Fourier Microstructure</p>
-            </div>
+        {/* Scientific Formulation Card */}
+        <div className="bg-[#050914]/80 backdrop-blur-2xl p-6 rounded-[2.5rem] border border-white/5 space-y-4 ring-1 ring-white/10 ring-inset">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-4 h-4 text-rose-400" />
+            <h3 className="text-sm font-bold text-slate-200 font-mono uppercase tracking-wider">
+              Warren-Averbach Formalism
+            </h3>
           </div>
-
-          <div className="space-y-4 relative z-10">
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all shadow-inner ring-1 ring-white/5 ring-inset backdrop-blur-md">
-              <div className="flex items-center gap-2 mb-3">
-                <Atom className="w-3.5 h-3.5 text-rose-400" />
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">Core Model</span>
-              </div>
-              <div className="bg-black/60 py-3 px-4 rounded-lg font-mono text-[10px] text-emerald-400 border border-white/5 shadow-inner flex justify-center">
-                <div className="inline-flex items-center gap-3 font-bold">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-                  <span>ln A(L) = ln A_S(L) - 2π²L²ε² / d²</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all shadow-inner ring-1 ring-white/5 ring-inset backdrop-blur-md">
-              <div className="flex items-center gap-2 mb-2">
-                <Binary className="w-3.5 h-3.5 text-rose-400" />
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">Separation</span>
-              </div>
-              <p className="text-[10px] text-slate-400 leading-relaxed font-mono font-bold uppercase tracking-widest">
-                Uses Fourier coefficients from multiple reflection orders. The size contribution is independent of order (1/d²), while strain increases with it.
-              </p>
-            </div>
+          <div className="p-3.5 bg-black/60 rounded-xl border border-white/5 text-center font-mono text-xs text-emerald-400">
+            ln A(L, s) = ln A_S(L) - 2π² L² ⟨ε²⟩_L s²
           </div>
+          <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+            By plotting <span className="font-mono text-slate-300">ln A(L)</span> against <span className="font-mono text-slate-300">s² = 1/d²</span>, the intercept yields the pure size Fourier coefficient <span className="font-mono text-rose-400">A_S(L)</span>, while the slope yields the RMS microstrain <span className="font-mono text-cyan-400">⟨ε²⟩_L¹/²</span>.
+          </p>
         </div>
+
       </div>
 
-      {/* Results Section */}
+      {/* Results & Visual Analysis Column */}
       <div id="wa-results-section" className="lg:col-span-8 space-y-6">
         
+        {/* Verification Control */}
         {result && (
           <ScientificMathControl
-            title="Warren-Averbach Strain Verification"
+            title="Warren-Averbach Microstrain Harmonic Verification"
             formula="\langle \varepsilon_L^2 \rangle^{1/2} = \sqrt{\frac{\ln(A_1 / A_2)}{2 \pi^2 L^2 (1/d_2^2 - 1/d_1^2)}}"
-            description="Separate coherent size coefficients from lattice microstrains by comparing Fourier harmonic coefficients across multiple orders of diffraction (d1 vs d2 spacing)."
+            description="Deconvolve domain particle size from lattice microstrains across reflection orders."
             variables={[
-              { symbol: 'A_1', name: 'Order 1 Coefficient', value: parsedPointsForMath.A1, unit: '' },
-              { symbol: 'A_2', name: 'Order 2 Coefficient', value: parsedPointsForMath.A2, unit: '' },
+              { symbol: 'A_1', name: 'Order 1 Harmonic', value: parsedPointsForMath.A1, unit: '' },
+              { symbol: 'A_2', name: 'Order 2 Harmonic', value: parsedPointsForMath.A2, unit: '' },
               { symbol: 'L', name: 'Fourier Length', value: parsedPointsForMath.L_nm, unit: 'nm' },
-              { symbol: 'd_1', name: 'd-spacing (1st order)', value: d1, unit: 'Å' },
-              { symbol: 'd_2', name: 'd-spacing (2nd order)', value: d2, unit: 'Å' }
+              { symbol: 'd_1', name: 'd-spacing (Order 1)', value: d1, unit: 'Å' },
+              { symbol: 'd_2', name: 'd-spacing (Order 2)', value: d2, unit: 'Å' }
             ]}
             result={
               (() => {
@@ -868,520 +791,457 @@ export const WarrenAverbachModule: React.FC = () => {
               })()
             }
             resultUnit=""
-            resultName="Microstrain RMS (ε_L)"
+            resultName="Calculated RMS Microstrain ⟨ε²⟩¹/²"
           />
         )}
 
-        {/* Chart 1: Size Coefficients */}
-        <div className="bg-slate-950/80 p-8 rounded-[2rem] shadow-2xl border border-white/5 h-[450px] flex flex-col relative overflow-hidden group/size ring-1 ring-white/10 ring-inset backdrop-blur-2xl">
-          <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-rose-500/5 rounded-full blur-[100px] pointer-events-none group-hover/size:bg-rose-500/10 transition-all duration-1000"></div>
-          
-          <div className="flex justify-between items-center mb-8 relative z-10">
-            <div>
-              <h3 className="text-xl font-medium text-slate-100 flex items-center gap-3 tracking-tight font-sans">
-                <div className="p-2 bg-rose-500/20 rounded-lg border border-white/10">
-                  <TrendingDown className="w-5 h-5 text-rose-400" />
-                </div>
-                Size Coefficients
-              </h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 ml-1 font-mono">Fourier Distribution A_size(L)</p>
-            </div>
-            {result && (
-               <div className="px-3 py-1 bg-rose-500/10 rounded-full border border-rose-500/20 text-[9px] font-bold font-mono text-rose-400 uppercase tracking-widest">
-                  Validated Matrix
-               </div>
-            )}
-          </div>
-
-          {!result ? (
-             <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-800 rounded-3xl bg-black/20 gap-3">
-                <Loader2 className="w-8 h-8 animate-pulse text-slate-700" />
-                <span className="font-bold font-mono uppercase tracking-widest text-[10px]">Initialize Sequence Output</span>
-             </div>
-          ) : (
-            <div className="flex-1 w-full min-h-0 min-w-0 relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={result.sizeDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <defs>
-                    <linearGradient id="sizeGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#e11d48" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#e11d48" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis 
-                    dataKey="L_nm" 
-                    label={{ value: 'Fourier Length L [nm]', position: 'bottom', offset: 0, fill: '#475569', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em' }} 
-                    tick={{ fill: '#475569', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
-                    axisLine={{ stroke: '#334155' }}
-                    tickLine={{ stroke: '#334155' }}
-                  />
-                  <YAxis 
-                    domain={[0, 1]} 
-                    tick={{ fill: '#475569', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
-                    axisLine={{ stroke: '#334155' }}
-                    tickLine={{ stroke: '#334155' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
-                    itemStyle={{ color: '#fb7185', fontSize: '11px', fontWeight: 'bold' }}
-                    labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '8px', fontWeight: 'bold' }}
-                    cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="A_size" 
-                    stroke="#f43f5e" 
-                    strokeWidth={3}
-                    fill="url(#sizeGradient)"
-                    name="A_size"
-                    activeDot={{ r: 6, fill: '#fff', stroke: '#f43f5e', strokeWidth: 3 }}
-                    animationDuration={1500}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+        {/* Analysis Navigation Tabs */}
+        <div className="bg-slate-950/80 p-2 rounded-2xl border border-white/5 flex flex-wrap gap-2 ring-1 ring-white/10 ring-inset">
+          {[
+            { id: 'size_pv', label: '1. Size & Column Length P_V(L)', icon: TrendingDown },
+            { id: 'strain_wilkens', label: '2. Microstrain & Wilkens Model', icon: Activity },
+            { id: 'order_plots', label: '3. Harmonic Order Plots ln A vs 1/d²', icon: BarChart3 },
+            { id: 'defect_topography', label: '4. Dislocation Topography', icon: Layers },
+            { id: 'metrics_report', label: '5. Quantitative Report', icon: FileText }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeAnalysisTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveAnalysisTab(tab.id as any)}
+                className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-900/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Chart 2: RMS Strain */}
-        <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 h-[450px] flex flex-col relative overflow-hidden group/strain">
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-cyan-500/5 rounded-full blur-3xl group-hover/strain:bg-cyan-500/10 transition-all duration-1000"></div>
-          
-          <div className="flex justify-between items-center mb-8 relative z-10">
-            <div>
-              <h3 className="text-xl font-medium text-slate-100 flex items-center gap-3 tracking-tight font-sans">
-                <div className="p-2 bg-cyan-500/20 rounded-lg border border-white/10">
-                  <Activity className="w-5 h-5 text-cyan-400" />
+        {/* Tab 1: Size Fourier Decay A_S(L) & Volume Distribution P_V(L) */}
+        {activeAnalysisTab === 'size_pv' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 relative z-10">
+                <div>
+                  <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
+                    <TrendingDown className="w-5 h-5 text-rose-400" />
+                    Size Fourier Coefficients A_S(L) & Volume Distribution P_V(L)
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                    Initial tangent yields ⟨D⟩_A = {result?.metrics?.areaWeightedColumnLengthNm.toFixed(1)} nm · Mode crystallite diameter = {result?.metrics?.crystalliteSizeDistributionModeNm.toFixed(1)} nm
+                  </p>
                 </div>
-                Microstrain Distribution
-              </h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 ml-1 font-mono">RMS Displacement √⟨ε²⟩ vs L</p>
-            </div>
-            {result && (
-               <div className="px-3 py-1 bg-cyan-500/10 rounded-full border border-cyan-500/20 text-[9px] font-bold font-mono text-cyan-400 uppercase tracking-widest">
-                  Dynamic Strain Analysis
-               </div>
-            )}
-          </div>
-
-          {!result ? (
-             <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-800 rounded-3xl bg-black/20 gap-3">
-                <Loader2 className="w-8 h-8 animate-pulse text-slate-700" />
-                <span className="font-bold font-mono uppercase tracking-widest text-[10px]">Awaiting Harmonic Computation</span>
-             </div>
-          ) : (
-            <div className="flex-1 w-full min-h-0 min-w-0 relative z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={result.strainDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <defs>
-                    <linearGradient id="strainGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis 
-                    dataKey="L_nm" 
-                    label={{ value: 'Fourier Length L [nm]', position: 'bottom', offset: 0, fill: '#475569', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em' }} 
-                    tick={{ fill: '#475569', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
-                    axisLine={{ stroke: '#334155' }}
-                    tickLine={{ stroke: '#334155' }}
-                  />
-                  <YAxis 
-                    tick={{ fill: '#475569', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
-                    axisLine={{ stroke: '#334155' }}
-                    tickLine={{ stroke: '#334155' }}
-                    tickFormatter={(val: any) => Number(val).toExponential(1)}
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
-                    itemStyle={{ color: '#22d3ee', fontSize: '11px', fontWeight: 'bold' }}
-                    labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '8px', fontWeight: 'bold' }}
-                    cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }}
-                    formatter={(val: any) => Number(val).toExponential(4)}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="rms_strain" 
-                    stroke="#06b6d4" 
-                    strokeWidth={3} 
-                    fill="url(#strainGradient)"
-                    name="RMS Strain" 
-                    activeDot={{ r: 6, fill: '#fff', stroke: '#06b6d4', strokeWidth: 3 }}
-                    animationDuration={1500}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        
-        {/* Chart 3: Defect Heatmap */}
-        <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2rem] shadow-2xl border border-white/5 flex flex-col relative overflow-hidden group/heatmap ring-1 ring-white/10 ring-inset backdrop-blur-2xl">
-          <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none group-hover/heatmap:bg-purple-500/10 transition-all duration-1000"></div>
-          
-          <div className="flex justify-between items-center mb-8 relative z-10">
-            <div>
-              <h3 className="text-xl font-medium text-slate-100 flex items-center gap-3 tracking-tight font-sans">
-                <div className="p-2 bg-purple-500/20 rounded-lg border border-white/10">
-                  <Layers className="w-5 h-5 text-purple-400" />
-                </div>
-                Defect Topography
-              </h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 ml-1 font-mono">Microstrain Variance Heatmap</p>
-            </div>
-            {result && (
-               <div className="px-3 py-1 bg-purple-500/10 rounded-full border border-purple-500/20 text-[9px] font-bold font-mono text-purple-400 uppercase tracking-widest">
-                  Active Dislocation Mapper
-               </div>
-            )}
-          </div>
-
-          {!result ? (
-              <div className="py-12 flex flex-col items-center justify-center text-slate-500 text-sm border-2 border-dashed border-slate-800 rounded-3xl bg-black/20 gap-3">
-                <Loader2 className="w-8 h-8 animate-pulse text-slate-700" />
-                <span className="font-bold font-mono uppercase tracking-widest text-[10px]">Awaiting Harmonic Computation</span>
               </div>
-          ) : (
-              <div className="w-full relative z-10">
-                {(() => {
-                  const validStrains = result.strainDistribution.filter(d => d.rms_strain > 0 && Number.isFinite(d.rms_strain));
-                  if (validStrains.length === 0) return <div className="text-slate-500 text-center text-sm font-mono py-10">No valid strain data</div>;
-                  
-                  const maxStrain = Math.max(...validStrains.map(d => d.rms_strain));
-                  const minStrain = Math.min(...validStrains.map(d => d.rms_strain));
 
-                  // Ensure safe index mapping
-                  const activeIndex = Math.min(selectedDomainIndex, validStrains.length - 1);
-                  const activeItem = validStrains[activeIndex >= 0 ? activeIndex : 0] || validStrains[0];
-
-                  // Physics Calculation constants
-                  const b_m = burgersVector * 1e-9;
-                  const L_m = activeItem.L_nm * 1e-9;
-                  // Dislocation density estimation
-                  const dislDensity = activeItem.rms_strain > 0 ? (2 * Math.sqrt(3) * activeItem.rms_strain) / (L_m * b_m) : 0;
-                  // Hydrostatic Strain Energy estimation: WH = 3/2 * E * <e2>
-                  const strainEnergy = 1.5 * (youngsModulus * 1e9) * (activeItem.rms_strain ** 2); // J/m3
-                  const energyKJ = strainEnergy / 1000; // kJ/m3
-
-                  // Defect Status categorization
-                  let criticality = { label: "Stable coherent lattice", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", desc: "Minimal grain defects detected inside this domain zone." };
-                  if (activeItem.rms_strain >= 0.001 && activeItem.rms_strain < 0.003) {
-                    criticality = { label: "Defected grain slip", color: "text-amber-400 bg-amber-500/10 border-amber-500/20", desc: "Moderate stacking fault density or dislocation slip bands." };
-                  } else if (activeItem.rms_strain >= 0.003) {
-                    criticality = { label: "Severely distorted zone", color: "text-rose-400 bg-rose-500/10 border-rose-500/20", desc: "Severe localized lattice mismatch or dislocation pile-ups." };
-                  }
-
-                  return (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              {!result ? (
+                <div className="py-20 flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span className="font-mono text-xs">Computing Fourier profile...</span>
+                </div>
+              ) : (
+                <div className="h-[420px] w-full relative z-10">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={result.sizeDistribution} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                      <defs>
+                        <linearGradient id="sizeGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.5} />
+                          <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                      <XAxis 
+                        dataKey="L_nm" 
+                        label={{ value: 'Column Length L [nm]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <YAxis 
+                        yAxisId="left"
+                        domain={[0, 1.05]}
+                        label={{ value: 'Size Coefficient A_S(L)', angle: -90, position: 'insideLeft', fill: '#f43f5e', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <YAxis 
+                        yAxisId="right"
+                        orientation="right"
+                        domain={[0, 1.05]}
+                        label={{ value: 'Normalized P_V(L) = L · d²A_S/dL²', angle: 90, position: 'insideRight', fill: '#38bdf8', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0b1120', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px', backdropFilter: 'blur(10px)' }}
+                        itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                        labelStyle={{ color: '#94a3b8', fontSize: '10px', marginBottom: '6px', fontFamily: 'monospace' }}
+                      />
+                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
                       
-                      {/* Left Side: Heatmap matrix of domains */}
-                      <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
-                        <div className="space-y-4">
-                          <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
-                            Crystallite Domain Field View (Click scatter points to analyze)
-                          </span>
-                          
-                          <div className="bg-black/40 border border-white/5 rounded-2xl p-4 h-[350px] shadow-inner relative">
-                            {(() => {
-                              const chartData = validStrains.map((item, index) => {
-                                const L_m = item.L_nm * 1e-9;
-                                const dislDensityRaw = item.rms_strain > 0 ? (2 * Math.sqrt(3) * item.rms_strain) / (L_m * b_m) : 0;
-                                // limit bubble size range and density display
-                                return {
-                                  ...item,
-                                  densityLog: dislDensityRaw > 0 ? Math.max(12, Math.log10(dislDensityRaw)) : 0,
-                                  normalizedStrain: (item.rms_strain - minStrain) / ((maxStrain - minStrain) || 1),
-                                  index
-                                };
-                              });
+                      <Area
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="A_size"
+                        stroke="#f43f5e"
+                        strokeWidth={3}
+                        fill="url(#sizeGrad)"
+                        name="A_size(L)"
+                        activeDot={{ r: 6, fill: '#fff', stroke: '#f43f5e', strokeWidth: 2 }}
+                      />
 
-                              return (
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <ComposedChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-                                    <defs>
-                                      <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#a855f7" stopOpacity={0.6}/>
-                                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
-                                      </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
-                                    <XAxis 
-                                      dataKey="L_nm" 
-                                      type="number"
-                                      domain={['dataMin - 1', 'dataMax + 1']}
-                                      label={{ value: 'Fourier Domain Size L (nm)', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
-                                      tick={{ fontSize: 10, fill: '#475569', fontFamily: 'monospace' }} 
-                                      axisLine={{ stroke: '#334155' }}
-                                      tickLine={{ stroke: '#334155' }}
-                                    />
-                                    <YAxis 
-                                      dataKey="rms_strain" 
-                                      tickFormatter={(v) => v.toExponential(1)}
-                                      label={{ value: 'RMS Strain ⟨ε²⟩', angle: -90, position: 'insideLeft', offset: 15, fill: '#64748b', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
-                                      tick={{ fontSize: 10, fill: '#475569', fontFamily: 'monospace' }} 
-                                      axisLine={{ stroke: '#334155' }}
-                                      tickLine={{ stroke: '#334155' }}
-                                    />
-                                    <ZAxis dataKey="densityLog" range={[40, 600]} />
-                                    <Tooltip 
-                                      cursor={{ strokeDasharray: '3 3', stroke: '#94a3b8' }}
-                                      content={({ active, payload }) => {
-                                        if (active && payload && payload.length) {
-                                          const data = payload[0].payload;
-                                          return (
-                                            <div className="bg-[#0a0f1d]/95 backdrop-blur-2xl ring-1 ring-white/10 p-4 rounded-2xl shadow-2xl space-y-2 z-50">
-                                              <p className="text-[10px] uppercase font-mono font-black tracking-widest text-[#d946ef] border-b border-white/5 pb-1 mb-2">Defect Domain Node</p>
-                                              <p className="text-white text-xs font-sans font-medium flex justify-between gap-4"><span className="text-slate-500">Node Length L:</span> <span><span className="font-mono text-cyan-400">{data.L_nm.toFixed(1)}</span> nm</span></p>
-                                              <p className="text-white text-xs font-sans font-medium flex justify-between gap-4"><span className="text-slate-500">RMS Strain:</span> <span><span className="font-mono text-cyan-400">{data.rms_strain.toExponential(2)}</span></span></p>
-                                            </div>
-                                          );
-                                        }
-                                        return null;
-                                      }}
-                                    />
-                                    <Area 
-                                      type="monotone" 
-                                      dataKey="rms_strain" 
-                                      fill="url(#purpleGradient)" 
-                                      stroke="none" 
-                                      fillOpacity={1}
-                                      activeDot={false}
-                                    />
-                                    <Scatter 
-                                      name="Domains" 
-                                      dataKey="rms_strain" 
-                                      onClick={(e: any) => {
-                                        if (e && e.index !== undefined) {
-                                          setSelectedDomainIndex(e.index);
-                                        }
-                                      }}
-                                      className="cursor-pointer"
-                                    >
-                                      {
-                                        chartData.map((entry, index) => {
-                                          // Purple to Rose interpolation (hue 280 -> 340)
-                                          const hue = 280 + (entry.normalizedStrain * 60);
-                                          const isSelected = index === activeIndex;
-                                          return (
-                                            <Cell 
-                                              key={`cell-${index}`} 
-                                              fill={`hsl(${hue}, 85%, 55%)`} 
-                                              stroke={isSelected ? '#ffffff' : `hsl(${hue}, 85%, 40%)`} 
-                                              strokeWidth={isSelected ? 3 : 1}
-                                              style={{ filter: isSelected ? 'drop-shadow(0px 0px 8px rgba(255,255,255,0.8))' : 'none', outline: 'none' }}
-                                            />
-                                          );
-                                        })
-                                      }
-                                    </Scatter>
-                                  </ComposedChart>
-                                </ResponsiveContainer>
-                              );
-                            })()}
-                          </div>
-                        </div>
+                      <Area
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="Pv_L"
+                        stroke="#38bdf8"
+                        strokeWidth={2.5}
+                        fill="url(#pvGrad)"
+                        name="P_V(L) Column Distribution"
+                        activeDot={{ r: 5, fill: '#fff', stroke: '#38bdf8', strokeWidth: 2 }}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-                        {/* Interactive Color Legend */}
-                        <div className="space-y-3 pt-4 border-t border-white/5">
-                          <div className="flex justify-between items-center text-[9px] font-bold font-mono text-slate-500 uppercase tracking-widest">
-                            <span>Rel. Strain Variance scale (⟨ε²⟩)</span>
-                            <div className="flex gap-4">
-                              <span>Low ({minStrain.toExponential(1)})</span>
-                              <span>High ({maxStrain.toExponential(1)})</span>
-                            </div>
-                          </div>
-                          
-                          {/* Continuous gradient element with current value pointer */}
-                          <div className="relative">
-                            <div className="w-full h-3 rounded-full bg-gradient-to-r from-[#d946ef] via-[#ec4899] to-[#f43f5e] opacity-90 border border-white/5 shadow-inner"></div>
-                            
-                            {/* Current selection tick marker */}
-                            {activeItem && (
-                              <div 
-                                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-slate-950 shadow-lg flex items-center justify-center -ml-2 transition-all duration-300"
-                                style={{
-                                  left: `${
-                                    maxStrain - minStrain > 0 
-                                      ? Math.max(5, Math.min(95, ((activeItem.rms_strain - minStrain) / (maxStrain - minStrain)) * 100)) 
-                                      : 50
-                                  }%`
-                                }}
-                              >
-                                <div className="w-1.5 h-1.5 rounded-full bg-purple-600"></div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-[9px] font-bold font-mono text-slate-500 text-right uppercase tracking-widest mt-1">
-                            Ordered by Fourier Column Length L
-                          </div>
-                        </div>
-
-                      </div>
-
-                      {/* Right Side: Crystallite Grain Defect Analyzer Sidebar */}
-                      <div className="lg:col-span-5 bg-black/60 border border-white/5 rounded-2xl p-5 flex flex-col justify-between space-y-6 relative overflow-hidden shadow-inner backdrop-blur-md">
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
-                              Grain Defect Analyzer
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-full border text-[8px] font-bold font-mono uppercase tracking-wider ${criticality.color}`}>
-                              {criticality.label}
-                            </span>
-                          </div>
-
-                          <div className="space-y-1">
-                            <p className="text-xl font-sans font-medium text-slate-100 tracking-tight">
-                              Crystallite L = {activeItem.L_nm.toFixed(1)} nm
-                            </p>
-                            <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
-                              {criticality.desc}
-                            </p>
-                          </div>
-
-                          {/* Calculated Physical Estimates metrics */}
-                          <DislocationMetricsVisualizer
-                            dislDensity={dislDensity}
-                            energyKJ={energyKJ}
-                            burgersVectorNm={burgersVector}
-                            youngsModulusGpa={youngsModulus}
-                            columnLengthNm={activeItem.L_nm}
-                            rmsStrain={activeItem.rms_strain}
-                          />
-
-                          {/* Interactive adjustable tuning criteria sliders */}
-                          <div className="space-y-3 pt-3 border-t border-white/5">
-                            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
-                              Physical Constants Tuning
-                            </span>
-
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                                <span>Burgers Vector (b):</span>
-                                <span className="text-slate-100 font-bold">{burgersVector.toFixed(2)} nm</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="0.15" 
-                                max="0.40" 
-                                step="0.01"
-                                value={String(burgersVector) === 'NaN' ? '' : burgersVector}
-                                onChange={(e) => setBurgersVector(parseFloat(e.target.value))}
-                                className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 animate-none pointer-events-auto"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                                <span>Young's Modulus (E):</span>
-                                <span className="text-slate-100 font-bold">{youngsModulus} GPa</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="40" 
-                                max="250" 
-                                step="5"
-                                value={String(youngsModulus) === 'NaN' ? '' : youngsModulus}
-                                onChange={(e) => setYoungsModulus(parseInt(e.target.value))}
-                                className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 animate-none pointer-events-auto"
-                              />
-                            </div>
-                          </div>
-
-                        </div>
-
-                        {/* Quick Physical Description Footer */}
-                        <div className="flex items-start gap-2 text-[9px] font-sans text-slate-500 leading-normal pt-2 border-t border-white/5">
-                          <Info className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                          <span>
-                            Densities computed using standard crystallite shear models ρ = 2√3⟨ε²⟩¹/²/ (L · b). Fits gold, copper, silicon and oxide crystallites.
-                          </span>
-                        </div>
-
-                      </div>
-
-                    </div>
-                  )
-                })()}
+        {/* Tab 2: RMS Microstrain & Wilkens Model */}
+        {activeAnalysisTab === 'strain_wilkens' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 relative z-10">
+                <div>
+                  <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
+                    <Activity className="w-5 h-5 text-cyan-400" />
+                    RMS Microstrain ⟨ε²⟩_L¹/² vs Fourier Column Length L
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                    Wilkens Dislocation Density ρ = {result?.metrics?.dislocationDensity10_14.toFixed(2)} × 10¹⁴ m⁻² · Cutoff radius R_e = {result?.metrics?.wilkensCutoffRadiusNm.toFixed(1)} nm
+                  </p>
+                </div>
               </div>
-          )}
-        </div>
 
-{/* Data Table */}
-        <div className="bg-slate-950/80 backdrop-blur-2xl rounded-[2.5rem] ring-1 ring-white/10 ring-inset shadow-[0_0_30px_rgba(16,185,129,0.05)] border border-emerald-500/20 overflow-hidden relative group/table hover:border-emerald-500/40 transition-all">
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl group-hover/table:bg-emerald-500/10 transition-all duration-1000"></div>
-          
-          <div className="p-6 border-b border-white/5 bg-black/40 flex justify-between items-center relative z-10">
-             <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-emerald-500 blur-md opacity-20" />
-                  <div className="p-2.5 bg-black/60 rounded-xl border border-emerald-500/30 relative">
-                    <Network className="w-5 h-5 text-emerald-400" />
+              {!result ? (
+                <div className="py-20 flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span className="font-mono text-xs">Computing strain field...</span>
+                </div>
+              ) : (
+                <div className="h-[420px] w-full relative z-10">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={result.strainDistribution} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                      <defs>
+                        <linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.5} />
+                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                      <XAxis 
+                        dataKey="L_nm" 
+                        label={{ value: 'Column Length L [nm]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <YAxis 
+                        tickFormatter={(val) => Number(val).toExponential(1)}
+                        label={{ value: 'RMS Strain ⟨ε²⟩¹/²', angle: -90, position: 'insideLeft', fill: '#06b6d4', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0b1120', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px' }}
+                        formatter={(val: any) => Number(val).toExponential(4)}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="rms_strain" 
+                        stroke="#06b6d4" 
+                        strokeWidth={3} 
+                        fill="url(#strainGrad)" 
+                        name="RMS Strain ⟨ε²⟩¹/²" 
+                        activeDot={{ r: 6, fill: '#fff', stroke: '#06b6d4', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Harmonic Order Regressions ln A(L) vs 1/d² */}
+        {activeAnalysisTab === 'order_plots' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 relative z-10">
+                <div>
+                  <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
+                    <BarChart3 className="w-5 h-5 text-purple-400" />
+                    Multi-Reflection Order Regression: ln A(L) vs 1/d²
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                    Isolate Size (intercept at 1/d² → 0) and Microstrain (slope) for specific column length L
+                  </p>
+                </div>
+
+                {result?.orderPlots && result.orderPlots.length > 0 && (
+                  <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10">
+                    <span className="text-[10px] font-mono text-slate-400">Select L:</span>
+                    <select
+                      value={selectedOrderPlotL}
+                      onChange={(e) => setSelectedOrderPlotL(parseFloat(e.target.value))}
+                      className="bg-transparent text-rose-400 text-xs font-mono font-bold outline-none cursor-pointer"
+                    >
+                      {result.orderPlots.map((op) => (
+                        <option key={op.L_nm} value={op.L_nm} className="bg-[#0b1120] text-white">
+                          L = {op.L_nm.toFixed(1)} nm
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {activeOrderPlot ? (
+                <div className="space-y-4 relative z-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-black/40 rounded-2xl border border-white/5 font-mono text-xs">
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">Size Intercept A_S(L):</span>
+                      <span className="text-rose-400 font-bold text-sm">{activeOrderPlot.A_size.toFixed(4)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">RMS Microstrain:</span>
+                      <span className="text-cyan-400 font-bold text-sm">{activeOrderPlot.rms_strain.toExponential(3)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">Regression R²:</span>
+                      <span className="text-emerald-400 font-bold text-sm">{activeOrderPlot.r2.toFixed(4)}</span>
+                    </div>
+                  </div>
+
+                  <div className="h-[360px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={activeOrderPlot.points} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        <XAxis 
+                          dataKey="s2" 
+                          type="number"
+                          domain={['dataMin - 0.1', 'dataMax + 0.1']}
+                          label={{ value: '1 / d² [Å⁻²]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                          tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        />
+                        <YAxis 
+                          dataKey="lnA" 
+                          label={{ value: 'ln A(L, s)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                          tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#0b1120', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '10px' }}
+                        />
+                        <Scatter dataKey="lnA" fill="#f43f5e" name="Observed Harmonic Point" />
+                        <Line
+                          type="linear"
+                          dataKey="lnA"
+                          stroke="#a855f7"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Order Regression Line"
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-medium text-slate-100 tracking-tight font-sans">Indices</h3>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono mt-1">Microstructural Tabulation</p>
+              ) : (
+                <div className="py-20 text-center text-slate-500 font-mono text-xs">
+                  Run calculation to view order regression plots.
                 </div>
-             </div>
-             
-             <div className="flex gap-3">
-               <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 rounded-lg border border-white/5 shadow-inner">
-                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest">Sync Active</span>
-               </div>
-               {result && (
-                 <button
-                   onClick={handleDownloadCSV}
-                   className="text-[9px] font-bold font-mono uppercase tracking-widest text-slate-400 hover:text-emerald-400 bg-white/5 hover:bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-2"
-                 >
-                   <Download className="w-3 h-3" /> Export CSV
-                 </button>
-               )}
-             </div>
+              )}
+            </div>
           </div>
-          <div className="overflow-x-auto relative z-10">
-             <table className="w-full text-sm text-left">
-                <thead className="text-[10px] text-slate-400 uppercase tracking-[0.2em] bg-black/40 border-b border-white/5 font-mono">
-                   <tr>
-                      <th className="px-8 py-5 font-bold tracking-widest">L Parameter [nm]</th>
-                      <th className="px-8 py-5 font-bold tracking-widest">A_size (Fourier)</th>
-                      <th className="px-8 py-5 font-bold tracking-widest">RMS Strain Level</th>
-                   </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 font-mono text-xs">
-                   {result && result.sizeDistribution.map((row, i) => (
-                      <tr key={`${row.L_nm}-${i}`} className="group hover:bg-black/40 transition-all duration-300">
-                         <td className="px-8 py-4 font-bold text-slate-300 border-l border-transparent group-hover:border-emerald-500/50 group-hover:pl-10 transition-all">
-                            {row.L_nm.toFixed(1)}
-                         </td>
-                         <td className="px-8 py-4 font-bold text-rose-400">
-                            <div>{row.A_size.toFixed(5)}</div>
-                            <div className="text-[9px] font-mono text-rose-500/60 font-normal tracking-tight mt-0.5">Real: {row.A_size}</div>
-                         </td>
-                         <td className="px-8 py-4 font-bold text-cyan-400">
-                            <div>
-                               <span className="text-white">{(result.strainDistribution[i]?.rms_strain * 10000).toFixed(2)}</span> <span className="text-[10px] text-cyan-500/50 uppercase tracking-widest font-sans">× 10⁻⁴</span>
-                            </div>
-                            <div className="text-[9px] font-mono text-cyan-500/60 font-normal tracking-tight mt-0.5">Real: {result.strainDistribution[i]?.rms_strain.toExponential(10)}</div>
-                         </td>
-                      </tr>
-                   ))}
-                </tbody>
-             </table>
-             {!result && (
-                <div className="py-20 flex flex-col items-center justify-center text-slate-600 gap-4">
-                   <Binary className="w-12 h-12 text-slate-800 animate-pulse" />
-                   <p className="text-[10px] font-bold font-mono uppercase tracking-widest">Awaiting Spectral Input</p>
+        )}
+
+        {/* Tab 4: Defect Topography & Microstrain Field */}
+        {activeAnalysisTab === 'defect_topography' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                <div>
+                  <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
+                    <Layers className="w-5 h-5 text-purple-400" />
+                    Crystallite Grain Defect & Strain Topography
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                    Localized microstructural lattice strain energy & dislocation arrangement
+                  </p>
                 </div>
-             )}
+              </div>
+
+              {result && (
+                <div className="w-full relative z-10">
+                  {(() => {
+                    const validStrains = result.strainDistribution.filter(d => d.rms_strain > 0 && Number.isFinite(d.rms_strain));
+                    if (validStrains.length === 0) return <div className="text-slate-500 text-center text-sm font-mono py-10">No valid strain data</div>;
+
+                    const activeIndex = Math.min(selectedDomainIndex, validStrains.length - 1);
+                    const activeItem = validStrains[activeIndex >= 0 ? activeIndex : 0] || validStrains[0];
+                    const b_m = burgersVector * 1e-9;
+                    const L_m = activeItem.L_nm * 1e-9;
+                    const dislDensity = activeItem.rms_strain > 0 ? (2 * Math.sqrt(3) * activeItem.rms_strain) / (L_m * b_m) : 0;
+                    const strainEnergy = 1.5 * (youngsModulus * 1e9) * (activeItem.rms_strain ** 2);
+                    const energyKJ = strainEnergy / 1000;
+
+                    return (
+                      <div className="space-y-6">
+                        <DislocationMetricsVisualizer
+                          dislDensity={dislDensity}
+                          energyKJ={energyKJ}
+                          burgersVectorNm={burgersVector}
+                          youngsModulusGpa={youngsModulus}
+                          columnLengthNm={activeItem.L_nm}
+                          rmsStrain={activeItem.rms_strain}
+                        />
+
+                        {/* Interactive Sliders for Physical Constants */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 bg-black/40 rounded-2xl border border-white/5">
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                              <span>Burgers Vector (b):</span>
+                              <span className="text-rose-400 font-bold">{burgersVector.toFixed(3)} nm</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0.15"
+                              max="0.45"
+                              step="0.005"
+                              value={burgersVector}
+                              onChange={(e) => setBurgersVector(parseFloat(e.target.value))}
+                              className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                              <span>Young's Modulus (E):</span>
+                              <span className="text-rose-400 font-bold">{youngsModulus} GPa</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="40"
+                              max="450"
+                              step="5"
+                              value={youngsModulus}
+                              onChange={(e) => setYoungsModulus(parseInt(e.target.value))}
+                              className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Quantitative Report */}
+        {activeAnalysisTab === 'metrics_report' && result?.metrics && (
+          <WarrenAverbachMetricsSummary
+            metrics={result.metrics}
+            result={result}
+            materialName={selectedMaterial}
+            d1={d1}
+            d2={d2}
+            d3={showOrder3 ? d3 : undefined}
+            d4={showOrder4 ? d4 : undefined}
+            burgersVector={burgersVector}
+            youngsModulus={youngsModulus}
+            onDownloadCSV={handleDownloadCSV}
+          />
+        )}
+
+        {/* Tabular Data Indices Card */}
+        <div className="bg-slate-950/80 backdrop-blur-2xl rounded-[2.5rem] ring-1 ring-white/10 ring-inset border border-emerald-500/20 overflow-hidden relative shadow-2xl">
+          <div className="p-6 border-b border-white/5 bg-black/40 flex justify-between items-center relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-black/60 rounded-xl border border-emerald-500/30">
+                <Network className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-medium text-slate-100 tracking-tight font-sans">
+                  Harmonic Coefficients & Microstrain Indices
+                </h3>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono mt-0.5">
+                  Tabulated Fourier Spectrum
+                </p>
+              </div>
+            </div>
+
+            {result && (
+              <button
+                onClick={handleDownloadCSV}
+                className="text-[9px] font-bold font-mono uppercase tracking-widest text-slate-300 hover:text-emerald-400 bg-white/5 hover:bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-2"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export CSV</span>
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-x-auto relative z-10">
+            <table className="w-full text-sm text-left">
+              <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-black/40 border-b border-white/5 font-mono">
+                <tr>
+                  <th className="px-6 py-4 font-bold">L [nm]</th>
+                  <th className="px-6 py-4 font-bold">A_size (Fourier)</th>
+                  <th className="px-6 py-4 font-bold">P_V(L) Dist.</th>
+                  <th className="px-6 py-4 font-bold">RMS Strain ⟨ε²⟩¹/²</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 font-mono text-xs">
+                {result && result.sizeDistribution.map((row, i) => (
+                  <tr key={`${row.L_nm}-${i}`} className="hover:bg-white/5 transition-colors">
+                    <td className="px-6 py-3.5 font-bold text-slate-300">
+                      {row.L_nm.toFixed(1)}
+                    </td>
+                    <td className="px-6 py-3.5 font-bold text-rose-400">
+                      {row.A_size.toFixed(5)}
+                    </td>
+                    <td className="px-6 py-3.5 text-cyan-400 font-medium">
+                      {(row.Pv_L || 0).toFixed(4)}
+                    </td>
+                    <td className="px-6 py-3.5 font-bold text-emerald-400">
+                      {result.strainDistribution[i]?.rms_strain ? result.strainDistribution[i].rms_strain.toExponential(4) : '0.0000e+0'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
       </div>
+
+      {/* Peak Profile to Fourier Converter Modal */}
+      <WarrenAverbachPeakConverterModal
+        isOpen={isConverterOpen}
+        onClose={() => setIsConverterOpen(false)}
+        wavelength={calcLambda}
+        onApplyData={(dataStr, newD1, newD2) => {
+          setInputData(dataStr);
+          setD1(newD1);
+          setD2(newD2);
+          setSelectedMaterial('Custom (Transformed)');
+        }}
+      />
+
     </div>
   );
 };

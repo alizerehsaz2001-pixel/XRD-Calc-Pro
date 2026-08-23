@@ -1,5 +1,5 @@
 import { getActiveMaterials } from './materialsHelper';
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, WAColumnDistributionPoint, WAOrderPlotLine, WAMetrics, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
 
@@ -1576,13 +1576,64 @@ export const calculateIBAdvanced = (
 
 
 export const parseWAInput = (input: string): WAInputPoint[] => {
-  const lines = input.split('\n').filter(l => l.trim() !== '');
+  const lines = input.split('\n').filter(l => l.trim() !== '' && !l.trim().startsWith('#'));
   const points: WAInputPoint[] = [];
   for (const line of lines) {
     const parts = line.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
-    if (parts.length >= 3) points.push({ L_nm: parts[0], A1: parts[1], A2: parts[2] });
+    if (parts.length >= 3) {
+      const pt: WAInputPoint = { 
+        L_nm: parts[0], 
+        A1: parts[1], 
+        A2: parts[2] 
+      };
+      if (parts.length >= 4 && !isNaN(parts[3])) pt.A3 = parts[3];
+      if (parts.length >= 5 && !isNaN(parts[4])) pt.A4 = parts[4];
+      points.push(pt);
+    }
   }
   return points;
+};
+
+/**
+ * Computes Fourier cosine coefficients from a raw peak profile I(2theta)
+ */
+export const computeFourierCoefficientsFromPeakProfile = (
+  twoTheta: number[], 
+  intensity: number[], 
+  peakCenter2Theta: number, 
+  wavelength: number = 1.5406,
+  maxL_nm: number = 50,
+  stepL_nm: number = 2
+): { L_nm: number; A: number }[] => {
+  if (twoTheta.length < 5 || intensity.length < 5) return [];
+  
+  // Convert 2theta range to s = 2*sin(theta)/lambda
+  const theta0Rad = (peakCenter2Theta / 2) * (Math.PI / 180);
+  const cosTheta0 = Math.cos(theta0Rad);
+  
+  // Background subtraction from edges
+  const bg = (intensity[0] + intensity[intensity.length - 1]) / 2;
+  const netI = intensity.map(v => Math.max(0, v - bg));
+  const totalArea = netI.reduce((sum, v) => sum + v, 0);
+  if (totalArea <= 0) return [];
+
+  const results: { L_nm: number; A: number }[] = [];
+  const delta2ThetaSpan = Math.max(0.5, twoTheta[twoTheta.length - 1] - twoTheta[0]);
+  const spanRad = delta2ThetaSpan * (Math.PI / 180);
+
+  for (let L = 1; L <= maxL_nm; L += stepL_nm) {
+    let cosSum = 0;
+    for (let i = 0; i < twoTheta.length; i++) {
+      const d2ThetaRad = (twoTheta[i] - peakCenter2Theta) * (Math.PI / 180);
+      // Fourier variable: (2*pi / lambda) * d(2theta)/2 * cos(theta0) * L
+      const phase = (2 * Math.PI / wavelength) * (d2ThetaRad / 2) * cosTheta0 * L;
+      cosSum += netI[i] * Math.cos(phase);
+    }
+    const An = cosSum / totalArea;
+    results.push({ L_nm: L, A: Math.max(0.001, Math.min(1.0, An)) });
+  }
+
+  return results;
 };
 
 export const calculateWarrenAverbach = (
@@ -1595,102 +1646,390 @@ export const calculateWarrenAverbach = (
   backgroundModel: string = 'Linear',
   instrumentalFactor: number = 0.005,
   backgroundOffset: number = 0.02,
-  cutoffRadiusValue: number = 50.0
+  cutoffRadiusValue: number = 50.0,
+  hookEffectCorrection: 'none' | 'linear_tangent' | 'polynomial' = 'linear_tangent',
+  d3?: number,
+  d4?: number,
+  burgersVectorNm: number = 0.25,
+  youngsModulusGPa: number = 110
 ): WAResult => {
-  const sizeDist = []; 
-  const strainDist = [];
-  const x1 = 1 / (d1 * d1); 
-  const x2 = 1 / (d2 * d2); 
-  const dx = x2 - x1;
+  if (!points || points.length === 0) {
+    return { sizeDistribution: [], strainDistribution: [] };
+  }
+
+  // Multi-reflection d-spacings
+  const dList: number[] = [d1, d2];
+  if (d3 && d3 > 0) dList.push(d3);
+  if (d4 && d4 > 0) dList.push(d4);
+
+  // Filter valid d-spacings
+  const validD = dList.filter(d => d > 0);
+  if (validD.length < 2) return { sizeDistribution: [], strainDistribution: [] };
+
+  const s2List = validD.map(d => 1 / (d * d));
   
-  if (Math.abs(dx) < 1e-9) return { sizeDistribution: [], strainDistribution: [] };
-  
-  // Ensure points are sorted by L_nm so monotonic constraint works forward
-  const sortedPoints = [...points].sort((a, b) => a.L_nm - b.L_nm);
-  
+  // Ensure points are sorted by L_nm
+  const sortedPoints = [...points].filter(p => p.L_nm > 0).sort((a, b) => a.L_nm - b.L_nm);
+  if (sortedPoints.length === 0) return { sizeDistribution: [], strainDistribution: [] };
+
+  const rawSizeDist: { L_nm: number; A_size: number }[] = [];
+  const strainDist: { L_nm: number; rms_strain: number; ms_strain?: number; wilkensLnTerm?: number }[] = [];
+  const orderPlots: WAOrderPlotLine[] = [];
+
   for (const p of sortedPoints) {
-    if (p.A1 <= 0 || p.A2 <= 0) continue;
-    
-    // 1. Background Correction / Base Level offset adjustment
-    let rawA1 = p.A1;
-    let rawA2 = p.A2;
-    
-    if (backgroundModel === 'Linear') {
-      rawA1 = (rawA1 - backgroundOffset) / (1 - backgroundOffset);
-      rawA2 = (rawA2 - backgroundOffset) / (1 - backgroundOffset);
-    } else if (backgroundModel === 'Spline') {
-      const decayOffset = backgroundOffset * (1 - Math.exp(-p.L_nm / 12));
-      rawA1 = (rawA1 - decayOffset) / (1 - decayOffset);
-      rawA2 = (rawA2 - decayOffset) / (1 - decayOffset);
-    }
-    
-    rawA1 = Math.max(0.001, Math.min(1.0, rawA1));
-    rawA2 = Math.max(0.001, Math.min(1.0, rawA2));
+    // Gather all available harmonics for this L
+    const aVals: number[] = [p.A1, p.A2];
+    if (p.A3 !== undefined && p.A3 > 0 && validD.length >= 3) aVals.push(p.A3);
+    if (p.A4 !== undefined && p.A4 > 0 && validD.length >= 4) aVals.push(p.A4);
 
-    // 2. Instrumental Broadening Deconvolution
-    if (instrumentalCorrection === 'Stokes') {
-      // Divide by instrumental reference coefficients decay (Voigt model standard)
-      const alpha1 = instrumentalFactor;
-      const alpha2 = instrumentalFactor * Math.max(1.2, d1 / d2);
-      const A_inst1 = Math.exp(-alpha1 * p.L_nm - 0.0001 * p.L_nm * p.L_nm);
-      const A_inst2 = Math.exp(-alpha2 * p.L_nm - 0.0002 * p.L_nm * p.L_nm);
-      
-      rawA1 = rawA1 / Math.max(0.05, A_inst1);
-      rawA2 = rawA2 / Math.max(0.05, A_inst2);
-    } else if (instrumentalCorrection === 'Voigt') {
-      // Linear component subtraction 
-      const alpha1 = instrumentalFactor * 0.7;
-      const alpha2 = instrumentalFactor * 0.7 * Math.max(1.2, d1 / d2);
-      const A_inst1 = Math.exp(-alpha1 * p.L_nm);
-      const A_inst2 = Math.exp(-alpha2 * p.L_nm);
-      
-      rawA1 = rawA1 / Math.max(0.05, A_inst1);
-      rawA2 = rawA2 / Math.max(0.05, A_inst2);
-    }
-    
-    rawA1 = Math.max(0.002, Math.min(1.0, rawA1));
-    rawA2 = Math.max(0.002, Math.min(1.0, rawA2));
+    const mCount = Math.min(aVals.length, validD.length);
+    if (mCount < 2) continue;
 
-    // 3. Warren-Averbach size estimation
-    const slope = (Math.log(rawA2) - Math.log(rawA1)) / dx;
-    const intercept = Math.log(rawA1) - slope * x1;
+    // Apply Background and Instrumental Corrections to each reflection order
+    const correctedAVals: number[] = [];
+    for (let k = 0; k < mCount; k++) {
+      let rawA = aVals[k];
+      if (rawA <= 0) rawA = 0.001;
+
+      // 1. Background Correction
+      if (backgroundModel === 'Linear') {
+        rawA = (rawA - backgroundOffset) / (1 - backgroundOffset);
+      } else if (backgroundModel === 'Spline') {
+        const decayOffset = backgroundOffset * (1 - Math.exp(-p.L_nm / 12));
+        rawA = (rawA - decayOffset) / (1 - decayOffset);
+      }
+      rawA = Math.max(0.001, Math.min(1.0, rawA));
+
+      // 2. Instrumental Broadening Deconvolution
+      const dOrderRatio = validD[0] / validD[k];
+      if (instrumentalCorrection === 'Stokes') {
+        const alpha = instrumentalFactor * Math.max(1.0, dOrderRatio);
+        const A_inst = Math.exp(-alpha * p.L_nm - 0.0001 * p.L_nm * p.L_nm);
+        rawA = rawA / Math.max(0.05, A_inst);
+      } else if (instrumentalCorrection === 'Voigt') {
+        const alpha = instrumentalFactor * 0.7 * Math.max(1.0, dOrderRatio);
+        const A_inst = Math.exp(-alpha * p.L_nm);
+        rawA = rawA / Math.max(0.05, A_inst);
+      }
+      rawA = Math.max(0.001, Math.min(1.0, rawA));
+      correctedAVals.push(rawA);
+    }
+
+    // Linear regression of ln(A(L, s)) vs s^2 = 1/d^2
+    // ln A(L, s) = ln A_S(L) - 2*pi^2 * L^2 * <e^2> * s^2
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    const regPoints: { s2: number; lnA: number; orderIndex: number; label: string }[] = [];
+
+    for (let k = 0; k < mCount; k++) {
+      const x = s2List[k]; // 1 / d_k^2
+      const y = Math.log(correctedAVals[k]);
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+      regPoints.push({ s2: x, lnA: y, orderIndex: k + 1, label: `Order ${k + 1} (d=${validD[k].toFixed(3)}Å)` });
+    }
+
+    const nReg = mCount;
+    const denom = nReg * sumX2 - sumX * sumX;
+    let slope = 0;
+    let intercept = sumY / nReg;
+    let r2 = 1.0;
+
+    if (Math.abs(denom) > 1e-12) {
+      slope = (nReg * sumXY - sumX * sumY) / denom;
+      intercept = (sumY - slope * sumX) / nReg;
+
+      // Compute R^2
+      const meanY = sumY / nReg;
+      let ssTot = 0, ssRes = 0;
+      for (let k = 0; k < mCount; k++) {
+        const yPred = intercept + slope * s2List[k];
+        const yObs = Math.log(correctedAVals[k]);
+        ssTot += Math.pow(yObs - meanY, 2);
+        ssRes += Math.pow(yObs - yPred, 2);
+      }
+      r2 = ssTot > 1e-12 ? Math.max(0, 1 - ssRes / ssTot) : 1.0;
+    }
+
     let A_size = Math.exp(intercept) * shapeFactor;
-    
-    // Hook-effect early truncation / Enforce strict monotonic decrease
-    if (sizeDist.length > 0 && A_size > sizeDist[sizeDist.length - 1].A_size) {
-        A_size = sizeDist[sizeDist.length - 1].A_size;
-    }
+    A_size = Math.max(0.001, Math.min(1.05, A_size));
 
-    sizeDist.push({ L_nm: p.L_nm, A_size: Math.max(0.001, Math.min(1.0, A_size)) });
-    
-    // 4. Microstrain Distribution calculations
+    // Calculate RMS Microstrain <e^2>_L
+    let msStrain = 0;
+    let rms_strain = 0;
     if (p.L_nm > 0) {
-      let msStrain = slope / (-2 * Math.PI * Math.PI * p.L_nm * p.L_nm);
-      let rms_strain = 0;
-      
+      msStrain = Math.max(0, -slope / (2 * Math.PI * Math.PI * p.L_nm * p.L_nm));
       if (msStrain > 0) {
         if (strainModel === 'Lorentzian') {
-          // Adjust for Cauchy-Lorentz shape factor
           rms_strain = Math.sqrt(msStrain) * 0.785;
         } else if (strainModel === 'Dislocation (Wilkens)') {
-          // Logarithmic correlation function modeling screen radius effect
-          const reTerm = Math.log(Math.max(1.1, cutoffRadiusValue / p.L_nm));
+          const reTerm = Math.log(Math.max(1.05, cutoffRadiusValue / p.L_nm));
           rms_strain = Math.sqrt(msStrain) * (Math.sqrt(reTerm) / 2.0);
         } else {
-          // Standard Gaussian (default)
           rms_strain = Math.sqrt(msStrain);
         }
       }
-      
-      strainDist.push({ 
-        L_nm: p.L_nm, 
-        rms_strain: Number.isFinite(rms_strain) ? rms_strain : 0 
+    }
+
+    rawSizeDist.push({ L_nm: p.L_nm, A_size });
+    strainDist.push({ 
+      L_nm: p.L_nm, 
+      rms_strain: Number.isFinite(rms_strain) ? rms_strain : 0,
+      ms_strain: Number.isFinite(msStrain) ? msStrain : 0,
+      wilkensLnTerm: p.L_nm > 0 ? Math.log(cutoffRadiusValue / p.L_nm) : 0
+    });
+
+    orderPlots.push({
+      L_nm: p.L_nm,
+      points: regPoints,
+      slope,
+      intercept,
+      r2,
+      rms_strain: Number.isFinite(rms_strain) ? rms_strain : 0,
+      A_size
+    });
+  }
+
+  // --- Hook Effect Detection and Correction ---
+  let hookEffectDetected = false;
+  let hookExtrapolatedIntercept = 1.0;
+  let correctedSizeDist: { L_nm: number; A_size: number; A_size_raw: number }[] = rawSizeDist.map(d => ({ ...d, A_size_raw: d.A_size }));
+
+  if (rawSizeDist.length >= 3) {
+    // Check initial curvature: if A_size is concave upward or has small slope near L=0 compared to intermediate L
+    // Find maximum negative slope in early region (first 4 points or L <= 10 nm)
+    let maxNegSlope = 0;
+    let maxSlopeIndex = 0;
+
+    for (let i = 0; i < Math.min(rawSizeDist.length - 1, 5); i++) {
+      const dL = rawSizeDist[i + 1].L_nm - rawSizeDist[i].L_nm;
+      if (dL > 0) {
+        const dAdL = (rawSizeDist[i + 1].A_size - rawSizeDist[i].A_size) / dL;
+        if (Math.abs(dAdL) > Math.abs(maxNegSlope)) {
+          maxNegSlope = dAdL;
+          maxSlopeIndex = i;
+        }
+      }
+    }
+
+    // Extrapolate tangent from max slope point back to L = 0
+    const refPt = rawSizeDist[maxSlopeIndex];
+    hookExtrapolatedIntercept = refPt.A_size - maxNegSlope * refPt.L_nm;
+
+    if (hookExtrapolatedIntercept > 1.03 || (rawSizeDist[0].A_size < rawSizeDist[1].A_size)) {
+      hookEffectDetected = true;
+    }
+
+    if (hookEffectCorrection === 'linear_tangent' && hookEffectDetected && hookExtrapolatedIntercept > 0) {
+      // Normalize by extrapolated intercept and straighten early hooked portion
+      correctedSizeDist = rawSizeDist.map((pt, idx) => {
+        let normA = pt.A_size / hookExtrapolatedIntercept;
+        // In the hooked initial segment before max slope point, use linear tangent from 1.0
+        if (idx <= maxSlopeIndex) {
+          const tangentVal = 1.0 + (maxNegSlope / hookExtrapolatedIntercept) * pt.L_nm;
+          normA = Math.min(1.0, Math.max(normA, tangentVal));
+        }
+        return {
+          L_nm: pt.L_nm,
+          A_size: Math.max(0.001, Math.min(1.0, normA)),
+          A_size_raw: pt.A_size
+        };
+      });
+    } else if (hookEffectCorrection === 'polynomial') {
+      // Monotonic smoothing
+      let prevVal = 1.0;
+      correctedSizeDist = rawSizeDist.map(pt => {
+        let val = Math.min(prevVal, pt.A_size);
+        prevVal = val;
+        return {
+          L_nm: pt.L_nm,
+          A_size: Math.max(0.001, Math.min(1.0, val)),
+          A_size_raw: pt.A_size
+        };
       });
     } else {
-      strainDist.push({ L_nm: 0, rms_strain: 0 });
+      // Ensure monotonic decay for unphysical jumps
+      let prev = 1.0;
+      correctedSizeDist = rawSizeDist.map(pt => {
+        const clamped = Math.min(prev, pt.A_size);
+        prev = clamped;
+        return {
+          L_nm: pt.L_nm,
+          A_size: Math.max(0.001, Math.min(1.0, clamped)),
+          A_size_raw: pt.A_size
+        };
+      });
     }
   }
-  return { sizeDistribution: sizeDist, strainDistribution: strainDist };
+
+  // --- Column Length Distribution P_V(L) = L * d²A_S / dL² ---
+  const finalSizeDist: WAColumnDistributionPoint[] = [];
+  const nPts = correctedSizeDist.length;
+
+  for (let i = 0; i < nPts; i++) {
+    const L = correctedSizeDist[i].L_nm;
+    const A = correctedSizeDist[i].A_size;
+    let d2A = 0;
+    let d1A = 0;
+
+    if (i === 0 && nPts >= 2) {
+      const dL = correctedSizeDist[1].L_nm - L;
+      d1A = (correctedSizeDist[1].A_size - A) / (dL || 1);
+      if (nPts >= 3) {
+        const dL2 = correctedSizeDist[2].L_nm - correctedSizeDist[1].L_nm;
+        const d1A_next = (correctedSizeDist[2].A_size - correctedSizeDist[1].A_size) / (dL2 || 1);
+        d2A = (d1A_next - d1A) / ((dL + dL2) / 2);
+      }
+    } else if (i === nPts - 1 && nPts >= 2) {
+      const dL = L - correctedSizeDist[i - 1].L_nm;
+      d1A = (A - correctedSizeDist[i - 1].A_size) / (dL || 1);
+      d2A = 0;
+    } else if (i > 0 && i < nPts - 1) {
+      const h1 = L - correctedSizeDist[i - 1].L_nm;
+      const h2 = correctedSizeDist[i + 1].L_nm - L;
+      const f0 = correctedSizeDist[i - 1].A_size;
+      const f1 = A;
+      const f2 = correctedSizeDist[i + 1].A_size;
+
+      d1A = (f2 - f0) / (h1 + h2);
+      d2A = 2 * ((f2 - f1) / h2 - (f1 - f0) / h1) / (h1 + h2);
+    }
+
+    const Pv_L = Math.max(0, L * Math.max(0, d2A));
+    finalSizeDist.push({
+      L_nm: L,
+      A_size: A,
+      Pv_L,
+      dAs_dL: d1A,
+      A_size_raw: correctedSizeDist[i].A_size_raw
+    });
+  }
+
+  // Normalize P_V(L) so peak or area is meaningful
+  const maxPv = Math.max(...finalSizeDist.map(d => d.Pv_L), 0.0001);
+  if (maxPv > 0) {
+    finalSizeDist.forEach(d => {
+      d.Pv_L = (d.Pv_L / maxPv);
+    });
+  }
+
+  // --- Calculate Crystallographic Domain Metrics ---
+  // Area-weighted average column length: <D>_A = -1 / (dA_S/dL)|_{L->0}
+  let initialSlope = 0;
+  if (finalSizeDist.length >= 2) {
+    const dL0 = finalSizeDist[0].L_nm;
+    // Derivative at origin from (0, 1.0) to (L0, A0)
+    initialSlope = (finalSizeDist[0].A_size - 1.0) / dL0;
+  }
+  const areaWeightedColumnLengthNm = Math.abs(initialSlope) > 1e-5 ? Math.min(500, Math.max(1, 1 / Math.abs(initialSlope))) : 25;
+
+  // Volume-weighted column length: <D>_V = 2 * ∫ A_S(L) dL
+  let integralAs = 0;
+  let prevL = 0;
+  let prevAs = 1.0;
+  for (const pt of finalSizeDist) {
+    const dL = pt.L_nm - prevL;
+    integralAs += 0.5 * (prevAs + pt.A_size) * dL;
+    prevL = pt.L_nm;
+    prevAs = pt.A_size;
+  }
+  const volumeWeightedColumnLengthNm = Math.min(1000, Math.max(1, 2 * integralAs));
+
+  // Mode and FWHM of Size Distribution P_V(L)
+  let peakPv = 0;
+  let crystalliteSizeDistributionModeNm = areaWeightedColumnLengthNm;
+  for (const pt of finalSizeDist) {
+    if (pt.Pv_L > peakPv) {
+      peakPv = pt.Pv_L;
+      crystalliteSizeDistributionModeNm = pt.L_nm;
+    }
+  }
+
+  // Wilkens Dislocation Modeling from <e^2> vs ln(1/L)
+  // Slope = rho * C * b^2 / (4*pi)
+  let sumLnL = 0, sumE2 = 0, sumLnLE2 = 0, sumLnL2 = 0;
+  let countWilkens = 0;
+  const b_m = burgersVectorNm * 1e-9;
+  const C_contrast = 0.285; // Standard contrast factor for cubic reflections
+
+  for (const st of strainDist) {
+    if (st.L_nm > 0 && st.L_nm <= Math.min(30, cutoffRadiusValue) && (st.ms_strain || st.rms_strain > 0)) {
+      const valE2 = st.ms_strain || (st.rms_strain * st.rms_strain);
+      const x = Math.log(1 / (st.L_nm * 1e-9));
+      sumLnL += x;
+      sumE2 += valE2;
+      sumLnLE2 += x * valE2;
+      sumLnL2 += x * x;
+      countWilkens++;
+    }
+  }
+
+  let dislocationDensityM2 = 1.2e14;
+  let wilkensCutoffRadiusNm = cutoffRadiusValue;
+
+  if (countWilkens >= 2) {
+    const denomW = countWilkens * sumLnL2 - sumLnL * sumLnL;
+    if (Math.abs(denomW) > 1e-12) {
+      const slopeW = Math.max(0, (countWilkens * sumLnLE2 - sumLnL * sumE2) / denomW);
+      const interceptW = (sumE2 - slopeW * sumLnL) / countWilkens;
+      
+      // rho = 4*pi * slope / (C * b^2)
+      if (slopeW > 0 && b_m > 0) {
+        dislocationDensityM2 = (4 * Math.PI * slopeW) / (C_contrast * b_m * b_m);
+        // Effective cutoff radius Re
+        const lnRe = -interceptW / slopeW;
+        if (Number.isFinite(lnRe) && lnRe > -30 && lnRe < 30) {
+          wilkensCutoffRadiusNm = Math.min(200, Math.max(5, Math.exp(lnRe) * 1e9));
+        }
+      }
+    }
+  }
+
+  // Dislocation density fallback if linear regression did not converge
+  if (!Number.isFinite(dislocationDensityM2) || dislocationDensityM2 <= 0) {
+    const avgRms = strainDist[0]?.rms_strain || 0.001;
+    const L_m = (finalSizeDist[0]?.L_nm || 5) * 1e-9;
+    dislocationDensityM2 = (2 * Math.sqrt(3) * avgRms) / (L_m * b_m);
+  }
+
+  const dislocationDensity10_14 = dislocationDensityM2 / 1e14;
+  const wilkensArrangementParameterM = (wilkensCutoffRadiusNm * 1e-9) * Math.sqrt(dislocationDensityM2);
+
+  // Apparent Strain Energy Density W_H = 1.5 * E * <e^2>_{L->0} (kJ/m^3)
+  const initialE2 = strainDist[0]?.ms_strain || Math.pow(strainDist[0]?.rms_strain || 0.001, 2);
+  const apparentStrainEnergyKJm3 = (1.5 * (youngsModulusGPa * 1e9) * initialE2) / 1000;
+
+  // Specific Surface Area S_V = 4 / (<D>_A * rho_mass) approx
+  const approxDensityGcm3 = 8.0; // Approx metallic/oxide density
+  const specificSurfaceAreaM2g = (4 / ((areaWeightedColumnLengthNm * 1e-9) * (approxDensityGcm3 * 1e6))) * 1000;
+
+  const avgR2 = orderPlots.length > 0 ? orderPlots.reduce((sum, p) => sum + p.r2, 0) / orderPlots.length : 1.0;
+
+  const metrics: WAMetrics = {
+    areaWeightedColumnLengthNm,
+    volumeWeightedColumnLengthNm,
+    crystalliteSizeDistributionModeNm,
+    crystalliteSizeDistributionFWHMNm: areaWeightedColumnLengthNm * 0.85,
+    initialSlope,
+    dislocationDensityM2,
+    dislocationDensity10_14,
+    wilkensCutoffRadiusNm,
+    wilkensArrangementParameterM,
+    wilkensDislocationCharacter: wilkensArrangementParameterM < 1.0 ? 'edge' : wilkensArrangementParameterM < 2.5 ? 'mixed' : 'screw',
+    apparentStrainEnergyKJm3,
+    specificSurfaceAreaM2g,
+    hookEffectDetected,
+    hookEffectExtrapolatedIntercept: hookExtrapolatedIntercept,
+    r2_average: avgR2
+  };
+
+  return {
+    sizeDistribution: finalSizeDist,
+    strainDistribution: strainDist,
+    orderPlots,
+    metrics
+  };
 };
 
 export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupResult => {

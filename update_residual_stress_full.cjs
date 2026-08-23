@@ -1,472 +1,24 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import {
-  Activity,
-  Calculator,
-  Info,
-  LineChart,
-  Plus,
-  Trash2,
-  Zap,
-  TrendingDown,
-  TrendingUp,
-  Settings,
-  Scale,
-  Sparkles,
-  Sliders,
-  Layers,
-  ArrowUpRight,
-  RefreshCw,
-  Gauge,
-  Box,
-  ChevronRight,
-  Upload,
-  Download,
-  Copy,
-  Check,
-  Eye,
-  EyeOff,
-  Split,
-  Crosshair,
-  AlertCircle,
-  FileText,
-  BarChart2,
-  Compass,
-  BookOpen,
-  ShieldCheck,
-  Cpu,
-  RotateCcw,
-  CheckCircle2,
-  HelpCircle,
-  Target
-} from 'lucide-react';
-import {
-  LineChart as RechartsLineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-  Scatter,
-  ComposedChart,
-  Area,
-  ErrorBar
-} from 'recharts';
+const fs = require('fs');
 
-import { playSynthTone } from '../utils/sound';
-import { useSettings, convertLength, convertToAngstrom, LengthUnit } from './SettingsContext';
-import {
-  computeResidualStressAnalysis,
-  ResidualStressPoint,
-  ResidualStressFullAnalysis,
-  XecModel,
-  XecResult,
-  calculateXEC,
-  DolleHaukAnalysis,
-  StressTensor2D,
-  KNOWN_XEC_MATERIALS
-} from '../utils/residualStressPhysics';
+let code = fs.readFileSync('components/ResidualStressModule.tsx', 'utf8');
 
-import { StressTensorVisualizer } from './residual_stress/StressTensorVisualizer';
-import { DolleHaukSplitView } from './residual_stress/DolleHaukSplitView';
-import { DepthProfilingWorkbench } from './residual_stress/DepthProfilingWorkbench';
-import { XecCalculatorModal } from './residual_stress/XecCalculatorModal';
-import { ResidualStressReport } from './residual_stress/ResidualStressReport';
-import { PhysicsGuideTab } from './residual_stress/PhysicsGuideTab';
-
-export interface DataPoint {
-  id: string;
-  psi: number; // Tilt angle in degrees (-90 to +90)
-  twoTheta: number; // Measured 2Theta (deg)
-  intensity: number; // Peak height / area (a.u.)
-  fwhm: number; // Full Width at Half Max (deg)
-  error2Theta: number; // Peak center uncertainty (+- deg)
-  enabled: boolean; // Outlier toggle
+// Ensure RotateCcw, Activity, Calculator, Check, Sparkles are imported from lucide-react
+// Make sure playSynthTone is imported
+if (!code.includes("import { playSynthTone }")) {
+  code = code.replace("import { useSettings,", "import { playSynthTone } from '../utils/sound';\nimport { useSettings,");
 }
 
-export interface MaterialPreset {
-  name: string;
-  plane: string;
-  E: number; // GPa
-  nu: number;
-  twoTheta0: number; // deg
-  wavelength: number;
-  description: string;
-  defaultData: { psi: number; twoTheta: number; intensity?: number; fwhm?: number }[];
+// Find start of JSX return
+const returnMarker = "  return (";
+const returnPos = code.indexOf(returnMarker);
+if (returnPos === -1) {
+  console.error("Could not find return statement");
+  process.exit(1);
 }
 
-const MATERIAL_PRESETS: MaterialPreset[] = [
-  {
-    name: 'Ferritic Steel (Fe-α)',
-    plane: '(211)',
-    E: 211,
-    nu: 0.28,
-    twoTheta0: 156.40,
-    wavelength: 1.54056, // Cu K-alpha
-    description: 'Shot-peened structural steel with strong surface compressive residual stress',
-    defaultData: [
-      { psi: -60, twoTheta: 157.58, intensity: 820, fwhm: 0.45 },
-      { psi: -45, twoTheta: 157.14, intensity: 910, fwhm: 0.42 },
-      { psi: -30, twoTheta: 156.76, intensity: 1050, fwhm: 0.38 },
-      { psi: -15, twoTheta: 156.51, intensity: 1180, fwhm: 0.36 },
-      { psi: 0, twoTheta: 156.40, intensity: 1250, fwhm: 0.35 },
-      { psi: 15, twoTheta: 156.52, intensity: 1160, fwhm: 0.36 },
-      { psi: 30, twoTheta: 156.78, intensity: 1020, fwhm: 0.39 },
-      { psi: 45, twoTheta: 157.15, intensity: 880, fwhm: 0.43 },
-      { psi: 60, twoTheta: 157.60, intensity: 790, fwhm: 0.46 },
-    ]
-  },
-  {
-    name: 'Aluminum Alloy (Al 7075-T6)',
-    plane: '(311)',
-    E: 71,
-    nu: 0.33,
-    twoTheta0: 139.30,
-    wavelength: 1.54056,
-    description: 'Aerospace aluminum alloy heat-affected zone exhibiting tensile stress',
-    defaultData: [
-      { psi: -60, twoTheta: 138.02, intensity: 650, fwhm: 0.52 },
-      { psi: -45, twoTheta: 138.51, intensity: 780, fwhm: 0.48 },
-      { psi: -30, twoTheta: 138.93, intensity: 920, fwhm: 0.44 },
-      { psi: -15, twoTheta: 139.19, intensity: 1100, fwhm: 0.41 },
-      { psi: 0, twoTheta: 139.30, intensity: 1200, fwhm: 0.40 },
-      { psi: 15, twoTheta: 139.18, intensity: 1120, fwhm: 0.41 },
-      { psi: 30, twoTheta: 138.92, intensity: 940, fwhm: 0.43 },
-      { psi: 45, twoTheta: 138.50, intensity: 810, fwhm: 0.47 },
-      { psi: 60, twoTheta: 138.00, intensity: 670, fwhm: 0.51 },
-    ]
-  },
-  {
-    name: 'Titanium Alloy (Ti-6Al-4V)',
-    plane: '(213)',
-    E: 114,
-    nu: 0.34,
-    twoTheta0: 142.10,
-    wavelength: 1.54056,
-    description: 'Laser powder bed fusion (LPBF) additive manufacturing as-built tensile state',
-    defaultData: [
-      { psi: -50, twoTheta: 143.12, intensity: 710, fwhm: 0.58 },
-      { psi: -35, twoTheta: 142.68, intensity: 850, fwhm: 0.54 },
-      { psi: -20, twoTheta: 142.31, intensity: 990, fwhm: 0.50 },
-      { psi: 0, twoTheta: 142.10, intensity: 1150, fwhm: 0.48 },
-      { psi: 20, twoTheta: 142.32, intensity: 1010, fwhm: 0.50 },
-      { psi: 35, twoTheta: 142.69, intensity: 880, fwhm: 0.53 },
-      { psi: 50, twoTheta: 143.15, intensity: 730, fwhm: 0.57 },
-    ]
-  },
-  {
-    name: 'Inconel 718 (Psi-Split Shear)',
-    plane: '(311)',
-    E: 205,
-    nu: 0.29,
-    twoTheta0: 141.20,
-    wavelength: 1.54056,
-    description: 'Laser surface cladded component displaying psi-splitting due to surface shear stress τ₁₃',
-    defaultData: [
-      { psi: -60, twoTheta: 142.85, intensity: 610, fwhm: 0.50 },
-      { psi: -45, twoTheta: 142.22, intensity: 740, fwhm: 0.46 },
-      { psi: -30, twoTheta: 141.72, intensity: 890, fwhm: 0.43 },
-      { psi: -15, twoTheta: 141.40, intensity: 1040, fwhm: 0.41 },
-      { psi: 0, twoTheta: 141.20, intensity: 1180, fwhm: 0.40 },
-      { psi: 15, twoTheta: 141.35, intensity: 1060, fwhm: 0.41 },
-      { psi: 30, twoTheta: 141.58, intensity: 910, fwhm: 0.42 },
-      { psi: 45, twoTheta: 141.98, intensity: 770, fwhm: 0.45 },
-      { psi: 60, twoTheta: 142.50, intensity: 630, fwhm: 0.49 },
-    ]
-  },
-  {
-    name: 'Alumina Ceramic (Al₂O₃)',
-    plane: '(116)',
-    E: 380,
-    nu: 0.24,
-    twoTheta0: 145.80,
-    wavelength: 1.54056,
-    description: 'Precision ground ceramic bearing race with severe surface compression (-820 MPa)',
-    defaultData: [
-      { psi: -60, twoTheta: 147.25, intensity: 540, fwhm: 0.32 },
-      { psi: -40, twoTheta: 146.52, intensity: 780, fwhm: 0.30 },
-      { psi: -20, twoTheta: 146.00, intensity: 1100, fwhm: 0.28 },
-      { psi: 0, twoTheta: 145.80, intensity: 1350, fwhm: 0.27 },
-      { psi: 20, twoTheta: 146.01, intensity: 1080, fwhm: 0.28 },
-      { psi: 40, twoTheta: 146.53, intensity: 760, fwhm: 0.30 },
-      { psi: 60, twoTheta: 147.26, intensity: 520, fwhm: 0.33 },
-    ]
-  }
-];
+const beforeReturn = code.substring(0, returnPos);
 
-export const ResidualStressModule: React.FC = () => {
-  const { lengthUnit = 'Å' } = useSettings();
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() =>
-    typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false
-  );
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains('dark'));
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
-
-  // State variables
-  const [youngsModulus, setYoungsModulus] = useState<number>(MATERIAL_PRESETS[0].E);
-  const [poissonsRatio, setPoissonsRatio] = useState<number>(MATERIAL_PRESETS[0].nu);
-  const [unstressedTwoTheta, setUnstressedTwoTheta] = useState<number>(MATERIAL_PRESETS[0].twoTheta0);
-  const [wavelength, setWavelength] = useState<number>(1.54056);
-  const [azimuthPhi, setAzimuthPhi] = useState<number>(0);
-  const [activePlane, setActivePlane] = useState<string>(MATERIAL_PRESETS[0].plane);
-  const [linearMuCm, setLinearMuCm] = useState<number>(2420);
-  const [activeXecModel, setActiveXecModel] = useState<XecModel>('isotropic');
-  const [s1Override, setS1Override] = useState<number | null>(null);
-  const [halfS2Override, setHalfS2Override] = useState<number | null>(null);
-
-  const [dataPoints, setDataPoints] = useState<ResidualStressPoint[]>(() =>
-    MATERIAL_PRESETS[0].defaultData.map((p, i) => ({
-      id: String(i + 1),
-      psi: p.psi,
-      phi: 0,
-      twoTheta: p.twoTheta,
-      intensity: p.intensity || 1000,
-      fwhm: p.fwhm || 0.4,
-      error2Theta: 0.01,
-      enabled: true,
-    }))
-  );
-
-  const [activeTab, setActiveTab] = useState<'classical' | 'dolle_hauk' | 'tensor' | 'depth' | 'report' | 'guide'>('classical');
-  const [viewMode, setViewMode] = useState<'dSpacing' | 'microstrain'>('dSpacing');
-  const [showErrorBars, setShowErrorBars] = useState<boolean>(true);
-  const [showUnstressedLine, setShowUnstressedLine] = useState<boolean>(true);
-
-  const [isXecModalOpen, setIsXecModalOpen] = useState(false);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [rawImportText, setRawImportText] = useState('');
-  const [importError, setImportError] = useState('');
-
-  const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
-  const [computingStep, setComputingStep] = useState<number>(-1);
-
-  const startComputation = () => {
-    setAppState('computing');
-    setComputingStep(0);
-    playSynthTone('tick');
-    setTimeout(() => {
-      setComputingStep(1);
-      playSynthTone('tick');
-    }, 450);
-    setTimeout(() => {
-      setComputingStep(2);
-      playSynthTone('tick');
-    }, 900);
-    setTimeout(() => {
-      setComputingStep(3);
-      playSynthTone('chime');
-    }, 1350);
-    setTimeout(() => {
-      setAppState('results');
-    }, 1800);
-  };
-
-  const xec: XecResult = useMemo(() => {
-    const defaultMat = KNOWN_XEC_MATERIALS.ferrite_fe;
-    const base = calculateXEC(defaultMat, [2, 1, 1], activeXecModel, youngsModulus, poissonsRatio);
-    if (s1Override !== null) base.s1 = s1Override;
-    if (halfS2Override !== null) base.halfS2 = halfS2Override;
-    return base;
-  }, [youngsModulus, poissonsRatio, activeXecModel, s1Override, halfS2Override]);
-
-  const currentAnalysis = useMemo(() => {
-    return computeResidualStressAnalysis(
-      dataPoints,
-      wavelength,
-      unstressedTwoTheta,
-      xec,
-      linearMuCm,
-      'side_inclination'
-    );
-  }, [dataPoints, wavelength, unstressedTwoTheta, xec, linearMuCm]);
-
-  const d0 = currentAnalysis?.d0 ?? (wavelength / (2 * Math.sin((unstressedTwoTheta / 2) * (Math.PI / 180))));
-  const twoTheta0 = currentAnalysis?.twoTheta0 ?? unstressedTwoTheta;
-  const processedPoints = currentAnalysis?.points ?? [];
-  const linearFit = currentAnalysis?.linearFit ?? { slope: 0, intercept: 0, rSquared: 0, syx: 0, sSlope: 0, sIntercept: 0, chiSquared: 0, n: 0 };
-  const stress_MPa = currentAnalysis?.stress_MPa ?? 0;
-  const stressError_MPa = currentAnalysis?.stressError_MPa ?? 0;
-  const stressType = currentAnalysis?.stressType ?? 'Zero Stress';
-  
-  const dolleHauk: DolleHaukAnalysis = currentAnalysis?.dolleHauk ?? {
-    pairs: [],
-    sigmaPhi: 0,
-    sigmaPhiError: 0,
-    tau13: 0,
-    tau13Error: 0,
-    hasSignificantSplitting: false,
-    rSquaredA1: 0,
-    rSquaredA2: 0,
-    slopeA1: 0,
-    slopeA2: 0,
-  };
-
-  const stressTensor: StressTensor2D = currentAnalysis?.stressTensor ?? {
-    sigma11: 0,
-    sigma11Error: 0,
-    sigma22: 0,
-    sigma22Error: 0,
-    tau12: 0,
-    tau12Error: 0,
-    tau13: 0,
-    tau23: 0,
-    sigma1: 0,
-    sigma2: 0,
-    principalAngleDeg: 0,
-    tauMax: 0,
-    vonMises: 0,
-    hydrostaticStress: 0,
-  };
-
-  const diagnostics = currentAnalysis?.diagnostics ?? {
-    hasCurvature: false,
-    curvatureDirection: 'none' as const,
-    quadraticTermA2: 0,
-    depthGradientSeverity: 'low' as const,
-    hasTextureOscillations: false,
-    oscillationAmplitudeMicrostrain: 0,
-    crossoverPsiDeg: 0,
-    crossoverSin2Psi: 0,
-    theoreticalD0: d0
-  };
-
-  const chartData = useMemo(() => {
-    if (!currentAnalysis) return [];
-    return processedPoints.map(p => ({
-      id: p.id,
-      psi: p.psi,
-      sin2psi: Number(p.sin2psi.toFixed(4)),
-      twoTheta: p.twoTheta,
-      dSpacing: Number(convertLength(p.d, lengthUnit as LengthUnit).toFixed(6)),
-      fittedD: Number(convertLength(p.fittedD || p.d, lengthUnit as LengthUnit).toFixed(6)),
-      microstrain: Number(p.microstrain.toFixed(1)),
-      fittedMicrostrain: Number((((p.fittedD || p.d) - d0) / d0 * 1e6).toFixed(1)),
-      errorD: Number(convertLength(p.errorD || 0.0001, lengthUnit as LengthUnit).toFixed(6)),
-      errorMicrostrain: Number((p.errorMicrostrain || 50).toFixed(1)),
-      enabled: p.enabled
-    }));
-  }, [currentAnalysis, processedPoints, d0, lengthUnit]);
-
-  const loadPreset = (preset: typeof MATERIAL_PRESETS[0]) => {
-    setYoungsModulus(preset.E);
-    setPoissonsRatio(preset.nu);
-    setUnstressedTwoTheta(preset.twoTheta0);
-    setActivePlane(preset.plane);
-    setS1Override(null);
-    setHalfS2Override(null);
-    setDataPoints(
-      preset.defaultData.map((p, idx) => ({
-        id: String(idx + 1),
-        psi: p.psi,
-        phi: 0,
-        twoTheta: p.twoTheta,
-        intensity: p.intensity || 1000,
-        fwhm: p.fwhm || 0.4,
-        error2Theta: 0.01,
-        enabled: true,
-      }))
-    );
-  };
-
-  const addPoint = () => {
-    const newId = String(Date.now());
-    const lastPoint = dataPoints[dataPoints.length - 1];
-    const newPsi = lastPoint ? Math.min(85, lastPoint.psi + 15) : 0;
-    setDataPoints(prev => [
-      ...prev,
-      {
-        id: newId,
-        psi: newPsi,
-        phi: azimuthPhi,
-        twoTheta: unstressedTwoTheta,
-        intensity: 1000,
-        fwhm: 0.4,
-        error2Theta: 0.01,
-        enabled: true,
-      },
-    ]);
-  };
-
-  const removePoint = (id: string) => {
-    setDataPoints(prev => prev.filter(p => p.id !== id));
-  };
-
-  const updatePoint = (id: string, field: keyof ResidualStressPoint, val: any) => {
-    setDataPoints(prev =>
-      prev.map(p => (p.id === id ? { ...p, [field]: val } : p))
-    );
-  };
-
-  const togglePoint = (id: string) => {
-    setDataPoints(prev =>
-      prev.map(p => (p.id === id ? { ...p, enabled: !p.enabled } : p))
-    );
-  };
-
-  const handleExportCSV = () => {
-    if (!currentAnalysis) return;
-    let csv = 'Psi_deg,Sin2Psi,TwoTheta_deg,DSpacing_A,Strain,FittedD_A,Residual_A\n';
-    currentAnalysis.points.forEach(p => {
-      csv += `${p.psi},${p.sin2psi.toFixed(6)},${p.twoTheta.toFixed(4)},${p.d.toFixed(6)},${p.strain.toExponential(6)},${(p.fittedD || p.d).toFixed(6)},${(p.residualD || 0).toExponential(6)}\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `residual_stress_${activePlane.replace(/[{}]/g, '')}_${azimuthPhi}deg.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImportCSV = () => {
-    setImportError('');
-    if (!rawImportText.trim()) {
-      setImportError('Please paste valid CSV or whitespace-delimited XRD data');
-      return;
-    }
-    const lines = rawImportText.trim().split('\n');
-    const newPoints: ResidualStressPoint[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line || line.startsWith('#') || line.toLowerCase().includes('psi')) continue;
-      const parts = line.split(/[\s,;\t]+/).filter(Boolean);
-      if (parts.length >= 2) {
-        const psi = parseFloat(parts[0]);
-        const twoTheta = parseFloat(parts[1]);
-        const intensity = parts.length >= 3 ? parseFloat(parts[2]) : 500;
-        const fwhm = parts.length >= 4 ? parseFloat(parts[3]) : 0.3;
-        if (!isNaN(psi) && !isNaN(twoTheta)) {
-          newPoints.push({
-            id: String(i + 1),
-            psi,
-            phi: azimuthPhi,
-            twoTheta,
-            intensity,
-            fwhm,
-            error2Theta: 0.01,
-            enabled: true,
-          });
-        }
-      }
-    }
-    if (newPoints.length < 3) {
-      setImportError('Failed to parse at least 3 valid (Psi, 2Theta) points');
-      return;
-    }
-    setDataPoints(newPoints);
-    setIsImportModalOpen(false);
-    setRawImportText('');
-  };
-
-    return (
+const newReturnBlock = `  return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* 1. Header Hero */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -659,7 +211,7 @@ export const ResidualStressModule: React.FC = () => {
                       {dataPoints.map(p => (
                         <tr
                           key={p.id}
-                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 ${!p.enabled ? 'opacity-40' : ''}`}
+                          className={\`hover:bg-slate-50 dark:hover:bg-slate-800/40 \${!p.enabled ? 'opacity-40' : ''}\`}
                         >
                           <td className="py-1.5 px-2">
                             <button
@@ -748,7 +300,7 @@ export const ResidualStressModule: React.FC = () => {
           </div>
           
           <div className="space-y-4 w-full max-w-lg">
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 0 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+            <div className={\`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 \${computingStep >= 0 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}\`}>
               <span className="font-mono text-sm font-bold flex items-center gap-3">
                 <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">1</span>
                 Converting 2θ to d-spacing & evaluating lattice strains (ε_ψ)...
@@ -756,7 +308,7 @@ export const ResidualStressModule: React.FC = () => {
               {computingStep > 0 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
             </div>
             
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 1 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+            <div className={\`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 \${computingStep >= 1 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}\`}>
               <span className="font-mono text-sm font-bold flex items-center gap-3">
                 <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">2</span>
                 Calculating X-ray Elastic Constants (S₁, ½S₂) via {xec.model.toUpperCase()}...
@@ -764,7 +316,7 @@ export const ResidualStressModule: React.FC = () => {
               {computingStep > 1 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
             </div>
             
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 2 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+            <div className={\`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 \${computingStep >= 2 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}\`}>
               <span className="font-mono text-sm font-bold flex items-center gap-3">
                 <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">3</span>
                 Performing weighted linear & elliptical Dölle-Hauk sin²ψ regression...
@@ -772,7 +324,7 @@ export const ResidualStressModule: React.FC = () => {
               {computingStep > 2 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
             </div>
             
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 3 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+            <div className={\`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 \${computingStep >= 3 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}\`}>
               <span className="font-mono text-sm font-bold flex items-center gap-3">
                 <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">4</span>
                 Constructing 3D Triaxial Stress Tensor & ASTM E915 / EN 15305 audit...
@@ -794,24 +346,24 @@ export const ResidualStressModule: React.FC = () => {
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                   Residual Normal Stress (σ_φ)
                 </span>
-                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                <span className={\`text-[10px] font-black uppercase px-2 py-0.5 rounded-full \${
                   stress_MPa < 0
                     ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
                     : stress_MPa > 0
                     ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
                     : 'bg-slate-100 text-slate-600 dark:bg-slate-800'
-                }`}>
+                }\`}>
                   {stressType}
                 </span>
               </div>
               <div className="my-2">
-                <div className={`text-2xl font-black font-mono tracking-tight ${
+                <div className={\`text-2xl font-black font-mono tracking-tight \${
                   stress_MPa < 0
                     ? 'text-blue-600 dark:text-blue-400'
                     : stress_MPa > 0
                     ? 'text-rose-600 dark:text-rose-400'
                     : 'text-slate-700 dark:text-slate-300'
-                }`}>
+                }\`}>
                   {stress_MPa.toFixed(1)} <span className="text-sm font-bold">± {stressError_MPa.toFixed(1)} MPa</span>
                 </div>
               </div>
@@ -831,11 +383,11 @@ export const ResidualStressModule: React.FC = () => {
                 </span>
               </div>
               <div className="my-2">
-                <div className={`text-2xl font-black font-mono tracking-tight ${
+                <div className={\`text-2xl font-black font-mono tracking-tight \${
                   Math.abs(dolleHauk.tau13) > 10
                     ? 'text-amber-600 dark:text-amber-400'
                     : 'text-slate-700 dark:text-slate-300'
-                }`}>
+                }\`}>
                   {dolleHauk.tau13.toFixed(1)} <span className="text-sm font-bold">± {dolleHauk.tau13Error.toFixed(1)} MPa</span>
                 </div>
               </div>
@@ -876,7 +428,7 @@ export const ResidualStressModule: React.FC = () => {
               </div>
               <div className="my-2">
                 <div className="text-2xl font-black font-mono tracking-tight text-purple-600 dark:text-purple-400">
-                  {stressTensor.vonMises.toFixed(1)} <span className="text-sm font-bold">MPa</span>
+                  {stressTensor.vonMisesStress.toFixed(1)} <span className="text-sm font-bold">MPa</span>
                 </div>
               </div>
               <span className="text-[10px] text-slate-400 font-mono">
@@ -901,11 +453,11 @@ export const ResidualStressModule: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
+                  className={\`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 \${
                     isActive
                       ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                  }`}
+                  }\`}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
@@ -923,7 +475,7 @@ export const ResidualStressModule: React.FC = () => {
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <Activity className="w-4 h-4 text-indigo-500" />
-                      {viewMode === 'dSpacing' ? `Interplanar d-Spacing vs sin²ψ (${lengthUnit})` : 'Microstrain (ε_ψ) vs sin²ψ (µε)'}
+                      {viewMode === 'dSpacing' ? \`Interplanar d-Spacing vs sin²ψ (\${lengthUnit})\` : 'Microstrain (ε_ψ) vs sin²ψ (µε)'}
                     </h3>
                     <span className="text-[10px] text-slate-400 font-mono">
                       {processedPoints.length} active diffraction angles | Radiation λ = {wavelength} Å
@@ -934,21 +486,21 @@ export const ResidualStressModule: React.FC = () => {
                     <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 text-[10px] font-bold">
                       <button
                         onClick={() => setViewMode('dSpacing')}
-                        className={`px-2.5 py-1 rounded-lg transition-all ${
+                        className={\`px-2.5 py-1 rounded-lg transition-all \${
                           viewMode === 'dSpacing'
                             ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                             : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                        }\`}
                       >
                         d-Spacing
                       </button>
                       <button
                         onClick={() => setViewMode('microstrain')}
-                        className={`px-2.5 py-1 rounded-lg transition-all ${
+                        className={\`px-2.5 py-1 rounded-lg transition-all \${
                           viewMode === 'microstrain'
                             ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                             : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                        }\`}
                       >
                         Microstrain (µε)
                       </button>
@@ -956,11 +508,11 @@ export const ResidualStressModule: React.FC = () => {
 
                     <button
                       onClick={() => setShowErrorBars(!showErrorBars)}
-                      className={`p-1.5 rounded-xl border text-[10px] font-bold ${
+                      className={\`p-1.5 rounded-xl border text-[10px] font-bold \${
                         showErrorBars
                           ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400'
                           : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
-                      }`}
+                      }\`}
                       title="Toggle Error Bars"
                     >
                       ±σ
@@ -985,7 +537,7 @@ export const ResidualStressModule: React.FC = () => {
                         tick={{ fontSize: 10, fill: isDarkMode ? '#94a3b8' : '#64748b' }}
                         tickFormatter={v => (viewMode === 'dSpacing' ? Number(v).toFixed(4) : Math.round(v).toString())}
                         label={{
-                          value: viewMode === 'dSpacing' ? `d-Spacing (${lengthUnit})` : 'Lattice Strain ε_ψ (µε)',
+                          value: viewMode === 'dSpacing' ? \`d-Spacing (\${lengthUnit})\` : 'Lattice Strain ε_ψ (µε)',
                           angle: -90,
                           position: 'insideLeft',
                           fontSize: 11,
@@ -1002,7 +554,7 @@ export const ResidualStressModule: React.FC = () => {
                           fontWeight: 'bold'
                         }}
                         formatter={(val: any, name: string) => [
-                          viewMode === 'dSpacing' ? `${Number(val).toFixed(5)} ${lengthUnit}` : `${Number(val).toFixed(1)} µε`,
+                          viewMode === 'dSpacing' ? \`\${Number(val).toFixed(5)} \${lengthUnit}\` : \`\${Number(val).toFixed(1)} µε\`,
                           name === 'fittedD' || name === 'fittedMicrostrain' ? 'Linear Regression' : 'Measured Peak'
                         ]}
                       />
@@ -1012,7 +564,7 @@ export const ResidualStressModule: React.FC = () => {
                           stroke={isDarkMode ? '#64748b' : '#94a3b8'}
                           strokeDasharray="4 4"
                           label={{
-                            value: `d₀ = ${convertLength(d0, lengthUnit as LengthUnit).toFixed(4)} ${lengthUnit}`,
+                            value: \`d₀ = \${convertLength(d0, lengthUnit as LengthUnit).toFixed(4)} \${lengthUnit}\`,
                             position: 'insideTopRight',
                             fontSize: 10,
                             fill: isDarkMode ? '#94a3b8' : '#64748b'
@@ -1111,7 +663,7 @@ export const ResidualStressModule: React.FC = () => {
                           <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                             <td className="py-1.5 px-1">{p.psi}°</td>
                             <td className="py-1.5 px-1">{p.twoTheta.toFixed(2)}°</td>
-                            <td className="py-1.5 px-1 font-bold text-slate-800 dark:text-slate-200">{convertLength(p.d, lengthUnit as LengthUnit).toFixed(5)}</td>
+                            <td className="py-1.5 px-1 font-bold text-slate-800 dark:text-slate-200">{convertLength(p.dSpacing, lengthUnit as LengthUnit).toFixed(5)}</td>
                             <td className="py-1.5 px-1 text-indigo-600 dark:text-indigo-400 font-bold">{p.microstrain.toFixed(0)}</td>
                           </tr>
                         ))}
@@ -1204,7 +756,7 @@ export const ResidualStressModule: React.FC = () => {
             <textarea
               value={rawImportText}
               onChange={e => setRawImportText(e.target.value)}
-              placeholder={`-60.0   157.58\n-45.0   157.14\n-30.0   156.76\n0.0     156.40\n30.0    156.78\n45.0    157.15\n60.0    157.60`}
+              placeholder={\`-60.0   157.58\\n-45.0   157.14\\n-30.0   156.76\\n0.0     156.40\\n30.0    156.78\\n45.0    157.15\\n60.0    157.60\`}
               rows={8}
               className="w-full p-3 font-mono text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-200"
             />
@@ -1233,3 +785,8 @@ export const ResidualStressModule: React.FC = () => {
     </div>
   );
 };
+`;
+
+const finalCode = beforeReturn + newReturnBlock;
+fs.writeFileSync('components/ResidualStressModule.tsx', finalCode);
+console.log('Successfully updated ResidualStressModule.tsx with 3-state architecture');

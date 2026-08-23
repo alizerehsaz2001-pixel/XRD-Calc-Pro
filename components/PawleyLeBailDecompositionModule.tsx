@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
+import { playSynthTone } from '../utils/sound';
 import { 
   Grid, 
   Calculator, 
@@ -81,6 +82,9 @@ const fmt = (num: number, digits: number = 4) => {
 
 export const PawleyLeBailDecompositionModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
+
+  const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
+  const [computingStep, setComputingStep] = useState(0);
 
   // Python Features State (Disabled by default)
   const [showPythonPanel, setShowPythonPanel] = useState<boolean>(pythonFeaturesEnabled);
@@ -377,6 +381,27 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
 \\end{document}`;
   };
 
+  const startComputation = () => {
+    setAppState('computing');
+    setComputingStep(0);
+    playSynthTone('tick');
+    setTimeout(() => {
+      setComputingStep(1);
+      playSynthTone('tick');
+    }, 600);
+    setTimeout(() => {
+      setComputingStep(2);
+      playSynthTone('tick');
+    }, 1200);
+    setTimeout(() => {
+      setComputingStep(3);
+      playSynthTone('chime');
+    }, 1800);
+    setTimeout(() => {
+      setAppState('results');
+    }, 2400);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 font-sans">
       
@@ -405,6 +430,15 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
 
           {/* Header Action Buttons */}
           <div className="flex items-center gap-2">
+            {appState === 'results' && (
+              <button 
+                onClick={() => setAppState('setup')}
+                className="px-4 py-3 rounded-2xl bg-indigo-900 hover:bg-indigo-800 text-white text-xs font-bold transition-all border border-indigo-700 flex items-center gap-2 animate-in fade-in"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Edit Parameters
+              </button>
+            )}
             <button
               onClick={() => setShowPythonPanel(!showPythonPanel)}
               className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-bold text-xs border transition-all cursor-pointer shrink-0 ${
@@ -417,151 +451,215 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
               <span>{showPythonPanel ? 'Disable Python Engine' : 'Enable Python Engine'}</span>
             </button>
 
-            <button
-              onClick={() => copyToClipboard(generateLaTeX(), 'latex')}
-              className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xl shadow-indigo-500/25 border border-indigo-400/40 transition-all cursor-pointer shrink-0"
-            >
-              {copiedKey === 'latex' ? <Check className="w-4 h-4 text-emerald-300" /> : <FileText className="w-4 h-4" />}
-              <span>Export LaTeX Report</span>
-            </button>
+            {appState === 'results' && (
+              <button
+                onClick={() => copyToClipboard(generateLaTeX(), 'latex')}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xl shadow-indigo-500/25 border border-indigo-400/40 transition-all cursor-pointer shrink-0 animate-in fade-in"
+              >
+                {copiedKey === 'latex' ? <Check className="w-4 h-4 text-emerald-300" /> : <FileText className="w-4 h-4" />}
+                <span>Export LaTeX Report</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Scientific Math Control Box */}
-      <ScientificMathControl
-        title="Le Bail Partitioning & Pawley Least-Squares Equations"
-        formula="I_k^{(n+1)} = I_k^{(n)} \sum_i \left[ \frac{y_{\text{obs}}(i) \cdot S_k(2\theta_i)}{y_{\text{calc}}(i)} \right], \quad y_{\text{calc}}(i) = y_{\text{bg}}(i) + \sum_k I_k \cdot \phi(2\theta_i - 2\theta_k)"
-        description="Le Bail iteratively re-allocates overlapping observed profile intensity y_obs to calculated reflection contributions S_k based on current intensity estimates I_k, while Pawley treats intensities as unconstrained parameters in a non-linear least-squares matrix."
-        variables={[
-          { symbol: 'a', name: 'Lattice Constant a', value: a, unit: 'Å' },
-          { symbol: 'U', name: 'Caglioti Parameter U', value: paramU, unit: 'deg²' },
-          { symbol: 'V', name: 'Caglioti Parameter V', value: paramV, unit: 'deg²' },
-          { symbol: 'W', name: 'Caglioti Parameter W', value: paramW, unit: 'deg²' },
-          { symbol: 'R_wp', name: 'Weighted Profile R-factor', value: rWP, unit: '%' },
-          { symbol: 'χ²', name: 'Goodness of Fit', value: chi2, unit: '-' },
-        ]}
-        result={rWP}
-        resultUnit="%"
-        resultName="Weighted Profile R-Factor R_wp"
-      />
+      {appState === 'setup' && (
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Scientific Math Control Box */}
+          <ScientificMathControl
+            title="Le Bail Partitioning & Pawley Least-Squares Equations"
+            formula="I_k^{(n+1)} = I_k^{(n)} \sum_i \left[ \frac{y_{\text{obs}}(i) \cdot S_k(2\theta_i)}{y_{\text{calc}}(i)} \right], \quad y_{\text{calc}}(i) = y_{\text{bg}}(i) + \sum_k I_k \cdot \phi(2\theta_i - 2\theta_k)"
+            description="Le Bail iteratively re-allocates overlapping observed profile intensity y_obs to calculated reflection contributions S_k based on current intensity estimates I_k, while Pawley treats intensities as unconstrained parameters in a non-linear least-squares matrix."
+            variables={[
+              { symbol: 'a', name: 'Lattice Constant a', value: a, unit: 'Å' },
+              { symbol: 'U', name: 'Caglioti Parameter U', value: paramU, unit: 'deg²' },
+              { symbol: 'V', name: 'Caglioti Parameter V', value: paramV, unit: 'deg²' },
+              { symbol: 'W', name: 'Caglioti Parameter W', value: paramW, unit: 'deg²' },
+              { symbol: 'R_wp', name: 'Weighted Profile R-factor', value: rWP, unit: '%' },
+              { symbol: 'χ²', name: 'Goodness of Fit', value: chi2, unit: '-' },
+            ]}
+            result={rWP}
+            resultUnit="%"
+            resultName="Weighted Profile R-Factor R_wp"
+          />
 
-      {/* Method Switcher & Control Panel */}
-      <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800 shadow-xl space-y-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
-              <SlidersHorizontal className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white">
-                Decomposition Engine & Algorithm Mode
-              </h3>
-              <p className="text-xs text-slate-400">
-                Choose Le Bail iterative partitioning or Pawley full parameter matrix refinement
-              </p>
-            </div>
-          </div>
+          {/* Method Switcher & Control Panel */}
+          <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800 shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30">
+                  <SlidersHorizontal className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Decomposition Engine & Algorithm Mode
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Choose Le Bail iterative partitioning or Pawley full parameter matrix refinement
+                  </p>
+                </div>
+              </div>
 
-          {/* Toggle Buttons */}
-          <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
-            <button
-              onClick={() => setMethod('lebail')}
-              className={`px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                method === 'lebail'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Le Bail Iterative Method
-            </button>
-            <button
-              onClick={() => setMethod('pawley')}
-              className={`px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                method === 'pawley'
-                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Pawley Matrix Fitting
-            </button>
+              {/* Toggle Buttons */}
+              <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+                <button
+                  onClick={() => setMethod('lebail')}
+                  className={`px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    method === 'lebail'
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Le Bail Iterative Method
+                </button>
+                <button
+                  onClick={() => setMethod('pawley')}
+                  className={`px-4 py-2 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    method === 'pawley'
+                      ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Pawley Matrix Fitting
+                </button>
+              </div>
+            </div>
+
+            {/* Input Parameters Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">System</span>
+                <select
+                  value={system}
+                  onChange={(e) => setSystem(e.target.value as CrystalSystem)}
+                  className="w-full bg-slate-950 text-white font-mono font-bold text-sm py-2 px-2.5 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none cursor-pointer transition-all"
+                >
+                  <option value="Cubic">Cubic</option>
+                  <option value="Tetragonal">Tetragonal</option>
+                  <option value="Orthorhombic">Orthorhombic</option>
+                </select>
+              </div>
+
+              <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">a (Å)</span>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={a}
+                  onChange={(e) => setA(parseFloat(e.target.value) || 1)}
+                  className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">U (deg²)</span>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={paramU}
+                  onChange={(e) => setParamU(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">V (deg²)</span>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={paramV}
+                  onChange={(e) => setParamV(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">W (deg²)</span>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={paramW}
+                  onChange={(e) => setParamW(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">Pseudo-Voigt η</span>
+                <input
+                  type="number"
+                  step="0.05"
+                  max="1"
+                  min="0"
+                  value={eta}
+                  onChange={(e) => setEta(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button 
+                onClick={startComputation} 
+                className="px-8 py-3.5 bg-indigo-500 hover:bg-indigo-400 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 transition-all flex items-center gap-3 active:scale-95"
+              >
+                Initialize Decomposition Model
+                <Sparkles className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Input Parameters Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">System</span>
-            <select
-              value={system}
-              onChange={(e) => setSystem(e.target.value as CrystalSystem)}
-              className="w-full bg-slate-950 text-white font-mono font-bold text-sm py-2 px-2.5 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none cursor-pointer transition-all"
-            >
-              <option value="Cubic">Cubic</option>
-              <option value="Tetragonal">Tetragonal</option>
-              <option value="Orthorhombic">Orthorhombic</option>
-            </select>
+      {appState === 'computing' && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-12 border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-300 min-h-[400px]">
+          <div className="relative w-28 h-28 flex items-center justify-center">
+            <div className="absolute inset-0 border-4 border-slate-100 dark:border-slate-800 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div>
+            <Activity className="w-10 h-10 text-indigo-500 animate-pulse" />
           </div>
-
-          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">a (Å)</span>
-            <input
-              type="number"
-              step="0.001"
-              value={a}
-              onChange={(e) => setA(parseFloat(e.target.value) || 1)}
-              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
-            />
-          </div>
-
-          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">U (deg²)</span>
-            <input
-              type="number"
-              step="0.001"
-              value={paramU}
-              onChange={(e) => setParamU(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
-            />
-          </div>
-
-          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">V (deg²)</span>
-            <input
-              type="number"
-              step="0.001"
-              value={paramV}
-              onChange={(e) => setParamV(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
-            />
-          </div>
-
-          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">W (deg²)</span>
-            <input
-              type="number"
-              step="0.001"
-              value={paramW}
-              onChange={(e) => setParamW(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
-            />
-          </div>
-
-          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">Pseudo-Voigt η</span>
-            <input
-              type="number"
-              step="0.05"
-              max="1"
-              min="0"
-              value={eta}
-              onChange={(e) => setEta(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
-            />
+          
+          <div className="space-y-4 w-full max-w-lg">
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 0 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">1</span>
+                Generating structural model...
+              </span>
+              {computingStep > 0 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
+            
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 1 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">2</span>
+                Calculating Bragg peak positions...
+              </span>
+              {computingStep > 1 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
+            
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 2 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">3</span>
+                Setting up pseudo-voigt... initializing background...
+              </span>
+              {computingStep > 2 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
+            
+            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 3 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 shadow-md' : 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800/50 text-slate-400 dark:text-slate-600'}`}>
+              <span className="font-mono text-sm font-bold flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-white dark:bg-slate-950 flex items-center justify-center text-xs">4</span>
+                Ready for decomposition.
+              </span>
+              {computingStep > 3 && <Check className="w-5 h-5 text-emerald-500 animate-in zoom-in" />}
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Refinement Control Actions & Live Indicators */}
+      {appState === 'results' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800 shadow-xl space-y-6">
+            {/* Refinement Control Actions & Live Indicators */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800">
           <div className="flex items-center gap-3">
             <button
@@ -1314,6 +1412,8 @@ def lebail_step(y_obs, y_calc, I_k, S_k):
             </div>
           </div>
         </div>
+      )}
+      </div>
       )}
 
     </div>

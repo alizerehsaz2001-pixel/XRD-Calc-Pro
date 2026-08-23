@@ -349,11 +349,56 @@ export interface WAInputPoint {
   L_nm: number;
   A1: number;
   A2: number;
+  A3?: number;
+  A4?: number;
+}
+
+export interface WAColumnDistributionPoint {
+  L_nm: number;
+  A_size: number;
+  Pv_L: number; // P_V(L) = L * d²A_S/dL² (Volume-weighted column length distribution)
+  dAs_dL?: number; // First derivative
+  A_size_raw?: number; // Pre-hook correction value
+}
+
+export interface WAOrderPlotLine {
+  L_nm: number;
+  points: { s2: number; lnA: number; orderIndex: number; label: string }[];
+  slope: number;
+  intercept: number;
+  r2: number;
+  rms_strain: number;
+  A_size: number;
+}
+
+export interface WAMetrics {
+  areaWeightedColumnLengthNm: number; // <D>_A = -1 / (dA_S/dL)|_{L->0}
+  volumeWeightedColumnLengthNm: number; // <D>_V = 2 ∫ A_S(L) dL
+  crystalliteSizeDistributionModeNm: number; // Peak of P_V(L)
+  crystalliteSizeDistributionFWHMNm: number;
+  initialSlope: number; // dA_S/dL at L=0
+  dislocationDensityM2: number; // ρ (m^-2)
+  dislocationDensity10_14: number; // ρ (10^14 m^-2)
+  wilkensCutoffRadiusNm: number; // Re (nm)
+  wilkensArrangementParameterM: number; // M = Re * sqrt(rho)
+  wilkensDislocationCharacter?: 'edge' | 'screw' | 'mixed';
+  apparentStrainEnergyKJm3: number; // W_H
+  specificSurfaceAreaM2g?: number; // S_V
+  hookEffectDetected: boolean;
+  hookEffectExtrapolatedIntercept: number;
+  r2_average: number;
 }
 
 export interface WAResult {
-  sizeDistribution: { L_nm: number; A_size: number }[];
-  strainDistribution: { L_nm: number; rms_strain: number }[];
+  sizeDistribution: WAColumnDistributionPoint[];
+  strainDistribution: { 
+    L_nm: number; 
+    rms_strain: number; 
+    ms_strain?: number; // <ε²>
+    wilkensLnTerm?: number;
+  }[];
+  orderPlots?: WAOrderPlotLine[];
+  metrics?: WAMetrics;
 }
 
 export interface RietveldAtom {
