@@ -826,6 +826,12 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
               basisMatrix={refinementData.basisMatrix}
               onCopyLatex={handleCopyLatex}
               copiedMatrix={copiedMatrix}
+              variance={refinementData.variance}
+              dof={refinementData.dof}
+              sumResidualSquare={refinementData.sumResidualSquare}
+              crystalSystem={crystalSystem}
+              wavelength={wavelength}
+              driftType={driftType}
             />
           )}
 
