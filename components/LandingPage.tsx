@@ -1110,7 +1110,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
     } catch (e) {}
   }, [isRegistered]);
 
-  const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
+  const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);

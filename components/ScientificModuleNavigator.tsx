@@ -133,7 +133,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   theme = 'light'
 }) => {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
+  const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');

@@ -82,6 +82,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [converterInput, setConverterInput] = useState<number>(1.5406);
   const [soundTestTone, setSoundTestTone] = useState<string | null>(null);
   const [copiedBadge, setCopiedBadge] = useState(false);
+  const [testObservedAngle, setTestObservedAngle] = useState<number>(38.20);
   const [pyStatus, setPyStatus] = useState<{ ready: boolean; logs: string[] } | null>(null);
   const [pyStatusLoading, setPyStatusLoading] = useState(false);
   const [pySelectedScript, setPySelectedScript] = useState<string | null>(null);
@@ -1583,6 +1584,62 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           R = {goniometerRadius} mm • Δ2θ = {zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°
                         </div>
                       </div>
+
+                      {/* Live Mechanical Peak Correction Calculator */}
+                      <div className="mt-4 p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-xl space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <span className="text-xs font-mono font-bold text-emerald-300 flex items-center gap-1.5">
+                            <Beaker className="w-3.5 h-3.5 text-emerald-400" /> Live Peak Angle Correction Preview
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            2θ_corr = 2θ_obs - Δ2θ_zero - (2s/R)·cos(θ)·(180/π)
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
+                          <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <span className="text-slate-400 text-[10px] block mb-1">Measured 2θ_obs:</span>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={testObservedAngle}
+                                onChange={(e) => setTestObservedAngle(parseFloat(e.target.value) || 0)}
+                                className="w-16 bg-slate-800 text-white px-1.5 py-0.5 rounded border border-slate-700 outline-none text-xs font-bold"
+                              />
+                              <span className="text-slate-400">°</span>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <span className="text-slate-400 text-[10px] block mb-1">Zero-Shift (Δ2θ):</span>
+                            <span className="text-emerald-400 font-bold">{zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°</span>
+                          </div>
+
+                          <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                            <span className="text-slate-400 text-[10px] block mb-1">Displacement Shift:</span>
+                            <span className="text-cyan-400 font-bold">
+                              {(() => {
+                                const thetaRad = (testObservedAngle / 2) * (Math.PI / 180);
+                                const shiftDeg = goniometerRadius > 0 ? (2 * sampleDisplacement / goniometerRadius) * Math.cos(thetaRad) * (180 / Math.PI) : 0;
+                                return shiftDeg > 0 ? `+${shiftDeg.toFixed(4)}°` : `${shiftDeg.toFixed(4)}°`;
+                              })()}
+                            </span>
+                          </div>
+
+                          <div className="bg-emerald-900/60 p-2.5 rounded-lg border border-emerald-500/40 text-emerald-200">
+                            <span className="text-emerald-300 text-[10px] block mb-1">Corrected 2θ_corr:</span>
+                            <span className="text-white font-extrabold text-sm">
+                              {(() => {
+                                const thetaRad = (testObservedAngle / 2) * (Math.PI / 180);
+                                const shiftDeg = goniometerRadius > 0 ? (2 * sampleDisplacement / goniometerRadius) * Math.cos(thetaRad) * (180 / Math.PI) : 0;
+                                const corr = testObservedAngle - zeroShift - shiftDeg;
+                                return `${corr.toFixed(3)}°`;
+                              })()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1684,6 +1741,58 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                         <div>
                           <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Operator Profile')}</h3>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Manage your laboratory identity and credentials')}</p>
+                        </div>
+                      </div>
+
+                      {/* Quick Fill Laboratory Presets */}
+                      <div className="mb-6 p-4 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl">
+                        <div className="text-xs font-bold text-indigo-900 dark:text-indigo-200 mb-2 flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500" />
+                          {t('Quick Fill Laboratory Presets')}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            {
+                              label: 'Dr. Ali Zerehsaz (Director)',
+                              name: 'Ali Zerehsaz',
+                              email: 'director@xrd-calc.lab',
+                              org: 'Neuro-Analytical Laboratory',
+                              clearance: 'Level 4: Laboratory Director',
+                              certs: ['Radiation Safety (RSC-4)', 'High-Volt Diffraction System', 'Diffraction Grid Calibration', 'Class 4 Laser Operation']
+                            },
+                            {
+                              label: 'Prof. R. Franklin (Lead)',
+                              name: 'Rosalind Franklin',
+                              email: 'r.franklin@crystallography.org',
+                              org: 'King\'s College Diffraction Unit',
+                              clearance: 'Level 3: Lead Crystallographer',
+                              certs: ['Radiation Safety (RSC-4)', 'Diffraction Grid Calibration']
+                            },
+                            {
+                              label: 'Alex Mercer (QA Analyst)',
+                              name: 'Alex Mercer',
+                              email: 'a.mercer@materials-lab.io',
+                              org: 'Advanced Powder Quality Labs',
+                              clearance: 'Level 2: Research Associate',
+                              certs: ['Chemical Hazard Handling', 'Diffraction Grid Calibration']
+                            }
+                          ].map((pItem) => (
+                            <button
+                              key={pItem.label}
+                              type="button"
+                              onClick={() => {
+                                setIdName(pItem.name);
+                                setIdEmail(pItem.email);
+                                setIdOrg(pItem.org);
+                                setClearanceLevel(pItem.clearance);
+                                setCertifications(pItem.certs);
+                                playSynthTone('success');
+                              }}
+                              className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 text-xs font-medium text-slate-700 dark:text-slate-300 rounded-xl transition-all shadow-sm"
+                            >
+                              + {pItem.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
 
@@ -1856,6 +1965,30 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                          <div className="mt-6 pt-4 border-t border-white/5 opacity-40 hover:opacity-80 transition-opacity">
                            <div className="w-full h-8 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#fff_2px,#fff_4px,transparent_4px,transparent_5px,#fff_5px,#fff_8px)] mix-blend-overlay"></div>
                          </div>
+
+                         {/* Copy Badge Token button */}
+                         <button
+                           type="button"
+                           onClick={() => {
+                             const badgePayload = JSON.stringify({
+                               operator: idName,
+                               email: idEmail,
+                               org: idOrg,
+                               terminalId,
+                               clearance: clearanceLevel,
+                               certifications,
+                               issued: operator.registeredAt
+                             }, null, 2);
+                             navigator.clipboard.writeText(badgePayload);
+                             setCopiedBadge(true);
+                             playSynthTone('success');
+                             setTimeout(() => setCopiedBadge(false), 2500);
+                           }}
+                           className="mt-4 w-full py-2 bg-slate-800/90 hover:bg-slate-800 text-slate-200 text-xs font-mono rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+                         >
+                           {copiedBadge ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
+                           {copiedBadge ? t('Credential Token Copied!') : t('Copy Digital ID Token')}
+                         </button>
                        </div>
                     </div>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import katex from 'katex';
@@ -548,6 +549,10 @@ export const LearnModule: React.FC = () => {
   const [sectionSearch, setSectionSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('All');
 
+  // Search & SOP Report states
+  const [kbSearchQuery, setKbSearchQuery] = useState<string>('');
+  const [copiedSopReport, setCopiedSopReport] = useState<boolean>(false);
+
   // Improved Rietveld Protocol Interactive Substructure states
   const [protocolSubTab, setProtocolSubTab] = useState<'checklist' | 'symmetry' | 'qpa' | 'caglioti' | 'preferred' | 'python'>('checklist');
   const [checklistProgress, setChecklistProgress] = useState<number>(1);
@@ -988,9 +993,42 @@ export const LearnModule: React.FC = () => {
             </h2>
             <p className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none font-sans mt-2">Protocol Guides</p>
           </div>
+
+          {/* Quick Search Bar */}
+          <div className="relative z-10">
+            <div className="relative flex items-center">
+              <Search size={14} className="absolute left-3.5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search protocols & subtabs..."
+                value={kbSearchQuery}
+                onChange={(e) => setKbSearchQuery(e.target.value)}
+                className="w-full bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              />
+              {kbSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setKbSearchQuery('')}
+                  className="absolute right-3 text-[10px] font-black text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
           
           <div className="space-y-2 relative z-10">
-            {topics.map((topic) => {
+            {topics
+              .filter((topic) => {
+                if (!kbSearchQuery.trim()) return true;
+                const q = kbSearchQuery.toLowerCase();
+                return (
+                  topic.label.toLowerCase().includes(q) ||
+                  topic.description.toLowerCase().includes(q) ||
+                  topic.id.toLowerCase().includes(q)
+                );
+              })
+              .map((topic) => {
               const isActive = activeTopic === topic.id;
               return (
                 <button
@@ -1059,9 +1097,51 @@ export const LearnModule: React.FC = () => {
               {activeTopic === 'start' && (
                 <div className="space-y-8">
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                       <span className="px-3 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-indigo-500/20 font-mono">Phase Alpha</span>
-                       <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="px-3 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-indigo-500/20 font-mono">Phase Alpha</span>
+                        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+                      </div>
+                      
+                      {/* Copy SOP Report Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const sopText = `# XRD LAB STANDARD OPERATING PROCEDURE (SOP) REPORT
+Date: ${new Date().toLocaleDateString()}
+Compliance Score: ${checklistScore}%
+
+## Completed Protocol Verification Checklist:
+${checklistSteps.map((step, i) => `[${checklist[i] ? 'X' : ' '}] ${step.text} - ${step.desc}`).join('\n')}
+
+## Specimen Displacement Calibration:
+- Height Offset (s): ${dispHeight} mm
+- Goniometer Radius (R): ${gonioRadius} mm
+- True 2-Theta: ${dispThetaTrue}°
+- Peak Shift Correction (Δ2θ): ${(-2 * (dispHeight / gonioRadius) * Math.cos((dispThetaTrue * Math.PI) / 360) * (180 / Math.PI)).toFixed(4)}°
+
+## Refinement Convergence Status:
+- Weighted Profile Rwp: ${checklistParams.rFactor}%
+- Bragg Factor Rb: ${checklistParams.rBragg}%
+- Goodness of Fit χ²: ${checklistParams.chi2}
+- Converged: ${checklistParams.converged ? 'YES' : 'NO'}
+`;
+                          navigator.clipboard.writeText(sopText);
+                          setCopiedSopReport(true);
+                          setTimeout(() => setCopiedSopReport(false), 2500);
+                        }}
+                        className="shrink-0 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                      >
+                        {copiedSopReport ? (
+                          <>
+                            <Check size={12} className="text-emerald-300" /> Report Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={12} /> Export SOP Report
+                          </>
+                        )}
+                      </button>
                     </div>
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none font-sans">
                       Academic Lab Refinement Roadmap
@@ -2191,6 +2271,72 @@ export const LearnModule: React.FC = () => {
                             </div>
                          </div>
 
+                         {/* Live XRD Residual Fit Plot */}
+                         <div className="p-3.5 bg-slate-900 rounded-2xl border border-slate-800 space-y-2">
+                            <div className="flex justify-between items-center text-[9px] font-mono font-black uppercase text-slate-400">
+                               <span>Refinement Residual Curve</span>
+                               <span className="text-rose-400">Obs (blue) / Calc (red)</span>
+                            </div>
+                            
+                            <svg viewBox="0 0 280 110" className="w-full h-auto bg-slate-950 rounded-xl p-2 select-none overflow-visible">
+                               {/* Grid lines */}
+                               <line x1="20" y1="80" x2="270" y2="80" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                               <line x1="20" y1="45" x2="270" y2="45" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 2" />
+                               
+                               {(() => {
+                                 // Noise factor decreases as checklistProgress increases (1 -> 5)
+                                 const misfitFactor = (6 - Math.min(5, checklistProgress)) * 8;
+                                 const phaseShift = (6 - Math.min(5, checklistProgress)) * 0.15;
+                                 
+                                 // Generate synthetic XRD diffraction peaks
+                                 const pointsObs: string[] = [];
+                                 const pointsCalc: string[] = [];
+                                 const pointsDiff: string[] = [];
+                                 
+                                 for (let x = 20; x <= 270; x += 3) {
+                                   const t = (x - 20) / 250;
+                                   // True peak 1, peak 2, peak 3
+                                   const p1 = 60 * Math.exp(-Math.pow((t - 0.25) / 0.04, 2));
+                                   const p2 = 80 * Math.exp(-Math.pow((t - 0.55) / 0.03, 2));
+                                   const p3 = 45 * Math.exp(-Math.pow((t - 0.80) / 0.05, 2));
+                                   const bkg = 10 + 5 * Math.sin(t * Math.PI);
+                                   
+                                   const yObsVal = bkg + p1 + p2 + p3;
+                                   // Calculated model with residual shift based on lock progress
+                                   const p1Calc = 60 * Math.exp(-Math.pow((t - (0.25 + phaseShift*0.05)) / (0.04 + phaseShift*0.01), 2));
+                                   const p2Calc = (80 - misfitFactor) * Math.exp(-Math.pow((t - 0.55) / 0.03, 2));
+                                   const p3Calc = 45 * Math.exp(-Math.pow((t - (0.80 - phaseShift*0.03)) / 0.05, 2));
+                                   const yCalcVal = (bkg * (1 - misfitFactor*0.005)) + p1Calc + p2Calc + p3Calc;
+                                   
+                                   const yObsSvg = 80 - (yObsVal / 100) * 60;
+                                   const yCalcSvg = 80 - (yCalcVal / 100) * 60;
+                                   const diffSvg = 95 - ((yObsVal - yCalcVal) / 50) * 15;
+                                   
+                                   pointsObs.push(`${x},${yObsSvg.toFixed(1)}`);
+                                   pointsCalc.push(`${x},${yCalcSvg.toFixed(1)}`);
+                                   pointsDiff.push(`${x},${diffSvg.toFixed(1)}`);
+                                 }
+                                 
+                                 return (
+                                   <>
+                                     {/* Observed Curve (Blue) */}
+                                     <polyline points={pointsObs.join(' ')} fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+                                     {/* Calculated Model Curve (Rose) */}
+                                     <polyline points={pointsCalc.join(' ')} fill="none" stroke="#f43f5e" strokeWidth="1.2" strokeDasharray="3 1" />
+                                     {/* Difference Curve (Emerald along baseline) */}
+                                     <line x1="20" y1="95" x2="270" y2="95" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                     <polyline points={pointsDiff.join(' ')} fill="none" stroke="#10b981" strokeWidth="1" />
+                                   </>
+                                 );
+                               })()}
+                            </svg>
+                            
+                            <div className="flex justify-between items-center text-[8px] font-mono text-slate-400">
+                               <span className="text-emerald-400">Green: I_obs - I_calc ({checklistParams.converged ? 'FLAT' : 'RESIDUALS'})</span>
+                               <span>2θ Scan</span>
+                            </div>
+                         </div>
+
                          {/* Status bar */}
                          <div className={`p-4 rounded-2xl border text-center ${
                              checklistParams.converged 
@@ -3112,10 +3258,26 @@ export const LearnModule: React.FC = () => {
                     <div className="space-y-6 animate-in fade-in duration-300">
                       
                       {/* Top theoretical panel */}
-                      <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-[2rem] space-y-2">
-                         <h3 className="text-xs font-black uppercase text-slate-800 dark:text-amber-400 tracking-wide flex items-center gap-1.5 leading-none">
-                            <Layers size={12} className="text-amber-500" /> Hill-Howard Quantitative Phase Analysis (QPA)
-                         </h3>
+                      <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-[2rem] space-y-3">
+                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                           <h3 className="text-xs font-black uppercase text-slate-800 dark:text-amber-400 tracking-wide flex items-center gap-1.5 leading-none">
+                              <Layers size={12} className="text-amber-500" /> Hill-Howard Quantitative Phase Analysis (QPA)
+                           </h3>
+                           
+                           {/* Phase 3 Toggle Button */}
+                           <button
+                             type="button"
+                             onClick={() => setQpaPhase3Enabled(!qpaPhase3Enabled)}
+                             className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all ${
+                               qpaPhase3Enabled 
+                                 ? 'bg-emerald-500 text-white shadow-md' 
+                                 : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                             }`}
+                           >
+                             <Sparkles size={11} /> {qpaPhase3Enabled ? 'Ternary Phase C Active' : '+ Enable Phase C (Ternary)'}
+                           </button>
+                         </div>
+
                          <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
                             Quantitative analysis derives the absolute weight percentage ($W_p$) of crystalline compound mixtures in multi-phase datasets. Crucially, scale factor ($S$) adjustments from the Rietveld model are combined with cell volumes ($V$) and compound densities.
                          </p>
@@ -3130,10 +3292,10 @@ export const LearnModule: React.FC = () => {
                       </div>
 
                       {/* Split Input Grid */}
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-2">
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch pt-2">
                          
                          {/* Phase 1 Setup Card */}
-                         <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4">
+                         <div className={`${qpaPhase3Enabled ? 'lg:col-span-4' : 'lg:col-span-4'} bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4`}>
                             <div className="flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
                                <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                                <span className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-white">Compound Phase A</span>
@@ -3209,7 +3371,7 @@ export const LearnModule: React.FC = () => {
                          </div>
 
                          {/* Phase 2 Setup Card */}
-                         <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4">
+                         <div className={`${qpaPhase3Enabled ? 'lg:col-span-4' : 'lg:col-span-4'} bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4`}>
                             <div className="flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                                <span className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-white">Compound Phase B</span>
@@ -3284,16 +3446,96 @@ export const LearnModule: React.FC = () => {
                             </div>
                          </div>
 
+                         {/* Phase 3 Setup Card (When Enabled) */}
+                         {qpaPhase3Enabled && (
+                           <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4">
+                              <div className="flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                 <span className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-white">Compound Phase C</span>
+                              </div>
+
+                              <div className="space-y-3 font-sans">
+                                 <div className="space-y-0.5">
+                                    <label className="text-[8.5px] font-black text-slate-400 uppercase">Phase Name</label>
+                                    <input 
+                                      title="Phase C Name"
+                                      type="text"
+                                      value={qpaPhase3Name}
+                                      onChange={(e) => setQpaPhase3Name(e.target.value)}
+                                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-850 dark:text-slate-100"
+                                    />
+                                 </div>
+
+                                 <div className="grid grid-cols-2 gap-3.5 font-mono">
+                                    <div className="space-y-0.5">
+                                       <label className="text-[8px] font-black text-slate-450 uppercase">Mass M (g/mol)</label>
+                                       <input 
+                                         title="Molar Mass Phase C"
+                                         type="number"
+                                         value={String(qpaPhase3Mass) === 'NaN' ? '' : qpaPhase3Mass}
+                                         onChange={(e) => setQpaPhase3Mass(parseFloat(e.target.value) || 0)}
+                                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                       />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                       <label className="text-[8px] font-black text-slate-450 uppercase">Formula Units Z</label>
+                                       <input 
+                                         title="Formula Units Phase C"
+                                         type="number"
+                                         value={String(qpaPhase3Z) === 'NaN' ? '' : qpaPhase3Z}
+                                         onChange={(e) => setQpaPhase3Z(parseFloat(e.target.value) || 0)}
+                                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                       />
+                                    </div>
+                                 </div>
+
+                                 <div className="space-y-0.5 font-mono">
+                                    <div className="flex justify-between text-[8px] font-black text-slate-455 uppercase">
+                                       <span>Cell Volume V</span>
+                                       <span>{qpaPhase3Volume} Å³</span>
+                                    </div>
+                                    <input 
+                                      title="Cell Volume Phase C"
+                                      type="number"
+                                      step="10"
+                                      value={String(qpaPhase3Volume) === 'NaN' ? '' : qpaPhase3Volume}
+                                      onChange={(e) => setQpaPhase3Volume(parseFloat(e.target.value) || 1)}
+                                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                    />
+                                 </div>
+
+                                 <div className="space-y-1 pt-1.5 border-t border-slate-200/50 dark:border-white/5 font-mono">
+                                    <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase">
+                                       <span>Scale Factor (Sp)</span>
+                                       <span className="text-emerald-500 font-bold">{qpaPhase3Scale.toFixed(5)}</span>
+                                    </div>
+                                    <input 
+                                      title="Scale Factor Phase C"
+                                      type="range"
+                                      min="0.0001"
+                                      max="0.0100"
+                                      step="0.0001"
+                                      value={String(qpaPhase3Scale) === 'NaN' ? '' : qpaPhase3Scale}
+                                      onChange={(e) => setQpaPhase3Scale(parseFloat(e.target.value))}
+                                      className="w-full accent-emerald-500"
+                                    />
+                                 </div>
+                              </div>
+                           </div>
+                         )}
+
                          {/* Results Card */}
                          {(() => {
                            const v1 = qpaPhase1Scale * qpaPhase1Z * qpaPhase1Mass * qpaPhase1Volume;
                            const v2 = qpaPhase2Scale * qpaPhase2Z * qpaPhase2Mass * qpaPhase2Volume;
-                           const sumV = v1 + v2;
+                           const v3 = qpaPhase3Enabled ? qpaPhase3Scale * qpaPhase3Z * qpaPhase3Mass * qpaPhase3Volume : 0;
+                           const sumV = v1 + v2 + v3;
                            const fraction1 = sumV > 0 ? v1 / sumV : 0.5;
                            const fraction2 = sumV > 0 ? v2 / sumV : 0.5;
+                           const fraction3 = sumV > 0 ? v3 / sumV : 0;
                            
                            return (
-                             <div className="lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex flex-col justify-between space-y-6 text-white font-sans">
+                             <div className={`${qpaPhase3Enabled ? 'lg:col-span-12' : 'lg:col-span-4'} bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex flex-col justify-between space-y-6 text-white font-sans`}>
                                 <div>
                                    <span className="text-[9px] font-mono font-black text-amber-400 uppercase tracking-widest block mb-1">Computational Outcomes</span>
                                    <h3 className="text-sm font-extrabold text-slate-100 tracking-tight leading-tight">Live Weight Fractions</h3>
@@ -3305,15 +3547,17 @@ export const LearnModule: React.FC = () => {
                                       <div className="flex justify-between text-[9px] font-black uppercase text-slate-400">
                                          <span>{qpaPhase1Name || 'Phase A'}</span>
                                          <span>{qpaPhase2Name || 'Phase B'}</span>
+                                         {qpaPhase3Enabled && <span>{qpaPhase3Name || 'Phase C'}</span>}
                                       </div>
                                       <div className="h-4 w-full rounded-full overflow-hidden flex bg-slate-850">
                                          <div className="bg-amber-500 h-full transition-all duration-305" style={{ width: `${fraction1 * 100}%` }} />
                                          <div className="bg-indigo-505 h-full transition-all duration-350" style={{ width: `${fraction2 * 100}%` }} />
+                                         {qpaPhase3Enabled && <div className="bg-emerald-500 h-full transition-all duration-350" style={{ width: `${fraction3 * 100}%` }} />}
                                       </div>
                                    </div>
 
                                    {/* Score readout */}
-                                   <div className="grid grid-cols-2 gap-4 font-mono">
+                                   <div className={`grid grid-cols-1 ${qpaPhase3Enabled ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4 font-mono`}>
                                       <div className="p-3 bg-slate-950 rounded-xl border border-white/5 text-center">
                                          <span className="text-[8px] font-black text-amber-400 uppercase tracking-wider block">WEIGHT %</span>
                                          <span className="text-lg font-black text-amber-400 block mt-0.5">{(fraction1 * 100).toFixed(2)}%</span>
@@ -3322,6 +3566,12 @@ export const LearnModule: React.FC = () => {
                                          <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider block">WEIGHT %</span>
                                          <span className="text-lg font-black text-indigo-400 block mt-0.5">{(fraction2 * 100).toFixed(2)}%</span>
                                       </div>
+                                      {qpaPhase3Enabled && (
+                                        <div className="p-3 bg-slate-950 rounded-xl border border-white/5 text-center">
+                                           <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider block">WEIGHT %</span>
+                                           <span className="text-lg font-black text-emerald-400 block mt-0.5">{(fraction3 * 100).toFixed(2)}%</span>
+                                        </div>
+                                      )}
                                    </div>
                                 </div>
 
@@ -3332,6 +3582,7 @@ export const LearnModule: React.FC = () => {
                                    </p>
                                    <p className="flex justify-between font-mono"><span>A: S·Z·M·V</span> <span>{v1.toFixed(1)}</span></p>
                                    <p className="flex justify-between font-mono"><span>B: S·Z·M·V</span> <span>{v2.toFixed(1)}</span></p>
+                                   {qpaPhase3Enabled && <p className="flex justify-between font-mono"><span>C: S·Z·M·V</span> <span>{v3.toFixed(1)}</span></p>}
                                 </div>
                              </div>
                            );

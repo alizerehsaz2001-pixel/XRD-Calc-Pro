@@ -86,7 +86,7 @@ import {
 
 export const XRRModule: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
+  const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
 
   // Config State
   const [config, setConfig] = useState<XRRSimulationConfig>({

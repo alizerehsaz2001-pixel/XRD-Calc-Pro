@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './i18n';
 import { AuthProvider } from './services/firebase';
+import { I18nProvider } from './components/I18nProvider';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,9 +12,11 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <AuthProvider>
-    <App />
-  </AuthProvider>
+  <I18nProvider>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </I18nProvider>
 );
 
 // Register Service Worker only in production to avoid stale developer caching

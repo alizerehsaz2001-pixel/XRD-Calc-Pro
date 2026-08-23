@@ -140,7 +140,11 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<'Popular' | 'All' | 'Europe' | 'Asia' | 'Middle East' | 'Americas'>('Popular');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Popular languages list (Top international lab standards)
+  const popularCodes = ['en', 'de', 'fr', 'es', 'fa', 'zh', 'ja', 'ru', 'ar', 'pt', 'tr', 'it', 'hi', 'ko'];
 
   // Close when clicking outside
   useEffect(() => {
@@ -157,12 +161,24 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
 
   const currentLang = languagesList.find((l) => l.code === i18n.language) || languagesList[0];
 
-  const filteredLanguages = languagesList.filter(
-    (l) =>
-      l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.nativeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredLanguages = languagesList.filter((l) => {
+    // 1. Search Query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        l.name.toLowerCase().includes(q) ||
+        l.nativeName.toLowerCase().includes(q) ||
+        l.code.toLowerCase().includes(q) ||
+        l.region.toLowerCase().includes(q)
+      );
+    }
+    // 2. Category Tab filter
+    if (selectedCategory === 'Popular') {
+      return popularCodes.includes(l.code);
+    }
+    if (selectedCategory === 'All') return true;
+    return l.region.toLowerCase().includes(selectedCategory.toLowerCase());
+  });
 
   const selectLanguage = (code: string) => {
     i18n.changeLanguage(code);
@@ -215,20 +231,40 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
             }}
           >
             {/* Search Input */}
-            <div className="relative mb-3.5" id="language-search-wrapper">
+            <div className="relative mb-2.5" id="language-search-wrapper">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                 <Search className="w-4 h-4" />
               </span>
               <input
                 id="language-search-input"
                 type="text"
-                placeholder="Search language..."
+                placeholder="Search language or region..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:border-indigo-500/50 dark:text-slate-100 placeholder-slate-400 font-medium transition-all"
                 autoFocus
               />
             </div>
+
+            {/* Region Category Chips */}
+            {!searchQuery && (
+              <div className="flex items-center gap-1 overflow-x-auto pb-2.5 mb-1 custom-scrollbar text-[10px]">
+                {(['Popular', 'All', 'Europe', 'Asia', 'Middle East', 'Americas'] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-2.5 py-1 rounded-lg font-black uppercase tracking-wider shrink-0 transition-all ${
+                      selectedCategory === cat
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* List */}
             <div

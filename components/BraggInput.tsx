@@ -562,16 +562,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
             </h2>
             <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">Experimental conditions & diffraction input variables</p>
           </div>
-          {lastAutosaved && (
-            <span className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9.5px] font-mono tracking-tight transition-all duration-300 ml-2 ${
-              isSaving
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 animate-pulse'
-                : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700/50'
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${isSaving ? 'bg-emerald-500 animate-ping' : 'bg-slate-400 dark:bg-slate-500'}`} />
-              {isSaving ? 'saving...' : `saved ${lastAutosaved}`}
-            </span>
-          )}
+          {/* Autosave status indicator hidden as requested */}
         </div>
         <button 
           onClick={handleSync}

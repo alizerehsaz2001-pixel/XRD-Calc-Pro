@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseDoubleVoigtInput, calculateDoubleVoigt } from '../utils/physics';
 import { DoubleVoigtResult } from '../types';
@@ -40,7 +41,11 @@ import {
   RefreshCw,
   Zap,
   AlertTriangle,
-  Award
+  Award,
+  ArrowRight,
+  GitBranch,
+  Compass,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
@@ -107,8 +112,10 @@ export const DoubleVoigtModule: React.FC = () => {
   const [expSubTab, setExpSubTab] = useState<'wavelength' | 'instrument' | 'corrections'>('wavelength');
 
   const [inputData, setInputData] = useState<string>(DV_PRESETS[0].data);
-  const [activePlotTab, setActivePlotTab] = useState<'cauchy' | 'gaussian' | 'profile' | 'summary'>('cauchy');
+  const [activePlotTab, setActivePlotTab] = useState<'concept' | 'cauchy' | 'gaussian' | 'profile' | 'summary'>('concept');
   const [selectedPeakIdx, setSelectedPeakIdx] = useState<number>(0);
+  const [interactiveEta, setInteractiveEta] = useState<number>(0.60);
+  const [activeStepHover, setActiveStepHover] = useState<number | null>(null);
 
   const [result, setResult] = useState<DoubleVoigtResult | null>(() => {
     try {
@@ -252,6 +259,35 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
     return { points, line, startX, endX };
   }, [result]);
 
+  // Concept simulation profile data for interactive Double-Voigt breakdown
+  const conceptProfileData = React.useMemo(() => {
+    const numPoints = 100;
+    const center = 38.0;
+    const fwhm = 0.40;
+    const halfWidth = fwhm * 3.5;
+    const gamma = fwhm / 2;
+    const sigma = fwhm / (2 * Math.sqrt(2 * Math.LN2));
+
+    const points = [];
+    for (let i = 0; i < numPoints; i++) {
+      const x = (center - halfWidth) + (i / (numPoints - 1)) * (2 * halfWidth);
+      const dx = x - center;
+
+      const cauchy = (1 / Math.PI) * (gamma / (dx * dx + gamma * gamma)) * (Math.PI * gamma);
+      const gaussian = Math.exp(-(dx * dx) / (2 * sigma * sigma));
+      const voigt = interactiveEta * cauchy + (1 - interactiveEta) * gaussian;
+
+      points.push({
+        twoTheta: parseFloat(x.toFixed(3)),
+        voigt: parseFloat(voigt.toFixed(4)),
+        cauchySize: parseFloat((interactiveEta * cauchy).toFixed(4)),
+        gaussianStrain: parseFloat(((1 - interactiveEta) * gaussian).toFixed(4))
+      });
+    }
+
+    return points;
+  }, [interactiveEta]);
+
   // Generate Voigt profile deconvolution curve simulation for selected peak
   const selectedPeakProfileData = React.useMemo(() => {
     if (!result || !result.points || result.points.length === 0) return null;
@@ -369,11 +405,14 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
             <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
               <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Step 1
+                </span>
                 <Atom className="w-4 h-4 text-indigo-400 animate-spin-slow" />
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">Experimental Configuration</h3>
               </div>
-              <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20 shadow-inner">
-                Langford Double-Voigt
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> Configured
               </span>
             </div>
 
@@ -747,13 +786,16 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
           <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-white/20 transition-colors duration-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  Step 2
+                </span>
                 <Database className="w-4 h-4 text-indigo-400" />
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">Reflections Input</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setInputData('')}
-                  className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1.5 transition-colors px-2.5 py-1.5 bg-black/40 rounded-lg hover:bg-white/5 border border-transparent hover:border-red-500/20"
+                  className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1.5 transition-colors px-2.5 py-1.5 bg-black/40 rounded-lg hover:bg-white/5 border border-transparent hover:border-red-500/20 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Clear
@@ -795,8 +837,11 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
           <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/20 shadow-[0_8px_30px_rgba(99,102,241,0.05)] space-y-4 hover:border-indigo-500/40 transition-colors duration-500 relative overflow-hidden group">
             <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
             <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2 relative z-10">
+              <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Step 3
+              </span>
               <Info className="w-4 h-4" />
-              Double-Voigt Physical Formulation Guide
+              Double-Voigt Formulation Guide
             </h4>
             <p className="text-xs text-slate-300 leading-relaxed relative z-10">
               Calculates area-weighted crystallite size <span className="font-mono text-indigo-300">(D_A)</span> via Langford&apos;s formula by integrating the combined Cauchy and Gaussian Voigt contributions:
@@ -950,52 +995,151 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
           {/* Interactive Plots Navigation Container */}
           {result && (
             <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5">
+
+              {/* Method Stepper Pipeline */}
+              <div className="bg-[#050C17]/90 p-4 rounded-2xl border border-indigo-500/20 shadow-inner space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-indigo-400 animate-pulse" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">Double-Voigt Logical Execution Pipeline</span>
+                  </div>
+                  <span className="text-[10px] text-indigo-300 font-mono bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                    Click any step to inspect physics
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  <button
+                    onClick={() => setActivePlotTab('profile')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      activePlotTab === 'profile'
+                        ? 'bg-cyan-500/10 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        Step 1
+                      </span>
+                      <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                    </div>
+                    <h5 className="text-xs font-bold text-white mb-0.5">1. Profile Deconvolution</h5>
+                    <p className="text-[10px] text-slate-400 leading-tight">Strip instrumental broadening g(2θ)</p>
+                  </button>
+
+                  <button
+                    onClick={() => setActivePlotTab('concept')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      activePlotTab === 'concept'
+                        ? 'bg-indigo-500/10 border-indigo-400 text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        Step 2
+                      </span>
+                      <GitBranch className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <h5 className="text-xs font-bold text-white mb-0.5">2. Voigt Split (L vs G)</h5>
+                    <p className="text-[10px] text-slate-400 leading-tight">Separate Cauchy & Gaussian parts</p>
+                  </button>
+
+                  <button
+                    onClick={() => setActivePlotTab('cauchy')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      activePlotTab === 'cauchy' || activePlotTab === 'gaussian'
+                        ? 'bg-purple-500/10 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        Step 3
+                      </span>
+                      <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+                    </div>
+                    <h5 className="text-xs font-bold text-white mb-0.5">3. Dual Regressions</h5>
+                    <p className="text-[10px] text-slate-400 leading-tight">Extract D_V from s and e_G from s²</p>
+                  </button>
+
+                  <button
+                    onClick={() => setActivePlotTab('summary')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      activePlotTab === 'summary'
+                        ? 'bg-emerald-500/10 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Step 4
+                      </span>
+                      <Award className="w-3.5 h-3.5 text-emerald-400" />
+                    </div>
+                    <h5 className="text-xs font-bold text-white mb-0.5">4. Microstructure</h5>
+                    <p className="text-[10px] text-slate-400 leading-tight">Synthesize D_V, D_A, and strain e_G</p>
+                  </button>
+                </div>
+              </div>
               
               {/* Tab Selector Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/5 pb-4">
-                <div className="flex flex-wrap items-center gap-2 p-1 bg-black/40 rounded-xl border border-white/10 w-full sm:w-auto">
+                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10 w-full sm:w-auto">
+                  <button
+                    onClick={() => setActivePlotTab('concept')}
+                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center flex items-center justify-center gap-1.5 cursor-pointer ${
+                      activePlotTab === 'concept'
+                        ? 'bg-indigo-500 text-black shadow-lg shadow-indigo-500/30'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Concept Simulation</span>
+                  </button>
+
                   <button
                     onClick={() => setActivePlotTab('cauchy')}
-                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
+                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'cauchy'
                         ? 'bg-indigo-500 text-black shadow-lg shadow-indigo-500/30'
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    1. Cauchy Plot (β_C* vs s)
+                    Cauchy Plot (β_C* vs s)
                   </button>
 
                   <button
                     onClick={() => setActivePlotTab('gaussian')}
-                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
+                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'gaussian'
                         ? 'bg-purple-500 text-black shadow-lg shadow-purple-500/30'
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    2. Gaussian Plot ((β_G*)^2 vs s^2)
+                    Gaussian Plot ((β_G*)^2 vs s^2)
                   </button>
 
                   <button
                     onClick={() => setActivePlotTab('profile')}
-                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
+                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'profile'
                         ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30'
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    3. Peak Profile Deconvolution
+                    Profile Deconvolution
                   </button>
 
                   <button
                     onClick={() => setActivePlotTab('summary')}
-                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
+                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'summary'
                         ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30'
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    4. Size Spectrum
+                    Size Spectrum
                   </button>
                 </div>
 
@@ -1022,6 +1166,181 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   </button>
                 </div>
               </div>
+
+              {/* Tab 0: Interactive Concept Simulation Tab */}
+              {activePlotTab === 'concept' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-5 bg-[#030710]/60 p-5 sm:p-6 rounded-2xl border border-indigo-500/30 relative shadow-inner"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-indigo-400" />
+                        <span>Interactive Voigt Component Breakdown Visualizer</span>
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Move the Lorentzian fraction slider below to see how a Voigt peak splits into Cauchy (Size) and Gaussian (Strain) curves.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10 text-xs font-mono text-indigo-300">
+                      <span>Lorentzian Fraction (η):</span>
+                      <strong className="text-white bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
+                        {interactiveEta.toFixed(2)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Interactive Control Slider */}
+                  <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2">
+                    <div className="flex justify-between items-center text-xs font-mono">
+                      <span className="text-indigo-400 font-bold flex items-center gap-1.5">
+                        <Sliders className="w-3.5 h-3.5" />
+                        Adjust Peak Profile Shape (η = Lorentzian Area / Total Area)
+                      </span>
+                      <span className="text-slate-300 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 text-[11px]">
+                        {interactiveEta > 0.70 
+                          ? 'Crystallite Size Broadening Dominates (Heavy Tails)' 
+                          : interactiveEta < 0.35 
+                          ? 'Lattice Microstrain Broadening Dominates (Gaussian Core)' 
+                          : 'Convoluted Size + Microstrain Profile'}
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0.05"
+                      max="0.95"
+                      step="0.01"
+                      value={interactiveEta}
+                      onChange={(e) => setInteractiveEta(parseFloat(e.target.value))}
+                      className="w-full accent-indigo-400 cursor-pointer h-2 bg-white/10 rounded-lg appearance-none"
+                    />
+
+                    <div className="flex justify-between text-[10px] font-mono text-slate-400 pt-1">
+                      <span className="text-purple-400 font-bold">← η = 0.05 (Pure Gaussian / Strain)</span>
+                      <span className="text-slate-300 font-semibold">η = 0.50 (Voigt Balance)</span>
+                      <span className="text-indigo-400 font-bold">η = 0.95 (Pure Cauchy / Domain Size) →</span>
+                    </div>
+                  </div>
+
+                  {/* Live Simulation Chart */}
+                  <div className="h-72 sm:h-96 w-full pt-2">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={conceptProfileData} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
+                        <XAxis
+                          dataKey="twoTheta"
+                          type="number"
+                          domain={['auto', 'auto']}
+                          stroke="#64748b"
+                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                          label={{
+                            value: 'Diffraction Angle 2θ [°]',
+                            position: 'insideBottom',
+                            offset: -15,
+                            fill: '#818cf8',
+                            fontSize: 12,
+                            fontFamily: 'monospace'
+                          }}
+                        />
+                        <YAxis
+                          type="number"
+                          stroke="#64748b"
+                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                          label={{
+                            value: 'Normalized Intensity [a.u.]',
+                            angle: -90,
+                            position: 'insideLeft',
+                            offset: -10,
+                            fill: '#818cf8',
+                            fontSize: 12,
+                            fontFamily: 'monospace'
+                          }}
+                        />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const d = payload[0].payload;
+                              return (
+                                <div className="bg-[#050C17]/95 border border-indigo-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
+                                  <div className="text-indigo-400 font-bold border-b border-white/10 pb-1">
+                                    2θ = {d.twoTheta}°
+                                  </div>
+                                  <div>Total Voigt V(2θ): <span className="text-white font-bold">{d.voigt}</span></div>
+                                  <div>Cauchy (Size): <span className="text-indigo-400 font-bold">{d.cauchySize}</span></div>
+                                  <div>Gaussian (Strain): <span className="text-purple-400 font-bold">{d.gaussianStrain}</span></div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+
+                        <Line
+                          type="monotone"
+                          dataKey="voigt"
+                          name="Observed Peak Profile V(2θ)"
+                          stroke="#ffffff"
+                          strokeWidth={3}
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="cauchySize"
+                          name="Cauchy (Lorentzian) Component → Size Broadening (D_V)"
+                          stroke="#818cf8"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="gaussianStrain"
+                          name="Gaussian Component → Microstrain Broadening (e_G)"
+                          stroke="#c084fc"
+                          strokeWidth={2}
+                          strokeDasharray="2 2"
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Physical Explanation Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                    <div className="bg-indigo-950/30 p-3.5 rounded-2xl border border-indigo-500/30 space-y-1.5">
+                      <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs">
+                        <Ruler className="w-4 h-4 text-indigo-400" />
+                        <span>Cauchy Component (Lorentzian Wings)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                        Lorentzian broadening extends far into the tail wings. It is caused by **crystallite boundary size limitations**.
+                      </p>
+                      <div className="bg-black/60 p-2 rounded text-center text-indigo-200 font-mono text-[11px] border border-white/5">
+                        β_C*(s) = (1 / D_V) + 2 e_C · s
+                      </div>
+                    </div>
+
+                    <div className="bg-purple-950/30 p-3.5 rounded-2xl border border-purple-500/30 space-y-1.5">
+                      <div className="flex items-center gap-2 text-purple-300 font-bold text-xs">
+                        <TrendingUp className="w-4 h-4 text-purple-400" />
+                        <span>Gaussian Component (Peak Core)</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                        Gaussian broadening forms the central peak core. It is caused by **lattice microstrains and d-spacing distributions**.
+                      </p>
+                      <div className="bg-black/60 p-2 rounded text-center text-purple-200 font-mono text-[11px] border border-white/5">
+                        (β_G*(s))² = (1 / π D_G)² + 8π e_G² · s²
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Tab 1: Cauchy Chart */}
               {activePlotTab === 'cauchy' && cauchyChartData && (

@@ -8338,15 +8338,15 @@ function processTranslationQueue(lang: string) {
 
   const now = Date.now();
   const timeSinceLast = now - lastRequestTime;
-  if (timeSinceLast < 5000) {
-    // Cooldown: enforce at least 5 seconds between API requests
+  if (timeSinceLast < 300) {
+    // High-speed cooldown: 300ms between API batch requests
     if (translationTimeout) clearTimeout(translationTimeout);
-    translationTimeout = setTimeout(() => processTranslationQueue(lang), 5000 - timeSinceLast);
+    translationTimeout = setTimeout(() => processTranslationQueue(lang), 300 - timeSinceLast);
     return;
   }
 
-  // Slice to a reasonable batch size (max 80 keys per request)
-  const keysToTranslate = Array.from(translationQueue[lang]).slice(0, 80);
+  // Slice to a large batch size (max 150 keys per request)
+  const keysToTranslate = Array.from(translationQueue[lang]).slice(0, 150);
   if (keysToTranslate.length === 0) return;
 
   // Remove the keys we are about to translate from the queue
@@ -8382,17 +8382,16 @@ function processTranslationQueue(lang: string) {
         
         // Refresh active language components to apply newly added resources
         if (i18n.language === lang) {
-          // Force react-i18next to re-render by emitting the event manually
           i18n.emit('languageChanged', lang);
         } else {
           i18n.changeLanguage(lang);
         }
       }
       
-      // If there are still keys left in the queue, schedule the next batch
+      // If there are still keys left in the queue, schedule the next batch immediately
       if (translationQueue[lang] && translationQueue[lang].size > 0) {
         if (translationTimeout) clearTimeout(translationTimeout);
-        translationTimeout = setTimeout(() => processTranslationQueue(lang), 5000);
+        translationTimeout = setTimeout(() => processTranslationQueue(lang), 100);
       }
     })
     .catch(err => {
@@ -8409,6 +8408,7 @@ function processTranslationQueue(lang: string) {
 }
 
 function queueTranslation(key: string, lang: string) {
+  if (!key || typeof key !== 'string' || !key.trim()) return;
   if (!translationQueue[lang]) {
     translationQueue[lang] = new Set();
   }
@@ -8420,7 +8420,7 @@ function queueTranslation(key: string, lang: string) {
   
   translationTimeout = setTimeout(() => {
     processTranslationQueue(lang);
-  }, 2500); // Debounce for 2.5 seconds to collect almost all mount keys on load
+  }, 100); // 100ms ultra-fast debounce to batch DOM mount keys
 }
 
 // Programmatic Sync with Google Translate fallback engine

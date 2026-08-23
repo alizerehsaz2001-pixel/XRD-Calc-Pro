@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FullAppTranslator } from './components/FullAppTranslator';
 import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
@@ -297,6 +298,14 @@ const App: React.FC = () => {
       localStorage.setItem('xrd_length_unit', lengthUnit);
     } catch {}
   }, [lengthUnit]);
+
+  // Language & RTL Document Attributes Sync for logical UI rendering
+  useEffect(() => {
+    const rtlLangs = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'];
+    const isRTLActive = rtlLangs.includes(i18n.language);
+    document.documentElement.dir = isRTLActive ? 'rtl' : 'ltr';
+    document.documentElement.lang = i18n.language || 'en';
+  }, [i18n.language]);
 
   const mainContentRef = useRef<HTMLDivElement>(null);
   
@@ -1451,7 +1460,7 @@ const App: React.FC = () => {
     );
   }
 
-  const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
+  const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
 
   return (
     <SettingsContext.Provider value={{
@@ -1464,6 +1473,7 @@ const App: React.FC = () => {
       lengthUnit,
       setLengthUnit
     }}>
+      <FullAppTranslator />
       <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         

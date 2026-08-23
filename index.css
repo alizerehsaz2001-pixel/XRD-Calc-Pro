@@ -438,24 +438,39 @@ body {
 .monokai .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
 .monokai .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-monokai-comment); }
 
-/* Google Translate styling integration to keep visual design pristine */
-.skiptranslate, 
+/* Google Translate styling integration & complete popup/banner suppression */
 .goog-te-banner-frame, 
 .goog-te-banner-frame.skiptranslate, 
 .goog-te-gadget-icon,
 iframe.goog-te-banner-frame,
 #goog-gt-tt,
-.goog-te-balloon-frame {
+#goog-gt-vt,
+.goog-te-balloon-frame,
+.VIpgJd-yD32b-Lg26de,
+.VIpgJd-yD32b-Lg26de-VIpgJd-bl2p3b,
+.VIpgJd-ZA163e-jA320-i3383e,
+.goog-text-highlight,
+.goog-tooltip,
+.goog-tooltip:hover {
   display: none !important;
   visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 body {
   top: 0 !important;
 }
 .goog-te-combo {
-  display: none !important;
+  display: inline-block !important;
 }
 #google_translate_element {
-  display: none !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  opacity: 0.001 !important;
+  pointer-events: none !important;
 }
 @plugin "@tailwindcss/typography";
