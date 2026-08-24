@@ -17,6 +17,9 @@ import { RietveldRFactorCalculator } from './RietveldRFactorCalculator';
 import { PhysicalResidualCorrectionsModule } from './PhysicalResidualCorrectionsModule';
 import { playSynthTone } from '../utils/sound';
 import rietveldBg from '../src/assets/images/rietveld_bg_1785614322504.jpg';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 
 // --- Simulation Constants & Types ---
@@ -1824,8 +1827,305 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
     setPhases(newPhases);
   };
 
+  // Stepwise Auto-Refinement Guided Recipe state
+  const [stepwiseActive, setStepwiseActive] = useState<boolean>(false);
+  const [stepwiseStage, setStepwiseStage] = useState<number>(0);
+  const [stepwiseMessage, setStepwiseMessage] = useState<string>('');
+
+  const runStepwiseRefinement = async () => {
+    if (stepwiseActive) {
+      setStepwiseActive(false);
+      setStepwiseStage(0);
+      setStepwiseMessage('');
+      return;
+    }
+
+    setStepwiseActive(true);
+    playSynthTone('action');
+
+    // Stage 1: Scale Factor & Background
+    setStepwiseStage(1);
+    setStepwiseMessage('Stage 1/5: Aligning specimen scale factor & background baseline...');
+    setUserParams((prev: any) => ({
+      ...prev,
+      scale: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].scale : 1000,
+      background: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].background : 50
+    }));
+    await new Promise(r => setTimeout(r, 750));
+    playSynthTone('switch');
+
+    // Stage 2: Zero Shift & Sample Displacement
+    setStepwiseStage(2);
+    setStepwiseMessage('Stage 2/5: Correcting zero-point angular shift & specimen displacement...');
+    setUserParams((prev: any) => ({
+      ...prev,
+      zeroShift: 0.0,
+      sampleDisplacement: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].sampleDisplacement : 0.0
+    }));
+    await new Promise(r => setTimeout(r, 750));
+    playSynthTone('switch');
+
+    // Stage 3: Lattice Parameter (a)
+    setStepwiseStage(3);
+    setStepwiseMessage('Stage 3/5: Optimizing unit cell lattice parameters (a, b, c)...');
+    setUserParams((prev: any) => ({
+      ...prev,
+      a: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].a : 4.0
+    }));
+    await new Promise(r => setTimeout(r, 800));
+    playSynthTone('switch');
+
+    // Stage 4: Profile Broadening & Pseudo-Voigt (η, FWHM)
+    setStepwiseStage(4);
+    setStepwiseMessage('Stage 4/5: Fitting Caglioti profile shape & pseudo-Voigt Lorentzian fraction (η)...');
+    setUserParams((prev: any) => ({
+      ...prev,
+      fwhm: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].fwhm : 0.2,
+      eta: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].eta : 0.5
+    }));
+    await new Promise(r => setTimeout(r, 800));
+    playSynthTone('switch');
+
+    // Stage 5: Crystallite Size & Microstrain
+    setStepwiseStage(5);
+    setStepwiseMessage('Stage 5/5: Fine-tuning Scherrer domain size and Stokes-Wilson microstrain...');
+    setUserParams((prev: any) => ({
+      ...prev,
+      crystalliteSize: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].crystalliteSize : 100,
+      microstrain: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].microstrain : 0.02
+    }));
+    await new Promise(r => setTimeout(r, 900));
+    playSynthTone('success');
+
+    setStepwiseMessage('Refinement successfully completed! Residual R_wp minimized.');
+    setTimeout(() => {
+      setStepwiseActive(false);
+      setStepwiseStage(0);
+      setStepwiseMessage('');
+    }, 2800);
+  };
+
+  const rietveldWalkthroughSteps: WizardStep[] = [
+    {
+      title: '1. Phase Models & Initial Crystal Structures',
+      subtitle: 'Starting Lattice Constants (a,b,c), Space Groups & Atoms',
+      explanation: 'Define starting structural models for each crystalline phase present in your specimen. Accurate starting lattice parameters and space group symmetry are required to calculate Bragg reflection positions (2θ) from Bragg’s Law λ = 2d sinθ.',
+      tip: 'Import standard CIF files or choose from research-grade crystal database presets for rapid structural initialization.'
+    },
+    {
+      title: '2. Background & Instrumental Alignments',
+      subtitle: 'Zero-Point Shift (2θ₀), Sample Displacement & Scattering Noise',
+      explanation: 'Before refining subtle lattice distortions, calibrate systematic instrument errors. Sample height displacement shifts peaks by -s·cosθ / R, while zero-point error adds a constant angular offset across all reflections.',
+      tip: 'Refine scale factor and background coefficients first, then zero-shift, before opening unit cell dimensions.'
+    },
+    {
+      title: '3. Profile Functions & Microstructure Broadening',
+      subtitle: 'Pseudo-Voigt (η), Caglioti (U,V,W), Size & Microstrain',
+      explanation: 'Model individual reflection profiles using pseudo-Voigt or Pearson VII functions. Peak broadening deconvolves into instrumental divergence (Caglioti parameters), crystallite domain size D (Scherrer), and root-mean-square lattice microstrain ε (Stokes-Wilson).',
+      tip: 'Lorentzian fraction η approaching 1.0 indicates dominant size broadening, while Gaussian fraction indicates strain or instrumental resolution.'
+    },
+    {
+      title: '4. Non-Linear Least-Squares & Convergence Audit',
+      subtitle: 'Weighted Profile Rwp, Expected Rexp, and Goodness-of-Fit (GoF / χ²)',
+      explanation: 'The refinement engine minimizes the weighted sum of squared residuals S = ∑ wᵢ(y_{obs,i} - y_{calc,i})² using Gauss-Newton / Levenberg-Marquardt algorithms. Inspect R_wp (target < 10%) and Goodness of Fit χ² = (R_wp / R_exp)² (target 1.0 – 1.3).',
+      tip: 'A flat, featureless difference curve (I_obs - I_calc) confirms that all diffraction intensity has been quantitatively accounted for.'
+    }
+  ];
+
+  const handleLoadPresetIndex = (idx: number) => {
+    const presetDefinitions = [
+      {
+        name: 'Silicon (NIST SRM 640)',
+        phaseType: 'Silicon (Diamond Cubic)',
+        a: 5.431,
+        targetA: 5.431,
+        scale: 1300,
+        targetScale: 1300,
+        fwhm: 0.12,
+        targetFwhm: 0.12,
+        eta: 0.6,
+        targetEta: 0.6,
+        crystalliteSize: 180,
+        targetCrystalliteSize: 180,
+        microstrain: 0.01,
+        targetMicrostrain: 0.01,
+        peaks: getPeaksForPhase('Silicon (Diamond Cubic)', 5.431)
+      },
+      {
+        name: 'Alpha-Quartz (Trigonal SiO₂)',
+        phaseType: 'Quartz',
+        a: 4.913,
+        targetA: 4.913,
+        scale: 800,
+        targetScale: 800,
+        fwhm: 0.1,
+        targetFwhm: 0.1,
+        eta: 0.7,
+        targetEta: 0.7,
+        crystalliteSize: 200,
+        targetCrystalliteSize: 200,
+        microstrain: 0.01,
+        targetMicrostrain: 0.01,
+        peaks: getPeaksForPhase('Quartz', 4.913)
+      },
+      {
+        name: 'BCC Ferrite Alloy (α-Fe)',
+        phaseType: 'BCC',
+        a: 3.5,
+        targetA: 3.5,
+        scale: 1200,
+        targetScale: 1200,
+        fwhm: 0.15,
+        targetFwhm: 0.15,
+        eta: 0.6,
+        targetEta: 0.6,
+        crystalliteSize: 80,
+        targetCrystalliteSize: 80,
+        microstrain: 0.1,
+        targetMicrostrain: 0.1,
+        peaks: getPeaksForPhase('BCC', 3.5)
+      },
+      {
+        name: 'FCC Copper Nanocrystal (Cu)',
+        phaseType: 'FCC',
+        a: 4.5,
+        targetA: 4.5,
+        scale: 1500,
+        targetScale: 1500,
+        fwhm: 0.25,
+        targetFwhm: 0.25,
+        eta: 0.4,
+        targetEta: 0.4,
+        crystalliteSize: 120,
+        targetCrystalliteSize: 120,
+        microstrain: 0.02,
+        targetMicrostrain: 0.02,
+        peaks: getPeaksForPhase('FCC', 4.5)
+      },
+      {
+        name: 'Perovskite Ceramic (CaTiO₃)',
+        phaseType: 'Perovskite',
+        a: 3.905,
+        targetA: 3.905,
+        scale: 900,
+        targetScale: 900,
+        fwhm: 0.12,
+        targetFwhm: 0.12,
+        eta: 0.5,
+        targetEta: 0.5,
+        crystalliteSize: 180,
+        targetCrystalliteSize: 180,
+        microstrain: 0.02,
+        targetMicrostrain: 0.02,
+        peaks: getPeaksForPhase('Perovskite', 3.905)
+      },
+      {
+        name: 'Rutile Titania (TiO₂)',
+        phaseType: 'Rutile',
+        a: 4.594,
+        targetA: 4.594,
+        scale: 1000,
+        targetScale: 1000,
+        fwhm: 0.18,
+        targetFwhm: 0.18,
+        eta: 0.6,
+        targetEta: 0.6,
+        crystalliteSize: 150,
+        targetCrystalliteSize: 150,
+        microstrain: 0.03,
+        targetMicrostrain: 0.03,
+        peaks: getPeaksForPhase('Rutile', 4.594)
+      },
+      {
+        name: 'Corundum Alumina (α-Al₂O₃)',
+        phaseType: 'Alumina (Hexagonal)',
+        a: 4.758,
+        targetA: 4.758,
+        scale: 1100,
+        targetScale: 1100,
+        fwhm: 0.14,
+        targetFwhm: 0.14,
+        eta: 0.5,
+        targetEta: 0.5,
+        crystalliteSize: 160,
+        targetCrystalliteSize: 160,
+        microstrain: 0.02,
+        targetMicrostrain: 0.02,
+        peaks: getPeaksForPhase('Alumina (Hexagonal)', 4.758)
+      }
+    ];
+
+    const preset = presetDefinitions[idx];
+    if (!preset) return;
+
+    const newPhase = {
+      id: `phase_${Date.now()}`,
+      name: preset.name,
+      phaseType: preset.phaseType,
+      enabled: true,
+      a: Number((preset.a * 1.02).toFixed(4)),
+      targetA: preset.targetA,
+      scale: Math.round(preset.scale * 0.85),
+      targetScale: preset.targetScale,
+      fwhm: Number((preset.fwhm * 1.25).toFixed(3)),
+      targetFwhm: preset.targetFwhm,
+      eta: Number(Math.min(0.95, preset.eta * 1.1).toFixed(2)),
+      targetEta: preset.targetEta,
+      crystalliteSize: Math.round(preset.crystalliteSize * 0.85),
+      targetCrystalliteSize: preset.targetCrystalliteSize,
+      microstrain: Number((preset.microstrain * 1.4).toFixed(3)),
+      targetMicrostrain: preset.targetMicrostrain,
+      peaks: preset.peaks
+    };
+
+    setSimPhases([newPhase]);
+    setSelectedSimPhaseIdx(0);
+    setIsAutoRefining(false);
+    playSynthTone('chime');
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
+      {/* 0. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="Full-Pattern Rietveld Refinement & Structural Optimization Engine"
+        description="Master multi-phase powder diffraction modeling, Caglioti profile broadening, Gauss-Newton least-squares optimization, and statistical R-factor quality audits."
+        steps={rietveldWalkthroughSteps}
+        presetNames={[
+          'Silicon NIST Standard (Cubic SRM 640)',
+          'Alpha-Quartz (Trigonal SiO₂)',
+          'BCC Ferrite Alloy (α-Fe)',
+          'FCC Copper Nanocrystals (Cu)',
+          'Perovskite Ceramic (CaTiO₃)',
+          'Rutile Titania (TiO₂)',
+          'Corundum Alumina (α-Al₂O₃)'
+        ]}
+        onLoadBenchmarkPreset={(idx) => {
+          handleLoadPresetIndex(idx);
+        }}
+      />
+
+      {/* 0.5 Physical Meaning Verdict Banner */}
+      <PhysicalMeaningSummary
+        title="Rietveld Refinement Quality Verdict"
+        tone={rFactor < 10 ? 'success' : rFactor < 20 ? 'warning' : 'info'}
+        statement={`Weighted profile residual R_wp = ${rFactor.toFixed(2)}% with Goodness of Fit GoF (χ²) = ${(Math.pow(rFactor / referenceRwp, 2)).toFixed(2)} across ${simPhases.filter(p => p.enabled).length} active crystalline phase(s).`}
+        contextNote={`Refinement status: ${
+          rFactor < 10
+            ? 'Excellent research-grade convergence. Difference curve is flat and random statistical noise is reached.'
+            : rFactor < 18
+            ? 'Acceptable starting fit. Minor peak shape or background mismatches remain; consider tuning profile broadening (η / FWHM) or zero shift.'
+            : 'Significant structural residual detected. Ensure lattice parameters a and sample displacement are close to the target reflections before refining atomic coordinates.'
+        } Primary phase: ${currentPhaseObj.name} (Lattice a = ${currentPhaseObj.a.toFixed(4)} Å, Volume V = ${computeCrystallographicVolumeAndDensity(currentPhaseObj.phaseType, currentPhaseObj.a).volume.toFixed(2)} Å³).`}
+        metrics={[
+          { label: 'R_wp Residual', value: `${rFactor.toFixed(2)}`, unit: '%' },
+          { label: 'Expected R_exp', value: `${referenceRwp.toFixed(2)}`, unit: '%' },
+          { label: 'Goodness of Fit χ²', value: `${(Math.pow(rFactor / referenceRwp, 2)).toFixed(2)}`, unit: '' },
+          { label: 'Active Cell a', value: `${currentPhaseObj.a.toFixed(4)}`, unit: 'Å' },
+          { label: 'Stability Index', value: `${stabilityPercentage.toFixed(1)}`, unit: '%' }
+        ]}
+      />
+
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#051118] to-[#010912] p-6 md:p-10 border border-teal-500/20 shadow-[0_0_40px_rgba(20,184,166,0.15)] group">
         <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
@@ -1949,7 +2249,19 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                   <button 
+                    onClick={runStepwiseRefinement}
+                    className={`px-3.5 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${
+                      stepwiseActive 
+                        ? 'text-emerald-300 bg-emerald-500/20 border-emerald-500/50 shadow-[0_0_15px_rgba(52,211,153,0.3)] animate-pulse' 
+                        : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.15)]'
+                    }`}
+                    title="Run Stepwise Crystallographic Auto-Refinement (Scale -> Zero -> Lattice -> Profile -> Microstrain)"
+                   >
+                     <Zap className="w-4 h-4 text-emerald-400" />
+                     {stepwiseActive ? 'Refining Recipe...' : 'Easy Refine'}
+                   </button>
                    <button 
                     onClick={() => {
                        setUserParams({
@@ -2011,6 +2323,76 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <PlayCircle className={`w-4 h-4 ${isAutoRefining ? 'animate-pulse' : ''}`} />
                       {isAutoRefining ? 'Halt Engine' : 'Live Tuning'}
                     </button>
+                </div>
+              </div>
+
+              {/* Stepwise Auto-Refinement Guided Recipe Tracker Banner */}
+              {(stepwiseActive || stepwiseMessage) && (
+                <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#071318] to-teal-950/40 border border-emerald-500/30 shadow-[0_0_20px_rgba(52,211,153,0.15)] animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 animate-spin" />
+                      Stepwise Crystallographic Refinement Sequence
+                    </span>
+                    <span className="text-[9px] font-mono text-emerald-300 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      Step {stepwiseStage} of 5
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-5 gap-1.5 mb-3">
+                    {[
+                      { step: 1, label: 'Scale & Bkg' },
+                      { step: 2, label: 'Zero Shift' },
+                      { step: 3, label: 'Lattice (a)' },
+                      { step: 4, label: 'Profile (η)' },
+                      { step: 5, label: 'Microstrain' }
+                    ].map(({ step, label }) => (
+                      <div
+                        key={step}
+                        className={`text-center py-1 rounded text-[8px] font-mono font-bold uppercase transition-all ${
+                          stepwiseStage === step
+                            ? 'bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(52,211,153,0.8)] font-black scale-105'
+                            : stepwiseStage > step
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-slate-900/60 text-slate-500 border border-slate-800'
+                        }`}
+                      >
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-emerald-200/90 font-medium">
+                    {stepwiseMessage}
+                  </p>
+                </div>
+              )}
+
+              {/* Quick Preset Selector Pill Bar */}
+              <div className="mb-5 p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Layers className="w-3 h-3 text-teal-400" />
+                    Quick Standard Benchmarks
+                  </span>
+                  <span className="text-[8px] text-slate-500 font-mono">1-Click Load</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { name: 'Silicon NIST', idx: 0 },
+                    { name: 'Quartz (SiO₂)', idx: 1 },
+                    { name: 'BCC Iron (α-Fe)', idx: 2 },
+                    { name: 'FCC Copper', idx: 3 },
+                    { name: 'Perovskite (CaTiO₃)', idx: 4 },
+                    { name: 'Rutile (TiO₂)', idx: 5 },
+                    { name: 'Alumina (Al₂O₃)', idx: 6 }
+                  ].map((p) => (
+                    <button
+                      key={p.idx}
+                      onClick={() => handleLoadPresetIndex(p.idx)}
+                      className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-slate-900 hover:bg-teal-500/20 text-slate-300 hover:text-teal-300 border border-slate-800 hover:border-teal-500/30 transition-all active:scale-95"
+                    >
+                      {p.name}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -2500,7 +2882,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         <div className="grid grid-cols-2 gap-3">
                           <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 group/lattice">
                             <div className="flex justify-between items-center mb-1.5">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                              <div className="flex items-center gap-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                                <WhatDoesThisMeanTooltip
+                                  term="Unit Cell Parameter"
+                                  symbol="a"
+                                  explanation="Length of the unit cell edges determining crystal volume and Bragg angle positions."
+                                  physicalInterpretation="Shifting lattice constant a compresses or expands the d-spacing (d = a/√(h²+k²+l²)), moving peak 2θ centers according to Bragg's law."
+                                  ruleOfThumb="Refine lattice parameters after setting scale and zero-shift."
+                                />
+                              </div>
                               <span className="text-[10px] font-mono font-black text-teal-400">{userParams.a.toFixed(4)} Å</span>
                             </div>
                             <input 
@@ -2520,14 +2911,23 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
 
                           <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 group/scale">
                             <div className="flex justify-between items-center mb-1.5">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
+                              <div className="flex items-center gap-1">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
+                                <WhatDoesThisMeanTooltip
+                                  term="Phase Scale Factor"
+                                  symbol="S_p"
+                                  explanation="Multiplication constant tying calculated relative structure factors to experimental detector photon count levels."
+                                  physicalInterpretation="Proportional to phase volume fraction in multi-phase quantitative analysis."
+                                  ruleOfThumb="Refine scale factor first before unfreezing structural or profile parameters."
+                                />
+                              </div>
                               <span className="text-[10px] font-mono font-black text-blue-400">{userParams.scale}</span>
                             </div>
                             <input 
                               type="range" 
                               min="100" 
                               max="2000" 
-                              step="10"
+                              step="10" 
                               value={String(userParams.scale) === 'NaN' ? '' : userParams.scale}
                               onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
                               className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-blue-500"
@@ -2989,7 +3389,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/fwhm">
                         <div className="flex justify-between items-center mb-3">
                           <div className="flex flex-col">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base FWHM</label>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base FWHM</label>
+                              <WhatDoesThisMeanTooltip
+                                term="Full Width at Half Maximum"
+                                symbol="H_k"
+                                explanation="Width of the Bragg diffraction peak at 50% of its maximum intensity."
+                                physicalInterpretation="Derived from instrumental optics (Caglioti parameters U, V, W) and crystallite broadening."
+                                ruleOfThumb="Typically 0.05° to 0.25° in high-resolution powder diffractometers."
+                              />
+                            </div>
                             <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/fwhm:text-rose-400/80 transition-colors">Instrumental Eq.</span>
                           </div>
                           <div className="flex items-center gap-0.5">
@@ -3008,7 +3417,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/mix">
                         <div className="flex justify-between items-center mb-3">
                           <div className="flex flex-col">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix (η)</label>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix (η)</label>
+                              <WhatDoesThisMeanTooltip
+                                term="Pseudo-Voigt Lorentzian Fraction"
+                                symbol="η"
+                                explanation="Mixing fraction between Gaussian (η=0) and Lorentzian/Cauchy (η=1) peak profile functions."
+                                physicalInterpretation="Higher η indicates sample domain-size broadening; lower η indicates Gaussian strain or instrument optics."
+                                ruleOfThumb="Pure size broadening produces Lorentzian tails (η > 0.6)."
+                              />
+                            </div>
                             <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/mix:text-rose-400/80 transition-colors">Lorentzian Frac</span>
                           </div>
                           <div className="flex items-center gap-0.5">
@@ -3027,7 +3445,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/size">
                         <div className="flex justify-between items-center mb-3">
                           <div className="flex flex-col">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size (nm)</label>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size (nm)</label>
+                              <WhatDoesThisMeanTooltip
+                                term="Apparent Crystallite Domain Size"
+                                symbol="D"
+                                explanation="Mean coherently diffracting domain dimension calculated from Scherrer's equation β = Kλ / (D cosθ)."
+                                physicalInterpretation="Nanoscale particles (<100 nm) cause significant peak broadening."
+                                ruleOfThumb="Large single-crystals (>500 nm) show no detectable size broadening."
+                              />
+                            </div>
                             <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/size:text-indigo-400/80 transition-colors">Scherrer Broadening</span>
                           </div>
                           <div className="flex items-center gap-0.5">
@@ -3046,7 +3473,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/strain">
                         <div className="flex justify-between items-center mb-3">
                           <div className="flex flex-col">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Strain %</label>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Strain %</label>
+                              <WhatDoesThisMeanTooltip
+                                term="Root-Mean-Square Lattice Microstrain"
+                                symbol="ε"
+                                explanation="Non-uniform lattice distortions (Δd/d) caused by dislocations, grain boundaries, and defects."
+                                physicalInterpretation="Broadens peaks proportional to tan(θ) via Stokes-Wilson relation β = 4ε tanθ."
+                                ruleOfThumb="Annealed powder standards have negligible strain (<0.02%)."
+                              />
+                            </div>
                             <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/strain:text-amber-400/80 transition-colors">Stokes-Wilson Gauss</span>
                           </div>
                           <div className="flex items-center gap-0.5">
@@ -3079,7 +3515,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         <div className="flex items-center gap-2">
                           <Ruler className="w-3.5 h-3.5 text-zinc-400" />
                           <div className="flex flex-col">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sample Displ. (mm)</label>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sample Displ. (mm)</label>
+                              <WhatDoesThisMeanTooltip
+                                term="Specimen Height Displacement"
+                                symbol="s"
+                                explanation="Physical displacement of the flat specimen surface above or below the diffractometer focusing circle."
+                                physicalInterpretation="Induces angular shifts Δ2θ = -2s·cosθ / R, shifting low-angle peaks more severely than high-angle peaks."
+                                ruleOfThumb="Refine before refining unconstrained lattice parameters to prevent severe parameter correlation."
+                              />
+                            </div>
                             <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/sdispl:text-zinc-400/80 transition-colors">cos(θ) Peak Shift Error</span>
                           </div>
                         </div>
@@ -3095,7 +3540,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         type="range" 
                         min="-2.0" 
                         max="2.0" 
-                        step="0.01"
+                        step="0.01" 
                         value={String(userParams.sampleDisplacement) === 'NaN' ? '' : userParams.sampleDisplacement}
                         onChange={(e) => setUserParams({...userParams, sampleDisplacement: parseFloat(e.target.value)})}
                         className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
@@ -3107,7 +3552,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         <div className="flex items-center gap-2">
                           <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
                           <div className="flex flex-col">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift (°)</label>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift (°)</label>
+                              <WhatDoesThisMeanTooltip
+                                term="Diffractometer Zero-Point Error"
+                                symbol="2θ₀"
+                                explanation="Constant instrumental mechanical alignment offset on the 2θ detector arm."
+                                physicalInterpretation="Shifts all peak positions uniformly across the entire scan range."
+                                ruleOfThumb="Target ±0.02° after rigorous standard calibration with NIST SRM 640."
+                              />
+                            </div>
                             <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/zshift:text-zinc-400/80 transition-colors">Constant 2θ Offset</span>
                           </div>
                         </div>
@@ -3123,7 +3577,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         type="range" 
                         min="-1.0" 
                         max="1.0" 
-                        step="0.01"
+                        step="0.01" 
                         value={String(userParams.zeroShift) === 'NaN' ? '' : userParams.zeroShift}
                         onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value)})}
                         className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
@@ -3135,7 +3589,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         <div className="flex items-center gap-2">
                           <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
                           <div className="flex flex-col">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
+                            <div className="flex items-center gap-1">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
+                              <WhatDoesThisMeanTooltip
+                                term="Diffraction Background Baseline"
+                                symbol="B(2θ)"
+                                explanation="Continuous scattering background from sample holder, air scatter, fluorescence, and amorphous content."
+                                physicalInterpretation="Modeled by Chebyshev polynomial or linear baseline to isolate pure Bragg reflection intensities."
+                                ruleOfThumb="Overestimating background falsely suppresses weak reflections."
+                              />
+                            </div>
                             <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/bkg:text-zinc-400/80 transition-colors">Incoherent Scattering</span>
                           </div>
                         </div>
@@ -3228,7 +3691,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                     </div>
                     <div className="flex items-center justify-between relative z-10 border-b border-slate-800 pb-3 mb-3">
                       <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Diagnostic Metric</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Diagnostic Metric</span>
+                          <WhatDoesThisMeanTooltip
+                            term="Weighted Profile R-Factor"
+                            symbol="R_{wp}"
+                            explanation="Standard figure of merit in powder diffraction least-squares refinement quantifying total discrepancy between observed and calculated step intensities."
+                            physicalInterpretation="Values below 10% indicate high quality fits; below 5% represents supreme synchrotron/NIST precision."
+                            ruleOfThumb="Refinement is complete when R_wp approaches the expected statistical noise limit R_exp."
+                          />
+                        </div>
                         <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Rwp_index_matrix</span>
                       </div>
                       <div className="text-right flex flex-col items-end">
@@ -3260,7 +3732,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                     <div className="flex flex-col gap-2.5 relative z-10 pt-2 mb-4 border-t border-slate-800/60 mt-2">
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Structural Health</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Structural Health</span>
+                            <WhatDoesThisMeanTooltip
+                              term="Crystallographic Stability Index"
+                              symbol="S_{\text{index}}"
+                              explanation="Relative metric evaluating convergence distance against canonical crystal chemistry benchmarks and coordination geometry."
+                              physicalInterpretation="Scores above 85% reflect physically realistic atomic bond lengths, thermal vibration factors, and space group symmetry."
+                              ruleOfThumb="If stability drops below 50%, check for false minima or strong parameter correlations."
+                            />
+                          </div>
                           <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Stability Index</span>
                         </div>
                         <div className="text-right flex flex-col items-end flex-1 max-w-[65%]">

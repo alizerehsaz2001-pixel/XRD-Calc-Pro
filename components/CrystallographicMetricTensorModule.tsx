@@ -30,6 +30,9 @@ import { MetricTensorBusingLevyTab } from './metric_tensor/MetricTensorBusingLev
 import { MetricTensorStrainThermalTab } from './metric_tensor/MetricTensorStrainThermalTab';
 import { MetricTensorLearningGuideTab } from './metric_tensor/MetricTensorLearningGuideTab';
 import { MetricTensorPythonTab } from './metric_tensor/MetricTensorPythonTab';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 interface CrystallographicMetricTensorModuleProps {
   pythonFeaturesEnabled?: boolean;
@@ -429,8 +432,66 @@ export const CrystallographicMetricTensorModule: React.FC<CrystallographicMetric
     }, 2500);
   };
 
+  const metricWalkthroughSteps: WizardStep[] = [
+    {
+      title: 'Direct Metric Tensor G & Basis Dot Products',
+      subtitle: 'g_ij = a_i · a_j (Lengths & Inter-axial Angles)',
+      explanation: 'Encodes the geometry of the real-space unit cell into a symmetric 3×3 matrix G. Diagonal components represent squared lattice constants (a², b², c²); off-diagonals represent cosine products (ab cosγ, etc.).',
+      tip: 'The determinant det(G) is strictly equal to the square of the unit cell volume: V² = det(G).'
+    },
+    {
+      title: 'Reciprocal Dual Metric Tensor G*',
+      subtitle: 'G* = G⁻¹ (Contravariant Metric Tensor)',
+      explanation: 'Inverse matrix G⁻¹ directly provides the reciprocal basis dot products g*^ij = a*^i · a*^j. It allows exact computation of interplanar d-spacings for any Miller index (hkl) in arbitrary non-orthogonal crystal systems: 1/d² = hᵀ G* h.',
+      tip: 'In orthogonal systems (Cubic, Tetragonal, Orthorhombic), G and G* are purely diagonal.'
+    },
+    {
+      title: 'Busing-Levy Cartesian Orientation Matrix (B)',
+      subtitle: 'Mapping Direct/Reciprocal Axes to Lab XYZ Frame',
+      explanation: 'Constructs the lower triangular B-matrix that converts reciprocal lattice coordinates into Cartesian laboratory coordinates (q_xyz = 2π B · h), essential for single-crystal 4-circle diffractometers.',
+      tip: 'The B-matrix maintains a* aligned with X_lab and b* in the XY plane by International Tables crystallographic standard convention.'
+    },
+    {
+      title: 'Niggli Reduction & Invariants',
+      subtitle: 'Unit Cell Uniqueness & Invariant Traces',
+      explanation: 'Calculates the primary, secondary, and tertiary tensor invariants (I₁, I₂, I₃) and the standard 6-parameter Niggli metric vector [A, B, C, D, E, F] to uniquely classify the Bravais lattice.',
+      tip: 'Niggli reduction eliminates ambiguous unit cell choices by finding the shortest possible non-coplanar basis vectors.'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 space-y-6 font-sans">
+      {/* 0. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="Crystallographic Metric Tensor Engine (G & G*)"
+        description="Master covariant direct metric algebra, contravariant reciprocal duals, Busing-Levy frames, and Niggli reduction."
+        steps={metricWalkthroughSteps}
+        presetNames={MATERIAL_PRESETS.map(m => `${m.name} (${m.system})`)}
+        onLoadBenchmarkPreset={(idx) => {
+          const m = MATERIAL_PRESETS[idx];
+          if (m) {
+            setSystem(m.system);
+            setParams(m.params);
+            setSelectedMaterialId(m.id);
+          }
+        }}
+      />
+
+      {/* 0.5 Physical Meaning Verdict Banner */}
+      {appState === 'results' && (
+        <PhysicalMeaningSummary
+          title="Direct & Reciprocal Metric Tensor Verdict"
+          tone="success"
+          statement={`Unit cell exhibits direct volume V = ${fmt(volumeV, 3)} Å³ and reciprocal cell volume V* = ${fmt(reciprocalVolumeVStar, 6)} Å⁻³ with Niggli order [${fmt(niggliVector.A, 1)}, ${fmt(niggliVector.B, 1)}, ${fmt(niggliVector.C, 1)}].`}
+          contextNote={`Direct metric determinant det(G) = ${fmt(detG, 3)} Å⁶. Reciprocal parameters: a* = ${fmt(aStar, 4)} Å⁻¹, b* = ${fmt(bStar, 4)} Å⁻¹, c* = ${fmt(cStar, 4)} Å⁻¹. ${system === 'Triclinic' || system === 'Monoclinic' ? 'Non-orthogonal cross-terms actively couple d-spacing calculations across non-zero off-diagonals.' : 'Orthogonal metric maintains decoupled reciprocal axes.'}`}
+          metrics={[
+            { label: 'Cell Volume V', value: fmt(volumeV, 2), unit: 'Å³' },
+            { label: 'det(G) Trace', value: fmt(detG, 2), unit: 'Å⁶' },
+            { label: 'Reciprocal a*', value: fmt(aStar, 3), unit: 'Å⁻¹' },
+            { label: 'Invariant I₁', value: fmt(invariantsG.I1, 2), unit: 'Å²' }
+          ]}
+        />
+      )}
 
       {/* Top Banner: Module Header */}
       <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-2xl space-y-6 relative overflow-hidden">

@@ -54,6 +54,9 @@ import { RIRCalibrationStudio } from './rir/RIRCalibrationStudio';
 import { RIRDiffractionVisualizer } from './rir/RIRDiffractionVisualizer';
 import { RIRDatabaseExplorer, RIRDatabaseItem, DATABASE_PRESETS } from './rir/RIRDatabaseExplorer';
 import { RIRTheoryGuide } from './rir/RIRTheoryGuide';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 export interface RIRPhase extends RIRMatrixPhase {
   notes?: string;
@@ -501,8 +504,77 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     reader.readAsText(file);
   };
 
+  const rirWalkthroughSteps: WizardStep[] = [
+    {
+      title: 'Define Crystalline Phases & Corundum Scaling (I/I_cor)',
+      subtitle: 'Chung’s Generalized Normalization Matrix',
+      explanation: 'Every phase is characterized by its reference intensity ratio RIR = I_phase / I_corundum measured against standard α-Al₂O₃ (50:50 wt% mixture). Reduced intensity is defined as r_i = I_i / RIR_i.',
+      tip: 'The standard 100% peak intensity must be used; if secondary reflections are used, scale by the relative peak intensity factor (I_rel / 100).'
+    },
+    {
+      title: 'Weight Fraction Extraction (Chung Normalization)',
+      subtitle: 'w_i = (I_i / RIR_i) / ∑ (I_j / RIR_j)',
+      explanation: 'In the Chung adiabatic method without internal standard, the sum of all crystalline phase weight fractions is constrained to 100%: w_i = r_i / ∑ r_j. No absorption coefficient measurement is necessary.',
+      tip: 'Ensure that all crystalline phases present in the pattern are included in the summation.'
+    },
+    {
+      title: 'Amorphous Content Correction (Spiking or PONKCS)',
+      subtitle: 'Internal Standard or Direct Background Subtraction',
+      explanation: 'If an amorphous halo (glass, polymer, disordered binder) is present, the true total sample weight fractions are scaled: w_total,i = w_cryst,i · (1 - w_amorphous).',
+      tip: 'Spiking with 10–20 wt% highly crystalline Corundum standard allows direct measurement of the amorphous weight fraction.'
+    },
+    {
+      title: 'Mass Attenuation Coefficient (MAC) & Volume Conversions',
+      subtitle: 'V_i = (w_i / ρ_i) / ∑ (w_j / ρ_j)',
+      explanation: 'Converts quantitative weight percentages into phase volume fractions using theoretical crystallographic densities ρ (g/cm³) and computes the effective linear absorption coefficient μ.',
+      tip: 'Volume fraction is critical for mechanical and thermal property prediction in multiphase ceramics and composite alloys.'
+    }
+  ];
+
   return (
     <div className="w-full flex flex-col gap-6 p-4 md:p-6 lg:p-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
+      {/* 0. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="Reference Intensity Ratio (RIR) & Chung Quantitative Engine"
+        description="Master Corundum scaling factors (I/I_cor), adiabatic Chung normalization, amorphous fraction correction, and phase volume fractions."
+        steps={rirWalkthroughSteps}
+        presetNames={MIXTURE_SCENARIOS.map(p => p.name)}
+        onLoadBenchmarkPreset={(idx) => {
+          const p = MIXTURE_SCENARIOS[idx];
+          if (p && p.phases) {
+            setPhases(p.phases.map((ph, i) => ({
+              id: String(i + 1),
+              name: ph.name,
+              hkl: ph.hkl || '100',
+              twoTheta: ph.twoTheta || 25.0,
+              intensity: ph.intensity || 1000,
+              rir: ph.rir || 1.0,
+              density: ph.density || 3.0,
+              mac: ph.mac || 45.0,
+              notes: ph.notes,
+              color: COLOR_PALETTE[i % COLOR_PALETTE.length]
+            })));
+            setAmorphousWtPct(p.amorphous || 0);
+          }
+        }}
+      />
+
+      {/* 0.5 Physical Meaning Verdict Banner */}
+      {dominantPhase && (
+        <PhysicalMeaningSummary
+          title="Quantitative Phase Composition Verdict"
+          tone={amorphousWtPct > 20 ? 'warning' : 'success'}
+          statement={`Sample is dominantly composed of ${dominantPhase.name} at ${dominantPhase.crystallineFraction.toFixed(1)} wt% (crystalline basis) with total calculated sample MAC of ${calculations.totalSampleMAC.toFixed(1)} cm²/g.`}
+          contextNote={`Identified ${calculations.phaseResults.length} crystalline phases. ${amorphousWtPct > 0 ? `Amorphous matrix accounts for ${amorphousWtPct.toFixed(1)} wt% of the total bulk sample.` : 'Zero amorphous background detected; 100% crystalline sample.'} ${dominantPhase.crystallineFraction > 70 ? 'High phase purity observed.' : 'Complex multiphase mixture.'}`}
+          metrics={[
+            { label: 'Dominant Phase', value: dominantPhase.name, unit: '' },
+            { label: 'Dominant wt%', value: dominantPhase.crystallineFraction.toFixed(1), unit: '%' },
+            { label: 'Phase Count', value: String(calculations.phaseResults.length), unit: '' },
+            { label: 'Sample MAC', value: calculations.totalSampleMAC.toFixed(1), unit: 'cm²/g' }
+          ]}
+        />
+      )}
+
       {appState === 'setup' && (
         <>
           {/* Top Module Navigation Bar */}

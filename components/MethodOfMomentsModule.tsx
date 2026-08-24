@@ -53,6 +53,9 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { AIAnalysis } from './AIAnalysis';
 import { PythonCodeExporter } from './PythonCodeExporter';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -331,8 +334,63 @@ export const MethodOfMomentsModule: React.FC = () => {
     });
   }, [result]);
 
+  const momentsWalkthroughSteps: WizardStep[] = [
+    {
+      title: 'Define Integration Range (σ = Δ2θ)',
+      subtitle: 'Progressive Cutoff Limits Around Peak Centroid 2θ₀',
+      explanation: 'Calculates the variance W(σ) = μ₂ of the diffraction line as a function of the integration truncation range σ = |2θ - 2θ₀|. Broad tails carry crucial information regarding crystallite size and lattice strain.',
+      tip: 'Ensure background subtraction is clean; over-subtraction artificially dampens higher-order moments.'
+    },
+    {
+      title: 'Wilson-Langford Variance-Range Parabola',
+      subtitle: 'W(σ) = W₀ + K₁·σ + K₂·σ²',
+      explanation: 'The slope K₁ (linear term) is governed entirely by crystallite size broadening: K₁ = λ / (π² · D_V · cosθ₀). The curvature K₂ (quadratic term) is governed by microstrain: K₂ = 4 · ⟨ε²⟩ · tan²θ₀.',
+      tip: 'In a purely size-broadened sample (e.g. CeO2 nanocrystals), K₂ ≈ 0 and the plot is a straight line!'
+    },
+    {
+      title: 'Reduced Variance Plot: W(σ)/σ vs. σ',
+      subtitle: 'Direct Visual Separation of Size vs. Strain',
+      explanation: 'Dividing variance by σ yields W(σ)/σ = K₁ + K₂·σ. The vertical intercept directly reveals size constant K₁, while any non-zero slope immediately reveals microstrain K₂.',
+      tip: 'A horizontal line in the reduced variance plot proves that the sample is strain-free.'
+    },
+    {
+      title: 'Kurtosis & Peak Shape Factor β_I / FWHM',
+      subtitle: 'Leptokurtic (> 3) vs. Platykurtic (< 3) Peak Tails',
+      explanation: 'Evaluates the 4th moment μ₄ to determine peak sharpness and tail decay. Cauchy/Lorentzian profiles exhibit heavy tails (leptokurtic), while Gaussian profiles exhibit light tails (kurtosis = 3).',
+      tip: 'High kurtosis (> 4) indicates a strong Lorentzian character typically associated with small crystallite dimensions and planar stacking faults.'
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
+      {/* 0. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="Method of Moments & Variance-Range Parabolic Analysis"
+        description="Master Wilson-Langford variance progression, linear size separation (K₁), and quadratic microstrain curvature (K₂)."
+        steps={momentsWalkthroughSteps}
+        presetNames={MOMENT_PRESETS.map(p => p.name)}
+        onLoadBenchmarkPreset={(idx) => {
+          const p = MOMENT_PRESETS[idx];
+          if (p) handleApplyPreset(p);
+        }}
+      />
+
+      {/* 0.5 Physical Meaning Verdict Banner */}
+      {result && (
+        <PhysicalMeaningSummary
+          title="Method of Moments Physical Microstructure Verdict"
+          tone={result.rmsStrain > 0.003 ? 'warning' : 'success'}
+          statement={`Sample yields volume-weighted crystallite size D_V = ${convertLength(result.sizeNm * 10, lengthUnit).toFixed(1)} ${lengthUnit} with an RMS microstrain ⟨ε²⟩¹/² of ${(result.rmsStrain * 100).toFixed(3)}%.`}
+          contextNote={`Linear size slope K₁ = ${result.slopeK1.toExponential(3)} rad; Quadratic strain curvature K₂ = ${result.quadraticK2.toExponential(3)}. ${result.quadraticK2 < 1e-4 ? 'Negligible quadratic curvature confirms predominantly size-broadened, strain-free crystallites.' : 'Noticeable quadratic curvature reveals internal dislocation strain.'}`}
+          metrics={[
+            { label: 'D_V Volume Size', value: convertLength(result.sizeNm * 10, lengthUnit).toFixed(1), unit: lengthUnit },
+            { label: 'RMS Microstrain', value: (result.rmsStrain * 100).toFixed(3), unit: '%' },
+            { label: 'Size Slope K₁', value: result.slopeK1.toExponential(2), unit: 'rad' },
+            { label: 'Strain Curve K₂', value: result.quadraticK2.toExponential(2), unit: '' }
+          ]}
+        />
+      )}
+
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#0B1230] to-[#060A20] p-6 md:p-10 border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.15)] group">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-indigo-500/30 transition-colors duration-700" />

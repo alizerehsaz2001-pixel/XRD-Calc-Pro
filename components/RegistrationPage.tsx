@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
+import { logAuth } from '../services/activityLogger';
 
 interface RegistrationPageProps {
   onRegister: () => void;
@@ -355,6 +356,16 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister, 
             userData.researchRole || researchRole, 
             userData.researchField || researchField
           );
+
+          // Log auth event with full details
+          logAuth(mode === 'login' ? 'LOGIN' : 'REGISTRATION', {
+            name: userData.name,
+            email: userData.email,
+            organization: userData.organization,
+            nationality: userData.nationality,
+            researchRole: userData.researchRole,
+            researchField: userData.researchField
+          });
 
           setTimeout(() => {
             setIsSubmitting(false);

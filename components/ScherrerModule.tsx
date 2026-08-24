@@ -19,6 +19,7 @@ import { PythonCodeExporter } from './PythonCodeExporter';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import scherrerBg from '../src/assets/images/scherrer_bg_1785502401694.jpg';
+import { logCalculation, logExport } from '../services/activityLogger';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -534,6 +535,19 @@ export const ScherrerModule: React.FC = () => {
         }
       }
       setAvgSize(calculatedAvg);
+
+      // Record activity telemetry
+      logCalculation('Scherrer', 'Scherrer Crystallite Size Calculation', {
+        wavelength,
+        constantK,
+        instFwhm,
+        broadeningModel,
+        peaksCount: peaks.length,
+        selectedMaterial
+      }, {
+        averageSize_nm: calculatedAvg,
+        validPeaksCount: valid.length
+      });
 
       localStorage.setItem('xrd_scherrer_current', JSON.stringify({
         wavelength,

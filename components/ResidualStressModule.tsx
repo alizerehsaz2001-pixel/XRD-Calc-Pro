@@ -74,6 +74,9 @@ import { DepthProfilingWorkbench } from './residual_stress/DepthProfilingWorkben
 import { XecCalculatorModal } from './residual_stress/XecCalculatorModal';
 import { ResidualStressReport } from './residual_stress/ResidualStressReport';
 import { PhysicsGuideTab } from './residual_stress/PhysicsGuideTab';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 export interface DataPoint {
   id: string;
@@ -466,8 +469,63 @@ export const ResidualStressModule: React.FC = () => {
     setRawImportText('');
   };
 
+    const residualStressWalkthroughSteps: WizardStep[] = [
+      {
+        title: 'Choose Material & Diffracting Plane (hkl)',
+        subtitle: 'X-ray Elastic Constants (XEC: S₁, ½S₂)',
+        explanation: 'Residual stress measurement requires high Bragg angles (2θ > 120°) so that small lattice strain shifts produce large measurable peak displacements Δ2θ. We select elastic modulus E, Poisson ratio ν, or anisotropic Kroner / Voigt / Reuss bounds.',
+        tip: 'Higher 2θ angles dramatically increase precision because cot(θ) approaches zero: ε = -½ cot(θ) Δ(2θ).'
+      },
+      {
+        title: 'Measure Sample Tilts (sin²ψ Scan)',
+        subtitle: 'ψ Angles from 0° to 60° (Iso-inclination or Side-inclination)',
+        explanation: 'By tilting the sample at angles ψ, the scattering vector probes strain in different directions. In a biaxial planar stress state, the measured d-spacing shifts linearly with sin²ψ: d(ψ) = d₀ + d₀ · ½S₂ · σ_φ · sin²ψ.',
+        tip: 'A negative slope indicates compressive residual stress (surface compression helps prevent fatigue cracks); a positive slope indicates tensile stress.'
+      },
+      {
+        title: 'Detecting ψ-Splitting & Shear Stress',
+        subtitle: 'Dölle-Hauk Elliptical Separation (τ₁₃ / τ₂₃)',
+        explanation: 'When d(ψ⁺) differs from d(ψ⁻), an open ellipse appears in the sin²ψ plot. This is ψ-splitting caused by out-of-plane shear stresses (τ₁₃). The average (a₁) yields normal stress, while the difference (a₂) extracts shear stress.',
+        tip: 'If significant splitting is detected, never fit a simple linear line across all points; use the Dölle-Hauk tab.'
+      },
+      {
+        title: 'Constructing 3D Stress Tensor & ASTM E915 Audit',
+        subtitle: 'Full Triaxial State (σ₁₁, σ₂₂, σ₃₃, τ₁₂, τ₁₃, τ₂₃) & Von Mises Yield Criterion',
+        explanation: 'By combining measurements across multiple azimuth angles φ (0°, 45°, 90°), we reconstruct the complete 3D stress tensor and calculate the Von Mises equivalent stress to compare against material yield strength.',
+        tip: 'Strain-free cross-over angle sin²ψ* = -S₁ / (½S₂) occurs around ψ ≈ 33° where d(ψ*) = d₀ regardless of stress magnitude.'
+      }
+    ];
+
     return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
+      {/* 0. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="sin²ψ Residual Stress & Triaxial Elasticity Tensor"
+        description="Master XEC elastic constants, tilt goniometer geometries, ψ-splitting shear deconvolution, and ASTM E915 compliance."
+        steps={residualStressWalkthroughSteps}
+        presetNames={MATERIAL_PRESETS.map(p => `${p.name} (${p.plane})`)}
+        onLoadBenchmarkPreset={(idx) => {
+          const p = MATERIAL_PRESETS[idx];
+          if (p) loadPreset(p);
+        }}
+      />
+
+      {/* 0.5 Physical Meaning Verdict Banner */}
+      {appState === 'results' && (
+        <PhysicalMeaningSummary
+          title="ASTM E915 / EN 15305 Residual Stress Verdict"
+          tone={stress_MPa < -50 ? 'success' : stress_MPa > 100 ? 'warning' : 'info'}
+          statement={`Material exhibits ${stressType.toLowerCase()} of ${stress_MPa.toFixed(1)} ± ${stressError_MPa.toFixed(1)} MPa with ${dolleHauk.hasSignificantSplitting ? `detectable surface shear (τ₁₃ = ${dolleHauk.tau13.toFixed(1)} MPa)` : 'negligible shear splitting'}.`}
+          contextNote={`Regression linearity R² = ${linearFit.rSquared.toFixed(4)}. Strain-free cross-over point located at ψ* = ${diagnostics.crossoverPsiDeg.toFixed(1)}° (where d equals unstressed d₀ = ${d0.toFixed(4)} ${lengthUnit}). ${stress_MPa < 0 ? 'Surface compressive stress provides enhanced fatigue and stress-corrosion resistance.' : 'Surface tensile stress may increase susceptibility to microcracking.'}`}
+          metrics={[
+            { label: 'Normal Stress σ_φ', value: stress_MPa.toFixed(1), unit: 'MPa' },
+            { label: 'Shear Stress τ₁₃', value: dolleHauk.tau13.toFixed(1), unit: 'MPa' },
+            { label: 'Von Mises σ_vM', value: stressTensor.vonMises.toFixed(1), unit: 'MPa' },
+            { label: 'Linearity R²', value: linearFit.rSquared.toFixed(4), unit: '' }
+          ]}
+        />
+      )}
+
       {/* 1. Header Hero */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div>

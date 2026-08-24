@@ -46,6 +46,7 @@ import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firesto
 import { bulkSaveOfflineMaterials } from '../utils/offlineDb';
 import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
 import { MaterialParameterStudioModal } from './MaterialParameterStudioModal';
+import { CrystallographicIntelligencePanel } from './CrystallographicIntelligencePanel';
 import { fetchLearnedMaterials } from '../services/geminiService';
 
 const LOCAL_STORAGE_KEY = 'crystal_suite_materials_v1';
@@ -5461,77 +5462,12 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                       </div>
                     )}
 
-                    {activeDetailTab === 'lattice' && (() => {
-                      const getSimulatedLatticeParams = (crystalSystem: string) => {
-                        const syst = crystalSystem?.toLowerCase() || '';
-                        if (syst.includes('cubic')) return {a: 4.156, b: 4.156, c: 4.156, alpha: 90, beta: 90, gamma: 90, v: 71.78};
-                        if (syst.includes('tetragonal')) return {a: 3.785, b: 3.785, c: 9.514, alpha: 90, beta: 90, gamma: 90, v: 136.3};
-                        if (syst.includes('hexagonal')) return {a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120, v: 46.5};
-                        if (syst.includes('orthorhombic')) return {a: 4.540, b: 5.860, c: 7.210, alpha: 90, beta: 90, gamma: 90, v: 191.8};
-                        if (syst.includes('monoclinic')) return {a: 5.120, b: 6.890, c: 4.900, alpha: 90, beta: 104.5, gamma: 90, v: 167.3};
-                        if (syst.includes('triclinic')) return {a: 4.100, b: 4.200, c: 4.300, alpha: 88.5, beta: 95.2, gamma: 102.1, v: 71.2};
-                        return {a: 5.0, b: 5.0, c: 5.0, alpha: 90, beta: 90, gamma: 90, v: 125.0};
-                      };
-                      
-                      const lattice = selectedMaterial.latticeParams || getSimulatedLatticeParams(selectedMaterial.crystalSystem);
-                      const volume = (lattice.a * lattice.b * lattice.c * Math.sin((lattice.beta || 90) * Math.PI / 180)).toFixed(2);
-                      const isEstimated = !selectedMaterial.latticeParams;
-
-                      return (
-                        <div className="space-y-4 animate-in fade-in duration-300">
-                          {renderCrystalLattice(selectedMaterial.crystalSystem)}
-                          
-                          <div className="p-4 bg-black/45 border border-slate-900 rounded-xl space-y-3 font-mono">
-                            <div className="flex justify-between items-center border-b border-slate-900 pb-2">
-                              <h4 className="text-[10px] uppercase tracking-wider text-indigo-400 font-extrabold flex items-center gap-1.5 leading-none">
-                                <Box className="w-3.5 h-3.5" />
-                                Crystallographic Intelligence
-                              </h4>
-                              {isEstimated && (
-                                <span className="text-[8px] uppercase font-bold text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-900">Estimated</span>
-                              )}
-                            </div>
-
-                            {/* Lengths & Angles Grid */}
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1 bg-black/30 p-2.5 rounded-lg border border-slate-950">
-                                <span className="text-[8px] uppercase tracking-wider text-slate-500 font-bold block mb-1">Axial Distances (Å)</span>
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex justify-between"><span className="text-slate-400 font-serif italic">a</span> <span className="text-white font-extrabold">{lattice.a.toFixed(3)}</span></div>
-                                  <div className="flex justify-between"><span className="text-slate-400 font-serif italic">b</span> <span className="text-white font-extrabold">{(lattice.b || lattice.a).toFixed(3)}</span></div>
-                                  <div className="flex justify-between"><span className="text-slate-400 font-serif italic">c</span> <span className="text-white font-extrabold">{(lattice.c || lattice.a).toFixed(3)}</span></div>
-                                </div>
-                              </div>
-
-                              <div className="space-y-1 bg-black/30 p-2.5 rounded-lg border border-slate-950">
-                                <span className="text-[8px] uppercase tracking-wider text-slate-500 font-bold block mb-1">Axial Angles (°)</span>
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex justify-between"><span className="text-slate-400 font-serif">α</span> <span className="text-white font-extrabold">{lattice.alpha}°</span></div>
-                                  <div className="flex justify-between"><span className="text-slate-400 font-serif">β</span> <span className="text-white font-extrabold">{lattice.beta}°</span></div>
-                                  <div className="flex justify-between"><span className="text-slate-400 font-serif">γ</span> <span className="text-white font-extrabold">{lattice.gamma}°</span></div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Cell Metadata Row */}
-                            <div className="grid grid-cols-3 gap-2 text-center text-[10px] border-t border-slate-900 pt-2 bg-black/10">
-                              <div className="p-1 px-2 border-r border-slate-900 last:border-0">
-                                <span className="text-slate-500 text-[8px] uppercase block">Space Group</span>
-                                <span className="text-indigo-300 font-extrabold truncate block">{selectedMaterial.spaceGroup || 'N/A'}</span>
-                              </div>
-                              <div className="p-1 px-2 border-r border-slate-900 last:border-0">
-                                <span className="text-slate-500 text-[8px] uppercase block">Z (Formula)</span>
-                                <span className="text-yellow-400 font-extrabold block">{selectedMaterial.zValue || 4}</span>
-                              </div>
-                              <div className="p-1 px-2 last:border-0">
-                                <span className="text-slate-500 text-[8px] uppercase block">Cell Vol.</span>
-                                <span className="text-cyan-400 font-extrabold block">{volume} Å³</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    {activeDetailTab === 'lattice' && (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        {renderCrystalLattice(selectedMaterial.crystalSystem)}
+                        <CrystallographicIntelligencePanel candidate={selectedMaterial} />
+                      </div>
+                    )}
 
                     {activeDetailTab === 'composition' && (
                       <div className="space-y-4 animate-in fade-in duration-300">

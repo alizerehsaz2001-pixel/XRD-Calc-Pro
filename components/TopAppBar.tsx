@@ -108,6 +108,7 @@ export interface TopAppBarProps {
   isRTL: boolean;
   t: (key: string, defaultVal?: any) => any;
   sampleId?: string;
+  onOpenActivityLedger?: () => void;
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
@@ -144,7 +145,8 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   playSynthTone,
   isRTL,
   t,
-  sampleId
+  sampleId,
+  onOpenActivityLedger
 }) => {
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showSystemMenu, setShowSystemMenu] = useState(false);
@@ -741,6 +743,27 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                       {isOnline ? t('Sync Hub', 'Sync Hub') : t('Offline Hub', 'Offline Hub')}
                     </button>
                   </div>
+
+                  {/* Activity & Action Ledger */}
+                  {onOpenActivityLedger && (
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                        <span className="font-semibold">{t('Activity Ledger', 'Activity Ledger')}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          onOpenActivityLedger();
+                          setShowSystemMenu(false);
+                          playSynthTone('switch');
+                        }}
+                        className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-emerald-500/20 text-[10px] transition-all flex items-center gap-1"
+                      >
+                        <Activity className="w-3 h-3" />
+                        {t('Open Ledger', 'Open Ledger')}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Auto-Skip Intros */}
                   {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (

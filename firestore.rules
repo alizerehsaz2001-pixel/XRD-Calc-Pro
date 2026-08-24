@@ -72,6 +72,20 @@ service cloud.firestore {
               (!data.keys().contains('elasticModulus') || (data.elasticModulus is number));
     }
 
+    // Validation for UserActivity
+    function isValidUserActivity(data) {
+       return data.keys().hasAll(['id', 'userId', 'category', 'action', 'timestamp']) &&
+              data.id is string && data.id.size() <= 128 &&
+              data.userId is string && data.userId == request.auth.uid &&
+              data.category is string && data.category.size() <= 64 &&
+              data.action is string && data.action.size() <= 300 &&
+              data.timestamp is string && data.timestamp.size() <= 100 &&
+              (!data.keys().contains('module') || (data.module is string && data.module.size() <= 100)) &&
+              (!data.keys().contains('details') || (data.details is string && data.details.size() <= 20000)) &&
+              (!data.keys().contains('userName') || (data.userName is string && data.userName.size() <= 200)) &&
+              (!data.keys().contains('userEmail') || (data.userEmail is string && data.userEmail.size() <= 256));
+    }
+
     // Subcollections definition
     // /users/{userId}
     match /users/{userId} {
@@ -106,6 +120,15 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(materialId) && isValidCustomMaterial(incoming());
       allow update: if isSignedIn() && isValidId(materialId) && existing().userId == request.auth.uid && isValidCustomMaterial(incoming()) && incoming().userId == existing().userId;
       allow delete: if isSignedIn() && isValidId(materialId) && existing().userId == request.auth.uid;
+    }
+
+    // /userActivities/{activityId}
+    match /userActivities/{activityId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(activityId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(activityId) && isValidUserActivity(incoming());
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(activityId) && existing().userId == request.auth.uid;
     }
   }
 }

@@ -57,6 +57,9 @@ import { CohenModelComparator } from './cohen_refinement/CohenModelComparator';
 import { CohenMetricTensorCard } from './cohen_refinement/CohenMetricTensorCard';
 import { CohenMatrixInspector } from './cohen_refinement/CohenMatrixInspector';
 import { CohenPeakTable } from './cohen_refinement/CohenPeakTable';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 interface CohenRefinementModuleProps {
   activeResults?: BraggResult[];
@@ -328,8 +331,63 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
     }, 2400);
   };
 
+  const cohenWalkthroughSteps: WizardStep[] = [
+    {
+      title: 'Choose Crystal Symmetry & Indexed (hkl, 2θ) Peaks',
+      subtitle: 'Cubic, Tetragonal, Hexagonal, Orthorhombic, or Monoclinic',
+      explanation: 'Cohen’s method requires at least as many independent reflections as unknowns (e.g. 2 for Cubic: A and drift D; 3 for Tetragonal/Hexagonal: A, C, D; 4 for Orthorhombic: A, B, C, D).',
+      tip: 'High-angle reflections (2θ > 60°) have significantly lower systematic error and should always be included for highest lattice precision.'
+    },
+    {
+      title: 'Select Instrumental Drift Error Function δ',
+      subtitle: 'Nelson-Riley, Bradley-Jay, or Flat Sample Displacement',
+      explanation: 'Systematic diffractometer errors scale with trigonometric functions of Bragg angle θ. The Nelson-Riley function δ = cos²θ/sinθ + cos²θ/θ accounts for absorption and beam divergence; cos²θ accounts for flat specimen displacement.',
+      tip: 'Nelson-Riley is the gold standard for standard Bragg-Brentano parafocusing diffractometers.'
+    },
+    {
+      title: 'Solve Normal Equations Matrix [M][X] = [Y]',
+      subtitle: 'Analytical Least-Squares Inversion without Initial Guesses',
+      explanation: 'Constructs the symmetric normal matrix M by summing polynomial terms ∑ αᵢ², ∑ αᵢδᵢ, etc. Unlike iterative non-linear refinement, Cohen’s method solves the exact global minimum algebraically in one step.',
+      tip: 'Condition number of matrix M evaluates numerical stability; orthogonalized parameters prevent matrix singularity.'
+    },
+    {
+      title: 'Extract Lattice Constants & Standard Uncertainties (σ)',
+      subtitle: 'Covariance Matrix [C] = s² [M]⁻¹',
+      explanation: 'Lattice constants a, b, c are computed from coefficients A, B, C (e.g. a = λ / 2√A). Uncertainties σ(a) are derived from the diagonal elements of the inverse covariance matrix and residual variance s².',
+      tip: 'Residual RMS 2θ shift should typically be below ±0.01° for research-grade instrument calibration.'
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* 0. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="Cohen's Analytical Least-Squares Matrix Refinement"
+        description="Master systematic error deconvolution, Nelson-Riley drift models, normal equation matrices, and precision lattice parameters."
+        steps={cohenWalkthroughSteps}
+        presetNames={COHEN_PRESET_SAMPLES.map(p => `${p.name} (${p.system})`)}
+        onLoadBenchmarkPreset={(idx) => {
+          handleSelectPreset(idx);
+        }}
+      />
+
+      {/* 0.5 Physical Meaning Verdict Banner */}
+      {appState === 'results' && refinementData && (
+        <PhysicalMeaningSummary
+          title="Cohen Least-Squares Refinement Verdict"
+          tone={refinementData.rmsTwoThetaShift < 0.02 ? 'success' : 'warning'}
+          statement={`Refined lattice parameter a = ${refinementData.lattice.a.toFixed(5)} ± ${refinementData.sigma.sigmaA.toFixed(5)} Å with unit cell volume V = ${refinementData.volume.toFixed(3)} Å³.`}
+          contextNote={`Systematic error drift parameter D = ${refinementData.D.toExponential(3)} using ${driftType} model. Average RMS 2θ residual shift is ±${refinementData.rmsTwoThetaShift.toFixed(4)}° across ${refinementData.validPeaks.length} diffraction reflections. ${refinementData.rmsTwoThetaShift < 0.015 ? 'Excellent diffractometer alignment and zero-shift calibration.' : 'Moderate angular residuals; verify sample displacement or zero-point alignment.'}`}
+          metrics={[
+            { label: 'Lattice a', value: refinementData.lattice.a.toFixed(4), unit: 'Å' },
+            ...(crystalSystem !== 'Cubic' ? [{ label: 'Lattice c', value: (refinementData.lattice.c || 0).toFixed(4), unit: 'Å' }] : []),
+            { label: 'Cell Volume V', value: refinementData.volume.toFixed(2), unit: 'Å³' },
+            { label: 'RMS 2θ Shift', value: `±${refinementData.rmsTwoThetaShift.toFixed(3)}`, unit: '°' },
+            { label: 'Drift Constant D', value: refinementData.D.toExponential(2), unit: '' }
+          ]}
+        />
+      )}
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-indigo-900/30 relative overflow-hidden space-y-6">
         <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />

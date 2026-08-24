@@ -5,6 +5,9 @@ import { ScientificMathControl } from './ScientificMathControl';
 import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
 import { WarrenAverbachMetricsSummary } from './WarrenAverbachMetricsSummary';
 import { WarrenAverbachPeakConverterModal } from './WarrenAverbachPeakConverterModal';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 import { 
   LineChart,
   Line,
@@ -427,8 +430,72 @@ export const WarrenAverbachModule: React.FC = () => {
     return result.orderPlots.find(p => Math.abs(p.L_nm - selectedOrderPlotL) < 0.1) || result.orderPlots[0];
   }, [result, selectedOrderPlotL]);
 
+  const waWalkthroughSteps: WizardStep[] = [
+    {
+      title: 'Choose Reflection Orders & Material',
+      subtitle: 'Harmonic Setup (e.g. 111, 222, 333)',
+      explanation: 'Warren-Averbach requires at least 2 harmonic orders of the same crystallographic plane family (such as Au (111) and (222)). Size broadening is independent of reflection order, whereas microstrain broadening scales quadratically with diffraction order (1/d²).',
+      tip: 'Higher harmonic orders (d2, d3) exhibit faster Fourier decay because lattice microstrains degrade coherence over larger reciprocal vectors s = 1/d.'
+    },
+    {
+      title: 'Hook Effect Correction',
+      subtitle: 'Correcting Low-L Curvature Artifacts',
+      explanation: 'Experimental background truncation or instrument slit errors cause the Fourier size coefficients A(L) to curve upward at small L (< 2 nm). The Hook correction calculates the true initial slope by linear tangent extrapolation.',
+      tip: 'The area-weighted column length <D>_A is directly equal to the negative inverse of the initial slope: <D>_A = -1 / (dA_S / dL)_{L=0}.'
+    },
+    {
+      title: 'Fourier Deconvolution (Stokes Method)',
+      subtitle: 'ln A(L, s) = ln A_S(L) - 2π²L²⟨ε²⟩_L · s²',
+      explanation: 'For each column length L, we plot ln A(L) against s² = (1/d)². The vertical intercept at s²=0 gives the pure size coefficient A_S(L), and the downward slope gives the RMS microstrain ⟨ε²⟩_L.',
+      tip: 'Notice that as L increases, the slope becomes steeper because strain inhomogeneities span larger coherent crystallite columns.'
+    },
+    {
+      title: 'Dislocation Density & Wilkens Cutoff',
+      subtitle: 'Krivoglaz-Wilkens Microstructure Model',
+      explanation: 'Using the Wilkens strain function and Burgers vector b, we determine the dislocation density ρ (lines/m²) and the effective dislocation interaction radius Re.',
+      tip: 'Dislocation densities in severely deformed metals typically range from 10¹⁴ to 10¹⁶ m⁻², with Re/L ratio revealing dislocation screening.'
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
+    <div className="space-y-6">
+      {/* 1. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="Warren-Averbach Fourier Peak Deconvolution"
+        description="Master harmonic Fourier order separation, Hook effect correction, and Wilkens dislocation density analysis."
+        steps={waWalkthroughSteps}
+        presetNames={MATERIAL_PRESETS.map(p => p.label)}
+        onLoadBenchmarkPreset={(idx) => {
+          const p = MATERIAL_PRESETS[idx];
+          if (p) {
+            setSelectedMaterial(p.label);
+            setD1(p.d1);
+            setD2(p.d2);
+            setD3(p.d3);
+            setShowOrder3(!!p.d3);
+            setBurgersVector(p.burgersVector);
+            setInputData(p.data);
+          }
+        }}
+      />
+
+      {/* 2. Physical Meaning Verdict Banner */}
+      {result && result.metrics && (
+        <PhysicalMeaningSummary
+          title="Warren-Averbach Physical Microstructure Verdict"
+          tone={result.metrics.dislocationDensityM2 > 5e15 ? 'warning' : 'success'}
+          statement={`Sample exhibits an area-weighted column length ⟨D⟩_A of ${result.metrics.areaWeightedColumnLengthNm.toFixed(1)} nm with a dislocation density of ${(result.metrics.dislocationDensityM2).toExponential(2)} m⁻² and strain energy of ${result.metrics.apparentStrainEnergyKJm3.toFixed(2)} kJ/m³.`}
+          contextNote={`Crystallite size distribution peaks at a mode diameter of ${result.metrics.crystalliteSizeDistributionModeNm.toFixed(1)} nm. ${result.metrics.dislocationDensityM2 > 1e15 ? 'High dislocation density indicates severe plastic strain / work hardening.' : 'Low dislocation density indicates well-annealed, low-defect crystallites.'}`}
+          metrics={[
+            { label: '⟨D⟩_A Area Size', value: result.metrics.areaWeightedColumnLengthNm.toFixed(1), unit: 'nm' },
+            { label: '⟨D⟩_V Vol Size', value: result.metrics.volumeWeightedColumnLengthNm.toFixed(1), unit: 'nm' },
+            { label: 'Wilkens Re', value: result.metrics.wilkensCutoffRadiusNm.toFixed(1), unit: 'nm' },
+            { label: 'Dislocation ρ', value: result.metrics.dislocationDensityM2.toExponential(2), unit: 'm⁻²' }
+          ]}
+        />
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       
       {/* Input Configuration Column */}
       <div className="lg:col-span-4 space-y-6">
@@ -1242,6 +1309,7 @@ export const WarrenAverbachModule: React.FC = () => {
         }}
       />
 
+      </div>
     </div>
   );
 };

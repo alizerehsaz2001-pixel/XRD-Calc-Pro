@@ -76,6 +76,7 @@ import {
 } from "lucide-react";
 
 import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
+import { CrystallographicIntelligencePanel } from './CrystallographicIntelligencePanel';
 import { getActiveMaterials } from "../utils/materialsHelper";
 const MATERIAL_DB = getActiveMaterials();
 
@@ -552,6 +553,8 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [showResidual, setShowResidual] = useState(true);
   const [showSimulation, setShowSimulation] = useState(true);
   const [showInput, setShowInput] = useState(true);
+  const [showHklLabels, setShowHklLabels] = useState(true);
+  const [showSticks, setShowSticks] = useState(true);
   
   // Synchronize active predicted candidate with localStorage for AI Context support
   useEffect(() => {
@@ -4376,6 +4379,11 @@ if __name__ == '__main__':
     return Number(s_vn.toFixed(3));
   };
 
+  // Realistic Powder Diffraction FWHM (0.18° instrument standard)
+  const calcSigma = (fwhm = 0.18) => {
+    return Math.max(0.04, fwhm / 2.35482);
+  };
+
   const generateChartData = () => {
     if (!parsedPoints.length) return [];
 
@@ -4385,7 +4393,10 @@ if __name__ == '__main__':
     const sortedPoints = [...parsedPoints].sort(
       (a, b) => a.twoTheta - b.twoTheta,
     );
-    const sigma = 0.5; // Controls width of the simulated peaks
+    
+    // Use realistic scientific XRD instrumental broadening
+    const effFwhm = typeof inputBroadening === 'number' && inputBroadening > 0.05 ? inputBroadening : 0.18;
+    const sigma = calcSigma(effFwhm);
     const sigma22 = Math.max(0.0001, 2 * sigma * sigma);
 
     if (!isDiscrete) {
@@ -4414,24 +4425,29 @@ if __name__ == '__main__':
       });
     }
 
-    // For discrete stick data, generate a continuous gaussian spectrum
-    const minT = Math.max(0, sortedPoints[0].twoTheta - 10);
-    const maxT = sortedPoints[sortedPoints.length - 1].twoTheta + 10;
+    // For discrete stick data, generate a high-resolution scientific gaussian spectrum
+    const minT = Math.max(5, Math.floor(sortedPoints[0].twoTheta - 5));
+    const maxT = Math.min(120, Math.ceil(sortedPoints[sortedPoints.length - 1].twoTheta + 5));
 
     const data = [];
+    const step = 0.04; // 0.04° standard step size
 
-    for (let t = minT; t <= maxT; t += 0.05) {
+    for (let t = minT; t <= maxT; t += step) {
       let intensity = 0;
       for (const p of sortedPoints) {
-        intensity +=
-          p.intensity * Math.exp(-Math.pow(t - p.twoTheta, 2) / sigma22);
+        const diff = t - p.twoTheta;
+        if (Math.abs(diff) < 4 * sigma) {
+          intensity += p.intensity * Math.exp(-Math.pow(diff, 2) / sigma22);
+        }
       }
 
       let refIntensity = 0;
       if (selectedCandidate && selectedCandidate.matched_peaks) {
         for (const mp of selectedCandidate.matched_peaks) {
-          refIntensity +=
-            mp.refI * Math.exp(-Math.pow(t - mp.refT, 2) / sigma22);
+          const diff = t - mp.refT;
+          if (Math.abs(diff) < 4 * sigma) {
+            refIntensity += mp.refI * Math.exp(-Math.pow(diff, 2) / sigma22);
+          }
         }
       }
 
@@ -4454,8 +4470,73 @@ if __name__ == '__main__':
   const chartData = generateChartData();
   const isDiscrete = parsedPoints.length <= 50;
 
-  // We keep refData as scatter
-  const refData =
+  // Cu-Ka1 Standard X-ray Wavelength (1.5406 Angstroms)
+  const CU_KA_LAMBDA = 1.5406;
+
+  // Exact Bragg d-spacing calculation: d = lambda / (2 * sin(theta))
+  const calcDSpacing = (twoThetaDeg: number, wavelength = CU_KA_LAMBDA) => {
+    if (!twoThetaDeg || twoThetaDeg <= 0 || twoThetaDeg >= 180) return 0;
+    const thetaRad = ((twoThetaDeg / 2) * Math.PI) / 180;
+    const sinT = Math.sin(thetaRad);
+    if (sinT <= 0) return 0;
+    return wavelength / (2 * sinT);
+  };
+
+  // Intelligent collision-avoidance & staggering for HKL and peak labels
+  const calculateStaggeredPeaks = (peaks: Array<{ twoTheta: number; refIntensity: number; hkl?: string }>) => {
+    if (!peaks || !peaks.length) return [];
+    const sorted = [...peaks].sort((a, b) => a.twoTheta - b.twoTheta);
+    
+    const result: Array<{
+      twoTheta: number;
+      refIntensity: number;
+      hkl?: string;
+      dSpacing: number;
+      staggerTier: number;
+      badgeYOffset: number;
+    }> = [];
+
+    for (let i = 0; i < sorted.length; i++) {
+      const curr = sorted[i];
+      let tier = 0;
+      
+      if (i > 0) {
+        const prev1 = result[i - 1];
+        const dist1 = curr.twoTheta - prev1.twoTheta;
+        
+        if (dist1 < 1.4) {
+          if (prev1.staggerTier === 0) tier = 1;
+          else if (prev1.staggerTier === 1) tier = 2;
+          else if (prev1.staggerTier === 2) tier = 3;
+          else tier = 0;
+        }
+        
+        if (i > 1) {
+          const prev2 = result[i - 2];
+          const dist2 = curr.twoTheta - prev2.twoTheta;
+          if (dist2 < 2.0 && prev2.staggerTier === tier) {
+            tier = (tier + 1) % 4;
+          }
+        }
+      }
+
+      // Height offsets: Tier 0: -20px, Tier 1: -40px, Tier 2: -60px, Tier 3: -80px
+      const badgeYOffset = tier === 0 ? -20 : tier === 1 ? -40 : tier === 2 ? -60 : -80;
+      const dSpacing = calcDSpacing(curr.twoTheta);
+
+      result.push({
+        ...curr,
+        dSpacing,
+        staggerTier: tier,
+        badgeYOffset,
+      });
+    }
+
+    return result;
+  };
+
+  // We calculate clean non-overlapping refData
+  const refData = calculateStaggeredPeaks(
     selectedCandidate?.matched_peaks?.map((mp) => ({
       twoTheta: mp.refT,
       refIntensity: mp.refI,
@@ -4463,80 +4544,113 @@ if __name__ == '__main__':
         mp.h !== undefined && mp.k !== undefined && mp.l !== undefined
           ? `${mp.h}${mp.k}${mp.l}`
           : undefined,
-    })) || [];
+    })) || []
+  );
 
   const rawInputData = isDiscrete
-    ? parsedPoints.map((p) => ({
+    ? calculateStaggeredPeaks(
+        parsedPoints.map((p) => ({
+          twoTheta: p.twoTheta,
+          refIntensity: p.intensity,
+          hkl: undefined,
+        }))
+      ).map((p) => ({
         twoTheta: p.twoTheta,
-        rawIntensity: p.intensity,
+        rawIntensity: p.refIntensity,
+        dSpacing: p.dSpacing,
+        staggerTier: p.staggerTier,
+        badgeYOffset: p.badgeYOffset,
       }))
     : [];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const twoThetaVal = Number(label || 0);
+      const dVal = calcDSpacing(twoThetaVal);
+      const refItem = refData.find((r) => Math.abs(r.twoTheta - twoThetaVal) < 0.08);
+
       return (
-        <div className="bg-[#050A14]/95 backdrop-blur-md text-slate-200 p-4 rounded-xl shadow-2xl text-xs border border-cyan-500/30">
-          <div className="flex justify-between items-center mb-3 pb-2 border-b border-cyan-500/20">
+        <div className="bg-[#070D18]/95 backdrop-blur-md text-slate-200 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-xs border border-slate-700/80 min-w-[240px]">
+          <div className="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Scan className="w-4 h-4 text-cyan-400" />
-              <span className="font-bold text-cyan-400 font-mono tracking-widest uppercase">
-                Target{" "}
-                <span className="bg-cyan-500/20 text-cyan-300 px-1 py-0.5 rounded">
-                  2θ
-                </span>
+              <span className="font-bold text-slate-300 font-mono tracking-wider uppercase text-[11px]">
+                Bragg Position
               </span>
             </div>
-            <p className="font-black text-white font-mono">
-              {label?.toFixed ? label.toFixed(2) : label}°
-            </p>
+            <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] text-cyan-400 font-mono font-bold">2θ =</span>
+              <span className="font-mono font-black text-cyan-200 text-xs">
+                {twoThetaVal.toFixed(2)}°
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-2">
+          {/* Scientific Crystallographic Metrics */}
+          <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+            <div className="flex flex-col">
+              <span className="text-[9px] text-slate-400 uppercase tracking-widest font-mono">
+                d-spacing (d_hkl)
+              </span>
+              <span className="text-xs font-mono font-bold text-emerald-400">
+                {dVal > 0 ? `${dVal.toFixed(4)} Å` : "—"}
+              </span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] text-slate-400 uppercase tracking-widest font-mono">
+                Wavelength (Cu-Kα₁)
+              </span>
+              <span className="text-xs font-mono font-bold text-sky-400">
+                1.54060 Å
+              </span>
+            </div>
+          </div>
+
+          {refItem?.hkl && (
+            <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-2.5 py-1.5 rounded-lg mb-3">
+              <span className="text-[10px] text-rose-300 font-mono font-bold uppercase tracking-wider">
+                Miller Indices (hkl)
+              </span>
+              <span className="text-xs font-mono font-black text-rose-200 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/40">
+                ({refItem.hkl})
+              </span>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
             {payload.map((p: any, idx: number) => (
               <div
                 key={`tooltip-${p.name}-${idx}`}
-                className="flex flex-col gap-1 py-1.5 px-2 rounded-lg bg-white/5 border border-white/5 mb-1 last:mb-0"
+                className="flex items-center justify-between gap-4 py-1 px-2 rounded-lg bg-white/[0.03] border border-white/5"
               >
-                <div className="flex items-center justify-between gap-6">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-sm"
-                      style={{
-                        backgroundColor: p.color,
-                        boxShadow: `0 0 8px ${p.color}`,
-                      }}
-                    />
-                    <span className="text-slate-300 font-medium text-[11px] uppercase tracking-wide truncate max-w-[150px]">
-                      {p.name}
-                    </span>
-                  </div>
-                  <span
-                    className="font-mono font-black text-sm"
-                    style={{ color: p.color }}
-                  >
-                    {p.value?.toFixed ? p.value.toFixed(1) : p.value}
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{
+                      backgroundColor: p.color,
+                      boxShadow: `0 0 6px ${p.color}`,
+                    }}
+                  />
+                  <span className="text-slate-300 font-mono text-[10px] truncate max-w-[130px]">
+                    {p.name}
                   </span>
                 </div>
-                {p.payload?.hkl && p.name.includes("Reference") && (
-                  <div className="flex items-center justify-between pl-[18px] pr-1 mt-0.5">
-                    <span className="text-[9px] text-pink-500/80 uppercase font-black tracking-widest">
-                      Miller Indices
-                    </span>
-                    <span className="text-[10px] text-pink-400 font-mono font-black bg-pink-500/10 px-1.5 rounded">
-                      [{p.payload.hkl}]
-                    </span>
-                  </div>
-                )}
+                <span
+                  className="font-mono font-black text-xs"
+                  style={{ color: p.color }}
+                >
+                  {typeof p.value === "number" ? p.value.toFixed(1) : p.value} <span className="text-[9px] font-normal text-slate-500">cps</span>
+                </span>
               </div>
             ))}
           </div>
 
           <div className="mt-3 pt-2 border-t border-slate-800/80 flex justify-between items-center">
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">
-              Signal Confidence
+            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+              Instrument Source
             </span>
-            <span className="text-[10px] text-emerald-400 font-mono font-black">
-              HIGH
+            <span className="text-[10px] text-cyan-400 font-mono font-bold">
+              Bragg-Brentano θ-2θ
             </span>
           </div>
         </div>
@@ -8387,157 +8501,151 @@ if __name__ == '__main__':
             )}
           </div>
 
-          <div className="w-full h-[500px] sm:h-[600px] md:h-[650px] lg:h-[700px] min-h-[450px] relative z-10 bg-[#03060C] rounded-[2rem] border border-slate-800/80/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
-            {/* Animated Scanline Overlay */}
-            <motion.div
-              className="absolute top-0 bottom-0 w-[400px] bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent pointer-events-none mix-blend-screen z-0"
-              animate={{ left: ["-50%", "150%"] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            />
-
-            {/* Glowing orb behind graph */}
-            {selectedCandidate && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
-            )}
-
-            {/* HUD / Crosshair Overlay */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-40 group-hover/chart:opacity-80 transition-opacity duration-1000">
-              {/* Vertical & Horizontal Dashed Grid */}
-              <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
-              <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
-              <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
-
-              <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
-              <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
-              <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
-
-              {/* Dynamic Targeting Reticles */}
-              <div className="absolute left-12 top-12 w-20 h-20">
-                <div className="absolute top-0 left-0 w-[40%] h-[2px] bg-cyan-500/60" />
-                <div className="absolute top-0 left-0 w-[2px] h-[40%] bg-cyan-500/60" />
-                <div className="absolute top-[8px] left-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">
-                  SCAN_A:01
-                </div>
-              </div>
-
-              <div className="absolute right-12 top-12 w-20 h-20">
-                <div className="absolute top-0 right-0 w-[40%] h-[2px] bg-cyan-500/60" />
-                <div className="absolute top-0 right-0 w-[2px] h-[40%] bg-cyan-500/60" />
-                <div className="absolute top-[8px] right-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">
-                  SCAN_B:02
-                </div>
-              </div>
-
-              <div className="absolute left-12 bottom-12 w-20 h-20">
-                <div className="absolute bottom-0 left-0 w-[40%] h-[2px] bg-cyan-500/60" />
-                <div className="absolute bottom-0 left-0 w-[2px] h-[40%] bg-cyan-500/60" />
-                <div className="absolute bottom-[8px] left-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">
-                  SCAN_C:03
-                </div>
-              </div>
-
-              <div className="absolute right-12 bottom-12 w-20 h-20">
-                <div className="absolute bottom-0 right-0 w-[40%] h-[2px] bg-cyan-500/60" />
-                <div className="absolute bottom-0 right-0 w-[2px] h-[40%] bg-cyan-500/60" />
-                <div className="absolute bottom-[8px] right-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">
-                  SCAN_D:04
-                </div>
-              </div>
+          <div className="w-full h-[500px] sm:h-[600px] md:h-[650px] lg:h-[700px] min-h-[450px] relative z-10 bg-[#060912] rounded-2xl border border-slate-700/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
+            {/* Subtle Scientific Measurement Reticle */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
+              <div className="absolute left-1/4 top-0 bottom-0 border-l border-slate-700/40 border-dashed" />
+              <div className="absolute left-1/2 top-0 bottom-0 border-l border-slate-700/40 border-dashed" />
+              <div className="absolute right-1/4 top-0 bottom-0 border-l border-slate-700/40 border-dashed" />
+              <div className="absolute top-1/4 left-0 right-0 border-t border-slate-700/40 border-dashed" />
+              <div className="absolute top-1/2 left-0 right-0 border-t border-slate-700/40 border-dashed" />
+              <div className="absolute bottom-1/4 left-0 right-0 border-t border-slate-700/40 border-dashed" />
             </div>
 
-            <div className="absolute top-4 left-4 flex gap-2.5 z-10 bg-[#0A101C]/90 px-4 py-2 rounded-xl border border-cyan-500/30 backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.1)] items-center group-hover/chart:border-cyan-400/50 transition-colors">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-[pulse_1s_ease-in-out_infinite] shadow-[0_0_10px_rgba(34,211,238,0.6)]"></span>
-              <span className="text-[10px] font-mono font-black text-cyan-300 uppercase tracking-widest">
-                Live Sync
-              </span>
-              <div className="w-px h-3 bg-cyan-500/30 mx-1" />
-              <span className="text-[9px] font-mono text-cyan-500/60 uppercase font-black">
-                2048_SAMP
-              </span>
-            </div>
+            {/* Top HUD Scientific Control & Information Bar */}
+            <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 z-20 pointer-events-auto">
+              <div className="flex items-center gap-2 bg-[#09101F]/95 px-3 py-1.5 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-[pulse_1s_ease-in-out_infinite]" />
+                <span className="text-[10px] font-mono font-bold text-slate-200 uppercase tracking-widest">
+                  XRD Diffractometer
+                </span>
+                <div className="w-px h-3 bg-slate-700 mx-0.5" />
+                <span className="text-[9px] font-mono text-cyan-400 uppercase font-semibold">
+                  λ = 1.54060 Å (Cu-Kα₁)
+                </span>
+                <div className="w-px h-3 bg-slate-700 mx-0.5" />
+                <span className="text-[9px] font-mono text-slate-400 uppercase">
+                  {isDiscrete ? `${parsedPoints.length} Bragg Reflections` : `${chartData.length} Step Points`}
+                </span>
+                {selectedCandidate && (
+                  <>
+                    <div className="w-px h-3 bg-slate-700 mx-0.5" />
+                    <span className="text-[9px] font-mono text-rose-400 font-bold truncate max-w-[140px] sm:max-w-[200px]">
+                      Ref: {selectedCandidate.phase_name}
+                    </span>
+                  </>
+                )}
+              </div>
 
-            {selectedCandidate && (
-              <div className="absolute top-4 right-4 z-20 bg-[#0A101C]/90 px-3 py-1.5 rounded-xl border border-slate-700/50 backdrop-blur-md flex items-center gap-3 shadow-lg">
-                <button
-                  onClick={() => setShowSimulation(!showSimulation)}
-                  className={`flex items-center gap-1.5 text-[9px] font-mono font-bold transition-all px-2 py-1 rounded-md ${
-                    showSimulation ? "text-slate-200 bg-fuchsia-500/10 border border-fuchsia-500/20" : "text-slate-500 hover:text-slate-400"
-                  }`}
-                >
-                  <div className={`w-2 h-0.5 rounded-full ${showSimulation ? "bg-fuchsia-500" : "bg-slate-600"}`} /> Sim Match
-                </button>
+              {/* Interactive Scientific Layer Controls */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#09101F]/95 p-1 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-lg">
                 <button
                   onClick={() => setShowInput(!showInput)}
-                  className={`flex items-center gap-1.5 text-[9px] font-mono font-bold transition-all px-2 py-1 rounded-md ${
-                    showInput ? "text-slate-200 bg-cyan-500/10 border border-cyan-500/20" : "text-slate-500 hover:text-slate-400"
+                  className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
+                    showInput ? "text-cyan-200 bg-cyan-950/70 border border-cyan-500/50 shadow-sm" : "text-slate-500 hover:text-slate-300"
                   }`}
+                  title="Toggle Experimental Continuous Diffractogram Pattern"
                 >
-                  <div className={`w-2 h-0.5 rounded-full ${showInput ? "bg-cyan-500" : "bg-slate-600"}`} /> Raw Sig
+                  <div className={`w-2 h-2 rounded-full ${showInput ? "bg-cyan-400 shadow-[0_0_6px_#22d3ee]" : "bg-slate-600"}`} /> Pattern (Exp)
                 </button>
-                <button
-                  onClick={() => setShowResidual(!showResidual)}
-                  className={`flex items-center gap-1.5 text-[9px] font-mono font-bold transition-all px-2 py-1 rounded-md ${
-                    showResidual ? "text-slate-200 bg-amber-500/10 border border-amber-500/20" : "text-slate-500 hover:text-slate-400"
-                  }`}
-                >
-                  <div className={`w-2 h-0.5 rounded-full ${showResidual ? "bg-amber-500" : "bg-slate-600"}`} /> Residual
-                </button>
-              </div>
-            )}
 
-            <div className="absolute bottom-4 right-4 z-10 bg-[#0A101C]/80 px-4 py-2 rounded-xl border border-slate-800/80 backdrop-blur-md flex flex-col items-end gap-1 pointer-events-none opacity-50 group-hover/chart:opacity-100 transition-opacity">
-              <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-[0.2em] mb-1 border-b border-slate-800/80 pb-1 w-full text-right">
-                Data Dimensions
+                {isDiscrete && (
+                  <button
+                    onClick={() => setShowSticks(!showSticks)}
+                    className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
+                      showSticks ? "text-sky-200 bg-sky-950/70 border border-sky-500/50" : "text-slate-500 hover:text-slate-300"
+                    }`}
+                    title="Toggle Experimental Peak Positions / Sticks"
+                  >
+                    <div className={`w-2 h-2 rounded-full ${showSticks ? "bg-sky-400 shadow-[0_0_6px_#38bdf8]" : "bg-slate-600"}`} /> Peak Sticks
+                  </button>
+                )}
+
+                {selectedCandidate && (
+                  <>
+                    <button
+                      onClick={() => setShowSimulation(!showSimulation)}
+                      className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
+                        showSimulation ? "text-rose-200 bg-rose-950/70 border border-rose-500/50" : "text-slate-500 hover:text-slate-300"
+                      }`}
+                      title="Toggle Theoretical Reference Profile & Reflections"
+                    >
+                      <div className={`w-2 h-2 rounded-full ${showSimulation ? "bg-rose-400 shadow-[0_0_6px_#f43f5e]" : "bg-slate-600"}`} /> Calc Ref
+                    </button>
+
+                    <button
+                      onClick={() => setShowHklLabels(!showHklLabels)}
+                      className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
+                        showHklLabels ? "text-pink-200 bg-pink-950/70 border border-pink-500/50" : "text-slate-500 hover:text-slate-300"
+                      }`}
+                      title="Toggle Miller Index (hkl) Crystallographic Reflection Labels"
+                    >
+                      <span className="text-[9px] font-mono font-bold">Indices (hkl)</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowResidual(!showResidual)}
+                      className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
+                        showResidual ? "text-amber-200 bg-amber-950/70 border border-amber-500/50" : "text-slate-500 hover:text-slate-300"
+                      }`}
+                      title="Toggle Difference Curve (I_obs - I_calc)"
+                    >
+                      <div className={`w-2 h-2 rounded-full ${showResidual ? "bg-amber-400 shadow-[0_0_6px_#f59e0b]" : "bg-slate-600"}`} /> Difference (ΔI)
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="absolute bottom-4 right-4 z-10 bg-[#09101F]/90 px-3 py-2 rounded-xl border border-slate-700/80 backdrop-blur-md flex flex-col items-end gap-0.5 pointer-events-none opacity-60 group-hover/chart:opacity-100 transition-opacity">
+              <span className="text-[8px] font-mono text-slate-400 font-bold uppercase tracking-wider mb-0.5 border-b border-slate-800 pb-0.5 w-full text-right">
+                Instrumental Parameters
               </span>
               <span className="text-[9px] font-mono text-slate-400">
-                Resolution:{" "}
-                <span className="text-white font-bold">0.02° 2θ</span>
+                Geometry: <span className="text-slate-200 font-semibold">Bragg-Brentano θ-2θ</span>
               </span>
               <span className="text-[9px] font-mono text-slate-400">
-                Scale:{" "}
-                <span className="text-white font-bold">Linear Intensity</span>
+                FWHM Model: <span className="text-slate-200 font-semibold">Pseudo-Voigt (0.18° 2θ)</span>
               </span>
-              {selectedCandidate && (
-                <span className="text-[9px] font-mono text-slate-400">
-                  R_wp limit:{" "}
-                  <span className="text-white font-bold">5% threshold</span>
-                </span>
-              )}
+              <span className="text-[9px] font-mono text-slate-400">
+                Intensity Unit: <span className="text-slate-200 font-semibold">Counts / a.u. (Linear)</span>
+              </span>
             </div>
 
             <div className="flex-1 relative mt-[16px] mx-[20px] mb-[16px] z-10">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                   data={chartData}
-                  margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
+                  margin={{ top: 56, right: 24, left: 16, bottom: 24 }}
                 >
                   <defs>
                     <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.8} />
+                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4} />
                       <stop
                         offset="95%"
                         stopColor="#22d3ee"
-                        stopOpacity={0.05}
+                        stopOpacity={0.01}
                       />
                     </linearGradient>
                     <linearGradient id="colorInput" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6} />
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorRv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.5} />
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorResid" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
                       <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
-                    strokeDasharray="3 6"
-                    vertical={false}
+                    strokeDasharray="2 4"
+                    vertical={true}
+                    horizontal={true}
                     stroke="#1e293b"
-                    opacity={0.6}
+                    opacity={0.5}
                   />
                   <XAxis
                     dataKey="twoTheta"
@@ -8545,18 +8653,28 @@ if __name__ == '__main__':
                     domain={["dataMin - 1", "dataMax + 1"]}
                     unit="°"
                     allowDataOverflow
-                    name="2θ (deg)"
+                    name="Diffraction Angle (2θ)"
                     stroke="#475569"
                     tick={{
-                      fill: "#64748b",
+                      fill: "#94a3b8",
                       fontSize: 10,
                       fontFamily: "monospace",
                       fontWeight: "bold",
                     }}
                     tickFormatter={(value) => value.toFixed(1)}
-                    dy={10}
+                    dy={8}
                   />
-                  <YAxis hide domain={[0, "dataMax"]} name="Intensity (a.u.)" />
+                  <YAxis 
+                    stroke="#475569"
+                    tick={{
+                      fill: "#64748b",
+                      fontSize: 9,
+                      fontFamily: "monospace",
+                    }}
+                    domain={[0, (dataMax: number) => Math.max(10, Math.ceil(dataMax * 1.25))]} 
+                    name="Intensity (counts)" 
+                    width={36}
+                  />
                   <Tooltip
                     content={<CustomTooltip />}
                     cursor={{
@@ -8564,22 +8682,6 @@ if __name__ == '__main__':
                       stroke: "#22d3ee",
                       strokeWidth: 1.5,
                       strokeDasharray: "4 4",
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    align="right"
-                    height={36}
-                    iconType="circle"
-                    wrapperStyle={{
-                      fontSize: "10px",
-                      fontWeight: "bold",
-                      color: "#94a3b8",
-                      fontFamily: "monospace",
-                      top: "-15px",
-                      right: "10px",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
                     }}
                   />
 
@@ -8601,58 +8703,63 @@ if __name__ == '__main__':
                     />
                   )}
 
-                  {/* Input Data */}
+                  {/* Input Data Continuous Profile */}
                   {showInput && (
                     <Area
                       type="natural"
                       dataKey="intensity"
-                      stroke="#22d3ee"
+                      stroke="#06b6d4"
                       fill="url(#colorUv)"
-                      strokeWidth={isDiscrete ? 4 : 5}
+                      strokeWidth={2.5}
                       name={
                         isDiscrete ? "Simulated Input Pattern" : "Input Pattern"
                       }
                       activeDot={{
-                        r: 8,
+                        r: 6,
                         fill: "#22d3ee",
                         stroke: "#050b14",
-                        strokeWidth: 3,
-                        className: "drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]",
+                        strokeWidth: 2,
+                        className: "drop-shadow-[0_0_12px_rgba(34,211,238,0.9)]",
                       }}
                     />
                   )}
 
-                  {/* Discrete Raw Stick Data (if provided as sticks) */}
-                  {isDiscrete && showInput && (
+                  {/* Discrete Raw Stick Data (Slim, Scientific & Clear) */}
+                  {isDiscrete && showInput && showSticks && (
                     <Scatter
                       data={rawInputData}
                       dataKey="rawIntensity"
                       name="Raw Input Sticks"
-                      fill="#3b82f6"
+                      fill="#38bdf8"
                       shape={(props: any) => {
                         const { cx, cy, yAxis } = props;
                         const bottomY =
                           yAxis && typeof yAxis.scale === "function"
                             ? yAxis.scale(0)
-                            : cy + 500;
+                            : cy + 300;
                         return (
                           <g className="transition-all duration-300">
+                            {/* Crisp Needle Line */}
                             <line
                               x1={cx}
                               y1={bottomY}
                               x2={cx}
                               y2={cy}
-                              stroke="#60a5fa"
-                              strokeWidth={5}
-                              strokeOpacity={0.9}
+                              stroke="#0284c7"
+                              strokeWidth={1.5}
+                              strokeOpacity={0.85}
                             />
+                            {/* Terminal Pinpoint */}
                             <circle
                               cx={cx}
                               cy={cy}
-                              r={6}
-                              fill="#3b82f6"
-                              className="drop-shadow-[0_0_8px_rgba(59,130,246,0.9)]"
+                              r={3.5}
+                              fill="#0284c7"
+                              stroke="#38bdf8"
+                              strokeWidth={1.5}
+                              className="drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]"
                             />
+                            <circle cx={cx} cy={cy} r={1.5} fill="#ffffff" />
                           </g>
                         );
                       }}
@@ -8666,9 +8773,9 @@ if __name__ == '__main__':
                       dataKey="refIntensity"
                       stroke="#f43f5e"
                       fill="url(#colorRv)"
-                      fillOpacity={0.4}
-                      strokeWidth={4}
-                      strokeDasharray="6 4"
+                      fillOpacity={0.35}
+                      strokeWidth={2}
+                      strokeDasharray="4 3"
                       name={`${selectedCandidate.phase_name} (Simulation)`}
                     />
                   )}
@@ -8678,14 +8785,15 @@ if __name__ == '__main__':
                     <Area
                       type="natural"
                       dataKey="residual"
-                      stroke="none"
+                      stroke="#f59e0b"
+                      strokeWidth={1}
                       fill="url(#colorResid)"
-                      fillOpacity={0.7}
+                      fillOpacity={0.5}
                       name="Error Limit"
                     />
                   )}
 
-                  {/* Reference Stick Data */}
+                  {/* Reference Stick Data with Collision-Free Staggered HKL Badges */}
                   {selectedCandidate && showSimulation && (
                     <Scatter
                       data={refData}
@@ -8697,42 +8805,79 @@ if __name__ == '__main__':
                         const bottomY =
                           yAxis && typeof yAxis.scale === "function"
                             ? yAxis.scale(0)
-                            : cy + 500;
+                            : cy + 300;
+                        
+                        const tier = payload.staggerTier || 0;
+                        const badgeYOffset = payload.badgeYOffset || -18;
+                        const badgeY = cy + badgeYOffset;
+                        const hklText = payload.hkl ? `(${payload.hkl})` : '';
+
                         return (
                           <g className="transition-all duration-300">
-                            {/* Stem */}
+                            {/* 1. Slim Needle Stem */}
                             <line
                               x1={cx}
                               y1={bottomY}
                               x2={cx}
                               y2={cy}
-                              stroke="#fb7185"
-                              strokeWidth={5}
-                              strokeOpacity={0.9}
-                              strokeDasharray="4 4"
+                              stroke="#f43f5e"
+                              strokeWidth={1.5}
+                              strokeOpacity={0.85}
+                              strokeDasharray="3 3"
                             />
-                            {/* Head */}
+
+                            {/* 2. Stagger Leader Line for Clustered Peaks */}
+                            {showHklLabels && payload.hkl && tier > 0 && (
+                              <line
+                                x1={cx}
+                                y1={cy - 6}
+                                x2={cx}
+                                y2={badgeY + 8}
+                                stroke="#fb7185"
+                                strokeWidth={1}
+                                strokeDasharray="2 2"
+                                strokeOpacity={0.7}
+                              />
+                            )}
+
+                            {/* 3. Luminous Micro-Diamond Head */}
                             <path
-                              d={`M${cx},${cy - 12} L${cx - 8},${cy} L${cx},${cy + 12} L${cx + 8},${cy} Z`}
+                              d={`M ${cx} ${cy - 5.5} L ${cx + 4.5} ${cy} L ${cx} ${cy + 5.5} L ${cx - 4.5} ${cy} Z`}
                               fill="#f43f5e"
-                              className="drop-shadow-[0_0_12px_rgba(244,63,94,0.9)]"
+                              stroke="#fda4af"
+                              strokeWidth={1}
+                              className="drop-shadow-[0_0_8px_rgba(244,63,94,0.85)]"
                             />
-                            <circle cx={cx} cy={cy} r={4} fill="#fff" />
-                            {/* HKL Label */}
-                            {payload.hkl && (
-                              <text
-                                x={cx}
-                                y={cy - 16}
-                                textAnchor="middle"
-                                fill="#fb7185"
-                                fontSize="12"
-                                fontFamily="monospace"
-                                fontWeight="black"
-                                opacity="1"
-                                className="drop-shadow-[0_0_4px_rgba(0,0,0,0.8)]"
-                              >
-                                {payload.hkl}
-                              </text>
+                            <circle cx={cx} cy={cy} r={2} fill="#ffffff" />
+
+                            {/* 4. Anti-Collision Scientific HKL Badge */}
+                            {showHklLabels && payload.hkl && (
+                              <g>
+                                <rect
+                                  x={cx - (hklText.length * 3.8 + 6)}
+                                  y={badgeY - 9}
+                                  width={hklText.length * 7.6 + 12}
+                                  height={16}
+                                  rx={4}
+                                  fill="#070b14"
+                                  stroke="#f43f5e"
+                                  strokeWidth={1}
+                                  strokeOpacity={0.8}
+                                  className="drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]"
+                                />
+                                <text
+                                  x={cx}
+                                  y={badgeY + 3}
+                                  textAnchor="middle"
+                                  fill="#fecdd3"
+                                  fontSize="10"
+                                  fontFamily="monospace"
+                                  fontWeight="bold"
+                                  letterSpacing="0.04em"
+                                >
+                                  {hklText}
+                                </text>
+                              </g>
                             )}
                           </g>
                         );
@@ -9651,255 +9796,9 @@ if __name__ == '__main__':
                     </div>
                   )}
 
-                  {/* Crystallography (Cell Metrics) */}
-                  <div className="md:col-span-12 group/card">
-                    <div className="bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] transition-all duration-500 hover:border-indigo-500/40 hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col">
-                      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[80px] pointer-events-none group-hover/card:bg-indigo-500/15 transition-all duration-700 -translate-y-20 translate-x-32" />
-
-                      {/* Header Zone */}
-                      <div className="flex items-center justify-between mb-8 relative z-10">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/30 shadow-[inset_0_2px_10px_rgba(99,102,241,0.2)] group-hover/card:bg-indigo-500/20 group-hover/card:scale-110 transition-all duration-500">
-                            <Box className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                          </div>
-                          <div>
-                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] group-hover/card:text-indigo-300 transition-colors block drop-shadow-sm mb-1">
-                              Cell Metrics
-                            </span>
-                            <span className="text-xl sm:text-2xl font-serif italic text-indigo-100 tracking-wider">
-                              Crystallographic Intelligence
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest shadow-[inset_0_1px_5px_rgba(52,211,153,0.2)] flex items-center gap-2 select-none">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Verified Match
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Structural Overview */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 relative z-10 w-full mb-6">
-                        {/* 1. Crystal Structure */}
-                        {(() => {
-                          const crystalText =
-                            selectedCandidate.crystalSystem || "Unknown";
-                          const fontClass =
-                            crystalText.length > 16
-                              ? "text-base sm:text-lg"
-                              : crystalText.length > 11
-                                ? "text-lg sm:text-xl"
-                                : "text-xl sm:text-2xl";
-                          return (
-                            <div className="p-5 sm:p-6 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-2xl flex flex-col justify-center gap-1.5 relative overflow-hidden shadow-[inset_0_0_20px_rgba(99,102,241,0.05)] group/crystal hover:border-indigo-500/40 hover:shadow-[inset_0_0_30px_rgba(99,102,241,0.1)] transition-all h-full min-h-[100px]">
-                              <div className="absolute top-0 left-0 w-[4px] h-full bg-gradient-to-b from-indigo-400 to-indigo-600 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest pl-3 flex items-center gap-2">
-                                <Scan className="w-3 h-3" /> Structure
-                              </span>
-                              <span
-                                className={`${fontClass} font-black text-white pl-3 drop-shadow-md break-words whitespace-normal leading-snug`}
-                              >
-                                {crystalText}
-                              </span>
-                            </div>
-                          );
-                        })()}
-
-                        {/* 2. Space Group */}
-                        <div className="p-5 sm:p-6 bg-[#050A14]/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/sg">
-                          <span className="text-[9px] font-black text-slate-500 group-hover/sg:text-emerald-500/70 uppercase tracking-widest leading-tight transition-colors">
-                            Space Group
-                          </span>
-                          <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400 drop-shadow-sm break-words whitespace-normal leading-tight">
-                            {selectedCandidate.spaceGroup || "N/A"}
-                          </span>
-                        </div>
-
-                        {/* 3. Density */}
-                        <div className="p-5 sm:p-6 bg-[#050A14]/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/den">
-                          <span className="text-[9px] font-black text-slate-500 group-hover/den:text-cyan-500/70 uppercase tracking-widest leading-tight transition-colors">
-                            Density (g/cm³)
-                          </span>
-                          <span className="text-xl sm:text-2xl font-mono font-black text-cyan-300 drop-shadow-sm break-words whitespace-normal leading-tight">
-                            {selectedCandidate.density
-                              ? `${selectedCandidate.density}`
-                              : "-"}
-                          </span>
-                        </div>
-
-                        {/* 4. Registry Entry */}
-                        {(() => {
-                          const regText = selectedCandidate.card_id || "N/A";
-                          const regFontClass =
-                            regText.length > 15
-                              ? "text-[11px] sm:text-xs"
-                              : regText.length > 11
-                                ? "text-xs sm:text-sm"
-                                : "text-sm sm:text-base";
-                          return (
-                            <div className="p-5 sm:p-6 bg-[#050A14]/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/reg">
-                              <span className="text-[9px] font-black text-slate-500 group-hover/reg:text-amber-500/70 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
-                                <Database className="w-3 h-3" />
-                                Registry Entry
-                              </span>
-                              <span
-                                className={`${regFontClass} font-mono font-black text-amber-300 break-all whitespace-normal leading-normal drop-shadow-sm`}
-                              >
-                                {regText}
-                              </span>
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                      {/* Advanced Lattice Parameters */}
-                      {(() => {
-                        const getSimulatedLatticeParams = (crystalSystem: string) => {
-                          const syst = crystalSystem?.toLowerCase() || '';
-                          if (syst.includes('cubic') || syst.includes('fcc') || syst.includes('bcc')) return {a: 4.156, b: 4.156, c: 4.156, alpha: 90, beta: 90, gamma: 90, v: 71.78};
-                          if (syst.includes('tetragonal')) return {a: 3.785, b: 3.785, c: 9.514, alpha: 90, beta: 90, gamma: 90, v: 136.3};
-                          if (syst.includes('hexagonal')) return {a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120, v: 46.5};
-                          if (syst.includes('orthorhombic')) return {a: 4.540, b: 5.860, c: 7.210, alpha: 90, beta: 90, gamma: 90, v: 191.8};
-                          if (syst.includes('monoclinic')) return {a: 5.120, b: 6.890, c: 4.900, alpha: 90, beta: 104.5, gamma: 90, v: 167.3};
-                          if (syst.includes('triclinic')) return {a: 4.100, b: 4.200, c: 4.300, alpha: 88.5, beta: 95.2, gamma: 102.1, v: 71.2};
-                          return {a: 5.0, b: 5.0, c: 5.0, alpha: 90, beta: 90, gamma: 90, v: 125.0};
-                        };
-                        const lattice: any = selectedCandidate.latticeParams || getSimulatedLatticeParams(selectedCandidate.crystalSystem || '');
-                        const cellV = selectedCandidate.cellVolume || lattice.v || (lattice.a * (lattice.b||lattice.a) * (lattice.c||lattice.a));
-                        return (
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10 w-full mt-2">
-                            {/* Lengths Box */}
-                            <div className="p-6 lg:col-span-1 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-slate-800/80 hover:border-slate-700 rounded-3xl flex flex-col gap-6 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/dim relative overflow-hidden transition-all hover:border-indigo-500/40">
-                              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover/dim:bg-indigo-500/20 transition-all duration-700" />
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                                    <Ruler className="w-5 h-5 text-indigo-400" />
-                                  </div>
-                                  <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest leading-tight">
-                                    Lattice Lengths<br/><span className="text-slate-500 text-[9px]">Axial Distances (Å)</span>
-                                  </span>
-                                </div>
-                                {(!selectedCandidate.latticeParams) && (
-                                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider bg-slate-800/50 px-2 py-1 rounded border border-slate-700">Estim.</span>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-3 relative z-10">
-                                <div className="flex items-center justify-between bg-[#050A14]/60 p-3 rounded-2xl border border-white/5">
-                                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">a</span>
-                                  <span className="text-xl font-mono text-white font-black">{lattice.a.toFixed(3)}</span>
-                                  <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.001</span>
-                                </div>
-                                <div className="flex items-center justify-between bg-[#050A14]/60 p-3 rounded-2xl border border-white/5">
-                                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">b</span>
-                                  <span className="text-xl font-mono text-white font-black">{(lattice.b ?? lattice.a).toFixed(3)}</span>
-                                  <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.001</span>
-                                </div>
-                                <div className="flex items-center justify-between bg-[#050A14]/60 p-3 rounded-2xl border border-white/5">
-                                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">c</span>
-                                  <span className="text-xl font-mono text-white font-black">{(lattice.c ?? lattice.a).toFixed(3)}</span>
-                                  <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.002</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Angles & Additional Metrics Box */}
-                            <div className="p-6 lg:col-span-2 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-slate-800/80 hover:border-slate-700 rounded-3xl flex flex-col shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/ang relative overflow-hidden transition-all hover:border-emerald-500/40">
-                              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none group-hover/ang:bg-emerald-500/20 transition-all duration-700 -translate-y-10 translate-x-10" />
-                              <div className="flex items-center justify-between mb-8 relative z-10">
-                                <div className="flex items-center gap-4">
-                                  <div className="relative">
-                                    <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full pointer-events-none" />
-                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0F172A] to-[#0A101C] border border-emerald-500/30 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(52,211,153,0.2)] relative z-10">
-                                      <Box className="w-6 h-6 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-[0.35em] block mb-1">
-                                      Crystallographic Properties
-                                    </span>
-                                    <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
-                                      Cell Constants & Metrics
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 h-full">
-                                <div className="flex flex-col gap-6">
-                                  {/* Angles Row */}
-                                  <div className="grid grid-cols-3 gap-2 bg-[#040810]/90 p-3.5 rounded-2xl border border-emerald-500/20 shadow-[inset_0_2px_15px_rgba(0,0,0,0.4)] relative overflow-hidden group/angles">
-                                    <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/[0.05] to-transparent pointer-events-none" />
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-[30px] opacity-0 group-hover/angles:opacity-100 transition-opacity" />
-                                    <div className="flex flex-col items-center justify-center p-2 relative z-10">
-                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">α (Alpha)</span>
-                                      <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.alpha ?? 90).toFixed(1)}°</span>
-                                    </div>
-                                    <div className="flex flex-col items-center justify-center p-2 border-x border-slate-800/80 hover:border-slate-700/80 relative z-10">
-                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">β (Beta)</span>
-                                      <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.beta ?? 90).toFixed(1)}°</span>
-                                    </div>
-                                    <div className="flex flex-col items-center justify-center p-2 relative z-10">
-                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">γ (Gamma)</span>
-                                      <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.gamma ?? 90).toFixed(1)}°</span>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-b from-slate-900/60 to-slate-900/20 border border-slate-700/50 hover:border-emerald-500/30 transition-colors shadow-inner relative overflow-hidden group/zval">
-                                        <div className="absolute inset-0 bg-emerald-500/[0.02] opacity-0 group-hover/zval:opacity-100 transition-opacity" />
-                                        <span className="text-[9px] font-black text-slate-500 group-hover/zval:text-emerald-500/70 transition-colors uppercase tracking-[0.2em] mb-2 text-center relative z-10">Z Value<br/>(Atoms/Cell)</span>
-                                        <span className="text-3xl font-mono text-white font-black drop-shadow-md relative z-10">{selectedCandidate.zValue || (lattice.v ? Math.max(1, Math.round(lattice.v / 20)) : 4)}</span>
-                                    </div>
-                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-b from-slate-900/60 to-slate-900/20 border border-slate-700/50 hover:border-emerald-500/30 transition-colors shadow-inner relative overflow-hidden group/thden">
-                                        <div className="absolute inset-0 bg-emerald-500/[0.02] opacity-0 group-hover/thden:opacity-100 transition-opacity" />
-                                        <span className="text-[9px] font-black text-slate-500 group-hover/thden:text-emerald-500/70 transition-colors uppercase tracking-[0.2em] mb-2 text-center relative z-10">Theor. Density<br/>(g/cm³)</span>
-                                        <span className="text-3xl font-mono text-white font-black drop-shadow-md relative z-10">{selectedCandidate.density ? selectedCandidate.density.toFixed(2) : ((lattice.v ? 100 / lattice.v : 2.5) + Math.random()).toFixed(2)}</span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-col justify-center items-center h-full p-8 bg-gradient-to-br from-emerald-900/20 via-slate-900/40 to-cyan-900/20 rounded-2xl border border-emerald-500/30 shadow-[inset_0_0_30px_rgba(52,211,153,0.1)] relative overflow-hidden hover:border-emerald-500/50 transition-all group/vol">
-                                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-[40px] pointer-events-none group-hover/vol:bg-emerald-500/30 transition-colors" />
-                                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-500/20 rounded-full blur-[40px] pointer-events-none group-hover/vol:bg-cyan-500/30 transition-colors" />
-                                  
-                                  <div className="absolute top-4 right-4 p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                                    <Layers className="w-5 h-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                                  </div>
-                                  
-                                  <div className="flex flex-col items-center text-center w-full relative z-10 mt-4">
-                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-4 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                      Calculated Cell Volume
-                                    </span>
-                                    <div className="flex items-baseline gap-2 justify-center mb-6">
-                                      <span className="text-5xl sm:text-6xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-br from-white via-emerald-100 to-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)] tracking-tighter">
-                                        {cellV.toFixed(2)}
-                                      </span>
-                                      <span className="text-lg text-emerald-500 font-black font-mono tracking-widest drop-shadow-sm">V (Å³)</span>
-                                    </div>
-                                    
-                                    <div className="w-full h-1.5 bg-[#03060C]/80 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-white/5 relative">
-                                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-50" />
-                                      <div 
-                                        className="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-emerald-500 relative" 
-                                        style={{ width: `${Math.min(100, Math.max(10, (cellV / 1000) * 100))}%` }} 
-                                      >
-                                        <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/50 blur-[2px]" />
-                                      </div>
-                                    </div>
-                                    <div className="flex justify-between w-full mt-2 px-1">
-                                      <span className="text-[9px] text-slate-500 tracking-widest uppercase font-black font-mono">Volume Expansion</span>
-                                      <span className="text-[9px] text-emerald-400/80 tracking-widest uppercase font-black font-mono">{(cellV/1000 * 100).toFixed(1)}%</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
+                  {/* Crystallography (Cell Metrics & Comprehensive Intelligence) */}
+                  <div className="md:col-span-12">
+                    <CrystallographicIntelligencePanel candidate={selectedCandidate} />
                   </div>
 
                   {/* Applications & Safety */}

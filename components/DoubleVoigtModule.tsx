@@ -52,6 +52,9 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { AIAnalysis } from './AIAnalysis';
 import { PythonCodeExporter } from './PythonCodeExporter';
+import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
+import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -347,8 +350,63 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
     ];
   }, [result]);
 
+  const dvWalkthroughSteps: WizardStep[] = [
+    {
+      title: 'Prepare Observed Peaks & Instrumental Breadth',
+      subtitle: 'Input (2θ, FWHM_obs, η_obs, hkl)',
+      explanation: 'Every Bragg reflection is modeled as a pseudo-Voigt or true Voigt profile characterized by its FWHM and Lorentzian mixing fraction η. The instrumental broadening (g-profile) is subtracted using Caglioti parameters or constant slit corrections.',
+      tip: 'Ensure that the Lorentzian fraction η_obs reflects true profile tails; higher η gives a larger Cauchy component.'
+    },
+    {
+      title: 'Voigt Deconvolution (Balzar-Popa Inversion)',
+      subtitle: 'Separating Cauchy (β_fC) & Gaussian (β_fG) Integral Breadths',
+      explanation: 'Using the parabolic Voigt relation (β_C* = β_fC / β_f, β_G* = β_fG / β_f), we isolate the true specimen Cauchy integral breadth β_fC and Gaussian integral breadth β_fG in reciprocal space units (nm⁻¹).',
+      tip: 'If Cauchy component β_C exceeds the total breadth, the profile is purely Lorentzian (size-dominated without detectable Gaussian microstrain).'
+    },
+    {
+      title: 'Dual Linear Extrapolations: β_C* and (β_G*)²',
+      subtitle: 'Intercepts = Crystallite Sizes; Slopes = Microstrains',
+      explanation: '1. Cauchy plot: β_C* vs. s (where s = 2sinθ/λ) yields area-weighted size ⟨D_A⟩ from the vertical intercept and Cauchy strain e_C from the slope.\n2. Gaussian plot: (β_G*)² vs. s² yields volume-weighted size ⟨D_V⟩ from the intercept and Gaussian strain e_G from the slope.',
+      tip: 'Area-weighted size ⟨D_A⟩ is fundamentally smaller than volume-weighted size ⟨D_V⟩. Their ratio ⟨D_V⟩ / ⟨D_A⟩ indicates size polydispersity!'
+    },
+    {
+      title: 'Column Length Distribution & Summary',
+      subtitle: 'Log-Normal & Gaussian Column Length Functions',
+      explanation: 'From ⟨D_A⟩ and ⟨D_V⟩, we calculate the full column-length distribution and overall RMS microstrain ⟨e²⟩¹/² = √(e_C² + e_G²).',
+      tip: 'A high ⟨D_V⟩/⟨D_A⟩ ratio (> 1.5) points to wide particle size distribution (polydispersity) or anisotropic crystal habit.'
+    }
+  ];
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
+      {/* 0. Guided Walkthrough Wizard */}
+      <GuidedWalkthroughWizard
+        moduleName="Double-Voigt Method (Langford / Balzar Formalism)"
+        description="Master pseudo-Voigt deconvolution, Cauchy vs. Gaussian reciprocal integral breadths, and volume vs. area crystallite sizes."
+        steps={dvWalkthroughSteps}
+        presetNames={DV_PRESETS.map(p => p.name)}
+        onLoadBenchmarkPreset={(idx) => {
+          const p = DV_PRESETS[idx];
+          if (p) handleApplyPreset(p);
+        }}
+      />
+
+      {/* 0.5 Physical Meaning Verdict Banner */}
+      {result && (
+        <PhysicalMeaningSummary
+          title="Double-Voigt Physical Crystallite & Strain Verdict"
+          tone={result.rmsStrain > 0.003 ? 'warning' : 'success'}
+          statement={`Sample exhibits volume-weighted crystallite size ⟨D_V⟩ = ${convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(1)} ${lengthUnit} and area-weighted size ⟨D_A⟩ = ${convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(1)} ${lengthUnit} with an RMS microstrain of ${(result.rmsStrain * 100).toFixed(3)}%.`}
+          contextNote={`Polydispersity ratio ⟨D_V⟩ / ⟨D_A⟩ = ${(result.volumeSizeDvNm / (result.areaSizeDaNm || 1)).toFixed(2)}. ${result.volumeSizeDvNm / (result.areaSizeDaNm || 1) > 1.4 ? 'High polydispersity ratio indicates significant nanoparticle size spread or anisotropic growth.' : 'Uniform crystallite size distribution.'}`}
+          metrics={[
+            { label: '⟨D_V⟩ Vol Size', value: convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(1), unit: lengthUnit },
+            { label: '⟨D_A⟩ Area Size', value: convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(1), unit: lengthUnit },
+            { label: 'RMS Microstrain', value: (result.rmsStrain * 100).toFixed(3), unit: '%' },
+            { label: 'Polydispersity', value: (result.volumeSizeDvNm / (result.areaSizeDaNm || 1)).toFixed(2), unit: '' }
+          ]}
+        />
+      )}
+
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#0B1230] to-[#060A20] p-6 md:p-10 border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.15)] group">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-indigo-500/30 transition-colors duration-700" />
@@ -907,7 +965,13 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     <Ruler className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">Volume Size (D_V)</span>
                   </div>
-                  <Award className="w-4 h-4 text-indigo-400/50" />
+                  <WhatDoesThisMeanTooltip
+                    term="Volume-Weighted Size ⟨D_V⟩"
+                    symbol="⟨D_V⟩"
+                    explanation="Crystallite diameter weighted by crystal volume (D⁴/D³). Larger crystallites scatter more photons and dominate this metric."
+                    physicalInterpretation="⟨D_V⟩ represents the average crystallite size seen by X-ray scattering power. It is always larger than or equal to area-weighted size ⟨D_A⟩."
+                    ruleOfThumb="Ratio ⟨D_V⟩ / ⟨D_A⟩ ≈ 1.0 for monodisperse crystals; > 1.4 indicates polydispersity or anisotropic morphology."
+                  />
                 </div>
                 <div className="flex items-baseline gap-2 mt-1 relative z-10">
                   <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">

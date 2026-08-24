@@ -73,6 +73,8 @@ import {
 
 import { ResidualStressModule } from './components/ResidualStressModule';
 import { XRRModule } from './components/XRRModule';
+import { UserActivityPlugin } from './components/UserActivityPlugin';
+import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
@@ -231,6 +233,18 @@ const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isNavigatorOpen, setIsNavigatorOpen] = useState<boolean>(false);
   const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(false); // default false: FULL SCREEN for active section!
+  const [isActivityLedgerOpen, setIsActivityLedgerOpen] = useState<boolean>(false);
+  const prevModuleRef = useRef<Module>(activeModule);
+
+  // Automatic user activity telemetry for module navigation
+  useEffect(() => {
+    if (hasEntered && isRegistered) {
+      if (prevModuleRef.current !== activeModule) {
+        logNavigation(activeModule, prevModuleRef.current);
+        prevModuleRef.current = activeModule;
+      }
+    }
+  }, [activeModule, hasEntered, isRegistered]);
 
   // Global Ctrl+K / Cmd+K listener to trigger module navigator
   useEffect(() => {
@@ -1606,6 +1620,7 @@ const App: React.FC = () => {
             isRTL={isRTL}
             t={t}
             sampleId={sampleId}
+            onOpenActivityLedger={() => setIsActivityLedgerOpen(true)}
           />
 
           <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
@@ -2407,6 +2422,12 @@ const App: React.FC = () => {
               playSynthTone('switch');
             }}
             theme={theme}
+          />
+
+          {/* User Activity & Telemetry Plugin */}
+          <UserActivityPlugin
+            isOpen={isActivityLedgerOpen}
+            onClose={() => setIsActivityLedgerOpen(false)}
           />
         </div>
       </div>

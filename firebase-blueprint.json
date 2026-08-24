@@ -60,6 +60,23 @@
         "elasticModulus": { "type": "number" }
       },
       "required": ["id", "userId", "name", "formula", "pattern"]
+    },
+    "UserActivity": {
+      "title": "User Activity",
+      "description": "Audit log of all user actions, module navigations, calculations, and interactions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "category": { "type": "string" },
+        "action": { "type": "string" },
+        "module": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "category", "action", "timestamp"]
     }
   },
   "firestore": {
@@ -78,6 +95,10 @@
     "/customMaterials/{materialId}": {
       "schema": { "$ref": "#/entities/CustomMaterial" },
       "description": "Cloud synchronized custom and premium acquired materials"
+    },
+    "/userActivities/{activityId}": {
+      "schema": { "$ref": "#/entities/UserActivity" },
+      "description": "Audit log of user acts and interactions"
     }
   }
 }
