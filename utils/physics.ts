@@ -144,7 +144,7 @@ export const calculateBragg = (wavelength: number, twoTheta: number): BraggResul
 };
 
 export function parseSingleHKL(hklStr: string): { h: number; k: number; l: number } | null {
-  const cleaned = hklStr.trim();
+  const cleaned = (hklStr || '').trim();
   if (!cleaned) return null;
 
   // Try to find 3 separate numbers (positive or negative)
@@ -1233,7 +1233,8 @@ export const calculateWilliamsonHall = (
 };
 
 export const parseIntegralBreadthInput = (input: string): IntegralBreadthInput[] => {
-  const lines = input.split('\n').filter(l => l.trim() !== '');
+  if (!input || typeof input !== 'string') return [];
+  const lines = input.split('\n').filter(l => (l || '').trim() !== '');
   const results: IntegralBreadthInput[] = [];
   for (const line of lines) {
     const parts = line.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
@@ -1367,7 +1368,8 @@ export const calculateIntegralBreadth = (
 
 // IB Advanced Parsing and Calculation
 export const parseIBAdvancedInput = (input: string): IBAdvancedInput[] => {
-  const lines = input.split('\n').filter(l => l.trim() !== '');
+  if (!input || typeof input !== 'string') return [];
+  const lines = input.split('\n').filter(l => (l || '').trim() !== '');
   const results: IBAdvancedInput[] = [];
   for (const line of lines) {
     const parts = line.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
@@ -1576,7 +1578,8 @@ export const calculateIBAdvanced = (
 
 
 export const parseWAInput = (input: string): WAInputPoint[] => {
-  const lines = input.split('\n').filter(l => l.trim() !== '' && !l.trim().startsWith('#'));
+  if (!input || typeof input !== 'string') return [];
+  const lines = input.split('\n').filter(l => (l || '').trim() !== '' && !(l || '').trim().startsWith('#'));
   const points: WAInputPoint[] = [];
   for (const line of lines) {
     const parts = line.split(/[\s,]+/).map(s => parseFloat(s)).filter(n => !isNaN(n));
@@ -3715,7 +3718,8 @@ export const identifyPhasesDL = (
 };
 
 export const parseXYData = (input: string) => {
-  return input.split('\n').filter(l => l.trim()).map(l => {
+  if (!input || typeof input !== 'string') return [];
+  return input.split('\n').filter(l => (l || '').trim()).map(l => {
     const p = l.split(/[\s,]+/).filter(v => v !== '').map(parseFloat);
     return { 
       twoTheta: p[0], 

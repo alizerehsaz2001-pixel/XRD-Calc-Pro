@@ -484,11 +484,11 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
           </div>
           <div className="space-y-1.5 text-[10px]">
             <p className="flex justify-between gap-6">
-              <span className="text-slate-400">X ({getXAxisLabel().split('(')[0].trim()}):</span> 
+              <span className="text-slate-400">X ({(getXAxisLabel().split('(')[0] || '').trim()}):</span> 
               <span className="text-cyan-300 font-bold">{d.x.toFixed(5)}</span>
             </p>
             <p className="flex justify-between gap-6">
-              <span className="text-slate-400">Y ({getYAxisLabel().split('(')[0].trim()}):</span> 
+              <span className="text-slate-400">Y ({(getYAxisLabel().split('(')[0] || '').trim()}):</span> 
               <span className="text-cyan-300 font-bold">{d.y.toFixed(5)}</span>
             </p>
             <p className="flex justify-between gap-6">

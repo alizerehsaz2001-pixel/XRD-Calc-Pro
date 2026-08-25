@@ -741,7 +741,7 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
     // 6. Atomic Sites Projection Overlays
     if (showAtomsProj && atomSites.length > 0) {
       const getElemColor = (elem: string) => {
-        const e = elem.trim().toUpperCase();
+        const e = (elem || '').trim().toUpperCase();
         if (e.startsWith('SI')) return '#10b981';
         if (e.startsWith('O')) return '#f43f5e';
         if (e.startsWith('FE')) return '#f59e0b';

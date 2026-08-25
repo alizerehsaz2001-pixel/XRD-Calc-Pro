@@ -77,6 +77,7 @@ import {
 
 import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
 import { CrystallographicIntelligencePanel } from './CrystallographicIntelligencePanel';
+import { ConstituentPhaseElementsPanel } from './ConstituentPhaseElementsPanel';
 import { getActiveMaterials } from "../utils/materialsHelper";
 const MATERIAL_DB = getActiveMaterials();
 
@@ -9550,144 +9551,14 @@ if __name__ == '__main__':
                     {/* Constituent elements under Physical property spectrum */}
                     {selectedCandidate && (
                       <div className="mt-12 pt-8 border-t border-slate-800/80 hover:border-slate-700/55 z-10 relative">
-                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-                          <div className="flex items-center gap-4">
-                            <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-inner flex items-center justify-center">
-                              <FlaskConical className="w-6 h-6 text-indigo-400" />
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-black uppercase text-indigo-400/80 tracking-[0.25em] block leading-none mb-1.5">
-                                Crystalline Components
-                              </span>
-                              <h5 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider font-serif italic drop-shadow-sm">
-                                Constituent Phase Elements
-                              </h5>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 bg-[#090F1B]/95 px-4 py-2.5 rounded-xl border border-slate-700/50 shadow-inner">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                              Lattice Signature
-                            </span>
-                            <span className="text-sm font-mono font-black text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">
-                              {selectedCandidate.formula}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Elements Cards Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                          {(() => {
-                            const elements = selectedCandidate.elements 
-                               ? selectedCandidate.elements.map((s: string) => ({ symbol: s, name: "" })) // Minimal, we expect MATERIAL_ELEMENTS dict to fill name below
-                               : parseElementsFromFormula(selectedCandidate.formula);
-                            if (elements.length === 0) {
-                              return (
-                                <div className="col-span-full py-10 bg-[#050A14]/30 rounded-2xl border border-white/5 border-dashed text-center flex flex-col items-center justify-center gap-3">
-                                  <FlaskConical className="w-8 h-8 text-slate-600 mb-2" />
-                                  <div className="text-sm font-mono text-slate-500 uppercase tracking-widest">
-                                    No constituent elements identified.
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return elements.map((elem) => {
-                              const details = MATERIAL_ELEMENTS[
-                                elem.symbol
-                              ] || {
-                                name: elem.name,
-                                number: "??",
-                                category: "Element",
-                                mass: 1.0,
-                              };
-                              
-                              let themeColor = "indigo";
-                              if (details.category.includes("Metal")) themeColor = "violet";
-                              if (details.category === "Metalloid") themeColor = "fuchsia";
-                              if (details.category.includes("Alkali")) themeColor = "rose";
-                              if (details.category.includes("Nonmetal")) themeColor = "emerald";
-                              if (details.category.includes("Gas")) themeColor = "cyan";
-
-                              const catColors = {
-                                violet: {
-                                  bg: "bg-violet-500/10 hover:bg-violet-500/20",
-                                  border: "border-violet-500/20",
-                                  text: "text-violet-400 group-hover/element:text-violet-300",
-                                  badge: "border-violet-500/20 bg-violet-500/10 text-violet-400"
-                                },
-                                fuchsia: {
-                                  bg: "bg-fuchsia-500/10 hover:bg-fuchsia-500/20",
-                                  border: "border-fuchsia-500/20",
-                                  text: "text-fuchsia-400 group-hover/element:text-fuchsia-300",
-                                  badge: "border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400"
-                                },
-                                rose: {
-                                  bg: "bg-rose-500/10 hover:bg-rose-500/20",
-                                  border: "border-rose-500/20",
-                                  text: "text-rose-400 group-hover/element:text-rose-300",
-                                  badge: "border-rose-500/20 bg-rose-500/10 text-rose-400"
-                                },
-                                emerald: {
-                                  bg: "bg-emerald-500/10 hover:bg-emerald-500/20",
-                                  border: "border-emerald-500/20",
-                                  text: "text-emerald-400 group-hover/element:text-emerald-300",
-                                  badge: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                                },
-                                cyan: {
-                                  bg: "bg-cyan-500/10 hover:bg-cyan-500/20",
-                                  border: "border-cyan-500/20",
-                                  text: "text-cyan-400 group-hover/element:text-cyan-300",
-                                  badge: "border-cyan-500/20 bg-cyan-500/10 text-cyan-400"
-                                },
-                                indigo: {
-                                  bg: "bg-indigo-500/10 hover:bg-indigo-500/20",
-                                  border: "border-indigo-500/20",
-                                  text: "text-indigo-400 group-hover/element:text-indigo-300",
-                                  badge: "border-indigo-500/20 bg-indigo-500/10 text-indigo-400"
-                                }
-                              };
-                              const colorMap = catColors[themeColor as keyof typeof catColors] || catColors.indigo;
-
-                              return (
-                                <div
-                                  key={elem.symbol}
-                                  className="p-4 rounded-[1.5rem] bg-[#0a0f1d] border border-white/5 shadow-inner hover:border-white/20 transition-all duration-300 relative group/element overflow-hidden flex flex-col min-h-[140px]"
-                                >
-                                  {/* Background Glow */}
-                                  <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-[30px] transition-colors pointer-events-none ${colorMap.bg}`} />
-                                  
-                                  {/* Top Row: Atomic Number & Mass */}
-                                  <div className="flex justify-between items-start mb-auto relative z-10">
-                                    <span className="text-xs font-mono font-black text-slate-500 group-hover/element:text-slate-300 transition-colors">
-                                      {details.number}
-                                    </span>
-                                    <span className="text-[9px] font-mono font-bold text-slate-500 group-hover/element:text-slate-400 transition-colors">
-                                      {Number(details.mass).toFixed(details.mass % 1 === 0 ? 0 : 3)}
-                                    </span>
-                                  </div>
-                                  
-                                  {/* Symbol & Name */}
-                                  <div className="flex flex-col relative z-10 mt-4 mb-3">
-                                    <div className={`text-4xl font-serif font-black text-white transition-colors leading-none drop-shadow-md ${colorMap.text}`}>
-                                      {elem.symbol}
-                                    </div>
-                                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest truncate mt-2 group-hover/element:text-white transition-colors">
-                                      {details.name || elem.symbol}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Category Tag */}
-                                  <div className="mt-auto relative z-10">
-                                    <div
-                                      className={`inline-flex px-2 py-1 rounded text-[8px] font-black uppercase tracking-[0.15em] border truncate max-w-full ${colorMap.badge}`}
-                                    >
-                                      {details.category}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            });
-                          })()}
-                        </div>
+                        <ConstituentPhaseElementsPanel
+                          formula={selectedCandidate.formula}
+                          materialName={selectedCandidate.phase_name}
+                          crystalSystem={selectedCandidate.crystalSystem}
+                          spaceGroup={selectedCandidate.spaceGroup}
+                          elements={selectedCandidate.elements}
+                          density={selectedCandidate.density}
+                        />
                       </div>
                     )}
                   </div>

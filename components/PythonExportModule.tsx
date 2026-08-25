@@ -226,7 +226,7 @@ export const PythonExportModule: React.FC = () => {
   }, [scriptContent, selectedLibrary, userEdited]);
 
   const handleAIGenerate = async (customUserPrompt?: string) => {
-    const promptToUse = (customUserPrompt || aiPrompt).trim();
+    const promptToUse = ((customUserPrompt || aiPrompt) || '').trim();
     if (!promptToUse) return;
 
     setIsGenerating(true);

@@ -178,7 +178,7 @@ const App: React.FC = () => {
           };
           localStorage.setItem('xrd_user_registration', JSON.stringify(defaultReg));
 
-          const nameParts = defaultReg.name.trim().split(/\s+/);
+          const nameParts = (defaultReg.name || '').trim().split(/\s+/);
           const first = nameParts[0] || 'Crystallographer';
           const last = nameParts.slice(1).join(' ') || 'Node';
           const initialReference = `${first[0]?.toUpperCase() || 'X'}${last[0]?.toUpperCase() || 'R'}-${new Date().getFullYear()}-CLOUD`;
@@ -998,8 +998,8 @@ const App: React.FC = () => {
         const newItem: BraggHistoryItem = {
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: new Date().toISOString(),
-          sampleId: sampleId.trim() || undefined,
-          materialName: materialName.trim() || undefined,
+          sampleId: (sampleId || '').trim() || undefined,
+          materialName: (materialName || '').trim() || undefined,
           wavelength,
           rawPeaks,
           rawHKL,
@@ -1129,7 +1129,7 @@ const App: React.FC = () => {
           const newItem: BraggHistoryItem = {
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             timestamp: new Date().toISOString(),
-            sampleId: set.sampleId.trim() || undefined,
+            sampleId: (set.sampleId || '').trim() || undefined,
             wavelength,
             rawPeaks: set.rawPeaks,
             rawHKL: set.rawHKL,

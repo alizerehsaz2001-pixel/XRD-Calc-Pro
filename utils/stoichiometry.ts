@@ -169,7 +169,7 @@ export function parseChemicalFormulaAdvanced(
   };
 
   try {
-    let formula = rawFormula.trim().replace(/\s+/g, '');
+    let formula = (rawFormula || '').trim().replace(/\s+/g, '');
     if (!formula) {
       return {
         valid: false,
@@ -433,7 +433,7 @@ class Fraction {
  */
 export function balanceChemicalEquation(equationStr: string): BalancedEquationResult {
   try {
-    const raw = equationStr.trim();
+    const raw = (equationStr || '').trim();
     if (!raw) {
       return {
         valid: false,

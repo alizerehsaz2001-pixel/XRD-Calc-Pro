@@ -47,6 +47,7 @@ import { bulkSaveOfflineMaterials } from '../utils/offlineDb';
 import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
 import { MaterialParameterStudioModal } from './MaterialParameterStudioModal';
 import { CrystallographicIntelligencePanel } from './CrystallographicIntelligencePanel';
+import { ConstituentPhaseElementsPanel } from './ConstituentPhaseElementsPanel';
 import { fetchLearnedMaterials } from '../services/geminiService';
 
 const LOCAL_STORAGE_KEY = 'crystal_suite_materials_v1';
@@ -5471,58 +5472,14 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
 
                     {activeDetailTab === 'composition' && (
                       <div className="space-y-4 animate-in fade-in duration-300">
-                        {/* Chemical Detail row */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl font-mono">
-                            <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Molecular Weight</span>
-                            <span className="text-xs block text-slate-200 mt-1 uppercase font-bold">
-                              {selectedMaterial.molecularWeight ? `${selectedMaterial.molecularWeight.toFixed(3)} g/mol` : 'N/A'}
-                            </span>
-                          </div>
-
-                          <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl font-mono">
-                            <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Formula Unit</span>
-                            <span className="text-xs block text-cyan-400 mt-1 font-bold">
-                              {selectedMaterial.formula || 'N/A'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Element Cards Block */}
-                        <div className="space-y-2">
-                          <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Constituent Element Profiles</span>
-                          <div className="grid grid-cols-2 gap-2.5">
-                            {selectedMaterial.elements?.map(el => {
-                              const detail = ELEMENT_DETAILS[el] || {
-                                name: "Unknown Element",
-                                z: "?",
-                                weight: "?",
-                                category: "Unclassified",
-                                color: "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                              };
-                              return (
-                                <div key={el} className={`p-2.5 border rounded-xl flex items-center justify-between ${detail.color}`}>
-                                  <div>
-                                    <div className="flex items-baseline gap-1.5">
-                                      <span className="text-sm font-bold uppercase font-mono tracking-tight text-white">{el}</span>
-                                      <span className="text-[9px] font-sans text-slate-400 truncate max-w-[80px]">{detail.name}</span>
-                                    </div>
-                                    <div className="text-[7px] uppercase font-bold text-slate-500 tracking-wider mt-0.5">{detail.category}</div>
-                                  </div>
-                                  <div className="text-right font-mono">
-                                    <div className="text-xs font-black text-white leading-none">Z {detail.z}</div>
-                                    <div className="text-[7px] text-slate-500 font-bold mt-1">
-                                      {typeof detail.weight === 'number' ? `${detail.weight.toFixed(2)} u` : detail.weight}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            {(!selectedMaterial.elements || selectedMaterial.elements.length === 0) && (
-                              <div className="col-span-2 py-3 text-center text-slate-600 font-mono text-[9px]">No elemental constituents specified</div>
-                            )}
-                          </div>
-                        </div>
+                        <ConstituentPhaseElementsPanel
+                          formula={selectedMaterial.formula}
+                          materialName={selectedMaterial.name}
+                          crystalSystem={selectedMaterial.crystalSystem}
+                          spaceGroup={selectedMaterial.spaceGroup}
+                          elements={selectedMaterial.elements}
+                          density={selectedMaterial.density}
+                        />
 
                         {/* Scientific Applications list */}
                         {selectedMaterial.applications && selectedMaterial.applications.length > 0 && (

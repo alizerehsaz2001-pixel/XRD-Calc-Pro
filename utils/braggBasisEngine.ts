@@ -253,7 +253,8 @@ const ELEMENT_Z_MAP: Record<string, number> = {
 };
 
 export function getElementAtomicNumber(symbol: string): number {
-  const clean = symbol.trim();
+  const clean = (symbol || '').trim();
+  if (!clean) return 14;
   const titleCase = clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
   return ELEMENT_Z_MAP[titleCase] || 14; // default silicon if unrecognized
 }

@@ -105,7 +105,7 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
       defA = 4.100; defB = 4.200; defC = 4.300; defAlpha = 88.5; defBeta = 95.2; defGamma = 102.1;
     }
 
-    const raw = candidate.latticeParams || {};
+    const raw = (candidate.latticeParams || {}) as Record<string, number | undefined>;
     const baseA = raw.a ?? defA;
     const baseB = raw.b ?? (cs.includes('cubic') || cs.includes('tetragonal') || cs.includes('hexagonal') ? baseA : defB);
     const baseC = raw.c ?? (cs.includes('cubic') ? baseA : defC);

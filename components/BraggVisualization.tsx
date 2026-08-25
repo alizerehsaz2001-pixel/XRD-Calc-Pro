@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Activity, 
@@ -12,6 +12,7 @@ import {
   Atom, 
   Grid, 
   RotateCw, 
+  RotateCcw,
   Plus, 
   Trash2, 
   CheckCircle2, 
@@ -21,9 +22,21 @@ import {
   ArrowRight,
   Info,
   Maximize2,
+  Minimize2,
   Box,
   Copy,
-  Check
+  Check,
+  Download,
+  Share2,
+  Eye,
+  SlidersHorizontal,
+  ChevronRight,
+  Gauge,
+  Cpu,
+  Bookmark,
+  Volume2,
+  VolumeX,
+  Keyboard
 } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import {
@@ -51,6 +64,11 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
 }) => {
   const { precision } = useSettings();
   
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState<boolean>(false);
+  const [scanSpeed, setScanSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
+
   // Advanced mode state
   const [advancedMode, setAdvancedMode] = useState(false);
   
@@ -82,30 +100,104 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
   // 3D Visualizer Rotation & Interaction State
   const [rotX, setRotX] = useState<number>(-20);
   const [rotY, setRotY] = useState<number>(35);
+  const [zoom3D, setZoom3D] = useState<number>(1.0);
   const [isOrbiting, setIsOrbiting] = useState<boolean>(false);
   const [isAutoRotate3D, setIsAutoRotate3D] = useState<boolean>(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
-  const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+
+  // 2D Projection axis in lattice tab
+  const [projectionPlane, setProjectionPlane] = useState<'ab' | 'bc' | 'ac'>('ab');
+  const [gridCellsCount, setGridCellsCount] = useState<number>(3);
 
   // Sync initial twoTheta from parent
   useEffect(() => {
     setLocalTwoTheta(initialTwoTheta);
   }, [initialTwoTheta]);
 
-  // Auto scanner interval
+  // Lock body scroll during Fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFullscreen]);
+
+  // Keyboard Shortcuts in Fullscreen and Standard
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+        if (e.key === 'Escape' && isFullscreen) {
+          setIsFullscreen(false);
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (showShortcutsHelp) {
+          setShowShortcutsHelp(false);
+        } else if (isFullscreen) {
+          setIsFullscreen(false);
+        }
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        setIsFullscreen(prev => !prev);
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        setIsAutoScanning(prev => !prev);
+      } else if (e.key === '1') {
+        setActiveTab('kinematics');
+      } else if (e.key === '2') {
+        setActiveTab('atomic_basis');
+      } else if (e.key === '3') {
+        setActiveTab('reciprocal_basis');
+      } else if (e.key === '4') {
+        setActiveTab('plane_stacking');
+      } else if (e.key === '5') {
+        setActiveTab('2d_lattice');
+      } else if (e.key === '[' || e.key === '{') {
+        e.preventDefault();
+        setLocalTwoTheta(prev => Math.max(5, parseFloat((prev - 0.2).toFixed(2))));
+        setIsAutoScanning(false);
+      } else if (e.key === ']' || e.key === '}') {
+        e.preventDefault();
+        setLocalTwoTheta(prev => Math.min(160, parseFloat((prev + 0.2).toFixed(2))));
+        setIsAutoScanning(false);
+      } else if (e.key === 'r' || e.key === 'R') {
+        setRotX(-20);
+        setRotY(35);
+        setZoom3D(1.0);
+      } else if (e.key === '?') {
+        setShowShortcutsHelp(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen, showShortcutsHelp]);
+
+  // Auto scanner interval with configurable speeds
   useEffect(() => {
     let interval: any;
     if (isAutoScanning) {
+      const step = scanSpeed === 'slow' ? 0.05 : scanSpeed === 'fast' ? 0.35 : 0.15;
+      const ms = scanSpeed === 'slow' ? 50 : scanSpeed === 'fast' ? 30 : 40;
       interval = setInterval(() => {
         setLocalTwoTheta(prev => {
-          const next = prev + 0.15;
-          return next > 90 ? 10 : next;
+          const next = prev + step;
+          return next > 90 ? 10 : parseFloat(next.toFixed(2));
         });
-      }, 40);
+      }, ms);
     }
     return () => clearInterval(interval);
-  }, [isAutoScanning]);
+  }, [isAutoScanning, scanSpeed]);
 
   // Auto 3D orbit rotation
   useEffect(() => {
@@ -301,8 +393,8 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
     const y2 = y1 * Math.cos(radX) - z1 * Math.sin(radX);
     const z2 = y1 * Math.sin(radX) + z1 * Math.cos(radX);
 
-    // Perspective factor
-    const p = 1 + z2 * 0.003;
+    // Perspective & Zoom factor
+    const p = (1 + z2 * 0.003) * zoom3D;
     return {
       x: originX + x2 * scale * p,
       y: originY - y2 * scale * p,
@@ -336,79 +428,329 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
     setSelectedPresetId('custom');
   };
 
+  // Copy data formatted
+  const handleCopyData = (format: 'json' | 'latex' | 'cif') => {
+    let content = '';
+    if (format === 'json') {
+      content = JSON.stringify({
+        preset: selectedPresetId,
+        unitCell,
+        hkl: [millerH, millerK, millerL],
+        wavelength,
+        dSpacing: structureFactorResult.dSpacing,
+        twoTheta: structureFactorResult.twoTheta,
+        structureFactor: {
+          fReal: structureFactorResult.fReal,
+          fImag: structureFactorResult.fImag,
+          fMag: structureFactorResult.fMag,
+          fPhaseDeg: structureFactorResult.fPhaseDeg,
+          fSquared: structureFactorResult.fSquared,
+          isExtinct: structureFactorResult.isExtinct
+        },
+        basisAtoms
+      }, null, 2);
+    } else if (format === 'latex') {
+      content = `\\begin{aligned}
+&\\text{Reflection } (${millerH}\\,${millerK}\\,${millerL}), \\quad \\lambda = ${wavelength.toFixed(4)}\\,\\text{\\AA}, \\quad d = ${structureFactorResult.dSpacing.toFixed(4)}\\,\\text{\\AA}, \\quad 2\\theta = ${structureFactorResult.twoTheta.toFixed(2)}^\\circ \\\\
+&F(${millerH}${millerK}${millerL}) = \\sum_{j=1}^{${basisAtoms.length}} f_j(s) e^{-B_j s^2} e^{2\\pi i (${millerH}x_j + ${millerK}y_j + ${millerL}z_j)} = ${structureFactorResult.fReal.toFixed(3)} + ${structureFactorResult.fImag.toFixed(3)}i \\\\
+&|F|^2 = ${structureFactorResult.fSquared.toFixed(2)}, \\quad \\alpha = ${structureFactorResult.fPhaseDeg.toFixed(1)}^\\circ \\quad [\\text{${structureFactorResult.isExtinct ? 'FORBIDDEN (EXTINCT)' : 'ALLOWED'}}]
+\\end{aligned}`;
+    } else {
+      content = `data_crystal_basis_${selectedPresetId}
+_cell_length_a ${unitCell.a.toFixed(4)}
+_cell_length_b ${unitCell.b.toFixed(4)}
+_cell_length_c ${unitCell.c.toFixed(4)}
+_cell_angle_alpha ${unitCell.alpha.toFixed(2)}
+_cell_angle_beta ${unitCell.beta.toFixed(2)}
+_cell_angle_gamma ${unitCell.gamma.toFixed(2)}
+
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_B_iso_or_equiv
+${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0].toFixed(4)} ${a.coords[1].toFixed(4)} ${a.coords[2].toFixed(4)} ${a.occupancy.toFixed(2)} ${a.bFactor.toFixed(2)}`).join('\n')}`;
+    }
+
+    navigator.clipboard.writeText(content);
+    setCopiedCode(format);
+    setTimeout(() => setCopiedCode(null), 2500);
+  };
+
   return (
-    <div id="bragg-basis-workbench" className="bg-[#080B11] border border-slate-800/80 p-5 sm:p-6 shadow-2xl relative font-mono text-slate-300">
-      {/* Header HUD */}
+    <div 
+      id="bragg-basis-workbench" 
+      className={
+        isFullscreen 
+          ? "fixed inset-0 z-50 bg-[#05070D] overflow-y-auto p-3 sm:p-5 md:p-6 flex flex-col font-mono text-slate-300 backdrop-blur-3xl transition-all duration-300"
+          : "bg-[#080B11] border border-slate-800/80 p-5 sm:p-6 shadow-2xl relative font-mono text-slate-300 transition-all duration-300"
+      }
+    >
+      {/* Fullscreen Sticky Quick Header HUD */}
+      {isFullscreen && (
+        <div className="sticky top-0 z-40 bg-[#05070D]/95 backdrop-blur-xl -mt-3 sm:-mt-5 md:-mt-6 -mx-3 sm:-mx-5 md:-mx-6 px-4 py-2.5 border-b border-sky-500/20 mb-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping shrink-0" />
+              <span className="text-xs font-bold uppercase tracking-widest text-sky-300 flex items-center gap-1.5">
+                <Atom className="w-4 h-4 text-sky-400" />
+                Bragg Basis Studio Fullscreen
+              </span>
+            </div>
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <div className="hidden sm:flex items-center gap-2 text-[10px] text-slate-400">
+              <span className="bg-slate-900 border border-slate-700 px-2 py-0.5 text-slate-200 font-bold">
+                λ = {wavelength.toFixed(4)} Å
+              </span>
+              <span className="bg-slate-900 border border-slate-700 px-2 py-0.5 text-emerald-400 font-bold">
+                ({millerH} {millerK} {millerL})
+              </span>
+              <span className="bg-slate-900 border border-slate-700 px-2 py-0.5 text-amber-400 font-bold">
+                d = {structureFactorResult.dSpacing > 0 ? structureFactorResult.dSpacing.toFixed(4) : '--'} Å
+              </span>
+              <span className="bg-slate-900 border border-slate-700 px-2 py-0.5 text-sky-400 font-bold">
+                2θ = {localTwoTheta.toFixed(2)}°
+              </span>
+              <span className={`px-2 py-0.5 font-bold border ${structureFactorResult.isExtinct ? 'bg-rose-950/40 text-rose-400 border-rose-600/40' : 'bg-emerald-950/40 text-emerald-400 border-emerald-600/40'}`}>
+                {structureFactorResult.isExtinct ? 'FORBIDDEN' : 'ALLOWED'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowShortcutsHelp(true)}
+              className="p-1.5 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors text-[10px] flex items-center gap-1"
+              title="Keyboard Shortcuts (?)"
+            >
+              <Keyboard className="w-3.5 h-3.5 text-sky-400" />
+              <span className="hidden md:inline">Shortcuts (?)</span>
+            </button>
+
+            <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5">
+              <button
+                onClick={() => handleCopyData('latex')}
+                className="px-2 py-1 text-[9px] font-bold text-slate-400 hover:text-amber-300 transition-colors"
+                title="Copy LaTeX Formula"
+              >
+                {copiedCode === 'latex' ? <Check className="w-3 h-3 text-emerald-400 inline" /> : 'LaTeX'}
+              </button>
+              <button
+                onClick={() => handleCopyData('json')}
+                className="px-2 py-1 text-[9px] font-bold text-slate-400 hover:text-sky-300 transition-colors"
+                title="Copy JSON state"
+              >
+                {copiedCode === 'json' ? <Check className="w-3 h-3 text-emerald-400 inline" /> : 'JSON'}
+              </button>
+              <button
+                onClick={() => handleCopyData('cif')}
+                className="px-2 py-1 text-[9px] font-bold text-slate-400 hover:text-emerald-300 transition-colors"
+                title="Copy CIF block"
+              >
+                {copiedCode === 'cif' ? <Check className="w-3 h-3 text-emerald-400 inline" /> : 'CIF'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsFullscreen(false)}
+              className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5 transition-all shadow-sm"
+              title="Exit Fullscreen (Esc)"
+            >
+              <Minimize2 className="w-3.5 h-3.5" />
+              <span>Exit Fullscreen</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Header HUD */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-5 pb-4 border-b border-white/10 gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-sky-500/10 border border-sky-500/20 text-sky-400">
+          <div className="p-2.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 shrink-0">
             <Atom className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-bold tracking-wider text-slate-100 uppercase flex items-center gap-2">
-              Bragg Basis & Crystallographic Kinematics Engine
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold tracking-wider text-slate-100 uppercase flex items-center gap-2">
+                Bragg Basis & Crystallographic Kinematics Engine
+              </h2>
+              <span className="text-[9px] px-2 py-0.5 bg-sky-950/60 border border-sky-500/30 text-sky-300 font-bold uppercase tracking-wider hidden sm:inline">
+                {STANDARD_BASIS_PRESETS.find(p => p.id === selectedPresetId)?.formula || 'Custom'}
+              </span>
+            </div>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">
               Direct/Reciprocal Basis Vectors • Atomic Basis Fractions • Structure Factor Phasor Summation
             </p>
           </div>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex items-center gap-1 bg-black/60 p-1 border border-slate-800/80">
-          <button
-            id="tab-kinematics"
-            onClick={() => setActiveTab('kinematics')}
-            className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 ${
-              activeTab === 'kinematics'
-                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Waves className="w-3.5 h-3.5" />
-            <span>Kinematics & Waves</span>
-          </button>
+        {/* Tab Selector & Fullscreen Toggle */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex items-center gap-1 bg-black/60 p-1 border border-slate-800/80 overflow-x-auto max-w-full">
+            <button
+              id="tab-kinematics"
+              onClick={() => setActiveTab('kinematics')}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === 'kinematics'
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Waves className="w-3.5 h-3.5" />
+              <span>1. Kinematics</span>
+            </button>
 
-          <button
-            id="tab-atomic-basis"
-            onClick={() => setActiveTab('atomic_basis')}
-            className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 ${
-              activeTab === 'atomic_basis'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Atom className="w-3.5 h-3.5" />
-            <span>Atomic Basis & F(hkl)</span>
-          </button>
+            <button
+              id="tab-atomic-basis"
+              onClick={() => setActiveTab('atomic_basis')}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === 'atomic_basis'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Atom className="w-3.5 h-3.5" />
+              <span>2. Atomic Basis & F(hkl)</span>
+            </button>
 
-          <button
-            id="tab-reciprocal-basis"
-            onClick={() => setActiveTab('reciprocal_basis')}
-            className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 ${
-              activeTab === 'reciprocal_basis'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Direct & Reciprocal Basis</span>
-          </button>
+            <button
+              id="tab-reciprocal-basis"
+              onClick={() => setActiveTab('reciprocal_basis')}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === 'reciprocal_basis'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>3. Dual Basis 3D</span>
+            </button>
 
-          <button
-            id="tab-plane-stacking"
-            onClick={() => setActiveTab('plane_stacking')}
-            className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 ${
-              activeTab === 'plane_stacking'
-                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Sub-Plane Interference</span>
-          </button>
+            <button
+              id="tab-plane-stacking"
+              onClick={() => setActiveTab('plane_stacking')}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === 'plane_stacking'
+                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>4. Sub-Planes</span>
+            </button>
+
+            <button
+              id="tab-2d-lattice"
+              onClick={() => setActiveTab('2d_lattice')}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === '2d_lattice'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Grid className="w-3.5 h-3.5" />
+              <span>5. 2D Real-Space</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setAdvancedMode(!advancedMode)}
+              className={`px-2.5 py-1.5 text-[10px] uppercase font-bold tracking-wider border transition-all flex items-center gap-1 ${
+                advancedMode 
+                  ? 'bg-purple-500/20 border-purple-500/40 text-purple-300' 
+                  : 'bg-black/60 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+              title="Toggle Advanced Phasors & Formulas"
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span className="hidden sm:inline">Advanced</span>
+            </button>
+
+            <button
+              id="btn-bragg-fullscreen-toggle"
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className={`p-2 text-[10px] uppercase font-bold tracking-wider border transition-all flex items-center gap-1.5 ${
+                isFullscreen
+                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 hover:bg-rose-500/30'
+                  : 'bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500/20'
+              }`}
+              title={isFullscreen ? 'Exit Fullscreen (F / Esc)' : 'Fullscreen Bragg Basis (F)'}
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Keyboard Shortcuts Modal Overlay */}
+      <AnimatePresence>
+        {showShortcutsHelp && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setShowShortcutsHelp(false)}
+          >
+            <div 
+              className="bg-[#0B0F17] border border-sky-500/40 p-6 max-w-md w-full shadow-2xl font-mono text-slate-300 space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <span className="text-sm font-bold text-sky-400 uppercase tracking-wider flex items-center gap-2">
+                  <Keyboard className="w-4 h-4" /> Keyboard Navigation Shortcuts
+                </span>
+                <button 
+                  onClick={() => setShowShortcutsHelp(false)}
+                  className="text-slate-500 hover:text-white text-xs p-1"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-400">Toggle Fullscreen:</span>
+                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-sky-300 font-bold">F</kbd>
+                </div>
+                <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-400">Exit Fullscreen:</span>
+                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-rose-300 font-bold">ESC</kbd>
+                </div>
+                <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-400">Play / Pause Scan:</span>
+                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-amber-300 font-bold">Space</kbd>
+                </div>
+                <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-400">Tabs 1 to 5:</span>
+                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-emerald-300 font-bold">1 - 5</kbd>
+                </div>
+                <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-400">Step 2θ ± 0.2°:</span>
+                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-purple-300 font-bold">[ / ]</kbd>
+                </div>
+                <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
+                  <span className="text-slate-400">Reset 3D Camera:</span>
+                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-sky-300 font-bold">R</kbd>
+                </div>
+              </div>
+
+              <div className="pt-2 text-center">
+                <button
+                  onClick={() => setShowShortcutsHelp(false)}
+                  className="w-full py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs uppercase font-bold tracking-wider transition-all"
+                >
+                  Got It (Close)
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* TAB 1: KINEMATICS & WAVE SUPERPOSITION */}
       {activeTab === 'kinematics' && (
@@ -1479,8 +1821,35 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
               </div>
 
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                <div className="flex items-center bg-black/80 border border-slate-700 p-0.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setZoom3D(prev => Math.min(2.5, prev + 0.15)); }}
+                    className="px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-sky-300 font-bold"
+                    title="Zoom In"
+                  >
+                    +
+                  </button>
+                  <span className="text-[8px] text-slate-500 px-1 font-mono">{zoom3D.toFixed(1)}x</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setZoom3D(prev => Math.max(0.5, prev - 0.15)); }}
+                    className="px-1.5 py-0.5 text-[10px] text-slate-300 hover:text-sky-300 font-bold"
+                    title="Zoom Out"
+                  >
+                    -
+                  </button>
+                </div>
+
                 <button
-                  onClick={() => setIsAutoRotate3D(!isAutoRotate3D)}
+                  onClick={(e) => { e.stopPropagation(); setRotX(-20); setRotY(35); setZoom3D(1.0); }}
+                  className="px-2 py-1 text-[9px] font-bold uppercase border bg-black/60 text-slate-400 border-slate-700 hover:text-white transition-all flex items-center gap-1"
+                  title="Reset View"
+                >
+                  <RotateCcw className="w-2.5 h-2.5" />
+                  <span className="hidden sm:inline">Reset</span>
+                </button>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsAutoRotate3D(!isAutoRotate3D); }}
                   className={`px-2 py-1 text-[9px] font-bold uppercase border transition-all ${
                     isAutoRotate3D ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-black/60 text-slate-400 border-slate-700'
                   }`}
