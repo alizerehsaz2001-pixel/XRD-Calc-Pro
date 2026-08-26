@@ -35,7 +35,10 @@ import {
   Star,
   Share2,
   BookOpen,
-  Zap
+  Zap,
+  RotateCcw,
+  FileText,
+  FileCode
 } from 'lucide-react';
 import { 
   generateScientificImage, 
@@ -335,6 +338,83 @@ ax.grid(True, color='#1e293b', linestyle='--', alpha=0.5)
 ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8, loc='upper right')
 for spine in ax.spines.values():
     spine.set_color('#334155')
+
+output_data = {
+    "R_wp": "4.82%",
+    "R_p": "3.51%",
+    "chi_squared": 1.28
+}
+`
+  },
+  {
+    id: 'williamson_hall',
+    label: 'Williamson-Hall & UDM',
+    description: 'Linear strain regression with microstrain & crystallite size deconvolution',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+# Diffraction angle 2theta (degrees) and FWHM beta (radians)
+two_theta_deg = np.array([28.44, 47.30, 56.12, 69.13, 76.38, 88.03, 94.95])
+fwhm_deg = np.array([0.22, 0.29, 0.35, 0.44, 0.50, 0.61, 0.69])
+hkl_labels = ['(111)', '(220)', '(311)', '(400)', '(331)', '(422)', '(511)']
+
+theta_rad = np.radians(two_theta_deg / 2.0)
+beta_rad = np.radians(fwhm_deg)
+wavelength = 1.54056 # Cu K-alpha in Angstroms
+K = 0.94 # Scherrer shape factor
+
+# Williamson-Hall UDM: beta*cos(theta) = K*lambda/D + 4*epsilon*sin(theta)
+x_data = 4 * np.sin(theta_rad)
+y_data = beta_rad * np.cos(theta_rad)
+
+# Linear regression
+slope, intercept = np.polyfit(x_data, y_data, 1)
+r_matrix = np.corrcoef(x_data, y_data)
+r_squared = r_matrix[0, 1]**2
+
+crystallite_size_ang = (K * wavelength) / max(intercept, 1e-6)
+crystallite_size_nm = crystallite_size_ang / 10.0
+microstrain_percent = slope * 100
+
+x_fit = np.linspace(min(x_data)*0.9, max(x_data)*1.05, 100)
+y_fit = slope * x_fit + intercept
+
+fig, ax = plt.subplots(figsize=(7, 5))
+fig.patch.set_facecolor('#0f172a')
+ax.set_facecolor('#0f172a')
+
+# Plot data points and fit line
+ax.scatter(x_data, y_data, color='#38bdf8', s=90, edgecolors='#ffffff', zorder=5, label='Diffraction Reflections')
+ax.plot(x_fit, y_fit, color='#f43f5e', linewidth=2.0, linestyle='-', label=f'UDM Fit (R² = {r_squared:.4f})')
+
+# Annotations
+for i, hkl in enumerate(hkl_labels):
+    ax.annotate(hkl, (x_data[i], y_data[i]), textcoords="offset points", xytext=(0, 10),
+                ha='center', fontsize=8, color='#f59e0b', fontweight='bold')
+
+# Metrics card inside plot
+stats_text = (f"Crystallite Size (D): {crystallite_size_nm:.2f} nm\\n"
+              f"Microstrain (ε): {microstrain_percent:.3f} %\\n"
+              f"Intercept: {intercept:.4e} rad\\n"
+              f"Slope (ε): {slope:.4e}")
+ax.text(0.04, 0.94, stats_text, transform=ax.transAxes, fontsize=8.5,
+        verticalalignment='top', bbox=dict(boxstyle='round,pad=0.6', facecolor='#1e293b', edgecolor='#334155', alpha=0.9),
+        color='#f1f5f9', fontfamily='monospace')
+
+ax.set_title("Williamson-Hall Uniform Deformation Model (UDM)", color='#f1f5f9', fontsize=12, fontweight='bold', pad=12)
+ax.set_xlabel("4 sin(θ)", color='#94a3b8', fontsize=9.5)
+ax.set_ylabel("β cos(θ) (rad)", color='#94a3b8', fontsize=9.5)
+ax.tick_params(colors='#94a3b8', labelsize=8.5)
+ax.grid(True, color='#1e293b', linestyle='--', alpha=0.6)
+ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8.5, loc='lower right')
+for spine in ax.spines.values():
+    spine.set_color('#334155')
+
+output_data = {
+    "crystallite_size_nm": round(float(crystallite_size_nm), 2),
+    "microstrain_percent": round(float(microstrain_percent), 4),
+    "r_squared": round(float(r_squared), 4)
+}
 `
   },
   {
@@ -382,48 +462,154 @@ for spine in ax.spines.values():
 `
   },
   {
-    id: 'phonon_dispersion',
-    label: 'Phonon Dispersion',
-    description: 'Acoustic and optical phonon dispersion branches along high-symmetry k-path',
+    id: 'debye_rings',
+    label: '2D Debye-Scherrer Rings',
+    description: '2D Area detector diffraction rings with beamstop and texture',
     code: `import numpy as np
 import matplotlib.pyplot as plt
 
-k_path = np.linspace(0, 3, 300)
-# High symmetry points: Gamma (0), X (1), L (2), Gamma (3)
+grid_size = 400
+y, x = np.ogrid[-grid_size/2:grid_size/2, -grid_size/2:grid_size/2]
+r = np.sqrt(x**2 + y**2)
+phi = np.arctan2(y, x)
 
-# Acoustic branches (LA, TA)
-la = 12 * np.sin(np.pi * k_path / 2)
-ta = 8 * np.sin(np.pi * k_path / 2)
+# Ring radii corresponding to 2theta projections
+ring_radii = [45, 78, 112, 142, 168, 195]
+ring_intensities = [100, 75, 45, 35, 20, 15]
+ring_widths = [1.8, 2.2, 2.5, 2.8, 3.2, 3.5]
 
-# Optical branches (LO, TO)
-lo = 25 - 3 * (k_path - 1.5)**2
-to = 22 - 2 * (k_path - 1.5)**2
+image = np.zeros((grid_size, grid_size))
+
+# Add rings with slight elliptical texture and azimuthal variation
+for r0, amp, w in zip(ring_radii, ring_intensities, ring_widths):
+    texture = 1 + 0.15 * np.cos(4 * phi)
+    ring_profile = amp * texture * np.exp(-((r - r0) / w)**2)
+    image += ring_profile
+
+# Add beamstop shadow and diffuse air scatter
+beamstop_mask = (r < 18) | ((np.abs(x) < 4) & (y < 0))
+air_scatter = 30 * np.exp(-r / 60)
+noise = np.random.poisson(np.clip(image + air_scatter + 5, 0, None))
+noise[beamstop_mask] = 0
+
+fig, ax = plt.subplots(figsize=(6.5, 5.5))
+fig.patch.set_facecolor('#0f172a')
+ax.set_facecolor('#0f172a')
+
+im = ax.imshow(noise, cmap='inferno', origin='lower', extent=[-10, 10, -10, 10])
+cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+cbar.set_label('Photon Counts', color='#94a3b8', fontsize=9)
+cbar.ax.tick_params(labelsize=8, colors='#94a3b8')
+
+# Ring labels
+for r0, hkl in zip(ring_radii, ['(111)', '(200)', '(220)', '(311)', '(222)', '(400)']):
+    r_mm = r0 * (20.0 / grid_size)
+    ax.annotate(hkl, (r_mm*np.cos(np.pi/4), r_mm*np.sin(np.pi/4)),
+                color='#38bdf8', fontsize=7.5, fontweight='bold',
+                bbox=dict(boxstyle='circle,pad=0.2', facecolor='#0f172a', alpha=0.7, edgecolor='none'))
+
+ax.set_title("2D Debye-Scherrer Diffraction Rings (Area Detector)", color='#f1f5f9', fontsize=11.5, fontweight='bold', pad=12)
+ax.set_xlabel("Detector X (cm)", color='#94a3b8', fontsize=9)
+ax.set_ylabel("Detector Y (cm)", color='#94a3b8', fontsize=9)
+ax.tick_params(colors='#94a3b8', labelsize=8)
+for spine in ax.spines.values():
+    spine.set_color('#334155')
+`
+  },
+  {
+    id: 'pair_distribution',
+    label: 'Pair Distribution G(r)',
+    description: 'Atomic pair correlation function G(r) with radial shell peaks',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.linspace(0.5, 12, 1000)
+
+# Atomic shells in FCC lattice (r in Angstroms)
+shells = [
+    {"r0": 2.86, "amp": 4.8, "w": 0.12, "label": "1st Shell (12 CN)"},
+    {"r0": 4.05, "amp": 2.4, "w": 0.16, "label": "2nd Shell (6 CN)"},
+    {"r0": 4.96, "amp": 4.2, "w": 0.18, "label": "3rd Shell (24 CN)"},
+    {"r0": 5.73, "amp": 1.9, "w": 0.20, "label": "4th Shell (12 CN)"},
+    {"r0": 6.40, "amp": 3.6, "w": 0.22, "label": "5th Shell (24 CN)"},
+    {"r0": 7.02, "amp": 1.5, "w": 0.24, "label": "6th Shell (8 CN)"}
+]
+
+gr = np.zeros_like(r)
+for s in shells:
+    gr += s["amp"] * np.exp(-((r - s["r0"])/s["w"])**2)
+
+# Add Fourier truncation ripples & baseline
+damped_sine = -4 * np.pi * 0.085 * r + 0.15 * np.sin(25 * r) * np.exp(-r/4)
+total_gr = gr + damped_sine
 
 fig, ax = plt.subplots(figsize=(7, 5))
 fig.patch.set_facecolor('#0f172a')
 ax.set_facecolor('#0f172a')
 
-ax.plot(k_path, la, color='#38bdf8', linewidth=2.0, label='LA Acoustic')
-ax.plot(k_path, ta, color='#10b981', linewidth=2.0, label='TA Acoustic')
-ax.plot(k_path, lo, color='#f43f5e', linewidth=2.0, label='LO Optical')
-ax.plot(k_path, to, color='#f59e0b', linewidth=2.0, label='TO Optical')
+ax.plot(r, total_gr, color='#38bdf8', linewidth=1.8, label='Experimental G(r)')
+ax.plot(r, -4 * np.pi * 0.085 * r, color='#64748b', linestyle='--', linewidth=1.0, label='-4πρ₀r Baseline')
+ax.axhline(0, color='#334155', linestyle=':', linewidth=0.8)
 
-# High symmetry vertical lines
-ax.axvline(0, color='#475569', linestyle='--')
-ax.axvline(1, color='#475569', linestyle='--')
-ax.axvline(2, color='#475569', linestyle='--')
-ax.axvline(3, color='#475569', linestyle='--')
+# Highlight first 3 atomic coordination shells
+for i, s in enumerate(shells[:3]):
+    ax.annotate(f"{s['r0']} Å\\n{s['label']}", xy=(s['r0'], s['amp'] - 1.5),
+                xytext=(s['r0'], s['amp'] + 1.2),
+                ha='center', fontsize=7.5, color='#f59e0b', fontweight='bold',
+                arrowprops=dict(arrowstyle="->", color='#f59e0b', alpha=0.7, lw=0.9))
 
-ax.set_xticks([0, 1, 2, 3])
-ax.set_xticklabels(['Γ', 'X', 'L', 'Γ'], color='#f1f5f9', fontsize=11, fontweight='bold')
-
-ax.set_title("Phonon Dispersion Curve & Vibrational Density of States", color='#f1f5f9', fontsize=12, fontweight='bold', pad=12)
-ax.set_ylabel("Frequency ω (THz)", color='#94a3b8', fontsize=9.5)
-ax.tick_params(colors='#94a3b8', labelsize=9)
-ax.grid(True, color='#1e293b', linestyle='--', alpha=0.5)
-ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8.5, loc='upper right')
+ax.set_title("Atomic Pair Distribution Function G(r) Deconvolution", color='#f1f5f9', fontsize=12, fontweight='bold', pad=12)
+ax.set_xlabel("Interatomic Distance r (Å)", color='#94a3b8', fontsize=9.5)
+ax.set_ylabel("G(r) (Å⁻²)", color='#94a3b8', fontsize=9.5)
+ax.tick_params(colors='#94a3b8', labelsize=8.5)
+ax.grid(True, color='#1e293b', linestyle='--', alpha=0.6)
+ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8.5, loc='lower left')
 for spine in ax.spines.values():
     spine.set_color('#334155')
+`
+  },
+  {
+    id: 'waterfall_temp',
+    label: 'In-Situ Phase Waterfall',
+    description: 'Multi-temperature 3D stacked diffractograms (25°C to 900°C)',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+two_theta = np.linspace(25, 45, 600)
+temperatures = [25, 150, 300, 450, 600, 750, 900] # deg C
+
+fig = plt.figure(figsize=(7.5, 5.5))
+fig.patch.set_facecolor('#0f172a')
+ax = fig.add_subplot(111, projection='3d')
+ax.set_facecolor('#0f172a')
+
+colors = plt.cm.plasma(np.linspace(0.15, 0.95, len(temperatures)))
+
+for idx, (temp, col) in enumerate(zip(temperatures, colors)):
+    shift = 0.0015 * (temp - 25)
+    peak1 = 80 * np.exp(-((two_theta - (31.5 - shift))/0.3)**2)
+    peak2 = 45 * np.exp(-((two_theta - (36.2 - shift*1.2))/0.35)**2)
+    
+    if temp >= 600:
+        peak1 = 110 * np.exp(-((two_theta - (31.4 - shift))/0.4)**2)
+        peak2 = 30 * np.exp(-((two_theta - (36.0 - shift*1.2))/0.4)**2)
+
+    bg = 5 + np.random.normal(0, 0.8, len(two_theta))
+    intensity = peak1 + peak2 + bg
+
+    ax.plot(two_theta, np.full_like(two_theta, temp), intensity, color=col, linewidth=1.6)
+
+ax.set_title("In-Situ High-Temperature XRD Phase Evolution (25°C - 900°C)", color='#f1f5f9', fontsize=11, fontweight='bold', pad=14)
+ax.set_xlabel("2θ (°)", color='#94a3b8', fontsize=8.5)
+ax.set_ylabel("Temperature (°C)", color='#94a3b8', fontsize=8.5)
+ax.set_zlabel("Intensity (Counts)", color='#94a3b8', fontsize=8.5)
+ax.tick_params(colors='#94a3b8', labelsize=7.5)
+ax.xaxis.pane.fill = False
+ax.yaxis.pane.fill = False
+ax.zaxis.pane.fill = False
+ax.xaxis.pane.set_edgecolor('#1e293b')
+ax.yaxis.pane.set_edgecolor('#1e293b')
+ax.zaxis.pane.set_edgecolor('#1e293b')
 `
   }
 ];
@@ -522,6 +708,16 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
   const [pythonLog, setPythonLog] = useState<string | null>(null);
   const [pythonError, setPythonError] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState<boolean>(false);
+  const [matplotlibDpi, setMatplotlibDpi] = useState<number>(200);
+  const [matplotlibTheme, setMatplotlibTheme] = useState<'custom' | 'dark' | 'publication_nature' | 'academic_light' | 'transparent'>('custom');
+  const [figuresList, setFiguresList] = useState<Array<{ figureId: number; png: string; svg: string; svgDataUrl: string; pdf?: string; widthInches: number; heightInches: number; dpi: number }>>([]);
+  const [activeFigureIdx, setActiveFigureIdx] = useState<number>(0);
+  const [activeTabMode, setActiveTabMode] = useState<'raster' | 'svg' | 'metadata'>('raster');
+  const [executionMetadata, setExecutionMetadata] = useState<any>(null);
+  const [executionTimeMs, setExecutionTimeMs] = useState<number | null>(null);
+  const [primarySvg, setPrimarySvg] = useState<string | null>(null);
+  const [primaryPdf, setPrimaryPdf] = useState<string | null>(null);
+  const [copiedSvg, setCopiedSvg] = useState<boolean>(false);
 
   // Load history from local storage on mount
   useEffect(() => {
@@ -632,6 +828,13 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
     }
   };
 
+  const handleResetCode = () => {
+    const preset = MATPLOTLIB_PRESETS.find(p => p.id === selectedPreset) || MATPLOTLIB_PRESETS[0];
+    setPythonCode(preset.code);
+    setPythonError(null);
+    setPythonLog("# Script reset to baseline template.");
+  };
+
   const handleGenerateAIScript = async () => {
     if (!prompt.trim()) {
       setError("Please describe your desired plot or model in 'Concept Description' first!");
@@ -664,17 +867,43 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
       const response = await fetch('/api/image/matplotlib', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: pythonCode })
+        body: JSON.stringify({
+          code: pythonCode,
+          dpi: matplotlibDpi,
+          theme: matplotlibTheme,
+          transparent: matplotlibTheme === 'transparent',
+          format: 'both'
+        })
       });
 
       const resData = await response.json();
-      if (resData.success && resData.image) {
-        setImageUrl(resData.image);
-        setPythonLog(resData.stdout);
+      if (resData.success && (resData.image || (resData.figures && resData.figures.length > 0))) {
+        const figs = resData.figures && resData.figures.length > 0 
+          ? resData.figures 
+          : [{
+              figureId: 1,
+              png: resData.image,
+              svg: resData.svg || '',
+              svgDataUrl: resData.svg ? "data:image/svg+xml;utf8," + encodeURIComponent(resData.svg) : '',
+              pdf: resData.pdf || null,
+              widthInches: 7,
+              heightInches: 5,
+              dpi: resData.dpi || matplotlibDpi
+            }];
+        
+        setFiguresList(figs);
+        setActiveFigureIdx(0);
+        setImageUrl(figs[0]?.png || resData.image);
+        setPrimarySvg(figs[0]?.svg || resData.svg || null);
+        setPrimaryPdf(figs[0]?.pdf || resData.pdf || null);
+        setExecutionMetadata(resData.metadata || null);
+        setExecutionTimeMs(resData.executionTimeMs || null);
+        setPythonLog(resData.stdout || null);
+
         const newRecord: GenerationRecord = {
           id: Date.now().toString(),
-          prompt: `Python Matplotlib: ${MATPLOTLIB_PRESETS.find(p => p.id === selectedPreset)?.label || 'Custom'}`,
-          url: resData.image,
+          prompt: `Python Matplotlib: ${MATPLOTLIB_PRESETS.find(p => p.id === selectedPreset)?.label || 'Custom'} (${matplotlibDpi} DPI, ${matplotlibTheme})`,
+          url: figs[0]?.png || resData.image,
           timestamp: Date.now(),
           style: 'matplotlib_plot',
           aspectRatio: '4:3'
@@ -704,6 +933,42 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleDownloadSvg = () => {
+    const activeFig = figuresList[activeFigureIdx];
+    const svgData = activeFig?.svg || primarySvg;
+    if (!svgData) return;
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `matplotlib-vector-figure-${Date.now()}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPdf = () => {
+    const activeFig = figuresList[activeFigureIdx];
+    const pdfData = activeFig?.pdf || primaryPdf;
+    if (!pdfData) return;
+    const link = document.createElement('a');
+    link.href = pdfData;
+    link.download = `matplotlib-publication-figure-${Date.now()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCopySvg = () => {
+    const activeFig = figuresList[activeFigureIdx];
+    const svgData = activeFig?.svg || primarySvg;
+    if (!svgData) return;
+    navigator.clipboard.writeText(svgData);
+    setCopiedSvg(true);
+    setTimeout(() => setCopiedSvg(false), 2000);
   };
 
   const handleCopyPrompt = () => {
@@ -1150,7 +1415,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                   <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <Grid size={11} className="text-indigo-400" />
-                      Analytical Python Templates
+                      Analytical Python Templates ({MATPLOTLIB_PRESETS.length})
                     </label>
                     <div className="grid grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-1">
                       {MATPLOTLIB_PRESETS.map((preset) => (
@@ -1170,29 +1435,81 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     </div>
                   </div>
 
+                  {/* Rendering Parameter Controls: DPI & Theme */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                        Resolution (DPI)
+                      </label>
+                      <select
+                        value={matplotlibDpi}
+                        onChange={(e) => setMatplotlibDpi(Number(e.target.value))}
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-200 dark:border-slate-800 outline-none focus:border-indigo-500 font-bold"
+                      >
+                        <option value={150}>150 DPI (Fast)</option>
+                        <option value={200}>200 DPI (Standard)</option>
+                        <option value={300}>300 DPI (Journal / Nature)</option>
+                        <option value={600}>600 DPI (Ultra Vector)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                        Figure Theme
+                      </label>
+                      <select
+                        value={matplotlibTheme}
+                        onChange={(e) => setMatplotlibTheme(e.target.value as any)}
+                        className="w-full text-xs bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-200 dark:border-slate-800 outline-none focus:border-indigo-500 font-bold"
+                      >
+                        <option value="custom">Script-Defined</option>
+                        <option value="publication_nature">Nature / White</option>
+                        <option value="dark">Dark Lab / Slate</option>
+                        <option value="academic_light">Academic Light</option>
+                        <option value="transparent">Transparent PNG</option>
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Raw Python code editor */}
                   <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex justify-between items-center">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
                         <Code size={11} className="text-indigo-400" />
-                        Kernel Source Terminal (.py)
+                        Kernel Source (.py)
                       </label>
-                      <button
-                        onClick={handleCopyCode}
-                        className="text-[9px] font-bold text-slate-400 hover:text-indigo-400 flex items-center gap-1"
-                      >
-                        {copiedCode ? <CheckCircle2 size={10} className="text-emerald-500" /> : <Copy size={10} />}
-                        {copiedCode ? 'Copied' : 'Copy Code'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleResetCode}
+                          className="text-[9px] font-bold text-slate-400 hover:text-amber-400 flex items-center gap-1 transition-colors"
+                          title="Reset to preset template"
+                        >
+                          <RotateCcw size={10} />
+                          Reset
+                        </button>
+                        <button
+                          onClick={handleCopyCode}
+                          className="text-[9px] font-bold text-slate-400 hover:text-indigo-400 flex items-center gap-1 transition-colors"
+                        >
+                          {copiedCode ? <CheckCircle2 size={10} className="text-emerald-500" /> : <Copy size={10} />}
+                          {copiedCode ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
                     </div>
                     <div className="relative font-mono rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950">
                       <div className="bg-slate-900 px-3 py-1 flex items-center justify-between text-[8px] text-slate-500 uppercase tracking-widest border-b border-slate-850">
-                        <span>Python workspace</span>
-                        <span className="text-emerald-500 font-black animate-pulse">● IDE LIVE</span>
+                        <span>Python 3 Subprocess (Ctrl+Enter to Run)</span>
+                        <span className="text-emerald-500 font-black animate-pulse">● READY</span>
                       </div>
                       <textarea
                         value={pythonCode}
                         onChange={(e) => setPythonCode(e.target.value)}
+                        onKeyDown={(e) => {
+                          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            e.preventDefault();
+                            handleRenderMatplotlib();
+                          }
+                        }}
                         spellCheck={false}
                         className="w-full h-56 p-3 bg-slate-950 text-emerald-400 border-none outline-none font-mono text-[10px] leading-relaxed resize-y focus:ring-0"
                       />
@@ -1320,8 +1637,13 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-3">
                 <div className={`h-2.5 w-2.5 rounded-full ${illustratorMode === 'neural' ? 'bg-fuchsia-500' : 'bg-indigo-500'} animate-pulse`} />
-                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 tracking-tight">
-                  {illustratorMode === 'neural' ? 'Active Canvas (Imagen-3)' : 'Plot Visualizer Matrix (Matplotlib)'}
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                  {illustratorMode === 'neural' ? 'Active Canvas (Imagen-3)' : 'Matplotlib Kernel Visualizer'}
+                  {illustratorMode === 'matplotlib' && executionTimeMs !== null && (
+                    <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-mono font-bold rounded-md border border-emerald-500/20">
+                      ⚡ {executionTimeMs}ms • {matplotlibDpi} DPI
+                    </span>
+                  )}
                 </h3>
                 {aspectRatio && illustratorMode === 'neural' && (
                   <span className="px-2 py-0.5 bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 text-[9px] font-bold rounded-md border border-fuchsia-500/20">
@@ -1331,6 +1653,41 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
               </div>
               
               <div className="flex items-center gap-2">
+                {/* Mode switcher for Matplotlib (Raster / SVG / Metadata) */}
+                {illustratorMode === 'matplotlib' && imageUrl && (
+                  <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <button
+                      onClick={() => setActiveTabMode('raster')}
+                      className={`px-2.5 py-1 text-[9px] font-bold rounded-lg transition-all flex items-center gap-1 ${
+                        activeTabMode === 'raster' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-200'
+                      }`}
+                    >
+                      <ImageIcon size={10} />
+                      Raster
+                    </button>
+                    <button
+                      onClick={() => setActiveTabMode('svg')}
+                      className={`px-2.5 py-1 text-[9px] font-bold rounded-lg transition-all flex items-center gap-1 ${
+                        activeTabMode === 'svg' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-200'
+                      }`}
+                    >
+                      <Code size={10} />
+                      Vector SVG
+                    </button>
+                    {executionMetadata && (
+                      <button
+                        onClick={() => setActiveTabMode('metadata')}
+                        className={`px-2.5 py-1 text-[9px] font-bold rounded-lg transition-all flex items-center gap-1 ${
+                          activeTabMode === 'metadata' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-200'
+                        }`}
+                      >
+                        <FileJson size={10} />
+                        Output Data
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Canvas Theme Toggle */}
                 <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
                   <button
@@ -1359,7 +1716,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                   </button>
                 </div>
 
-                {/* Overlays toggle */}
+                {/* Overlays & Export actions */}
                 {imageUrl && (
                   <>
                     <button
@@ -1394,10 +1751,34 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     <button
                       onClick={handleExportMetadata}
                       className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-white transition-all"
-                      title="Export Figure Metadata"
+                      title="Export Figure Metadata JSON"
                     >
                       <FileJson size={13} />
                     </button>
+
+                    {/* Matplotlib SVG download */}
+                    {illustratorMode === 'matplotlib' && (primarySvg || figuresList[activeFigureIdx]?.svg) && (
+                      <button
+                        onClick={handleDownloadSvg}
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white rounded-xl border border-slate-200 dark:border-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1"
+                        title="Download Scalable Vector Graphics (.svg)"
+                      >
+                        <FileCode size={12} />
+                        <span className="hidden sm:inline">SVG</span>
+                      </button>
+                    )}
+
+                    {/* Matplotlib PDF download */}
+                    {illustratorMode === 'matplotlib' && (primaryPdf || figuresList[activeFigureIdx]?.pdf) && (
+                      <button
+                        onClick={handleDownloadPdf}
+                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white rounded-xl border border-slate-200 dark:border-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1"
+                        title="Download Publication PDF"
+                      >
+                        <FileText size={12} />
+                        <span className="hidden sm:inline">PDF</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => handleDownload(imageUrl)}
@@ -1408,12 +1789,41 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       } text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md`}
                     >
                       <Download size={13} />
-                      <span className="hidden sm:inline">Download</span>
+                      <span className="hidden sm:inline">PNG</span>
                     </button>
                   </>
                 )}
               </div>
             </div>
+
+            {/* Multiple Figure Selector Tabs */}
+            {illustratorMode === 'matplotlib' && figuresList.length > 1 && (
+              <div className="bg-slate-100 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1 shrink-0">
+                  <Layers size={11} className="text-indigo-400" />
+                  Figures ({figuresList.length}):
+                </span>
+                {figuresList.map((fig, idx) => (
+                  <button
+                    key={fig.figureId || idx}
+                    onClick={() => {
+                      setActiveFigureIdx(idx);
+                      setImageUrl(fig.png);
+                      setPrimarySvg(fig.svg);
+                      setPrimaryPdf(fig.pdf || null);
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      activeFigureIdx === idx
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-slate-200 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span>Fig {fig.figureId || idx + 1}</span>
+                    <span className="text-[9px] opacity-70">({fig.widthInches}x{fig.heightInches}")</span>
+                  </button>
+                ))}
+              </div>
+            )}
             
             {/* Canvas Main View */}
             <div className={`flex-1 relative flex items-center justify-center overflow-hidden transition-colors duration-300 ${
@@ -1442,7 +1852,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       {illustratorMode === 'neural' ? 'Synthesizing Pixels' : 'Interpreting Python Kernels'}
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      {illustratorMode === 'neural' ? `Neural rendering in progress (${size})` : 'Generating scientific plot figure'}
+                      {illustratorMode === 'neural' ? `Neural rendering in progress (${size})` : `Executing Matplotlib Subprocess at ${matplotlibDpi} DPI...`}
                     </p>
                     
                     {illustratorMode === 'neural' ? (
@@ -1459,7 +1869,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                         <div className="space-y-1">
                           <div className="text-slate-500">&gt; import matplotlib.pyplot as plt</div>
                           <div className="text-slate-500">&gt; import numpy as np</div>
-                          <div className="animate-pulse text-indigo-300">&gt; executing user script context...</div>
+                          <div className="animate-pulse text-indigo-300">&gt; executing user script context with Agg backend...</div>
                         </div>
                       </div>
                     )}
@@ -1471,6 +1881,67 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                         animate={{ width: "100%" }}
                         transition={{ duration: 4, ease: "linear" }}
                       />
+                    </div>
+                  </motion.div>
+                ) : activeTabMode === 'svg' && (primarySvg || figuresList[activeFigureIdx]?.svg) ? (
+                  /* Live Scalable Vector SVG View */
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    key="svg-preview"
+                    className="relative w-full h-full p-6 flex flex-col items-center justify-center overflow-auto"
+                  >
+                    <div className="w-full max-w-2xl bg-slate-900/90 rounded-2xl p-4 border border-indigo-500/20 shadow-2xl flex flex-col items-center">
+                      <div className="w-full flex justify-between items-center mb-3 pb-2 border-b border-slate-800 text-xs">
+                        <span className="font-mono text-indigo-300 text-[11px] font-bold flex items-center gap-1.5">
+                          <Code size={13} />
+                          Scalable Vector Graphics (SVG Format)
+                        </span>
+                        <button
+                          onClick={handleCopySvg}
+                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                        >
+                          {copiedSvg ? <CheckCircle2 size={11} className="text-emerald-400" /> : <Copy size={11} />}
+                          {copiedSvg ? 'Copied XML' : 'Copy SVG XML'}
+                        </button>
+                      </div>
+                      <div 
+                        className="w-full max-h-[500px] flex items-center justify-center overflow-hidden [&>svg]:max-w-full [&>svg]:max-h-[480px] [&>svg]:h-auto"
+                        dangerouslySetInnerHTML={{ __html: figuresList[activeFigureIdx]?.svg || primarySvg || '' }}
+                      />
+                    </div>
+                  </motion.div>
+                ) : activeTabMode === 'metadata' && executionMetadata ? (
+                  /* Computed Results & Metrics Card */
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    key="metadata-preview"
+                    className="w-full h-full p-6 flex items-center justify-center overflow-auto"
+                  >
+                    <div className="w-full max-w-xl bg-slate-900/95 rounded-2xl p-6 border border-indigo-500/30 shadow-2xl space-y-4 text-left">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <FileJson className="text-indigo-400" size={18} />
+                          <h4 className="text-sm font-bold text-slate-100">Crystallographic Output Data</h4>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400">JSON Object</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                        {Object.entries(executionMetadata).map(([key, val]) => (
+                          <div key={key} className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                            <span className="text-[9px] uppercase tracking-wider text-slate-500 block mb-1">{key}</span>
+                            <span className="text-emerald-400 font-bold text-sm">
+                              {typeof val === 'number' ? Number(val.toFixed(4)) : String(val)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="pt-2">
+                        <pre className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-[10px] text-slate-300 overflow-x-auto max-h-40 font-mono">
+                          {JSON.stringify(executionMetadata, null, 2)}
+                        </pre>
+                      </div>
                     </div>
                   </motion.div>
                 ) : imageUrl ? (

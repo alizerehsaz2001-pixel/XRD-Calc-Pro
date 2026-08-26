@@ -1712,7 +1712,7 @@ CRITICAL RULES:
 
   // Python + Matplotlib Scientific Illustrator Script Execution Endpoint
   app.post("/api/image/matplotlib", async (req, res) => {
-    const { code } = req.body;
+    const { code, dpi, theme, transparent, format } = req.body;
     try {
       if (!code || typeof code !== "string") {
         res.status(400).json({ success: false, error: "Python matplotlib script is required." });
@@ -1726,6 +1726,16 @@ CRITICAL RULES:
       
       let stdout = "";
       let stderr = "";
+      let responded = false;
+
+      // 25-second execution timeout guard
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          try { child.kill("SIGKILL"); } catch (e) {}
+          res.status(504).json({ success: false, error: "Matplotlib execution timed out (maximum 25s limit reached)." });
+        }
+      }, 25000);
       
       child.stdout.on("data", (data) => {
         stdout += data.toString();
@@ -1735,10 +1745,14 @@ CRITICAL RULES:
         stderr += data.toString();
       });
       
-      child.on("close", (code) => {
-        if (code !== 0) {
+      child.on("close", (exitCode) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (exitCode !== 0 && !stdout.trim()) {
           console.error("Python Matplotlib Generator Error:", stderr);
-          res.status(500).json({ success: false, error: "Error executing Python Matplotlib script: " + (stderr || "exit code " + code) });
+          res.status(500).json({ success: false, error: "Error executing Python Matplotlib script: " + (stderr || "exit code " + exitCode) });
           return;
         }
 
@@ -1747,12 +1761,18 @@ CRITICAL RULES:
           res.json(results);
         } catch (parseError) {
           console.error("Failed to parse Python Matplotlib output:", stdout, parseError);
-          res.status(500).json({ success: false, error: "Failed to parse Python Matplotlib output." });
+          res.status(500).json({ success: false, error: "Failed to parse Python Matplotlib output: " + (stderr || stdout.slice(0, 300)) });
         }
       });
       
-      // Feed python code payload to standard input
-      child.stdin.write(JSON.stringify({ code }));
+      // Feed python code & settings payload to standard input
+      child.stdin.write(JSON.stringify({
+        code,
+        dpi: dpi || 200,
+        theme: theme || "custom",
+        transparent: !!transparent,
+        format: format || "both"
+      }));
       child.stdin.end();
 
     } catch (error: any) {

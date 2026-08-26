@@ -1820,6 +1820,39 @@ ${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0
                 <span className="text-sky-400 font-bold">RotX: {rotX.toFixed(0)}° RotY: {rotY.toFixed(0)}°</span>
               </div>
 
+              {/* Camera Presets in 3D Tab */}
+              <div className="absolute bottom-3 left-3 z-10 hidden sm:flex items-center gap-1 bg-black/80 border border-slate-700/80 p-1">
+                <span className="text-[8px] uppercase tracking-wider text-slate-500 px-1 font-bold">View:</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setRotX(0); setRotY(0); }}
+                  className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-none"
+                  title="Front View"
+                >
+                  Front
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setRotX(90); setRotY(0); }}
+                  className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-none"
+                  title="Top View"
+                >
+                  Top
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setRotX(0); setRotY(90); }}
+                  className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-none"
+                  title="Side View"
+                >
+                  Side
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setRotX(-20); setRotY(35); }}
+                  className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-900 hover:bg-slate-800 text-sky-300 rounded-none"
+                  title="Isometric View"
+                >
+                  Iso
+                </button>
+              </div>
+
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                 <div className="flex items-center bg-black/80 border border-slate-700 p-0.5">
                   <button
@@ -2099,6 +2132,138 @@ ${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0
                 <span className="text-[9px] font-mono text-slate-400">z = 1.00 d_hkl</span>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Bottom Quick Dock (Visible in Fullscreen Mode) */}
+      {isFullscreen && (
+        <div className="sticky bottom-2 z-40 mt-6 mx-auto max-w-5xl w-full bg-[#05070D]/90 backdrop-blur-xl border border-sky-500/30 p-2.5 shadow-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+          {/* Quick Goniometer Angle Steppers */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold hidden sm:inline">2θ Angle:</span>
+            <div className="flex items-center bg-slate-900 border border-slate-700">
+              <button
+                onClick={() => setLocalTwoTheta(prev => Math.max(5, parseFloat((prev - 1.0).toFixed(2))))}
+                className="px-2 py-1 text-[10px] text-slate-300 hover:text-sky-300 font-bold border-r border-slate-800"
+                title="Decrease 2θ by 1.0°"
+              >
+                -1.0°
+              </button>
+              <button
+                onClick={() => setLocalTwoTheta(prev => Math.max(5, parseFloat((prev - 0.1).toFixed(2))))}
+                className="px-2 py-1 text-[10px] text-slate-300 hover:text-sky-300 font-bold border-r border-slate-800"
+                title="Decrease 2θ by 0.1°"
+              >
+                -0.1°
+              </button>
+              <span className="px-3 py-1 font-mono font-bold text-sky-400 min-w-16 text-center">
+                {localTwoTheta.toFixed(2)}°
+              </span>
+              <button
+                onClick={() => setLocalTwoTheta(prev => Math.min(160, parseFloat((prev + 0.1).toFixed(2))))}
+                className="px-2 py-1 text-[10px] text-slate-300 hover:text-sky-300 font-bold border-l border-slate-800"
+                title="Increase 2θ by 0.1°"
+              >
+                +0.1°
+              </button>
+              <button
+                onClick={() => setLocalTwoTheta(prev => Math.min(160, parseFloat((prev + 1.0).toFixed(2))))}
+                className="px-2 py-1 text-[10px] text-slate-300 hover:text-sky-300 font-bold border-l border-slate-800"
+                title="Increase 2θ by 1.0°"
+              >
+                +1.0°
+              </button>
+            </div>
+            
+            <button
+              onClick={() => setIsAutoScanning(prev => !prev)}
+              className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border transition-all flex items-center gap-1 ${
+                isAutoScanning ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
+              }`}
+            >
+              {isAutoScanning ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              <span>{isAutoScanning ? 'Pause' : 'Scan'}</span>
+            </button>
+
+            {/* Scan Speed */}
+            {isAutoScanning && (
+              <div className="flex items-center bg-slate-900 border border-slate-700 p-0.5">
+                {(['slow', 'normal', 'fast'] as const).map(spd => (
+                  <button
+                    key={spd}
+                    onClick={() => setScanSpeed(spd)}
+                    className={`px-1.5 py-0.5 text-[8px] uppercase font-bold ${
+                      scanSpeed === spd ? 'bg-amber-500/30 text-amber-300' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {spd === 'slow' ? '0.5x' : spd === 'normal' ? '1x' : '2x'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Miller Indices (h k l) Steppers */}
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold hidden sm:inline">(h k l):</span>
+            <div className="flex items-center gap-1">
+              <div className="flex items-center bg-slate-900 border border-slate-700 px-1 py-0.5">
+                <span className="text-[9px] font-bold text-slate-500 mr-1">h</span>
+                <button
+                  onClick={() => setMillerH(prev => Math.max(-10, prev - 1))}
+                  className="px-1 text-slate-400 hover:text-white text-[10px]"
+                >-</button>
+                <span className="px-1 font-mono font-bold text-sky-400 min-w-4 text-center">{millerH}</span>
+                <button
+                  onClick={() => setMillerH(prev => Math.min(10, prev + 1))}
+                  className="px-1 text-slate-400 hover:text-white text-[10px]"
+                >+</button>
+              </div>
+
+              <div className="flex items-center bg-slate-900 border border-slate-700 px-1 py-0.5">
+                <span className="text-[9px] font-bold text-slate-500 mr-1">k</span>
+                <button
+                  onClick={() => setMillerK(prev => Math.max(-10, prev - 1))}
+                  className="px-1 text-slate-400 hover:text-white text-[10px]"
+                >-</button>
+                <span className="px-1 font-mono font-bold text-sky-400 min-w-4 text-center">{millerK}</span>
+                <button
+                  onClick={() => setMillerK(prev => Math.min(10, prev + 1))}
+                  className="px-1 text-slate-400 hover:text-white text-[10px]"
+                >+</button>
+              </div>
+
+              <div className="flex items-center bg-slate-900 border border-slate-700 px-1 py-0.5">
+                <span className="text-[9px] font-bold text-slate-500 mr-1">l</span>
+                <button
+                  onClick={() => setMillerL(prev => Math.max(-10, prev - 1))}
+                  className="px-1 text-slate-400 hover:text-white text-[10px]"
+                >-</button>
+                <span className="px-1 font-mono font-bold text-sky-400 min-w-4 text-center">{millerL}</span>
+                <button
+                  onClick={() => setMillerL(prev => Math.min(10, prev + 1))}
+                  className="px-1 text-slate-400 hover:text-white text-[10px]"
+                >+</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Preset Selector */}
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 font-bold hidden md:inline">Preset:</span>
+            <select
+              value={selectedPresetId}
+              onChange={(e) => handlePresetSelect(e.target.value)}
+              className="bg-slate-900 border border-slate-700 text-slate-200 text-[10px] px-2 py-1 font-mono outline-none"
+            >
+              {STANDARD_BASIS_PRESETS.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name} ({preset.formula})
+                </option>
+              ))}
+              <option value="custom">Custom</option>
+            </select>
           </div>
         </div>
       )}
