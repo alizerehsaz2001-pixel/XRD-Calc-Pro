@@ -3912,10 +3912,10 @@ export const calculateMonshiScherrer = (
   };
 };
 
-export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[] => {
+export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number }[] => {
   if (!inputData) return [];
   const lines = inputData.split('\n');
-  const results: { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[] = [];
+  const results: { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number }[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -3924,19 +3924,222 @@ export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianc
     if (parts.length >= 2) {
       const sigmaDeg = parts[0];
       const varianceDeg2 = parts[1];
-      const mu4Rad4 = parts.length >= 3 ? parts[2] : undefined;
+      let mu3Rad3: number | undefined = undefined;
+      let mu4Rad4: number | undefined = undefined;
+      if (parts.length === 3) {
+        mu4Rad4 = parts[2];
+      } else if (parts.length >= 4) {
+        mu3Rad3 = parts[2];
+        mu4Rad4 = parts[3];
+      }
       if (sigmaDeg > 0 && varianceDeg2 >= 0) {
-        results.push({ sigmaDeg, varianceDeg2, mu4Rad4 });
+        results.push({ sigmaDeg, varianceDeg2, mu3Rad3, mu4Rad4 });
       }
     }
   }
   return results;
 };
 
+export interface RawPeakMomentsResult {
+  twoThetaCentroid: number;
+  fwhm: number;
+  maxIntensity: number;
+  integratedArea: number;
+  integralBreadthDeg: number;
+  shapeFactorPhi: number;
+  lorentzianFractionEta: number;
+  backgroundBaseline: { slope: number; intercept: number };
+  momentPoints: {
+    sigmaDeg: number;
+    varianceDeg2: number;
+    thirdMomentRad3?: number;
+    fourthMomentRad4?: number;
+    kurtosis?: number;
+    skewness?: number;
+  }[];
+  integratedProfile: {
+    twoTheta: number;
+    rawIntensity: number;
+    netIntensity: number;
+    background: number;
+    syntheticFit?: number;
+  }[];
+}
+
+export const integrateRawPeakMoments = (
+  rawXYText: string,
+  userCentroid?: number,
+  numRanges: number = 9,
+  minSigmaDeg?: number,
+  maxSigmaDeg?: number
+): RawPeakMomentsResult | null => {
+  if (!rawXYText) return null;
+  const lines = rawXYText.split('\n');
+  const rawData: { twoTheta: number; intensity: number }[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) continue;
+    const parts = trimmed.split(/[\s,;\t]+/).map(Number).filter(n => !isNaN(n));
+    if (parts.length >= 2) {
+      rawData.push({ twoTheta: parts[0], intensity: Math.max(0, parts[1]) });
+    }
+  }
+
+  if (rawData.length < 5) return null;
+
+  // Sort by 2Theta
+  rawData.sort((a, b) => a.twoTheta - b.twoTheta);
+
+  // Determine background from left and right extremities (10% on each flank)
+  const flankCount = Math.max(2, Math.floor(rawData.length * 0.12));
+  const leftFlank = rawData.slice(0, flankCount);
+  const rightFlank = rawData.slice(rawData.length - flankCount);
+
+  const leftMeanX = leftFlank.reduce((acc, p) => acc + p.twoTheta, 0) / leftFlank.length;
+  const leftMeanY = leftFlank.reduce((acc, p) => acc + p.intensity, 0) / leftFlank.length;
+  const rightMeanX = rightFlank.reduce((acc, p) => acc + p.twoTheta, 0) / rightFlank.length;
+  const rightMeanY = rightFlank.reduce((acc, p) => acc + p.intensity, 0) / rightFlank.length;
+
+  const slope = (rightMeanY - leftMeanY) / (rightMeanX - leftMeanX || 1);
+  const intercept = leftMeanY - slope * leftMeanX;
+
+  // Net intensities
+  const netProfile = rawData.map(p => {
+    const bg = slope * p.twoTheta + intercept;
+    const net = Math.max(0, p.intensity - bg);
+    return {
+      twoTheta: p.twoTheta,
+      rawIntensity: p.intensity,
+      netIntensity: net,
+      background: Math.max(0, bg)
+    };
+  });
+
+  // Calculate centroid (1st moment M1)
+  let sumI = 0;
+  let sumIX = 0;
+  let maxNetI = 0;
+  let maxPos = netProfile[0].twoTheta;
+
+  for (const pt of netProfile) {
+    sumI += pt.netIntensity;
+    sumIX += pt.netIntensity * pt.twoTheta;
+    if (pt.netIntensity > maxNetI) {
+      maxNetI = pt.netIntensity;
+      maxPos = pt.twoTheta;
+    }
+  }
+
+  if (sumI <= 0 || maxNetI <= 0) return null;
+
+  const autoCentroid = sumIX / sumI;
+  const twoThetaCentroid = userCentroid && userCentroid > 0 ? userCentroid : autoCentroid;
+
+  // Estimate FWHM
+  const halfMax = maxNetI / 2;
+  let leftCross = maxPos;
+  let rightCross = maxPos;
+  for (let i = 0; i < netProfile.length - 1; i++) {
+    if (netProfile[i].twoTheta <= maxPos && netProfile[i].netIntensity <= halfMax && netProfile[i + 1].netIntensity >= halfMax) {
+      leftCross = netProfile[i].twoTheta;
+    }
+    if (netProfile[i].twoTheta >= maxPos && netProfile[i].netIntensity >= halfMax && netProfile[i + 1].netIntensity <= halfMax) {
+      rightCross = netProfile[i + 1].twoTheta;
+      break;
+    }
+  }
+  const fwhm = Math.max(0.02, Math.abs(rightCross - leftCross) || 0.25);
+
+  // Integrated area & Integral breadth
+  let integratedArea = 0;
+  for (let i = 0; i < netProfile.length - 1; i++) {
+    const dx = netProfile[i + 1].twoTheta - netProfile[i].twoTheta;
+    const avgY = (netProfile[i].netIntensity + netProfile[i + 1].netIntensity) / 2;
+    integratedArea += avgY * dx;
+  }
+  const integralBreadthDeg = maxNetI > 0 ? integratedArea / maxNetI : fwhm;
+  const shapeFactorPhi = integralBreadthDeg > 0 ? (2 * fwhm) / integralBreadthDeg : 0.8;
+  const lorentzianFractionEta = Math.max(0, Math.min(1, 1.36603 * (1 - 0.636619 / Math.max(0.63, shapeFactorPhi))));
+
+  // Progressive moment calculation over integration range limits sigma
+  const minAvailableSigma = Math.max(0.1, fwhm * 0.6);
+  const maxAvailableSigma = Math.min(
+    twoThetaCentroid - rawData[0].twoTheta,
+    rawData[rawData.length - 1].twoTheta - twoThetaCentroid
+  );
+
+  const startSigma = minSigmaDeg && minSigmaDeg > 0 ? minSigmaDeg : minAvailableSigma;
+  const endSigma = maxSigmaDeg && maxSigmaDeg > startSigma ? maxSigmaDeg : Math.max(startSigma + 0.3, maxAvailableSigma * 0.95);
+
+  const sigmaList: number[] = [];
+  const validSteps = Math.max(4, numRanges);
+  for (let s = 0; s < validSteps; s++) {
+    const sig = startSigma + (s / (validSteps - 1)) * (endSigma - startSigma);
+    sigmaList.push(parseFloat(sig.toFixed(3)));
+  }
+
+  const DEG_TO_RAD = Math.PI / 180;
+  const momentPoints = sigmaList.map(sig => {
+    let m0 = 0;
+    let m2 = 0;
+    let m3 = 0;
+    let m4 = 0;
+
+    for (let i = 0; i < netProfile.length - 1; i++) {
+      const p1 = netProfile[i];
+      const p2 = netProfile[i + 1];
+      const mid2Theta = (p1.twoTheta + p2.twoTheta) / 2;
+      const dx = p2.twoTheta - p1.twoTheta;
+      const deltaDeg = mid2Theta - twoThetaCentroid;
+
+      if (Math.abs(deltaDeg) <= sig) {
+        const deltaRad = deltaDeg * DEG_TO_RAD;
+        const avgI = (p1.netIntensity + p2.netIntensity) / 2;
+        const dArea = avgI * dx;
+
+        m0 += dArea;
+        m2 += dArea * (deltaRad * deltaRad);
+        m3 += dArea * Math.pow(deltaRad, 3);
+        m4 += dArea * Math.pow(deltaRad, 4);
+      }
+    }
+
+    const varianceRad2 = m0 > 0 ? m2 / m0 : 0;
+    const varianceDeg2 = varianceRad2 * (180 / Math.PI) * (180 / Math.PI);
+    const thirdMomentRad3 = m0 > 0 ? m3 / m0 : 0;
+    const fourthMomentRad4 = m0 > 0 ? m4 / m0 : 0;
+    const kurtosis = varianceRad2 > 0 ? fourthMomentRad4 / (varianceRad2 * varianceRad2) : 3.0;
+    const skewness = varianceRad2 > 0 ? thirdMomentRad3 / Math.pow(varianceRad2, 1.5) : 0;
+
+    return {
+      sigmaDeg: sig,
+      varianceDeg2,
+      thirdMomentRad3,
+      fourthMomentRad4,
+      kurtosis,
+      skewness
+    };
+  });
+
+  return {
+    twoThetaCentroid,
+    fwhm,
+    maxIntensity: maxNetI,
+    integratedArea,
+    integralBreadthDeg,
+    shapeFactorPhi,
+    lorentzianFractionEta,
+    backgroundBaseline: { slope, intercept },
+    momentPoints,
+    integratedProfile: netProfile
+  };
+};
+
 export const calculateMethodOfMoments = (
   wavelength: number,
   twoTheta0: number,
-  momentInputs: { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[],
+  momentInputs: { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number }[],
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
   cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
   instFwhm: number = 0.05,
@@ -3946,6 +4149,7 @@ export const calculateMethodOfMoments = (
     monochromatorAngleDeg?: number;
     kAlpha2Correction?: boolean;
     shapeK?: number;
+    burgersVectorNm?: number;
   }
 ): MethodOfMomentsResult | null => {
   if (wavelength <= 0 || twoTheta0 <= 0 || twoTheta0 >= 180 || momentInputs.length < 3) {
@@ -3967,6 +4171,7 @@ export const calculateMethodOfMoments = (
   const monoAngle = advancedPhysics?.monochromatorAngleDeg !== undefined ? advancedPhysics.monochromatorAngleDeg : 26.4;
   const kAlpha2Corr = advancedPhysics?.kAlpha2Correction || false;
   const shapeK = advancedPhysics?.shapeK || 1.0;
+  const burgersVectorNm = advancedPhysics?.burgersVectorNm || 0.25;
 
   // Instrumental variance contribution W_inst
   let peakInstFwhmDeg = instFwhm;
@@ -4011,14 +4216,19 @@ export const calculateMethodOfMoments = (
     }
 
     const kurtosis = pt.mu4Rad4 && varianceRad2 > 0 ? pt.mu4Rad4 / (varianceRad2 * varianceRad2) : undefined;
+    const excessKurtosis = kurtosis !== undefined ? kurtosis - 3.0 : undefined;
+    const skewness = pt.mu3Rad3 && varianceRad2 > 0 ? pt.mu3Rad3 / Math.pow(varianceRad2, 1.5) : undefined;
 
     return {
       sigmaDeg: pt.sigmaDeg,
       sigmaRad,
       varianceDeg2: varianceRad2 * RAD_TO_DEG * RAD_TO_DEG,
       varianceRad2,
+      thirdMomentRad3: pt.mu3Rad3,
       fourthMomentRad4: pt.mu4Rad4,
-      kurtosis
+      skewness,
+      kurtosis,
+      excessKurtosis
     };
   });
 
@@ -4074,6 +4284,7 @@ export const calculateMethodOfMoments = (
     const fittedWDeg2 = fittedWRad2 * RAD_TO_DEG * RAD_TO_DEG;
     const linearComponentDeg2 = (interceptW0 + slopeK1 * x) * RAD_TO_DEG * RAD_TO_DEG;
     const quadraticComponentDeg2 = (quadraticK2 * x * x) * RAD_TO_DEG * RAD_TO_DEG;
+    const residualDeg2 = p.varianceDeg2 - fittedWDeg2;
 
     ssTot += Math.pow(p.varianceRad2 - meanY, 2);
     ssRes += Math.pow(p.varianceRad2 - fittedWRad2, 2);
@@ -4084,7 +4295,8 @@ export const calculateMethodOfMoments = (
       fittedWDeg2,
       fittedWRad2,
       linearComponentDeg2,
-      quadraticComponentDeg2
+      quadraticComponentDeg2,
+      residualDeg2
     };
   });
 
@@ -4099,23 +4311,42 @@ export const calculateMethodOfMoments = (
     sizeNm = Math.max(0, sizeAngstrom / 10);
   }
 
+  // Apparent Area-weighted column length <L>_A (~ D_V / 2 for Cauchy size broadening)
+  const areaWeightedSizeNm = sizeNm > 0 ? sizeNm / 2.0 : 0;
+
   // RMS microstrain <e^2>^0.5 = sqrt(max(0, K2)) / (2 * tan(theta0))
   let rmsStrain = 0;
   if (quadraticK2 > 0) {
     rmsStrain = Math.sqrt(quadraticK2) / (2 * tanTheta0);
   }
 
-  // Mean kurtosis
+  // Dislocation density rho = (2 * sqrt(3) * rmsStrain) / (D_V_m * b_m)
+  let dislocationDensity = 0;
+  if (sizeNm > 0 && rmsStrain > 0 && burgersVectorNm > 0) {
+    const dVm = sizeNm * 1e-9;
+    const bm = burgersVectorNm * 1e-9;
+    dislocationDensity = (2 * Math.sqrt(3) * rmsStrain) / (dVm * bm);
+  }
+
+  // Mean kurtosis and skewness
   const validKurtoses = points.filter(p => p.kurtosis !== undefined).map(p => p.kurtosis as number);
   const meanKurtosis = validKurtoses.length > 0 ? validKurtoses.reduce((a, b) => a + b, 0) / validKurtoses.length : 3.0;
+
+  const validSkewnesses = points.filter(p => p.skewness !== undefined).map(p => p.skewness as number);
+  const meanSkewness = validSkewnesses.length > 0 ? validSkewnesses.reduce((a, b) => a + b, 0) / validSkewnesses.length : 0.0;
+
+  // Quality score (0 - 100)
+  let qualityScore = Math.round(rSquared * 70 + Math.min(20, points.length * 2.5));
+  if (slopeK1 > 0) qualityScore += 10;
+  qualityScore = Math.max(10, Math.min(99, qualityScore));
 
   let profileInterpretation = '';
   if (slopeK1 <= 0) {
     profileInterpretation = 'Negative or zero linear slope K1 detected. Range limits may be truncated or background improperly subtracted.';
   } else if (quadraticK2 <= 0) {
-    profileInterpretation = `Linear-dominated variance profile with size D_V = ${sizeNm.toFixed(2)} nm and negligible lattice strain (pure size broadening).`;
+    profileInterpretation = `Linear-dominated variance profile with volume-weighted domain size D_V = ${sizeNm.toFixed(2)} nm and negligible lattice strain (pure size broadening). Area-weighted column length <L>_A ≈ ${areaWeightedSizeNm.toFixed(2)} nm.`;
   } else {
-    profileInterpretation = `Mixed size and strain broadening: D_V = ${sizeNm.toFixed(2)} nm, RMS Strain <ε²>½ = ${(rmsStrain * 100).toFixed(4)}%. Linear slope yields reciprocal crystallite size, while quadratic curvature represents microstrain distortion.`;
+    profileInterpretation = `Mixed size and strain broadening: D_V = ${sizeNm.toFixed(2)} nm, RMS Strain <ε²>½ = ${(rmsStrain * 100).toFixed(4)}% (Dislocation Density ρ ≈ ${dislocationDensity.toExponential(2)} m⁻²). Linear slope yields reciprocal crystallite size, while quadratic curvature represents microstrain distortion.`;
   }
 
   return {
@@ -4126,8 +4357,13 @@ export const calculateMethodOfMoments = (
     quadraticK2,
     interceptW0,
     sizeNm,
+    areaWeightedSizeNm,
     rmsStrain,
+    dislocationDensity,
+    burgersVectorNm,
+    qualityScore,
     meanKurtosis,
+    meanSkewness,
     rSquared,
     points,
     fittedPoints,

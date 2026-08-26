@@ -139,8 +139,11 @@ export interface MomentDataPoint {
   sigmaRad: number;       // Integration range limit sigma in radians
   varianceDeg2: number;   // Variance W(sigma) in deg^2
   varianceRad2: number;   // Variance W(sigma) in rad^2
+  thirdMomentRad3?: number;  // 3rd central moment mu_3(sigma) in rad^3
   fourthMomentRad4?: number; // 4th moment mu_4(sigma) in rad^4
+  skewness?: number;      // Skewness gamma_1 = mu_3 / W^(3/2)
   kurtosis?: number;      // Kurtosis K = mu_4 / W^2
+  excessKurtosis?: number;// Excess kurtosis gamma_2 = K - 3
 }
 
 export interface MethodOfMomentsResult {
@@ -153,7 +156,12 @@ export interface MethodOfMomentsResult {
   sizeNm: number;             // Volume-weighted crystallite size D_V = lambda / (pi^2 * K1 * cos(theta0)) in nm
   rmsStrain: number;          // RMS microstrain <e^2>^0.5 = sqrt(K2) / (2 * tan(theta0))
   meanKurtosis: number;       // Average kurtosis ratio mu_4 / W^2
+  meanSkewness?: number;      // Average skewness
   rSquared: number;           // Regression R^2 for W(sigma) = W0 + K1*sigma + K2*sigma^2
+  areaWeightedSizeNm?: number;// Area-weighted column length <L>_A (~ D_V / 2 for Cauchy)
+  dislocationDensity?: number;// Dislocation density rho = (2*sqrt(3)*rmsStrain) / (D_V * b) in m^-2
+  burgersVectorNm?: number;   // Burgers vector (default 0.25 nm)
+  qualityScore?: number;      // 0-100 composite regression quality index
   points: MomentDataPoint[];  // Range-variance data points
   fittedPoints: {
     sigmaDeg: number;
@@ -162,6 +170,7 @@ export interface MethodOfMomentsResult {
     fittedWRad2: number;
     linearComponentDeg2: number;
     quadraticComponentDeg2: number;
+    residualDeg2?: number;
   }[];
   profileInterpretation: string;
   zeroShiftApplied?: number;
