@@ -648,6 +648,42 @@ export const saveLearnedMaterial = async (
   }
 };
 
+export const queryScientificRagEngine = async (
+  query: string,
+  experimentalPeaks?: Array<{ two_theta: number; intensity: number }>,
+  customKey?: string
+): Promise<{
+  success: boolean;
+  answer?: string;
+  retrieved_materials?: Array<any>;
+  retrieved_literature?: Array<any>;
+  total_indexed?: number;
+  ai_grounded?: boolean;
+  error?: string;
+}> => {
+  try {
+    const keyToUse = customKey || localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || "";
+    const response = await fetch('/api/gemini/rag-database', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        experimentalPeaks,
+        customKey: keyToUse
+      })
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    console.error("Scientific Python RAG Client Error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to connect to Scientific Python RAG Engine."
+    };
+  }
+};
+
 export const deleteLearnedMaterial = async (name: string): Promise<boolean> => {
   try {
     const res = await fetch(`/api/materials/learned/${encodeURIComponent(name)}`, {

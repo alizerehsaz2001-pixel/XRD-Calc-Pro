@@ -15,6 +15,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ReferenceLine 
 } from 'recharts';
+import { OpenCVVisionPanel, OpenCVResultsData } from './OpenCVVisionPanel';
 
 // CV Diagnostic Logs component
 const CVLoader: React.FC = () => {
@@ -130,13 +131,26 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
 
   // Python + OpenCV Vision Solver States
   const [analysisMode, setAnalysisMode] = useState<'neural' | 'python_cv'>('neural');
-  const [cvResults, setCvResults] = useState<any>(null);
-  const [activeFilterTab, setActiveFilterTab] = useState<'original' | 'canny_edges' | 'spot_contours' | 'ring_fits' | 'radial_heatmap'>('original');
+  const [cvResults, setCvResults] = useState<OpenCVResultsData | null>(null);
+  const [activeFilterTab, setActiveFilterTab] = useState<string>('ring_fits');
   const [rightPanelTab, setRightPanelTab] = useState<'report' | 'structured_ocr' | 'radial_profile' | 'tuning'>('report');
   
   // Adaptive vision hyperparameters
   const [cvParams, setCvParams] = useState({
+    wavelength: 1.5406,
+    detector_distance: 150.0,
+    pixel_size: 75.0,
     threshold: 85,
+    denoise_method: 'bilateral' as 'bilateral' | 'gaussian' | 'none',
+    tophat_radius: 25,
+    apply_clahe: true,
+    clahe_clip: 3.0,
+    center_method: 'intensity_com' as 'intensity_com' | 'hough_circles' | 'manual',
+    manual_cx: null as number | null,
+    manual_cy: null as number | null,
+    azimuth_start: 0,
+    azimuth_end: 360,
+    num_bins: 300,
     prominence: 0.05,
     min_ring_distance: 6,
     spot_neighborhood: 15,
@@ -275,7 +289,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
 
       setCvResults(data);
       setResult(data.report_md); // Sync markdown report with active result viewer
-      setActiveFilterTab('canny_edges'); // Default filter display
+      setActiveFilterTab('ring_fits'); // Default filter display
       
       setHistory(prev => [{ 
         context: "Python OpenCV Vision Core Run", 
@@ -292,7 +306,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
     }
   };
 
-  const handleParamChange = (key: string, value: number) => {
+  const handleParamChange = (key: string, value: any) => {
     setCvParams(prev => ({ ...prev, [key]: value }));
   };
 
@@ -456,20 +470,23 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                     
                     {/* Processed Filter Tabs overlay under the image */}
                     {analysisMode === 'python_cv' && cvResults && (
-                      <div className="z-20 mt-4 flex flex-wrap gap-1 bg-black/60 p-1.5 rounded-xl border border-slate-800/80 w-full max-w-sm">
+                      <div className="z-20 mt-4 flex flex-wrap gap-1 bg-black/70 p-1.5 rounded-2xl border border-slate-800/80 w-full max-w-md">
                         {[
-                          { id: 'original', label: 'Original' },
-                          { id: 'canny_edges', label: 'Edges' },
-                          { id: 'spot_contours', label: 'Spots' },
+                          { id: 'original_annotated', label: 'Origin' },
                           { id: 'ring_fits', label: 'Rings Fit' },
+                          { id: 'polar_unwrapped', label: 'Polar r-χ' },
+                          { id: 'spot_contours', label: 'Spots (SAED)' },
+                          { id: 'clahe_enhanced', label: 'CLAHE' },
+                          { id: 'tophat_bg', label: 'Top-Hat' },
+                          { id: 'canny_edges', label: 'Canny' },
                           { id: 'radial_heatmap', label: 'Heatmap' },
                         ].map(tab => (
                           <button
                             key={tab.id}
-                            onClick={(e) => { e.stopPropagation(); setActiveFilterTab(tab.id as any); }}
-                            className={`flex-1 py-1 px-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border ${
+                            onClick={(e) => { e.stopPropagation(); setActiveFilterTab(tab.id); }}
+                            className={`flex-1 py-1 px-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border ${
                               activeFilterTab === tab.id
-                                ? 'bg-sky-500/20 border-sky-500/30 text-sky-300'
+                                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300 shadow-sm'
                                 : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300'
                             }`}
                           >
@@ -809,38 +826,130 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
               <>
                 {/* Advanced OpenCV & SciPy Controllers */}
                 {image && (
-                  <div className="bg-black/30 p-5 rounded-2xl border border-slate-800/60 space-y-4">
-                    <div className="flex items-center justify-between pb-1">
+                  <div className="bg-black/40 p-5 rounded-2xl border border-slate-800/80 space-y-4">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-800/60">
                       <div className="flex items-center gap-2">
-                         <Sliders className="w-3.5 h-3.5 text-sky-400" />
-                         <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Vision Lab settings</span>
+                         <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                         <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Crystallography Optics & Vision</span>
                       </div>
-                      <span className="text-[8px] font-mono font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">CV SOLVER</span>
+                      <span className="text-[8px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">CV SOLVER</span>
                     </div>
 
                     <div className="space-y-4">
-                      {/* Threshold */}
+                      {/* Radiation Source Presets */}
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                           <span>Beam Centroid Threshold</span>
-                           <span className="font-mono text-sky-400">{cvParams.threshold} ADC</span>
+                          <span>Radiation Anode Wavelength</span>
+                          <span className="font-mono text-indigo-400">{cvParams.wavelength.toFixed(4)} Å</span>
                         </div>
-                        <input 
-                           type="range" 
-                           min="30" 
-                           max="200" 
-                           value={String(cvParams.threshold) === 'NaN' ? '' : cvParams.threshold} 
-                           onChange={(e) => handleParamChange('threshold', parseInt(e.target.value))}
-                           className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
-                        />
-                        <div className="text-[8px] text-slate-500 leading-tight">Minimum luminance value for beam stop centroid calibration.</div>
+                        <div className="grid grid-cols-4 gap-1">
+                          {[
+                            { name: 'Cu Kα', wl: 1.5406 },
+                            { name: 'Mo Kα', wl: 0.7107 },
+                            { name: 'Co Kα', wl: 1.7890 },
+                            { name: 'Cr Kα', wl: 2.2897 },
+                          ].map(src => (
+                            <button
+                              key={src.name}
+                              type="button"
+                              onClick={() => handleParamChange('wavelength', src.wl)}
+                              className={`py-1 px-1.5 rounded-lg text-[8px] font-mono font-bold transition-all border ${
+                                Math.abs(cvParams.wavelength - src.wl) < 0.001
+                                  ? 'bg-indigo-600 text-white border-indigo-500 shadow'
+                                  : 'bg-black/30 text-slate-400 border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              {src.name}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
-                      {/* Prominence */}
+                      {/* Detector Distance & Pixel Size */}
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-bold text-slate-400 uppercase">Distance D (mm)</label>
+                          <input 
+                            type="number" 
+                            step="5" 
+                            min="30" 
+                            max="1000"
+                            value={cvParams.detector_distance} 
+                            onChange={(e) => handleParamChange('detector_distance', parseFloat(e.target.value) || 150)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-2.5 py-1.5 text-xs font-mono focus:border-indigo-500"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-bold text-slate-400 uppercase">Pixel Pitch (µm)</label>
+                          <input 
+                            type="number" 
+                            step="5" 
+                            min="10" 
+                            max="500"
+                            value={cvParams.pixel_size} 
+                            onChange={(e) => handleParamChange('pixel_size', parseFloat(e.target.value) || 75)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-2.5 py-1.5 text-xs font-mono focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Centroid Method */}
+                      <div className="space-y-1.5">
+                        <div className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Beam Origin Calibration Mode</div>
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            { id: 'intensity_com', label: 'Intensity COM' },
+                            { id: 'hough_circles', label: 'Hough Rings' },
+                            { id: 'manual', label: 'Manual' },
+                          ].map(mode => (
+                            <button
+                              key={mode.id}
+                              type="button"
+                              onClick={() => handleParamChange('center_method', mode.id)}
+                              className={`py-1 px-1.5 rounded-lg text-[8px] font-bold uppercase tracking-wider transition-all border ${
+                                cvParams.center_method === mode.id
+                                  ? 'bg-indigo-600 text-white border-indigo-500'
+                                  : 'bg-black/30 text-slate-400 border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              {mode.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Denoising & Preprocessing */}
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-bold text-slate-400 uppercase">Filter Method</label>
+                          <select 
+                            value={cvParams.denoise_method}
+                            onChange={(e) => handleParamChange('denoise_method', e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-2 py-1.5 text-[9px] font-mono focus:border-indigo-500"
+                          >
+                            <option value="bilateral">Bilateral (Edge-Safe)</option>
+                            <option value="gaussian">Gaussian Blur</option>
+                            <option value="none">None (Raw)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[8px] font-bold text-slate-400 uppercase">Top-Hat Radius (px)</label>
+                          <input 
+                            type="number" 
+                            min="5" 
+                            max="80"
+                            value={cvParams.tophat_radius} 
+                            onChange={(e) => handleParamChange('tophat_radius', parseInt(e.target.value) || 25)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-2.5 py-1 text-xs font-mono focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Prominence & Ring Finding */}
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
                            <span>Ring Peak Prominence</span>
-                           <span className="font-mono text-sky-400">{cvParams.prominence.toFixed(3)}</span>
+                           <span className="font-mono text-indigo-400">{cvParams.prominence.toFixed(3)}</span>
                         </div>
                         <input 
                            type="range" 
@@ -848,16 +957,15 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            max="15" 
                            value={isNaN(Math.round(cvParams.prominence * 100)) ? '' : Math.round(cvParams.prominence * 100)} 
                            onChange={(e) => handleParamChange('prominence', parseInt(e.target.value) / 100)}
-                           className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                           className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                         />
-                        <div className="text-[8px] text-slate-500 leading-tight">Peak sensing sensitivity for SciPy concentric ring finding.</div>
                       </div>
 
                       {/* Spots Filter Percentile */}
                       <div className="space-y-1.5">
                         <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                           <span>Spot Percentile Limit</span>
-                           <span className="font-mono text-sky-400">{cvParams.spot_threshold_p}th %</span>
+                           <span>SAED Spot Percentile</span>
+                           <span className="font-mono text-indigo-400">{cvParams.spot_threshold_p}th %</span>
                         </div>
                         <input 
                            type="range" 
@@ -865,7 +973,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            max="99" 
                            value={String(cvParams.spot_threshold_p) === 'NaN' ? '' : cvParams.spot_threshold_p} 
                            onChange={(e) => handleParamChange('spot_threshold_p', parseInt(e.target.value))}
-                           className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                           className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                         />
                       </div>
 
@@ -874,7 +982,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                         <div className="space-y-1">
                           <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-wider">
                              <span>Canny Low</span>
-                             <span className="font-mono text-sky-400">{cvParams.canny_low}</span>
+                             <span className="font-mono text-indigo-400">{cvParams.canny_low}</span>
                           </div>
                           <input 
                              type="range" 
@@ -882,13 +990,13 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                              max="100" 
                              value={String(cvParams.canny_low) === 'NaN' ? '' : cvParams.canny_low} 
                              onChange={(e) => handleParamChange('canny_low', parseInt(e.target.value))}
-                             className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                             className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                           />
                         </div>
                         <div className="space-y-1">
                           <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-wider">
                              <span>Canny High</span>
-                             <span className="font-mono text-sky-400">{cvParams.canny_high}</span>
+                             <span className="font-mono text-indigo-400">{cvParams.canny_high}</span>
                           </div>
                           <input 
                              type="range" 
@@ -896,7 +1004,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                              max="220" 
                              value={String(cvParams.canny_high) === 'NaN' ? '' : cvParams.canny_high} 
                              onChange={(e) => handleParamChange('canny_high', parseInt(e.target.value))}
-                             className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                             className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                           />
                         </div>
                       </div>
@@ -1052,97 +1160,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                   animate={{ opacity: 1, y: 0 }}
                   className="space-y-6"
                 >
-                  {/* Tab Selector for Results Pane */}
-                  <div className="flex border-b border-slate-800 gap-6 mb-2">
-                    <button
-                      onClick={() => setRightPanelTab('report')}
-                      className={`pb-2.5 text-[10px] font-black uppercase tracking-wider transition-all border-b-2 ${
-                        rightPanelTab === 'report' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      Diagnostic Report
-                    </button>
-                    <button
-                      onClick={() => setRightPanelTab('radial_profile')}
-                      className={`pb-2.5 text-[10px] font-black uppercase tracking-wider transition-all border-b-2 ${
-                        rightPanelTab === 'radial_profile' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      1D Radial Profile
-                    </button>
-                  </div>
-
-                  {rightPanelTab === 'radial_profile' ? (
-                    <div className="space-y-5">
-                      {/* Metric widgets */}
-                      <div className="grid grid-cols-4 gap-3">
-                        <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/50 flex flex-col justify-between">
-                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Centroid</span>
-                          <span className="text-[11px] font-black text-white">{cvResults.cx?.toFixed(1)}, {cvResults.cy?.toFixed(1)} px</span>
-                          <span className="text-[7px] font-mono text-slate-600">Origin point</span>
-                        </div>
-                        <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/50 flex flex-col justify-between">
-                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Rings Found</span>
-                          <span className="text-xs font-black text-orange-400">{cvResults.detected_rings?.length || 0} circles</span>
-                          <span className="text-[7px] font-mono text-slate-600">Debye shells</span>
-                        </div>
-                        <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/50 flex flex-col justify-between">
-                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Spots Peak</span>
-                          <span className="text-xs font-black text-sky-400">{cvResults.detected_spots_count || 0} reflections</span>
-                          <span className="text-[7px] font-mono text-slate-600">Peak counts</span>
-                        </div>
-                        <div className="bg-slate-950/40 p-4 rounded-xl border border-slate-800/50 flex flex-col justify-between">
-                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">SNR</span>
-                          <span className={`text-xs font-black ${cvResults.snr > 20 ? 'text-emerald-400' : 'text-amber-400'}`}>{cvResults.snr?.toFixed(1)} dB</span>
-                          <span className="text-[7px] font-mono text-slate-600">Contrast level</span>
-                        </div>
-                      </div>
-
-                      {/* Line chart integration */}
-                      <div className="h-64 w-full bg-slate-950/80 p-4 rounded-2xl border border-slate-800/80 relative">
-                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">1D Radial projection (Mean Luminance x Pixel Radius)</div>
-                        <ResponsiveContainer width="100%" height="90%">
-                          <LineChart 
-                            data={cvResults.radial_profile} 
-                            margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
-                          >
-                            <CartesianGrid stroke="#1e293b" strokeDasharray="3 3" />
-                            <XAxis 
-                              dataKey="radius" 
-                              stroke="#475569" 
-                              fontSize={8} 
-                              tickLine={false} 
-                            />
-                            <YAxis 
-                              stroke="#475569" 
-                              fontSize={8} 
-                              tickLine={false}
-                            />
-                            <Tooltip 
-                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }} 
-                              labelStyle={{ color: '#94a3b8', fontSize: 9, fontWeight: 'bold' }} 
-                              itemStyle={{ color: '#38bdf8', fontSize: 9 }}
-                            />
-                            <Line type="monotone" dataKey="intensity" stroke="#0ea5e9" strokeWidth={1.5} dot={false} />
-                            
-                            {cvResults.detected_rings?.map((rg: any, rIdx: number) => (
-                              <ReferenceLine 
-                                key={`rad-ring-${rIdx}`} 
-                                x={rg.radius} 
-                                stroke="#f97316" 
-                                strokeDasharray="2 3"
-                                label={{ value: `#${rIdx+1}`, position: 'top', style: { fill: '#f97316', fontSize: 7, fontWeight: 'black', opacity: 0.8 } }}
-                              />
-                            ))}
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="prose prose-sm prose-invert max-w-none prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-sky-400 prose-th:text-sky-400 prose-th:font-black prose-th:px-4 prose-td:px-4 prose-td:font-mono prose-td:text-[11px] prose-p:leading-relaxed prose-p:text-slate-300">
-                      <ReactMarkdown>{result}</ReactMarkdown>
-                    </div>
-                  )}
+                  <OpenCVVisionPanel results={cvResults} />
                 </motion.div>
               ) : (
                 <motion.div 

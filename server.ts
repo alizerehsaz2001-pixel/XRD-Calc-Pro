@@ -1834,7 +1834,7 @@ CRITICAL RULES:
 
   // Machine Learning Python RAG Database Search Endpoint
   app.post("/api/gemini/rag-database", async (req, res) => {
-    const { query, customKey } = req.body;
+    const { query, customKey, experimentalPeaks } = req.body;
     try {
       if (!query || typeof query !== "string") {
         res.status(400).json({ success: false, error: "A valid search query is required." });
@@ -1842,16 +1842,19 @@ CRITICAL RULES:
       }
 
       const apiKeyToUse = customKey || process.env.GEMINI_API_KEY || "";
-      if (!apiKeyToUse) {
-        res.status(400).json({ success: false, error: "Gemini API key is missing." });
-        return;
-      }
-
       const scriptPath = path.join(__dirname, "utils", "dbRagAgent.py");
       
       const { execFile } = await import("child_process");
       
-      execFile("python3", [scriptPath, "--query", query, "--api_key", apiKeyToUse], (error, stdout, stderr) => {
+      const args = ["--query", query];
+      if (apiKeyToUse) {
+        args.push("--api_key", apiKeyToUse);
+      }
+      if (experimentalPeaks && Array.isArray(experimentalPeaks) && experimentalPeaks.length > 0) {
+        args.push("--peaks", JSON.stringify(experimentalPeaks));
+      }
+      
+      execFile("python3", [scriptPath, ...args], (error, stdout, stderr) => {
         if (error) {
           console.error("Python DB RAG Execution Error:", error, stdout, stderr);
           res.status(500).json({ success: false, error: "Error executing Python DB RAG: " + (stderr || stdout || "exit code " + error.code) });
@@ -1859,9 +1862,16 @@ CRITICAL RULES:
         }
 
         try {
-          // Output may contain debug logs, find the first '{' for json, but better to just parse
-          const results = JSON.parse(stdout.trim());
-          res.json(results);
+          // Parse JSON output safely
+          const rawOut = stdout.trim();
+          const jsonStart = rawOut.indexOf('{');
+          const jsonEnd = rawOut.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            res.json(results);
+          } else {
+            res.json({ success: true, answer: rawOut });
+          }
         } catch (parseError) {
           console.error("Failed to parse Python DB RAG output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse Python DB RAG output" });
@@ -1870,6 +1880,58 @@ CRITICAL RULES:
 
     } catch (error: any) {
       console.error("Gemini RAG Database Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // OriginPro Python Matplotlib FWHM & Curve Deconvolution Endpoint
+  app.post("/api/python/origin-fwhm-plot", async (req, res) => {
+    try {
+      const params = req.body || {};
+      const scriptPath = path.join(__dirname, "utils", "originFwhmPlotter.py");
+      const { spawn } = await import("child_process");
+
+      const child = spawn("python3", [scriptPath]);
+      let stdout = "";
+      let stderr = "";
+
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code) => {
+        if (code !== 0) {
+          console.error("Origin FWHM Plotter Error:", stderr);
+          res.status(500).json({ success: false, error: "Error running Origin FWHM Plotter: " + (stderr || "exit code " + code) });
+          return;
+        }
+
+        try {
+          const rawOut = stdout.trim();
+          const jsonStart = rawOut.indexOf('{');
+          const jsonEnd = rawOut.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            res.json(results);
+          } else {
+            res.status(500).json({ success: false, error: "Invalid JSON response from Origin Plotter: " + rawOut });
+          }
+        } catch (parseError) {
+          console.error("Failed to parse Origin FWHM Plotter output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse plotter output." });
+        }
+      });
+
+      // Write parameters JSON to stdin
+      child.stdin.write(JSON.stringify(params));
+      child.stdin.end();
+
+    } catch (error: any) {
+      console.error("Origin FWHM Plot Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   });

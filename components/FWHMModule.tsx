@@ -9,6 +9,7 @@ import { simulatePeak } from '../utils/physics';
 import { FWHMResult, CustomPeak, CustomPeakMetrics } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import { MultiPeakManager, SCIENTIFIC_PEAK_COLORS } from './MultiPeakManager';
+import { OriginProFWHMPlotter } from './OriginProFWHMPlotter';
 import {
   ComposedChart,
   Area,
@@ -386,8 +387,8 @@ export const FWHMModule: React.FC = () => {
   const [secondPeakAmp, setSecondPeakAmp] = useState<number>(40); // % of primary peak
   const [applyLpFactor, setApplyLpFactor] = useState<boolean>(false); // Lorentz-Polarization correction
 
-  // Module Active Main Tab: 'visualizer' | 'multipeak' | 'theory' | 'import'
-  const [activeTab, setActiveTab] = useState<'visualizer' | 'multipeak' | 'theory' | 'import'>('visualizer');
+  // Module Active Main Tab: 'visualizer' | 'multipeak' | 'theory' | 'import' | 'origin_matplotlib'
+  const [activeTab, setActiveTab] = useState<'visualizer' | 'multipeak' | 'theory' | 'import' | 'origin_matplotlib'>('visualizer');
 
   // Custom Multi-Peak Manual Builder & Deconvolution State
   const [enableMultiPeakMode, setEnableMultiPeakMode] = useState<boolean>(false);
@@ -3410,6 +3411,18 @@ export const FWHMModule: React.FC = () => {
             >
               <BookOpen className="w-4 h-4 text-amber-400" />
               Theoretical Diagrams & Physics Reference
+            </button>
+
+            <button
+              onClick={() => setActiveTab('origin_matplotlib')}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'origin_matplotlib'
+                  ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-md font-extrabold'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-yellow-400" />
+              Python Matplotlib Origin Studio
             </button>
           </div>
 
@@ -6665,6 +6678,13 @@ export const FWHMModule: React.FC = () => {
               </div>
 
             </div>
+          </div>
+        )}
+
+        {/* TAB 5: PYTHON MATPLOTLIB ORIGIN STUDIO (INDEPENDENT STANDALONE SUBMODULE) */}
+        {activeTab === 'origin_matplotlib' && (
+          <div className="animate-in fade-in duration-300">
+            <OriginProFWHMPlotter />
           </div>
         )}
 
