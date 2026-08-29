@@ -533,9 +533,10 @@ export const XrdNanoModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({
       <div className="max-w-7xl mx-auto px-4 py-6">
         
         {/* Success / Error Alerts */}
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {error && (
             <motion.div 
+              key="xrd-nano-error-alert"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -553,6 +554,7 @@ export const XrdNanoModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({
 
           {successMessage && (
             <motion.div 
+              key="xrd-nano-success-alert"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}

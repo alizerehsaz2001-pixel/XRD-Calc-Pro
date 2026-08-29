@@ -384,11 +384,24 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     # Microstrain estimate (e = beta_G / (4 * tan(theta)))
     microstrain_pct = float((np.radians(max(0.001, (1.0 - eta) * beta_phys)) / (4.0 * np.tan(max(1e-4, theta_rad)))) * 100.0)
     
+    # Helper for robust trapezoidal integration across numpy versions
+    def integrate_area(y_arr, x_arr):
+        if hasattr(np, 'trapezoid'):
+            return float(np.trapezoid(y_arr, x_arr))
+        elif hasattr(np, 'trapz'):
+            return float(np.trapz(y_arr, x_arr))
+        else:
+            try:
+                from scipy.integrate import trapezoid
+                return float(trapezoid(y_arr, x_arr))
+            except Exception:
+                return float(np.sum(y_arr[:-1] + y_arr[1:]) * 0.5 * np.mean(np.diff(x_arr)))
+
     # Integrated Peak Areas
-    total_area = float(np.trapz(y_total_calc - bg, x))
+    total_area = integrate_area(y_total_calc - bg, x)
     sub_areas = []
     for sc in sub_curves:
-        area_i = float(np.trapz(sc['y_pure'], x))
+        area_i = integrate_area(sc['y_pure'], x)
         sub_areas.append({
             'label': sc['label'],
             'area': area_i,
@@ -640,7 +653,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     if show_table:
         table_lines = [
             r"$\mathbf{OriginPro\ Peak\ Analytics}$",
-            r"$\rule{3.8cm}{0.4pt}$",
+            "────────────────────────",
             rf"Model: {profile_type.replace('_', ' ').title()}",
             rf"$2\theta_0 = {center:.4f}^\circ$",
             rf"$\mathrm{{FWHM}}\ (\beta_{{\mathrm{{obs}}}}) = {fwhm:.4f}^\circ$",

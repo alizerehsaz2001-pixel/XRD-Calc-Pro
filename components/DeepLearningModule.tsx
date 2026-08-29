@@ -78,6 +78,7 @@ import {
 import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
 import { CrystallographicIntelligencePanel } from './CrystallographicIntelligencePanel';
 import { ConstituentPhaseElementsPanel } from './ConstituentPhaseElementsPanel';
+import { SynthesisIntelligenceStudio } from './SynthesisIntelligenceStudio';
 import { getActiveMaterials } from "../utils/materialsHelper";
 const MATERIAL_DB = getActiveMaterials();
 
@@ -4073,8829 +4074,364 @@ if __name__ == '__main__':
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               ? "Stellite 6 Cobalt-Base Alloy"
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               : type ===
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   "ElectricalSteel"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ? "Electrical Steel (Fe-Si)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    "Permalloy"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ? "Permalloy (Ni-Fe)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "PhosphorBronze"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ? "Bronze (Phosphor Bronze)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "BerylliumCopper"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "Beryllium Copper (C17200)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "Al7075"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ? "Aluminum Alloy (7075-T6)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            "MgWE43"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ? "Magnesium Alloy WE43"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              "Ta10W"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ? "Tantalum-10W Alloy"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "Nb3Sn"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ? "Niobium-Tin (Nb3Sn)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  "Cuprite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ? "Cuprite (Cu2O)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    "Chalcocite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ? "Chalcocite (Cu2S)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "CartridgeBrass"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ? "Cartridge Brass C2600"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "Cupronickel7030"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "Cupronickel 70-30"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "AlSb"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ? "AlSb Semiconductor"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            "MoTe2"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ? "MoTe2 monolayer"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              "BaSnO3"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ? "Barium Stannate Perovskite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "Sb2Se3"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ? "Sb2Se3 Photovoltaic absorber"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  "CZTS"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ? "CZTS Kesterite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    "Fe3GeTe2"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ? "Fe3GeTe2 layered Ferromagnet"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "ZTAFemoralJoint"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ? "ZTA Femoral Joint"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "Magnetite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "Magnetite (Fe3O4)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "PE"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ? "Polyethylene (PE)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            "YBCO"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ? "YBCO Superconductor"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              "Cement"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ? "Portland Cement (Alite)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "Olivine"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ? "Olivine (Forsterite)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  "Pyroxene"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ? "Pyroxene (Enstatite)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    "Biotite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ? "Biotite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "Muscovite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ? "Muscovite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "Kaolinite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "Kaolinite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "Moissanite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ? "Moissanite (SiC)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            "Diopside"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ? "Diopside"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              "Lonsdaleite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ? "Lonsdaleite (Hex. Diamond)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "Shungite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ? "Shungite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  "AndraditeGarnet"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ? "Andradite Garnet (Ca3Fe2(SiO4)3)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    "Coesite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ? "Coesite (SiO2 High-Pressure Polymorph)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "Chaoite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ? "Chaoite (White Carbon Allotrope)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "Wurtzite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "Wurtzite (Hexagonal ZnS)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "Crocidolite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ? "Crocidolite (Blue Asbestos Amphibole)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            "Montmorillonite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ? "Montmorillonite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              "Illite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ? "Illite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "Dolomite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ? "Dolomite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  "Aragonite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ? "Aragonite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    "Ilmenite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ? "Ilmenite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "Apatite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ? "Apatite (Fluorapatite)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "Zircon"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "Zircon"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          "Tourmaline"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ? "Tourmaline (Schorl)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            "Beryl"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ? "Beryl"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              "Almandine"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            ? "Almandine (Garnet)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "Fullerene"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ? "Fullerene (C60)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  "MWCNT"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ? "Multi-walled Carbon Nanotubes (MWCNT)"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    "HardCarbon"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ? "Hard Carbon"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      "GlassyCarbon"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    ? "Glassy Carbon"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    : type ===
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "Anthracite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ? "Anthracite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      : type;
-
-      const mat = MATERIAL_DB.find((m) => m.name.includes(searchKey));
-      if (mat) handleMaterialSelect(mat);
-    }
-  };
-
-  const parsedPoints = parseXYData(inputData);
-
-  // Continuous simulated spectrum for the live preview plot with interactive parameters
-  const liveChartData = React.useMemo(() => {
-    const pts = parseXYData(inputData);
-    if (pts.length === 0) return [];
-    
-    // Sort points by 2Î¸ for clean plotting
-    const sorted = [...pts].sort((a, b) => a.twoTheta - b.twoTheta);
-    let minT = sorted[0].twoTheta;
-    let maxT = sorted[sorted.length - 1].twoTheta;
-    
-    // Expand bounds by a margin
-    minT = Math.max(2, minT - 5);
-    maxT = Math.min(150, maxT + 5);
-    
-    const chartPoints = [];
-    // Increase points count for smoother and more complete rendering
-    const pointsCount = 200; 
-    const step = (maxT - minT) / pointsCount;
-    
-    for (let x = minT; x <= maxT; x += step) {
-      let calcInt = 0;
-      for (const p of sorted) {
-        // Gaussian peak shape model utilizing interactive inputBroadening
-        const s = inputBroadening / 2.355; 
-        const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(s, 2)));
-        calcInt += val;
-      }
-      
-      // Amorphous background halo centered at 28.0 deg utilizing interactive inputBgAmorphous
-      const bg = inputBgAmorphous * 3 * Math.exp(-Math.pow(x - 28.0, 2) / (2 * Math.pow(15.0, 2)));
-      
-      // Poisson-like noise modeling utilizing interactive inputNoiseLevel
-      const baseSignal = calcInt + bg;
-      const noise = (Math.random() - 0.5) * inputNoiseLevel * 0.4;
-      const finalVal = Math.max(0, baseSignal + noise);
-      
-      // Convolutional Attentional Saliency (Grad-CAM weight calculation)
-      const peakContribution = calcInt / Math.max(1, calcInt + bg);
-      const saliencyWeight = Math.min(100, Math.round(peakContribution * 95 * Math.min(1, calcInt / 15)));
-      
-      chartPoints.push({
-        twoTheta: Number(x.toFixed(2)),
-        intensity: Number(finalVal.toFixed(2)),
-        saliency: Number(saliencyWeight.toFixed(1)),
-      });
-    }
-    return chartPoints;
-  }, [inputData, inputBroadening, inputNoiseLevel, inputBgAmorphous]);
-
-  // Savitzky-Golay compared preview data
-  const sgPreviewData = React.useMemo(() => {
-    const pts = parseXYData(inputData);
-    if (pts.length === 0) return [];
-    
-    const sorted = [...pts].sort((a, b) => a.twoTheta - b.twoTheta);
-    const smoothed = applySavitzkyGolay(sorted, inputSgWindow, inputSgDegree);
-    
-    return sorted.map((p, i) => ({
-      twoTheta: p.twoTheta,
-      raw: p.intensity,
-      smoothed: smoothed[i] ? smoothed[i].intensity : p.intensity,
-    }));
-  }, [inputData, inputSgWindow, inputSgDegree]);
-
-  const handleCommitSmoothing = () => {
-    const pts = parseXYData(inputData);
-    if (pts.length === 0) return;
-    const sorted = [...pts].sort((a, b) => a.twoTheta - b.twoTheta);
-    const smoothed = applySavitzkyGolay(sorted, inputSgWindow, inputSgDegree);
-    const text = smoothed.map(p => `${p.twoTheta.toFixed(3)}, ${p.intensity.toFixed(1)}`).join("\n");
-    setInputData(text);
-    playSynthTone("success");
-  };
-
-  const handleSynthesizeNoisyPattern = () => {
-    const pts = parseXYData(inputData);
-    if (pts.length === 0) return;
-    
-    let minT = Math.min(...pts.map(p => p.twoTheta));
-    let maxT = Math.max(...pts.map(p => p.twoTheta));
-    minT = Math.max(5, minT - 8);
-    maxT = Math.min(145, maxT + 8);
-    
-    let textOut = "";
-    // Generate high resolution 0.1 degree spacing
-    for (let x = minT; x <= maxT; x += 0.1) {
-      let calcInt = 0;
-      for (const p of pts) {
-        // Gaussian profile
-        const s = inputBroadening / 2.355;
-        const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(s, 2)));
-        calcInt += val;
-      }
-      // Amorphous background halo centered at 28.0 deg
-      const bg = inputBgAmorphous * 3 * Math.exp(-Math.pow(x - 28.0, 2) / (2 * Math.pow(15.0, 2)));
-      
-      // Poisson-like noise modeling
-      const baseSignal = calcInt + bg + 5; // offset
-      const randScatter = (Math.random() - 0.5) * inputNoiseLevel * Math.sqrt(baseSignal) * 0.15;
-      const finalIntensity = Math.max(0, baseSignal + randScatter);
-      
-      textOut += `${x.toFixed(2)}, ${finalIntensity.toFixed(1)}\n`;
-    }
-    
-    setInputData(textOut.trim());
-    playSynthTone("success");
-  };
-
-  // Prepare Chart Data
-  const getPhononFrequency = (candidate: DLPhaseCandidate | null): number => {
-    if (!candidate) return 12.4;
-    const E = candidate.elasticModulus || 150; // fallback to 150 GPa
-    const rho = candidate.density || 5.0; // fallback to 5.0 g/cm3
-    const freq = 2.4 * Math.sqrt(E / rho);
-    return Number(freq.toFixed(1));
-  };
-
-  const getEntanglementEntropy = (
-    candidate: DLPhaseCandidate | null,
-  ): number => {
-    if (!candidate) return 0.994;
-    let base = 0.994;
-    const cs = candidate.crystalSystem?.toLowerCase() || "";
-    if (cs.includes("cubic") || cs.includes("isometric"))
-      base = 0.693; // ln(2)
-    else if (
-      cs.includes("hexagonal") ||
-      cs.includes("trigonal") ||
-      cs.includes("rhombohedral")
-    )
-      base = 1.098; // ln(3)
-    else if (cs.includes("tetragonal"))
-      base = 1.386; // ln(4)
-    else if (cs.includes("orthorhombic"))
-      base = 1.791; // ln(6)
-    else if (cs.includes("monoclinic"))
-      base = 2.079; // ln(8)
-    else if (cs.includes("triclinic")) base = 2.302; // ln(10)
-
-    const mw = candidate.molecularWeight || 100;
-    const s_vn = base + 0.001 * mw;
-    return Number(s_vn.toFixed(3));
-  };
-
-  // Realistic Powder Diffraction FWHM (0.18Â° instrument standard)
-  const calcSigma = (fwhm = 0.18) => {
-    return Math.max(0.04, fwhm / 2.35482);
-  };
-
-  const generateChartData = () => {
-    if (!parsedPoints.length) return [];
-
-    const isDiscrete = parsedPoints.length <= 50;
-
-    // Sort parsed points
-    const sortedPoints = [...parsedPoints].sort(
-      (a, b) => a.twoTheta - b.twoTheta,
-    );
-    
-    // Use realistic scientific XRD instrumental broadening
-    const effFwhm = typeof inputBroadening === 'number' && inputBroadening > 0.05 ? inputBroadening : 0.18;
-    const sigma = calcSigma(effFwhm);
-    const sigma22 = Math.max(0.0001, 2 * sigma * sigma);
-
-    if (!isDiscrete) {
-      // If it's continuous experimental data, calculate match and residual
-      return sortedPoints.map((p) => {
-        let refIntensity = 0;
-        if (selectedCandidate && selectedCandidate.matched_peaks) {
-          for (const mp of selectedCandidate.matched_peaks) {
-            refIntensity +=
-              mp.refI * Math.exp(-Math.pow(p.twoTheta - mp.refT, 2) / sigma22);
-          }
-        }
-
-        const residual = selectedCandidate
-          ? Math.abs(p.intensity - refIntensity)
-          : null;
-
-        return {
-          twoTheta: p.twoTheta,
-          intensity: p.intensity,
-          refIntensity: selectedCandidate
-            ? Number(refIntensity.toFixed(1))
-            : null,
-          residual: residual !== null ? Number(residual.toFixed(1)) : null,
-        };
-      });
-    }
-
-    // For discrete stick data, generate a high-resolution scientific gaussian spectrum
-    const minT = Math.max(5, Math.floor(sortedPoints[0].twoTheta - 5));
-    const maxT = Math.min(120, Math.ceil(sortedPoints[sortedPoints.length - 1].twoTheta + 5));
-
-    const data = [];
-    const step = 0.04; // 0.04Â° standard step size
-
-    for (let t = minT; t <= maxT; t += step) {
-      let intensity = 0;
-      for (const p of sortedPoints) {
-        const diff = t - p.twoTheta;
-        if (Math.abs(diff) < 4 * sigma) {
-          intensity += p.intensity * Math.exp(-Math.pow(diff, 2) / sigma22);
-        }
-      }
-
-      let refIntensity = 0;
-      if (selectedCandidate && selectedCandidate.matched_peaks) {
-        for (const mp of selectedCandidate.matched_peaks) {
-          const diff = t - mp.refT;
-          if (Math.abs(diff) < 4 * sigma) {
-            refIntensity += mp.refI * Math.exp(-Math.pow(diff, 2) / sigma22);
-          }
-        }
-      }
-
-      const residual = selectedCandidate
-        ? Math.abs(intensity - refIntensity)
-        : null;
-
-      data.push({
-        twoTheta: Number(t.toFixed(2)),
-        intensity: Number(intensity.toFixed(1)),
-        refIntensity: selectedCandidate
-          ? Number(refIntensity.toFixed(1))
-          : null,
-        residual: residual !== null ? Number(residual.toFixed(1)) : null,
-      });
-    }
-    return data;
-  };
-
-  const chartData = generateChartData();
-  const isDiscrete = parsedPoints.length <= 50;
-
-  // Cu-Ka1 Standard X-ray Wavelength (1.5406 Angstroms)
-  const CU_KA_LAMBDA = 1.5406;
-
-  // Exact Bragg d-spacing calculation: d = lambda / (2 * sin(theta))
-  const calcDSpacing = (twoThetaDeg: number, wavelength = CU_KA_LAMBDA) => {
-    if (!twoThetaDeg || twoThetaDeg <= 0 || twoThetaDeg >= 180) return 0;
-    const thetaRad = ((twoThetaDeg / 2) * Math.PI) / 180;
-    const sinT = Math.sin(thetaRad);
-    if (sinT <= 0) return 0;
-    return wavelength / (2 * sinT);
-  };
-
-  // Intelligent collision-avoidance & staggering for HKL and peak labels
-  const calculateStaggeredPeaks = (peaks: Array<{ twoTheta: number; refIntensity: number; hkl?: string }>) => {
-    if (!peaks || !peaks.length) return [];
-    const sorted = [...peaks].sort((a, b) => a.twoTheta - b.twoTheta);
-    
-    const result: Array<{
-      twoTheta: number;
-      refIntensity: number;
-      hkl?: string;
-      dSpacing: number;
-      staggerTier: number;
-      badgeYOffset: number;
-    }> = [];
-
-    for (let i = 0; i < sorted.length; i++) {
-      const curr = sorted[i];
-      let tier = 0;
-      
-      if (i > 0) {
-        const prev1 = result[i - 1];
-        const dist1 = curr.twoTheta - prev1.twoTheta;
-        
-        if (dist1 < 1.4) {
-          if (prev1.staggerTier === 0) tier = 1;
-          else if (prev1.staggerTier === 1) tier = 2;
-          else if (prev1.staggerTier === 2) tier = 3;
-          else tier = 0;
-        }
-        
-        if (i > 1) {
-          const prev2 = result[i - 2];
-          const dist2 = curr.twoTheta - prev2.twoTheta;
-          if (dist2 < 2.0 && prev2.staggerTier === tier) {
-            tier = (tier + 1) % 4;
-          }
-        }
-      }
-
-      // Height offsets: Tier 0: -20px, Tier 1: -40px, Tier 2: -60px, Tier 3: -80px
-      const badgeYOffset = tier === 0 ? -20 : tier === 1 ? -40 : tier === 2 ? -60 : -80;
-      const dSpacing = calcDSpacing(curr.twoTheta);
-
-      result.push({
-        ...curr,
-        dSpacing,
-        staggerTier: tier,
-        badgeYOffset,
-      });
-    }
-
-    return result;
-  };
-
-  // We calculate clean non-overlapping refData
-  const refData = calculateStaggeredPeaks(
-    selectedCandidate?.matched_peaks?.map((mp) => ({
-      twoTheta: mp.refT,
-      refIntensity: mp.refI,
-      hkl:
-        mp.h !== undefined && mp.k !== undefined && mp.l !== undefined
-          ? `${mp.h}${mp.k}${mp.l}`
-          : undefined,
-    })) || []
-  );
-
-  const rawInputData = isDiscrete
-    ? calculateStaggeredPeaks(
-        parsedPoints.map((p) => ({
-          twoTheta: p.twoTheta,
-          refIntensity: p.intensity,
-          hkl: undefined,
-        }))
-      ).map((p) => ({
-        twoTheta: p.twoTheta,
-        rawIntensity: p.refIntensity,
-        dSpacing: p.dSpacing,
-        staggerTier: p.staggerTier,
-        badgeYOffset: p.badgeYOffset,
-      }))
-    : [];
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const twoThetaVal = Number(label || 0);
-      const dVal = calcDSpacing(twoThetaVal);
-      const refItem = refData.find((r) => Math.abs(r.twoTheta - twoThetaVal) < 0.08);
-
-      return (
-        <div className="bg-[#070D18]/95 backdrop-blur-md text-slate-200 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] text-xs border border-slate-700/80 min-w-[240px]">
-          <div className="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <Scan className="w-4 h-4 text-cyan-400" />
-              <span className="font-bold text-slate-300 font-mono tracking-wider uppercase text-[11px]">
-                Bragg Position
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
-              <span className="text-[10px] text-cyan-400 font-mono font-bold">2Î¸ =</span>
-              <span className="font-mono font-black text-cyan-200 text-xs">
-                {twoThetaVal.toFixed(2)}Â°
-              </span>
-            </div>
-          </div>
-
-          {/* Scientific Crystallographic Metrics */}
-          <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-            <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 uppercase tracking-widest font-mono">
-                d-spacing (d_hkl)
-              </span>
-              <span className="text-xs font-mono font-bold text-emerald-400">
-                {dVal > 0 ? `${dVal.toFixed(4)} Ã…` : "â€”"}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 uppercase tracking-widest font-mono">
-                Wavelength (Cu-KÎ±â‚)
-              </span>
-              <span className="text-xs font-mono font-bold text-sky-400">
-                1.54060 Ã…
-              </span>
-            </div>
-          </div>
-
-          {refItem?.hkl && (
-            <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-2.5 py-1.5 rounded-lg mb-3">
-              <span className="text-[10px] text-rose-300 font-mono font-bold uppercase tracking-wider">
-                Miller Indices (hkl)
-              </span>
-              <span className="text-xs font-mono font-black text-rose-200 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/40">
-                ({refItem.hkl})
-              </span>
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            {payload.map((p: any, idx: number) => (
-              <div
-                key={`tooltip-${p.name}-${idx}`}
-                className="flex items-center justify-between gap-4 py-1 px-2 rounded-lg bg-white/[0.03] border border-white/5"
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{
-                      backgroundColor: p.color,
-                      boxShadow: `0 0 6px ${p.color}`,
-                    }}
-                  />
-                  <span className="text-slate-300 font-mono text-[10px] truncate max-w-[130px]">
-                    {p.name}
-                  </span>
-                </div>
-                <span
-                  className="font-mono font-black text-xs"
-                  style={{ color: p.color }}
-                >
-                  {typeof p.value === "number" ? p.value.toFixed(1) : p.value} <span className="text-[9px] font-normal text-slate-500">cps</span>
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-3 pt-2 border-t border-slate-800/80 flex justify-between items-center">
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
-              Instrument Source
-            </span>
-            <span className="text-[10px] text-cyan-400 font-mono font-bold">
-              Bragg-Brentano Î¸-2Î¸
-            </span>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
-      {/* Top Header & Mode Switcher Bar */}
-      <div className="lg:col-span-12 bg-gradient-to-r from-[#070D1D] via-[#0A1124] to-[#070D1D] p-5 sm:p-6 rounded-3xl border border-indigo-500/20 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
-              <Brain className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  Deep Learning XRD Phase Identification
-                </h1>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-black text-emerald-400 uppercase tracking-widest">
-                  AI Ready
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Multi-phase identification, crystal structure indexing, and automated Rietveld quantification
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Guide & Mode Toggle */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <button
-              onClick={() => setShowQuickGuide(!showQuickGuide)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
-                showQuickGuide 
-                  ? "bg-indigo-600/30 border-indigo-400 text-indigo-200" 
-                  : "bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600"
-              }`}
-            >
-              <HelpCircle className="w-4 h-4 text-indigo-400" />
-              <span>{showQuickGuide ? "Hide Guide" : "Quick Guide"}</span>
-            </button>
-
-            {/* Mode Switcher */}
-            <div className="bg-[#03060C] p-1 rounded-2xl border border-slate-800 flex items-center">
-              <button
-                onClick={() => {
-                  setViewMode('standard');
-                  setShowAdvancedHyperparameters(false);
-                  setShowArchitectureDiagnostics(false);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                  viewMode === 'standard'
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Standard (Friendly)</span>
-              </button>
-              <button
-                onClick={() => {
-                  setViewMode('expert');
-                  setShowAdvancedHyperparameters(true);
-                  setShowArchitectureDiagnostics(true);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
-                  viewMode === 'expert'
-                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5 text-cyan-300" />
-                <span>Expert Tuning</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Expandable Quick Guide Banner */}
-        {showQuickGuide && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-5 pt-5 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4"
-          >
-            <div className="bg-[#050A14] p-4 rounded-2xl border border-indigo-500/20">
-              <div className="flex items-center gap-2 mb-1.5 text-indigo-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px]">1</div>
-                Choose XRD Data
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Click any of the <strong className="text-white">Quick Presets</strong> below (like LiCoOâ‚‚, Silicon 640d, or TiOâ‚‚) or upload your own 2Î¸-Intensity XRD text file.
-              </p>
-            </div>
-            <div className="bg-[#050A14] p-4 rounded-2xl border border-violet-500/20">
-              <div className="flex items-center gap-2 mb-1.5 text-violet-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center text-[10px]">2</div>
-                Click Initialize
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Hit <strong className="text-white">Initialize Deep Phase ID</strong>. The pre-trained ResNet-1D model extracts peak footprints in milliseconds.
-              </p>
-            </div>
-            <div className="bg-[#050A14] p-4 rounded-2xl border border-emerald-500/20">
-              <div className="flex items-center gap-2 mb-1.5 text-emerald-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">3</div>
-                Explore Results
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Inspect matched phases, crystal symmetry, space groups, and quantitative weight fractions in the interactive visualizer.
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Input Configuration & Top Panels */}
-      <div className="lg:col-span-12 flex flex-col gap-8">
-        {/* Advanced Engine Configuration (Collapsible for cleaner friendly view) */}
-        {!showAdvancedHyperparameters && viewMode === 'standard' ? (
-          <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 flex-shrink-0">
-                <Settings2 className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black text-white">Engine Hyperparameters & Calibration</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-[9px] font-mono font-bold text-indigo-300">
-                    Auto-Tuned (Optimized)
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  ResNet-{engineConfig.depth} â€¢ {engineConfig.activation} â€¢ Kernel {engineConfig.kernelSize} â€¢ LR {engineConfig.learningRate} â€¢ Caglioti Broadening Active
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
-              <button
-                onClick={runAutoTuner}
-                disabled={isAutoTuning}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300 text-xs font-bold transition-all disabled:opacity-50"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-violet-300 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "4s" }} />
-                <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
-              </button>
-              <button
-                onClick={() => setShowAdvancedHyperparameters(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-all"
-              >
-                <span>Customize Parameters</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-[#050A14] p-6 rounded-[2rem] shadow-2xl border border-slate-800/80/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500">
-            {/* Custom Background Graphic */}
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
-              <img src={convolutionalEngineBg} alt="Advanced Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-            </div>
-            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-700 pointer-events-none" />
-
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden">
-                  <div className="absolute inset-0 bg-indigo-500/10 blur-md rounded-full pointer-events-none" />
-                  <Settings className="w-6 h-6 text-indigo-400 relative z-10" />
-                </div>
-                <div>
-                  <h3 className="font-black text-white text-md tracking-tight">
-                    Engine Hyperparameters
-                  </h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
-                    Neural Network Core
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={runAutoTuner}
-                  disabled={isAutoTuning}
-                  className="flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-[9px] tracking-widest px-3 py-1.5 rounded-full border border-violet-500/30 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 inline-flex align-middle"
-                >
-                  <Sparkles className="w-3 h-3 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
-                  <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
-                </button>
-                <div className="bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-inner">
-                  <div
-                    className={`w-2 h-2 rounded-full ${isSimulating || isAutoTuning ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-500"}`}
-                  />
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                    {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setShowAdvancedHyperparameters(false)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all ml-1"
-                >
-                  <span>Hide</span>
-                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-              </div>
-            </div>
-
-          {/* Network Topology Visualization */}
-          <div className="mb-6 bg-[#050A14]/80 backdrop-blur-md border border-slate-800/80 hover:border-slate-700 shadow-inner rounded-2xl relative z-10 p-5 overflow-hidden group">
-            <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] pointer-events-none" />
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-[10px]">
-                <Cpu className="w-4 h-4 text-indigo-400 animate-pulse" />
-                <span>Live Network Topology</span>
-              </div>
-              <span className="text-[9px] font-mono text-slate-500 bg-[#03060C] px-2 py-0.5 rounded border border-slate-800/80 shadow-inner">
-                {engineConfig.depth}-Layer ResNet
-              </span>
-            </div>
-            
-            <div className="relative h-20 flex items-center justify-between px-2">
-              {/* Input */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-                  <Activity className="w-4 h-4 text-emerald-400" />
-                </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Input</span>
-              </div>
-              
-              {/* Conv Layer */}
-              <div className="flex-1 h-px bg-slate-700/50 relative">
-                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} />
-              </div>
-              
-              {/* Conv Block */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center relative overflow-hidden group-hover:border-indigo-400 transition-colors shadow-[inset_0_2px_15px_rgba(99,102,241,0.1)]">
-                   <div className="absolute inset-0 flex items-center justify-center opacity-30 gap-0.5">
-                     {Array.from({ length: 3 }).map((_, i) => (
-                       <div key={i} className="w-0.5 h-6 bg-indigo-400 rounded-full" />
-                     ))}
-                   </div>
-                   <span className="text-[10px] font-black text-indigo-300 relative z-10 bg-indigo-950/80 px-1 rounded">{engineConfig.kernelSize}</span>
-                </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Conv1D</span>
-              </div>
-              
-              {/* Filters */}
-              <div className="flex-1 h-px bg-slate-700/50 relative">
-                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.2 }} />
-              </div>
-
-              {/* Feature Maps */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-10 h-10 relative">
-                   {Array.from({ length: 3 }).map((_, i) => (
-                     <div key={i} className="absolute top-0 left-0 w-full h-full rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/40 shadow-[0_0_10px_rgba(217,70,239,0.1)]" style={{ marginLeft: i * 4, marginTop: i * -4 }} />
-                   ))}
-                   <div className="absolute inset-0 flex items-center justify-center z-20 ml-2 -mt-2">
-                     <span className="text-[9px] font-black text-fuchsia-300 drop-shadow-md">{engineConfig.filters}</span>
-                   </div>
-                </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest ml-2">Features</span>
-              </div>
-              
-              <div className="flex-1 h-px bg-slate-700/50 relative">
-                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.4 }} />
-              </div>
-              
-              {/* Output */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                  <span className="text-[8px] font-black text-cyan-300 uppercase">{engineConfig.pooling}</span>
-                </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Pool</span>
-              </div>
-            </div>
-            
-            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-slate-700/50 pt-3">
-              <div className="flex flex-col">
-                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Activation</span>
-                <span className="text-[10px] font-black text-indigo-300">{engineConfig.activation}</span>
-              </div>
-              <div className="flex flex-col items-center border-x border-slate-700/50">
-                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Profile</span>
-                <span className="text-[10px] font-black text-fuchsia-300">{engineConfig.kernelProfile}</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Optimization</span>
-                <span className="text-[10px] font-black text-emerald-300">{engineConfig.optimization}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Simulated Auto-Tuner Progress Section */}
-          {isAutoTuning && (
-            <div className="mb-6 p-4 bg-[#03060C]/80 rounded-2xl border border-violet-500/30 relative z-10 animate-in zoom-in duration-300">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] text-violet-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                  <Cpu className="w-3.5 h-3.5 animate-bounce" /> Auto-tuning hyperparameter grid
-                </span>
-                <span className="text-xs text-indigo-400 font-mono font-bold">{autoTuneProgress}%</span>
-              </div>
-              
-              <div className="w-full bg-[#050A14] h-2 rounded-full overflow-hidden mb-3 border border-slate-800/80">
-                <div 
-                  className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
-                  style={{ width: `${autoTuneProgress}%` }}
-                />
-              </div>
-
-              {/* Terminal Logs */}
-              <div className="bg-[#03060C] p-3 rounded-lg border border-slate-855 h-28 overflow-y-auto space-y-1 font-mono text-[9px] text-emerald-400">
-                {autoTuneLogs.map((log, idx) => (
-                  <div key={idx} className="leading-relaxed border-l-2 border-indigo-700 pl-2">
-                    {log}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Preset Tabs Selector */}
-          <div className="mb-6 relative z-10">
-            <div className="flex justify-between items-center mb-2 px-1">
-              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
-                Optimization Presets
-              </span>
-              <button 
-                onClick={() => {
-                  applyPreset("Standard");
-                  setConfigFeedback("Pruned to standard baseline configs");
-                  setTimeout(() => setConfigFeedback(""), 2000);
-                }}
-                className="text-[9px] font-black text-slate-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors"
-                title="Reset to original crystalline defaults"
-              >
-                <RefreshCw className="w-2.5 h-2.5" /> reset
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-800/60 border border-slate-700/50 rounded-xl">
-              {["Standard", "Low SNR", "Nanocrystal", "Lightweight"].map((pName) => (
-                <button
-                  key={pName}
-                  onClick={() => {
-                    applyPreset(pName);
-                    setConfigFeedback(`Applied '${pName}' config profile`);
-                    setTimeout(() => setConfigFeedback(""), 2500);
-                  }}
-                  className={`py-1.5 text-[9px] font-black rounded-lg transition-all text-center ${
-                    activePreset === pName 
-                      ? "bg-indigo-600 text-white shadow-md border border-indigo-500" 
-                      : "text-slate-400 hover:text-slate-300 hover:bg-slate-800 bg-transparent"
-                  }`}
-                >
-                  {pName}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Backup / JSON Sync Panel Button & Feedback */}
-          <div className="mb-6 relative z-10">
-            <div className="flex justify-between items-center px-1">
-              <button 
-                onClick={() => {
-                  setShowConfigImportExport(!showConfigImportExport);
-                  setImportJsonText(JSON.stringify(engineConfig, null, 2));
-                }}
-                className="text-[9px] font-bold text-slate-400 hover:text-indigo-300 transition-colors uppercase tracking-wider flex items-center gap-1.5"
-              >
-                <FileText className="w-3 h-3 text-slate-400" />
-                {showConfigImportExport ? "Hide JSON Backups" : "JSON Import / Export"}
-              </button>
-              {configFeedback && (
-                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
-                  {configFeedback}
-                </span>
-              )}
-            </div>
-
-            {showConfigImportExport && (
-              <div className="mt-3 p-4 bg-[#03060C] rounded-xl border border-slate-800/80 animate-in slide-in-from-top-1 duration-200">
-                <textarea
-                  value={importJsonText}
-                  onChange={(e) => setImportJsonText(e.target.value)}
-                  className="w-full h-24 bg-[#050A14] border border-slate-700 rounded-lg p-2 font-mono text-[10px] text-slate-200 outline-none focus:border-indigo-500"
-                  placeholder="Paste configuration JSON here..."
-                />
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={handleImportJson}
-                    className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black uppercase text-white rounded-lg transition-all"
-                  >
-                    Import Config
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(JSON.stringify(engineConfig, null, 2));
-                      setConfigFeedback("Copied config directly to clipboard!");
-                      setTimeout(() => setConfigFeedback(""), 2000);
-                    }}
-                    className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-black uppercase text-slate-300 rounded-lg transition-all"
-                  >
-                    Copy Output
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Hyperparameters Form Grid */}
-          <div className="grid grid-cols-2 gap-5 relative z-10">
-            {/* Kernel Shift */}
-            <div className="space-y-1.5">
-              <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                title="Wavelength footprint of the 1D Kernel. Standard width is recommended for most crystalline spectra."
-              >
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel Shift
-                <Info className="w-3 h-3 text-slate-500 ml-auto" />
-              </label>
-              <div className="relative group/select">
-                <select
-                  value={engineConfig.kernelSize}
-                  onChange={(e) => {
-                    setEngineConfig({
-                      ...engineConfig,
-                      kernelSize: parseInt(e.target.value),
-                    });
-                    setActivePreset("Custom");
-                  }}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
-                >
-                  <option value={3} className="bg-slate-800">3x3 Narrow</option>
-                  <option value={5} className="bg-slate-800">5x5 Standard</option>
-                  <option value={7} className="bg-slate-800">7x7 Wide Receptive</option>
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Receptive field width matching signal footprint.</p>
-            </div>
-
-            {/* Feature Maps */}
-            <div className="space-y-1.5">
-              <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                title="Number of independent convolved trace signals tracked per layer to decouple overlapping configurations."
-              >
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Feature Maps
-                <Info className="w-3 h-3 text-slate-500 ml-auto" />
-              </label>
-              <div className="relative group/select">
-                <select
-                  value={engineConfig.filters}
-                  onChange={(e) => {
-                    setEngineConfig({
-                      ...engineConfig,
-                      filters: parseInt(e.target.value),
-                    });
-                    setActivePreset("Custom");
-                  }}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
-                >
-                  <option value={32} className="bg-slate-800">Sparse (32)</option>
-                  <option value={64} className="bg-slate-800">Standard (64)</option>
-                  <option value={128} className="bg-slate-800">Dense (128 Filters)</option>
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Simulated neuron depth for feature extracting.</p>
-            </div>
-
-            {/* Neural Depth */}
-            <div className="space-y-1.5">
-              <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                title="Hierarchical layering depth used in residual convolutional processing. Heavy depths match mixed systems."
-              >
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Neural Depth
-                <Info className="w-3 h-3 text-slate-500 ml-auto" />
-              </label>
-              <div className="relative group/select">
-                <select
-                  value={engineConfig.depth}
-                  onChange={(e) => {
-                    setEngineConfig({
-                      ...engineConfig,
-                      depth: parseInt(e.target.value),
-                    });
-                    setActivePreset("Custom");
-                  }}
-                  className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
-                >
-                  <option value={18} className="bg-slate-800">18 Layers (Light)</option>
-                  <option value={34} className="bg-slate-800">34 Layers (Med)</option>
-                  <option value={50} className="bg-slate-800">50 Layers (Heavy)</option>
-                  <option value={101} className="bg-slate-800">101 Layers (Extreme)</option>
-                </select>
-                <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Complex modeling capacity of ResNet blocks.</p>
-            </div>
-
-            {/* Pooling Operator */}
-            <div className="space-y-1.5">
-              <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                title="How downsampling pooling consolidates features. Max limits peak bleed; Avg sifts nanocrystalline clusters."
-              >
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Pooling Op
-                <Info className="w-3 h-3 text-slate-500 ml-auto" />
-              </label>
-              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
-                {["max", "avg"].map((op) => (
-                  <button
-                    key={op}
-                    onClick={() => {
-                      setEngineConfig({ ...engineConfig, pooling: op });
-                      setActivePreset("Custom");
-                    }}
-                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.pooling === op ? "bg-indigo-600 text-white shadow-md uppercase border border-indigo-500" : "text-slate-400 hover:text-slate-300 uppercase bg-transparent"}`}
-                  >
-                    {op}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Trace downsampling algorithm mode.</p>
-            </div>
-
-            {/* Kernel Profile */}
-            <div className="space-y-1.5 col-span-2">
-              <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                title="Dispersion model applied for standard convolution filters. Lorentzian shapes match defect-heavy structures."
-              >
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel Profile
-                <Info className="w-3 h-3 text-slate-500 ml-auto" />
-              </label>
-              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner gap-1 flex-wrap">
-                {["Gaussian", "Lorentzian", "Pseudo-Voigt", "Pearson-VII", "Voigt"].map((profile) => (
-                  <button
-                    key={profile}
-                    onClick={() => {
-                      setEngineConfig({ ...engineConfig, kernelProfile: profile });
-                      setActivePreset("Custom");
-                    }}
-                    className={`flex-1 min-w-[65px] py-1.5 text-[9px] font-black rounded-lg transition-all ${engineConfig.kernelProfile === profile ? "bg-indigo-600 text-white shadow-md border border-indigo-500 whitespace-nowrap" : "text-slate-400 hover:text-slate-300 bg-transparent whitespace-nowrap"}`}
-                  >
-                    {profile}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Crystallography filter line-shape approximation function.</p>
-
-              {/* Pearson-VII shape exponent config */}
-              {engineConfig.kernelProfile === "Pearson-VII" && (
-                <div className="mt-2.5 p-3 bg-[#050A14]/40 rounded-xl border border-slate-700/50 animate-in slide-in-from-top-1 duration-200">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pearson-VII Shape Factor (m)</span>
-                    <span className="text-xs font-mono font-bold text-indigo-400">m = {engineConfig.shapeExponent?.toFixed(2) || "2.50"}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1.0"
-                    max="5.0"
-                    step="0.1"
-                    value={String(engineConfig.shapeExponent || 2.5) === 'NaN' ? '' : engineConfig.shapeExponent || 2.5}
-                    onChange={(e) => {
-                      setEngineConfig({ ...engineConfig, shapeExponent: parseFloat(e.target.value) });
-                      setActivePreset("Custom");
-                    }}
-                    className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-full appearance-none cursor-pointer"
-                  />
-                  <p className="text-[8px] text-slate-500 leading-normal mt-1">
-                    Defines sharpness exponent. m = 1.0 mimics a pure Lorentzian; as m &rarr; &infin;, it approaches a pure Gaussian.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Activation Function */}
-            <div className="space-y-1.5 col-span-2">
-              <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                title="Non-linear mathematical activation. GELU ensures highly sensitive, smooth threshold gradients."
-              >
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Activation Function
-                <Info className="w-3 h-3 text-slate-500 ml-auto" />
-              </label>
-              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner gap-1">
-                {["ReLU", "LeakyReLU", "GELU", "Swish", "ELU"].map((fn) => (
-                  <button
-                    key={fn}
-                    onClick={() => {
-                      setEngineConfig({ ...engineConfig, activation: fn });
-                      setActivePreset("Custom");
-                    }}
-                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.activation === fn ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
-                  >
-                    {fn}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Controls neurons triggering threshold above the computed signal floor.</p>
-            </div>
-
-            {/* Optimization */}
-            <div className="space-y-1.5 col-span-2">
-              <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                title="Gradient descent optimization. AdamW ensures decoupled weight decays to regularize models properly."
-              >
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Optimization Algorithm
-                <Info className="w-3 h-3 text-slate-500 ml-auto" />
-              </label>
-              <div className="flex flex-wrap gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
-                {["Adam", "AdamW", "SGD", "RMSProp"].map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => {
-                      setEngineConfig({ ...engineConfig, optimization: opt });
-                      setActivePreset("Custom");
-                    }}
-                    className={`flex-1 min-w-[60px] py-1.5 text-[9px] font-black rounded-lg transition-all ${engineConfig.optimization === opt ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Selects the numerical optimization tracker backpropagating weight changes.</p>
-            </div>
-
-            {/* Dropout Probability */}
-            <div className="space-y-3 col-span-2">
-              <div className="flex justify-between items-end px-1">
-                <label 
-                  className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
-                  title="Probability of random elements drop-out to improve model generalized robustness against instrument anomalies."
-                >
-                  <ShieldAlert className="w-3.5 h-3.5 text-fuchsia-400" /> Dropout Prob
-                  <Info className="w-3 h-3 text-slate-500 ml-auto" />
-                </label>
-                <span className="text-xs font-mono font-black text-fuchsia-400 bg-fuchsia-500/10 px-2 py-0.5 rounded border border-fuchsia-500/20">
-                  {engineConfig.dropout.toFixed(2)}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="0.8"
-                step="0.05"
-                value={String(engineConfig.dropout) === 'NaN' ? '' : engineConfig.dropout}
-                onChange={(e) => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    dropout: parseFloat(e.target.value),
-                  });
-                  setActivePreset("Custom");
-                }}
-                className="w-full accent-fuchsia-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
-              />
-              <p className="text-[9px] text-slate-500 leading-tight">Regularization coefficient dropping temporary trace parameters to prevent noise-floor latching.</p>
-            </div>
-          </div>
-
-          {/* Bottom Sliders & Toggle Options */}
-          <div className="mt-6 pt-6 border-t border-slate-800/80 space-y-6 relative z-10">
-            {/* Learning Rate */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-end px-1">
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <Zap className="w-3.5 h-3.5 text-indigo-400" /> Base Learning Rate
-                </label>
-                <span className="text-xs font-mono font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                  {engineConfig.learningRate.toFixed(4)}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0.0001"
-                max="0.01"
-                step="0.0001"
-                value={String(engineConfig.learningRate) === 'NaN' ? '' : engineConfig.learningRate}
-                onChange={(e) => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    learningRate: parseFloat(e.target.value),
-                  });
-                  setActivePreset("Custom");
-                }}
-                className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
-              />
-              <p className="text-[9px] text-slate-500 leading-tight">Backpropagation alpha step size used during training optimization sweeps.</p>
-            </div>
-
-            {/* Min Confidence */}
-            <div className="space-y-3">
-              <div className="flex justify-between items-end px-1">
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Min Confidence
-                </label>
-                <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                  {engineConfig.confidenceThreshold}%
-                </span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={String(engineConfig.confidenceThreshold) === 'NaN' ? '' : engineConfig.confidenceThreshold}
-                onChange={(e) => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    confidenceThreshold: parseInt(e.target.value),
-                  });
-                  setActivePreset("Custom");
-                }}
-                className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
-              />
-              <p className="text-[9px] text-slate-500 leading-tight">Hard bounding filters for matching list elements in final database identifications.</p>
-            </div>
-
-            {/* Batch Normalization Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-200 tracking-tight">
-                  Batch Normalization
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  Stabilize and variance scale intensity signals across input spectra
-                </span>
-              </div>
-              <div
-                onClick={() => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    batchNorm: !engineConfig.batchNorm,
-                  });
-                  setActivePreset("Custom");
-                }}
-                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.batchNorm ? "bg-emerald-500" : "bg-slate-700 bg-opacity-50"}`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.batchNorm ? "left-7" : "left-1"}`}
-                />
-              </div>
-            </div>
-
-            {/* Neural Attention Mechanism Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-200 tracking-tight">
-                  Self-Attention Mechanism
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  Apply Scaled Dot-Product Attention to weight prominent peaks dynamically
-                </span>
-              </div>
-              <div
-                onClick={() => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    attentionMechanism: !engineConfig.attentionMechanism,
-                  } as any);
-                  setActivePreset("Custom");
-                }}
-                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${(engineConfig as any).attentionMechanism ? "bg-fuchsia-500" : "bg-slate-700 bg-opacity-50"}`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${(engineConfig as any).attentionMechanism ? "left-7" : "left-1"}`}
-                />
-              </div>
-            </div>
-
-            {/* Dropout Regularization Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-200 tracking-tight">
-                  Dropout Regularization
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  Randomly zero connections to avoid dataset overfitting
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min="0"
-                  max="0.5"
-                  step="0.05"
-                  value={isNaN((engineConfig as any).dropout || 0) ? '' : (engineConfig as any).dropout || 0}
-                  onChange={(e) => {
-                    setEngineConfig({
-                      ...engineConfig,
-                      dropout: parseFloat(e.target.value),
-                    } as any);
-                    setActivePreset("Custom");
-                  }}
-                  className="w-16 accent-fuchsia-500"
-                />
-                <span className="text-[10px] font-mono text-slate-400 w-6 text-right">
-                  {((engineConfig as any).dropout || 0).toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            {/* Multi-Scale Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-200 tracking-tight">
-                  Multi-Scale Convolutional Fusion
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  ResNet-style skip-connections pathing crude spectrum values forward
-                </span>
-              </div>
-              <div
-                onClick={() => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    multiScale: !engineConfig.multiScale,
-                  });
-                  setActivePreset("Custom");
-                }}
-                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.multiScale ? "bg-indigo-500" : "bg-slate-700 bg-opacity-50"}`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.multiScale ? "left-7" : "left-1"}`}
-                />
-              </div>
-            </div>
-
-            {/* Mathematical Background Subtraction Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-200 tracking-tight">
-                  Baseline Background Subtraction
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  Strip mathematical curvatures & low-frequency optical baselines automatically
-                </span>
-              </div>
-              <div
-                onClick={() => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    backgroundSubtraction: !engineConfig.backgroundSubtraction,
-                  });
-                  setActivePreset("Custom");
-                }}
-                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.backgroundSubtraction ? "bg-emerald-500" : "bg-slate-700 bg-opacity-50"}`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.backgroundSubtraction ? "left-7" : "left-1"}`}
-                />
-              </div>
-            </div>
-
-            {/* Caglioti Broadening Correction Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-200 tracking-tight">
-                  Caglioti Instrument Calibration
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  Scale convolution sigma dynamically across 2&theta; coordinates using Caglioti's FWHM equation
-                </span>
-              </div>
-              <div
-                onClick={() => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    cagliotiCorrection: !engineConfig.cagliotiCorrection,
-                  });
-                  setActivePreset("Custom");
-                }}
-                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.cagliotiCorrection ? "bg-indigo-500" : "bg-slate-700 bg-opacity-50"}`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.cagliotiCorrection ? "left-7" : "left-1"}`}
-                />
-              </div>
-            </div>
-
-            {/* Finger-Cox-Jephcoat Low Angle Asymmetry Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors col-span-2">
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-slate-200 tracking-tight">
-                  Finger-Cox-Jephcoat Asymmetric Correction
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  Correct and skew peak broadening at low angles (2&theta; &lt; 42&deg;) due to instrument axial divergence aberrations
-                </span>
-              </div>
-              <div
-                onClick={() => {
-                  setEngineConfig({
-                    ...engineConfig,
-                    asymmetryCorrection: !engineConfig.asymmetryCorrection,
-                  });
-                  setActivePreset("Custom");
-                }}
-                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.asymmetryCorrection ? "bg-amber-500" : "bg-slate-700 bg-opacity-50"}`}
-              >
-                <div
-                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.asymmetryCorrection ? "left-7" : "left-1"}`}
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Cloud Synchronization Button */}
-          <div className="mt-8 pt-6 border-t border-slate-800/80/50 flex justify-end gap-3">
-             <button
-                type="button"
-                onClick={async () => {
-                   const { auth, db } = await import('../services/firebase');
-                   const { collection, query, where, getDocs } = await import('firebase/firestore');
-                   if (!auth.currentUser) {
-                      alert("You must be signed in with Google to load configurations.");
-                      return;
-                   }
-                   try {
-                      const q = query(collection(db, 'engineConfigs'), where('userId', '==', auth.currentUser.uid));
-                      const querySnapshot = await getDocs(q);
-                      if (querySnapshot.empty) {
-                         alert("No saved configurations found in the cloud.");
-                         return;
-                      }
-                      const firstDoc = querySnapshot.docs[querySnapshot.docs.length - 1]; // Get latest
-                      const data = firstDoc.data();
-                      setEngineConfig(JSON.parse(data.configData));
-                      alert(`Successfully loaded configuration: ${data.name}`);
-                   } catch (error) {
-                      console.error("Failed to load:", error);
-                      alert("Failed to load from secure cloud.");
-                   }
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md active:translate-y-0"
-             >
-                Load Latest Config
-             </button>
-             <button
-                type="button"
-                onClick={async () => {
-                   const { auth, db } = await import('../services/firebase');
-                   const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-                   if (!auth.currentUser) {
-                      alert("You must be signed in with Google to save configurations to the cloud.");
-                      return;
-                   }
-                   try {
-                      const configId = 'engine-' + Date.now();
-                      await setDoc(doc(db, 'engineConfigs', configId), {
-                         userId: auth.currentUser.uid,
-                         name: 'My Custom Engine Config',
-                         configData: JSON.stringify(engineConfig),
-                         createdAt: serverTimestamp(),
-                         updatedAt: serverTimestamp()
-                      });
-                      alert("Successfully saved configuration to secure cloud!");
-                   } catch (error) {
-                      console.error("Failed to save:", error);
-                      alert("Failed to save. You may not have proper permissions.");
-                   }
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0"
-             >
-                <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-                   <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                </div>
-                Save Config to Cloud
-             </button>
-          </div>
-        </div>
-        )}
-
-        <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800/80 transition-all duration-500 group/phaseid relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl group-hover/phaseid:bg-violet-500/10 transition-all duration-1000" />
-          <div className="flex justify-between items-center mb-8 relative z-10">
-            <h2 className="text-2xl font-black text-white flex flex-col md:flex-row items-start md:items-center gap-3 tracking-tight">
-              <div className="bg-violet-500/20 p-2.5 rounded-2xl border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-                <Brain className="w-7 h-7 text-violet-400 drop-shadow flex-shrink-0" />
-              </div>
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">PhaseID Neural Net</span>
-              <span className="text-xs font-semibold bg-indigo-500/10 text-indigo-300 px-3 py-1.5 rounded-full border border-indigo-500/30 flex items-center gap-1.5 shadow-sm mt-1 md:mt-0 uppercase tracking-wider">
-                <Database className="w-3.5 h-3.5" />
-                {MATERIAL_DB.length} Materials Indexed
-              </span>
-            </h2>
-            {isSimulating && (
-              <span className="text-[10px] uppercase tracking-widest font-black text-violet-300 animate-pulse bg-violet-500/20 px-3 py-1.5 rounded-full border border-violet-500/30 shadow-sm flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full"></div>
-                Running...
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-6 relative z-10">
-            {/* Material Search */}
-            <div className="relative" ref={searchRef}>
-              <div className="flex flex-col gap-2 mb-3">
-                <label className="block text-sm font-black text-slate-300 tracking-tight">
-                  Unified DB Search Engine{" "}
-                  <span className="text-emerald-400 ml-2 font-mono text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">
-                    COD + MP SYNCED
-                  </span>
-                </label>
-                <div className="flex items-center gap-2 text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
-                    Global Verification:
-                  </span>
-                  <div className="w-8 h-4 bg-emerald-500 rounded-full relative cursor-help shadow-inner border border-emerald-600" title="All database materials are strictly cross-verified with Crystallography Open Database (COD) and Materials Project.">
-                    <div className="absolute left-4 top-0.5 w-3 h-3 bg-white rounded-full shadow-sm"></div>
-                  </div>
-                  <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.1)]">
-                    COD/MP VERIFIED
-                  </span>
-                </div>
-              </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleSmartSearch();
-                    }
-                  }}
-                  placeholder="Search local database by formula, name, or peaks (e.g. 28.4, 47.3)..."
-                  className="w-full px-5 py-4 pl-12 pr-32 bg-slate-800/80 border border-slate-700 hover:border-violet-500/50 rounded-2xl text-sm text-slate-200 focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500/80 outline-none transition-all placeholder:text-slate-500 font-medium"
-                />
-                <Search className="w-5 h-5 absolute left-4 top-4 text-slate-400" />
-
-                <button
-                  onClick={handleSmartSearch}
-                  disabled={!searchTerm.trim()}
-                  className="absolute right-2 top-2 bottom-2 px-6 bg-violet-600 hover:bg-violet-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-violet-500/20 active:translate-y-0.5 disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none flex items-center gap-2 group w-auto justify-center"
-                >
-                  <Database className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-                  <span>Search DB</span>
-                </button>
-              </div>
-
-              <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/40">
-                <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Local database contains standard crystallographic references</span>
-                </span>
-                <button
-                  onClick={() => setShowGeminiSearch(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600/30 via-indigo-600/30 to-purple-600/30 hover:from-cyan-600/50 hover:via-indigo-600/50 hover:to-purple-600/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded-xl text-xs font-black uppercase tracking-wider text-cyan-200 hover:text-white transition-all shadow-lg hover:shadow-cyan-500/20 active:scale-95 group cursor-pointer"
-                  title="Search 500,000+ open-access crystal structures in COD and ICDD with Gemini Flash"
-                >
-                  <Sparkles className="w-4 h-4 text-cyan-300 group-hover:scale-125 transition-transform animate-pulse" />
-                  <span>Search Global Databases (COD/ICDD) via Gemini Flash</span>
-                </button>
-              </div>
-
-              {/* Suggestions Dropdown */}
-              {showSuggestions && (
-                <div className="absolute top-full left-0 right-0 mt-3 bg-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-[0_20px_50px_-5px_rgba(0,0,0,0.8)] border border-slate-700/80 z-50 max-h-[450px] overflow-y-auto animate-in slide-in-from-top-2 duration-200 custom-scrollbar divide-y divide-slate-800/80">
-                  {searchResults.length > 0 ? (
-                    <div className="p-2 space-y-1">
-                      {searchResults.map((material: any, idx: number) => (
-                        <button
-                          key={`${material.name}-${idx}`}
-                          onClick={() => handleMaterialSelect(material)}
-                          className="w-full text-left px-5 py-3.5 hover:bg-slate-800/90 flex items-center justify-between group rounded-xl transition-all border border-transparent hover:border-violet-500/30"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-lg bg-[#050A14] border border-slate-700 flex items-center justify-center text-cyan-300 text-sm font-black group-hover:bg-violet-500/20 group-hover:text-violet-300 group-hover:border-violet-500/40 transition-all shadow-inner">
-                              {material.formula.substring(0, 2)}
-                            </div>
-                            <div>
-                              <span className="font-bold text-slate-200 block text-sm group-hover:text-violet-300 transition-colors">
-                                {material.name}
-                              </span>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                                  {material.type}
-                                </span>
-                                {material.elements && material.elements.length > 0 && (
-                                  <div className="flex gap-1">
-                                    {material.elements.slice(0, 5).map((el: string, elIdx: number) => (
-                                      <span key={elIdx} className="text-[9px] px-1.5 py-0.5 font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                        {el}
-                                      </span>
-                                    ))}
-                                    {material.elements.length > 5 && (
-                                      <span className="text-[9px] px-1 py-0.5 font-bold rounded bg-slate-800 text-slate-500 border border-slate-700">
-                                        +{material.elements.length - 5}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <span className="text-xs font-mono text-slate-400 bg-[#050A14] border border-slate-700 px-3 py-1.5 rounded shadow-sm group-hover:bg-slate-800 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all">
-                            {material.crystalSystem}
-                          </span>
-                        </button>
-                      ))}
-
-                      <div className="pt-2 border-t border-slate-800/80 p-2">
-                        <button
-                          onClick={() => {
-                            setShowSuggestions(false);
-                            setShowGeminiSearch(true);
-                          }}
-                          className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-950/40 via-indigo-950/40 to-purple-950/40 hover:from-cyan-900/50 hover:via-indigo-900/50 hover:to-purple-900/50 border border-cyan-500/30 hover:border-cyan-400/60 rounded-xl text-xs font-bold text-cyan-300 hover:text-white flex items-center justify-center gap-2 transition-all"
-                        >
-                          <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-                          <span>Search global COD/ICDD via Gemini Flash for "{searchTerm || 'all novel materials'}"</span>
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-                      <div className="w-14 h-14 bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-inner">
-                        <Sparkles className="w-7 h-7 text-cyan-400 animate-pulse" />
-                      </div>
-                      <div className="space-y-1 max-w-sm">
-                        <p className="text-slate-200 text-sm font-bold">
-                          Phase '{searchTerm}' not found locally
-                        </p>
-                        <p className="text-slate-400 text-xs leading-relaxed">
-                          Query 500,000+ open-access crystal structures in COD and ICDD using Gemini Flash to retrieve 2Î¸ Bragg peaks, space groups, and unit cell parameters.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setShowSuggestions(false);
-                          setShowGeminiSearch(true);
-                        }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:via-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-cyan-500/20 border border-cyan-400/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                      >
-                        <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
-                        <span>Search COD / ICDD for "{searchTerm}"</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="pt-2 relative z-10">
-              <div className="flex flex-col gap-2 mb-3">
-                <label className="block text-sm font-black text-slate-300 tracking-tight">
-                  Diffraction Pattern Input
-                </label>
-                <div className="flex gap-2 relative z-10">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    accept=".xy,.txt,.csv"
-                  />
-                  <button
-                    onClick={() => {
-                      fileInputRef.current?.click();
-                      playSynthTone("tick");
-                    }}
-                    className="text-xs flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 rounded-xl font-bold transition-all hover:shadow-lg active:scale-95"
-                  >
-                    <Upload className="w-4 h-4 text-violet-400" /> Upload Scan
-                  </button>
-                  <button
-                    onClick={() => {
-                      setInputData("");
-                      setResult(null);
-                      setSelectedCandidate(null);
-                      setProgressStep(0);
-                      setSearchTerm("");
-                      playSynthTone("tick");
-                    }}
-                    className="text-xs flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 px-4 py-2 rounded-xl font-bold transition-all hover:shadow-lg active:scale-95"
-                  >
-                    <Trash2 className="w-4 h-4" /> Clear Cache
-                  </button>
-                </div>
-              </div>
-
-              {/* Enhanced Diffraction Input Sub-Tools Control Deck */}
-              <div className="bg-[#050A14]/60 p-1.5 rounded-xl flex gap-1 mb-3 border border-slate-700/50 relative z-10 backdrop-blur-sm shadow-inner">
-                {[
-                  { id: "presets", label: "Presets", icon: Sparkles },
-                  { id: "preview", label: "Live Plot", icon: Activity },
-                  { id: "denoise", label: "SG Denoise", icon: SlidersHorizontal },
-                  { id: "noise", label: "Simulate Noise", icon: Cpu },
-                ].map((tool) => {
-                  const ToolIcon = tool.icon;
-                  const isActive = activeInputTool === tool.id;
-                  return (
-                    <button
-                      key={tool.id}
-                      onClick={() => {
-                        setActiveInputTool(tool.id as any);
-                        playSynthTone("tick");
-                      }}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2
-                        ${isActive 
-                          ? "bg-slate-800 text-violet-300 shadow-md border border-slate-700 font-black" 
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
-                        }
-                      `}
-                    >
-                      <ToolIcon className="w-4 h-4" />
-                      <span>{tool.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Sub-tool panels */}
-              <div className="mb-4 relative z-10">
-                {activeInputTool === "presets" && (
-                  <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
-                    <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
-                      <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-violet-500" /> Fast Demo Presets
-                      </span>
-                      <span className="text-[9px] font-mono font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Loads key material references</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {[
-                        {
-                          name: "Lithium Cobalt Oxide (LCO)",
-                          formula: "LiCoOâ‚‚",
-                          desc: "Batteries standard layered cathode structure",
-                          pattern: "18.9, 100\n37.6, 20\n38.4, 30\n39.0, 25\n45.0, 48\n49.3, 35\n59.5, 22\n65.3, 15",
-                        },
-                        {
-                          name: "Silicon NIST Standard",
-                          formula: "Si (NIST 640)",
-                          desc: "Profile calibration polycrystalline reference",
-                          pattern: "28.44, 100\n47.30, 55\n56.12, 35\n69.13, 40\n76.38, 25\n88.03, 30\n94.95, 20",
-                        },
-                        {
-                          name: "Hydroxyapatite (HAP)",
-                          formula: "Caâ‚â‚€(POâ‚„)â‚†(OH)â‚‚",
-                          desc: "Calcium phosphate bioactive crystal matrix",
-                          pattern: "25.8, 40\n31.8, 100\n32.2, 70\n32.9, 65\n34.1, 30\n39.8, 25\n46.7, 45\n49.5, 50",
-                        },
-                        {
-                          name: "Rutile TiOâ‚‚ Standard",
-                          formula: "TiOâ‚‚ Rutile",
-                          desc: "Tetragonal titanium dioxide polymorph peaks",
-                          pattern: "27.4, 100\n36.1, 52\n41.2, 28\n54.3, 62\n56.6, 22\n69.0, 18\n69.8, 12",
-                        },
-                        {
-                          name: "Continuous XRD Scan (Alumina)",
-                          formula: "Î±-Alâ‚‚Oâ‚ƒ Scan",
-                          desc: "Continuous NIST SRM 1976 Alumina scan with 0.5Â° resolution, baseline drift & background noise",
-                          pattern: () => {
-                            const peaks = [
-                              { twoTheta: 25.58, intensity: 100 },
-                              { twoTheta: 35.15, intensity: 90 },
-                              { twoTheta: 37.78, intensity: 40 },
-                              { twoTheta: 43.35, intensity: 80 },
-                              { twoTheta: 52.55, intensity: 45 },
-                              { twoTheta: 57.50, intensity: 90 },
-                              { twoTheta: 61.30, intensity: 15 },
-                              { twoTheta: 66.52, intensity: 40 },
-                              { twoTheta: 68.21, intensity: 50 },
-                            ];
-                            let out = "";
-                            for (let x = 20; x <= 80; x += 0.5) {
-                              let intensity = 0;
-                              for (const p of peaks) {
-                                const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(0.35, 2)));
-                                intensity += val;
-                              }
-                              const bg = 5 + 12 * Math.exp(-Math.pow(x - 30, 2) / (2 * Math.pow(15, 2)));
-                              const noise = (Math.random() - 0.5) * 4;
-                              const finalVal = Math.max(0.1, intensity + bg + noise);
-                              out += `${x.toFixed(2)}, ${finalVal.toFixed(1)}\n`;
-                            }
-                            return out.trim();
-                          }
-                        },
-                        {
-                          name: "Continuous XRD Scan (Silicon)",
-                          formula: "Si (Continuous)",
-                          desc: "Continuous NIST SRM 640 Silicon scan with 0.5Â° resolution, standard thermal broadening & noise floor",
-                          pattern: () => {
-                            const peaks = [
-                              { twoTheta: 28.44, intensity: 100 },
-                              { twoTheta: 47.30, intensity: 55 },
-                              { twoTheta: 56.12, intensity: 35 },
-                              { twoTheta: 69.13, intensity: 40 },
-                              { twoTheta: 76.38, intensity: 25 },
-                              { twoTheta: 88.03, intensity: 30 },
-                              { twoTheta: 94.95, intensity: 20 },
-                            ];
-                            let out = "";
-                            for (let x = 20; x <= 100; x += 0.5) {
-                              let intensity = 0;
-                              for (const p of peaks) {
-                                const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(0.35, 2)));
-                                intensity += val;
-                              }
-                              const bg = 4 + 8 * Math.exp(-Math.pow(x - 40, 2) / (2 * Math.pow(20, 2)));
-                              const noise = (Math.random() - 0.5) * 3;
-                              const finalVal = Math.max(0.1, intensity + bg + noise);
-                              out += `${x.toFixed(2)}, ${finalVal.toFixed(1)}\n`;
-                            }
-                            return out.trim();
-                          }
-                        }
-                      ].map((preset) => (
-                        <button
-                          key={preset.name}
-                          onClick={() => {
-                            const pat = typeof preset.pattern === "function" ? preset.pattern() : preset.pattern;
-                            setInputData(pat);
-                            setSearchTerm(preset.name);
-                            setActiveInputTool("preview");
-                            playSynthTone("success");
-                          }}
-                          className="p-3 text-left bg-slate-800/80 border border-slate-700/50 rounded-xl hover:border-violet-500/50 hover:bg-slate-800 hover:shadow-lg transition-all focus:outline-none"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-200 tracking-tight">{preset.name}</span>
-                            <span className="text-[9px] font-mono bg-violet-500/20 text-violet-300 border border-violet-500/30 px-1.5 py-0.5 rounded font-bold">{preset.formula}</span>
-                          </div>
-                          <p className="text-[9px] text-slate-400 mt-1.5 leading-relaxed">{preset.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {activeInputTool === "preview" && (
-                  <div className="bg-[#050A14]/60 border border-slate-700/50 rounded-2xl p-6 space-y-6 shadow-inner relative overflow-hidden group/live">
-                    {/* Glowing structural accents */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none rounded-full" />
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/80/80 pb-3 gap-2">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-cyan-500 animate-pulse" /> Simulated Input Pattern
-                        </span>
-                        <span className="text-[9px] text-slate-500 font-mono uppercase tracking-wider">Crystalline Phase Diffraction Signature</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setShowGradCam(!showGradCam);
-                            playSynthTone("tick");
-                          }}
-                          className={`text-[9px] font-mono font-bold border px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-                            showGradCam
-                              ? "bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.3)]"
-                              : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
-                          }`}
-                          title="Overlay Grad-CAM Convolutional Saliency Map"
-                        >
-                          <Brain className="w-3.5 h-3.5 text-rose-400" />
-                          {showGradCam ? "Grad-CAM Saliency Active" : "Grad-CAM Saliency"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setInputBroadening(0.25);
-                            setInputNoiseLevel(15);
-                            setInputBgAmorphous(10);
-                            playSynthTone("tick");
-                          }}
-                          className="text-[9px] font-mono font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2 py-1 rounded transition-all"
-                          title="Reset simulation parameters to default calibration"
-                        >
-                          Reset Params
-                        </button>
-                        <span className="text-[10px] px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 font-black font-mono border border-cyan-500/30 shadow-sm flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-                          {parsedPoints.length} Resolved Peaks
-                        </span>
-                      </div>
-                    </div>
-
-                    {parsedPoints.length > 0 ? (
-                      <div className="space-y-6">
-                        {/* Enlarged Chart: increased height to h-[480px] sm:h-[520px] md:h-[580px] lg:h-[620px] to allow complete visualization without clutter */}
-                        <div className="h-[480px] sm:h-[520px] md:h-[580px] lg:h-[620px] bg-[#060B15]/90 border border-slate-800/80 rounded-2xl p-4 relative w-full shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] group-hover/live:border-slate-700/60 transition-all overflow-hidden">
-                          {/* Inner scientific grid overlay */}
-                          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
-                          
-                          <ResponsiveContainer width="100%" height="100%">
-                            <ComposedChart
-                              data={liveChartData}
-                              margin={{ top: 20, right: 15, bottom: 25, left: 15 }}
-                            >
-                              <defs>
-                                <linearGradient id="colorLivePattern" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4} />
-                                  <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <XAxis
-                                dataKey="twoTheta"
-                                type="number"
-                                domain={['auto', 'auto']}
-                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
-                                tickLine={{ stroke: '#334155' }}
-                                axisLine={{ stroke: '#1e293b' }}
-                                label={{ value: '2Î¸ Diffraction Angle (degrees)', position: 'bottom', offset: 5, fill: '#475569', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
-                              />
-                              <YAxis hide domain={[0, 'auto']} />
-                              <CartesianGrid strokeDasharray="3 3" opacity={0.15} stroke="#334155" />
-                              
-                              {/* Background reference areas for typical diffraction angles */}
-                              <ReferenceArea x1={20} x2={40} fill="#22d3ee" fillOpacity={0.02} />
-                              <ReferenceArea x1={40} x2={75} fill="#a855f7" fillOpacity={0.02} />
-                              
-                              <Area
-                                type="monotone"
-                                dataKey="intensity"
-                                stroke="#06b6d4"
-                                fill="url(#colorLivePattern)" 
-                                fillOpacity={1}
-                                strokeWidth={3}
-                                name="Continuous Intensity"
-                              />
-
-                              {showGradCam && (
-                                <Area
-                                  type="monotone"
-                                  dataKey="saliency"
-                                  stroke="#f43f5e"
-                                  fill="rgba(244, 63, 94, 0.25)"
-                                  strokeWidth={2}
-                                  name="Grad-CAM Peak Saliency (%)"
-                                />
-                              )}
-
-                              {/* High-Resolution Bragg peak stick overlays */}
-                              {parsedPoints.map((p, idx) => (
-                                <ReferenceLine
-                                  key={`peak-stick-${idx}`}
-                                  x={p.twoTheta}
-                                  stroke="#3b82f6"
-                                  strokeWidth={1.5}
-                                  strokeOpacity={0.6}
-                                  strokeDasharray="2 2"
-                                />
-                              ))}
-                              
-                              <Tooltip
-                                content={({ active, payload }) => {
-                                  if (active && payload && payload.length) {
-                                    const val = payload[0].value as number;
-                                    const theta = payload[0].payload.twoTheta as number;
-                                    const rad = (theta / 2) * (Math.PI / 180);
-                                    const d = 1.5406 / (2 * Math.sin(rad));
-                                    return (
-                                      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3 rounded-xl shadow-xl text-[10px] font-mono text-slate-300">
-                                        <div className="font-bold text-cyan-400 mb-1">Position: {theta.toFixed(2)}Â° 2Î¸</div>
-                                        <div>d-spacing: {isNaN(d) ? 'N/A' : d.toFixed(4)} Ã…</div>
-                                        <div className="text-emerald-400 mt-1">Intensity: {val.toFixed(1)} a.u.</div>
-                                      </div>
-                                    );
-                                  }
-                                  return null;
-                                }}
-                              />
-                            </ComposedChart>
-                          </ResponsiveContainer>
-                        </div>
-
-                        {/* Two-Column Responsive Layout: Dynamic Interactive Sliders + Resolved Table */}
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2 border-t border-slate-800/80/60">
-                          {/* Left Column: Direct Interactive Simulation Sliders */}
-                          <div className="lg:col-span-5 space-y-4 bg-[#03060C]/65 border border-slate-800/80/80 p-5 rounded-2xl shadow-inner">
-                            <div className="flex items-center gap-1.5 border-b border-slate-800/80 pb-2 mb-1">
-                              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
-                              <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-widest">
-                                Live Simulation Engine
-                              </span>
-                            </div>
-
-                            <div className="space-y-4">
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                  <span>Peak Broadening (FWHM)</span>
-                                  <span className="text-cyan-400 font-black">{inputBroadening.toFixed(2)}Â°</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="0.08"
-                                  max="1.20"
-                                  step="0.02"
-                                  value={String(inputBroadening) === 'NaN' ? '' : inputBroadening}
-                                  onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
-                                  className="w-full accent-cyan-500 mt-1"
-                                />
-                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Simulates crystallite size (Scherrer effect) & instrumental strain.</p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                  <span>Statistical Noise</span>
-                                  <span className="text-cyan-400 font-black">{inputNoiseLevel}</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="50"
-                                  step="1"
-                                  value={String(inputNoiseLevel) === 'NaN' ? '' : inputNoiseLevel}
-                                  onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
-                                  className="w-full accent-cyan-500 mt-1"
-                                />
-                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Poisson noise mimicking detector efficiency and source intensity.</p>
-                              </div>
-
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                  <span>Amorphous Halo BG</span>
-                                  <span className="text-cyan-400 font-black">{inputBgAmorphous}%</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="40"
-                                  step="1"
-                                  value={String(inputBgAmorphous) === 'NaN' ? '' : inputBgAmorphous}
-                                  onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
-                                  className="w-full accent-cyan-500 mt-1"
-                                />
-                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Generates non-crystalline glass state background signal around 28Â° 2Î¸.</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Right Column: Resolved reflections table */}
-                          <div className="lg:col-span-7 flex flex-col gap-2">
-                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black">
-                              <span>Peak Indexing Registry</span>
-                              <span>Scroll for all resolved reflections</span>
-                            </div>
-                            
-                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80/80 rounded-2xl bg-[#03060C]/80 p-4 text-[11px] font-mono shadow-inner">
-                              <table className="w-full text-left border-collapse">
-                                <thead>
-                                  <tr className="border-b border-slate-800/80 text-slate-500 text-[9px] uppercase tracking-wider">
-                                    <th className="p-2 font-black">Ref#</th>
-                                    <th className="p-2 font-black">2Î¸ Angle</th>
-                                    <th className="p-2 font-black">d-spacing (Ã…)</th>
-                                    <th className="p-2 font-black text-right">Rel. Intensity</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="text-slate-300 divide-y divide-slate-900">
-                                  {[...parsedPoints]
-                                    .sort((a, b) => a.twoTheta - b.twoTheta)
-                                    .map((pk, idx) => {
-                                      const rad = (pk.twoTheta / 2) * (Math.PI / 180);
-                                      const d = 1.5406 / (2 * Math.sin(rad));
-                                      return (
-                                        <tr key={idx} className="hover:bg-[#050A14]/60 transition-colors group/row">
-                                          <td className="p-2 font-bold text-slate-600 group-hover/row:text-slate-400">
-                                            #{idx + 1}
-                                          </td>
-                                          <td className="p-2 font-black text-cyan-400">
-                                            {pk.twoTheta.toFixed(3)}Â°
-                                          </td>
-                                          <td className="p-2 text-slate-400">
-                                            {isNaN(d) ? 'N/A' : d.toFixed(4)} Ã…
-                                          </td>
-                                          <td className="p-2 text-right">
-                                            <div className="flex items-center justify-end gap-3">
-                                              <div className="w-16 h-1.5 bg-[#050A14] border border-slate-800/80 rounded-full overflow-hidden flex shadow-inner">
-                                                <div 
-                                                  className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]"
-                                                  style={{ width: `${Math.min(100, (pk.intensity / Math.max(...parsedPoints.map(p => p.intensity))) * 100)}%` }}
-                                                />
-                                              </div>
-                                              <span className="text-emerald-400 font-bold tabular-nums min-w-[32px]">
-                                                {(pk.intensity).toFixed(0)}
-                                              </span>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-64 border-2 border-dashed border-slate-800/80 rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-[#03060C]/30">
-                        <Activity className="w-12 h-12 text-slate-700 animate-pulse mb-3" />
-                        <p className="text-sm font-bold text-slate-400 mb-1 tracking-wide">Diffractogram is Empty</p>
-                        <p className="text-xs text-slate-500 max-w-[250px] leading-relaxed">Paste 2Î¸ intensity patterns, upload a scan, or click standard presets to plot real-time spectra</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {activeInputTool === "denoise" && (
-                  <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
-                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <SlidersHorizontal className="w-4 h-4 text-emerald-500" /> Savitzky-Golay Filter Panel
-                        </span>
-                      </div>
-                      <button
-                        disabled={parsedPoints.length < 5}
-                        onClick={handleCommitSmoothing}
-                        className="text-[10px] w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Apply Smoothing In-Place
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 bg-[#050A14] p-4 rounded-xl border border-slate-700 shadow-inner">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span>Window Size (Odd)</span>
-                          <span className="text-emerald-400 font-black">{inputSgWindow} pts</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="3"
-                          max="29"
-                          step="2"
-                          value={String(inputSgWindow) === 'NaN' ? '' : inputSgWindow}
-                          onChange={(e) => setInputSgWindow(parseInt(e.target.value))}
-                          className="w-full accent-emerald-500 mt-2"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span>Polynomial Degree</span>
-                          <span className="text-emerald-400 font-black">{inputSgDegree}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="1"
-                          max="5"
-                          step="1"
-                          value={String(inputSgDegree) === 'NaN' ? '' : inputSgDegree}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (val < inputSgWindow) setInputSgDegree(val);
-                          }}
-                          className="w-full accent-emerald-500 mt-2"
-                        />
-                      </div>
-                    </div>
-
-                    {parsedPoints.length > 3 ? (
-                      <div className="h-32 bg-[#050A14] border border-slate-700/50 rounded-xl p-3 shadow-inner">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ComposedChart
-                            data={sgPreviewData}
-                            margin={{ top: 2, right: 2, bottom: 2, left: 1 }}
-                          >
-                            <XAxis dataKey="twoTheta" type="number" hide />
-                            <YAxis hide />
-                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} stroke="#94a3b8" />
-                            <Line type="monotone" dataKey="raw" stroke="#475569" dot={false} strokeOpacity={0.8} strokeWidth={1.5} name="Raw" />
-                            <Line type="monotone" dataKey="smoothed" stroke="#10b981" dot={false} strokeWidth={2.5} name="Smoothed" />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : (
-                      <div className="py-4 border border-slate-700/50 border-dashed rounded-xl bg-slate-800/30">
-                        <p className="text-[10px] uppercase font-bold text-slate-500 text-center tracking-widest">Need at least 4 points to preview smoothing.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {activeInputTool === "noise" && (
-                  <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
-                        <span className="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <Cpu className="w-4 h-4 text-fuchsia-500" /> Diffractogram Synthesizer
-                        </span>
-                      </div>
-                      <button
-                        disabled={parsedPoints.length === 0}
-                        onClick={handleSynthesizeNoisyPattern}
-                        className="text-[10px] w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Synthesize pattern
-                      </button>
-                    </div>
-
-                    <div className="space-y-4 bg-[#050A14] p-4 rounded-xl border border-slate-700 shadow-inner">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          <span>Thermal Broadening (FWHM)</span>
-                          <span className="text-fuchsia-400 font-black">{inputBroadening.toFixed(2)}Â°</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.08"
-                          max="1.2"
-                          step="0.05"
-                          value={String(inputBroadening) === 'NaN' ? '' : inputBroadening}
-                          onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
-                          className="w-full accent-fuchsia-500 mt-1"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 pb-1">
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            <span>Statistical Noise</span>
-                            <span className="text-fuchsia-400 font-black">{inputNoiseLevel}</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="50"
-                            step="2"
-                            value={String(inputNoiseLevel) === 'NaN' ? '' : inputNoiseLevel}
-                            onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
-                            className="w-full accent-fuchsia-500 mt-1"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            <span>Amorphous Baseline</span>
-                            <span className="text-fuchsia-400 font-black">{inputBgAmorphous}</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="80"
-                            step="5"
-                            value={String(inputBgAmorphous) === 'NaN' ? '' : inputBgAmorphous}
-                            onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
-                            className="w-full accent-fuchsia-500 mt-1"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Warning/Error validation banner */}
-              {formatErrorLog && (
-                <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[10px] font-mono text-rose-400 flex items-start gap-2 animate-bounce">
-                  <div className="w-2 h-2 bg-rose-500 rounded-full mt-1 shrink-0" />
-                  <span>{formatErrorLog}</span>
-                </div>
-              )}
-
-              <div
-                className={`relative border-2 border-dashed rounded-xl transition-all duration-500 overflow-hidden group
-                  ${inputData ? "border-violet-500/50 bg-slate-800/90 shadow-[0_0_20px_rgba(139,92,246,0.15)]" : "border-slate-600 bg-[#050A14]/60 hover:border-violet-500/50 hover:bg-slate-800/80 hover:shadow-lg"}
-                `}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.add(
-                    "border-violet-400",
-                    "bg-slate-800",
-                    "shadow-lg",
-                  );
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove(
-                    "border-violet-400",
-                    "bg-slate-800",
-                    "shadow-lg",
-                  );
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove(
-                    "border-violet-400",
-                    "bg-slate-800",
-                    "shadow-lg",
-                  );
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                      const content = e.target?.result as string;
-                      if (content) setInputData(content);
-                    };
-                    reader.readAsText(file);
-                    playSynthTone("success");
-                  }
-                }}
-              >
-                {!inputData && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-500 group-hover:text-violet-400 transition-colors">
-                    <div className="p-4 bg-slate-800 rounded-full shadow-inner border border-slate-700 mb-3 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.2)] group-hover:border-violet-500/30 transition-all duration-300">
-                      <Upload className="w-6 h-6 text-slate-400 group-hover:text-violet-400" />
-                    </div>
-                    <p className="text-xs font-black tracking-wide text-slate-300">
-                      Drag & drop raw XY pattern data
-                    </p>
-                    <p className="text-[10px] text-slate-500 mt-1 font-semibold">
-                      or paste table entries here
-                    </p>
-                  </div>
-                )}
-                <textarea
-                  value={inputData}
-                  onChange={(e) => setInputData(e.target.value)}
-                  placeholder={
-                    inputData ? "" : "\n\n\n\n\n\n28.44, 100\n47.30, 55"
-                  }
-                  className={`w-full h-48 px-5 py-4 bg-transparent text-slate-200 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative custom-scrollbar
-                    ${!inputData ? "placeholder:text-transparent" : ""}
-                  `}
-                  spellCheck={false}
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 mt-4 px-2 bg-[#050A14]/60 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10">
-                <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
-                  <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
-                  Expected Dataset Format:{" "}
-                  <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded ml-1 font-black">
-                    2Î¸ (deg)
-                  </span>{" "}
-                  ,{" "}
-                  <span className="text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded font-black">
-                    Intensity (a.u.)
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setIsMixMode(!isMixMode);
-                      if (!isMixMode) setMixtureList([]);
-                    }}
-                    className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all border
-                      ${isMixMode ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700/80"}
-                    `}
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    {isMixMode ? "Mix Mode ACTIVE" : "Enable Mix Mode"}
-                  </button>
-                  {inputData && (
-                    <div className="text-[10px] font-black uppercase tracking-widest text-violet-300 bg-violet-500/20 border border-violet-500/30 px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(139,92,246,0.15)] flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
-                      {inputData.split("\n").filter((l) => l.trim()).length}{" "}
-                      Data Points Loaded
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {isMixMode && mixtureList.length > 0 && (
-                <div className="mt-4 p-4 bg-slate-800/80 border border-indigo-500/30 rounded-xl animate-in zoom-in-95 duration-300 shadow-inner relative z-10">
-                  <div className="flex items-center justify-between mb-3 border-b border-slate-700/50 pb-2">
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
-                      Mixture Components
-                    </span>
-                    <button
-                      onClick={() => setMixtureList([])}
-                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {mixtureList.map((m, mIdx) => (
-                      <div
-                        key={`mix-${m}-${mIdx}`}
-                        className="flex items-center gap-2 bg-[#050A14] border border-indigo-500/50 px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-300 shadow-sm"
-                      >
-                        {m}
-                        <button
-                          onClick={() => {
-                            const nl = mixtureList.filter((x) => x !== m);
-                            setMixtureList(nl);
-                            generateMixturePattern(nl);
-                          }}
-                        >
-                          <X className="w-3.5 h-3.5 text-rose-500/80 hover:text-rose-400 transition-colors" />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="px-3 py-1.5 bg-indigo-500/10 border border-dashed border-indigo-500/30 rounded-lg text-[10px] text-indigo-400 font-bold flex items-center gap-1.5 hover:bg-indigo-500/20 transition-colors cursor-pointer">
-                      <Plus className="w-3.5 h-3.5" /> Add from DB
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 space-y-3 relative z-10">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <Database className="w-4 h-4 text-violet-400 animate-pulse" /> Standard Reference Registries
-                    </span>
-                    <span className="text-[9px] font-mono bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full font-bold">
-                      ICDD / COD / RRUFF / ICSD / CSD
-                    </span>
-                  </div>
-
-                  {/* Interactive filter & search deck */}
-                  <div className="bg-[#050A14]/60 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Fast Filter Keys:</span>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {[
-                          { name: "ICDD", style: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400 font-bold" },
-                          { name: "COD", style: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 font-bold" },
-                          { name: "RRUFF", style: "bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-400 font-bold" },
-                          { name: "ICSD", style: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-400 font-bold" },
-                          { name: "CSD", style: "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-400 font-bold" }
-                        ].map(badge => (
-                          <button
-                            key={badge.name}
-                            type="button"
-                            onClick={() => setDbSearch(badge.name)}
-                            className={`px-2 py-1 text-[9px] rounded-lg border transition-all shadow-sm ${badge.style}`}
-                          >
-                            {badge.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={dbSearch}
-                        onChange={(e) => setDbSearch(e.target.value)}
-                        placeholder="Search formulas or indexing databases (e.g. NIST, Oxide, Fe)..."
-                        className="w-full bg-slate-800 text-slate-200 border border-slate-700 hover:border-violet-500/50 rounded-lg py-2 pl-9 pr-9 text-xs focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/80 outline-none transition-all shadow-inner placeholder:text-slate-500 font-medium"
-                      />
-                      <Search className="w-4 h-4 absolute left-3 top-[10px] text-slate-500" />
-                      {dbSearch && (
-                        <button
-                          key="clear-db-search"
-                          type="button"
-                          onClick={() => setDbSearch("")}
-                          className="absolute right-3 top-2.5 p-0.5 hover:bg-slate-700 rounded text-slate-400 hover:text-violet-400 transition-all active:scale-95"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="h-[320px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-[#050A14] border border-slate-700 rounded-xl shadow-inner relative space-y-4 pt-3">
-                {(() => {
-                  const rawCategoriesList = [
-                    {
-                      category: "Standard Reference Materials (NIST/SRM)",
-                      items: [
-                        {
-                          id: "NIST1976",
-                          label: "NIST SRM 1976 (Alumina Phase)",
-                        },
-                        {
-                          id: "NIST640",
-                          label: "NIST SRM 640 (Silicon Profile Standard)",
-                        },
-                        {
-                          id: "NIST660",
-                          label: "NIST SRM 660 (Lanthanum Hexaboride, LaB6)",
-                        },
-                        {
-                          id: "NIST676",
-                          label: "NIST SRM 676 (Alumina Phase Quant Standard)",
-                        },
-                        {
-                          id: "NIST674",
-                          label: "NIST SRM 674b (TiO2/ZnO/Cr2O3/CeO2)",
-                        },
-                      ],
-                    },
-                    {
-                      category: "Semiconductors & Electronics",
-                      items: [
-                        { id: "Silicon", label: "Si" },
-                        { id: "Germanium", label: "Germanium" },
-                        { id: "GaAs", label: "GaAs" },
-                        { id: "GaN", label: "GaN" },
-                        { id: "GaP", label: "GaP" },
-                        { id: "Ga2O3", label: "Ga2O3" },
-                        { id: "SiC", label: "SiC" },
-                        { id: "AlSb", label: "AlSb Semiconductor" },
-                        { id: "MoTe2", label: "MoTe2 Monolayer" },
-                        { id: "BaSnO3", label: "BaSnO3 Perovskite" },
-                        { id: "Sb2Se3", label: "Sb2Se3 Absorber" },
-                        { id: "CZTS", label: "CZTS Kesterite" },
-                        { id: "Fe3GeTe2", label: "Fe3GeTe2 Layered" },
-                        { id: "AlN", label: "AlN" },
-                        { id: "CdTe", label: "CdTe" },
-                        { id: "CdSe", label: "CdSe" },
-                        { id: "ZnS", label: "ZnS" },
-                        { id: "ZnSe", label: "ZnSe" },
-                        { id: "ZnTe", label: "ZnTe" },
-                        { id: "Bi2Te3", label: "Bi2Te3" },
-                        { id: "VO2", label: "VO2" },
-                        { id: "IGZO", label: "IGZO TFT" },
-                        { id: "PbS", label: "PbS" },
-                        { id: "TiN", label: "TiN" },
-                        { id: "ITO", label: "ITO" },
-                        { id: "BaTiO3", label: "BaTiO3" },
-                        { id: "SrTiO3", label: "SrTiO3" },
-                        { id: "PZT", label: "PZT" },
-                        { id: "PbTiO3", label: "PbTiO3" },
-                        { id: "LiTaO3", label: "LiTaO3" },
-                        { id: "LiNbO3", label: "LiNbO3" },
-                        { id: "LaAlO3", label: "LaAlO3" },
-                        { id: "HfO2", label: "HfO2 (High-k)" },
-                        { id: "Ta2O5", label: "Ta2O5 (Caps)" },
-                        { id: "Ga2Se3", label: "Gallium Selenide" },
-                        { id: "AgInSe2", label: "AgInSe2 Chalcopyrite" },
-                        { id: "BaZrS3", label: "BaZrS3 Perovskite" },
-                        { id: "Cs2AgBiBr6", label: "Cs2AgBiBr6 Double" },
-                        { id: "Bi2O2Se", label: "Bi2O2Se Layered" },
-                        { id: "SnSe", label: "SnSe Thermoelectric" },
-                        { id: "GeSe", label: "GeSe Layered" },
-                        { id: "NiPS3", label: "NiPS3 Magnetic" },
-                        { id: "FePS3", label: "FePS3 Magnetic" },
-                        { id: "MnP", label: "MnP Helimagnetic" },
-                        { id: "CrI3", label: "CrI3 2D Ferromagnet" },
-                        { id: "WSe2", label: "WSe2 TMD" },
-                        { id: "ReS2", label: "ReS2 Anisotropic" },
-                        { id: "2H-MoS2", label: "2H-MoS2 Catalytic" },
-                        { id: "SnS", label: "SnS Herzenbergite" },
-                        { id: "Cu2O", label: "Cu2O High-Efficiency" },
-                        { id: "TaAs", label: "TaAs Weyl Semimetal" },
-                        { id: "NbAs", label: "NbAs Weyl Semimetal" },
-                        { id: "ZrTe5", label: "ZrTe5 Topological" },
-                        { id: "Sb2Te3", label: "Sb2Te3 Chalcogenide" },
-                      ],
-                    },
-                    {
-                      category: "Bioceramics, Biomaterials & Pharma",
-                      items: [
-                        { id: "HAP-Sintered", label: "HAp (Sintered)" },
-                        { id: "HAP-Nano", label: "HAp (Nano)" },
-                        { id: "Carbonated-HAP", label: "HAp (Carbonated)" },
-                        { id: "Dental-HAP", label: "HAp (Enamel)" },
-                        { id: "Dentin-HAP", label: "HAp (Dentin)" },
-                        { id: "Mg-HAP", label: "HAp (Mg-doped)" },
-                        { id: "Si-HAP", label: "HAp (Si-doped)" },
-                        { id: "Pb-HAP", label: "HAp (Pb-doped)" },
-                        { id: "Cd-HAP", label: "HAp (Cd-doped)" },
-                        { id: "Sr-HAP", label: "Sr-HAp" },
-                        { id: "ACP", label: "ACP" },
-                        { id: "Fluorapatite", label: "Fluorapatite" },
-                        { id: "Chlorapatite", label: "Chlorapatite" },
-                        { id: "beta-Tricalcium Phosphate", label: "beta-TCP" },
-                        {
-                          id: "alpha-Tricalcium Phosphate",
-                          label: "alpha-TCP",
-                        },
-                        { id: "TTCP", label: "TTCP" },
-                        { id: "Brushite", label: "Brushite" },
-                        { id: "Monetite", label: "Monetite" },
-                        { id: "OCP", label: "OCP Bio" },
-                        { id: "Bio-Glass-1393", label: "Bioglass 13-93" },
-                        { id: "Bioactive Glass", label: "Bioglass 45S5" },
-                        { id: "Bio-Glass-S53P4", label: "Bioglass S53P4" },
-                        { id: "Bio-Aragonite", label: "Aragonite" },
-                        { id: "Whewellite", label: "Whewellite" },
-                        { id: "Cellulose", label: "Cellulose" },
-                        { id: "Chitosan", label: "Chitosan" },
-                        { id: "Silk", label: "Silk Fibroin" },
-                        { id: "Collagen", label: "Collagen" },
-                        { id: "PLA", label: "PLA Bio" },
-                        { id: "PEEK", label: "PEEK" },
-                        { id: "PE", label: "Polymer (PE)" },
-                        { id: "Ibuprofen", label: "Ibuprofen" },
-                        { id: "Paracetamol", label: "Paracetamol" },
-                        { id: "MSN", label: "MSN Carrier" },
-                        { id: "SPIONs", label: "SPIONs (Mag)" },
-                        { id: "AgNPs", label: "AgNPs (Silver)" },
-                        { id: "ZTA", label: "ZTA (Alumina-Zirconia)" },
-                        { id: "YTZP", label: "Y-TZP (Yttria-ZrO2)" },
-                        { id: "Alginate", label: "Alginate" },
-                        { id: "HyaluronicAcid", label: "Hyaluronic Acid" },
-                        { id: "Diclofenac", label: "Diclofenac Sodium" },
-                        { id: "Naproxen", label: "Naproxen" },
-                        { id: "Carbamazepine", label: "Carbamazepine" },
-                        { id: "Theophylline", label: "Theophylline" },
-                        { id: "Caffeine", label: "Caffeine" },
-                        { id: "AscorbicAcid", label: "Vitamin C" },
-                        { id: "Sucrose", label: "Sucrose" },
-                        { id: "Cholesterol", label: "Cholesterol" },
-                        { id: "Aspirin", label: "Aspirin" },
-                        { id: "Amoxicillin", label: "Amoxicillin Trihydrate" },
-                        { id: "MgTCP", label: "Mg-TCP" },
-                        { id: "SrTCP", label: "Sr-TCP" },
-                        { id: "ZnHAp", label: "Zn-HAp" },
-                        { id: "BariumSulfate", label: "Barium Sulfate" },
-                        { id: "PMMA", label: "PMMA Bone Cement" },
-                        { id: "PCL", label: "PCL (Polycaprolactone)" },
-                        { id: "PLGA", label: "PLGA" },
-                        { id: "TiO2Nano", label: "TiO2 Nanotubes" },
-                        { id: "CaSO4Hemi", label: "Plaster of Paris" },
-                        { id: "CaSO4Di", label: "Gypsum (CaSO4-2H2O)" },
-                        { id: "Whitlockite", label: "Whitlockite" },
-                        { id: "Meloxicam", label: "Meloxicam" },
-                        { id: "Curcumin", label: "Curcumin" },
-                        {
-                          id: "CoralAragoniteScaffold",
-                          label: "Coral Aragonite",
-                        },
-                        { id: "PyrolyticCarbon", label: "Pyrolytic Carbon" },
-                        {
-                          id: "AkermaniteCeramic",
-                          label: "Akermanite Ceramic",
-                        },
-                        { id: "AWGlassCeramic", label: "A-W Glass-ceramic" },
-                        { id: "AtorvastatinCalcium", label: "Atorvastatin" },
-                        { id: "ZTAFemoralJoint", label: "ZTA Femoral Head" },
-                        {
-                          id: "BiphasicCalciumPhosphate",
-                          label: "Biphasic CaP (BCP)",
-                        },
-                        { id: "PaclitaxelTaxol", label: "Paclitaxel Form I" },
-                        { id: "GelMABioInk", label: "GelMA Bio-Ink" },
-                        { id: "BetaChitin", label: "Beta-Chitin squid" },
-                        {
-                          id: "BaghdaditeCeramic",
-                          label: "Baghdadite Ceramic",
-                        },
-                        { id: "StruviteCement", label: "Struvite Cement" },
-                        { id: "PiroxicamFormI", label: "Piroxicam Form I" },
-                        { id: "GOBioNanosheet", label: "GO Bio-Nanosheet" },
-                        { id: "CBDCrystalline", label: "CBD Crystalline" },
-                        { id: "Dexamethasone", label: "Dexamethasone" },
-                        {
-                          id: "Metformin Hydrochloride",
-                          label: "Metformin HCl",
-                        },
-                        { id: "Omeprazole", label: "Omeprazole" },
-                        { id: "Ciprofloxacin", label: "Ciprofloxacin" },
-                        {
-                          id: "Azithromycin (Dihydrate)",
-                          label: "Azithromycin",
-                        },
-                        { id: "Amlodipine Besylate", label: "Amlodipine" },
-                        { id: "Simvastatin", label: "Simvastatin" },
-                        { id: "Losartan Potassium", label: "Losartan" },
-                        { id: "Cetirizine Hydrochloride", label: "Cetirizine" },
-                        { id: "Fluconazole", label: "Fluconazole" },
-                        { id: "Ampicillin Trihydrate", label: "Ampicillin" },
-                        { id: "Pantoprazole Sodium", label: "Pantoprazole" },
-                        { id: "Valsartan", label: "Valsartan" },
-                        { id: "Loratadine", label: "Loratadine" },
-                        { id: "Glipizide", label: "Glipizide" },
-                        { id: "Erythromycin", label: "Erythromycin" },
-                        {
-                          id: "Tetracycline Hydrochloride",
-                          label: "Tetracycline",
-                        },
-                        { id: "Rosuvastatin Calcium", label: "Rosuvastatin" },
-                        { id: "Ranitidine Hydrochloride", label: "Ranitidine" },
-                        { id: "Prednisolone", label: "Prednisolone" },
-                        { id: "Hydrocortisone", label: "Hydrocortisone" },
-                        { id: "Alendronate", label: "Alendronate Sodium" },
-                        { id: "Atorvastatin Trihydrate", label: "Atorvastatin Trihydrate" },
-                        { id: "Clopidogrel Bisulfate Form I", label: "Clopidogrel Form I" },
-                        { id: "Clopidogrel Bisulfate Form II", label: "Clopidogrel Form II" },
-                        { id: "Esomeprazole Magnesium", label: "Esomeprazole Mg" },
-                        { id: "Sildenafil Citrate", label: "Sildenafil Citrate" },
-                        { id: "Montelukast Sodium Crystalline", label: "Montelukast Crystalline" },
-                        { id: "Rosiglitazone Maleate", label: "Rosiglitazone Maleate" },
-                        { id: "Metformin HCl Form II", label: "Metformin HCl Form II" },
-                        { id: "Sitagliptin Phosphate", label: "Sitagliptin Phosphate" },
-                        { id: "L-Arginine Phosphate Crystalline", label: "L-Arginine Phosphate" },
-                        { id: "Magnesium L-Threonate", label: "Magnesium L-Threonate" },
-                        { id: "Chondroitin Sulfate Bio-Matrix", label: "Chondroitin Sulfate" },
-                        { id: "L-Glutamine Crystalline", label: "L-Glutamine" },
-                        { id: "Alpha-Chitin Honeycomb Matrix", label: "Alpha-Chitin Honeycomb" },
-                        { id: "Silk Sericin Matrix", label: "Silk Sericin Matrix" },
-                        { id: "Collagen Type II Fibrillar Matrix", label: "Collagen Type II" },
-                        { id: "Calcium Silicate Bio-Hydrate", label: "Calcium Silicate Hydrate" },
-                        { id: "Amorphous Calcium Phosphate (ACP)", label: "Amorphous CaP (ACP)" },
-                        { id: "Bioactive Wollastonite-2M", label: "Wollastonite-2M" },
-                      ],
-                    },
-                    {
-                      category: "Metals, Alloys & Steel",
-                      items: [
-                        { id: "Aluminum", label: "Al" },
-                        { id: "Copper", label: "Cu" },
-                        { id: "Silver (Ag)", label: "Ag" },
-                        { id: "Au", label: "Au" },
-                        { id: "Pt", label: "Pt Cat" },
-                        { id: "Pd", label: "Pd Cat" },
-                        { id: "Ir", label: "Ir" },
-                        { id: "Os", label: "Os" },
-                        { id: "Rh", label: "Rh" },
-                        { id: "Fe", label: "Fe" },
-                        { id: "Ni", label: "Ni" },
-                        { id: "Cr", label: "Cr" },
-                        { id: "Tungsten", label: "W" },
-                        { id: "Mo", label: "Mo" },
-                        { id: "Ta", label: "Ta" },
-                        { id: "Bismuth", label: "Bismuth" },
-                        { id: "Austenite", label: "Austenite" },
-                        { id: "SS304", label: "SS 304" },
-                        { id: "SS310", label: "SS 310" },
-                        { id: "SS316L", label: "SS 316L" },
-                        { id: "SS430", label: "SS 430" },
-                        { id: "Ti64", label: "Ti-6Al-4V" },
-                        { id: "Inconel", label: "Inconel 718" },
-                        { id: "SS174PH", label: "SS 17-4PH" },
-                        { id: "Duplex2205", label: "Duplex SS 2205" },
-                        { id: "HastelloyC276", label: "Hastelloy C-276" },
-                        { id: "ToolSteelH13", label: "Tool Steel H13" },
-                        { id: "FeCrAlKanthal", label: "FeCrAl (Kanthal)" },
-                        { id: "AlCoCrFeNiHEA", label: "AlCoCrFeNi HEA" },
-                        { id: "Brass", label: "Brass" },
-                        { id: "SAC305", label: "SAC305" },
-                        { id: "TiGrade2", label: "Ti (Grade 2)" },
-                        { id: "AZ31B", label: "Magnesium AZ31B" },
-                        { id: "Al7075", label: "Al 7075-T6" },
-                        { id: "CoCrMo", label: "CoCrMo" },
-                        { id: "Nitinol", label: "Nitinol" },
-                        { id: "Zircaloy2", label: "Zircaloy-2" },
-                        { id: "HastelloyX", label: "Hastelloy X" },
-                        { id: "Monel400", label: "Monel 400" },
-                        { id: "Maraging300", label: "Maraging Steel" },
-                        { id: "Beryllium", label: "Beryllium" },
-                        { id: "Vanadium", label: "Vanadium" },
-                        { id: "Niobium", label: "Niobium" },
-                        { id: "Zirconium", label: "Zirconium" },
-                        { id: "Magnesium", label: "Mg" },
-                        { id: "Tin", label: "Tin (Sn)" },
-                        { id: "Zinc", label: "Zinc (Zn)" },
-                        { id: "Lead", label: "Lead (Pb)" },
-                        { id: "PoloniumEl", label: "Polonium (Po)" },
-                        { id: "ElectricalSteel", label: "Electrical Steel" },
-                        { id: "Permalloy", label: "Permalloy" },
-                        { id: "PhosphorBronze", label: "Phosphor Bronze" },
-                        { id: "SS904L", label: "SS 904L" },
-                        { id: "Ti15Mo", label: "Ti-15Mo Beta" },
-                        { id: "Invar36", label: "Invar 36" },
-                        { id: "Stellite6", label: "Stellite 6" },
-                        { id: "CartridgeBrass", label: "Cartridge Brass" },
-                        { id: "Cupronickel7030", label: "Cupronickel" },
-                        { id: "BerylliumCopper", label: "Beryllium Copper" },
-                        { id: "MgWE43", label: "Mg WE43" },
-                        { id: "Ta10W", label: "Ta-10W" },
-                        { id: "Nb3Sn", label: "Nb3Sn" },
-                        { id: "Constantan", label: "Constantan" },
-                        { id: "Kovar", label: "Kovar" },
-                        { id: "Nichrome", label: "Nichrome" },
-                        { id: "Duralumin", label: "Duralumin" },
-                        { id: "BabbittMetal", label: "Babbitt Metal" },
-                        { id: "O1ToolSteel", label: "O1 Tool Steel" },
-                        { id: "A36Steel", label: "A36 Steel" },
-                        { id: "CastIron", label: "Cast Iron" },
-                        { id: "HN-Steel", label: "HN-Steel Austenitic" },
-                        { id: "Hadfield-Steel", label: "Hadfield-Steel Manganese" },
-                        { id: "Maraging-350", label: "Maraging Steel 350" },
-                        { id: "Aermet-100", label: "Aermet-100 Aerospace" },
-                        { id: "Ti-1023", label: "Ti-1023 Near-Beta" },
-                        { id: "U71Mn", label: "U71Mn Railway Steel" },
-                        { id: "Fe-Ni46", label: "Fe-Ni46 Platinit" },
-                        { id: "Cu-Be C17200", label: "Cu-Be C17200 Spring" },
-                        { id: "C22", label: "Hastelloy C22" },
-                        { id: "L605", label: "Haynes 25 Cobalt" },
-                      ],
-                    },
-                    {
-                      category: "Energy Devices",
-                      items: [
-                        { id: "Graphite", label: "Graphite" },
-                        { id: "LCO", label: "LCO" },
-                        { id: "LMO", label: "LMO Cathode" },
-                        { id: "NMC", label: "NMC" },
-                        { id: "LiFePO4", label: "LFP" },
-                        { id: "LTO", label: "LTO" },
-                        { id: "SiO", label: "SiO Anode" },
-                        { id: "NASICON", label: "NASICON" },
-                        { id: "YSZ", label: "8YSZ" },
-                        { id: "SRO", label: "SrRuO3" },
-                        { id: "MAPbI3", label: "Perovskite" },
-                        { id: "CsPbI3", label: "CsPbI3" },
-                        { id: "Rutile", label: "Rutile" },
-                        { id: "Anatase", label: "Anatase" },
-                        { id: "ZnO", label: "ZnO" },
-                        { id: "WO3", label: "WO3" },
-                        { id: "MoS2", label: "MoS2" },
-                        { id: "TiS2", label: "TiS2" },
-                        { id: "YBCO", label: "YBCO High-Tc" },
-                        { id: "LTA", label: "Zeolite A" },
-                        { id: "ZSM5", label: "ZSM-5" },
-                        { id: "SBA15", label: "SBA-15" },
-                        { id: "MOF5", label: "MOF-5" },
-                        { id: "UiO66", label: "UiO-66" },
-                        { id: "HKUST1", label: "HKUST-1" },
-                        { id: "ZIF8", label: "ZIF-8" },
-                        { id: "LLZO", label: "LLZO Solid Electrolyte" },
-                        { id: "LGPS", label: "LGPS Superionic" },
-                        { id: "LATP", label: "LATP Solid Electrolyte" },
-                        { id: "FAPbI3", label: "FAPbI3 Perovskite" },
-                        {
-                          id: "PrussianBlueNa",
-                          label: "Prussian Blue Na-Cathode",
-                        },
-                        { id: "MgH2", label: "Magnesium Hydride (MgH2)" },
-                      ],
-                    },
-                    {
-                      category: "Geology, Minerals & Carbon",
-                      items: [
-                        { id: "Quartz", label: "Quartz" },
-                        { id: "Beta-Quartz", label: "Beta-Quartz" },
-                        {
-                          id: "Alpha-Cristobalite",
-                          label: "Alpha-Cristobalite",
-                        },
-                        { id: "Beta-Cristobalite", label: "Beta-Cristobalite" },
-                        { id: "Alpha-Tridymite", label: "Alpha-Tridymite" },
-                        { id: "Beta-Tridymite", label: "Beta-Tridymite" },
-                        { id: "Keatite", label: "Keatite" },
-                        { id: "Moganite", label: "Moganite" },
-                        { id: "Stishovite", label: "Stishovite" },
-                        { id: "Seifertite", label: "Seifertite" },
-                        { id: "Calcite", label: "Calcite" },
-                        { id: "Feldspar", label: "Feldspar" },
-                        { id: "Hematite", label: "Hematite" },
-                        { id: "Magnetite", label: "Magnetite" },
-                        { id: "Magnetite-Hyper", label: "Magnetite (Hyper)" },
-                        { id: "Maghemite", label: "Maghemite" },
-                        { id: "FeS2", label: "FeS2" },
-                        { id: "Diamond", label: "Diamond" },
-                        { id: "Graphene", label: "Graphene" },
-                        { id: "GO", label: "GO" },
-                        { id: "SWCNT", label: "SWCNT" },
-                        { id: "Phosphorene", label: "Phosphorene" },
-                        { id: "Ti3C2", label: "MXene" },
-                        { id: "Cement", label: "Clinker" },
-                        { id: "Olivine", label: "Olivine (Forsterite)" },
-                        { id: "Pyroxene", label: "Pyroxene" },
-                        { id: "Biotite", label: "Biotite" },
-                        { id: "Muscovite", label: "Muscovite" },
-                        { id: "Kaolinite", label: "Kaolinite" },
-                        { id: "Montmorillonite", label: "Montmorillonite" },
-                        { id: "Illite", label: "Illite" },
-                        { id: "Moissanite", label: "Moissanite" },
-                        { id: "Diopside", label: "Diopside" },
-                        { id: "Lonsdaleite", label: "Lonsdaleite" },
-                        { id: "Shungite", label: "Shungite" },
-                        { id: "Dolomite", label: "Dolomite" },
-                        { id: "Aragonite", label: "Aragonite" },
-                        { id: "Ilmenite", label: "Ilmenite" },
-                        { id: "Apatite", label: "Apatite" },
-                        { id: "Zircon", label: "Zircon" },
-                        { id: "Tourmaline", label: "Tourmaline" },
-                        { id: "Beryl", label: "Beryl" },
-                        { id: "Almandine", label: "Almandine Garnet" },
-                        { id: "Fullerene", label: "Fullerene (C60)" },
-                        { id: "MWCNT", label: "MWCNT" },
-                        { id: "HardCarbon", label: "Hard Carbon" },
-                        { id: "GlassyCarbon", label: "Glassy Carbon" },
-                        { id: "Anthracite", label: "Anthracite" },
-                        { id: "AndraditeGarnet", label: "Andradite Garnet" },
-                        { id: "Coesite", label: "Coesite" },
-                        { id: "Chaoite", label: "Chaoite" },
-                        { id: "Wurtzite", label: "Wurtzite" },
-                        { id: "Crocidolite", label: "Crocidolite" },
-                      ],
-                    },
-                    {
-                      category: "Nuclear & Defensive",
-                      items: [
-                        { id: "BNNT", label: "BNNT" },
-                        { id: "GdYSZ", label: "Gd-YSZ Poison" },
-                        { id: "U3Si5", label: "U3Si5 Fuel" },
-                        { id: "SiCSiC", label: "SiC-SiC Cladding" },
-                        { id: "LaBr3Ce", label: "LaBr3:Ce" },
-                        { id: "TiCN", label: "TiCN Armor" },
-                        { id: "Polonium", label: "Polonium (Po)" },
-                        { id: "PuDelta", label: "Plutonium (Î´)" },
-                        { id: "PuAlpha", label: "Plutonium (Î±)" },
-                        { id: "PuO2", label: "PuO2 (Dioxide)" },
-                        { id: "PoO2", label: "Polonium Dioxide" },
-                        { id: "PoBe", label: "Po-Be Source" },
-                        { id: "UO2", label: "UO2 Fuel" },
-                        { id: "U3O8", label: "U3O8" },
-                        { id: "UO3", label: "UO3" },
-                        { id: "U-Metal", label: "U-Metal" },
-                        { id: "ThO2", label: "ThO2" },
-                        { id: "Zircaloy", label: "Zircaloy-4" },
-                        { id: "NuclearGraphite", label: "Nuclear Graphite" },
-                        { id: "TritiumScavenger", label: "Tritium Scavenger" },
-                        {
-                          id: "HypersonicAblator",
-                          label: "Hypersonic Ablator",
-                        },
-                        { id: "VitrifiedNuclearWaste", label: "Waste Glass" },
-                        { id: "AramidBodyArmor", label: "Kevlar Armor" },
-                        { id: "ReactiveArmorExplosive", label: "RDX ERA" },
-                        { id: "DepletedUraniumAlloy", label: "DU Alloy" },
-                        { id: "WC", label: "WC" },
-                        { id: "TiC", label: "TiC" },
-                        { id: "AlN", label: "AlN" },
-                        { id: "Si3N4", label: "Si3N4" },
-                        { id: "hBN", label: "h-BN" },
-                        { id: "Corundum", label: "Al2O3" },
-                        { id: "MgO", label: "MgO" },
-                        { id: "Cr2O3", label: "Cr2O3" },
-                        { id: "Nd2Fe14B", label: "Nd Magnet" },
-                        { id: "BaFe12O19", label: "Ba Ferrite" },
-                        { id: "Cobalt-Ferrite", label: "Co-Ferrite" },
-                        { id: "Zn-Ferrite", label: "Zn-Ferrite" },
-                        { id: "CoFe2O4", label: "CoFe2O4" },
-                        { id: "BFO", label: "BFO" },
-                        { id: "B4C", label: "Boron Carbide (B4C)" },
-                        { id: "ZrB2", label: "ZrB2" },
-                        { id: "HfB2", label: "HfB2" },
-                        { id: "TiB2", label: "TiB2" },
-                        { id: "U3Si2", label: "U3Si2 Fuel" },
-                        { id: "Gd2O3", label: "Gd2O3 Poison" },
-                        { id: "Er2O3", label: "Er2O3 Poison" },
-                        { id: "AgInCd", label: "Ag-In-Cd" },
-                        { id: "Kevlar", label: "Kevlar (PPTA)" },
-                        { id: "UHMWPE", label: "UHMWPE Armor" },
-                        { id: "ALON", label: "ALON Armor" },
-                        { id: "Spinel", label: "Spinel Armor" },
-                        { id: "Sm2O3", label: "Sm2O3 Poison" },
-                        { id: "PbWO4", label: "PbWO4 Scintillator" },
-                        { id: "CdWO4", label: "CdWO4" },
-                        { id: "BeO", label: "BeO Moderator" },
-                        { id: "ZrC", label: "ZrC" },
-                        { id: "BGO", label: "BGO Scintillator" },
-                        { id: "NaITl", label: "NaI:Tl" },
-                        { id: "ZrH2", label: "ZrH2 Moderator" },
-                        { id: "Gd2Zr2O7", label: "Gadolinium Zirconate" },
-                        { id: "Sm2Zr2O7", label: "Samarium Zirconate" },
-                        { id: "FeB", label: "FeB Defensive Shield" },
-                        { id: "W2C", label: "W2C Semicarbide" },
-                        { id: "Li2TiO3", label: "Li2TiO3 breeding" },
-                        { id: "Li4SiO4", label: "Li4SiO4 breeding" },
-                        { id: "Reinforced Boron Carbide", label: "Reinforced B4C Armor" },
-                        { id: "Antimony Lead", label: "Pb-Sb Ballistic Shielder" },
-                        { id: "Zr3Al", label: "Zr3Al Cladding" },
-                        { id: "Erbium Zirconium", label: "Er6ZrI10 Scavenger" },
-                      ],
-                    },
-                    {
-                      category: "Oxides & Halides",
-                      items: [
-                        { id: "UO2F2", label: "Uranyl Fluoride" },
-                        { id: "Ag2F", label: "Silver Subfluoride" },
-                        { id: "YbOF", label: "Yb Oxyfluoride" },
-                        { id: "BiOI", label: "Bi Oxyiodide" },
-                        { id: "ReO3", label: "Rhenium Trioxide" },
-                        { id: "CeO2", label: "CeO2" },
-                        { id: "ZrO2", label: "ZrO2" },
-                        { id: "Y2O3", label: "Y2O3" },
-                        { id: "CuO", label: "CuO" },
-                        { id: "Cu2O", label: "Cu2O" },
-                        { id: "Cuprite", label: "Cuprite" },
-                        { id: "Chalcocite", label: "Chalcocite" },
-                        { id: "NiO", label: "NiO" },
-                        { id: "Co3O4", label: "Co3O4" },
-                        { id: "Fe3O4", label: "Fe3O4" },
-                        { id: "MnO2", label: "MnO2" },
-                        { id: "V2O3", label: "V2O3" },
-                        { id: "V2O5", label: "V2O5" },
-                        { id: "MoO3", label: "MoO3" },
-                        { id: "SnO2", label: "SnO2" },
-                        { id: "Ag2O", label: "Ag2O" },
-                        { id: "BaZrO3", label: "BaZrO3" },
-                        { id: "NaCl", label: "NaCl" },
-                        { id: "CaF2", label: "CaF2" },
-                        { id: "KCl", label: "KCl" },
-                        { id: "AgCl", label: "AgCl" },
-                        { id: "BiOCl", label: "BiOCl" },
-                        { id: "In2O3", label: "In2O3" },
-                        { id: "PbF2", label: "PbF2" },
-                        { id: "TlBr", label: "TlBr" },
-                        { id: "PTFE", label: "PTFE" },
-                        { id: "PbO", label: "PbO (Litharge)" },
-                        { id: "Bi2O3", label: "Bi2O3" },
-                        { id: "Sb2O3", label: "Sb2O3" },
-                        { id: "TeO2", label: "TeO2" },
-                        { id: "GeO2", label: "GeO2" },
-                        { id: "Sc2O3", label: "Sc2O3" },
-                        { id: "Lu2O3", label: "Lu2O3" },
-                        { id: "Nb2O5", label: "Nb2O5" },
-                        { id: "FeO", label: "FeO" },
-                        { id: "LiF", label: "LiF" },
-                        { id: "NaF", label: "NaF" },
-                        { id: "MgF2", label: "MgF2" },
-                        { id: "AlF3", label: "AlF3" },
-                        { id: "KBr", label: "KBr" },
-                        { id: "KI", label: "KI" },
-                        { id: "CsI", label: "CsI" },
-                        { id: "CsCl", label: "CsCl" },
-                        { id: "AgBr", label: "AgBr" },
-                        { id: "CuI", label: "CuI" },
-                        { id: "PbI2", label: "PbI2" },
-                        { id: "NaBr", label: "NaBr" },
-                        { id: "NaI", label: "NaI" },
-                        { id: "LiCl", label: "LiCl" },
-                        { id: "CuCl", label: "CuCl" },
-                        { id: "MgCl2", label: "MgCl2" },
-                        { id: "CaCl2", label: "CaCl2" },
-                        { id: "SrO", label: "SrO" },
-                        { id: "BaO", label: "BaO" },
-                        { id: "Corundum", label: "Al2O3 (Corundum)" },
-                        { id: "Rutile", label: "TiO2 (Rutile)" },
-                        { id: "Anatase", label: "TiO2 (Anatase)" },
-                        { id: "MgO", label: "MgO" },
-                        { id: "ZnO", label: "ZnO" },
-                      ],
-                    },
-                    {
-                      category: "Suites & Mixtures",
-                      items: [
-                        { id: "Mixture", label: "General Mixture" },
-                        { id: "Complex", label: "Complex Mix" },
-                        { id: "PerovskiteCat", label: "Perovskite Cat" },
-                        { id: "Modern-Ceramic", label: "Modern Ceramic" },
-                        { id: "Solar-Mix", label: "Solar Mix" },
-                        { id: "Cathode-Mix", label: "Cathode Mix" },
-                        { id: "Geological-Suite", label: "Geo-Suite" },
-                        { id: "Catalyst-Mix", label: "Catalyst Mix" },
-                        { id: "Precious-Metal-Mix", label: "Precious Metals" },
-                        { id: "Halide-Mineral-Mix", label: "Halide Minerals" },
-                        { id: "Iron-Oxide-Mix", label: "Iron Oxides" },
-                        {
-                          id: "Biocoat-Composite-Suite",
-                          label: "Implant Suite",
-                        },
-                        { id: "SOFC-Electrode-Suite", label: "SOFC Suite" },
-                        { id: "Aerospace-Armor-Suite", label: "Aerospace" },
-                        { id: "Pharma-Drug-Suite", label: "Pharma Suite" },
-                        { id: "Nuclear-Fuel-Suite", label: "Nuclear Fuel" },
-                        { id: "Battery-Anode-Suite", label: "Battery Anode" },
-                        { id: "Superconductor-Suite", label: "Superconductor" },
-                        {
-                          id: "Zeolite-Catalyst-Suite",
-                          label: "Zeolite Suite",
-                        },
-                        { id: "Cantor-Alloy-Suite", label: "Cantor Alloy" },
-                        { id: "Carbon-Steel-Suite", label: "Steel Suite" },
-                        { id: "Superalloy-Carbide-Suite", label: "Superalloy" },
-                        {
-                          id: "Multiferroic-Ceramic-Suite",
-                          label: "Multiferroic",
-                        },
-                        {
-                          id: "Photocatalyst-TiO2-WO3-Suite",
-                          label: "Photocatalytic",
-                        },
-                        {
-                          id: "Nanocomposite-2D-Energy-Suite",
-                          label: "2D Composite",
-                        },
-                        {
-                          id: "Carbon-Allotropes-Hybrid-Suite",
-                          label: "Carbon Hybrid",
-                        },
-                        {
-                          id: "Carbon-Carbide-Refractory-Suite",
-                          label: "Refractory",
-                        },
-                        {
-                          id: "Biomineral-Carbonate-Suite",
-                          label: "Biomineral",
-                        },
-                        { id: "Drug-Carrier-Suite", label: "Drug Carrier" },
-                        {
-                          id: "Dental-Implant-Composite",
-                          label: "Dental Ceramic",
-                        },
-                        { id: "HEA-Brass-Suite", label: "HEA Brass" },
-                        { id: "Cement-Clinker-Suite", label: "Cement Clinker" },
-                        { id: "Clay-Mineral-Suite", label: "Clay Minerals" },
-                        {
-                          id: "Battery-Cathode-Suite",
-                          label: "NMC Cathode Mix",
-                        },
-                        {
-                          id: "Archaeological-Pigment-Suite",
-                          label: "Ancient Pigment",
-                        },
-                        {
-                          id: "Zeolite-Adsorbent-Suite",
-                          label: "Zeolitic Adsorbents",
-                        },
-                        {
-                          id: "Lunar-Regolith-Simulant",
-                          label: "Lunar Regolith",
-                        },
-                        {
-                          id: "Pharmaceutical-Polymorph-Mixture",
-                          label: "Pharma Polymorphs",
-                        },
-                        {
-                          id: "Bone-Scaffold-Bioactive",
-                          label: "Bone Scaffold (HAp/beta-TCP)",
-                        },
-                        {
-                          id: "Dental-Calcium-Phosphate-Cement",
-                          label: "Dental CPC Cement",
-                        },
-                        {
-                          id: "Bioglass-45S5-Bone-Graft",
-                          label: "Bioglass 45S5 Graft",
-                        },
-                        {
-                          id: "Pharma-Solid-Tablet-Formulation",
-                          label: "Tablet Formulation (API+Excipients)",
-                        },
-                        {
-                          id: "Meteorite-Chondrite-Suite",
-                          label: "Meteorite Minerals",
-                        },
-                        {
-                          id: "Solid-State-Electrolyte-Suite",
-                          label: "Solid Electrolyte",
-                        },
-                        {
-                          id: "Earth-Mantle-Assemblage",
-                          label: "Lower Mantle",
-                        },
-                        {
-                          id: "Semiconductor-Hetero-Suite",
-                          label: "III-V Semiconductor",
-                        },
-                        {
-                          id: "Nuclear-Waste-Pyrochlore",
-                          label: "Nuclear Waste",
-                        },
-                        { id: "Superconducting-Tape-HTS", label: "HTS Tape" },
-                        { id: "Mars-Soil-Curiosity", label: "Mars Regolith" },
-                        { id: "Corrosion-Rust-Scale", label: "Corrosion Rust" },
-                        { id: "Asbestos-Mineralogy", label: "Asbestos Hazard" },
-                        { id: "Volcanic-Ash-Tephra", label: "Volcanic Ash" },
-                        {
-                          id: "Fly-Ash-Geopolymer",
-                          label: "Geopolymer Fly Ash",
-                        },
-                        {
-                          id: "Solar-Cell-Perovskite-Degradation",
-                          label: "Perovskite Degraded",
-                        },
-                        {
-                          id: "Kidney-Stone-Urolithiasis",
-                          label: "Kidney Stone",
-                        },
-                        { id: "ASR-Cement-Suite", label: "Cement ASR" },
-                        {
-                          id: "Li-S-Battery-Suite",
-                          label: "Li-Sulfur Battery",
-                        },
-                        {
-                          id: "MXene-Supercap-Suite",
-                          label: "MXene Supercapacitor",
-                        },
-                        {
-                          id: "Greenschist-Facies-Suite",
-                          label: "Greenschist Metamorphic",
-                        },
-                        {
-                          id: "Atmospheric-Aerosol-Dust",
-                          label: "Atmospheric Dust",
-                        },
-                        {
-                          id: "Deep-Ocean-Manganese-Nodule",
-                          label: "Mn Nodule",
-                        },
-                        {
-                          id: "Hydrothermal-Vent-Precipitate",
-                          label: "Vent Precipitate",
-                        },
-                        { id: "Banded-Iron-Formation", label: "Banded Iron" },
-                        {
-                          id: "Portland-Cement-Hydration",
-                          label: "Hydrated Cement",
-                        },
-                        { id: "Lithium-Ion-SEI-Layer", label: "SEI Layer" },
-                        {
-                          id: "Solid-Oxide-Electrolysis-Cell",
-                          label: "SOEC Cathode",
-                        },
-                        { id: "Heavy-Mineral-Sand", label: "Mineral Sand" },
-                        {
-                          id: "Geothermal-Pipe-Scaling",
-                          label: "Geothermal Scale",
-                        },
-                        { id: "Bauxite-Al-Ore", label: "Bauxite Ore" },
-                        { id: "Copper-Porphyry-Ore", label: "Cu Porphyry" },
-                        {
-                          id: "Superalloy-Oxidation-Scale",
-                          label: "Superalloy Scale",
-                        },
-                        {
-                          id: "Tribological-Wear-Debris",
-                          label: "Wear Debris",
-                        },
-                        {
-                          id: "High-Entropy-Alloy-Oxidation",
-                          label: "HEA Oxidation",
-                        },
-                        {
-                          id: "Hypersonic-Ablation-Layer",
-                          label: "UHTC Ablation",
-                        },
-                        {
-                          id: "Fusion-Reactor-First-Wall",
-                          label: "Fusion Wall",
-                        },
-                        {
-                          id: "Solder-Joint-Intermetallic",
-                          label: "Solder IMCs",
-                        },
-                        {
-                          id: "Bronze-Disease-Corrosion",
-                          label: "Bronze Disease",
-                        },
-                        {
-                          id: "Geopolymer-Binder-Phase",
-                          label: "Geopolymer Mix",
-                        },
-                        { id: "Pharma Solid Dispersion Suite", label: "Pharma Solid Dispersion" },
-                        { id: "Solid State Sodium Battery Suite", label: "Solid Sodium Battery Suite" },
-                        { id: "High Temperature HTS Superconducting Tape (Bi2223)", label: "Bi2223 HTS Tape" },
-                        { id: "Carbonated Concrete Swelling Suite", label: "Carbonated Concrete" },
-                        { id: "Ancient Bronze Disease Patina Suite", label: "Ancient Bronze Patina" },
-                        { id: "Mars JSC-1 Regolith Simulant", label: "Mars JSC-1 Regolith" },
-                        { id: "Aviation Gas Turbine Blade Scale", label: "Turbine Blade Scale" },
-                        { id: "Heavy Metal Contaminated Soil Suite", label: "Contaminated Soil Suite" },
-                        { id: "Biomedical Titanium Bone Interfacial Scale", label: "Ti Bone Implant Interfacial" },
-                        { id: "Ultra-High Temperature Ceramic Ablator", label: "UHTC Ablator Suite" },
-                      ],
-                    },
-                  ];
-
-                  const filteredCategories = rawCategoriesList
-                    .map(cat => ({
-                      ...cat,
-                      items: cat.items.filter(item => {
-                        const searchLower = dbSearch.trim().toLowerCase();
-                        if (!searchLower) return true;
-                        return (
-                          item.label.toLowerCase().includes(searchLower) ||
-                          item.id.toLowerCase().includes(searchLower) ||
-                          cat.category.toLowerCase().includes(searchLower)
-                        );
-                      })
-                    }))
-                    .filter(cat => cat.items.length > 0);
-                  
-                  return filteredCategories.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-500 gap-3">
-                      <SlidersHorizontal className="w-10 h-10 text-slate-600 stroke-1" />
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-400">No reference materials match filter</span>
-                      <span className="text-[10px] text-slate-500 font-semibold max-w-[200px]">Try searching for other formulas or database indexes</span>
-                    </div>
-                  ) : (
-                    filteredCategories.map((categoryObj, idx) => (
-                      <div key={idx} className="mt-2">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-3 border-b border-slate-700/50 pb-2 sticky top-0 bg-[#050A14]/95 backdrop-blur-sm z-10 p-2 flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-violet-500"></div>
-                          {categoryObj.category}
-                        </h4>
-                        <div className="flex flex-wrap gap-2 px-2 py-1">
-                          {categoryObj.items.map((ex) => {
-                            const isSearchMatch = dbSearch.trim() !== "" && (
-                              ex.label.toLowerCase().includes(dbSearch.toLowerCase()) ||
-                              ex.id.toLowerCase().includes(dbSearch.toLowerCase())
-                            );
-                            return (
-                              <button
-                                key={ex.id}
-                                onClick={() => loadExample(ex.id as any)}
-                                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all shadow-sm active:scale-95 ${
-                                  isSearchMatch 
-                                    ? "bg-violet-600/90 text-white border-violet-500/80 shadow-[0_0_15px_rgba(139,92,246,0.3)] ring-2 ring-violet-500/40"
-                                    : "bg-slate-800 text-slate-300 hover:text-white hover:bg-violet-600/80 border-slate-700 hover:border-violet-500/60"
-                                }`}
-                              >
-                                {ex.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))
-                  );
-                })()}
-                </div>
-              </div>
-            </div>
-
-            {/* Active Python RAG Co-Processor Diagnostics Toggle Panel */}
-            {pythonFeaturesEnabled && (
-              <div className={`px-4 py-3.5 mb-6 rounded-xl border transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm ${usePythonRAG ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-500/[0.02]' : 'border-slate-800/80 bg-[#050A14]/50'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2.5">
-                      {usePythonRAG ? (
-                        <div className="relative flex items-center justify-center">
-                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400 absolute animate-ping opacity-75" />
-                          <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] relative z-10" />
-                        </div>
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-slate-700" />
-                      )}
-                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${usePythonRAG ? 'text-amber-500 drop-shadow-sm' : 'text-slate-500'}`}>
-                        Scientific Python RAG Engine
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={usePythonRAG}
-                      onChange={(e) => setUsePythonRAG(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-slate-800 border border-slate-700/50 rounded-full peer peer-checked:bg-amber-500 peer-checked:border-emerald-400 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-all peer-checked:after:translate-x-4"></div>
-                  </label>
-                </div>
-                <p className={`text-[10px] leading-relaxed font-medium max-w-[90%] tracking-wide ${usePythonRAG ? 'text-amber-500/70' : 'text-slate-600'}`}>
-                  When enabled, fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression. Requires Gemini High-Thinking capability.
-                </p>
-              </div>
-            )}
-
-            <div className="pt-2 relative z-10">
-              <button
-                onClick={handleRunAI}
-                disabled={isSimulating || !inputData.trim()}
-                className={`group relative w-full overflow-hidden py-4 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-xl flex justify-center items-center gap-3 outline-none focus:ring-4 focus:ring-indigo-500/30
-                  ${isSimulating || !inputData.trim() 
-                    ? "bg-slate-800/80 text-slate-500 cursor-not-allowed shadow-none border border-slate-700/50" 
-                    : "bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-[size:200%_auto] hover:bg-[position:right_center] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] border border-white/20 active:scale-[0.98]"}
-                `}
-              >
-                {/* Button Inner Glow */}
-                {!isSimulating && inputData.trim() && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-50 pointer-events-none" />
-                )}
-                
-                {isSimulating ? (
-                  <div className="flex items-center gap-3 relative z-10">
-                    <Activity className="w-5 h-5 animate-spin text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 to-indigo-200 animate-pulse drop-shadow-md">
-                      Translating Manifold...
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 relative z-10 drop-shadow-md">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center p-1 border border-white/30 group-hover:scale-110 transition-transform duration-300">
-                       <Brain className="w-full h-full text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-                    </div>
-                    <span>Initialize Deep Phase ID</span>
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center p-1 border border-white/30 group-hover:translate-x-1 group-hover:scale-110 transition-transform duration-300 delay-75">
-                       <MoveRight className="w-full h-full text-white" />
-                    </div>
-                  </div>
-                )}
-              </button>
-            </div>
-          </div>
-
-        {/* Deep Learning Architecture Status */}
-        {viewMode === 'standard' && !showArchitectureDiagnostics ? (
-          <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-300 flex-shrink-0">
-                <Brain className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black text-white">Neural Network Architecture & Diagnostics</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-[9px] font-mono font-bold text-violet-300">
-                    ResNet-{engineConfig.depth} Active
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Convolutional Saliency Map, Tensor Strides, and Multi-Scale Feature Extractors (Optional Diagnostic)
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowArchitectureDiagnostics(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-all self-end sm:self-auto"
-            >
-              <span>Show Diagnostics</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-          </div>
-        ) : (
-          <div className="bg-[#050A14] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800/80/80 hover:border-slate-700">
-          {/* Custom Background Graphic */}
-          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover/engine:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
-            <img src={convolutionalEngineBg} alt="Convolutional Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-          </div>
-          {/* Ambient Glows */}
-          <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-violet-500/10 rounded-full blur-[100px] group-hover/engine:bg-violet-500/20 transition-colors duration-1000 pointer-events-none" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-cyan-500/10 rounded-full blur-[100px] group-hover/engine:bg-cyan-500/20 transition-colors duration-1000 pointer-events-none" />
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-70 group-hover/engine:via-violet-400/50 transition-colors duration-700" />
-
-          <div>
-            <div className="flex items-center justify-between mb-6 relative z-10">
-              <div className="flex items-center gap-5">
-                <div className="relative group/icon cursor-default">
-                  <div className="absolute inset-0 bg-violet-500/30 blur-xl rounded-full group-hover/icon:bg-violet-400/40 transition-colors duration-500" />
-                  <div className="w-14 h-14 bg-[#050A14] rounded-2xl border border-violet-500/50 flex items-center justify-center relative shadow-[inset_0_2px_10px_rgba(255,255,255,0.05),tight_0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-300">
-                    <Brain className="w-7 h-7 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]" />
-                  </div>
-                  {isSimulating && (
-                    <div
-                      className="absolute -inset-1 rounded-2xl border border-violet-500/20 animate-ping opacity-50 pointer-events-none"
-                      style={{ animationDuration: "2s" }}
-                    />
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-black text-xl text-white uppercase tracking-[0.15em] drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-                    {t("Convolutional Engine", "Convolutional Engine")}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <p className="text-[10px] text-violet-300/80 font-mono uppercase tracking-[0.3em] font-black">
-                      ARCH: XRD-{engineConfig.multiScale ? "Res" : "Conv"}Net-
-                      {engineConfig.depth}
-                    </p>
-                    <span className="text-[8px] font-black text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded uppercase tracking-widest border border-slate-700">
-                      v4.2
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="hidden md:flex flex-row items-center gap-3">
-                <div className="flex flex-col items-end">
-                  <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5 flex items-center gap-1">
-                    <Cpu className="w-3 h-3 text-violet-400/70" /> Compute Core
-                  </span>
-                  <div className="relative overflow-hidden group/status rounded-lg border border-violet-500/30 bg-violet-500/10 transition-all duration-300 hover:border-violet-400/50 hover:bg-violet-500/20">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/status:translate-x-full transition-transform duration-1000" />
-                    <span className="text-xs font-mono font-black text-violet-300 px-3 py-1.5 flex items-center gap-2 relative z-10 tracking-widest uppercase">
-                      <div
-                        className={`w-2 h-2 rounded-full ${isSimulating ? "bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(167,139,250,0.6)]" : "bg-slate-500"}`}
-                      />
-                      {isSimulating ? "Processing" : "Standby"}
-                    </span>
-                  </div>
-                </div>
-                {viewMode === 'standard' && (
-                  <button
-                    onClick={() => setShowArchitectureDiagnostics(false)}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all ml-2"
-                  >
-                    <span>Hide</span>
-                    <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                  </button>
-                )}
-              </div>
-
-            <div className="flex gap-2.5 mb-2 relative z-10 md:ml-[76px] flex-wrap">
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-cyan-400"></span>{" "}
-                {engineConfig.activation}
-              </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-fuchsia-400"></span>{" "}
-                {engineConfig.filters} Filters
-              </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-emerald-400"></span>{" "}
-                Conv1D [{engineConfig.kernelSize}]
-              </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-rose-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-rose-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full bg-rose-400"></span>{" "}
-                {engineConfig.depth} Layers
-              </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-amber-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-amber-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
-                <span className="w-1 h-1 rounded-full flex items-center justify-center bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] animate-pulse"></span>{" "}
-                ~{(engineConfig.filters * engineConfig.kernelSize * 1024 * engineConfig.depth / 1000000).toFixed(1)}M Params
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-7 relative z-10 flex-1 ml-5 mt-6 border-t border-slate-800/80 pt-8">
-            {/* Vertical connecting line */}
-            <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] bg-slate-800/80 z-0"></div>
-            {/* Dynamic pulse on the line if active */}
-            {isSimulating && (
-              <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] z-0 overflow-hidden">
-                <div className="w-full h-1/3 bg-gradient-to-b from-transparent via-violet-400 to-transparent animate-[scanline_2s_ease-in-out_infinite]" />
-              </div>
-            )}
-            {steps.slice(1).map((step, idx) => {
-              const stepIdx = idx + 1;
-              const isActive = progressStep === stepIdx;
-              const isCompleted = progressStep > stepIdx;
-              const Icon = step.icon;
-
-              return (
-                <div
-                  key={`${step.label}-${idx}`}
-                  className={`relative z-10 flex flex-col gap-2 transition-all duration-300 ${isActive || isCompleted ? "opacity-100" : "opacity-40"}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0 relative z-20
-                       ${
-                         isActive
-                           ? "border-violet-500/50 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.3)] scale-110"
-                           : isCompleted
-                             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-                             : "bg-[#050A14] border-slate-700 text-slate-500"
-                       }
-                     `}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        <Icon
-                          className={`w-4 h-4 ${isActive ? "animate-pulse text-violet-300" : ""}`}
-                        />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span
-                        className={`text-[13px] font-black block truncate tracking-widest uppercase ${isActive ? "text-violet-300 drop-shadow-md" : isCompleted ? "text-slate-200" : "text-slate-500"}`}
-                      >
-                        {step.label}
-                      </span>
-                    </div>
-
-                    {/* Activation Metrics */}
-                    {isActive && (
-                      <div className="flex items-center gap-3">
-                        <div className="text-[9px] font-mono bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md text-emerald-400 flex flex-col items-end font-black drop-shadow-sm">
-                          <span>
-                            OPT: {engineConfig.optimization.toUpperCase()}
-                          </span>
-                          <span>
-                            {idx === 2
-                              ? `CANDS: ~${(100 + Math.random() * 50).toFixed(0)}K`
-                              : `ACC: ${(95 + Math.random() * 4).toFixed(2)}%`}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Layer Details & Visualizations */}
-                  {(isActive || isCompleted) && (
-                    <div className="ml-12 mt-1 pl-4 border-l border-slate-800/80">
-                      {idx === 0 && isActive && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 font-black uppercase tracking-widest bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.1)] relative z-10 hover:border-violet-400/50 transition-all duration-300"
-                        >
-                          <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
-                             <span className="text-violet-300 flex items-center gap-1.5">
-                               <SlidersHorizontal className="w-3.5 h-3.5 text-violet-500" /> Input Standardization
-                             </span>
-                             <span className="text-violet-400 animate-pulse text-[8px] bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">PRE-PROCESSING</span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 mt-2">
-                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                               <span className="text-[7px] text-slate-500">TENSOR SHAPE</span>
-                               <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">[1, 2048, 1]</span>
-                            </div>
-                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                               <span className="text-[7px] text-slate-500">NORMALIZATION</span>
-                               <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">MIN-MAX I/I0</span>
-                            </div>
-                          </div>
-
-                          <div className="w-full h-12 mt-2 relative flex items-end gap-[1px] opacity-80 overflow-hidden bg-[#03060C] p-1.5 rounded-lg border border-slate-800/80">
-                            <div className="absolute inset-0 flex justify-between px-2 opacity-20 pointer-events-none">
-                              {Array.from({length: 8}).map((_, i) => (
-                                <div key={i} className="w-px h-full bg-violet-500" />
-                              ))}
-                            </div>
-                            
-                            {Array.from({ length: 64 }).map((_, i) => (
-                              <div
-                                key={`bar-${i}`}
-                                className="flex-1 rounded-t-sm transition-all duration-300 relative z-10"
-                                style={{
-                                  backgroundColor: Math.random() > 0.8 ? '#a855f7' : '#8b5cf6',
-                                  height: `${10 + Math.random() * 90}%`,
-                                  animation: `pulse 1s ease-in-out infinite alternate`,
-                                  animationDelay: `${i * 0.05}s`,
-                                }}
-                              />
-                            ))}
-                            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent)] -translate-x-full animate-[scan_2s_linear_infinite]" />
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {idx === 1 && isActive && (
-                        <div className="mb-2 relative z-10 animate-in slide-in-from-top-1 duration-300">
-                          <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.15)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-all duration-300">
-                            
-                            <div className="flex items-center justify-between mb-3 border-b border-violet-500/20 pb-2">
-                               <span className="text-violet-300 flex items-center gap-1.5">
-                                 <Cpu className="w-4 h-4" /> 1D Convolution Processing
-                               </span>
-                               <span className="bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded border border-violet-500/40 animate-pulse">
-                                 Active
-                               </span>
-                            </div>
-
-                            <div className="flex flex-col gap-4">
-                              {/* Animated Kernel Sliding Visualization */}
-                              <div className="relative h-12 bg-[#0B1221] rounded-lg border border-slate-800/80 hover:border-slate-700 overflow-hidden mb-1 flex items-center shadow-inner">
-                                <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:8px_8px]" />
-                                {/* Input signal mock */}
-                                <svg className="absolute inset-0 w-full h-full opacity-40" preserveAspectRatio="none" viewBox="0 0 100 100">
-                                  <path d="M0 70 Q 10 70, 20 20 T 40 80 T 60 10 T 80 90 T 100 50" fill="none" stroke="#8b5cf6" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                                  <path d="M0 70 Q 10 70, 20 20 T 40 80 T 60 10 T 80 90 T 100 50" fill="none" stroke="#a78bfa" strokeWidth="6" opacity="0.2" vectorEffect="non-scaling-stroke" />
-                                </svg>
-                                {/* Grid Lines */}
-                                <div className="absolute inset-0 flex justify-between px-4">
-                                   {Array.from({length: 10}).map((_, i) => (
-                                     <div key={i} className="w-px h-full bg-violet-500/10" />
-                                   ))}
-                                </div>
-                                {/* Sliding kernel window */}
-                                <div 
-                                  className="absolute h-full bg-violet-500/20 border-x border-violet-400 shadow-[0_0_20px_rgba(139,92,246,0.6)] animate-[slide_3s_ease-in-out_infinite_alternate]"
-                                  style={{ width: `${Math.max(10, engineConfig.kernelSize * 3)}%` }}
-                                >
-                                  <div className="absolute top-1 left-1/2 -translate-x-1/2 text-[7px] text-white bg-violet-600 px-1.5 rounded-sm whitespace-nowrap shadow-md font-bold">K={engineConfig.kernelSize}</div>
-                                  
-                                  {/* Kernel internals */}
-                                  <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-                                    {Array.from({length: engineConfig.kernelSize}).map((_, i) => (
-                                      <div key={i} className="w-1 h-3 bg-violet-300 rounded-sm animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="grid grid-cols-4 gap-2">
-                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80">
-                                  <Layers className="w-3.5 h-3.5 text-violet-500 mb-1"/>
-                                  <span className="text-[7px] text-slate-500 mb-0.5">FILTERS</span>
-                                  <span className="text-violet-400 drop-shadow-sm font-black">{engineConfig.filters}</span>
-                                </div>
-                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80">
-                                  <Activity className="w-3.5 h-3.5 text-emerald-500 mb-1"/>
-                                  <span className="text-[7px] text-slate-500 mb-0.5">ACTIVATION</span>
-                                  <span className="text-emerald-400 drop-shadow-sm font-black">{engineConfig.activation}</span>
-                                </div>
-                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80 relative overflow-hidden">
-                                  {engineConfig.batchNorm && <div className="absolute inset-0 bg-emerald-500/10 animate-pulse" />}
-                                  <Database className="w-3.5 h-3.5 text-amber-500 mb-1 relative z-10"/>
-                                  <span className="text-[7px] text-slate-500 mb-0.5 relative z-10">BATCH NORM</span>
-                                  <span className={`relative z-10 font-black ${engineConfig.batchNorm ? "text-emerald-400" : "text-amber-400"}`}>
-                                    {engineConfig.batchNorm ? "ACTIVE" : "OFF"}
-                                  </span>
-                                </div>
-                                <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80">
-                                  <div className="w-3.5 h-3.5 rounded bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center border border-fuchsia-500/50 text-[8px] mb-1">D</div>
-                                  <span className="text-[7px] text-slate-500 mb-0.5">DROPOUT</span>
-                                  <span className="text-fuchsia-400 drop-shadow-sm font-black">
-                                    {engineConfig.dropout.toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-3 w-full bg-[#070D18] p-4 rounded-xl border border-slate-800/80/80 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)] relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                            
-                            <div className="flex justify-between items-center border-b border-slate-800/80 pb-2">
-                              <span className="text-[8px] font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <Network className="w-3 h-3 text-violet-500" />
-                                Feature Maps Extraction
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest bg-[#050A14] px-1.5 py-0.5 rounded border border-slate-700">
-                                  Top {Math.min(engineConfig.filters / 8, 6)} active
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-2">
-                              {Array.from({
-                                length: Math.min(engineConfig.filters / 8, 6),
-                              }).map((_, iIdx) => (
-                                <div
-                                  key={`filter-map-${iIdx}`}
-                                  className="flex items-center gap-3 bg-[#050A14]/40 p-1.5 rounded-lg border border-slate-800/80/50"
-                                >
-                                  <span className="text-[8px] text-violet-400/70 font-mono tracking-widest uppercase w-8 font-black text-right">
-                                    F{iIdx * 8 + 1}
-                                  </span>
-                                  <div className="flex-1 flex gap-[2px] h-4 rounded-sm bg-[#050810] p-[2px] overflow-hidden relative shadow-inner">
-                                    <div
-                                      className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.4),transparent)] -translate-x-full animate-[scan_2s_linear_infinite]"
-                                      style={{ animationDelay: `${iIdx * 0.3}s` }}
-                                    />
-                                    {Array.from({ length: 48 }).map((_, i) => {
-                                      const isActive =
-                                        engineConfig.dropout === 0 ||
-                                        Math.random() > engineConfig.dropout;
-                                        
-                                      // Create varied patterns per filter map
-                                      const isHighlight = i % (iIdx + 2) === 0 || (iIdx % 2 === 0 && i % 3 === 0);
-                                      const isMed = i % 5 === 0;
-
-                                      return (
-                                        <div
-                                          key={`val-${i}`}
-                                          className="flex-1 rounded-[1px] relative z-10 transition-all duration-500"
-                                          style={{
-                                            backgroundColor: !isActive
-                                              ? "#0f172a"
-                                              : isHighlight
-                                                ? "#a855f7" // bright purple
-                                                : isMed
-                                                  ? "#7c3aed" // med purple
-                                                  : "#1e293b", // dark
-                                            opacity: !isActive
-                                              ? 0.1
-                                              : Math.random() * 0.7 + 0.3,
-                                            height: isActive && isHighlight ? "100%" : "60%",
-                                            marginTop: isActive && isHighlight ? "0" : "auto",
-                                            marginBottom: isActive && isHighlight ? "0" : "auto"
-                                          }}
-                                        />
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-slate-800/80 text-[9px] flex justify-between items-center tracking-[0.15em] uppercase font-black text-slate-500 font-mono">
-                              <span className="flex items-center gap-1.5 bg-[#050A14] px-2 py-1 rounded-md border border-slate-800/80">
-                                <Maximize2 className="w-3 h-3 text-cyan-500" />
-                                Pool: {engineConfig.pooling}
-                              </span>
-                              <span className="bg-[#050A14] px-2 py-1 rounded-md border border-slate-800/80 text-slate-400">
-                                Dim: [1, {(1024 / (engineConfig.pooling === 'max' ? 2 : 1)).toFixed(0)}, {engineConfig.filters}]
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <p className="text-[10px] text-slate-500 font-mono mt-4 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-2">
-                            <Activity className="w-3.5 h-3.5 text-violet-400 animate-pulse" />{" "}
-                            Feature Extraction Live
-                          </p>
-                        </div>
-                      )}
-
-                      {idx === 2 && isActive && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(34,211,238,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-cyan-400/50 transition-all duration-300"
-                        >
-                          <div className="flex justify-between items-center bg-[#03060C] p-2.5 rounded-lg border border-slate-800/80 mb-1">
-                            <span className="text-cyan-400 flex items-center gap-2">
-                              <Database className="w-4 h-4 text-cyan-500" />{" "}
-                              Vector Database Search
-                            </span>
-                            <span className="text-slate-500 text-[8px] bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
-                              M-TREE COD/ICSD
-                            </span>
-                          </div>
-                          
-                          {/* Neural Embedding Visualization */}
-                          <div className="flex gap-2 items-stretch h-20">
-                            {/* Input Embedding */}
-                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800/80 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
-                               <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                               <Scan className="w-4 h-4 text-cyan-500 mb-1 animate-pulse" />
-                               <span className="text-[6.5px] text-slate-500 mb-1">LIVE TENSOR</span>
-                               <div className="w-full flex gap-0.5 mt-1 opacity-70 justify-center">
-                                 {Array.from({length: 6}).map((_, i) => (
-                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-cyan-500" style={{ opacity: Math.random() * 0.8 + 0.2 }} />
-                                 ))}
-                               </div>
-                            </div>
-
-                            {/* Distance Match */}
-                            <div className="flex-1 flex flex-col justify-center items-center relative">
-                               <div className="absolute inset-0 flex items-center justify-center">
-                                 <div className="w-full h-px bg-gradient-to-r from-cyan-500/20 via-cyan-500/50 to-emerald-500/20" />
-                               </div>
-                               <div className="bg-[#03060C] z-10 px-2 py-1.5 rounded-lg border border-slate-800/80 shadow-md flex flex-col items-center gap-1">
-                                 <Search className="w-3 h-3 text-cyan-400 animate-[spin_4s_linear_infinite]" />
-                                 <span className="text-[6.5px] text-cyan-300 font-bold bg-cyan-950/60 px-1 rounded">L2 COSINE</span>
-                               </div>
-                            </div>
-
-                            {/* Target Embeddings */}
-                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800/80 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
-                               <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                               <Layers className="w-4 h-4 text-emerald-500 mb-1" />
-                               <span className="text-[6.5px] text-slate-500 mb-1">CANDIDATES</span>
-                               <div className="w-full flex gap-0.5 mt-1 opacity-70 justify-center">
-                                 {Array.from({length: 6}).map((_, i) => (
-                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-emerald-500" style={{ opacity: Math.random() * 0.8 + 0.2 }} />
-                                 ))}
-                               </div>
-                            </div>
-                          </div>
-                          
-                          {/* Search Grid */}
-                          <div className="relative w-full h-10 border border-slate-800/80/80 rounded-lg overflow-hidden group bg-[#03060C]/50 flex items-center justify-between p-1">
-                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMjBMIDIwIDAiIHN0cm9rZT0iIzFmMjkwMyIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3N2Zz4=')] opacity-30"></div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none"></div>
-                            
-                            {/* Scanning blips */}
-                            <div className="absolute inset-0 flex gap-1 p-1 flex-wrap content-start overflow-hidden opacity-50">
-                               {Array.from({length: 30}).map((_, i) => (
-                                 <div key={i} className={`w-3 h-1.5 rounded-sm ${Math.random() > 0.8 ? 'bg-cyan-500 animate-pulse' : 'bg-slate-800'}`} style={{ animationDelay: `${Math.random()}s` }} />
-                               ))}
-                            </div>
-                            
-                            <div className="relative z-10 bg-[#03060C]/80 px-2 py-1 rounded border border-slate-700/50 ml-1">
-                              <span className="text-slate-400 text-[8px]">SEARCH SPACE: <span className="text-cyan-400">{(100 + Math.random() * 50).toFixed(0)}K</span></span>
-                            </div>
-                          </div>
-
-                          <div className="w-full bg-[#03060C] h-2.5 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner mt-2">
-                            <div
-                              className="bg-gradient-to-r from-cyan-600 via-cyan-400 to-cyan-600 h-full rounded-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)] bg-[length:200%_100%]"
-                              style={{ width: `${10 + Math.random() * 80}%` }}
-                            ></div>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {idx === 3 && isActive && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-emerald-400/50 transition-all duration-300"
-                        >
-                          <div className="grid grid-cols-2 gap-3 mb-2">
-                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-slate-800/80 shadow-inner flex flex-col justify-center">
-                              <span className="text-[7px] text-slate-500 mb-1.5 flex items-center gap-1">
-                                <Network className="w-3 h-3 text-violet-500" />
-                                INFERENCE
-                              </span>
-                              <span className="text-violet-300 font-bold border-l-2 border-violet-500 pl-2 text-[9px]">
-                                Dense Classifier
-                              </span>
-                            </div>
-                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-slate-800/80 shadow-inner flex flex-col justify-center">
-                              <span className="text-[7px] text-slate-500 mb-1.5 flex items-center gap-1">
-                                <Activity className="w-3 h-3 text-emerald-500" />
-                                DISTRIBUTION
-                              </span>
-                              <span className="text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)] font-bold border-l-2 border-emerald-500 pl-2 text-[9px]">
-                                Softmax
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl shadow-[inset_0_0_15px_rgba(16,185,129,0.15)] flex flex-col gap-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-emerald-500 rounded-sm shadow-[0_0_10px_rgba(16,185,129,1)] animate-ping" />
-                              <span className="text-emerald-400 text-[9px] animate-pulse">Computing Phase Probabilities...</span>
-                            </div>
-                            
-                            <div className="flex flex-col gap-1.5">
-                              {Array.from({ length: 5 }).map((_, i) => {
-                                const prob = Math.random() * (100 - i * 15);
-                                return (
-                                  <div key={`prob-${i}`} className="flex items-center gap-2">
-                                    <span className="text-[7px] w-4 text-right text-emerald-600">P{i}</span>
-                                    <div className="h-1.5 flex-1 rounded-full bg-[#050A14] relative overflow-hidden shadow-inner border border-slate-800/80/50">
-                                      <div
-                                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-400 to-emerald-300 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)] transition-all duration-1000"
-                                        style={{ width: `${Math.max(5, prob)}%` }}
-                                      />
-                                    </div>
-                                    <span className="text-[7px] w-6 text-emerald-400">{(prob/100).toFixed(2)}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-
-                          <p className="flex justify-between items-center text-slate-500 mt-4 border-t border-slate-800/80 pt-3">
-                            <span className="text-[8px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">LOSS FUNC</span>{" "}
-                            <span className="text-[8px] text-emerald-400/70">
-                              Categorical Cross-Entropy
-                            </span>
-                          </p>
-                        </motion.div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 pt-6 border-t border-slate-800/80/80 relative z-10">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 group-hover/engine:bg-indigo-500/20 transition-colors shadow-[inset_0_0_10px_rgba(99,102,241,0.2)]">
-                  <BookOpen className="w-4 h-4 text-indigo-400 group-hover/engine:rotate-3 transition-transform" />
-                </div>
-                <div>
-                  <h3 className="font-black text-[12px] text-white uppercase tracking-[0.2em] leading-none drop-shadow-sm">
-                    Neural Guide
-                  </h3>
-                  <p className="text-[9px] text-slate-400 font-mono uppercase tracking-[0.2em] mt-1.5 flex items-center gap-1">
-                    <span className="w-1 h-1 rounded-full bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.8)]"></span>{" "}
-                    Constituent Logic & Features
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="group/fact p-4 bg-[#050A14]/80 rounded-2xl border border-slate-700/80 hover:border-indigo-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
-                  <Cpu className="w-16 h-16 text-indigo-400 -rotate-12 translate-x-4 -translate-y-4" />
-                </div>
-                <div className="flex items-center gap-2.5 mb-3 relative z-10">
-                  <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                    <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-                  </div>
-                  <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">
-                    Network Focus
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
-                  The{" "}
-                  <span className="text-white">
-                    "1D Kernel Length: {engineConfig.kernelSize}"
-                  </span>{" "}
-                  defines peak receptive field.{" "}
-                  {engineConfig.multiScale ? (
-                    <span className="text-indigo-300">
-                      Multi-Scale Fusion correlates broad patterns across the 2Î¸
-                      (deg) domain.
-                    </span>
-                  ) : (
-                    "Increase Feature Maps for complex multi-phase disambiguation."
-                  )}
-                </p>
-                <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-800/80 hover:border-slate-700 pt-2 flex items-center justify-between">
-                  <span>Optimization</span>
-                  <span className="text-indigo-400">
-                    {engineConfig.optimization}
-                  </span>
-                </div>
-              </div>
-
-              <div className="group/fact p-4 bg-[#050A14]/80 rounded-2xl border border-slate-700/80 hover:border-cyan-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
-                  <Microscope className="w-16 h-16 text-cyan-400 rotate-12 translate-x-4 -translate-y-4" />
-                </div>
-                <div className="flex items-center gap-2.5 mb-3 relative z-10">
-                  <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
-                    <Microscope className="w-3.5 h-3.5 text-cyan-400" />
-                  </div>
-                  <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">
-                    Constituents
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
-                  Model prioritizes{" "}
-                  <strong className="text-cyan-300 font-black tracking-wide bg-cyan-500/10 px-1 py-0.5 rounded border border-cyan-500/20">
-                    2Î¸ (deg) Mapping
-                  </strong>{" "}
-                  for d-spacing and{" "}
-                  <strong className="text-purple-300 font-black tracking-wide bg-purple-500/10 px-1 py-0.5 rounded border border-purple-500/20">
-                    Relative Intensity (a.u.)
-                  </strong>{" "}
-                  ({engineConfig.filters} filters) to decouple overlapping
-                  signatures.{" "}
-                  {engineConfig.dropout > 0 && (
-                    <span className="text-fuchsia-400 font-black">
-                      Dropout applied: {engineConfig.dropout * 100}%
-                    </span>
-                  )}
-                </p>
-                <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-700/80 pt-2 flex items-center justify-between">
-                  <span>Accuracy</span>
-                  <span className="text-cyan-400">
-                    {engineConfig.activation} +{" "}
-                    {engineConfig.pooling.toUpperCase()} POOL
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-      </div>
-
-      {/* Results Section */}
-      <div className="lg:col-span-12 space-y-6">
-        {/* Visualizer */}
-        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800/80 h-auto min-h-[700px] flex flex-col relative overflow-hidden group/vis pb-12">
-          {/* Subtle grid background to look like a terminal/software UI */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDQwIEwgNDAgNDAgNDAgMCBMIDQwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-[0.4] pointer-events-none mix-blend-screen"></div>
-          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-cyan-500/80 to-transparent opacity-80 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
-
-          <div className="flex flex-col gap-6 mb-6 relative z-10">
-            <div className="flex justify-between items-center px-4 py-3 bg-[#0A101C]/60 backdrop-blur-md rounded-3xl border border-slate-800/80/80 shadow-inner">
-              <div className="flex items-center gap-5">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-cyan-500/30 blur-xl rounded-full" />
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0F172A] to-[#0A101C] border border-cyan-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(34,211,238,0.2)]">
-                    <Activity className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-white tracking-[0.2em] uppercase drop-shadow-lg flex items-center gap-3">
-                    Spectral Alignment Visualization
-                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[9px] text-cyan-400 tracking-widest font-mono">
-                      LIVE
-                    </span>
-                  </h3>
-                  <div className="flex items-center gap-3 mt-1">
-                    <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-bold">
-                      1D Convolutional Overlay Target
-                    </p>
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
-                    <p className="text-[9px] text-cyan-500/50 font-mono uppercase tracking-[0.1em]">
-                      Engine: V4.2_OPTIMIZED
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {selectedCandidate && (
-                <div className="flex gap-4">
-                  <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-[#03060C]/60 border border-[#1e293b] rounded-2xl shadow-inner">
-                    <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black mb-1">
-                      Engine Stability
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div
-                            key={i}
-                            className={`w-1 h-3 rounded-full ${i <= 4 ? "bg-cyan-500 shadow-[0_0_5px_rgba(34,211,238,0.6)]" : "bg-slate-700"}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-[10px] font-mono font-black text-cyan-400">
-                        98.2%
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    className={`text-[10px] font-black px-5 py-2.5 rounded-2xl flex items-center gap-3 border shadow-inner backdrop-blur-md uppercase tracking-widest transition-all
-                    ${
-                      selectedCandidate.match_quality === "Excellent"
-                        ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
-                        : selectedCandidate.match_quality === "Good"
-                          ? "bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-                          : "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-                    }
-                  `}
-                  >
-                    <div
-                      className={`w-2.5 h-2.5 rounded-full animate-[pulse_2s_ease-in-out_infinite] ${selectedCandidate.match_quality === "Excellent" ? "bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]" : selectedCandidate.match_quality === "Good" ? "bg-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.8)]" : "bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)]"}`}
-                    />
-                    {selectedCandidate.match_quality || "Match"} Precision
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Advanced Analytics HUD Bar */}
-            {selectedCandidate && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(34,211,238,0.1)] transition-all hover:border-cyan-400/80 hover:shadow-[0_8px_30px_rgba(34,211,238,0.25)]">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
-                  <div className="flex justify-between items-start mb-3 relative z-10">
-                    <p className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-sm bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" />{" "}
-                      Target Identity
-                    </p>
-                    <div className="px-2 py-0.5 rounded border border-cyan-500/40 bg-cyan-500/10 text-[9px] font-mono font-black text-cyan-300 shadow-[inset_0_0_5px_rgba(34,211,238,0.3)] tabular-nums">
-                      ID_CONF: {selectedCandidate.confidence_score}
-                    </div>
-                  </div>
-                  <p className="text-2xl font-black text-white font-mono drop-shadow-md truncate relative z-10">
-                    {selectedCandidate.phase_name}
-                  </p>
-
-                  <div className="flex flex-col gap-1.5 mt-3 font-mono relative z-10">
-                    {selectedCandidate.formula && (
-                      <span className="text-[11px] text-cyan-300 font-bold bg-[#040812] px-2.5 py-1 rounded border border-cyan-500/30 self-start shadow-inner">
-                        {selectedCandidate.formula}
-                      </span>
-                    )}
-                    <span className="text-[9px] text-slate-400 mt-1 uppercase tracking-wider font-bold">
-                      {selectedCandidate.crystalSystem
-                        ? selectedCandidate.crystalSystem +
-                          " / " +
-                          (selectedCandidate.spaceGroup || "-")
-                        : "Profile: ÏƒÂ² = 0.5 (GAUSSIAN)"}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
-                </div>
-
-                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-fuchsia-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(217,70,239,0.1)] transition-all hover:border-fuchsia-400/80 hover:shadow-[0_8px_30px_rgba(217,70,239,0.25)]">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
-                  <div className="flex justify-between items-start mb-3 relative z-10">
-                    <p className="text-[10px] font-mono text-fuchsia-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-sm bg-fuchsia-400 shadow-[0_0_8px_rgba(217,70,239,0.8)] animate-pulse" />{" "}
-                      ML Validation
-                    </p>
-                    <CheckCircle className="w-4 h-4 text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.6)]" />
-                  </div>
-                  <div className="flex items-end gap-2 relative z-10 mt-1">
-                    <p className="text-4xl font-black text-fuchsia-400 font-mono leading-none drop-shadow-[0_0_12px_rgba(217,70,239,0.5)] tabular-nums">
-                      {selectedCandidate.mlValidationScore || 0}
-                    </p>
-                    <span className="text-[10px] font-mono font-black text-slate-400 mb-1 tracking-widest text-shadow-sm uppercase">
-                      Score
-                    </span>
-                  </div>
-                  <div className="mt-4 w-full h-2 bg-[#040812] rounded-full overflow-hidden flex border border-fuchsia-500/20 relative z-10 shadow-inner">
-                    <div
-                      className="h-full bg-gradient-to-r from-fuchsia-600 via-fuchsia-500 to-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.9)] transition-all duration-1000"
-                      style={{
-                        width: `${Math.min(100, selectedCandidate.mlValidationScore || 0)}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-fuchsia-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]" />
-                </div>
-
-                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-rose-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(244,63,94,0.1)] transition-all hover:border-rose-400/80 hover:shadow-[0_8px_30px_rgba(244,63,94,0.25)]">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
-                  <div className="flex justify-between items-start mb-3 relative z-10">
-                    <p className="text-[10px] font-mono text-rose-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-sm bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse" />{" "}
-                      Feature Detection
-                    </p>
-                    <Activity className="w-4 h-4 text-rose-400 drop-shadow-[0_0_5px_rgba(244,63,94,0.6)]" />
-                  </div>
-                  <div className="flex items-end gap-2 relative z-10 mt-1">
-                    <p className="text-4xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_12px_rgba(244,63,94,0.5)] tabular-nums">
-                      {selectedCandidate.matched_peaks?.length || 0}
-                    </p>
-                    <span className="text-[10px] font-mono font-black text-slate-400 mb-1 tracking-widest text-shadow-sm">
-                      UNIT PEAKS
-                    </span>
-                  </div>
-                  <div className="mt-4 w-full h-2 bg-[#040812] rounded-full overflow-hidden flex border border-rose-500/20 relative z-10 shadow-inner">
-                    <div
-                      className="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.9)] transition-all duration-1000"
-                      style={{
-                        width: `${Math.min(100, (selectedCandidate.matched_peaks?.length || 0) * 10)}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-rose-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(244,63,94,0.8)]" />
-                </div>
-
-                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-emerald-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(16,185,129,0.1)] transition-all hover:border-emerald-400/80 hover:shadow-[0_8px_30px_rgba(16,185,129,0.25)]">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
-                  <div className="flex justify-between items-start mb-3 relative z-10">
-                    <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-sm bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />{" "}
-                      Profile Discrepancy
-                    </p>
-                    <span className="text-[9px] font-mono font-bold text-emerald-400/80 uppercase">
-                      R_wp Indicator
-                    </span>
-                  </div>
-                  <div className="flex items-end gap-2 relative z-10 mt-1">
-                    <p className="text-4xl font-black text-emerald-400 font-mono leading-none drop-shadow-[0_0_12px_rgba(16,185,129,0.5)] tabular-nums">
-                      {(
-                        1.0 +
-                        (100 - selectedCandidate.confidence_score) * 0.05
-                      ).toFixed(2)}
-                      <span className="text-xl">%</span>
-                    </p>
-                  </div>
-                  <div className="mt-4 flex items-center gap-3">
-                    <div className="flex-1 h-3.5 bg-emerald-500/10 rounded-full overflow-hidden flex border border-emerald-500/20 shadow-inner">
-                      <div
-                        className="h-full bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]"
-                        style={{
-                          width: `${selectedCandidate.confidence_score}%`,
-                        }}
-                      ></div>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-300 font-black whitespace-nowrap bg-[#040812] px-2 py-0.5 rounded border border-emerald-500/20 shadow-inner">
-                      GOF:{" "}
-                      {(
-                        1.04 +
-                        (100 - selectedCandidate.confidence_score) * 0.01
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
-                </div>
-
-                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(99,102,241,0.1)] transition-all hover:border-indigo-400/80 hover:shadow-[0_8px_30px_rgba(99,102,241,0.25)]">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
-                  <div className="flex justify-between items-start mb-3 relative z-10">
-                    <p className="text-[10px] font-mono text-indigo-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-sm bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse" />{" "}
-                      Database Link
-                    </p>
-                    <Database className="w-4 h-4 text-indigo-400 drop-shadow-[0_0_5px_rgba(99,102,241,0.6)]" />
-                  </div>
-                  <p className="text-xl font-black text-white font-mono truncate relative z-10 drop-shadow-md mt-2">
-                    {selectedCandidate.card_id ||
-                      `REF-${selectedCandidate.phase_name?.substring(0, 4)}-67X`}
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2 overflow-hidden relative z-10">
-                    {["X-RAY", "CU-KÎ±", "0.154NM"].map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[9px] font-black font-mono text-indigo-300 bg-[#040812] px-2.5 py-1 rounded border border-indigo-500/40 uppercase shadow-inner drop-shadow-sm"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(99,102,241,0.8)]" />
-                </div>
-              </div>
-            )}
-
-            {/* Live Python RAG Machine Learning Coprocessor Diagnostics */}
-            {selectedCandidate && (selectedCandidate as any).fitted_strain_pct !== undefined && (
-              <div className="p-5 mb-5 rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#120B04]/90 to-[#050301]/95 backdrop-blur-xl relative z-10 shadow-[0_4px_30px_rgba(245,158,11,0.1)] transition-all hover:border-amber-500/50 flex flex-col gap-4">
-                <div className="flex justify-between items-center pb-2 border-b border-amber-500/20">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400 font-mono">
-                      PyCrystallineâ„¢ RAG Coprocessor Diagnostics
-                    </span>
-                  </div>
-                  <span className="text-[10px] bg-amber-500/10 text-amber-400 font-mono font-black border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-inner">
-                    State: Fully Converged
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                  <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
-                      Calculated Lattice Strain
-                    </span>
-                    <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
-                      {((selectedCandidate as any).fitted_strain_pct)?.toFixed(4)}%
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-sans leading-snug">
-                      {(selectedCandidate as any).fitted_strain_pct > 0 ? "Tensile (dilation)" : (selectedCandidate as any).fitted_strain_pct < 0 ? "Compressive (contraction)" : "No strain detected"}: Peak shifts optimized via grid-descent convolution.
-                    </span>
-                  </div>
-                  
-                  <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
-                      Domain Size Broadening Scale
-                    </span>
-                    <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
-                      {((selectedCandidate as any).fitted_domain_size_broadening)?.toFixed(2)}Â°
-                    </span>
-                    <span className="text-[9px] text-slate-400 font-sans leading-snug">
-                      Gaussian broadening standard deviation &sigma;. Controls modeled nanocrystalline grain/crystallite size effects.
-                    </span>
-                  </div>
-                  
-                  <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
-                    <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
-                      Core Retrieval Cosine
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
-                        {((selectedCandidate as any).raw_score)?.toFixed(2)}%
-                      </span>
-                      <span className="text-[10px] text-slate-500 font-mono font-bold uppercase leading-none">
-                        (Raw)
-                      </span>
-                    </div>
-                    <span className="text-[9px] text-slate-400 font-sans leading-snug">
-                      Spectral continuous cosine overlap value computed over the non-strain compensated grid.
-                    </span>
-                  </div>
-                </div>
-
-                {pythonRAGResults?.gemini_analysis && (
-                  <div className="mt-2 border-t border-amber-500/15 pt-3 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-amber-400 font-mono font-bold text-[10px] uppercase tracking-wider">
-                      <Activity className="w-3.5 h-3.5 animate-pulse text-amber-400" />
-                      Grounded LLM Synthesized Crystallographic Insight:
-                    </div>
-                    <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 font-sans text-xs text-amber-200/90 leading-relaxed max-h-[180px] overflow-y-auto custom-scrollbar shadow-inner select-text">
-                      {pythonRAGResults.gemini_analysis}
-                    </div>
-                  </div>
-                )}
-                
-                {pythonRAGResults?.literature_docs && pythonRAGResults.literature_docs.length > 0 && (
-                  <div className="mt-2 border-t border-amber-500/15 pt-3 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-amber-400 font-mono font-bold text-[10px] uppercase tracking-wider">
-                      <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                      Retrieved Literature Knowledge Base:
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {pythonRAGResults.literature_docs.map((doc: any, i: number) => (
-                        <div key={i} className="bg-[#050301] border border-amber-500/10 rounded-xl p-3 flex flex-col gap-1.5 shadow-inner">
-                          <span className="text-[10px] font-bold text-amber-300 font-mono leading-tight">{doc.title}</span>
-                          <span className="text-[9px] text-slate-400 font-sans leading-relaxed line-clamp-3">{doc.content}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="w-full h-[500px] sm:h-[600px] md:h-[650px] lg:h-[700px] min-h-[450px] relative z-10 bg-[#060912] rounded-2xl border border-slate-700/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
-            {/* Subtle Scientific Measurement Reticle */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
-              <div className="absolute left-1/4 top-0 bottom-0 border-l border-slate-700/40 border-dashed" />
-              <div className="absolute left-1/2 top-0 bottom-0 border-l border-slate-700/40 border-dashed" />
-              <div className="absolute right-1/4 top-0 bottom-0 border-l border-slate-700/40 border-dashed" />
-              <div className="absolute top-1/4 left-0 right-0 border-t border-slate-700/40 border-dashed" />
-              <div className="absolute top-1/2 left-0 right-0 border-t border-slate-700/40 border-dashed" />
-              <div className="absolute bottom-1/4 left-0 right-0 border-t border-slate-700/40 border-dashed" />
-            </div>
-
-            {/* Top HUD Scientific Control & Information Bar */}
-            <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 z-20 pointer-events-auto">
-              <div className="flex items-center gap-2 bg-[#09101F]/95 px-3 py-1.5 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-lg">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-[pulse_1s_ease-in-out_infinite]" />
-                <span className="text-[10px] font-mono font-bold text-slate-200 uppercase tracking-widest">
-                  XRD Diffractometer
-                </span>
-                <div className="w-px h-3 bg-slate-700 mx-0.5" />
-                <span className="text-[9px] font-mono text-cyan-400 uppercase font-semibold">
-                  Î» = 1.54060 Ã… (Cu-KÎ±â‚)
-                </span>
-                <div className="w-px h-3 bg-slate-700 mx-0.5" />
-                <span className="text-[9px] font-mono text-slate-400 uppercase">
-                  {isDiscrete ? `${parsedPoints.length} Bragg Reflections` : `${chartData.length} Step Points`}
-                </span>
-                {selectedCandidate && (
-                  <>
-                    <div className="w-px h-3 bg-slate-700 mx-0.5" />
-                    <span className="text-[9px] font-mono text-rose-400 font-bold truncate max-w-[140px] sm:max-w-[200px]">
-                      Ref: {selectedCandidate.phase_name}
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {/* Interactive Scientific Layer Controls */}
-              <div className="flex flex-wrap items-center gap-1.5 bg-[#09101F]/95 p-1 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-lg">
-                <button
-                  onClick={() => setShowInput(!showInput)}
-                  className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
-                    showInput ? "text-cyan-200 bg-cyan-950/70 border border-cyan-500/50 shadow-sm" : "text-slate-500 hover:text-slate-300"
-                  }`}
-                  title="Toggle Experimental Continuous Diffractogram Pattern"
-                >
-                  <div className={`w-2 h-2 rounded-full ${showInput ? "bg-cyan-400 shadow-[0_0_6px_#22d3ee]" : "bg-slate-600"}`} /> Pattern (Exp)
-                </button>
-
-                {isDiscrete && (
-                  <button
-                    onClick={() => setShowSticks(!showSticks)}
-                    className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
-                      showSticks ? "text-sky-200 bg-sky-950/70 border border-sky-500/50" : "text-slate-500 hover:text-slate-300"
-                    }`}
-                    title="Toggle Experimental Peak Positions / Sticks"
-                  >
-                    <div className={`w-2 h-2 rounded-full ${showSticks ? "bg-sky-400 shadow-[0_0_6px_#38bdf8]" : "bg-slate-600"}`} /> Peak Sticks
-                  </button>
-                )}
-
-                {selectedCandidate && (
-                  <>
-                    <button
-                      onClick={() => setShowSimulation(!showSimulation)}
-                      className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
-                        showSimulation ? "text-rose-200 bg-rose-950/70 border border-rose-500/50" : "text-slate-500 hover:text-slate-300"
-                      }`}
-                      title="Toggle Theoretical Reference Profile & Reflections"
-                    >
-                      <div className={`w-2 h-2 rounded-full ${showSimulation ? "bg-rose-400 shadow-[0_0_6px_#f43f5e]" : "bg-slate-600"}`} /> Calc Ref
-                    </button>
-
-                    <button
-                      onClick={() => setShowHklLabels(!showHklLabels)}
-                      className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
-                        showHklLabels ? "text-pink-200 bg-pink-950/70 border border-pink-500/50" : "text-slate-500 hover:text-slate-300"
-                      }`}
-                      title="Toggle Miller Index (hkl) Crystallographic Reflection Labels"
-                    >
-                      <span className="text-[9px] font-mono font-bold">Indices (hkl)</span>
-                    </button>
-
-                    <button
-                      onClick={() => setShowResidual(!showResidual)}
-                      className={`flex items-center gap-1.5 text-[9px] font-mono font-semibold transition-all px-2.5 py-1 rounded-lg ${
-                        showResidual ? "text-amber-200 bg-amber-950/70 border border-amber-500/50" : "text-slate-500 hover:text-slate-300"
-                      }`}
-                      title="Toggle Difference Curve (I_obs - I_calc)"
-                    >
-                      <div className={`w-2 h-2 rounded-full ${showResidual ? "bg-amber-400 shadow-[0_0_6px_#f59e0b]" : "bg-slate-600"}`} /> Difference (Î”I)
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="absolute bottom-4 right-4 z-10 bg-[#09101F]/90 px-3 py-2 rounded-xl border border-slate-700/80 backdrop-blur-md flex flex-col items-end gap-0.5 pointer-events-none opacity-60 group-hover/chart:opacity-100 transition-opacity">
-              <span className="text-[8px] font-mono text-slate-400 font-bold uppercase tracking-wider mb-0.5 border-b border-slate-800 pb-0.5 w-full text-right">
-                Instrumental Parameters
-              </span>
-              <span className="text-[9px] font-mono text-slate-400">
-                Geometry: <span className="text-slate-200 font-semibold">Bragg-Brentano Î¸-2Î¸</span>
-              </span>
-              <span className="text-[9px] font-mono text-slate-400">
-                FWHM Model: <span className="text-slate-200 font-semibold">Pseudo-Voigt (0.18Â° 2Î¸)</span>
-              </span>
-              <span className="text-[9px] font-mono text-slate-400">
-                Intensity Unit: <span className="text-slate-200 font-semibold">Counts / a.u. (Linear)</span>
-              </span>
-            </div>
-
-            <div className="flex-1 relative mt-[16px] mx-[20px] mb-[16px] z-10">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={chartData}
-                  margin={{ top: 56, right: 24, left: 16, bottom: 24 }}
-                >
-                  <defs>
-                    <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4} />
-                      <stop
-                        offset="95%"
-                        stopColor="#22d3ee"
-                        stopOpacity={0.01}
-                      />
-                    </linearGradient>
-                    <linearGradient id="colorInput" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorRv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorResid" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="2 4"
-                    vertical={true}
-                    horizontal={true}
-                    stroke="#1e293b"
-                    opacity={0.5}
-                  />
-                  <XAxis
-                    dataKey="twoTheta"
-                    type="number"
-                    domain={["dataMin - 1", "dataMax + 1"]}
-                    unit="Â°"
-                    allowDataOverflow
-                    name="Diffraction Angle (2Î¸)"
-                    stroke="#475569"
-                    tick={{
-                      fill: "#94a3b8",
-                      fontSize: 10,
-                      fontFamily: "monospace",
-                      fontWeight: "bold",
-                    }}
-                    tickFormatter={(value) => value.toFixed(1)}
-                    dy={8}
-                  />
-                  <YAxis 
-                    stroke="#475569"
-                    tick={{
-                      fill: "#64748b",
-                      fontSize: 9,
-                      fontFamily: "monospace",
-                    }}
-                    domain={[0, (dataMax: number) => Math.max(10, Math.ceil(dataMax * 1.25))]} 
-                    name="Intensity (counts)" 
-                    width={36}
-                  />
-                  <Tooltip
-                    content={<CustomTooltip />}
-                    cursor={{
-                      fill: "rgba(34,211,238,0.05)",
-                      stroke: "#22d3ee",
-                      strokeWidth: 1.5,
-                      strokeDasharray: "4 4",
-                    }}
-                  />
-
-                  {isSimulating && scanPos !== null && (
-                    <ReferenceLine
-                      x={scanPos}
-                      stroke="#22d3ee"
-                      strokeWidth={1.5}
-                      strokeDasharray="3 3"
-                      label={{
-                        value: "SCANNING IN PROGRESS //",
-                        position: "insideTopLeft",
-                        fill: "#22d3ee",
-                        fontSize: 9,
-                        fontWeight: "bold",
-                        fontFamily: "monospace",
-                        letterSpacing: "0.1em",
-                      }}
-                    />
-                  )}
-
-                  {/* Input Data Continuous Profile */}
-                  {showInput && (
-                    <Area
-                      type="natural"
-                      dataKey="intensity"
-                      stroke="#06b6d4"
-                      fill="url(#colorUv)"
-                      strokeWidth={2.5}
-                      name={
-                        isDiscrete ? "Simulated Input Pattern" : "Input Pattern"
-                      }
-                      activeDot={{
-                        r: 6,
-                        fill: "#22d3ee",
-                        stroke: "#050b14",
-                        strokeWidth: 2,
-                        className: "drop-shadow-[0_0_12px_rgba(34,211,238,0.9)]",
-                      }}
-                    />
-                  )}
-
-                  {/* Discrete Raw Stick Data (Slim, Scientific & Clear) */}
-                  {isDiscrete && showInput && showSticks && (
-                    <Scatter
-                      data={rawInputData}
-                      dataKey="rawIntensity"
-                      name="Raw Input Sticks"
-                      fill="#38bdf8"
-                      shape={(props: any) => {
-                        const { cx, cy, yAxis } = props;
-                        const bottomY =
-                          yAxis && typeof yAxis.scale === "function"
-                            ? yAxis.scale(0)
-                            : cy + 300;
-                        return (
-                          <g className="transition-all duration-300">
-                            {/* Crisp Needle Line */}
-                            <line
-                              x1={cx}
-                              y1={bottomY}
-                              x2={cx}
-                              y2={cy}
-                              stroke="#0284c7"
-                              strokeWidth={1.5}
-                              strokeOpacity={0.85}
-                            />
-                            {/* Terminal Pinpoint */}
-                            <circle
-                              cx={cx}
-                              cy={cy}
-                              r={3.5}
-                              fill="#0284c7"
-                              stroke="#38bdf8"
-                              strokeWidth={1.5}
-                              className="drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]"
-                            />
-                            <circle cx={cx} cy={cy} r={1.5} fill="#ffffff" />
-                          </g>
-                        );
-                      }}
-                    />
-                  )}
-
-                  {/* Reference Data (Gaussian Simulation Overlay) */}
-                  {selectedCandidate && showSimulation && (
-                    <Area
-                      type="natural"
-                      dataKey="refIntensity"
-                      stroke="#f43f5e"
-                      fill="url(#colorRv)"
-                      fillOpacity={0.35}
-                      strokeWidth={2}
-                      strokeDasharray="4 3"
-                      name={`${selectedCandidate.phase_name} (Simulation)`}
-                    />
-                  )}
-
-                  {/* Residual / Error Difference Curve */}
-                  {selectedCandidate && showResidual && (
-                    <Area
-                      type="natural"
-                      dataKey="residual"
-                      stroke="#f59e0b"
-                      strokeWidth={1}
-                      fill="url(#colorResid)"
-                      fillOpacity={0.5}
-                      name="Error Limit"
-                    />
-                  )}
-
-                  {/* Reference Stick Data with Collision-Free Staggered HKL Badges */}
-                  {selectedCandidate && showSimulation && (
-                    <Scatter
-                      data={refData}
-                      dataKey="refIntensity"
-                      name={`${selectedCandidate.phase_name} (Reference DB)`}
-                      fill="#f43f5e"
-                      shape={(props: any) => {
-                        const { cx, cy, yAxis, payload } = props;
-                        const bottomY =
-                          yAxis && typeof yAxis.scale === "function"
-                            ? yAxis.scale(0)
-                            : cy + 300;
-                        
-                        const tier = payload.staggerTier || 0;
-                        const badgeYOffset = payload.badgeYOffset || -18;
-                        const badgeY = cy + badgeYOffset;
-                        const hklText = payload.hkl ? `(${payload.hkl})` : '';
-
-                        return (
-                          <g className="transition-all duration-300">
-                            {/* 1. Slim Needle Stem */}
-                            <line
-                              x1={cx}
-                              y1={bottomY}
-                              x2={cx}
-                              y2={cy}
-                              stroke="#f43f5e"
-                              strokeWidth={1.5}
-                              strokeOpacity={0.85}
-                              strokeDasharray="3 3"
-                            />
-
-                            {/* 2. Stagger Leader Line for Clustered Peaks */}
-                            {showHklLabels && payload.hkl && tier > 0 && (
-                              <line
-                                x1={cx}
-                                y1={cy - 6}
-                                x2={cx}
-                                y2={badgeY + 8}
-                                stroke="#fb7185"
-                                strokeWidth={1}
-                                strokeDasharray="2 2"
-                                strokeOpacity={0.7}
-                              />
-                            )}
-
-                            {/* 3. Luminous Micro-Diamond Head */}
-                            <path
-                              d={`M ${cx} ${cy - 5.5} L ${cx + 4.5} ${cy} L ${cx} ${cy + 5.5} L ${cx - 4.5} ${cy} Z`}
-                              fill="#f43f5e"
-                              stroke="#fda4af"
-                              strokeWidth={1}
-                              className="drop-shadow-[0_0_8px_rgba(244,63,94,0.85)]"
-                            />
-                            <circle cx={cx} cy={cy} r={2} fill="#ffffff" />
-
-                            {/* 4. Anti-Collision Scientific HKL Badge */}
-                            {showHklLabels && payload.hkl && (
-                              <g>
-                                <rect
-                                  x={cx - (hklText.length * 3.8 + 6)}
-                                  y={badgeY - 9}
-                                  width={hklText.length * 7.6 + 12}
-                                  height={16}
-                                  rx={4}
-                                  fill="#070b14"
-                                  stroke="#f43f5e"
-                                  strokeWidth={1}
-                                  strokeOpacity={0.8}
-                                  className="drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)]"
-                                />
-                                <text
-                                  x={cx}
-                                  y={badgeY + 3}
-                                  textAnchor="middle"
-                                  fill="#fecdd3"
-                                  fontSize="10"
-                                  fontFamily="monospace"
-                                  fontWeight="bold"
-                                  letterSpacing="0.04em"
-                                >
-                                  {hklText}
-                                </text>
-                              </g>
-                            )}
-                          </g>
-                        );
-                      }}
-                    />
-                  )}
-                  
-                  <Brush 
-                    dataKey="twoTheta" 
-                    height={30} 
-                    stroke="#22d3ee"
-                    fill="#0f172a"
-                    tickFormatter={(value) => value.toFixed(0)}
-                    style={{ opacity: 0.8 }}
-                    travellerWidth={10}
-                  >
-                    <AreaChart>
-                      <Area type="monotone" dataKey="intensity" fill="#22d3ee" stroke="none" />
-                    </AreaChart>
-                  </Brush>
-
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Correlation Confidence Bar */}
-            {selectedCandidate && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-[#050A14]/90 border-t border-slate-800/80/80 flex items-center px-6 gap-4 z-10 backdrop-blur-xl">
-                <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                  Spectral Correlation
-                </span>
-                <div className="flex-1 h-2 bg-[#03060C] border border-slate-800/80 rounded-full overflow-hidden flex shadow-inner">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: `${selectedCandidate.confidence_score}%`,
-                    }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    className={`h-full ${
-                      selectedCandidate.match_quality === "Excellent"
-                        ? "bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]"
-                        : selectedCandidate.match_quality === "Good"
-                          ? "bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_15px_rgba(59,130,246,0.6)]"
-                          : "bg-gradient-to-r from-amber-500 to-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]"
-                    }`}
-                  />
-                </div>
-                <span className="text-xs font-mono font-black text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
-                  {selectedCandidate.confidence_score?.toFixed
-                    ? selectedCandidate.confidence_score.toFixed(1)
-                    : selectedCandidate.confidence_score}
-                  %
-                </span>
-              </div>
-            )}
-          </div>
-          {!inputData.trim() && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050A14]/90 backdrop-blur-md rounded-2xl z-20 border border-slate-800/80 overflow-hidden">
-              {/* Decorative background grid for empty state */}
-              <div
-                className="absolute inset-0 opacity-10 pointer-events-none"
-                style={{
-                  backgroundImage:
-                    "linear-gradient(rgba(34, 211, 238, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.2) 1px, transparent 1px)",
-                  backgroundSize: "24px 24px",
-                }}
-              ></div>
-
-              <div className="relative mb-8 z-10 flex flex-col items-center">
-                <div className="relative flex items-center justify-center w-32 h-32 mb-6">
-                  <svg
-                    className="absolute inset-0 w-full h-full text-cyan-900/40 animate-[spin_10s_linear_infinite]"
-                    viewBox="0 0 100 100"
-                  >
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="48"
-                      fill="none"
-                      strokeWidth="1"
-                      stroke="currentColor"
-                      strokeDasharray="4 8"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      fill="none"
-                      strokeWidth="1"
-                      stroke="currentColor"
-                      strokeDasharray="2 4"
-                    />
-                  </svg>
-                  <Scan className="w-12 h-12 text-cyan-500 animate-pulse relative z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />
-                  <div className="absolute left-0 right-0 h-[2px] bg-cyan-500/80 top-1/2 -translate-y-1/2 shadow-[0_0_10px_rgba(34,211,238,1)] animate-[scan_2s_ease-in-out_infinite]" />
-                </div>
-
-                <p className="text-white font-black tracking-[0.3em] uppercase text-xl mb-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-                  System Standby
-                </p>
-                <div className="flex gap-4 items-center bg-[#0d1627] px-4 py-2 rounded-lg border border-cyan-500/20 shadow-inner">
-                  <div className="flex gap-1.5 items-center">
-                    <div className="w-2 h-2 rounded-full bg-rose-500 animate-[ping_2s_infinite]" />
-                    <p className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">
-                      Input Stream: Offline
-                    </p>
-                  </div>
-                  <div className="w-px h-4 bg-slate-800" />
-                  <div className="flex gap-1.5 items-center">
-                    <div className="w-2 h-2 rounded-full bg-cyan-500/40" />
-                    <p className="text-[10px] text-cyan-500/40 font-mono tracking-widest uppercase">
-                      Model: Inactive
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Simulated Data Tracks bg */}
-              <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cyan-900/10 to-transparent pointer-events-none" />
-            </div>
-          )}
-        </div>
-
-        {/* Material Intelligence Section (Selected Candidate Details) */}
-        <AnimatePresence mode="wait">
-          {selectedCandidate && (
-            <motion.div
-              key={selectedCandidate.phase_name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-6 pt-4"
-            >
-              <div className="bg-[#0B1221]/80 backdrop-blur-xl text-white p-8 rounded-[2rem] shadow-2xl border border-slate-800/80 hover:border-slate-700/80 relative overflow-hidden">
-                {/* Animated subtle grid and gradient */}
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
-                <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-indigo-500/10 rounded-full blur-[150px] pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent opacity-50" />
-
-                {/* HexTech UI Accents */}
-                <div className="absolute top-0 left-12 w-24 h-1 bg-violet-500" />
-                <div className="absolute top-1 left-12 w-32 h-px bg-violet-400/50" />
-
-                {/* Warning Ribbon */}
-                <div className="absolute top-0 right-10 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-[10px] font-black px-5 py-2 uppercase tracking-[0.2em] rounded-b-lg flex items-center gap-2 shadow-[0_4px_20px_rgba(245,158,11,0.3)] z-20">
-                  <ShieldAlert className="w-4 h-4 animate-pulse opacity-80" />
-                  Laboratory Verification Required
-                </div>
-
-                {/* Mixture Candidates Selector */}
-                {result?.candidates && result.candidates.length > 1 && (
-                  <div className="flex flex-col gap-2 mb-8 relative z-10 p-5 bg-[#050A14]/40 rounded-3xl border border-slate-700/50 shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
-                    <div className="w-full mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-700/40 pb-4 gap-3 relative">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-                          <Layers className="w-3.5 h-3.5 text-indigo-300" />
-                        </div>
-                        <span className="text-[11px] font-black text-slate-200 uppercase tracking-[0.15em]">
-                          Identified Mixture Components
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9px] font-black text-amber-400 uppercase tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.1)] backdrop-blur-md">
-                        <ShieldAlert className="w-3 h-3" />
-                        {t("Laboratory Verification Required", "Laboratory Verification Required")}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2.5">
-                    {result.candidates.map((candidate, idx) => (
-                      <button
-                        key={candidate.phase_name + idx}
-                        onClick={() => setSelectedCandidate(candidate)}
-                        className={`px-4 py-2.5 rounded-xl border text-[11px] font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]" : "bg-[#03060C]/50 border-slate-800/80/80 text-slate-400 hover:bg-slate-800 hover:text-white"}`}
-                      >
-                        {candidate.phase_name}
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-500/50 text-white" : "bg-slate-800 text-slate-500"}`}>
-                          {candidate.confidence_score.toFixed(0)}%
-                        </span>
-                      </button>
-                    ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 relative z-10">
-                  <div className="flex flex-1 items-center gap-6">
-                    <div className="relative group/icon cursor-default shrink-0">
-                      <div className="absolute inset-0 bg-violet-600/20 blur-2xl rounded-full group-hover/icon:bg-violet-500/40 transition-all duration-700 pointer-events-none" />
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#070D18] to-[#0B1221] rounded-2xl border border-violet-500/40 flex items-center justify-center relative shadow-[inset_0_2px_20px_rgba(255,255,255,0.05),0_5px_30px_rgba(139,92,246,0.2)] group-hover/icon:border-violet-400 transition-colors duration-500 overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-300/40 to-transparent" />
-                        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-violet-400/40 via-transparent to-transparent animate-pulse" />
-                        <Brain className="w-8 h-8 sm:w-10 sm:h-10 text-violet-400 drop-shadow-[0_0_12px_rgba(167,139,250,0.6)] group-hover/icon:scale-110 group-hover/icon:text-violet-300 transition-all duration-500 relative z-10" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 flex flex-col justify-center">
-                      <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight flex flex-wrap items-center gap-3">
-                        {t("Synthesis Intelligence", "Synthesis Intelligence")}
-                        <div className="flex items-center gap-2">
-                          <span className="hidden lg:flex px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[9px] items-center gap-1.5 text-emerald-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(52,211,153,0.1)] uppercase font-bold">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                            Network Active
-                          </span>
-                          <span className="flex px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] items-center gap-1.5 text-amber-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(245,158,11,0.1)] uppercase font-bold">
-                            <ShieldAlert className="w-3 h-3" />
-                            Laboratory Verification Required
-                          </span>
-                        </div>
-                      </h3>
-                      <div className="flex items-center gap-4 mt-2">
-                        <div className="flex gap-1.5 p-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
-                          {[...Array(5)].map((_, i) => (
-                            <div
-                              key={`integrity-dot-${i}`}
-                              className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? "bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" : "bg-slate-700"}`}
-                            />
-                          ))}
-                        </div>
-                        <div className="h-4 w-px bg-slate-700/50" />
-                        <p className="text-[10px] sm:text-[11px] font-black text-indigo-300/80 uppercase tracking-[0.2em] flex items-center gap-2">
-                          {t("Algorithm C-Score:", "Algorithm C-Score:")}
-                          <span className="text-white bg-indigo-500/20 px-2 py-0.5 rounded font-mono shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-                            {selectedCandidate.confidence_score.toFixed(1)}%
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-row md:flex-col lg:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
-                    <button
-                      onClick={handleLatticeEstimation}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-emerald-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                        <Calculator className="w-5 h-5 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {t("Structural AI", "Structural AI")}
-                        </span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={handleGenerateReport}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-violet-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                        <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {t("Export Logic", "Export Logic")}
-                        </span>
-                      </div>
-                    </button>
-                    {pythonFeaturesEnabled && (
-                      <button
-                        onClick={handleExportPythonML}
-                        className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-fuchsia-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-t from-fuchsia-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                        <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                          <Cpu className="w-5 h-5 text-fuchsia-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]" />
-                          <span className="text-[10px] font-black text-slate-300 group-hover:text-fuchsia-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                            {t("Export ML Script", "Export ML Script")}
-                          </span>
-                        </div>
-                      </button>
-                    )}
-                    <button
-                      onClick={handleRunExpertAI}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-cyan-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                        <Brain className="w-5 h-5 text-cyan-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-300 group-hover:text-cyan-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {t("AI Phase Analysis", "AI Phase Analysis")}
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-fr">
-                  {/* Identity Card */}
-                  <div className="md:col-span-12 group">
-                    <div className="bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 shadow-2xl h-full flex flex-col relative overflow-hidden transition-all duration-500 hover:border-violet-500/40 hover:shadow-[0_0_50px_rgba(139,92,246,0.15)]">
-                      <div className="absolute -top-32 -right-32 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-violet-500/20 transition-all duration-700" />
-                      <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-cyan-600/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/20 transition-all duration-700" />
-
-                      {/* Corner accents */}
-                      <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/10 rounded-tl-[2.5rem]" />
-                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/10 rounded-br-[2.5rem]" />
-
-                      <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6 mb-6 relative z-10">
-                        <h2
-                          style={{ fontSize: "clamp(2rem, 5vw, 4.5rem)" }}
-                          className="font-black text-white tracking-tighter leading-none group-hover:text-violet-200 transition-colors duration-500 drop-shadow-[-3px_3px_10px_rgba(0,0,0,0.8)]"
-                        >
-                          {selectedCandidate.phase_name}
-                        </h2>
-                      </div>
-                      <div className="flex flex-wrap gap-3 mb-8 relative z-10">
-                        <span className="px-5 py-2.5 bg-gradient-to-br from-violet-500/20 to-violet-500/5 text-violet-300 text-sm md:text-base font-mono font-black rounded-xl border border-violet-500/40 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:border-violet-400 transition-colors">
-                          {selectedCandidate.formula}
-                        </span>
-                        <span className="px-5 py-2.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] text-emerald-400 text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] rounded-xl border border-slate-800/80 hover:border-slate-700 shadow-inner hover:border-emerald-500/40 transition-colors flex items-center justify-center">
-                          {selectedCandidate.materialType || "Standard Matrix"}
-                        </span>
-                      </div>
-
-                      <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-3xl relative z-10 mb-10 font-medium">
-                        {selectedCandidate.description ||
-                          "Phase identification complete. Detailed morphological synthesis and mechanical property mapping for this specific lattice configuration are being processed by the intelligence engine."}
-                      </p>
-
-                      <div className="mt-auto pt-8 border-t border-slate-800/80 hover:border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 bg-gradient-to-t from-[#0B1221] to-transparent -mx-8 sm:-mx-10 px-8 sm:px-10 -mb-8 sm:-mb-10 pb-8 sm:pb-10 rounded-b-[2.5rem]">
-                        {[
-                          {
-                            label: "Molecular Wt",
-                            val: selectedCandidate.molecularWeight,
-                            unit: "g/mol",
-                            icon: Layers,
-                          },
-                          {
-                            label: "Band Gap",
-                            val: selectedCandidate.bandGap,
-                            unit: "eV",
-                            icon: Zap,
-                          },
-                          {
-                            label: "Modulus",
-                            val: selectedCandidate.elasticModulus,
-                            unit: "GPa",
-                            icon: Activity,
-                          },
-                          {
-                            label: "Magnetism",
-                            val: selectedCandidate.magneticProperties,
-                            unit: "",
-                            icon: Database,
-                          },
-                          {
-                            label: "Optical",
-                            val: selectedCandidate.opticalProperties,
-                            unit: "",
-                            icon: Eye,
-                          },
-                          {
-                            label: "Hazards",
-                            val: selectedCandidate.hazards ? selectedCandidate.hazards.join(", ") : undefined,
-                            unit: "",
-                            icon: ShieldAlert,
-                          },
-                        ]
-                          .filter((i) => i.val !== undefined && i.val !== "")
-                          .slice(0, 8)
-                          .map((item, i) => (
-                            <div
-                              key={`item-${i}`}
-                              className="flex flex-col group/item p-3 -m-3 rounded-xl hover:bg-white/[0.02] transition-colors"
-                            >
-                              <div className="flex items-center gap-2 mb-2">
-                                <item.icon className="w-3.5 h-3.5 text-slate-600 group-hover/item:text-violet-400 transition-colors" />
-                                <span className="text-[10px] text-slate-500 font-serif italic tracking-wider group-hover/item:text-slate-400 transition-colors">
-                                  {item.label}
-                                </span>
-                              </div>
-                              <span
-                                className="text-lg md:text-xl font-black font-mono text-slate-200 capitalize truncate"
-                                title={String(item.val)}
-                              >
-                                {item.val}{" "}
-                                {item.unit && (
-                                  <span className="text-indigo-400/60 text-[10px] md:text-xs ml-1 font-sans">
-                                    {item.unit}
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Property Analytics Board */}
-                  <div className="md:col-span-12 group/analytics mb-8 bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 hover:border-emerald-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover/analytics:bg-emerald-500/10 transition-all duration-700 -translate-y-10 -translate-x-10" />
-                    {/* Physical property spectrum */}
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full pointer-events-none" />
-                        <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-emerald-400 border border-emerald-500/30 shadow-[inset_0_2px_10px_rgba(52,211,153,0.2)] relative z-10 flex items-center justify-center">
-                          <Activity className="w-6 h-6 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black uppercase text-emerald-400/90 tracking-[0.3em] block leading-none mb-1.5">
-                          Material Characteristics
-                        </span>
-                        <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
-                          Physical Property Spectrum
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 z-10 relative">
-                      {[
-                        {
-                          label: "Density (g/cmÂ³)",
-                          val: selectedCandidate.density,
-                          max: 22,
-                          color: "emerald",
-                        },
-                        {
-                          label: "Molecular Wt (g/mol)",
-                          val: selectedCandidate.molecularWeight,
-                          max: 400,
-                          color: "blue",
-                        },
-                        {
-                          label: "Band Gap (eV)",
-                          val: selectedCandidate.bandGap,
-                          max: 10,
-                          color: "violet",
-                        },
-                        {
-                          label: "Elastic Modulus (GPa)",
-                          val: selectedCandidate.elasticModulus,
-                          max: 500,
-                          color: "amber",
-                        },
-                        {
-                          label: "Therm. Conduct. (W/mÂ·K)",
-                          val: selectedCandidate.thermalConductivity,
-                          max: 400,
-                          color: "rose",
-                        },
-                        {
-                          label: "Melting Point (Â°C)",
-                          val: selectedCandidate.meltingPoint,
-                          max: 3500,
-                          color: "orange",
-                        },
-                        {
-                          label: "Hardness (GPa)",
-                          val: selectedCandidate.vickersHardness,
-                          max: 50,
-                          color: "slate",
-                        },
-                        {
-                          label: "Elec. Resistivity (ÂµÎ©Â·cm)",
-                          val: selectedCandidate.electricalResistivity,
-                          max: 200,
-                          color: "cyan",
-                        },
-                        {
-                          label: "Dielectric Constant",
-                          val: selectedCandidate.dielectricConstant,
-                          max: 100,
-                          color: "fuchsia",
-                        },
-                      ].map((prop, i) => {
-                        if (prop.val === undefined) return null;
-                        const pct = Math.min((prop.val / prop.max) * 100, 100);
-                        let colorClass = "bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]";
-                        let textClass = "text-emerald-400";
-                        if (prop.color === "blue") { colorClass = "bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.6)]"; textClass = "text-blue-400"; }
-                        else if (prop.color === "violet") { colorClass = "bg-gradient-to-r from-violet-600 to-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.6)]"; textClass = "text-violet-400"; }
-                        else if (prop.color === "amber") { colorClass = "bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.6)]"; textClass = "text-amber-400"; }
-                        else if (prop.color === "rose") { colorClass = "bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_12px_rgba(225,29,72,0.6)]"; textClass = "text-rose-400"; }
-                        else if (prop.color === "orange") { colorClass = "bg-gradient-to-r from-orange-600 to-orange-400 shadow-[0_0_12px_rgba(234,88,12,0.6)]"; textClass = "text-orange-400"; }
-                        else if (prop.color === "slate") { colorClass = "bg-gradient-to-r from-slate-600 to-slate-400 shadow-[0_0_12px_rgba(71,85,105,0.6)]"; textClass = "text-slate-400"; }
-                        else if (prop.color === "cyan") { colorClass = "bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.6)]"; textClass = "text-cyan-400"; }
-                        else if (prop.color === "fuchsia") { colorClass = "bg-gradient-to-r from-fuchsia-600 to-fuchsia-400 shadow-[0_0_12px_rgba(192,38,211,0.6)]"; textClass = "text-fuchsia-400"; }
-
-                        return (
-                          <div
-                            key={"prop-" + i}
-                            className="flex flex-col gap-2.5 group/bar bg-[#0B1221] p-5 rounded-2xl border border-slate-800/80 shadow-inner hover:border-slate-600 transition-colors relative overflow-hidden"
-                          >
-                            <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-[20px] pointer-events-none transition-colors"
-                              style={{
-                                backgroundColor: prop.color === 'emerald' ? 'rgba(16, 185, 129, 0.05)' :
-                                                 prop.color === 'blue' ? 'rgba(59, 130, 246, 0.05)' :
-                                                 prop.color === 'violet' ? 'rgba(139, 92, 246, 0.05)' :
-                                                 prop.color === 'amber' ? 'rgba(245, 158, 11, 0.05)' :
-                                                 prop.color === 'rose' ? 'rgba(225, 29, 72, 0.05)' :
-                                                 prop.color === 'orange' ? 'rgba(234, 88, 12, 0.05)' :
-                                                 prop.color === 'slate' ? 'rgba(100, 116, 139, 0.05)' :
-                                                 prop.color === 'cyan' ? 'rgba(6, 182, 212, 0.05)' :
-                                                 prop.color === 'fuchsia' ? 'rgba(217, 70, 239, 0.05)' : 'rgba(255, 255, 255, 0.05)'
-                              }}
-                            />
-                            {/* <div className="absolute top-0 left-0 w-1 h-full bg-slate-800 group-hover/bar:bg-slate-700 transition-colors" /> */}
-                            
-                            <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] max-w-[60%]">
-                                {prop.label}
-                              </span>
-                              <span
-                                className={`text-xl sm:text-2xl font-mono font-black ${textClass} drop-shadow-md leading-none`}
-                              >
-                                {prop.val.toFixed(1)}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-3 relative z-10 mt-1">
-                              <div className="flex-1 h-1.5 bg-[#050A14] rounded-full overflow-hidden relative shadow-inner">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-1000 ${colorClass}`}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
-                              <span className="text-[8px] font-mono font-bold text-slate-500 min-w-[24px] text-right">
-                                {pct.toFixed(0)}%
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Thermodynamic & Stability Analysis */}
-                    {selectedCandidate && (
-                      <div className="mt-8 pt-8 border-t border-slate-800/80 hover:border-slate-700/55 z-10 relative">
-                        <div className="flex items-center gap-4 mb-6">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-rose-500/20 blur-md rounded-full" />
-                            <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-rose-400 border border-rose-500/30 relative shadow-[inset_0_2px_10px_rgba(244,63,94,0.1)]">
-                              <Thermometer className="w-5 h-5 text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-black uppercase text-rose-400/90 tracking-[0.3em] block leading-none mb-1">
-                              State Analysis
-                            </span>
-                            <h5 className="text-sm font-black text-white uppercase tracking-widest drop-shadow-md flex items-center gap-2">
-                              Thermodynamics & Stability
-                              <span className="px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/30 rounded text-rose-400 text-[8px] font-mono tracking-widest">
-                                COMPUTED
-                              </span>
-                            </h5>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                          {/* Enthalpy */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-rose-500/40 hover:shadow-[0_8px_25px_rgba(244,63,94,0.15)] flex flex-col justify-between h-[130px]">
-                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-rose-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-rose-500/20 transition-colors" />
-                            <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-rose-500 text-[11px] font-mono">
-                                  Î”
-                                </span>
-                                Hf
-                              </span>
-                              <span className={`px-2 py-0.5 rounded border text-[9px] font-mono shadow-[inset_0_0_4px_rgba(16,185,129,0.3)] ${
-                                (selectedCandidate.stabilityStatus || "Stable").toUpperCase() === "STABLE"
-                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                                  : "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                              }`}>
-                                {selectedCandidate.stabilityStatus || "STABLE"}
-                              </span>
-                            </div>
-                            <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
-                                Formation Enthalpy
-                              </span>
-                              <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-rose-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {selectedCandidate.formationEnthalpy !== undefined ? selectedCandidate.formationEnthalpy.toFixed(1) : (-(selectedCandidate.density || 5) * 123.4).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
-                                  kJ/mol
-                                </span>
-                              </span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-rose-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
-                          </div>
-
-                          {/* Entropy */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-amber-500/40 hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] flex flex-col justify-between h-[130px]">
-                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-amber-500/20 transition-colors" />
-                            <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-amber-500 text-[11px] font-mono">
-                                  S
-                                </span>
-                                Â°
-                              </span>
-                              <span className="px-2 py-0.5 rounded border border-slate-700/80 text-[9px] bg-slate-800/80 text-slate-400 font-mono">
-                                {selectedCandidate.standardState || "Solid"}
-                              </span>
-                            </div>
-                            <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
-                                Standard Entropy
-                              </span>
-                              <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-amber-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {selectedCandidate.standardEntropy !== undefined ? selectedCandidate.standardEntropy.toFixed(1) : ((selectedCandidate.molecularWeight || 50) * 0.42).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
-                                  J/(molÂ·K)
-                                </span>
-                              </span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-amber-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
-                          </div>
-
-                          {/* Gibbs Free Energy */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-cyan-500/40 hover:shadow-[0_8px_25px_rgba(34,211,238,0.15)] flex flex-col justify-between h-[130px]">
-                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-cyan-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-cyan-500/20 transition-colors" />
-                            <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-cyan-500 text-[11px] font-mono">
-                                  Î”
-                                </span>
-                                Gf
-                              </span>
-                              <span className="px-2 py-0.5 rounded border border-cyan-500/30 text-[9px] bg-cyan-500/10 text-cyan-400 font-mono shadow-[inset_0_0_4px_rgba(34,211,238,0.3)]">
-                                SPON
-                              </span>
-                            </div>
-                            <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
-                                Gibbs Free Energy
-                              </span>
-                              <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-cyan-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {selectedCandidate.formationEnergy !== undefined ? selectedCandidate.formationEnergy.toFixed(1) : (-(selectedCandidate.density || 5) * 115.2).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
-                                  kJ/mol
-                                </span>
-                              </span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
-                          </div>
-
-                          {/* Heat Capacity */}
-                          <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-fuchsia-500/40 hover:shadow-[0_8px_25px_rgba(217,70,239,0.15)] flex flex-col justify-between h-[130px]">
-                            <div className="absolute -top-10 -right-10 w-24 h-24 bg-fuchsia-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-fuchsia-500/20 transition-colors" />
-                            <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-fuchsia-500 text-[11px] font-mono">
-                                  C
-                                </span>
-                                p
-                              </span>
-                              <span className="px-2 py-0.5 rounded border border-slate-700/80 text-[9px] bg-slate-800/80 text-slate-400 font-mono">
-                                ISO
-                              </span>
-                            </div>
-                            <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
-                                Heat Capacity
-                              </span>
-                              <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-fuchsia-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {selectedCandidate.heatCapacity !== undefined ? selectedCandidate.heatCapacity.toFixed(1) : ((selectedCandidate.molecularWeight || 50) * 0.15).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
-                                  J/(molÂ·K)
-                                </span>
-                              </span>
-                            </div>
-                            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-fuchsia-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Constituent elements under Physical property spectrum */}
-                    {selectedCandidate && (
-                      <div className="mt-12 pt-8 border-t border-slate-800/80 hover:border-slate-700/55 z-10 relative">
-                        <ConstituentPhaseElementsPanel
-                          formula={selectedCandidate.formula}
-                          materialName={selectedCandidate.phase_name}
-                          crystalSystem={selectedCandidate.crystalSystem}
-                          spaceGroup={selectedCandidate.spaceGroup}
-                          elements={selectedCandidate.elements}
-                          density={selectedCandidate.density}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Neural Architecture Python Source */}
-                  {pythonFeaturesEnabled && (
-                    <div className="md:col-span-12 group/python mb-8 bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 hover:border-fuchsia-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-80 h-80 bg-fuchsia-500/5 rounded-full blur-[80px] pointer-events-none group-hover/python:bg-fuchsia-500/10 transition-all duration-700 -translate-y-10 translate-x-10" />
-                      
-                      <div className="flex items-center gap-4 mb-8">
-                        <div className="relative">
-                          <div className="absolute inset-0 bg-fuchsia-500/20 blur-md rounded-full pointer-events-none" />
-                          <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-fuchsia-400 border border-fuchsia-500/30 shadow-[inset_0_2px_10px_rgba(217,70,239,0.2)] relative z-10 flex items-center justify-center">
-                            <Cpu className="w-6 h-6 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-black uppercase text-fuchsia-400/90 tracking-[0.3em] block leading-none mb-1.5">
-                            Architectural Transparency
-                          </span>
-                          <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
-                            PyTorch Neural Engine Source
-                          </h4>
-                        </div>
-                      </div>
-
-                      <div className="relative z-10 bg-black/60 rounded-2xl border border-slate-800/80 hover:border-slate-700/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-[#050A14] border-b border-white/5 gap-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-2">
-                              <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                              <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                              <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                            </div>
-                            <span className="text-xs font-mono text-slate-500 ml-2">
-                              {pythonArch === 'cnn' ? 'xrd_phase_cnn.py' :
-                               pythonArch === 'transformer' ? 'xrd_phase_transformer.py' :
-                               pythonArch === 'graph_gnn' ? 'xrd_crystall_gnn.py' :
-                               'xrd_rag_pipeline.py'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={handleExportPythonML}
-                            className="self-start sm:self-center text-[10px] flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
-                          >
-                            <Download className="w-3 h-3" />
-                            Export Python Code
-                          </button>
-                        </div>
-                        
-                        {/* Sub-header architecture tabs */}
-                        <div className="flex flex-wrap gap-1 px-4 py-2 bg-[#03060C] border-b border-white/5">
-                          <button
-                            onClick={() => setPythonArch('cnn')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                              pythonArch === 'cnn'
-                                ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                            }`}
-                          >
-                            Residual 1D-CNN
-                          </button>
-                          <button
-                            onClick={() => setPythonArch('transformer')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                              pythonArch === 'transformer'
-                                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                            }`}
-                          >
-                            1D Spectral ViT
-                          </button>
-                          <button
-                            onClick={() => setPythonArch('graph_gnn')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                              pythonArch === 'graph_gnn'
-                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                            }`}
-                          >
-                            Crystal Graph GNN (PyG)
-                          </button>
-                          <button
-                            onClick={() => setPythonArch('rag_pipeline')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                              pythonArch === 'rag_pipeline'
-                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                            }`}
-                          >
-                            Crystalline RAG Pipeline
-                          </button>
-                        </div>
-
-                        <pre className="p-4 sm:p-6 overflow-x-auto text-[11px] sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[450px]">
-                          <code className="block flex flex-col gap-0.5">
-                            {getPythonEngineCode(pythonArch, engineConfig).split('\n').map((line, idx) => (
-                              <div key={idx} className="hover:bg-white/5 px-2 py-0.5 rounded transition-all flex items-start">
-                                <span className="text-[10px] text-slate-600 select-none w-8 text-right pr-3 font-mono pt-0.5">{idx + 1}</span>
-                                <span className="whitespace-pre flex-1 font-mono">{colorizeLine(line)}</span>
-                              </div>
-                            ))}
-                          </code>
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Crystallography (Cell Metrics & Comprehensive Intelligence) */}
-                  <div className="md:col-span-12">
-                    <CrystallographicIntelligencePanel candidate={selectedCandidate} />
-                  </div>
-
-                  {/* Applications & Safety */}
-                  <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-[#0A101C]/90 p-8 sm:p-10 rounded-[2.5rem] border border-white/5 hover:border-amber-500/30 transition-all duration-500 group/bento shadow-inner hover:shadow-[0_10px_40px_rgba(245,158,11,0.1)] relative overflow-hidden flex flex-col justify-start">
-                      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none group-hover/bento:bg-amber-500/20 transition-all duration-700 -translate-y-20 translate-x-10" />
-                      
-                      <div className="flex items-center justify-between mb-8 relative z-10 w-full">
-                        <div className="flex items-center gap-4">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-amber-500/20 blur-md rounded-full pointer-events-none" />
-                            <div className="p-3 bg-[#111827] rounded-2xl border border-amber-500/20 shadow-[inset_0_2px_10px_rgba(245,158,11,0.2)] group-hover/bento:bg-[#1a2333] transition-colors relative z-10">
-                              <Zap className="w-6 h-6 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-[0.35em] block mb-1">
-                              Strategic Integration
-                            </span>
-                            <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
-                              Target Sectors
-                            </span>
-                          </div>
-                        </div>
-                        <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-400 hidden sm:block">
-                          Deployment
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 relative z-10 mt-2">
-                        {selectedCandidate.applications &&
-                        selectedCandidate.applications.length > 0 ? (
-                          selectedCandidate.applications.map((app, i) => (
-                            <div
-                              key={`app-${i}`}
-                              className="group/app flex items-center gap-4 bg-[#050A14]/50 hover:bg-slate-800/80 px-5 py-4 rounded-[1.25rem] border border-white/5 hover:border-amber-500/30 transition-all duration-300 shadow-inner"
-                            >
-                              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 group-hover/app:border-amber-500/40 group-hover/app:bg-amber-500/10 transition-colors shrink-0">
-                                <span className="text-[10px] font-mono text-slate-400 group-hover/app:text-amber-400 font-bold">0{i+1}</span>
-                              </div>
-                              <span className="text-sm font-bold text-slate-200 group-hover/app:text-white transition-colors truncate">
-                                {app}
-                              </span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="py-10 text-center">
-                            <span className="text-sm font-black text-slate-600 font-mono italic block">
-                              No primary applications recorded.
-                            </span>
-                            <span className="text-[10px] uppercase tracking-widest text-slate-500 mt-2 block">Network Database Update Required</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="bg-[#0A101C]/90 p-8 sm:p-10 rounded-[2.5rem] border border-white/5 hover:border-rose-500/30 transition-all duration-500 group/bento shadow-inner hover:shadow-[0_10px_40px_rgba(244,63,94,0.1)] relative overflow-hidden flex flex-col justify-start">
-                      <div className="absolute top-0 right-0 w-96 h-96 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none group-hover/bento:bg-rose-500/20 transition-all duration-700 -translate-y-20 translate-x-10" />
-                      
-                      <div className="flex items-center justify-between mb-8 relative z-10 w-full">
-                        <div className="flex items-center gap-4">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-rose-500/20 blur-md rounded-full pointer-events-none" />
-                            <div className="p-3 bg-[#111827] rounded-2xl border border-rose-500/20 shadow-[inset_0_2px_10px_rgba(244,63,94,0.2)] group-hover/bento:bg-[#1a2333] transition-colors relative z-10">
-                              <ShieldAlert className="w-6 h-6 text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-black text-rose-500/80 uppercase tracking-[0.35em] block mb-1">
-                              Safety Constraints
-                            </span>
-                            <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
-                              Hazard Profile
-                            </span>
-                          </div>
-                        </div>
-                        <div className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[9px] font-black uppercase tracking-widest text-rose-400 hidden sm:block animate-pulse">
-                          Warning
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-3 relative z-10 mt-2">
-                        {selectedCandidate.hazards &&
-                        selectedCandidate.hazards.length > 0 ? (
-                          selectedCandidate.hazards.map((hazard, i) => (
-                            <div
-                              key={`hazard-${i}`}
-                              className="group/haz flex items-center gap-4 bg-rose-500/5 hover:bg-rose-500/10 px-5 py-4 rounded-[1.25rem] border border-rose-500/10 hover:border-rose-500/30 transition-all duration-300"
-                            >
-                               <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 shrink-0">
-                                 <Activity className="w-4 h-4 text-rose-400" />
-                               </div>
-                               <span className="text-sm font-bold text-rose-200/90 leading-relaxed uppercase tracking-widest font-mono group-hover/haz:text-rose-100 transition-colors">
-                                 {hazard}
-                               </span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-8 text-center bg-emerald-500/5 rounded-3xl border border-emerald-500/20 h-full min-h-[160px]">
-                            <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mb-3">
-                              <CheckCircle className="w-6 h-6 text-emerald-500 drop-shadow-[0_0_10px_rgba(52,211,153,0.6)] animate-pulse" />
-                            </div>
-                            <span className="block text-sm font-black text-emerald-400 uppercase tracking-widest mb-1.5">
-                              Non-Toxic Response
-                            </span>
-                            <span className="text-[10px] font-medium text-emerald-500/70 font-mono tracking-widest max-w-[200px] leading-relaxed">
-                              Material exhibits stable environmental limits.
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quantum Morphological Synthesizer is deleted */}
-                {false && <div
-                  id="quantum-morphological-synthesizer"
-                  className="mt-14 pt-12 border-t border-slate-800/80 hover:border-slate-700 relative overflow-hidden group/quantum"
-                >
-                  <div className="absolute top-0 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
-
-                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6 relative z-10">
-                    <div className="flex items-center gap-6">
-                      <div className="relative group/q-icon cursor-default">
-                        <div className="absolute inset-0 bg-cyan-600/20 blur-xl rounded-full group-hover/q-icon:bg-cyan-500/30 transition-all duration-700 pointer-events-none" />
-                        <div className="w-14 h-14 bg-[#070D18] rounded-2xl border border-cyan-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/q-icon:border-cyan-400 transition-colors duration-500 overflow-hidden">
-                          <Cpu className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_12px_rgba(34,211,238,0.6)] group-hover/q-icon:scale-110 transition-transform duration-500" />
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
-                          Quantum Morphological Synthesizer
-                        </h4>
-                        <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">
-                          Real-time subatomic structural modeling & crystal
-                          tuning
-                        </p>
-                      </div>
-                    </div>
-                    <div className="px-5 py-2.5 bg-gradient-to-r from-cyan-500/10 to-blue-500/5 rounded-xl border border-cyan-500/30 text-[10px] font-black text-cyan-300 uppercase tracking-[0.25em] shadow-inner font-mono flex items-center gap-3">
-                      <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
-                      Interactive Autoclave Simulation: Active
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10 mt-6">
-                    {/* Left Column: Synthesis Autoclave Controls */}
-                    <div className="lg:col-span-4 flex flex-col gap-6 p-6 sm:p-8 bg-[#050A14]/80 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)]">
-                      <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80/80">
-                        <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
-                        <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest">
-                          Synthesis Parameters
-                        </span>
-                      </div>
-
-                      {/* Morphology Selection */}
-                      <div className="space-y-3">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                          Select Target Morphology
-                        </span>
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {[
-                            {
-                              key: "spherical",
-                              label: "Quantum Dot",
-                              icon: "â—",
-                            },
-                            { key: "nanowire", label: "Nanowire", icon: "â–®" },
-                            { key: "nanosheet", label: "2D Sheet", icon: "â–°" },
-                            { key: "cuboidal", label: "Nanocube", icon: "â– " },
-                            {
-                              key: "octahedral",
-                              label: "Octahedral",
-                              icon: "âœ¦",
-                            },
-                          ].map((m) => (
-                            <button
-                              key={m.key}
-                              onClick={() => setSynthMorphology(m.key as any)}
-                              className={`px-3 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
-                                synthMorphology === m.key
-                                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)]"
-                                  : "bg-[#0B1221] border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700"
-                              }`}
-                            >
-                              <span className="text-sm font-mono text-cyan-400/80">
-                                {m.icon}
-                              </span>
-                              {m.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Process Control Sliders */}
-                      <div className="space-y-5 pt-2">
-                        {/* Slider 1: Dimension Size */}
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                              <Ruler className="w-3 h-3 text-cyan-500" />{" "}
-                              Crystallite Size (d)
-                            </span>
-                            <span className="text-xs font-mono font-black text-cyan-300">
-                              {synthSize.toFixed(1)}{" "}
-                              <span className="text-[9px] text-slate-500">
-                                nm
-                              </span>
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="2.0"
-                            max="50.0"
-                            step="0.5"
-                            value={String(synthSize) === 'NaN' ? '' : synthSize}
-                            onChange={(e) =>
-                              setSynthSize(parseFloat(e.target.value))
-                            }
-                            className="w-full accent-cyan-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
-                          />
-                          <div className="flex justify-between text-[8px] font-mono text-slate-600">
-                            <span>2.0 nm (Confinement)</span>
-                            <span>50.0 nm (Bulk limit)</span>
-                          </div>
-                        </div>
-
-                        {/* Slider 2: Temp */}
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                              <Thermometer className="w-3 h-3 text-amber-500" />{" "}
-                              Calcination Temp (T)
-                            </span>
-                            <span className="text-xs font-mono font-black text-amber-400">
-                              {synthTemp}{" "}
-                              <span className="text-[9px] text-slate-500">
-                                Â°C
-                              </span>
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="100"
-                            max="1200"
-                            step="25"
-                            value={String(synthTemp) === 'NaN' ? '' : synthTemp}
-                            onChange={(e) =>
-                              setSynthTemp(parseInt(e.target.value))
-                            }
-                            className="w-full accent-amber-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
-                          />
-                          <div className="flex justify-between text-[8px] font-mono text-slate-600">
-                            <span>100 Â°C (Amorphous)</span>
-                            <span>1200 Â°C (Growth)</span>
-                          </div>
-                        </div>
-
-                        {/* Slider 3: Doping */}
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                              <Vial className="w-3 h-3 text-indigo-500" />{" "}
-                              Dopant Conc. (x)
-                            </span>
-                            <span className="text-xs font-mono font-black text-indigo-400">
-                              {synthDoping.toFixed(1)}{" "}
-                              <span className="text-[9px] text-slate-500">
-                                %
-                              </span>
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.0"
-                            max="15.0"
-                            step="0.1"
-                            value={String(synthDoping) === 'NaN' ? '' : synthDoping}
-                            onChange={(e) =>
-                              setSynthDoping(parseFloat(e.target.value))
-                            }
-                            className="w-full accent-indigo-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
-                          />
-                          <div className="flex justify-between text-[8px] font-mono text-slate-600">
-                            <span>0.0% (Intrinsic)</span>
-                            <span>15.0% (Highly strained)</span>
-                          </div>
-                        </div>
-
-                        {/* Slider 4: Duration */}
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                              <Timer className="w-3 h-3 text-emerald-500" />{" "}
-                              Reaction Duration (t)
-                            </span>
-                            <span className="text-xs font-mono font-black text-emerald-400">
-                              {synthTime.toFixed(1)}{" "}
-                              <span className="text-[9px] text-slate-500">
-                                hrs
-                              </span>
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="1.0"
-                            max="24.0"
-                            step="0.5"
-                            value={String(synthTime) === 'NaN' ? '' : synthTime}
-                            onChange={(e) =>
-                              setSynthTime(parseFloat(e.target.value))
-                            }
-                            className="w-full accent-emerald-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
-                          />
-                          <div className="flex justify-between text-[8px] font-mono text-slate-600">
-                            <span>1.0 hr</span>
-                            <span>24.0 hrs (Thermodynamic limit)</span>
-                          </div>
-                        </div>
-
-                        {/* Slider 5: pH */}
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                              <Droplets className="w-3 h-3 text-pink-500" />{" "}
-                              Environment pH
-                            </span>
-                            <span className="text-xs font-mono font-black text-pink-400">
-                              {synthPH.toFixed(1)}
-                            </span>
-                          </div>
-                          <input
-                            type="range"
-                            min="1.0"
-                            max="14.0"
-                            step="0.1"
-                            value={String(synthPH) === 'NaN' ? '' : synthPH}
-                            onChange={(e) =>
-                              setSynthPH(parseFloat(e.target.value))
-                            }
-                            className="w-full accent-pink-400 bg-[#03060C] rounded-full h-1.5 cursor-pointer"
-                          />
-                          <div className="flex justify-between text-[8px] font-mono text-slate-600">
-                            <span>Acidic</span>
-                            <span>Basic</span>
-                          </div>
-                        </div>
-
-                        {/* Atmosphere Selector */}
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                            <Wind className="w-3 h-3 text-blue-400" /> Synthesis
-                            Atmosphere
-                          </label>
-                          <div className="relative group/select">
-                            <select
-                              value={synthAtmosphere}
-                              onChange={(e) =>
-                                setSynthAtmosphere(e.target.value as any)
-                              }
-                              className="w-full px-4 py-3 bg-[#0B1221] border border-slate-800/80 rounded-xl text-xs font-bold text-slate-300 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
-                            >
-                              <option value="air" className="bg-[#0B1221]">
-                                Air (Oxidizing)
-                              </option>
-                              <option value="argon" className="bg-[#0B1221]">
-                                Argon (Inert)
-                              </option>
-                              <option value="nitrogen" className="bg-[#0B1221]">
-                                Nitrogen (Inert)
-                              </option>
-                              <option value="oxygen" className="bg-[#0B1221]">
-                                Oxygen (Highly Oxidizing)
-                              </option>
-                            </select>
-                            <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-cyan-400 transition-colors" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Middle Column: Excitonic Lattice Preview & Morph Generator */}
-                    <div className="lg:col-span-4 min-h-[450px] lg:h-auto bg-[#050A14]/90 p-8 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 relative overflow-hidden flex flex-col items-center justify-between shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group/core hover:border-cyan-500/30 transition-colors duration-500">
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.04),transparent_75%)] pointer-events-none" />
-
-                      {/* SVG Lattice Preview based on selected morphology */}
-                      <div className="relative w-full h-64 flex items-center justify-center">
-                        {synthMorphology === "spherical" && (
-                          <div className="relative w-48 h-48 flex items-center justify-center">
-                            {/* Outer circular envelope */}
-                            <motion.div
-                              className="absolute rounded-full border border-cyan-500/20"
-                              style={{
-                                width: `${Math.max(48, Math.min(180, synthSize * 3.5 + 40))}px`,
-                                height: `${Math.max(48, Math.min(180, synthSize * 3.5 + 40))}px`,
-                              }}
-                              animate={{ rotate: 360 }}
-                              transition={{
-                                duration: 40,
-                                repeat: Infinity,
-                                ease: "linear",
-                              }}
-                            >
-                              <div className="absolute top-0 left-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)]" />
-                            </motion.div>
-
-                            {/* Inner quantum core */}
-                            <motion.div
-                              className="rounded-full bg-gradient-to-br from-indigo-500/30 via-cyan-500/40 to-transparent flex items-center justify-center border border-cyan-400/40 backdrop-blur-sm relative"
-                              style={{
-                                width: `${Math.max(30, Math.min(140, synthSize * 2.8 + 25))}px`,
-                                height: `${Math.max(30, Math.min(140, synthSize * 2.8 + 25))}px`,
-                                boxShadow: `0 0 ${Math.max(10, synthSize * 1.5)}px rgba(6, 182, 212, ${0.1 + synthDoping / 30})`,
-                              }}
-                              animate={{ scale: [0.98, 1.02, 0.98] }}
-                              transition={{
-                                duration: 4,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                              }}
-                            >
-                              {/* Atom Cluster Grid */}
-                              <div className="grid grid-cols-3 gap-2 p-3">
-                                {[...Array(9)].map((_, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={`w-1.5 h-1.5 rounded-full ${idx % 3 === 0 && synthDoping > 4 ? "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,1)]" : "bg-cyan-300"} animate-pulse`}
-                                    style={{ animationDelay: `${idx * 0.2}s` }}
-                                  />
-                                ))}
-                              </div>
-                            </motion.div>
-                          </div>
-                        )}
-
-                        {synthMorphology === "nanowire" && (
-                          <div className="relative w-48 h-56 flex items-center justify-center">
-                            <motion.div
-                              className="bg-gradient-to-r from-indigo-600/40 via-cyan-500/40 to-indigo-600/30 border-x border-cyan-400/50 rounded-2xl flex flex-col justify-around py-8"
-                              style={{
-                                width: `${Math.max(20, Math.min(80, synthSize * 1.5 + 15))}px`,
-                                height: "180px",
-                                boxShadow: `0 0 25px rgba(6, 182, 212, ${0.1 + synthDoping / 40})`,
-                              }}
-                              animate={{ y: [-2, 2, -2] }}
-                              transition={{
-                                duration: 5,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                              }}
-                            >
-                              {/* Linear lattices */}
-                              {[...Array(5)].map((_, i) => (
-                                <div
-                                  key={i}
-                                  className="flex justify-around items-center px-1"
-                                >
-                                  <div
-                                    className={`w-1.5 h-1.5 rounded-full ${i % 2 === 0 && synthDoping > 3 ? "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,1)]" : "bg-cyan-300"}`}
-                                  />
-                                  {synthSize > 15 && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                                  )}
-                                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-300" />
-                                </div>
-                              ))}
-                            </motion.div>
-                          </div>
-                        )}
-
-                        {synthMorphology === "nanosheet" && (
-                          <div className="relative w-56 h-48 flex items-center justify-center perspective-1000">
-                            <motion.div
-                              className="bg-gradient-to-br from-indigo-500/30 to-cyan-500/20 border border-cyan-400/40 backdrop-blur-sm shadow-2xl relative"
-                              style={{
-                                width: "180px",
-                                height: `${Math.max(30, Math.min(100, synthSize * 1.8 + 20))}px`,
-                                transform:
-                                  "rotateX(55deg) rotateY(10deg) rotateZ(-15deg)",
-                                boxShadow: `0 15px 35px rgba(6, 182, 212, ${0.15 + synthDoping / 35})`,
-                              }}
-                              animate={{
-                                rotateZ: [-15, -12, -15],
-                                rotateY: [10, 15, 10],
-                              }}
-                              transition={{
-                                duration: 6,
-                                repeat: Infinity,
-                                ease: "easeInOut",
-                              }}
-                            >
-                              {/* Matrix points */}
-                              <div className="absolute inset-0 grid grid-cols-5 grid-rows-3 gap-2 p-3">
-                                {[...Array(15)].map((_, i) => (
-                                  <div
-                                    key={i}
-                                    className={`w-1.5 h-1.5 rounded-full ${i % 5 === 2 && synthDoping > 5 ? "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,1)]" : "bg-cyan-300"}`}
-                                  />
-                                ))}
-                              </div>
-                            </motion.div>
-                          </div>
-                        )}
-
-                        {synthMorphology === "cuboidal" && (
-                          <div className="relative w-52 h-52 flex items-center justify-center perspective-1000">
-                            <motion.div
-                              className="relative"
-                              style={{
-                                width: `${Math.max(40, Math.min(120, synthSize * 2.2 + 20))}px`,
-                                height: `${Math.max(40, Math.min(120, synthSize * 2.2 + 20))}px`,
-                                transformStyle: "preserve-3d",
-                                transform: "rotateX(-25deg) rotateY(35deg)",
-                              }}
-                              animate={{ rotateY: [35, 395] }}
-                              transition={{
-                                duration: 25,
-                                repeat: Infinity,
-                                ease: "linear",
-                              }}
-                            >
-                              {/* Cube Faces */}
-                              {/* Front */}
-                              <div
-                                className="absolute inset-0 bg-cyan-500/20 border border-cyan-400/60 backdrop-blur-xs transform-translate-z-10 flex items-center justify-center"
-                                style={{
-                                  transform: `translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)`,
-                                }}
-                              >
-                                <div className="w-2 h-2 rounded-full bg-cyan-300 animate-ping" />
-                              </div>
-                              {/* Back */}
-                              <div
-                                className="absolute inset-0 bg-indigo-500/10 border border-slate-700 transform-translate-z-negative-10"
-                                style={{
-                                  transform: `translateZ(-${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px) rotateY(180deg)`,
-                                }}
-                              />
-                              {/* Top */}
-                              <div
-                                className="absolute inset-0 bg-cyan-600/15 border border-cyan-500/50"
-                                style={{
-                                  transform: `rotateX(90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)`,
-                                }}
-                              />
-                              {/* Bottom */}
-                              <div
-                                className="absolute inset-0 bg-[#050A14]/40 border border-slate-800/80"
-                                style={{
-                                  transform: `rotateX(-90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)`,
-                                }}
-                              />
-                              {/* Left */}
-                              <div
-                                className="absolute inset-0 bg-indigo-600/20 border border-indigo-400/40"
-                                style={{
-                                  transform: `rotateY(-90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)`,
-                                }}
-                              />
-                              {/* Right */}
-                              <div
-                                className="absolute inset-0 bg-cyan-500/25 border border-cyan-400/40"
-                                style={{
-                                  transform: `rotateY(90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)`,
-                                }}
-                              />
-                            </motion.div>
-                          </div>
-                        )}
-
-                        {synthMorphology === "octahedral" && (
-                          <div className="relative w-48 h-48 flex items-center justify-center">
-                            <motion.svg
-                              viewBox="0 0 100 100"
-                              className="w-40 h-40 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]"
-                              animate={{ rotateY: [0, 360] }}
-                              transition={{
-                                duration: 15,
-                                repeat: Infinity,
-                                ease: "linear",
-                              }}
-                            >
-                              <polygon
-                                points="50,10 80,50 50,90 20,50"
-                                fill="url(#octaRadial)"
-                                stroke="#22d3ee"
-                                strokeWidth="1.5"
-                                strokeOpacity="0.8"
-                              />
-                              <line
-                                x1="50"
-                                y1="10"
-                                x2="50"
-                                y2="90"
-                                stroke="#0891b2"
-                                strokeWidth="1"
-                                strokeDasharray="3,3"
-                              />
-                              <line
-                                x1="20"
-                                y1="50"
-                                x2="80"
-                                y2="50"
-                                stroke="#0891b2"
-                                strokeWidth="1"
-                                strokeDasharray="3,3"
-                              />
-                              <defs>
-                                <radialGradient
-                                  id="octaRadial"
-                                  cx="50%"
-                                  cy="50%"
-                                  r="50%"
-                                >
-                                  <stop
-                                    offset="0%"
-                                    stopColor="#818cf8"
-                                    stopOpacity="0.4"
-                                  />
-                                  <stop
-                                    offset="100%"
-                                    stopColor="#0891b2"
-                                    stopOpacity="0.1"
-                                  />
-                                </radialGradient>
-                              </defs>
-                              {/* Floating node points */}
-                              <circle cx="50" cy="10" r="3" fill="#ffffff" />
-                              <circle cx="80" cy="50" r="3" fill="#ffffff" />
-                              <circle cx="50" cy="90" r="3" fill="#ffffff" />
-                              <circle cx="20" cy="50" r="3" fill="#ffffff" />
-                              {synthDoping > 4 && (
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r="4.5"
-                                  fill="#f43f5e"
-                                  className="animate-pulse"
-                                />
-                              )}
-                            </motion.svg>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Synthesis stats log */}
-                      <div className="w-full text-center relative z-10">
-                        <span className="text-[10px] font-mono text-cyan-400 font-bold tracking-widest block uppercase mb-1">
-                          Current Lattice Volume:{" "}
-                          <span className="text-white">
-                            {(selectedCandidate
-                              ? selectedCandidate.density
-                                ? (
-                                    (18000 / selectedCandidate.density) *
-                                    Math.pow(1 + synthDoping * 0.0012, 3)
-                                  ).toFixed(1)
-                                : 420.5
-                              : 380
-                            ).toLocaleString()}{" "}
-                            Ã…Â³
-                          </span>
-                        </span>
-                        <span className="text-[9px] font-mono text-amber-500 uppercase block tracking-wider mb-1">
-                          Thermal Kinetic Energy:{" "}
-                          <span className="font-black">
-                            {(1.38e-23 * (synthTemp + 273.15) * 1e21).toFixed(
-                              3,
-                            )}{" "}
-                            zJ
-                          </span>
-                        </span>
-                        <span className="text-[9px] font-mono text-slate-400 uppercase block tracking-wider">
-                          Ion Solubility (pH {synthPH.toFixed(1)}):{" "}
-                          <span
-                            className={
-                              synthPH < 6
-                                ? "text-pink-400 font-black"
-                                : synthPH > 8
-                                  ? "text-cyan-300 font-black"
-                                  : "text-emerald-400 font-black"
-                            }
-                          >
-                            {synthPH < 6
-                              ? "High (Cationic)"
-                              : synthPH > 8
-                                ? "High (Anionic)"
-                                : "Minimal (ZPC area)"}
-                          </span>
-                        </span>
-                      </div>
-
-                      <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between font-mono text-[8px] sm:text-[9px] text-cyan-500/40 uppercase tracking-widest border-t border-slate-800/80/60 pt-3">
-                        <span>
-                          Exciton Limit:{" "}
-                          <span
-                            className={
-                              synthSize < 12
-                                ? "text-cyan-300 font-black"
-                                : "text-slate-500"
-                            }
-                          >
-                            {synthSize < 12
-                              ? "Active (Confinement)"
-                              : "Inactive"}
-                          </span>
-                        </span>
-                        <span className="hidden sm:inline">
-                          Atmosphere:{" "}
-                          <span className="text-slate-300">
-                            {synthAtmosphere}
-                          </span>
-                        </span>
-                        <span>
-                          Strain Type:{" "}
-                          <span
-                            className={
-                              synthDoping > 5
-                                ? "text-rose-400"
-                                : "text-cyan-300"
-                            }
-                          >
-                            {synthDoping > 5 ? "Critical" : "Coherent"}
-                          </span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Right Column: Computed Quantum Property Spectrum */}
-                    <div className="lg:col-span-4 flex flex-col gap-6">
-                      {/* Computed Band Gap Card */}
-                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout hover:border-cyan-500/30 transition-all duration-500 flex flex-col justify-center">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none group-hover/readout:bg-cyan-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
-
-                        <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-cyan-400" />
-                          Confinement Band Gap
-                        </span>
-                        <div className="flex flex-col mb-3">
-                          {(() => {
-                            const bulkEg = selectedCandidate?.bandGap;
-                            const showNumerical =
-                              bulkEg !== undefined &&
-                              typeof bulkEg === "number" &&
-                              bulkEg > 0;
-                            if (showNumerical) {
-                              const confinementShift =
-                                15.55 / Math.pow(synthSize, 2);
-                              const totalEg = bulkEg + confinementShift;
-                              const bulkPct = Math.min(
-                                100,
-                                (bulkEg / totalEg) * 100,
-                              );
-                              const shiftPct = Math.min(
-                                100,
-                                (confinementShift / totalEg) * 100,
-                              );
-                              return (
-                                <>
-                                  <div className="flex items-end gap-2.5 mb-3">
-                                    <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
-                                      {totalEg.toFixed(3)}
-                                    </span>
-                                    <span className="text-[10px] font-black font-mono text-cyan-400/60 pb-1.5">
-                                      eV
-                                    </span>
-                                    <div className="flex flex-col items-end pb-1.5 ml-auto">
-                                      <span className="text-[9px] font-mono font-bold text-emerald-400/90">
-                                        +{confinementShift.toFixed(3)} eV shift
-                                      </span>
-                                      <span className="text-[8px] font-mono text-slate-500 uppercase">
-                                        Bulk: {bulkEg.toFixed(2)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="relative w-full h-1.5 bg-[#050A14] rounded-full overflow-hidden flex">
-                                    <div
-                                      className="h-full bg-cyan-700 transition-all duration-1000"
-                                      style={{ width: `${bulkPct}%` }}
-                                    />
-                                    <div
-                                      className="h-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] transition-all duration-1000"
-                                      style={{ width: `${shiftPct}%` }}
-                                    />
-                                  </div>
-                                </>
-                              );
-                            } else {
-                              return (
-                                <>
-                                  <div className="flex items-end gap-2.5 mb-3">
-                                    <span className="text-2xl font-black font-mono text-indigo-300 tracking-tighter uppercase">
-                                      Plasmons
-                                    </span>
-                                    <span className="text-[10px] font-mono text-slate-500 pb-1 ml-auto text-right">
-                                      Discretized SPR
-                                      <br />
-                                      Metallic States
-                                    </span>
-                                  </div>
-                                  <div className="w-full h-1.5 bg-gradient-to-r from-indigo-500/20 via-cyan-400 to-indigo-500/20 rounded-full animate-[pulse_2s_ease-in-out_infinite]" />
-                                </>
-                              );
-                            }
-                          })()}
-                        </div>
-                        <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
-                          {selectedCandidate?.bandGap &&
-                          selectedCandidate.bandGap > 0
-                            ? `Effective band gap expands from bulk base state due to spatial potential restrictions in nanocrystal boundaries.`
-                            : `Metallic quantum dots manifest localized surface plasmon resonance (LSPR) transitions.`}
-                        </p>
-                      </div>
-
-                      {/* Specific Surface Area BET Card */}
-                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout2 hover:border-emerald-500/30 transition-all duration-500 flex flex-col justify-center">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover/readout2:bg-emerald-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
-
-                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-emerald-400" />
-                          Specific Surface Area (BET)
-                        </span>
-                        <div className="flex flex-col mb-3">
-                          {(() => {
-                            const density = selectedCandidate?.density || 4.5;
-                            const ssa = 6000 / (density * synthSize);
-                            const ssaPct = Math.min(100, (ssa / 800) * 100);
-                            return (
-                              <>
-                                <div className="flex items-end gap-2.5 mb-3">
-                                  <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
-                                    {ssa.toFixed(1)}
-                                  </span>
-                                  <span className="text-[10px] font-black font-mono text-emerald-400/60 pb-1.5">
-                                    mÂ²/g
-                                  </span>
-                                  <div className="flex flex-col items-end pb-1.5 ml-auto">
-                                    <span className="text-[9px] font-mono text-slate-400">
-                                      Ï = {density.toFixed(2)} g/cmÂ³
-                                    </span>
-                                    <span className="text-[8px] font-mono text-slate-500 uppercase">
-                                      High Adsorption Mode
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="relative w-full h-1.5 bg-[#050A14] rounded-full overflow-hidden">
-                                  <div
-                                    className="absolute top-0 left-0 h-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] transition-all duration-1000"
-                                    style={{ width: `${ssaPct}%` }}
-                                  />
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                        <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
-                          Mass-specific superficial atomic fraction optimizing
-                          molecular catalytic binding sites & interfacial
-                          chemisorption reactivity kinetics.
-                        </p>
-                      </div>
-
-                      {/* Lattice Strain & Defects Card */}
-                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout3 hover:border-violet-500/30 transition-all duration-500 flex flex-col justify-center">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-full blur-xl pointer-events-none group-hover/readout3:bg-violet-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
-
-                        <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Database className="w-4 h-4 text-violet-400" />
-                          Lattice Strain & Dislocation
-                        </span>
-                        <div className="flex flex-col mb-3">
-                          {(() => {
-                            const strain =
-                              synthDoping * 0.0012 + 0.04 / synthSize;
-                            const strainPct = strain * 100;
-                            const disloc =
-                              1 / Math.pow(synthSize * 1e-9, 2) / 1e15;
-                            const visualStrainPct = Math.min(
-                              100,
-                              (strainPct / 5) * 100,
-                            );
-                            return (
-                              <>
-                                <div className="flex items-end gap-2.5 mb-3">
-                                  <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
-                                    {strainPct.toFixed(3)}%
-                                  </span>
-                                  <span className="text-[10px] font-black font-mono text-violet-400/60 pb-1.5 flex flex-col">
-                                    <span className="text-violet-300">
-                                      Strain
-                                    </span>
-                                  </span>
-                                  <div className="flex flex-col items-end pb-1.5 ml-auto">
-                                    <span
-                                      className="text-[10px] font-mono font-bold text-violet-400 drop-shadow-sm"
-                                      title="Dislocation lines per mxm"
-                                    >
-                                      Î´ = {disloc.toFixed(1)} Ã— 10Â¹âµ
-                                    </span>
-                                    <span className="text-[8px] font-mono text-slate-500 uppercase">
-                                      lines / mÂ²
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="relative w-full h-1.5 bg-[#050A14] rounded-full overflow-hidden">
-                                  <div className="absolute top-0 left-0 w-full h-full flex justify-between">
-                                    {/* Tick marks */}
-                                    <div className="w-px h-full bg-slate-700/50" />
-                                    <div className="w-px h-full bg-slate-700/50" />
-                                    <div className="w-px h-full bg-slate-700/50" />
-                                    <div className="w-px h-full bg-slate-700/50" />
-                                    <div className="w-px h-full bg-slate-700/50" />
-                                  </div>
-                                  <div
-                                    className="absolute top-0 left-0 h-full bg-violet-400 shadow-[0_0_10px_rgba(139,92,246,0.8)] transition-all duration-1000"
-                                    style={{ width: `${visualStrainPct}%` }}
-                                  />
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                        <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
-                          Induced crystal lattice parameters undergo coherent
-                          elastic warping to accommodate solid-solution spatial
-                          variations.
-                        </p>
-                      </div>
-
-                      {/* Entanglement Entropy & Phonon Dispatch */}
-                      <div className="bg-[#050A14]/80 p-6 rounded-[2rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout4 hover:border-blue-500/30 transition-all duration-500 flex flex-col justify-center">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover/readout4:bg-blue-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
-
-                        <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Brain className="w-4 h-4 text-blue-400" />
-                          Thermodynamic Topological Metrics
-                        </span>
-                        <div className="flex flex-col gap-4 mb-3">
-                          {(() => {
-                            const s_vn = (
-                              getEntanglementEntropy(selectedCandidate) *
-                              (1 + 8 / synthSize) *
-                              (1 - synthDoping / 200)
-                            ).toFixed(3);
-                            const freq = (
-                              getPhononFrequency(selectedCandidate) *
-                              (1 - synthDoping * 0.05)
-                            ).toFixed(2);
-                            return (
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-end gap-1.5">
-                                    <span className="text-3xl font-black font-mono text-white tracking-tighter drop-shadow-md">
-                                      {s_vn}
-                                    </span>
-                                    <span className="text-[10px] font-black font-mono text-blue-400/60 pb-1">
-                                      S_vn
-                                    </span>
-                                  </div>
-                                  <span className="text-[9px] font-mono text-blue-300 uppercase tracking-widest">
-                                    Entropy
-                                  </span>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-end gap-1.5">
-                                    <span className="text-3xl font-black font-mono text-slate-200 tracking-tighter drop-shadow-md">
-                                      {freq}
-                                    </span>
-                                    <span className="text-[10px] font-black font-mono text-indigo-400/60 pb-1">
-                                      THz
-                                    </span>
-                                  </div>
-                                  <span className="text-[9px] font-mono text-indigo-300 uppercase tracking-widest">
-                                    Max Phonon
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                        <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
-                          Acoustic dispersion limits and advanced morphology
-                          tensors assert high thermal flux transfer capacities
-                          at {synthTemp}Â°C.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Simulated Characterization Interface Action */}
-                  <div className="mt-6 p-8 bg-[#040912]/90 border border-slate-800/80 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)]">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.04),transparent_60%)] pointer-events-none" />
-
-                    <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative z-10 w-full">
-                      {/* Advanced Kinetics Analysis Dashboard */}
-                      {(() => {
-                        // Pre-calculation based on selected material properties
-                        const isPerovskite =
-                          selectedCandidate?.formula?.includes("PbI3") ||
-                          selectedCandidate?.formula?.includes("MAPbI3");
-                        const isOxide =
-                          selectedCandidate?.formula?.includes("O") ||
-                          selectedCandidate?.formula?.includes("Co") ||
-                          selectedCandidate?.formula?.includes("Fe");
-                        const baseActivationEnergy = isPerovskite
-                          ? 45000
-                          : isOxide
-                            ? 120000
-                            : 85000; // J/mol
-
-                        const R = 8.314; // Universal gas constant J/(molÂ·K)
-                        const T_K = 273.15 + synthTemp;
-
-                        // Atmosphere tuning
-                        const atmoFactor =
-                          synthAtmosphere === "oxygen"
-                            ? 1.2
-                            : synthAtmosphere === "argon"
-                              ? 0.8
-                              : synthAtmosphere === "nitrogen"
-                                ? 0.85
-                                : 1.0;
-
-                        // pH tuning (solubility coefficient)
-                        const phFactor =
-                          synthPH < 6
-                            ? 1 + (6 - synthPH) * 0.1
-                            : synthPH > 8
-                              ? 1 + (synthPH - 8) * 0.15
-                              : 0.9;
-
-                        // Modified Arrhenius equation for rate constant k (scaled for visualization)
-                        const k_rate =
-                          Math.exp(-baseActivationEnergy / (R * T_K)) *
-                          1e8 *
-                          atmoFactor *
-                          phFactor;
-
-                        // JMAK Exponent (n) based on morphology
-                        const n_exp =
-                          synthMorphology === "spherical"
-                            ? 3.0
-                            : synthMorphology === "nanowire"
-                              ? 1.5
-                              : synthMorphology === "nanosheet"
-                                ? 2.0
-                                : 2.5;
-
-                        // JMAK Equation: XC = 1 - Math.exp(-k * t^n)
-                        const cryst = Math.min(
-                          99.99,
-                          (1 -
-                            Math.exp(
-                              -k_rate * Math.pow(synthTime * 10, n_exp),
-                            )) *
-                            100,
-                        );
-
-                        return (
-                          <div className="flex flex-col xl:flex-row items-center gap-6 w-full">
-                            <div className="flex items-center gap-5 flex-shrink-0 relative">
-                              <div className="relative w-24 h-24 flex items-center justify-center bg-[#03060C] rounded-full shadow-[inset_0_2px_15px_rgba(0,0,0,0.8)] border border-slate-800/80">
-                                <svg
-                                  className="w-full h-full transform -rotate-90 overflow-visible"
-                                  viewBox="0 0 36 36"
-                                >
-                                  {/* Background track */}
-                                  <path
-                                    className="text-slate-850"
-                                    strokeWidth="2.5"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
-                                  />
-                                  {/* Value track */}
-                                  <path
-                                    className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)] transition-all duration-1000 ease-out"
-                                    strokeDasharray={`${cryst * 0.91}, 100`}
-                                    strokeWidth="2.5"
-                                    strokeLinecap="round"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
-                                  />
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                  <span className="text-xl font-black font-mono text-white tracking-tight drop-shadow-md flex items-baseline leading-none mt-1">
-                                    {cryst.toFixed(1)}
-                                    <span className="text-[10px] text-emerald-400 ml-0.5">
-                                      %
-                                    </span>
-                                  </span>
-                                  <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-                                    Yield XC
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full relative z-10">
-                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                                  <Timer
-                                    size={10}
-                                    className="text-emerald-500"
-                                  />{" "}
-                                  Rate Const (k)
-                                </span>
-                                <span className="text-sm font-bold text-slate-200 font-mono tracking-tight">
-                                  {k_rate.toExponential(2)}{" "}
-                                  <span className="text-[9px] text-slate-500 tracking-widest uppercase">
-                                    sâ»Â¹
-                                  </span>
-                                </span>
-                              </div>
-                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                                  <Activity
-                                    size={10}
-                                    className="text-fuchsia-500"
-                                  />{" "}
-                                  Avrami Exp (n)
-                                </span>
-                                <span className="text-sm font-bold text-slate-200 font-mono tracking-tight">
-                                  {n_exp.toFixed(1)}{" "}
-                                  <span className="text-[9px] text-slate-500 tracking-widest uppercase">
-                                    Dim
-                                  </span>
-                                </span>
-                              </div>
-                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                                  <Thermometer
-                                    size={10}
-                                    className="text-orange-500"
-                                  />{" "}
-                                  Activation Ea
-                                </span>
-                                <span className="text-sm font-bold text-slate-200 font-mono tracking-tight">
-                                  {(baseActivationEnergy / 1000).toFixed(1)}{" "}
-                                  <span className="text-[9px] text-slate-500 tracking-widest uppercase">
-                                    kJ/mol
-                                  </span>
-                                </span>
-                              </div>
-                              <div className="bg-[#03060C]/50 rounded-xl p-3 border border-slate-800/80/80 flex flex-col justify-center gap-1.5 shadow-inner">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                                  <FlaskConical
-                                    size={10}
-                                    className="text-cyan-500"
-                                  />{" "}
-                                  JMAK Kinetics
-                                </span>
-                                <span className="text-[9px] font-bold text-slate-300 leading-snug">
-                                  Nucleostatic mapping model
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      <div className="ml-auto w-full md:w-auto relative z-10 flex-shrink-0 mt-4 md:mt-0 items-center justify-center flex">
-                        <button
-                          onClick={() => {
-                            const density = selectedCandidate?.density || 4.5;
-                            const size = synthSize;
-                            const ssa = 6000 / (density * size);
-                            const bulkEg = selectedCandidate?.bandGap || 0;
-                            const shift =
-                              bulkEg > 0 ? 15.55 / Math.pow(size, 2) : 0;
-                            const s_vn = (
-                              getEntanglementEntropy(selectedCandidate) *
-                              (1 + 8 / size) *
-                              (1 - synthDoping / 200)
-                            ).toFixed(3);
-                            const freq = (
-                              getPhononFrequency(selectedCandidate) *
-                              (1 - synthDoping * 0.05)
-                            ).toFixed(2);
-
-                            const structureFileContent = `###################################################################
-# Quantum Morphological Synthesis & Characterization Audit Report
-# Target Matrix: ${selectedCandidate?.phase_name || "N/A"} (${selectedCandidate?.formula || "N/A"})
-# Generation Software: Quantum Morphological Synthesizer Engine
-###################################################################
-
-[EXPERIMENT SETUP]
-Synthesis Method: Hydrothermal Supercritical Autoclave
-Environment pH: ${synthPH.toFixed(1)}
-Atmosphere: ${synthAtmosphere.toUpperCase()}
-Calcination Temperature: ${synthTemp} Â°C
-Calcination Duration: ${synthTime.toFixed(1)} hours
-Target Morphology: ${synthMorphology.toUpperCase()}
-Nominal Crystallite Size (d): ${size.toFixed(1)} nm
-Dopant Concentration (x): ${synthDoping.toFixed(1)} mole %
-
-[QUANTUM CRYSTALLOGRAPHIC CALCULATIONS]
-Structure Space Group: ${selectedCandidate?.spaceGroup || "Unknown"}
-Effective Matrix Density: ${density.toFixed(3)} g/cmÂ³
-Calculated Specific Surface Area (BET): ${ssa.toFixed(2)} mÂ²/g
-Theoretical Dislocation Density (delta): ${(1 / Math.pow(size * 1e-9, 2) / 1e15).toFixed(4)} x 10^15 lines/mÂ²
-Mean Lattice Boundary Strain (epsilon): ${(synthDoping * 0.0012 + (0.04 / size) * 100).toFixed(3)} %
-Estimated Unit Cell Spacing contraction: ${(1 - (synthDoping * 0.0012 + 0.04 / size)).toFixed(5)} fractional shift
-
-[ELECTRONIC AND TOPOLOGICAL readout]
-Bulk Core Bandgap: ${bulkEg} eV
-Quantum-Confined Energy shift: +${shift.toFixed(4)} eV
-Synthesized Bandgap: ${(bulkEg + shift).toFixed(4)} eV
-Modified Entanglement Entropy S_vn: ${s_vn}
-Max Phonon Frequency: ${freq} THz
-
-[SIMULATED SYNCHROTRON XRD PATTERN SPECTRUM]
-Peak Shifts:
-${
-  selectedCandidate?.matched_peaks
-    ?.map((p, idx) => {
-      const strainVal = synthDoping * 0.0012 + 0.04 / size;
-      const shiftedPeak = p.refT * (1 + strainVal * 0.05); // slightly shifts angles due to contraction
-      const hklStr =
-        p.h !== undefined && p.k !== undefined && p.l !== undefined
-          ? ` [${p.h} ${p.k} ${p.l}]`
-          : "";
-      return `Peak #${idx + 1}${hklStr} | Bulk 2-Theta: ${p.refT.toFixed(3)}Â° | Shifted 2-Theta: ${shiftedPeak.toFixed(3)}Â° | Int: ${p.refI.toFixed(1)}`;
-    })
-    .join("\n") || "No reference index paths defined."
-}
-
-###################################################################
-# Status code: COMPLETED [COHERENT CRYSTALLOGRAPHIC FRAMEWORK]
-###################################################################`;
-
-                            const blob = new Blob([structureFileContent], {
-                              type: "text/plain",
-                            });
-                            const a = document.createElement("a");
-                            a.href = URL.createObjectURL(blob);
-                            a.download = `Synthesis_Characterization_${selectedCandidate?.phase_name || "Material"}.txt`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                          }}
-                          className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-widest px-6 py-4.5 rounded-2xl border border-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3.5 select-none"
-                        >
-                          <Sparkles className="w-4 h-4 animate-spin-slow" />
-                          Simulate & Export Characterization
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>}
-
-
-
-                {/* Improved Neural Attention Mapping */}
-                <div className="mt-14 pt-12 border-t border-slate-800/80 hover:border-slate-700 relative">
-                  {/* Glow from line */}
-                  <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
-
-                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
-                    <div className="flex items-center gap-6">
-                      <div className="relative group/map-icon cursor-default">
-                        <div className="absolute inset-0 bg-violet-600/20 blur-xl rounded-full group-hover/map-icon:bg-violet-500/30 transition-all duration-700 pointer-events-none" />
-                        <div className="w-14 h-14 bg-[#070D18] rounded-2xl border border-violet-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/map-icon:border-violet-400 transition-colors duration-500 overflow-hidden">
-                          <Activity className="w-6 h-6 text-violet-400 animate-pulse drop-shadow-[0_0_12px_rgba(167,139,250,0.6)] group-hover/map-icon:scale-110 transition-transform duration-500" />
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
-                          Neural Attention Mapping
-                        </h4>
-                        <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">
-                          Spatial feature activation for{" "}
-                          <span className="text-violet-300 font-bold tracking-widest">
-                            {selectedCandidate.phase_name}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1.5 p-1 bg-black/40 rounded-full border border-white/5">
-                        {[...Array(5)].map((_, i) => (
-                          <div
-                            key={`mode-dot-${i}`}
-                            className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.6)]" : "bg-slate-700"}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="px-4 py-2 bg-gradient-to-r from-violet-500/10 to-violet-500/5 rounded-xl border border-violet-500/30 text-[10px] font-black text-violet-300 uppercase tracking-[0.25em] shadow-inner font-mono">
-                        Softmax_v3
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {[
-                      {
-                        name: "Primary_Features",
-                        color: "from-violet-500 to-indigo-500",
-                        baseColor: "bg-violet-500/20",
-                        rings: "rgba(139, 92, 246, 0.4)",
-                        rows: 4,
-                        cols: 12,
-                      },
-                      {
-                        name: "Structural_Synthesis",
-                        color: "from-indigo-500 to-blue-500",
-                        baseColor: "bg-indigo-500/20",
-                        rings: "rgba(99, 102, 241, 0.4)",
-                        rows: 4,
-                        cols: 12,
-                      },
-                      {
-                        name: "Lattice_Inference",
-                        color: "from-blue-500 to-emerald-500",
-                        baseColor: "bg-blue-500/20",
-                        rings: "rgba(56, 189, 248, 0.4)",
-                        rows: 4,
-                        cols: 12,
-                      },
-                    ].map((layer, lIdx) => (
-                      <div
-                        key={lIdx}
-                        className="space-y-4 group/layer relative"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-[2.5rem] -m-5 pointer-events-none group-hover/layer:bg-white/[0.04] transition-colors duration-500" />
-
-                        <div className="flex justify-between items-center px-3 relative z-10">
-                          <span className="text-[11px] sm:text-xs font-mono font-black text-slate-500 group-hover/layer:text-white transition-colors uppercase tracking-[0.2em]">
-                            {layer.name}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] hidden sm:inline">
-                              Active
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="relative p-4 sm:p-5 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2rem] border border-slate-800/80 hover:border-slate-700 overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group-hover/layer:border-slate-600/80 group-hover/layer:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-500 z-10 cursor-crosshair">
-                          {/* Scanline Effect */}
-                          <motion.div
-                            className="absolute inset-y-0 w-[150%] bg-gradient-to-r from-transparent via-white-[0.05] to-transparent z-20 pointer-events-none"
-                            animate={{ x: ["-100%", "100%"] }}
-                            transition={{
-                              repeat: Infinity,
-                              duration: 3,
-                              ease: "linear",
-                              delay: lIdx * 0.4,
-                            }}
-                            style={{
-                              background: `linear-gradient(to right, transparent, ${layer.rings.replace("0.4", "0.1")}, transparent)`,
-                            }}
-                          />
-
-                          <div className="grid grid-cols-12 gap-1.5 sm:gap-2 relative z-0">
-                            {[...Array(layer.rows * layer.cols)].map((_, i) => {
-                              // Map peaks into activation pattern
-                              const peakCount =
-                                selectedCandidate.matched_peaks?.length || 0;
-                              const peakOffset =
-                                selectedCandidate.matched_peaks?.[
-                                  i % (peakCount || 1)
-                                ]?.refT || 10;
-                              const formulaHash = selectedCandidate.formula
-                                .split("")
-                                .reduce((a, b) => a + b.charCodeAt(0), 0);
-                              const seed =
-                                (i * formulaHash * peakOffset + lIdx * 17) %
-                                100;
-                              const isActive = seed > 40 + lIdx * 10; // Higher layers are more sparse
-                              const intensity = isActive ? seed / 100 : 0.05;
-                              const isHot = intensity > 0.85;
-
-                              return (
-                                <motion.div
-                                  key={`node-${lIdx}-${i}`}
-                                  initial={{ opacity: 0.1 }}
-                                  animate={{
-                                    opacity: isActive
-                                      ? [
-                                          intensity * 0.4,
-                                          intensity * 0.9,
-                                          intensity * 0.4,
-                                        ]
-                                      : intensity,
-                                    scale: isHot
-                                      ? [0.95, 1.1, 0.95]
-                                      : isActive
-                                        ? [0.98, 1.05, 0.98]
-                                        : 1,
-                                  }}
-                                  transition={{
-                                    repeat: Infinity,
-                                    duration: isHot
-                                      ? 1.5 + (seed % 2)
-                                      : 2 + (seed % 3),
-                                    delay: (i % 10) * 0.1,
-                                  }}
-                                  className={`aspect-square rounded-md relative overflow-hidden group/cell`}
-                                >
-                                  <div
-                                    className={`absolute inset-0 rounded-md bg-gradient-to-br border ${isActive ? `border-white/30 ${layer.color}` : "border-slate-800/80 hover:border-slate-700/50 bg-[#070D18]"} shadow-inner transition-colors`}
-                                  />
-                                  {isActive && intensity > 0.6 && (
-                                    <div
-                                      className="absolute inset-0 rounded-md shadow-lg opacity-80"
-                                      style={{
-                                        boxShadow: `0 0 ${isHot ? "15px" : "8px"} ${layer.rings}`,
-                                      }}
-                                    />
-                                  )}
-                                  {isHot && (
-                                    <div className="absolute inset-0 bg-white/20 rounded-md animate-pulse" />
-                                  )}
-                                </motion.div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center px-3 relative z-10 pt-2">
-                          <div className="h-1.5 flex-1 bg-[#050A14] rounded-full overflow-hidden mr-5 shadow-inner border border-slate-800/80 hover:border-slate-700">
-                            <motion.div
-                              className={`h-full bg-gradient-to-r ${layer.color} relative`}
-                              initial={{ width: "40%" }}
-                              animate={{
-                                width: [
-                                  `${40 + lIdx * 10}%`,
-                                  `${80 - lIdx * 5}%`,
-                                  `${40 + lIdx * 10}%`,
-                                ],
-                              }}
-                              transition={{
-                                repeat: Infinity,
-                                duration: 4 + lIdx,
-                                ease: "easeInOut",
-                              }}
-                            >
-                              <div className="absolute top-0 right-0 bottom-0 w-4 bg-white/30 blur-[2px]" />
-                            </motion.div>
-                          </div>
-                          <span className="text-[10px] font-mono font-black text-[#1e293b] group-hover/layer:text-slate-500 transition-colors uppercase tracking-[0.3em]">
-                            INF_00{lIdx + 1}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 p-6 sm:p-8 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 shadow-[inset_0_2px_30px_rgba(255,255,255,0.02)] relative overflow-hidden group/metrics">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.08),transparent_60%)] pointer-events-none group-hover/metrics:bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.12),transparent_70%)] transition-colors duration-1000" />
-                    {[
-                      {
-                        label: "Latency",
-                        val: "14ms",
-                        icon: Activity,
-                        color: "text-cyan-400",
-                        bg: "bg-cyan-500/10",
-                        border: "border-cyan-500/20",
-                        shadow: "shadow-[0_0_15px_rgba(34,211,238,0.2)]",
-                      },
-                      {
-                        label: "Compute",
-                        val: "0.8 TFLOPS",
-                        icon: Zap,
-                        color: "text-amber-400",
-                        bg: "bg-amber-500/10",
-                        border: "border-amber-500/20",
-                        shadow: "shadow-[0_0_15px_rgba(245,158,11,0.2)]",
-                      },
-                      {
-                        label: "Layer Depth",
-                        val: "52",
-                        icon: Layers,
-                        color: "text-violet-400",
-                        bg: "bg-violet-500/10",
-                        border: "border-violet-500/20",
-                        shadow: "shadow-[0_0_15px_rgba(139,92,246,0.2)]",
-                      },
-                      {
-                        label: "Optimizer",
-                        val: "AdamW",
-                        icon: Settings,
-                        color: "text-emerald-400",
-                        bg: "bg-emerald-500/10",
-                        border: "border-emerald-500/20",
-                        shadow: "shadow-[0_0_15px_rgba(16,185,129,0.2)]",
-                      },
-                    ].map((metric, i) => (
-                      <div
-                        key={`metric-data-${metric.label}-${i}`}
-                        className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 relative z-10 p-4 hover:bg-white/[0.03] rounded-[1.5rem] transition-all cursor-default hover:scale-[1.02] active:scale-[0.98] duration-300 group/metric"
-                      >
-                        <div
-                          className={`p-3 sm:p-4 ${metric.bg} border ${metric.border} rounded-xl sm:rounded-2xl shadow-inner group-hover/metric:${metric.shadow} transition-shadow duration-300`}
-                        >
-                          <metric.icon
-                            className={`w-5 h-5 sm:w-6 sm:h-6 ${metric.color} drop-shadow-md group-hover/metric:scale-110 transition-transform`}
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] group-hover/metric:text-slate-400 transition-colors">
-                            {metric.label}
-                          </span>
-                          <span className="text-sm sm:text-base text-white font-mono font-black tracking-wider drop-shadow-sm">
-                            {metric.val}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Verification Checklist */}
-                <div className="mt-14 pt-12 border-t border-slate-800/80 hover:border-slate-700">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                    <div>
-                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-500/50" />
-                        Verification Audit Protocol
-                      </h4>
-                      <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">
-                        Interactive Checklist for Spectral Integrity
-                      </p>
-                    </div>
-                    {selectedCandidate && (
-                      <div className="flex items-center gap-4 bg-[#03060C]/80 px-4 py-2 rounded-xl border border-slate-800/80 hover:border-slate-700">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">
-                          Protocol Integrity Grade:
-                        </span>
-                        <span
-                          className={`text-sm font-black font-mono ${
-                            checkedAudits.filter(Boolean).length >= 4
-                              ? "text-emerald-400"
-                              : checkedAudits.filter(Boolean).length >= 3
-                                ? "text-cyan-400"
-                                : "text-amber-400"
-                          }`}
-                        >
-                          {checkedAudits.filter(Boolean).length === 5
-                            ? "A+ (SECURE)"
-                            : checkedAudits.filter(Boolean).length === 4
-                              ? "A (OPTIMAL)"
-                              : checkedAudits.filter(Boolean).length === 3
-                                ? "B (STABLE)"
-                                : checkedAudits.filter(Boolean).length >= 1
-                                  ? "C (UNVERIFIED)"
-                                  : "F (DEFICIENT)"}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ML Validation Sub-Tabs selector */}
-                  <div className="flex flex-wrap items-center gap-2 mb-8 bg-[#040812] p-1.5 rounded-3xl border border-slate-800/80/80 max-w-4xl">
-                    <button
-                      onClick={() => setSelectedValidationTab('audit')}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
-                        selectedValidationTab === 'audit'
-                          ? 'bg-indigo-600/25 border border-indigo-500/50 text-white shadow-[inset_0_1px_10px_rgba(99,102,241,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
-                      }`}
-                    >
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                      Dynamic Checklist
-                    </button>
-                    <button
-                      onClick={() => setSelectedValidationTab('robustness')}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
-                        selectedValidationTab === 'robustness'
-                          ? 'bg-fuchsia-600/25 border border-fuchsia-500/50 text-white shadow-[inset_0_1px_10px_rgba(217,70,239,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
-                      }`}
-                    >
-                      <SlidersHorizontal className="w-3.5 h-3.5 text-fuchsia-400" />
-                      Perturbation & Stress
-                    </button>
-                    <button
-                      onClick={() => setSelectedValidationTab('confusion')}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
-                        selectedValidationTab === 'confusion'
-                          ? 'bg-cyan-600/25 border border-cyan-500/50 text-white shadow-[inset_0_1px_10px_rgba(34,211,238,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
-                      }`}
-                    >
-                      <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                      Neural Confusion
-                    </button>
-                    <button
-                      onClick={() => setSelectedValidationTab('training' as any)}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
-                        selectedValidationTab === ('training' as any)
-                          ? 'bg-emerald-600/25 border border-emerald-500/50 text-white shadow-[inset_0_1px_10px_rgba(16,185,129,0.2)]'
-                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
-                      }`}
-                    >
-                      <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                      Neural Tutor & Trainer
-                    </button>
-                  </div>
-
-                  {selectedValidationTab === 'audit' && (
-                    <div className="flex flex-col gap-8">
-                      {/* Left Side: Audit Checks */}
-                      <div className="w-full space-y-4">
-                        {auditItems.map((item, i) => {
-                          const calculatedStatus = item.status(selectedCandidate);
-                          const isChecked = checkedAudits[i];
-
-                          return (
-                            <div
-                              key={`audit-${i}`}
-                              onClick={() => setSelectedAuditLog(i)}
-                              className={`relative flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer group hover:bg-[#080E1A] shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] ${
-                                selectedAuditLog === i
-                                  ? "bg-[#081120]/80 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.08)]"
-                                  : "bg-[#050A14] border-slate-800/80 hover:border-slate-700 hover:border-slate-700/60"
-                              }`}
-                            >
-                              <div className="flex items-center gap-4 flex-1">
-                                <div
-                                  className="relative flex items-center justify-center mt-0.5"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const updated = [...checkedAudits];
-                                    updated[i] = !updated[i];
-                                    setCheckedAudits(updated);
-                                  }}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {}}
-                                    className="peer w-5 h-5 rounded-[4px] border-slate-800/80 hover:border-slate-700 bg-[#050A14]/50 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 cursor-pointer transition-all"
-                                  />
-                                  <div className="absolute inset-0 pointer-events-none rounded-[4px] peer-checked:shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-shadow" />
-                                </div>
-
-                                <div className="flex flex-col gap-1 pr-4">
-                                  <span className="text-xs font-black text-slate-300 group-hover:text-white transition-colors uppercase tracking-wide">
-                                    {item.label}
-                                  </span>
-                                  <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-400">
-                                    {item.desc}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="text-right flex flex-col items-end gap-1 font-mono">
-                                <span className="text-[10px] font-black text-slate-300">
-                                  {item.getMetric(selectedCandidate)}
-                                </span>
-                                <span
-                                  className={`text-[9px] font-black uppercase tracking-widest ${calculatedStatus.color}`}
-                                >
-                                  {calculatedStatus.text}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Right Side: Verification Ledger */}
-                      <div className="w-full bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 relative overflow-hidden min-h-[380px] flex flex-col justify-between shadow-lg">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
-
-                        {selectedAuditLog !== null ? (
-                          <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between border-b border-slate-800/80 hover:border-slate-700 pb-4">
-                                <span className="text-[10px] font-black font-mono text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                                  <Activity className="w-3.5 h-3.5" />
-                                  Audit Ledger ID_{selectedAuditLog + 1}
-                                </span>
-                                <span className="text-[8px] font-black font-mono text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 rounded uppercase">
-                                  Active
-                                </span>
-                              </div>
-
-                              <div>
-                                <h5 className="text-sm font-black text-white uppercase tracking-wider mb-2">
-                                  {auditDetailsData[selectedAuditLog].title}
-                                </h5>
-                                <p className="text-xs text-slate-400 leading-relaxed">
-                                  {auditDetailsData[selectedAuditLog].details}
-                                </p>
-                              </div>
-
-                              <div className="bg-[#03060C] p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 font-mono text-center">
-                                <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">
-                                  Calculated Scientific Equation
-                                </span>
-                                <span className="text-xs text-indigo-300 font-bold tracking-wide">
-                                  {auditDetailsData[selectedAuditLog].formula}
-                                </span>
-                              </div>
-
-                              <div className="space-y-2.5">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">
-                                  Evaluation Parameters
-                                </span>
-
-                                {auditDetailsData[selectedAuditLog].steps.map(
-                                  (step, idx) => (
-                                    <div
-                                      key={`step-${idx}`}
-                                      className="flex justify-between items-center bg-[#03060C]/60 border border-slate-800/80 hover:border-slate-700/70 px-4 py-2.5 rounded-lg text-xs font-mono"
-                                    >
-                                      <span className="text-slate-400 text-[10px] uppercase">
-                                        {step.name}
-                                      </span>
-                                      <span className="font-bold text-emerald-400">
-                                        {step.value}
-                                      </span>
-                                    </div>
-                                  ),
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-800/80 hover:border-slate-700 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                              <span>Cryptographic Signature: verified</span>
-                              <span className="text-slate-400 font-bold">
-                                SHA-256_STABLE
-                              </span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex-1 flex flex-col justify-center items-center text-center p-6 space-y-4">
-                            <div className="p-4 bg-indigo-500/10 rounded-full border border-indigo-500/20">
-                              <Cpu className="w-8 h-8 text-indigo-400 animate-pulse" />
-                            </div>
-                            <div className="max-w-[240px]">
-                              <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">
-                                System Check Needed
-                              </h5>
-                              <p className="text-[10px] text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
-                                Select any active Audit item to display analytical
-                                ledger equations and parameter updates
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Final Protocol Action Bar */}
-                      {selectedCandidate && (
-                        <div className="w-full mt-4 p-6 bg-[#050A14] rounded-2xl border border-slate-800/80 hover:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)]">
-                          <div className="flex items-center gap-3">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                              Validated components:{" "}
-                              <span className="text-white font-bold">
-                                {checkedAudits.filter(Boolean).length} of 5 verified
-                              </span>
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              const reportText =
-                                `VERIFICATION AUDIT CERTIFICATE
-Generated on: ${new Date().toLocaleString()}
-Validated Phase: ${selectedCandidate.phase_name}
-Lattice Space Group: ${selectedCandidate.spaceGroup || "Unknown"}
-Purity Confidence: ${selectedCandidate.confidence_score}%
-
---- CRITICAL METRICS VERIFICATION ---
-` +
-                                auditItems
-                                  .map((item, i) => {
-                                    const statusText =
-                                      item.status(selectedCandidate).text;
-                                    const metricVal =
-                                      item.getMetric(selectedCandidate);
-                                    const userChecked = checkedAudits[i]
-                                      ? "[X]"
-                                      : "[ ]";
-                                    return `${userChecked} ${item.label}: ${metricVal} -> Status: ${statusText}`;
-                                  })
-                                  .join("\n") +
-                                `\n\nAuthentication Protocol Status: SIGNED & LOCKED\nSHA-256 Cryptographic Hash: Verified`;
-
-                              const blob = new Blob([reportText], {
-                                type: "text/plain",
-                              });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement("a");
-                              a.href = url;
-                              a.download = `XRD_Verification_Audit_${selectedCandidate.phase_name}.txt`;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
-                            }}
-                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] text-[10px] font-black text-white rounded-xl uppercase tracking-widest border border-indigo-500/30 transition-all active:scale-[0.98]"
-                          >
-                            Export Certified Audit Report
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {selectedValidationTab === 'robustness' && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
-                    >
-                      {/* Left: Perturbation Settings */}
-                      <div className="lg:col-span-5 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 space-y-6 shadow-lg">
-                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
-                          <SlidersHorizontal className="w-5 h-5 text-fuchsia-400" />
-                          <span className="text-[11px] font-black font-mono text-fuchsia-400 uppercase tracking-widest">
-                            Perturbation Settings
-                          </span>
-                        </div>
-
-                        <div className="space-y-5">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-wide">
-                              <span>GAUSSIAN NOISE LEVEL (1Ïƒ)</span>
-                              <span className="text-fuchsia-400 font-mono text-xs">{noiseLevel}%</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="50"
-                              value={String(noiseLevel) === 'NaN' ? '' : noiseLevel}
-                              onChange={(e) => {
-                                setNoiseLevel(Number(e.target.value));
-                                setPerturbationScore(null);
-                              }}
-                              className="w-full h-1.5 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
-                            />
-                            <p className="text-[8.5px] text-slate-500 leading-normal">
-                              Simulates high thermal vibrations, dark current instrumental errors, or rapid synchrotron beam degradation.
-                            </p>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-wide">
-                              <span>BACKGROUND DRIFT / SKEW</span>
-                              <span className="text-fuchsia-400 font-mono text-xs">{backgroundDrift}%</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="30"
-                              value={String(backgroundDrift) === 'NaN' ? '' : backgroundDrift}
-                              onChange={(e) => {
-                                setBackgroundDrift(Number(e.target.value));
-                                setPerturbationScore(null);
-                              }}
-                              className="w-full h-1.5 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
-                            />
-                            <p className="text-[8.5px] text-slate-500 leading-normal">
-                              Simulates fluorescent amorphous humps, sample holder displacement skew, or incorrect slit height scaling.
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          disabled={isPerturbationRunning}
-                          onClick={() => {
-                            setIsPerturbationRunning(true);
-                            playSynthTone('switch'); // soft tone
-                            setTimeout(() => {
-                              const base = selectedCandidate?.mlValidationScore || 85;
-                              const rand = 3 * Math.random();
-                              const finalS = Math.max(0, Math.min(100, Number((base - (noiseLevel * 0.72) - (backgroundDrift * 0.44) - rand).toFixed(1))));
-                              setPerturbationScore(finalS);
-                              setIsPerturbationRunning(false);
-                              playSynthTone(finalS > 60 ? 'success' : 'error'); // positive/negative sound
-                            }, 1200);
-                          }}
-                          className="w-full py-3.5 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-xs font-black text-white rounded-xl uppercase tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2.5"
-                        >
-                          {isPerturbationRunning ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin text-white" />
-                              Simulating Backprop Perturbation...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5 text-white" />
-                              Trigger Adverasial Stress Check
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Right: Results Display & Diagnostic */}
-                      <div className="lg:col-span-7 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 min-h-[380px] flex flex-col justify-between relative overflow-hidden shadow-lg">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-[40px] pointer-events-none" />
-
-                        <div className="space-y-6 flex-1 flex flex-col justify-between">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
-                              <span className="text-[10px] font-black font-mono text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5" />
-                                Stress Diagnostic Matrix
-                              </span>
-                              <span className="text-[8px] font-black font-mono text-fuchsia-400 border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-0.5 rounded uppercase">
-                                Realtime Math Emulator
-                              </span>
-                            </div>
-
-                            <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                              Adversarial perturbation testing validates network generalizability. By adding controlled Gaussian noise envelopes and baseline drift, we measure whether the 1D CNN\'s receptive filters preserve local d-spacing peaks or degrade into spurious labels.
-                            </p>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div className="p-4 rounded-2xl bg-[#03060C]/60 border border-slate-800/80/80 flex flex-col gap-1.5">
-                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Unperturbed Score</span>
-                                <div className="text-2xl font-black font-mono text-white tracking-tight">
-                                  {selectedCandidate?.mlValidationScore || 0}%
-                                </div>
-                                <span className="text-[8.5px] font-medium text-slate-500">Perfect theoretical clean scan</span>
-                              </div>
-
-                              <div className="p-4 rounded-2xl bg-[#03060C]/60 border border-slate-800/80/80 flex flex-col gap-1.5 relative overflow-hidden">
-                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Perturbed Score</span>
-                                <div className="text-2xl font-black font-mono text-fuchsia-400 tracking-tight">
-                                  {perturbationScore !== null ? `${perturbationScore}%` : "---%"}
-                                </div>
-                                <span className="text-[8.5px] font-medium text-slate-500">
-                                  {perturbationScore !== null ? `Degraded by ${(selectedCandidate?.mlValidationScore || 0) - perturbationScore === 0 ? "0.0" : ((selectedCandidate?.mlValidationScore || 0) - perturbationScore).toFixed(1)}%` : "Requires stress-test run"}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Score Interpretation Badge */}
-                            {perturbationScore !== null && (
-                              <div className="p-4 rounded-2xl border bg-[#03060C]/40 flex flex-col gap-2 relative overflow-hidden animate-in fade-in duration-300">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-2.5 h-2.5 rounded-full ${
-                                    perturbationScore > 85 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' :
-                                    perturbationScore > 70 ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' :
-                                    perturbationScore > 50 ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]' :
-                                    'bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'
-                                  }`} />
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-200">
-                                    Resiliency Evaluation:{" "}
-                                    <span className={`${
-                                      perturbationScore > 85 ? 'text-emerald-400' :
-                                      perturbationScore > 70 ? 'text-cyan-400' :
-                                      perturbationScore > 50 ? 'text-amber-400' :
-                                      'text-rose-400'
-                                    }`}>
-                                      {perturbationScore > 85 ? 'SOTA FAULT-TOLERANT' :
-                                       perturbationScore > 70 ? 'ROBUST INDUSTRIAL OPERATIONAL' :
-                                       perturbationScore > 50 ? 'VULNERABLE SEVERE OVERLAPS' :
-                                       'RESOLUTION BREAKDOWN'}
-                                    </span>
-                                  </span>
-                                </div>
-                                <p className="text-[10px] text-slate-400 leading-relaxed font-sans min-h-[50px]">
-                                  {perturbationScore > 85 ? 'The network displays absolute stability against high beam drift or fluctuating noise floors. Excellent for short exposure synchrotron test environments.' :
-                                   perturbationScore > 70 ? 'General operating specs. d-spacings are extracted correct, although minor relative intensity shifts occur from asymmetric amorphous profile skews.' :
-                                   perturbationScore > 50 ? 'The identified phase boundary might overlap with amorphous background humps under stress. Fine-tuning filters or utilizing a wider kernel profile is recommended.' :
-                                   'The model breaks down under severe background drift, suggesting high out-of-distribution distortion. Check sample alignment geometry or filter substrate interference.'}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                            <span>Noise-injection vector: active</span>
-                            <span className="text-slate-400 font-bold">MONTE_CARLO_SIM</span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {selectedValidationTab === 'confusion' && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-300"
-                    >
-                      {/* Left: Interactive 6x6 Confusion Heatmap Grid */}
-                      <div className="lg:col-span-7 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group/matrix">
-                        {/* Custom Background Graphic */}
-                        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/matrix:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
-                          <img src={deepLearningAnalysisBg} alt="Analysis Matrix" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-                        </div>
-                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80 mb-6">
-                          <Activity className="w-5 h-5 text-cyan-400" />
-                          <span className="text-[11px] font-black font-mono text-cyan-400 uppercase tracking-widest">
-                            Crystal System Multi-Class Matrix
-                          </span>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                          <div className="min-w-[420px] space-y-2">
-                            {/* X-axis title label */}
-                            <div className="text-center text-[9px] font-black font-mono text-cyan-400/80 uppercase tracking-widest mb-1">
-                              Predicted Crystal System Class (Output Vector)
-                            </div>
-
-                            {/* Actual Table */}
-                            <div className="grid grid-cols-7 gap-1">
-                              {/* Corner header cells */}
-                              <div className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-wider flex items-center justify-center p-1.5 text-center leading-tight">
-                                True \ Pred
-                              </div>
-                              {['Cubic', 'Tetra', 'Hexa', 'Ortho', 'Mono', 'Tric'].map(h => (
-                                <div key={h} className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider text-center p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
-                                  {h}
-                                </div>
-                              ))}
-
-                              {/* Rows of data */}
-                              {(() => {
-                                const rows = ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'];
-                                const cols = ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'];
-                                const matrixData: Record<string, number[]> = {
-                                  Cubic:        [94.5, 3.5, 0.5, 1.0, 0.5, 0.0],
-                                  Tetragonal:   [5.2, 89.1, 1.1, 3.8, 0.8, 0.0],
-                                  Hexagonal:    [0.4, 1.2, 96.3, 0.8, 1.0, 0.3],
-                                  Orthorhombic: [1.5, 4.2, 0.8, 88.4, 4.1, 1.0],
-                                  Monoclinic:   [0.8, 1.5, 1.2, 5.5, 84.2, 6.8],
-                                  Triclinic:    [0.2, 1.0, 2.1, 4.5, 11.2, 81.0],
-                                };
-
-                                return rows.map((rowName) => (
-                                  <React.Fragment key={rowName}>
-                                    {/* Y-axis label column */}
-                                    <div className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider flex items-center justify-start p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
-                                      {rowName.slice(0, 5)}...
-                                    </div>
-                                    {/* 6 classification projection columns */}
-                                    {cols.map((colName, colIdx) => {
-                                      const val = matrixData[rowName][colIdx];
-                                      const isDiag = rowName.startsWith(colName.slice(0, 4));
-                                      const isCellSelected = activeMatrixCell?.row === rowName && activeMatrixCell?.col === colName;
-
-                                      return (
-                                        <div
-                                          key={colName}
-                                          onClick={() => setActiveMatrixCell({ row: rowName, col: colName, val })}
-                                          style={{
-                                            backgroundColor: isDiag 
-                                              ? `rgba(14, 165, 233, ${Math.max(0.1, val / 100)})` 
-                                              : `rgba(217, 70, 239, ${Math.max(0, (val - 0.5) / 15)})`
-                                          }}
-                                          className={`aspect-square sm:h-12 flex flex-col items-center justify-center p-1 rounded border cursor-pointer transition-all hover:scale-105 hover:border-white/40 ${
-                                            isCellSelected 
-                                              ? 'border-white ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)] z-10' 
-                                              : isDiag 
-                                                ? 'border-cyan-500/20' 
-                                                : 'border-slate-800/80/40'
-                                          }`}
-                                        >
-                                          <span className="text-[10px] font-black font-mono text-white tracking-tighter tabular-nums leading-none">
-                                            {val.toFixed(1)}%
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
-                                  </React.Fragment>
-                                ));
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 text-[9px] font-mono text-slate-500 uppercase tracking-wide flex justify-between">
-                          <span>* Diagonal represents TP (True-Positives Rate)</span>
-                          <span>Click cell for projection details</span>
-                        </div>
-                      </div>
-
-                      {/* Right: Neural Diagnostics for Selected Cell */}
-                      <div className="lg:col-span-5 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 min-h-[380px] flex flex-col justify-between shadow-lg relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-[40px] pointer-events-none" />
-
-                        {activeMatrixCell ? (
-                          <div className="space-y-6 flex-1 flex flex-col justify-between">
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
-                                <span className="text-[10px] font-black font-mono text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                                  <Activity className="w-3.5 h-3.5" />
-                                  Operator Projection Ledger
-                                </span>
-                                <span className="text-[8px] font-black font-mono text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 rounded uppercase">
-                                  Inter-class Error
-                                </span>
-                              </div>
-
-                              <div>
-                                <span className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest block mb-1">Target Class Correlation</span>
-                                <h5 className="text-sm font-black text-white uppercase tracking-wider mb-2">
-                                  {activeMatrixCell.row} âŸ¶ {activeMatrixCell.col}
-                                </h5>
-                                <div className="inline-flex px-3 py-1.5 bg-[#09101d] border border-cyan-500/30 rounded-xl text-lg font-black font-mono text-cyan-400 mb-4 tabular-nums shadow-inner">
-                                  {activeMatrixCell.val}% Probability
-                                </div>
-                                <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                                  {activeMatrixCell.row === activeMatrixCell.col ? (
-                                    `High-confidence prediction of ${activeMatrixCell.row} lattice geometry. At ${activeMatrixCell.val}%, the CNN filters have successfully crystallized receptive weights with zero spatial aliasing.`
-                                  ) : (
-                                    `Calculated confusion error. The CNN identifies true ${activeMatrixCell.row} symmetries as false ${activeMatrixCell.col} profiles. Typically triggered by micro-strain distortion, atomic vacancies, or extremely clean secondary peaks of similar d-spacing.`
-                                  )}
-                                </p>
-                              </div>
-
-                              <div className="bg-[#03060C] p-4 rounded-xl border border-slate-900 font-mono text-left">
-                                <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">Structural Resolution Note</span>
-                                <span className="text-[10px] text-slate-300 font-medium">
-                                  {activeMatrixCell.row === 'Cubic' && activeMatrixCell.col === 'Tetragonal' ? 'Cubic unit cells can shear into a Tetragonal crystal system under localized thermal gradient or epitaxial strain, mimicking identical base reflections.' :
-                                   activeMatrixCell.row === 'Monoclinic' && activeMatrixCell.col === 'Triclinic' ? 'High non-axial crystal limits in triclinic configurations make distinguishing Monoclinic unit cell dimensions highly sensitive to instrument drift.' :
-                                   'High overlapping ratios are highly correlated with similar interplanar d-spacing configurations or fractional volume mixtures in high signal background scanning.'}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                              <span>Multi-class test size: N = 10,000</span>
-                              <span className="text-slate-400 font-bold">F1_SCORE: 0.892</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex-1 flex flex-col justify-center items-center text-center p-6 space-y-4">
-                            <div className="p-4 bg-cyan-500/10 rounded-full border border-cyan-500/20">
-                              <Cpu className="w-8 h-8 text-cyan-400 animate-pulse" />
-                            </div>
-                            <div className="max-w-[240px]">
-                              <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">
-                                Matrix Select Needed
-                              </h5>
-                              <p className="text-[10px] text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
-                                Click any percentage coordinate in the multi-class confusion grid to inspect specific neural prediction behaviors and structural limits.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Multi-Class Classification Performance Metrics Breakdown */}
-                      <div className="lg:col-span-12 bg-[#050A14] border border-slate-800/80 rounded-3xl p-6 shadow-xl space-y-4">
-                        <div className="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-3 gap-3">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-5 h-5 text-emerald-400" />
-                            <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
-                              Per-Class Classification Metrics (Precision, Recall, F1, ROC-AUC)
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
-                            <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                              Macro F1: 89.2%
-                            </span>
-                            <span className="px-2.5 py-1 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold">
-                              Micro F1: 90.4%
-                            </span>
-                            <span className="px-2.5 py-1 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
-                              Mean ROC-AUC: 0.965
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left font-mono text-xs text-slate-300">
-                            <thead>
-                              <tr className="border-b border-slate-800 text-[10px] text-slate-500 uppercase tracking-wider">
-                                <th className="p-2.5">Crystal System</th>
-                                <th className="p-2.5">Support (N)</th>
-                                <th className="p-2.5">Precision</th>
-                                <th className="p-2.5">Recall (Sensitivity)</th>
-                                <th className="p-2.5">F1-Score</th>
-                                <th className="p-2.5">ROC-AUC Score</th>
-                                <th className="p-2.5">Accuracy Profile</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800/50">
-                              {[
-                                { name: 'Cubic', support: 2150, prec: '94.8%', rec: '94.5%', f1: '94.6%', auc: '0.988', color: 'bg-emerald-500', width: '94.6%' },
-                                { name: 'Tetragonal', support: 1820, prec: '89.5%', rec: '89.1%', f1: '89.3%', auc: '0.962', color: 'bg-indigo-500', width: '89.3%' },
-                                { name: 'Hexagonal', support: 1940, prec: '96.1%', rec: '96.3%', f1: '96.2%', auc: '0.991', color: 'bg-cyan-500', width: '96.2%' },
-                                { name: 'Orthorhombic', support: 1680, prec: '88.1%', rec: '88.4%', f1: '88.2%', auc: '0.954', color: 'bg-amber-500', width: '88.2%' },
-                                { name: 'Monoclinic', support: 1350, prec: '83.9%', rec: '84.2%', f1: '84.0%', auc: '0.938', color: 'bg-fuchsia-500', width: '84.0%' },
-                                { name: 'Triclinic', support: 1060, prec: '81.5%', rec: '81.0%', f1: '81.2%', auc: '0.922', color: 'bg-rose-500', width: '81.2%' }
-                              ].map((item) => (
-                                <tr key={item.name} className="hover:bg-slate-900/50 transition-colors">
-                                  <td className="p-2.5 font-bold text-white">{item.name}</td>
-                                  <td className="p-2.5 text-slate-400">{item.support.toLocaleString()}</td>
-                                  <td className="p-2.5 text-emerald-400 font-bold">{item.prec}</td>
-                                  <td className="p-2.5 text-cyan-400 font-bold">{item.rec}</td>
-                                  <td className="p-2.5 text-indigo-400 font-bold">{item.f1}</td>
-                                  <td className="p-2.5 text-amber-400 font-bold">{item.auc}</td>
-                                  <td className="p-2.5">
-                                    <div className="w-28 bg-slate-800 h-2 rounded-full overflow-hidden">
-                                      <div className={`h-full ${item.color}`} style={{ width: item.width }} />
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {selectedValidationTab === ('training' as any) && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-300 text-left"
-                    >
-                      {/* Left: Hyperparameters & Synthetic Augmentations */}
-                      <div className="lg:col-span-5 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 space-y-6 shadow-2xl relative overflow-hidden group/calib">
-                        {/* Custom Background Graphic */}
-                        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/calib:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
-                          <img src={deepLearningAnalysisBg} alt="Network Calibration" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-                        </div>
-                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
-                          <Cpu className="w-5 h-5 text-emerald-400" />
-                          <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
-                            Deep Learning Network Calibration
-                          </span>
-                        </div>
-
-                        <div className="space-y-4">
-                          {/* Architecture & Activation Dropdowns */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5 align-top">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Architecture</label>
-                              <select 
-                                value={trainArch} 
-                                onChange={(e) => setTrainArch(e.target.value)}
-                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
-                              >
-                                <option value="Feedforward MLP">Feedforward MLP</option>
-                                <option value="Deep MLP">Deep MLP (128 to 64)</option>
-                                <option value="Residual MLP">Residual MLP (Skip Links)</option>
-                              </select>
-                            </div>
-                            <div className="space-y-1.5 align-top">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Activation</label>
-                              <select 
-                                value={trainActivation} 
-                                onChange={(e) => setTrainActivation(e.target.value)}
-                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
-                              >
-                                <option value="GELU">GELU Activation</option>
-                                <option value="ReLU">ReLU Activation</option>
-                                <option value="LeakyReLU">LeakyReLU (Î±=0.1)</option>
-                                <option value="Sigmoid">Sigmoid Transfer</option>
-                                <option value="Swish">Swish / SiLU</option>
-                                <option value="ELU">ELU (Exponential Linear Unit)</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Optimizer & Batch size */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Optimizer</label>
-                              <select 
-                                value={trainOptimizer} 
-                                onChange={(e) => setTrainOptimizer(e.target.value)}
-                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
-                              >
-                                <option value="Adam">Adam (Rolling beta)</option>
-                                <option value="RMSprop">RMSprop Decay</option>
-                                <option value="SGD">SGD with Momentum</option>
-                              </select>
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Dropout Rate</label>
-                              <select 
-                                value={trainDropout} 
-                                onChange={(e) => setTrainDropout(Number(e.target.value))}
-                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
-                              >
-                                <option value={0}>0.0 (No Dropout)</option>
-                                <option value={0.1}>0.1 Regularization</option>
-                                <option value={0.2}>0.2 Regularization</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3 pt-2">
-                            {/* Epochs Range Slider */}
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold whitespace-nowrap">
-                                <span>TRAINING RUN LENGTH (EPOCHS)</span>
-                                <span className="text-emerald-400 font-mono text-xs">{trainEpochs} iterations</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="10" 
-                                max="100" 
-                                value={String(trainEpochs) === 'NaN' ? '' : trainEpochs} 
-                                step="10"
-                                onChange={(e) => setTrainEpochs(Number(e.target.value))}
-                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                              />
-                            </div>
-
-                            {/* Learning Rate Slider */}
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold whitespace-nowrap">
-                                <span>INITIAL LEARNING RATE (Î±)</span>
-                                <span className="text-emerald-400 font-mono text-xs">{trainLR}</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="0.001" 
-                                max="0.05" 
-                                step="0.001"
-                                value={String(trainLR) === 'NaN' ? '' : trainLR} 
-                                onChange={(e) => setTrainLR(Number(e.target.value))}
-                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="pt-2 border-t border-slate-800/80 space-y-3">
-                            <span className="text-[10px] font-black font-mono text-slate-500 uppercase tracking-widest block">
-                              Physics-Based Synthetic Augmenter
-                            </span>
-
-                            {/* Augment: Strain bounds */}
-                            <div className="space-y-1">
-                              <div className="flex justify-between items-center text-[9px] font-semibold text-slate-400 whitespace-nowrap">
-                                <span>LATTICE STRAIN BOUNDS (dL/L)</span>
-                                <span className="font-mono text-teal-400">-{trainStrainRange}% to +{trainStrainRange}%</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="0.5" 
-                                max="5.0" 
-                                step="0.5"
-                                value={String(trainStrainRange) === 'NaN' ? '' : trainStrainRange} 
-                                onChange={(e) => setTrainStrainRange(Number(e.target.value))}
-                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
-                              />
-                            </div>
-
-                            {/* Augment: Broadening scales */}
-                            <div className="space-y-1">
-                              <div className="flex justify-between items-center text-[9px] font-semibold text-slate-400 whitespace-nowrap">
-                                <span>CRYSTALLITE BROADENING (FWHM)</span>
-                                <span className="font-mono text-teal-400">0.15Â° to {(0.15 + trainBroadeningRange).toFixed(2)}Â°</span>
-                              </div>
-                              <input 
-                                type="range" 
-                                min="0.1" 
-                                max="0.6" 
-                                step="0.05"
-                                value={String(trainBroadeningRange) === 'NaN' ? '' : trainBroadeningRange} 
-                                onChange={(e) => setTrainBroadeningRange(Number(e.target.value))}
-                                className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[8.5px] font-semibold text-slate-400">
-                                  <span>NOISE (1Ïƒ)</span>
-                                  <span className="font-mono text-teal-400">{trainNoiseLevel}%</span>
-                                </div>
-                                <input 
-                                  type="range" 
-                                  min="2" 
-                                  max="30" 
-                                  step="2"
-                                  value={String(trainNoiseLevel) === 'NaN' ? '' : trainNoiseLevel} 
-                                  onChange={(e) => setTrainNoiseLevel(Number(e.target.value))}
-                                  className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[8.5px] font-semibold text-slate-400">
-                                  <span>DRIFT SKEW</span>
-                                  <span className="font-mono text-teal-400">{trainBgDrift}%</span>
-                                </div>
-                                <input 
-                                  type="range" 
-                                  min="1" 
-                                  max="15" 
-                                  step="1"
-                                  value={String(trainBgDrift) === 'NaN' ? '' : trainBgDrift} 
-                                  onChange={(e) => setTrainBgDrift(Number(e.target.value))}
-                                  className="w-full h-1 bg-[#03060C] rounded-lg appearance-none cursor-pointer accent-teal-500"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          disabled={isTrainingNet}
-                          onClick={handleRunTrainingNet}
-                          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl text-[11px] font-black uppercase tracking-widest font-mono shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
-                        >
-                          {isTrainingNet ? (
-                            <>
-                              <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
-                              Active SGD Optimizer backprop...
-                            </>
-                          ) : (
-                            <>
-                              <Cpu className="w-4 h-4 text-slate-950 animate-pulse" />
-                              âš¡ Start Deep Learning Training
-                            </>
-                          )}
-                        </button>
-                        
-                        {trainError && (
-                          <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 leading-normal">
-                            <strong>Validation Error:</strong> {trainError}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right: Visualization & Classroom Interactive Tutor */}
-                      <div className="lg:col-span-7 space-y-6">
-                        {/* Interactive Neural Network Topology Diagram Card */}
-                        <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 shadow-xl space-y-4 relative overflow-hidden">
-                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                            <div className="flex items-center gap-2">
-                              <Network className="w-5 h-5 text-indigo-400" />
-                              <span className="text-[11px] font-black font-mono text-indigo-400 uppercase tracking-widest">
-                                Neural Architecture Flow & Receptive Field Topology
-                              </span>
-                            </div>
-                            <span className="text-[9px] font-mono font-bold text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
-                              {trainArch} â€¢ {trainActivation}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center text-center font-mono text-xs">
-                            {/* Input Block */}
-                            <div className="bg-[#03060C] p-3 rounded-2xl border border-indigo-500/30 flex flex-col items-center">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase">1. Input Vector</span>
-                              <span className="text-xs font-black text-white mt-1">200 Points</span>
-                              <span className="text-[8px] text-indigo-400 mt-0.5">XRD 2Î¸ Spectrum</span>
-                            </div>
-
-                            <div className="hidden sm:flex justify-center text-slate-600 font-black">âž”</div>
-
-                            {/* Hidden Conv/Dense Block */}
-                            <div className="bg-[#03060C] p-3 rounded-2xl border border-violet-500/30 flex flex-col items-center">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase">2. Hidden Layer</span>
-                              <span className="text-xs font-black text-violet-300 mt-1">
-                                {trainArch === 'Residual MLP' ? 'ResNet Blocks' : trainArch === 'Deep MLP' ? '128 âž” 64 Units' : '128 Units'}
-                              </span>
-                              <span className="text-[8px] text-violet-400 mt-0.5">{trainActivation} â€¢ Dropout {trainDropout}</span>
-                            </div>
-
-                            <div className="hidden sm:flex justify-center text-slate-600 font-black">âž”</div>
-
-                            {/* Output Softmax Block */}
-                            <div className="bg-[#03060C] p-3 rounded-2xl border border-emerald-500/30 flex flex-col items-center">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase">3. Softmax Output</span>
-                              <span className="text-xs font-black text-emerald-300 mt-1">6 Crystal Classes</span>
-                              <span className="text-[8px] text-emerald-400 mt-0.5">Phase Probabilities</span>
-                            </div>
-                          </div>
-
-                          {/* Network Topology Statistics Bar */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800/80 font-mono text-[9px]">
-                            <div className="bg-[#03060C] p-2.5 rounded-xl border border-slate-900">
-                              <span className="text-slate-500 block uppercase font-bold">Total Parameters</span>
-                              <span className="text-slate-200 font-black font-mono text-xs">
-                                {trainArch === 'Deep MLP' ? '184,320' : trainArch === 'Residual MLP' ? '245,760' : '98,304'}
-                              </span>
-                            </div>
-                            <div className="bg-[#03060C] p-2.5 rounded-xl border border-slate-900">
-                              <span className="text-slate-500 block uppercase font-bold">Receptive Field</span>
-                              <span className="text-slate-200 font-black font-mono text-xs">
-                                {trainArch === 'Residual MLP' ? '35 Points (~0.18Â° 2Î¸)' : '21 Points (~0.10Â° 2Î¸)'}
-                              </span>
-                            </div>
-                            <div className="bg-[#03060C] p-2.5 rounded-xl border border-slate-900">
-                              <span className="text-slate-500 block uppercase font-bold">FLOPs / Inference</span>
-                              <span className="text-slate-200 font-black font-mono text-xs">~0.42 MFLOPs</span>
-                            </div>
-                            <div className="bg-[#03060C] p-2.5 rounded-xl border border-slate-900">
-                              <span className="text-slate-500 block uppercase font-bold">Inference Latency</span>
-                              <span className="text-emerald-400 font-black font-mono text-xs">&lt; 0.5 ms</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Terminal Logs or Loss Profiles Card */}
-                        <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-[2rem] p-6 shadow-2xl min-h-[300px] flex flex-col justify-between relative overflow-hidden group/monitor">
-                          {/* Custom Background Graphic */}
-                          <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover/monitor:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
-                            <img src={deepLearningAnalysisBg} alt="Model Optimizer Monitor" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-                          </div>
-                          <div className="flex items-center justify-between pb-4 border-b border-slate-800/80 mb-4 w-full">
-                            <div className="flex items-center gap-2">
-                              <Activity className="w-5 h-5 text-emerald-400" />
-                              <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
-                                Active Model Optimizer Monitor
-                              </span>
-                            </div>
-                            {trainingHistory.length > 0 && (
-                              <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-bold font-mono">
-                                SUCCESS â€¢ val_acc: {trainMetrics?.final_val_acc}%
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Terminal Output Logs when training or initial state */}
-                          {(isTrainingNet || trainingLogs.length > 0) && trainingHistory.length === 0 && (
-                            <div className="flex-1 bg-[#03060C]/80 rounded-2xl p-4 border border-slate-800/80 font-mono text-left overflow-y-auto max-h-[340px] shadow-inner space-y-2 select-all h-[240px]">
-                              {trainingLogs.map((log, lidx) => (
-                                <div key={`log-${lidx}`} className="text-xs flex items-start gap-2 text-emerald-400/90 tracking-wide leading-relaxed">
-                                  <span className="text-emerald-600 font-black">â–¶</span>
-                                  <span>{log}</span>
-                                </div>
-                              ))}
-                              {isTrainingNet && (
-                                <div className="text-xs text-emerald-500/60 flex items-center gap-2 tracking-widest animate-pulse font-bold mt-2">
-                                  <span>âš™ COMPILING GRADIENTS IN PYTHON OPTIMIZATION CORE...</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Initial placeholder state */}
-                          {trainingLogs.length === 0 && !isTrainingNet && (
-                            <div className="flex-grow flex flex-col justify-center items-center text-center p-8 space-y-3">
-                              <div className="p-4 bg-emerald-500/5 rounded-full border border-emerald-500/15">
-                                <Cpu className="w-8 h-8 text-emerald-500 animate-pulse" />
-                              </div>
-                              <div className="max-w-sm">
-                                <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1.5 font-mono">Model Weights Uninitialized</h5>
-                                <p className="text-[10px] text-slate-500 font-mono tracking-wide leading-relaxed uppercase">
-                                  Launch the NumPy machine learning optimizer in the sidebar. This will construct dynamic physical sample patterns and train a live Neural network multi-class classifier.
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Training Complete: Render Recharts Loss Progression Chart & Heatmap */}
-                          {trainingHistory.length > 0 && (
-                            <div className="space-y-6 flex-grow">
-                              <div className="h-44 w-full text-[10px] font-mono">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <ComposedChart data={trainingHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#101827" />
-                                    <XAxis dataKey="epoch" stroke="#475569" label={{ value: 'TRAINING EPOCH', position: 'insideBottom', offset: -5, fill: "#475569" }} />
-                                    <YAxis stroke="#475569" label={{ value: 'LOSS / METRIC', angle: -90, position: 'insideLeft', fill: "#475569" }} />
-                                    <Tooltip contentStyle={{ backgroundColor: "#020617", border: "1px solid #1e293b", borderRadius: "12px", color: "#fff" }} />
-                                    <Legend verticalAlign="top" height={36} />
-                                    <Line type="monotone" name="Train Loss" dataKey="loss" stroke="#ef4444" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                                    <Line type="monotone" name="Val Loss" dataKey="val_loss" stroke="#6366f1" strokeWidth={2} dot={false} />
-                                    <Area type="monotone" name="Val Acc (%)" dataKey="val_acc" fill="rgba(16, 185, 129, 0.05)" stroke="none" />
-                                  </ComposedChart>
-                                </ResponsiveContainer>
-                              </div>
-
-                              {/* Small details stats card */}
-                              {trainMetrics && (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Train Accuracy</span>
-                                    <span className="text-xs font-black font-mono text-emerald-400 tabular-nums">{trainMetrics.final_train_acc}%</span>
-                                  </div>
-                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">CV Val Accuracy</span>
-                                    <span className="text-xs font-black font-mono text-indigo-400 tabular-nums">{trainMetrics.final_val_acc}%</span>
-                                  </div>
-                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Validation Loss</span>
-                                    <span className="text-xs font-black font-mono text-rose-400 tabular-nums">{trainMetrics.final_val_loss}</span>
-                                  </div>
-                                  <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Solve Duration</span>
-                                    <span className="text-xs font-black font-mono text-teal-400 tabular-nums">{trainMetrics.training_time_sec}s</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Interactive Classroom & AI Tutor Chat Panel */}
-                        <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 shadow-lg space-y-6">
-                          <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
-                            <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
-                            <span className="text-[11px] font-black font-mono text-amber-400 uppercase tracking-widest">
-                              Deep Learning Crystallography Classroom
-                            </span>
-                          </div>
-
-                          {/* Lesson Buttons */}
-                          <div className="grid grid-cols-3 gap-2 bg-[#03060C] p-1 rounded-2xl border border-slate-900">
-                            <button
-                              onClick={() => {
-                                setSelectedTutorLesson("lesson1");
-                                setTutorOutputText("");
-                              }}
-                              className={`py-2 px-1 text-center font-black uppercase text-[8px] tracking-widest rounded-xl transition-all ${
-                                selectedTutorLesson === "lesson1"
-                                  ? "bg-slate-800/80 text-amber-400 border border-slate-700"
-                                  : "text-slate-500 hover:text-white"
-                              }`}
-                            >
-                              1. Continuous Wavelets
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedTutorLesson("lesson2");
-                                setTutorOutputText("");
-                              }}
-                              className={`py-2 px-1 text-center font-black uppercase text-[8px] tracking-widest rounded-xl transition-all ${
-                                selectedTutorLesson === "lesson2"
-                                  ? "bg-slate-800/80 text-amber-400 border border-slate-700"
-                                  : "text-slate-500 hover:text-white"
-                              }`}
-                            >
-                              2. GELU Backpropagation
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedTutorLesson("lesson3");
-                                setTutorOutputText("");
-                              }}
-                              className={`py-2 px-1 text-center font-black uppercase text-[8px] tracking-widest rounded-xl transition-all ${
-                                selectedTutorLesson === "lesson3"
-                                  ? "bg-slate-800/80 text-amber-400 border border-slate-700"
-                                  : "text-slate-500 hover:text-white"
-                              }`}
-                            >
-                              3. Hybrid Physics-ML
-                            </button>
-                          </div>
-
-                          {/* Lesson Textbook Content */}
-                          <div className="bg-[#02050b] p-4 rounded-2xl border border-slate-900 text-left font-sans text-xs text-slate-300 leading-normal space-y-3">
-                            {selectedTutorLesson === "lesson1" && (
-                              <>
-                                <h6 className="font-extrabold text-white text-xs tracking-wide">Lesson 1: Continuous Peak Representations (Gaussian 1D Wavelet Envelopes)</h6>
-                                <p>
-                                  Traditional neural networks struggle with sparse discrete peak inputs. Our system solves this by transforming discrete XRD peak catalogs into a 1D continuous waveform spectrum mapping unit cell dimensions. Let $y(\theta)$ fit:
-                                </p>
-                                <div className="p-3 bg-[#03060C] rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
-                                  {"y(\u03b8) = \u03a3_{i} I_i exp( -0.5 \u22c5 (( \u03b8 - (1 + k)\u03b8_i ) / \u03c3_i)\u00b2 )"}
-                                </div>
-                                <p>
-                                  Where $k$ acts as the localized lattice strain scaling coefficient, $I_i$ is peak ratio intensity, and $\sigma$ is domain Scherrer broadening. Convolving these enables dense ML feedforward classification layers to read crystalline footprints without spatial resolution loss.
-                                </p>
-                              </>
-                            )}
-
-                            {selectedTutorLesson === "lesson2" && (
-                              <>
-                                <h6 className="font-extrabold text-white text-xs tracking-wide">Lesson 2: Residual Gated Backpropagation & Gradient Descent</h6>
-                                <p>
-                                  We employ GELU (Gaussian Error Linear Unit) activations for high-order gradient stability. Crucially, GELU scales activations non-linearly using local expectations:
-                                </p>
-                                <div className="p-3 bg-[#03060C] rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
-                                  {"GELU(x) \u2248 0.5 \u22c5 x \u22c5 (1 + tanh( \u221a(2/\u03c0) \u22c5 (x + 0.044715 \u22c5 x\u00b3) ))"}
-                                </div>
-                                <p>
-                                  During backpropagation, weight gradients are optimized via mini-batch SGD with momentum or Adam, which tracks exponentially decaying averages of first and second moments to prevent vanishing gradient deadlocks.
-                                </p>
-                              </>
-                            )}
-
-                            {selectedTutorLesson === "lesson3" && (
-                              <>
-                                <h6 className="font-extrabold text-white text-xs tracking-wide">Lesson 3: Physics-Informed Hybrids vs Pure Dense Embeddings</h6>
-                                <p>
-                                  Pure ML classifiers suffer from severe out-of-domain extrapolation failure. We introduce a **Physics-Informed Hybrid** decision model. The final material confidence blends the continuous physical cosine overlap profile with the MLP neural class likelihood:
-                                </p>
-                                <div className="p-3 bg-[#03060C] rounded-xl border border-slate-900 text-center font-mono text-cyan-400">
-                                  {"Combined_Similarity = w_1 \u22c5 S_overlap(\u03b8) + w_2 \u22c5 P_MLP(class | x)"}
-                                </div>
-                                <p>
-                                  Setting $w_1 = 0.6$ and $w_2 = 0.4$ establishes robust boundaries. Even if lattice strain translates peaks out of alignment bounds, the MLP recognizes symmetric shift invariants, resulting in accurate phase classification.
-                                </p>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Chat with Advisor Tutor */}
-                          <div className="space-y-3">
-                            <div className="text-left w-full">
-                              <span className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest block mb-1">
-                                Ask the AI Advisor Tutor about your session
-                              </span>
-                              <div className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={tutorUserQuery}
-                                  onChange={(e) => setTutorUserQuery(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !isTutorLoading) {
-                                      handleQueryTutor();
-                                    }
-                                  }}
-                                  placeholder="Ask e.g. Why does adam converge faster? or How do synthetic augmentations help?"
-                                  className="flex-1 bg-[#03060C] border border-slate-800/80/80 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
-                                />
-                                <button
-                                  disabled={isTutorLoading || !tutorUserQuery.trim()}
-                                  onClick={handleQueryTutor}
-                                  className="px-5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black uppercase text-[10px] tracking-wider rounded-2xl transition-all disabled:bg-slate-800 disabled:text-slate-500 flex items-center justify-center whitespace-nowrap min-w-[70px]"
-                                >
-                                  {isTutorLoading ? "..." : "Ask"}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Tutor Answer Markdown renderer */}
-                            {tutorOutputText && (
-                              <div className="bg-[#03060C]/65 rounded-2xl border border-slate-900 p-5 mt-4 text-left leading-normal text-xs text-slate-200">
-                                <span className="text-[8px] font-black font-mono text-amber-400 uppercase tracking-widest block mb-2">
-                                  Advisor Tutor Answer
-                                </span>
-                                <div className="markdown-body">
-                                  <ReactMarkdown>{tutorOutputText}</ReactMarkdown>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Predictions List */}
-        <div className="grid grid-cols-1 gap-4">
-          {result?.candidates.filter(
-            (c) => c.confidence_score >= engineConfig.confidenceThreshold,
-          ).length === 0 &&
-            result && (
-              <div className="bg-[#050A14] p-8 rounded-[1.5rem] border border-slate-800/80 text-center">
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">
-                  No phases meet the confidence threshold of{" "}
-                  {engineConfig.confidenceThreshold}%
-                </p>
-                <button
-                  onClick={() =>
-                    setEngineConfig({ ...engineConfig, confidenceThreshold: 0 })
-                  }
-                  className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors"
-                >
-                  Reset Threshold
-                </button>
-              </div>
-            )}
-          {result?.candidates
-            .filter(
-              (c) => c.confidence_score >= engineConfig.confidenceThreshold,
-            )
-            .map((candidate, idx) => (
-              <div
-                key={`${candidate.phase_name}-${idx}`}
-                onClick={() => setSelectedCandidate(candidate)}
-                className={`bg-[#050A14] p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-300 group overflow-hidden relative
-                 ${selectedCandidate?.phase_name === candidate.phase_name ? "border-violet-500/50 shadow-[0_0_30px_rgba(139,92,246,0.15)] bg-[#03060C]" : "border-slate-800/80 hover:border-violet-500/30 hover:bg-slate-800/50"}
-               `}
-              >
-                {selectedCandidate?.phase_name === candidate.phase_name && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-transparent pointer-events-none" />
-                )}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
-                  <div className="flex items-center gap-5">
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner border
-                     ${
-                       idx === 0
-                         ? "bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(52,211,153,0.3)]"
-                         : idx === 1
-                           ? "bg-gradient-to-br from-slate-700 to-slate-800 text-slate-300 border-slate-600"
-                           : idx === 2
-                             ? "bg-gradient-to-br from-amber-500/20 to-amber-600/20 text-amber-400 border-amber-500/30"
-                             : "bg-[#050A14] text-slate-600 border-slate-800/80"
-                     }
-                   `}
-                    >
-                      #{idx + 1}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <h4
-                        className={`text-xl font-black tracking-wide transition-colors ${selectedCandidate?.phase_name === candidate.phase_name ? "text-violet-300" : "text-slate-200 group-hover:text-white"}`}
-                      >
-                        {candidate.phase_name}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded bg-white/5 border ${selectedCandidate?.phase_name === candidate.phase_name ? "text-violet-200 border-violet-500/30" : "text-slate-400 border-white/10"}`}
-                        >
-                          {candidate.formula}
-                        </span>
-                        {candidate.elements && candidate.elements.length > 0 && (
-                          <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded bg-blue-500/10 border border-blue-500/30 text-blue-400">
-                            {candidate.elements.join(", ")}
-                          </span>
-                        )}
-                        <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1 uppercase tracking-widest">
-                          <Database className="w-3 h-3" /> {candidate.card_id}
-                        </span>
-                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
-                          <CheckCircle className="w-2.5 h-2.5" /> COD / MP Verified
-                        </span>
-                        {candidate.match_quality && (
-                          <span
-                            className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border shadow-inner
-                           ${
-                             candidate.match_quality === "Excellent"
-                               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                               : candidate.match_quality === "Good"
-                                 ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
-                                 : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                           }
-                         `}
-                          >
-                            {candidate.match_quality}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end w-full md:w-auto">
-                    <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0">
-                      <div className="flex-1 md:w-32 bg-[#050A14] rounded-full h-1.5 overflow-hidden border border-slate-800/80 shadow-inner">
-                        <div
-                          className={`h-full rounded-none transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? "bg-emerald-500" : candidate.confidence_score > 50 ? "bg-violet-500" : "bg-amber-500"}`}
-                          style={{ width: `${candidate.confidence_score}%` }}
-                        />
-                      </div>
-                      <span
-                        className={`text-3xl md:text-2xl font-black font-mono tracking-tighter drop-shadow-md w-24 text-right
-                       ${candidate.confidence_score > 80 ? "text-emerald-400" : candidate.confidence_score > 50 ? "text-violet-400" : "text-amber-400"}
-                     `}
-                      >
-                        {candidate.confidence_score.toFixed(1)}
-                        <span className="text-sm text-slate-500 font-sans">
-                          %
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedCandidate?.phase_name === candidate.phase_name && (
-                  <div className="mt-8 pt-6 border-t border-slate-800/80 hover:border-slate-700 animate-in slide-in-from-top-4 relative z-10 space-y-6">
-                    {/* Quantitative Residuals & Figure of Merit */}
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-cyan-400" />{" "}
-                        Phase Identification Residuals & Figure of Merit
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">Rwp Residual</span>
-                          <span className="text-sm font-mono font-black text-emerald-400 drop-shadow-sm">
-                            {candidate.rwp !== undefined ? `${candidate.rwp.toFixed(2)}%` : "N/A"}
-                          </span>
-                          <span className="text-[8px] text-slate-600">Weighted Pattern Error</span>
-                        </div>
-                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">Rp Residual</span>
-                          <span className="text-sm font-mono font-black text-cyan-400 drop-shadow-sm">
-                            {candidate.rp !== undefined ? `${candidate.rp.toFixed(2)}%` : "N/A"}
-                          </span>
-                          <span className="text-[8px] text-slate-600">Pattern Profile Error</span>
-                        </div>
-                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">GoF (Ï‡Â²)</span>
-                          <span className="text-sm font-mono font-black text-violet-400 drop-shadow-sm">
-                            {candidate.gof !== undefined ? candidate.gof.toFixed(2) : "N/A"}
-                          </span>
-                          <span className="text-[8px] text-slate-600">Goodness of Fit</span>
-                        </div>
-                        <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">RMS 2Î¸ Shift</span>
-                          <span className="text-sm font-mono font-black text-amber-400 drop-shadow-sm">
-                            {candidate.rmsAngleShift !== undefined ? `${candidate.rmsAngleShift.toFixed(4)}Â°` : "N/A"}
-                          </span>
-                          <span className="text-[8px] text-slate-600">Lattice Contraction/Strain</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Biomedical & Pharmaceutical Intelligence Metrics Card */}
-                    {(candidate.caPRatio || candidate.bioactivityIndex || candidate.polymorphType || candidate.excipientRole) && (
-                      <div className="bg-gradient-to-r from-teal-950/30 via-emerald-950/20 to-slate-900/40 p-4 rounded-xl border border-teal-500/30 shadow-md">
-                        <p className="text-[10px] font-black text-teal-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                          <FlaskConical className="w-4 h-4 text-emerald-400" />{" "}
-                          Biomedical, Bioceramic & Pharmaceutical Intelligence
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                          {candidate.caPRatio !== undefined && (
-                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-teal-500/20 flex flex-col gap-1">
-                              <span className="text-[9px] font-mono text-teal-400 uppercase tracking-widest font-black">Ca/P Atomic Ratio</span>
-                              <span className="text-sm font-mono font-black text-teal-300">
-                                {candidate.caPRatio.toFixed(2)}
-                              </span>
-                              <span className="text-[8px] text-slate-400">
-                                {candidate.caPRatio >= 1.66 ? "Stoichiometric Apatite Mineral" : candidate.caPRatio >= 1.49 ? "Tricalcium Phosphate (TCP) Resorbable" : "Acidic Calcium Phosphate Cement Phase"}
-                              </span>
-                            </div>
-                          )}
-
-                          {candidate.bioactivityIndex && (
-                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-emerald-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2">
-                              <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-widest font-black">SBF Bioactivity & Tissue Integration</span>
-                              <span className="text-xs font-mono font-bold text-emerald-200">
-                                {candidate.bioactivityIndex}
-                              </span>
-                              {candidate.resorbabilityClass && (
-                                <span className="text-[9px] text-slate-400 mt-0.5">
-                                  In-Vivo Remodeling: <span className="text-emerald-300 font-bold">{candidate.resorbabilityClass}</span>
-                                </span>
-                              )}
-                            </div>
-                          )}
-
-                          {candidate.polymorphType && (
-                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-cyan-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2 md:col-span-3">
-                              <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest font-black">Pharmaceutical API Polymorphic Designation</span>
-                              <span className="text-xs font-mono font-bold text-cyan-200">
-                                {candidate.polymorphType}
-                              </span>
-                            </div>
-                          )}
-
-                          {candidate.excipientRole && (
-                            <div className="bg-[#03060C]/80 p-3 rounded-lg border border-indigo-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2 md:col-span-3">
-                              <span className="text-[9px] font-mono text-indigo-400 uppercase tracking-widest font-black">Solid Dosage Excipient Functionality</span>
-                              <span className="text-xs font-mono font-bold text-indigo-200">
-                                {candidate.excipientRole}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Matched Reflections Indexing */}
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-400" />{" "}
-                        Bragg Peak Alignment Verification ({candidate.matched_peaks?.length || 0} reflections)
-                      </p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                        {candidate.matched_peaks?.map((mp, i) => (
-                          <div
-                            key={`peak-${mp.refT}-${i}`}
-                            className="bg-[#03060C] p-2.5 rounded-xl border border-slate-800/80 hover:border-violet-500/40 flex flex-col justify-center transition-colors shadow-inner relative group"
-                          >
-                            <div className="flex justify-between items-center w-full">
-                              <span className="text-slate-300 font-mono font-black text-xs">
-                                {mp.refT.toFixed(2)}Â°
-                              </span>
-                              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                            </div>
-                            <div className="flex items-center justify-between mt-1 text-[9px] font-mono">
-                              {mp.h !== undefined && mp.k !== undefined && mp.l !== undefined ? (
-                                <span className="text-teal-400 font-black">
-                                  ({mp.h} {mp.k} {mp.l})
-                                </span>
-                              ) : (
-                                <span className="text-slate-500">Ref Peak</span>
-                              )}
-                              <span className="text-slate-400 font-bold">I={mp.refI.toFixed(0)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-
-          {!result && !isSimulating && (
-            <div className="h-48 flex flex-col items-center justify-center bg-[#050A14] rounded-[2rem] border border-dashed border-slate-700 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <Brain className="w-12 h-12 mb-4 text-violet-500/50 group-hover:text-violet-400 hover:scale-110 transition-all duration-500 drop-shadow-md" />
-              <p className="font-black text-xl text-slate-300 tracking-tight group-hover:text-white transition-colors">
-                Awaiting Inference Protocol
-              </p>
-              <p className="text-[10px] mt-2 font-mono text-slate-500 uppercase tracking-[0.2em]">
-                Load input data to initialize neural core
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Lattice Assistant Modal */}
-      {isLatticeModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050A14]/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="bg-slate-800 p-5 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-                  <Calculator className="w-5 h-5 text-emerald-400" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg leading-tight text-white font-black tracking-tighter">
-                    Lattice Estimator
-                  </h3>
-                  <p className="text-[10px] text-emerald-400 font-mono font-bold tracking-widest uppercase mt-0.5">
-                    Local Computation Engine 12.4
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsLatticeModalOpen(false)}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-6">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
-                    Estimated Constant (a)
-                  </span>
-                  <span className="text-[10px] font-mono text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded leading-none">
-                    Ã…ngstrÃ¶ms
-                  </span>
-                </div>
-                <div className="text-4xl font-mono font-black text-emerald-600 tracking-tighter">
-                  {latticeResult?.a.toFixed(4) || "---"}
-                </div>
-                <div className="mt-2 text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest flex items-center gap-2">
-                  <div className="flex-1 h-[1px] bg-emerald-200" />
-                  Lattice Refinement Logic active
-                  <div className="flex-1 h-[1px] bg-emerald-200" />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                    Lattice Symmetry Constraint
-                  </label>
-                  <select className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20">
-                    <option>Cubic (a = b = c)</option>
-                    <option disabled>Tetragonal (a = b â‰  c)</option>
-                    <option disabled>Orthorhombic (a â‰  b â‰  c)</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                      Miller H
-                    </label>
-                    <input
-                      type="number"
-                      defaultValue={1}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                      Miller K
-                    </label>
-                    <input
-                      type="number"
-                      defaultValue={1}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
-                      Miller L
-                    </label>
-                    <input
-                      type="number"
-                      defaultValue={1}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <button
-                  onClick={() => setIsLatticeModalOpen(false)}
-                  className="w-full bg-slate-800 hover:bg-[#050A14] text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest font-black"
-                >
-                  Update Model
-                </button>
-                <p className="text-[10px] text-center text-slate-400 mt-3 italic font-semibold">
-                  Note: Estimates are based on Cu K-alpha radiation (1.5406 Ã…)
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* AI Expert Analysis Modal */}
-      <AnimatePresence>
-        {showAiModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050A14]/60 backdrop-blur-sm p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] border border-slate-200 overflow-hidden flex flex-col"
-            >
-              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-5 text-white flex items-center justify-between shadow-md relative z-10 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-sm shadow-inner">
-                    <Brain className="w-5 h-5 text-cyan-50" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-lg leading-tight text-white tracking-tighter">
-                      AI Phase ID Chat Assistant
-                    </h3>
-                    <p className="text-[10px] text-cyan-100 font-mono font-bold tracking-widest uppercase mt-0.5">
-                      Interactive Crystallography Expert
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAiModal(false)}
-                  className="text-cyan-100 hover:text-white transition-colors p-1"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div ref={chatScrollRef} className="p-6 overflow-y-auto flex-1 bg-slate-50 relative space-y-6">
-                {aiChatHistory.length === 0 && isAiLoading ? (
-                  <div className="flex flex-col items-center justify-center h-full space-y-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-20 rounded-full animate-pulse" />
-                      <Activity className="w-10 h-10 text-cyan-500 animate-spin relative z-10" />
-                    </div>
-                    <p className="font-bold text-slate-500 font-mono text-xs uppercase tracking-widest animate-pulse">
-                      Analyzing Initial Diffraction Data...
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {aiChatHistory.map((msg, idx) => (
-                      <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl p-4 ${msg.role === 'user' ? 'bg-cyan-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 shadow-sm rounded-tl-sm text-slate-800'}`}>
-                          <div className="flex items-center gap-2 mb-2 opacity-70">
-                            {msg.role === 'user' ? <Focus className="w-4 h-4" /> : <Brain className="w-4 h-4" />}
-                            <span className="text-xs font-bold uppercase tracking-widest">{msg.role === 'user' ? 'You' : 'AI Assistant'}</span>
-                          </div>
-                          <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'text-white prose-headings:text-white prose-a:text-cyan-200' : 'text-slate-700 prose-headings:text-slate-900 prose-a:text-cyan-600'}`}>
-                            <ReactMarkdown>{msg.text}</ReactMarkdown>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {isAiLoading && (
-                      <div className="flex justify-start">
-                        <div className="bg-white border border-slate-200 shadow-sm rounded-2xl rounded-tl-sm p-4 flex items-center gap-3">
-                          <Activity className="w-5 h-5 text-cyan-500 animate-spin" />
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest animate-pulse">Thinking...</span>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              <div className="p-4 bg-white border-t border-slate-100 shrink-0">
-                <form 
-                  onSubmit={(e) => { e.preventDefault(); handleSendAiChatMessage(); }}
-                  className="flex gap-3 max-w-4xl mx-auto"
-                >
-                  <input
-                    type="text"
-                    value={aiChatInput}
-                    onChange={(e) => setAiChatInput(e.target.value)}
-                    placeholder="Ask about phases, peak overlaps, or structure..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
-                    disabled={isAiLoading}
-                  />
-                  <button
-                    type="submit"
-                    disabled={isAiLoading || !aiChatInput.trim()}
-                    className="px-6 py-3 bg-cyan-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-cyan-500 transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  >
-                    Send <MoveRight className="w-4 h-4" />
-                  </button>
-                </form>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {showGeminiSearch && (
-        <GeminiFlashMaterialSearch
-          initialQuery={searchTerm}
-          onClose={() => setShowGeminiSearch(false)}
-          onSelectMaterial={(material) => {
-            handleMaterialSelect(material);
-            setShowGeminiSearch(false);
-          }}
-        />
-      )}
-    </div>
-    </div>
-  );
-};
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      xœìÛrÛÆ–†ïý½QS;à¶ÈP”äƒEQ’í±e«BíqoWÒZ$Æ47 êàDï4—s=0Ï4«6(ZOíñ	ô¹×Zýwƒ¢û³â1çP
+?KBŸK6Ì„Ì=íaØrü«À×d—eWSÁööö`Ú`ípNDq)ÕB7X7<Ë¾™û&l	H°v@¤€µÆ9™¨t:QÉ~¢âO1¬¤Vrófniî,¿ ÑÖÈ°æ8û"¹’2œE5Š¬#žeé,7uæ6÷º]ˆ°–@¾€µÇéËÇÝÇ;ˆá`=ñ´‰Ï¢0&áÒÏiƒoŸ>‚pk
+¤h ÎñøÝáöâ8XWH¾óq,Ò°Ò/0y°Î@¼€FàœòÍî;„r°¾xÚÊãŒËYÔ&cÏ%L¬/Ð/ !8oF[Ãá¬3¤aÞ„j’„9cæ£ÇÓ#°Ö@Æ€ÆàfÓ$Ìð—G`Íñ*[gî`Ö{Ö(Ð œÁ„K_ù3 x¶ÁM3„¦kThÎ€'Yc±Ÿð4EŒëg™=3vÏ½GÝ.¬¬?Ð8 a˜Óy‡þG!w·èA#ðj–ÏwÛ°}Ð s@ãpúr8B„ÍÀËžEú*f~¦ðu‘ !@â€â«SÑC˜MÁ+lžE*V’_á;±As€ÌÄÙçÃø-¾—4ý_x¢¿™o˜ñ8æ™`'"QçéG|ö4
+ÐPœá¨7> Qx¥á³“‰ÊÔ¹’}ÆG©JF8õÍ4gðóé4/7|öJ¤™À×GæÙŒs$¶ž|Ä4onþÌ|ÒGìH$‰Šô¬Êà i@Fãü|Ú?‘J¸üwÆX@ñŒ°Â<4"Ðpòàœáñ h(žåÌ=[o·ñÍ ‘@Æãœ"þƒfBjèDÉ+‘M®¤ˆIB†= s~Ú¼Å* šŠ—» Î¦"Á$‚Æe Ó]&"P€&cN’Lò8`¹?0·/ÃLàì4¨$ Î[ž‡1>fWysTRüm>th4PJ 8'W‰ºK éxsg`îaœf<ƒ\ ‚	€
+g?Tø+6 òÿüo @¡€…s<K}uŽå – <€H& j8¯¸’aŒ% ƒŸ  „ 8Ç*LSŽu€ÏvæÃ>Ó€2
+€8¡š¦a @· `H( –à¼Vqp)p€…Wóæ¾—vòHÅ§ ¨€º`)Îp2‹ÇW Ôðà ,r
+€Ïàôã á-Ïy|Ó8 5<ËGXî$Ìð­#Ñs‡áÛíÖŽ¯ ¨ÍÀgqJ¤Øªp¯òýÁõ·=ö"OÚ'‰HÓY"˜þÿÁ‘J¦¨. €îàœÁ„+(/ –àUþÁÜwýkÀ“‘ŠY_J•%jŠïFà&Ð] ÜŠón–dŸ ½ XŠ7wóñx>V1—ìçxÑÀ » ¸g(?”„öà3x5?aî¾œ	ÖOG"ÍTÊúÑtŽ”Äù ËàNœcg‘JB)¾µ€ÏãÁ[ ¸'` Üç¥Äa ·áÁM ¸ˆ. î…s ¤Š°¢ p+\€û ùÀ=qú‰þP1– îÀƒ· pO Ã ¸7ÎK	¬, Üwà¾@Š°NÊ3,. Ü¯òæÉ™Jxþ	À@°ÎÏaâ«ë wãÁa ¸?d ¬ˆsªfIÄeãÜ€{áÙnÃÜ¡?Q‰ÄÁ ÷J€•qöEr%±Ì p?<ø +qÀàôeÄã 'i ¬€gysŸó$Ó ¸7Ðl |ÎÑLJ‘¨6 VÁ³|‡¹ƒG]ˆ6 V ²€/Ä9~7xsŠ%€UÐÿ‹i&³°}ÁI¼lÀ“‘ŠÙ«l6)scAÌ°s |1Îžùj„µ€Õðrbð  ¾è7 þ ÎsÉÓô
++ _†W:t _” §g“„ûøB] ¾NÀ#—rÏîã«8ÍXÄ3¶ÇŽû§‡?¼ì¿þå`¿sÆëF-¶÷=‹:1D'Œ}9Dê¦‚'þä•¸jµžÅ„gÌ¥BZlÂã@Šcž‰$är(¤ð3s'OyM?¯MåyÅSž¤"8Qaœ¥ÔóöÇŸxÆÝ0žÎ2ýªeÒû-¨8ã™š¥,£™¤J–N©†d±3•°l"˜Ï›&â<l*UÆ.ÂlÂ¨A‘#3wyB¢÷iÕk0á‰©‘Zòƒ ´Y*ŽE¤\×ŒÃoæ#6½µ½åPªŽñ˜ê'íÌº-–ˆl–Äìý‡<‘ùA]ª„ÊÌ‡atÅzÿûß¦?¾<6 Ž­êSJOßcï;Õò¡£¯¸.ß`#ÓVÞÉ.ÔéDPgÚlT½)Ú&ÍyŸRyIï»ª4V~i%É•ýi³ÍÅ,eg/§dl¤fq`ºÃ©¤dÆ&AQ/™È¤C¸½üR›í­+ªÍS„±»¹ÓÝÈ/>¬ÒXcáëi«L¨YjÇËØOOE9°>5(3ãšFJ‘­$L·3R‰ {Ñ”º,h‚â€l·6ÚyþÉ¾ÇzÝî3»þ4Sºìš¶MgZì[;“Õd]»«Çö’²è¤ÏèÕw{¦{úåÃ=S^«0¶||.ý—¦înép¦œ¢uLs4Ïfà9Ÿ¥i¨-Hð,pÚÃE*’Í²P†Ÿ¨—5¿0&¼Ÿ(ˆ¸«ŸTÿB
+êf¯³µ³SŒÇ<í9—Ú=:ºô8³+ö·|>ÅåÔm›WSuá^ÒxM++Ú`==pn¯L¬“¤úê<Ð°j0h¤¨–òúuñûAÕù>Íët¢ƒÅˆûÇ‰¶F
+OR1_è>“ûPÔë=étY Æ·ŽÈ¸*«5GãjDæ)¨í[Ÿï¬®ni77wòóžÎ{B¶¦*nËð£`1½)fQ7ö–f¿Ñ)_‹s!ë­&†ãØÌP5˜Ô™gµdy=dÖ¦‰	9ŠŠ(¶Y·³Ó¢–/TAWºíz´†pù¦žÊÛ©“VæÕ,é3Åús%©wJ§ëgdFÅë!—¡ˆý+æ>OxÐôÙ…Ç“ÜMôª@éZµ†hó×‹GŽL‰VÇ¿7ms£6­zgÒ¢Úwy]vxêR§òQÒ6æÞ¨íoìéN9×&Ã†UýæÎÍ9·"Zg:K'îÜ«K_ÙeofÑH$îe'SGá¥\2ž*]åxUÂr6–§/»W%¯÷·Ê´9Ïtm­é¬\Ø¬¦ë»×ì}µ0n,†E+Ú¸áNªÕÈÏÃìÓÇ«ös%ù•	Ø\;q¹ÔTCµœ§ã“üò¿`9ÿ*+tQH¾Nébøt*¯Ê10CàæUc6¿#É¦.ª·bœa/—Ec‹u<âS×RrÓšÊÄæfæâ^Â/ví ^^/›¹[½z~ íšõÎZ	–q»À2kùL¿
+»È‡)Ea64uê€H±ë+Ïó³?íüæÅeâRG¦²T3ÅSÝ–_ÿí·ùlV¾¼Õ¢×wªÙ°Üüú×Vç?É]ç±SÔ’Šìe9\®®¬¸>¥Ö¯hk~ªbá:éÌ÷Ešæ¹®oÌ“I)Òð“ÐŽuÂ)¸'ñÿÛt-
+Þ*çó6¤ùµl™l‹QZ%îÎµ(pw*ûäsw{§¸OZÍÖãüv¦çÕq*iû\Ä´Ø“\Pt¦î¦ÅZI‹ð¦–3d´3â~©âî!;)çÊª“Fâ³’3Qg¡+hÈ?‹„\Y;þÙDáýäžÞL=Ó%©³3rìZ&-÷†¾qÌ•$ I˜þ“âà¼Ú–‘†›ÕüZÚðe5µ·(D«-‹ÃPºÍ#E8[	™ÀV¯ÃŽmÿˆµµËòàF%wHÄQ—ïæô¼$BëfØ-JÆ";™¨XÅG‰øçÌhX\_S‰±Ë^ŸL¨ëƒò
+ûÅ3)[»ôK‹²yxÔaï/UÎJ‡löJž×xhæ¼HÕ’§Yè«`&É&ÿÄg×˜À—R[:Ë”¾ÆžŸp«”d¢jåÅ¤Qd 7
+ klü­mYEœQõÖ¹³]³’C2y*½ß¢¥^¥,¶ì\\Lh4ãŒÇc)"rJz¨©Ñ¼Þ;‡UKûm·óôéö|YÐ&ª#ãüjq‘Ö†ÊO®ÒŒË!ý‘GÝy­.D2 ÌäH4~eH×•úéüˆÍñg£ÐwLšÚõ0U‘ «¤{å§jÊ£§[f2dL`n
+I·tÙ¥ïÙEMÄ%ë-•©fY
+ªçö4wÑH‘ÔHt"“b¡U›îÓ'e«¶ZU¯ŒºU¶çF![O•…lßV)¦‰2­Z2B›ÇO7ËbÝVLD^êS(]RH¯Ó}ü´,äÉ­¢Y*Ë˜çÞêöÊÜ›ÝÖËt¢‹šéDJ
+½MŠ§v×n·¦9×²Éýæ¿ÛÝ$ïŠ.–y“Nk	¿zÌ¢Ý‘uh Uå" g8ÏÎÌY)Š£w/Ž™KüÉÿü…üT¶’¿1²ë8àIÐª<R¯.¶#½árÏ.&‘±ÊÍ'–¬+5öîö3is°ý¤·ÄÓs±cŸÏÚZÑx¬}’\¨ÁÚöÌ·0=S?Ñ§}{lI>-Œ(0>(ÅV~8kÒ§z7öóãG­­"‹mAaCwîòí-©þ¿§úX²œ¢ÔõYÈ½üñ‡kFhµÕÏîòŠ³³£|2ôÉ?©¶E¦Eó7yü†ýõ¯7î¯mk‡ös‹7vÍôÖL²˜þÊÜ¢öÖT½^mÕ'ëín’Ø!Î)~·Šy0“<Ÿ¹¹ìÔ½Ô§ì}À[=  •%híÎ‡%0ÛÉòxHèÇþÄœý’rƒ/OÈj;äÂ&ò}²enåˆ3[ÀtçúR·55>D0_uhdo\ì˜¦ˆà}hTÓÒ5±åg¼«äfõö=\üäN4íèËUéÔ¶Î<åi¡P‹¹³Ôô\9ëW*¾`½-]l¾U‚—·‚R×VüíZ'ZV†]³„?›WWL=·e˜išŸ‘-9ÔXÂÝ[; »P„Z;“-`j©w+	2¯+©Ýù˜ý…S'³ËÎoÙåÞ(ëºÚÑT'te(9"›
+Êà§ÃÉÇÂ9ÊË¸ÙR¶­-¥pÆåî®|êf/_7·½æõ™T*qm—²6™Ç>µàpcsÜ+W}ÊzA5G]ö`Ê<1jÕ¢/ å‘]íŽ^ŽÌê¬_ÐrW®qù}}dñ ¾Îªít6ßNgËŸâ„Ë‚Åòç8yl‡.ÚNë²Žãµ=o=îT~¤Ó¶Øwl»Š¤5ç­Ðp÷.[öÙ Pºåü·EÇ¯ÿXd¼1”E€³#Ú*#y#ÒÞ[oÊz,]Ö"ªOïŽ¦±T;È²û>vXv¶he¸„]%¾.FÄ¯[—>òÐãµ(Y}KªÞ¯®)ee-ªŸŠÍÚ¯ø&–aéÇvÂ¯Ø;~.ŠÔîfgg»ûˆõã1ÉB¥su>øû/¯ú¿¼îïôÍfH',>¼$µÏöi6fA»89´¨í2}H-y4
+xyN•RtÎò“ÏÚà`Xä'™^Î—[ív1oð^­]‹¢ÞÊ­÷?ö[—îâµï©[OæOej›%ÓÐ¸î…k·Jï;Z¥§ž¼ÔnIeÔÕê|a«ºL%Y'Ð&Éwö¡nmfux>v§õM˜¶i)Ã±Þ[ùŠ^¥4ìm~®ÈbŸB¤^ÆcóÙ_¼zm4¬y¸/ùˆv¡µi0Zw˜ç!«ÒPwÞDÄ]ÖOÈt¾ûÍòì|vž-¸dyuòQzä ™©þúûÛ/S<ÍGþjÙÌÑÚ³~Å§'öá”Hg2«úó`1^í¯þ’¾÷ì–×‚Â”ÓSqŠdñÖˆcñÓ[s¨Z¿wý}¡;ê"4Ë#ýú?   ÿÿì}ÛvÛHvè{¾¢šãnSÓ$Å»%µå^²ä‹2¾(¦¦;iW$!1H  (‰­h­dÎÉù‚óç’·<'ïùˆù’³wU¨ª€%ùÒÓœ5m
+U»víûå!‘BlàÒ·ß¦¬†oì*Òç]üV*Œ8Ô\›°Zã:¨Äåå	ôvàÄ·ž²†x#¼	_-î
+}X!…Hâ{ø!›~Fþ@ÇA€eì¿á+éˆŒ11²¨Ÿê$Ou+<ÕMžêåžÊ‚SäÍÒ¸•ŒïìÊàí¾û.wÂ¨«pWà²]€l·ÕFñ‰Ýœ]®!+­ðuÕé¿ßâÌ¿&}qôèÔsfŽb^ $ô]í=Òì¶ýËûÚ¯ýôk¾Ó¯=øº_%ÄÙç“Dl CcÜb²Õx©/]êâ¥!^jî$Æ¡›r#‘9Õ%ho%ÒÛ«¬üt
+ïO%ŠxT!‚B$	8±ô'qmyQBdìí_øÑ,, p	ŒÁ;·×ò}\P5ÉÑÀ¿ó+ø ³Gå¤­ïe±ù{fûXøºØ2 $®\Žêº— ~›S	lµœÚgÎ˜ 0\ý ¼êÊW%¡ðý½+íšþóýã^¿—„ÁäÉ$Ú 9ÕÛwCMm)Ø¬‹Ä„N¼D4ûöªB`âG’ß»Q]<€eV	ŠÃB3»,¾4þ÷–fÅ¯§ ^.N&üxGÉAðE’¤>x“ú„°µìÅ<“Ë±«0ò§žçF»¼",ê­ð_»ž5m0iˆ\ï|´ÎH*<B)&»[ø3‘Zdžƒ‰…²qm½Ð¨	›þ¸ZZ#Œ¹ÙÊ$è¡å‘×v¢ÄI|A@»ÕÞé%$)R>œ:ç@7¬0|e-ìýÚxÖ|û»öƒöQgçÝöî€z¸§ç7Çî*h.¦Ô«ÚÏî¶‰ßìê ·§Íî¥‹a¤Sï¢ù¶ýshøÏ=üO0[õvƒþ¯µ³õŽq’± ?ýÃ}Ðnoï´ÑlÒ„aºÈ'ÞÕ	Èñ™k_’„mwÎÖÍ±]Øö’8 µ°ÉÜñd1nöˆ?nv[ƒø]cù¥;í¶ôÍ[¤Qg–ßìfž‚çF ÁÂƒ  9üŸ®y²¶–À›Ú5²{Ô*éÁ3o5Çž+¼ §? ŠDì`PóÂA8®|ß&èï¡O¼ít²°c¦ÈxplA‰ÈÎc'’Æ6@cøtâ3¶ìll§Ùóä— Òe³Küu³Å(µ˜æ!œ_,"ŠeR	0k0z~_µJÝ¸Ô‰¼ Çe˜¯„“(ü×¿or~A¸rµý{2J­¯‡Ì™ìz³Àòçpá%õ‡ä÷Û×Çg8S‚ÿi‚ZÂP¼fg¶Ž¡Ý.;”>=BñÞÀiW`Ã³„ÿÁWšîïn²½ì5¸¿Â‹'#
+âSìKjÁ¨OV¹e°ºiS ›§½°ËÒó®ÀÊ	Q	¤”©ˆ$ý­kòßÿöx[í/ÿòk×·xD?ØE;Zªþç?þòç½+Ø‡Ö¸3ËVà{K§óèï[€J(-Ô+ÒÉ,ë‚Cx¡­¦—É/œ^ÂqŠÙN¥;£gw²IÇî©É¦nÏ„_:Ø¦€ƒÚ0Á··ÄR2LçŒdX„ZWÉKtì«°¤o+îêµÉôs¨²uý7dIÝ¤[—yýU,n2	J©âL/cs“Ù³S‚ñs«ø`¯÷¯ÞGLnb,/¦ê]Ã_0Üõû,]!ÕEŸ¢·€°sxxû-ˆŸ½wÐ³ŸÙÝü.l*„i’Yã=@s‰«­\MÛ0Z»öþÕ•òG"Ä‚z®G•›	þÑÐÝï]Ž¨°¼GÞ·ýKnMº~¯~ì:¿g$/KÒõ+“RŠ	A°ZNXÄ%Êß^NþN?1>©Þ®<àJ6•LV1Œ‘(Â—âÑx·ÈDÚU«»âÑ0~ëÜrW´¸	©±óWŽÍ/Î š¸@/^òR:û¥,€û[2@f5ñC=à”3Î­-IÚËñ«ì™ZD¨Ep~ùéŒrâŠ~¥ZVVæ3'fâ„(¿g@pœÆœ¼U0±3TYA©o¨@d&@µ©æã ƒ‰àÆÿùÏ&h%“Èì›ôUåDdØØì')ñ%ò|‡¸³=á+“ïw€©8Ü gIÎ¬)ýwº
+¨3n
+ÛZP(‚(Y1*§žOžÛRóoÈKoj“Ñ…ƒVÁ€<¶A×ÈÎ¦3@Ñ{‰³ zÊµ—fä5rx‹ØôpôŽœ;~;ètº}ØOøÉoH¸Øó›Ã„h÷rºˆÒÇÌ‹Ån•@E`£ËòÜ&h"=sáêÜ™Ní¥°¯Ù©[cíøéùÍ6	ÐÂÿ^4w‡À<à?°á} ´‰Ì„PË	ÎFÂÜìsXuD`iK†€B,¦{ôïÀ»À¿Xs²Ô_šv¹%ÇXû%zÜnäÿ#Z€rÀÐnL“åRøWzù3x"ùN:Ë¥Bö|gÑÉX_p‹†	ºû+7´sÖò”~cqäá¼“—k]Äbú'‚-ËÕ¨”RÄ‘NÉ‡lÛ'/l+ A—ôIãÙÉñ”[,…•×<ïh±8U•Q†aõ,Qp•û,þØkKB†ž•*³ž-(¡ppŒqÊÓõæŒ.ú*å#£ü¿lçdvü°6>…½#Á¾Ax ?ºW Þ˜ƒ=µ/i’+:é­Uä-hÁŠ7Žž<%ÿ´²ôÛ÷pÛßÈ\ôw+Œé{¶‚ùÅäûÔ›Í\»ÄH”R¢‹Àò8¨ŒdõÎ‡ãUå¦ï-]˜Èþ‹Óíh4÷.èäèÜê_…Ò÷­¬Ì–Níê½Þò¸ÛCÜíŠ&+I§dƒÀZ2ShÓr>r//çË“"
+,üžÔRò7d˜/Ó½~l2äß»hVŒ´GG’¬o*3yF¨Ÿ#SÛè» =	ÓÊÊËYU0w0žÛ®è×Öš¶ÓõéŒÛ®2 Äêø/ýVÃ%øY»VkÙ¡$Ìf¸-#2>ëü½ö°}ˆEGfaj³fž[å9ßs¯Ò!áüàØ¸Œúý8´ô¾ý'ÜŠæ`zŽ±?Óç ªiÕšú™å
+UTÄJ‰Žk¶ô0ØWÿ Bgªv;²ÙX>ƒŒüË‡Pqú9çàa)		ˆ”º);‰
+3=œ(Už;žkGì[zj¸±˜ª€¨¦ œ»Ä5–6oqQ0àlä×åƒÖ£v
+ü/}‰…z(žxÅY‹O[X ¦îzKÇã3•¹~K¸L“-¢0ØåFˆ¬yî³ÄcžjX,â­Ùd‚Âô9¡±‹Öáb,¦jv1?¡À!§+n« ¯N Ê|M¾#a•©¬1p9QPzl¡²!q”,'Ë˜ý.<Ä€VÖé,3,­Rº 0Š¢Ý s3f”k-ÒýôþŠµìC VFÆoA4ŠA9ûè¢é×W…—ëŒ@Ñï¿Ë¨ôyÎk¦œ¡s¤#`V&“r—G^3FDÏkL²UÂLùeJSíQGc;=œ{Ì?æ%ÍÌPÑaÁYeÇ•
+×–„K;oû‚·#+@&Z`½‡YŽÑá™P’T{ÄÖI`cx hzó#2¶]ï‚Ôi¹‚Î¡÷ú/þsƒŒÝ[’a¿=m/ §þ°…®|ž³öVñ.–X¯™¦Y 4h½¬2Ñª¬=ÝO9m¾E<å#~<<•–PO»:<¥˜rÌH æJ}\D}îDe¸™ÎU¸å(AÓ9Óê‘ÍM¨®Ûá+ TçˆWÎƒÑ03:da÷gžùÍýu–dá`Ø¾=?2JŠÆ˜[ÂIÑTóqR^DE¬ìi°x¾‹ßÐÐÚð##åñ’¦JXK¨õ(ìEëÖsX7h¹› Ñ™Íˆˆ"fáå5îâ´|ŠoHÅ²çN¸¢ØTÇ¾‡Û©H“^Oì2²4…²•Å:}gÎŒûÈ7Ô{pb-m74÷ÈVpê½ ‰ïŠµòd9ƒS™ykýÐs]Ë”ë’²©6
+ÒL-¢òø–,ßQ”F+AiO£Š‚À.ÉÅ'vPà¿H
+Î<s²¢!C)\¤¾Á“ƒ×ü\opgÅDöÖQ…ç žƒöGôP€„s Çšª‡#›ÖÑ»
+b¤²i)iƒÚ½}“8†y/ïÅ_¨ÝµGüä0–ÂÉ³ñp{Þ3Š(²ý›oTÖ÷­
+×âOô”[ø9 M§	Z òúk?r@Æ¦Ù°¶+Õndò'1ÿ¿²)ÜáiMm?š_“¿üËÿ#ò”Ó=`¿þÁ€fnú@/Ž`ì¦o27¸Ü×óæÇn9´f®ô™Õ7(ÑWÀÁ7@ä~»˜6rÖºŠ´†þM•ÔÊ¶¥`µÄ=Ç-òV›©¢š>Ý¿rB~¬¹b<S‰q'ƒ‡Làà„XºÜËâ¾ 9Ç¸Ï/õr‚’Âù/lkï0A˜”‘ÍP˜Fì}gYK#eØe˜Êç{D/Z£º!µÓ÷C4;èÍ6WÙçØ_­V‹>žœfµ‘ÿÆ&I«â%tÉÐ%Ç³g"¿–ó&ržM.D)Ê …0KŒAÝæ$„–XÎísÐxŽP±.Â©„F*ùã&v9Œ£ª B¥! o»½x'FzhªíjÇÒˆUºð&zçŽ«2“ãÁ”Áœ<N«D>ã±ùeî©$äÄY27Ûäø¿"~$¶ò5y %e“­MüiøNœ:ÿ%~§lÎ¹‰HwóÚ¤ˆ>Ig1#a0Ù¿šˆõ·™ÌñxvM,7Ú¯e¤ñšŒ@T~˜³¼ñ?‚òë9Õö™vpâÁQ^ï×–^3¾¤Â®2€eìæQ`Äq‡±oÛ»mcÄ¿÷ómÀµB}”vûm“@¡·;4FBÜÈœáP‡…ˆÀº £rò(®2LÔ+fÊÄbŒ‡T‰¤}e^¯02ÄI9.ÉXy rífÕ	1ðÈ$ˆ¬ªfÄižk'aGYô˜ðÂX“QEBeÕ"yk”,]#:+¯æM\þ¹˜šÄ7¢Vj”Â¿F³QYlÚ
+‹Mi¾ö‚áVJ~A5èhfýÊ†céÂ?Ñ…| ‡^—Æ•ò¸NµÔé›†¤iD)cÜ\
+7­4¡²ŸSðÝ3Ê(Þ3H¥*O8O"Ö©í“B`rf«Uš£ÔE2¿LœÓ„ØöÏAœ»»Ûè´»n¿Óh·º[ïøÌÅ›»måÍ}¸Y¡% 1qá4)xA×Ÿ-› I®¢ššd¨Uön®.ô´êÂm)z•A)B¦¬AÇÔÉUtóõÊAapj<%±Ã@zÅœù¥÷ B#ÖÖ
+!ôÏÿœƒµl!—#^%,Ü‰ñª3ltvNw—åe×¤¨3iU9B•òM»ÀÒ€µjAž ¸HP€U¿Y- 8õ,@¸ˆÿZ£á¡¹\J†:ÕlFå”ÓHeÑV’K=i2×C•ƒ›ê¡dá+4#6Üú§ƒ|ª‚þÑßX-0#h-^Â5”‘cæ}êùžëÍÖäîCa®…â Y*ùŠú*âÌÖSÐk©:U–Dû¹$ÊQÿ‚R‰-±ê«5)g*dôuß‘·+üÐ3³÷ñXAÂ¾ë‘÷óØ¸/E°àý2jÐó/^Ff"ÓVÏ ÀgSÌí—9·A©O“·VI\
+sŠ¿2ˆ›-IRHOÎÜã,jV‰s/#ÕiZ`š¥%Ì–¦×Jˆ\ÂUÖóæk£1ûznQFùï…X”œ•y³Ð—ã®87õÔÑ™Õ¢Ëôhâ)Uc•Š»sÞÉdÛf|ãzïß\ÕÍˆ¬’´Ðl©³BR¿—t/–E¨¢nª‘v§Ð¯dP³ Ã>`+`?:Â0Ö€ƒÏ›þ%Yóö ÕÆUˆzàlN®}†4›[Ø.šížFµ(15†	&ˆÕ¶„jb(âåy{¿ýõý¹Ä×÷ß¡lŸ
+xË4Ñ@>iÀª|ÛŠöà¬œaäºA°ñæ¹Ï8Ç}¥rP	ö]ôÇ<…ÙÔ·œÿ:w…ßLNa±%º)	b c*•Ñ„ç09Î”Ÿ£b	'Z£‰v4§º\H(]N¬ª‚†ŒÖ9TqSi±Î"iýŠ°’!{¤G®yÑ²Ÿ“®têçùliñçZÞµ6ÅŒÍ~[¶Âjlj$›Y¾LM¯ˆ–d	Ip‚N”ºÀ3r\:ÕÝ«Âs™¦«ÔiÇ›¤àß	}ÅÚ9º}ê¸4á‹¥®qˆþ§ ¯2……c$x«[DjUp‡1]ñ¥å›ÿ–Èk¤ß2rsR¡#êm—½W² &îoŽò‹?öÛ²|•XùºíF··Ë	qjicý±_À,öˆC~Oú~	„v„+MK·nLÒAÑÔþ.i."Mø©fŠ!…dªÉiK†Ò1Š %sDOé>.¤ª=â'Iãs7¡ƒ_¥KJú}B2§>¦Ìæõ*útº9z’ü²¹6‡ÊH}n¡2Wv$²%“nöÄúž‡ý'?Áä&d|«h:U&YªÇÑB`Å®©ª·Uªå§ÚƒÖ ÐÈS@ÄÆLd?HBµÛ¸™Ô›Å!V²ŠiËü„rØ_ª6ácBô„µÂ½p
+ìS­ð—Ý6Hí¥*»áÎ@Æ=;·‡†±MJ7Ox—9ØLË·2_–=Mœ{4A!$#{¢p3È®ÒÒ‚“Ô8¢ÕH£¶^VêFýâÑtú4üH¾½Qµfe¼BiÕ.!KÎ$ŽCãYS3Âœ?õCÅ<'ÔlÏ63b4—¼~”(8_ŽÔ³NŠl²+‹oÄuýõí	Ÿ‰·1©Ë9­³–+VTXë'ÐIJÅÒÂ2©ÌaSÓ…ÐõÚmµ³\²“¡À¤šV¢±Ž¡&úþžbÞ«êTÐÉOí`½«Éof¢”gJô$1SµZs'Ý¾5â'IÍÒ\ñÈ´¬_IÑã8u¦¢»ÞŒV7Õªé‚Ž>½”´ôL~]¼
+7•°8Ð€W«¡^ÁÔqJ4¯O›0 ¹,î#K‚&§ y©Çf^Ö} $æEÁ”›‘[jR¬TZ#ÇU­Û%2ò8)ÜÀÙ—Ä`äÏ AqË÷Ý5{Y½WI©éÊŒ01à©mOÑu_¯4	C\`[,£ŠMàÞP;Ö©³°½UTOÂC²ƒ×¶¤Ûn·«Ö.)¶é«b=tIº:Þ˜w.ä>"'X{Cq äÎŒR+žÓJ5µÏ,L·5H^xcŸÁVÍ/dî“î¥—nfqŒòJÔ¸Œ×OAXÌbÊ¿†Ú`2jIÜDy/òÛ¤öÂ» £WoðÏWÖÒã`£¿`Œ,Ëô­½ãå¡q–Ò©S¢Ô”>ª"{GH>Dl*œW ÷ð¨Gèþ=>‡ûüàŸi'ïõc™ òiª'‹¡w< J}š¶™‘˜„eÅÂ›Ðp’IÃté*?Ù:rÊª>Z÷¢R4ÁAÅŸ^>jl‡Eˆ†<l¡‚*v«Ã;]¬V–ÛjV˜s³òÉ6ùÛÑëWd´^NXâ9yÌÇ7$Æ™ÏrÕÜö²³p¼ð½ zr‰ÿe…ó×uŠÝó·¡·<”¨#ìZ¬å!,¦.êÅÖù”t·nÎ«V;/ÇhÞ·]•ƒµLªÎ?„ëWÅBD^©až”;¤Éð“…GÓìV‚ÍVñEÓõù¸šH0o —Šrª®%Š¯å_™H$9¦MIä¨(ƒJT“éšn# RWEÏXM:ß aE0‘„Xþh2O‰‡BC¢jv•*ÒCÜ ²ÙBNø¡ååA’N©†…Ï­åî­Û1§Ìœm»o™Ù«Y_†œ¸>»}Yç×…Ì-ÞšnrN,0všÃ@3kÎ¼É*ÜËó6Å<}`Ïö0Øök'VÅ’x\„°¹Ø˜OP®zkh:¯£ótêÅ-†Ã®L];Ý
+¥gVáäã‚‰,(²óu–•é.L’Ð
+4* «UgNµØ!SªÐº¬C€É „,­sgfÞÜš¸Ž?ö@„n]°¶±/öQ—‡ž‚+—V§N :»»F-'yýWjåx?J¶_Ê“J±%•oc †kîa­„/¦9q%í/hæk¦:ÊS/Xg¨èmÐ*mP(âëx•ÑÜ9Ë;•ÍûÁ½¬«d‘l¥UÜœ&1“UzAsn»¾Vå|%…Ïâª€#†VÚžžÚH‰ 'ÞbaSa4-<|£`. E²+G»‰0ŽHÍÌÅûI[”óxyæ•È‚8êÂeµNT¶\ºse¾‘‘h„ç6kÀ«t…Ð_ô‚.$ÐDRP“Z UO„Aë:‚V"³šÛÒ9í±¶¸ÇËœD¢i€¤·*6ÐjZ{AMKì ±´Â.íoÕ“éh™È£.2/‹:LºAÎD…£äK¦Æ•Z’¥Œ-Â‚3¤m9á?ssA¸ˆÏ0Ï¹1LÕB÷'HP±z×Ç‚Ðò±wÙ#¯¬ ð.n³§8¸$Ä¢Â
+†|pù€üˆ:Ø{bûˆ.úò¨ÊçÑ•GaiI(+ Ñ§!Uí.a6:5½¡ ªB´7Ÿ¤+C¾«•)òâUšbGOÒO€GÎlUÁ9­aˆÏÐ™¡½7á-]yÁ§,Œ6ýqJÖ$y#¶ñ‘ó«dEUÎmVÁæpÙ°8$<âÒ8§À3W¾Ë²âNï’ÖÞ»÷é×Æ.ã¸ÒÏ†Wò	ýÆ(¿(FÙ-àB#º“¤ÞënUàkÃ~ÑI³‡a¿Ê îNÁ¨Göç	7Å	cÿÆ/uü2òZÚ+€¡)®TÕ9ã””×Æ’ÆÜ’˜9¢ƒýŠ¹åsÇ,lô1ÕRˆ¼ŽÁpT%:€é
+½Ìbe2t(Nì0D°b½«ó5{,dÂ
+V<ƒÇCP4aawÇ.Åúµ±K–­ýÙ0K:ßXå—Ä*;E¨³ÃÒªCR§ÑUx[¯ˆaöúÉÀ/íi•aí"µKéM%^ÜîA¢ÝI†~ÜÂ^Ø¿1ã˜ñ¡·ð‘™Ñ~Ti²x5LPÇX¹	2ÆlòÐœŸ°ÌòØœ•âûuqcï‚Àá_†ÀÍÓzóæ8SxMË5atÄKâ:'î‰1vm{ú98GCÁ\]¦AN,ˆÎ*h~wü8Ý®OÇéVeFUÆ®ÞÖÖ%Æ‹Yç³8NÌóõñµn8(æùj¯“¡.Çás¼<F¡=âùZf\‘øÊXÃ·ÔY¦9=ú°¯{Êü6Ý1‹áJ£>šË0lKJŽÖRWqÓÄB«w[ï—3Š†Þ˜ZŸRK˜Do,wæN4_PnN¤¹‡g@U!Ñ$iG’÷üæÔúÈ	áñ¥Ö ÈâÁ—¨|&Ì‚Ò››Zä…‡Èó‹c-]};Vš¦öVmžSu*ih|‡äZÞ¸/ždóÝOº)«Iø3kz«µdÁñNà·“Ð^M½æž3‹èwÍC H?ãWv=f0ÛœöóîšHÉ‰{qð§àgÙ¼h¾ÒÅÃïd^²Ø_þ÷ÍÂ|	½‘Ñ©¥GQÉ”UÈB1P%–Q€$ŸŠorÒ›aÁý5§j„j¸”š!!¼K^Á–œ­–4×’±“Ì¨ˆŸž2F‰}éƒŠÃü6”OÄ*Céèj7óq‰´,-³ˆõêŠœcÂÍ‚7L0Ò•È®–j–Ð/lÒˆnÒS‹fUÕšÞÇEóˆm-‹h–Û‚ìg¶š"ÈŽß·"ï)ëÝ-¬Û[ƒlëëkÓÎàg©Žšv¿öÑÄ‡7u³_ kûµNK?	¿Z—ûµîWPÇüýZ»¥(ïŠn¾Ñ@»º¸xXûë™öÊz…íÒîßšUúŒ–ÿ˜˜8ôVn@|êzVÎ„ø™Rl3´&x”DÊ?Ï$Éi·Ys]™‘NWÑYAzw
+HïÒ–[TÿÈ>ÓŠt¿Ä÷˜ˆ¶ž"ÀO@Ô…3	‰E|ô‹¤¢ÏwÄ	”|XAðùÆÁ"0ß5€Ô0JnMævòT,<eûÒUÜ7‰0ÇîƒI¡
+ò”s‘¿åâZV{Uƒ¹¼}4iéŽyöäÅá|‡¨"90g”Ú¤Î	»…çEsÍ1Ç©kœÊ}‡ú„bÃ~%J…Z•xc¿ø#U#lëÃ:þ‚û‚ÿŽ.œpŽàw®5œ-7WÎ4!í·§+¤ØµGÎ–_°½(]åˆ°–›¦ým$ýW“õÕûûÉÄ| {à¹!w¬c¬”3›1qJS¬1@†!O¼HPèóå1j®çæ&$)]ý¯ƒÆ?ãô˜Àør"ÖÃi‘ƒ©µø1¡ïqPÚ4îG¬uˆñj=[¹V€ýç¨!*D%&æ®ïŽÐKÛu›?1­Oì>iß›;ñàÎ ]§;D)ý³#üçÍËè ~êˆnâPfŸÝ&µÑýÑ§4
+µoÏ($®‹{¢/þk¶üS1 V7%¤Ä}¹Z åGT.Ÿhç¤9ÖŒ5á$jBUÈ
+ÎÞ#Ã[Eh[cÇE×±)/èrsÓ
+ö×Uf‘ëùÉ§ç(	O!ç@Å©· °“üYÝW„0°g[vÎy™ÙKL.ÆÞÏpÒÆ ªDÂŽ:Kx;þ'Xá ÄZz ‹:
+·„®ÿÕCÙ\;È¦}Ëgâ
+{<ù[ÂÕ¸7æ-ZîRÁl•/È³»ÅÂÄFÙÝr™cu>·Æà#ØÀL¼ÕdBm+4QÓ—Â´E^íÖNþ—ØàÕÎU(´vñµ–¸ømy8Ù³ÌæŒÂåøDŠ¬]ªÕ¸ó-.!½„C‘/›Óz»W^ŠÛ4†K¶ŒÝL<ûìÌ™0™ L3€Òú^`kžÚ!$Ÿ‘ó3E–žb?ÐIˆË³i´|)wA¸B ÐLd„F~xÍ7äÔ›Í\›
+Å¨)•T=‰°j$þG]«6nìÃùZq…œÎÞ´ž`×zs~y·L²”#voÊÕ>”Ÿ¬â®f‚wyÌcXàò!8/×™¶œCHP„Ë×…ËJ¸DÿSq‰V»ÝV¸98«Pý”ð
+åƒÜB\xËïýô|CœÍgÍ<dÉgÈ;‹:	0ËõçE)¢©„¦7LWÌž€”‹HÚMÏ¯ ½¼t–¬ZÇÔ†µþµbS©?Ó³,Å;¥Æ·[É€ O’uÆÔë¯?+™½£*Äèp5¬Xj%VAç“dÅ¤ªåÀ|Tª,v)þ<ÉòsZÕçô–GD²Ò$q’»ë„Qj²p0n
+S+²°,Áí RèLx.¶1~Lƒ,_Q_zLä¹è^F¬ºX²Šf©?0*ZŠ%âeÈ³ÌU¥È|>‡¹Y¼J/‹$*ËºlŒøóU ·Î†DN·”+j6HJ³ÛSgµPÎcQS0{Øä9(’ˆí$œX.¶bŠ¨¯|°&"Âa‡^çFÄyªèHnVrò¶¨×w7b|%ÑÚä‡O²°;íð8”éQÆ¨Ÿh½’/>cêO–‘ïÒ.w\ÀX|Ü)q ê¿®vŽZ{¯ÞK½:$Nõ‚wÉ…àTKLýEË¢í¢ÐåÐ?;J¯‚IbWI¶óA!a¢øÒFÓ½.~#w@G¶{ÖT û“ÐH¬½&#$‰SräEÍ“À›®&‘€‘;t@Ÿéíi˜o’ézi-Ð-ä®¿pBiÅ«Mv#K1ów(I'†ÒYËõçLA%A=ž¯b}œ¦
+fâ/Œ¦VYèÝSÙØ•1jÿFaoŸÂªAýIèëêû‹x¨M.Yç)ê°Î=gJ,]O{Â8zÐoJM¬>ªÍÐÁ—„Àë,
+‰qWáë+ö¦õ˜a¯êêƒÌ}lÇÞÞŠ-
+å·~F56s–p™[/®Ñ*<†fµžKÅe›Ô¡)îø½hø•	JÜŽc\kí]¹‘Ó¤‚Óo4üh¸ßC©òÐÓUøÉ¨9-bÑ¤½ÈHøÁñ›"E÷­ˆ°&ÁjWÖ]-)£6®+0íP÷¹
+ÊÜº+Y9ýåË¶)¤ëƒ¿<ù·`Yw/î¾ÓVÐ7£Ó&£Õ˜ÕcûMö½#ã+ï˜¦†ù'2ÄŽ/'2ØÏYòÁFˆgýO+{9YS',Þ÷~Þ¾¢Àüâ-ãd[„]É›g7}ÙdU¹¤_›ÙV³Ä»§¶‡ÖÌu¼È!ÏšÚ4˜áÐû7B{W„6ùq}h¹Î8ø„/ÊßÅš3¡3[X¢¡6vsu¿jYßÁÝ°qÎ’Ö[…qøÊî‡äéÏ_ ÌU–ô¹RÞ	_Vz.²d7Ç—MsóëùU‰´êåÝ=±}
+‡(Ý¡wÙü[ÛŸO<+"ØZô`‰Dö \/v¬¿lª[9æ£`Õ6ÄÀw&ûû$¤˜¿ž†„ì^¢1eÏ0[{áwÀ‘Ôzü}GúÝo¦öì»-2]Ù4YGÈ¿¹t0Î~0£†ÖØx_‚/œB[ñÑÑ“hÅ-_6V,ˆi;Y|é4Z³¼['Ò„?©¨ìz«)m[;¼eì†ã½kKS7vÊS7K!»¤‹>—\¤¯.˜ù[ØyC{r&¶Ë	)ÈÆº±¹BýyÞ Ó1¹&ûÄº°œˆ°F—õû­ÖvhçÎÄ·ÏœÀF¥û¾Ú¯4Þå'€Ê¬ä;@6ÈÌŽŽ¼I¨xM<4}œ¹@÷çŒÔ¿Âù¶€saíaz[Ú4gã‹ëµðVdÐ&cÖÛ…U®¿p¢9yæyÈ„†º@zs}\´Ï­‚¥òWer32|Ý,äþ	 BáUO!XŸŽä¾xbÂû[žõû+Xûñô>Ü±¿ÿÍ‚¥µr¦ú&‹ü¥øÂÑÒòÃ¹%ÛÂ7ªþOÚ§q¤g[öÂÖú Éf¼òHhÛYXÇD[ì-§° ü¤pˆf’eš…¸ÄäÉ*¦°ì·ùK-Þ]¯I:ï¾#ÛÛä™a¢àjá{Ðwïˆ_×Âïõ¢,z‰UÒ.šÔùWÇYôìþÔo+òûÑj‚í¯)fgá½”˜
+šŸ}­éû~JÆjÖA‚ð
+Ž+@m·èmõÚSËÁp!~¦öjÂž/žsæ1‚µñ $,+Uˆù­.Ž‰Öå9ø—ÍFôwMÛw¦yý
+UŸª-vÐ±IÖ´~O,üžõ©æ™øÛŠ•Ê¾°šR_&›cÙÀsÄþ`‹°ÇkYÿ3å0Hö²T.›Ð»Ûg7lÇS€g0Íûä[r„É€KïBO¥\äëSüžG5’á[°ÆÁö”¬KA°ùðÂÞ#÷_®	“Ð	#›éï<™’Ð=RÐ¤XXÁ†lì(tíeÑ®^ôØÊŸjÓñ°2Š)QyS¥H'PP]‹äÓy|÷tkzv¬5Y‚2Ç#Âêa×½…†E‚Ø‘þ¸^3òšeD‰‚Ö†ñš‘m¹,†òé–ôr|c_.(s»ÜÂñ·ñïrÚÿMj!‚)k1˜|5(¦Jª_¬âËõ¶+öU]­RQtŠ&ò„%…º×ÖõWnhkJy(K»Žßx” $UþÊ™ff°Ì×­ëÔ&˜]ŠX:˜ø .ÆËè]&ÚÕÔæ™ÿ,Hê#Ú±SþÉ™¦:ˆ^Ô¹3ÚK	êÙJj~›÷¢i“&Ö?Æüç¢9ÄRõÿÜšQ|dPÁ]teb7>»=ùÉŽ~a6Ëý,˜´Q-äÂR	çÝœiw"kƒdØ'™4ÉbºGÿ¼þV ìA„×sÄ¦Wf»T Œ ' ¾OÉ”hÅ•±E¸»×Ž‘êmûçöÏùs0[õNo·±ÛmtûÃF»ÕÝz§²Ê>Æ´gù>€MÀàÀß‚¤–bïa0	çÀT?4³»¦=‡9Ã*¬yâ:~ßÄ^'MWShN[½4T°öèqíø(NayeG‹g¡:´-@+Ê Vm@= øH/.S&Ÿ]¥†žŠHÒ’Pi­¹pAKû":-ð,j˜…Šš><ŠÓ"ÕIÖJZyõòàôÉ›ãƒ?=æšï5ìØƒ‰pÇ°¬K;©¦ìÃíy7SÄ	yOF´q+
+¯ÚØõ\2{J9vâžH¼äO“Ù–)lL…ðéb®&œ'©œâ#çz³Z¢Ÿ ÕÊ–ZVm„áš÷[éj”—‰±‚ŒllYêÌŠÇ«ÁÈgûW!}ê}v]É‡Ä¥6 éùêªÊ´«×Ù¯RÏÌ«ôÇ¥s†]\ŽÇKfºÇUÔ”åù”ø,–X¸´i íÌñýæUTG†.N'{‘Ã×G ¾<!£xuøäHµ${L[{Á,å è­®Q2N	u
+‰Ÿg®7þP9Îß«°pÕÙÞ‰#¢V Ñ—äh	¥ûdWzc‡(ñz~®ø¾H(4°IìäL"Ði<Góœ®ëÃ¢M"Û¤ãµòRÂ*ê€[Ô3™ý“ÀûG{µtý$tR$uß°V†ˆ³q>µŸU-ÕÓ
+òZÔØ•“	2Ý$Šk|ž,ÕQ”„­v,l@ÐêtA„­ŽRØÂ@}ÎÝÀzŸW<y*¡Ê$û'¡Ç•Ó}|™9Œ²Ÿ‚
+³„šQ2N6÷E›Ü2š{£ÕlrÚêQ ¹[™Ûâ-ŸbŸÖØ¥­Oýèì5v÷,YšíÖ{ÍzÑ<¡š°Þêšºöhƒ†Î6§š“r>0?k•ØÁ~³1`‘bñ3PRkPs[ƒxOë…¹ÏZ¤»Óê7HÿA«·2ˆ
+òeHb3Kf€r´Ã®º²£/ÅÌÍð9y,Ò³y}Þ¾øE–¥½ÂO;Åmz€î‚”{°áØñý ‡râ€¨ˆj?Ë5qÌü ÚzÒ‰?‡e*Ä™:¡5víéþÕWéo§YÔ•'BÅ˜E¡Kg›O‹%2ÜPƒ‡¢ß%ÝˆgF“ñBe.ºÃCv%W3¨\ç¯ ˜¤†X(Ö-N›µšå ­ä‡jÕYìƒLÞ6( ˆþ‰„@©(r¦ûˆ£ìÑc=ƒR©V…ÐmdÝ‰P‰‹(>©"/0ò­¯’(uòd'ÒÕ—O²^gWK­%Z¸ªö¤Ø/dB=Yaf¡§¤$Ü9Tµì cÁBýþh®—Ó‰M>³ÎÒá\JË'Íò´Y{Wcì™¬­%ÒTÆÏK¨ÜŽWà>ø®_¬ôÉ“ƒøræù`½FÉÅTÒ±dÖDè3¦¡í"_D®v/§+—’ç”Ïˆ‚%Lé­mÔÜpêRÞžŠëü€Ã`v»ý-ñ@_hZÔù£›Ð]Ÿ¨F¢q|xtÄý 7ÈSØü¹iipß
+>`ø£‚‚¥ êÅ†oNÏØ";]5!3ðdÈ×ã3Rýh¶…¸'-ìv ZV‰“,ÀN¼ªN‡¡,š53”ŒüT4£"Ejî§5aj»€D€4˜ÀBm½Ô®²–(w¥ºO5Ÿþ§™œqð­­wÚØd8/¿ ÂbY€æ¼ù¶? Z}â¼X3^XØG±+õQG÷p3ØuÇV€q±øÈ:þC<Õ©ä±‰*\¹Qôˆ´É÷ÊÎyXã¤’Ž4Õ/÷Ú!$Vè÷0{½Aœéå¶Zc<‚¦qŸBAûö¡MDÞß»Š_ÁÂ€š÷®à%ê®ñ'Cø™ØÛ	XSˆdâJêòê=Òˆˆ‰¢@9d.}{·È³ŒÄéå>Eÿ‚NÑèiº4âG·¯t;Œì_}-n¨G¹hvhÇ”É ü‹:EªÌ+›¡­
+»©HnsuñÇ¬1^z0à~Î	XÒmGþ¤ØÌU×V¸³  ?DUçA°Î²$ïAÙ,r"¥²Ÿ*R'Ù,]¶ò¤·"hÐ³]6ë‚&­òúMÄ·‚N”… Ò$TÔdÁKEÈ )«2¦°ÇMÊ“7Î]™ˆ’[+f ‚»®ñ ÙÔZÀ<'6ž‹Ác760vZÄv¹MfªtO)¡ƒ\kL²X–º5ˆ¨éI¼33lÉÓJ/ôsÝº’û4U–5 ±Ýò­çk2D üä».i^_€S¼ “+°{û¼i¢ÄB†—l«ÐðŽ
+ðýV¿Â&ÑôV¬®
+èM5 òFc™p‹²[Êo(¯Zž!“F€Âç-¸´3Ì=E‘bæ=(æü2c/Á£u¸v9‚ÿÚJWB
+ËbDÑ÷IcŸ-1l+óhV¢×š¸	[ŒW*žvñc…‹âÌÝ¶(y"},o²)zLÓ¹}RI­9†œÝ•ýC¿’š`ø…¬!gWcÈÙUrv9=!gX`ÈIäºD^Î™kJåmîþ–OÈfª†™É¤Ÿ‹ÑØA’aE{ÈŒÙCb#HÎBËµ× Ö[»Òü ã¦~êû×µ›žÚ
+ªýië ªî;™H¿r­‰ý+üz¥N¡Îá.ureÌOJ&òÌKñ¶#;ÀJÑ­(ÍPáÒà™XÏ
+™¡¶Å/5±ýdó½„LrI»-S!h@!¹/º·ïÓÀu–½F¨ŠDéý¦™„Ñ‰û% ãþÒ.žìßaÛÆF[VìC:Ø´›0hö¹MºÿóŸäq`ÍfÌ+Ü`(ÏD ø†Ã¬–ND&6ò¤ëZ6ZÍ6Å¨QÂM+ðÒ8é|´€‹
+à,©¿yóœ…ØÕ‘ñÈî‘KMÓ„Ç¤œþpÆ»¡«#u^(Ü
+FÝ=.ÜÔßä;R¹§?•é]–¯v+ñU‰«âÙÛf'/Ë?ËØd1“ÔóAUÙSÅ½™ûT.¥„\;úùx9ggqm®,,É±2ªZ¼#[Q1LèÃº°«8ðêÌq•e–	©ÅŸé|1ªVy[|ÅŒ÷Oá‰?ú˜s[Ö–»ÆóG”·!gñ£ýZërÝhE—Q£5	ÏU·ª=nTÜ‚‹+“	¿oMðQ}6£ïZëÑzÍO½¥]¯EpóÆ]ËSí\C²Ë²ŠUúúP¶Ít™úÎãÍ´™ôI>a ³J©Ú!!aH¢¥€i;íÔÆïM,Õ®Ñ¬[À`ÊÐi[¯éójá>ær«/A_-º¹¶ìé!œS9KŸ8	¼Vá(²ýz»xì$È±`®U/LÌ¯	²&sÜ9ù¥Ç–^èB|=@hí*ð•âç!6Ó$‡Ödžo#X„ŸEÁ¶
+?þ“åÛJM%ÆBqë®6O=Ï11
+€íÙÀ³òNþ¢,B4NøRöJ¬²ÆòÈC«‰)ãâ^Z¢^½UùÌ‰3Ý#5ŸVQ
+kBù$\9I®8,A‘U×ªÄét˜sÇ¾†yÓ=q½(ˆ–mÂf]EçÂ6ÏÂ@£g ñø"ŸëÚüÜœ_0²Ê-27 Ëm²É+iÐC¥æó»D€ZbÆ’õKŽáO²Oðî«:ùìn'de¬°ýƒ¢ŽAŽÙSÕó¬Ì€Î:R¨hQZ§Þ«bI%®dæu>tqküT “š˜XùŠJ¥™‚¹3•P¦dfv?íBî]%Y ~~/ÔþJü8‚Ý=­)¢HÄåZÑ‹ ½36	ÁÐ™
+'ŠpAAÜ„þš­
+”œ5µ×=FÕ*†¶ô_iZE2‹ªF\NÁ*Šö7q^n»ÙñôÙl±±1&Þ—¨WªóŸf—±ÝôjKÂØô¤‰±‰]±záËØÿ«+³æü0©d¹|ÒÂFÇƒ‚ù,J©‹Š-O-xÓ‘½ðç¦Z£@¡É`“d)Á;,RE"TíÖ"
+‘)$æ~ƒ0d6o½E?ƒ ³ øþM!KN¿vµ™¸ì£]øOdÕž$šc ø!úB"òúP€Ô_¾Þª‰sjè ‡Þë¿üùÏ…·ZMàÞÇÔáØB709 æ·Ì½©rÇó™A†ìì´v¤ÓnÿiÙ{Ð6Hÿ¢9==ük·…Sƒ?-ûü«¿í¶zð+\ì¶ðk÷OËá ¯uoUÊOìc ç‘ã¢°C^N±c+]½!ˆG©Óç†ývñ¶p8ƒÆ†F jR§›øž»Ž#ê±ÆP‚Å†€Æ<©>‡4fKaÀ‚pØêt4‡»­ ±7<¶z;î;;­vmÆn¿µ‹ðnß”Ÿ¯Aè¿\[0m4åÖŸœ˜âñ¡õ—?ÿë_þü/õÀæÿ½õ—?ÿŸúëç[†ˆ}h¹<EþÜý9
+ÎcÇc<+qQ ýœKShZ;”½þÅ¼ÛP?`Ö¼½~«“ :yØz (ªÀwð7«íÔAP¯ùSl0ŸÚÀªf´;ì¯µDOÒ,Äï…øsæÇ1…óƒVŒÔ½!Br Ä ßA8wTúH†]ŠçCN*(IéìÐ¿pkºw]T§åÊ[…äïßQ©¸«…³´Lñúþ£yà˜Ôÿ‹Ž`„Ïé‹Ázó’tv	96—æeá€[þ×¿5	y)þFÒÐ„Lç,"ß½@W4MöÆ$d„é‰,sŸè!û\‘èÂ;ÅòÓ{pNZØ¼¤=ö"AÑvå‡èZ4ÄnÕ´È“èW¡ßkõä9ìTaÐmäúƒŠ#<hÚ7‚Ã°Cù‰¸ç0¶ÝAr¸Óêv¤¥#¼+ŽLr±Ûå
+ËÑÖjÅw¢§¬Ž·_ÂÍÝöwðïÃ}ØJüãÛ}<c…i“·¥ÝÞá¡âWò—òD¼3vŒÊßŸºs ÂûÄo¥ïdÝ°Zö¥_oÒ¿|ï¢~IšpSgŒ^'Û¤ÞoÆ[Ú‡»[új°é'}À¦PöDYø#[ËxKo˜ëWÑk+gß1œ;{%€ð²:}> mSÒ5ÙÿžôÍ†9"ìþ@w€´°.Œ"þÂb`Uß²–NÑ úþÞÕ¥ØO²Aî]Å¯J®w¶®ÿ´|_<b1Ø¹y^Ês®Cõ>&såbº)sEÉ<ÇH6W±VëI¬ qÖDkŠæv°ÀÞaiŸ…o8j¹ž|–)7á°\ÏirUÞÄÔa„^UÎÂ´šp®	#t+ÎëPâ**Î«^â>5wlø½e?wÈÞúÀvô‹è«¹[·}›Ü­÷w3J÷÷¶1ã÷í$Ð²±Jóë*Eóó“g!À€<ì5œÿ0þÙjI]É5ò}æ÷:Æ7Ë—JÒX	xÂ o W@Pþ\Ö§—øvKÍ¸ôBVöºø)ÓLZ‘5I<6¬E”qu¤Ä(Òh²Y¯!-A$Vº«¬ãŒ;¥,ÿ¸¨TŠy§.éÐ˜dw™¹*rYÈY?hQ9O91Îˆ"ÂãIs	Ö`Þå©]ùho¶¦Œ“SiaR¹¸ïxJ(_Ç•d>UZ‚æU•ÖIýFÈ¡qs;¿9L<C¹´¢®46¯ íªKâÑmÿ+‚\ î;]€ãbô#&üæ·ê%iÊl_`A´9¯Š–DBÒJÚ<‚¹iŸãëX	)©^¬ÎÙmîrM‚pÃEZÖþÞÜ»C]±½‡\yDpQ¶³qÁ$1¥ª#·(¥ÞŸÄ FˆTâ$ŽšòÈ0x\p¤KÒ¦
+h¦²>’P}ÑÔCÁÿÅ2`Ä`¶‘3[Ò^ÝeQêò{ªïÀÝ$U>¬é¡µ¨¦_ª	+ÅñGø1”T®Þ—øè9UDw<cf)Z©,6).:ži	z¯N)\J”	¨$Æ¦Q¢)ƒNodj×wãRBÝ~¿1ì5vûÐ·Þé¥#öÙËH•wsÊ%½m^a±^>ë5¼°‚  š‡/1Þ3nÁŒµ³-×¡­í_Zþ†²ž¢V¦º\[’éy%l(nY2åd’Lˆ§½s?*K`ó)–H!wq‚)1M[žƒ.Ü”k)ô)Àù¸¬[ï˜>óxv@=©Þ*¬wôßìsWd¢,’g£³ ,!Ð•hŒqúrr*Þ üJBÞ C-’,AÌ4œÚgÖÊÄ`ŒÍ{Ï	®–2BÏ¢x±¤¢B®Ž˜¥+ç‰‚‰ ÇhSÓËzÇ™)æŸi@ÈE;ë¤Ÿ+Ú«pz‚œ#LG¼AC<¶¦:ACâ†"Myž·ZXWÌ¨°x›>ÓxX \çïbuê)9œ[A´Gœ%6
+ƒ—“¹Â=¢4µÛ¡øâ4|té—Å”~a¿¸3ü2d¿`¹;Û@O¼…
+«MÎp‚·¥Eé&ÀKtÚ‡ja•'Ã´°aûqgðK°ô(’µ0!NõB*ôþÖYÂÑüÙ{·­8Üz'õBl/§òs%ÃŠš©6î˜*„á“g±ü?(¤£ Ë.‚hVGÖdåXPl¶‚$A·Î„˜Á ÿ¿Ýjù¹ã_6„2tø}«‘}x·=µg*C°_ì=
+d¶™
+=²ätÎ¸ïÁ&œcÿ<,GÝ!šï×:íö×5~ø·{Ï!à:+SzJ„;,ƒ»…¨AïFf™iÇÔYî_]¡êþœÓ¾1x¢ÁëQ£«©Akb²Šâ1Ë«¦Ùg¡A54¶×ÏøVgº_£ÕÞ0ß…k„5rÙÙ¯·fÿ\vÙ7øÇ¬ØÃVM¼³3ÀÏýÚ ¶/âkök¿ëv§=Ûf×^³âûWíVÿº5Ôƒïšn4öÃm8¥ ß6ùÃ¿?¸tô,)þ ’ýÁ^Ççîª2•#NÕeåÓÊïžzQòí}¬pŠé¿ïÊëYET¾ÂÜWwÜÿÝ°ÿ ¿3†P¢á™'6ûö£Í°ü>ŠüŽ§ÖÂq×peÊéî—!{üÖ°øæ0
+¼Øów½^¿3`Øótìînol4 MÖÀ§i/xËQˆF‰ƒ%6]­±l;Ü‚õMqXçãûìÃ5†ª{{ÁþƒÁ`¸{·,Eø‡ÿ€ˆIæ ™ G;ÅƒÚ¡c-Ÿ!;c@>²€ñ¨Ü#½ñÒ#Þ\ó›à ²,áø)ó¤{}œ1&¡ÓØ Æ
+©§ŠCë™{gáÞéM©Â"ßÄ#À€H¯º@O€(^õá_ÜRìàW¨µ»&`Ì¿¡Ïßð`¼ÁÚÎlö†²	à{É¢`Tè/Š?	EKÃåÏ$ØÑŽ‡Ó~ù8«À­ÿ.ËÆ¶
+3ÍÒÇ`vÊI›ßTê¸ê•ß¿¤›Vtl
+U‡ù#YQŒj9šísõö:Œ4%›}ÖïŒÞÃ¶;±Ð‘a¯Avá_jt1'ßÀ®I-G¶…‰
+ÌÔNUÿÚà­¥ÇS_0þ ‘{Œ¡ù&‰8
+#Áª€YÆê„	Q“uV³@‹–aMIrX(²Zà8Ù&¬Iðøs¹•Fñ˜<ò˜ñN÷lX/:-£Ò¡ìÍŸ¸d—to‡J‹‰–1tFŽ_:lÒñþUýŠ§~ƒÜc­i!Žk›)û`*ž„´+~>ý“RLbÂø¤Ò¸06ÂÛö;ÖÅÓ¹™”\ã•Ž!¶É£ÅS‹qq³’`ãº~Ïc²NŽá{g§Ìª+‡ƒÂöÛC)>,t–ux“I\~
+“òóµóüqûig÷]¾‹CA^8FÆA.Üf—÷e³…h{•
+ç|Šºš4bŒà“DŒ¿¢Û$¦ý×¿cY:Ã
+¿âëM›(»;ËÙ¶¨}e½ªO·È÷äþ«íƒûdL“·ô·®ÉÿÛ¯(îJë¥§Q¦Wçrh±Z«V¥·V¸ÙMè'ÇT,ŒS>äMµ¤‡Û’¡¨8Ga *
+˜Ñ[”ñƒÿôÂk»_,I:6ya­½hˆGkMœ	)NJyeòmj?Åv`•Œ¶¹”gw&¤<wXÎó°¨ÉŸP\âˆck„9=‰ä¥ž›xmÕ¬¥0w˜6ž¼es–Lå†æ^{Ø>|·=šY­åªIË³¨ê)o¡e8u*cäùò2E>Û˜ôhâåÕ? ª4ž6Æ€’¿È k‰\j¢3ˆý+9‰ôÃ¦¬ŸŠþÉâ@õ³ÊuêæÄ†-Í¹Cªø¤~nRúãó—[æ¥óÕÈ“0^¡@Ì£+Gö©Ëì×ô•†Ì© ¢üaZq€UM4Š…³Ü¯µ[í£›­ËýZ§Õ-‰?adûth½!é•;b-j2Ý¢±’÷A¹’Š!™;LXr®Ó®",‚*œOA|Ž²=v:*äË¾³`È4àŠ77×£ÔA³;…AmqÜ,>Ží’
+È.Ö;@ç©&s;€èÛggÀë¶È7èÆ‹‚ö®`µ’AphÆÚòi­_ùE@öÑt @¢q3wHyÒ¸£àqúŽÏØSš¢bYé‡ÑƒC¥$2)uDF óMˆŒEE‰ˆ¿zskAb9]ô <UdjG@U<J^œ	³Qb•ôÐ[;MÑúÀˆÓ G<	«#Ï-×#ŸÝ¥h“ñ]ýë$1ý@b0jÒ7’d„°Ë¿*óÌõ–
+2Kl
+(èÏp\LyÇjJ©ó5Ä(}XûÖÝa¶²
+ÄæF·”,´8¼¡r±É!1“öÖ^¦ím£R“I±áQš¿±™ ”0f-¤ƒâü*™èýL<^NíKä4oìˆcÁÚ°§#“áh‹\ê’Ç º@û
+
+{Ñ-•@ÍZ†¹.À¹Î¾ÅF"Ñ@$™—¨©oXGÞ°JÝG2Ô,jkGõÂ”-?Ôe˜ÉƒÎáÜ1º(¬þE«"
+ã7bÖtºÙÖÇ".¿±Ï~÷p;šßÊ`ñC£|nmÄÄ	@êÿýo[·4,Ï¾`Tûí¶Ò8Ó7À}Öjá.3\y½é:ÇRS ºIö®¡Sçêm«Õ}ØïŒ€Ø
+½ ª×­Sîn¥®¼&'_¶Ìcnó©ßÜÌU™ñúÒIÜÄx»þÀÊAF¨›ßÉ4dM@¤üÚ\»ažxüzøÚ©ú`dÔ„¡Ü\ß³'k•^KÈïp¡X–Ê´Í(ívdDiKW—Ï5­8ý+ñk¬w97Ú?ê'XN íüS0–± hƒl"¥ªmQµw\4;Ã49§¸§k&ë‚JÙÄv:çJfŽ•Ÿ’;%‰Qº†eÖ¡Lt‹y ƒ8O¤×ot;F··ÓÀ*9¥y ªO­]„L“ö°Ò+œ¹Ón7(H‹çl§eu2<Ž2Pùhk9Œ³uýõ{“¨æìÇ(è^üTŒKà)M$"ü¢mW®4—«Eˆf‡&ìJ¯’ãØt%w+!mÃÚÂ
+*4‰NŸ©ªjÈLfcC¾Ÿï' |-
+wå*=UVnG©ßèç‚õýYUIlÃ~L“ˆ‡©ÎíiibÚf]±'¬¤AöŠ£¦*D‹|t$û [‚u¿+ì¨hºÐb1BAVëjâ”	¨ñ‚8!y²ðQ1©Ö¦ô2Ìª”¬+ëÛî€¥f‹×œXaÄZˆ¦Ä•×ª
+ „Ò€CV-¹A<Tl1ˆ6)ãÈX`z$Ü
+âºm¹ÍÈYØ$ôí	,q³^¢Êóuãb7qÛ¡×m£¿q·É,¦—a>r§“èAè9×í6ë(àÊ½ÄÓˆwŒ, ¿|X7Ÿy˜XúÔqñ¥'Øï¥€„n^Q¥¤šÂÔ	‘L÷•9ÒIA˜uR†õ<ô'-</šF%höï"	c¥mi…‹™v³¼ó­Pá¤¼Û,†Wj6—@i§JR¥×x¥”¥5i–6P6ÍÚõ(uàûîš$À#ÇËæ	,A<eÔêÕè¼g"	Yä`_Ö5hêvJctÂFZÅ&ÎÈOì„d–ñ%¬ŽŒhŒÈëéÔ ®ÊT¢ýŽ£{Ñ5ñ£RS{™äUæg4ô/R¿b¯ðô'vw‹na~ÄÂx(…ÿ0‡Îy˜€«`X­Ç0~x3w¡ÖM(RªEÔ,X²¾!Y•"Y_Ì:ñÜõÒ[`¨#š{WGˆ^ô1O¡¿˜Eü”ŸžÂA”§‡ABz8¤ªœ“ºµq–úXë¹˜v„Ï?$
+[6k¼ëVJ%}Ìã»A™š^…25qÍÈbC¡Jo0êÍG_y{U>*Ôø`>ÂÙ	«Z^á#[ß#)ïÑª{$Å=Šq¥Ä@BËG(ÊCÈåXY6‹ñ_vkÕÔ~!³·oõÆ;¥ù1u4›kœ.4°.jé˜¬büìEûWg–Ú×ùüËë|'Ïß}ƒ£ÝlB!•ŸAþNgÕiww:ªYÅÆéFÉã…Ó0Î8ª”otK–0ŸfÎèÏ¼l¥z±äu±1K´Ä„†T6Ð¶Œmh¹“W6ÌÉŠÐPL¤Ïª1û;ö$Œ5¤¢ˆ¥nÛùÍ²óQ-;g«ÉèÞÝXv°I·Î–¿8¶åÈfSZÆÑÆ$‚àó³ä ž¶m9éR0t{ÍËuÜÀ¤CN2éàüštRÆ6í;7æds'³ßÐ×Ó#wÊ{>m§&N"º½Ô¸©“–¥¾Å)oåŠ)ŒT¨¾Þa†Ûf¶iUD‘pÇ‚—©ˆ†§Lc¥õ‹“7Küøä)7È&Ûä¤VJ%+w†—çvgu˜äs%‹Ø^ï8AìSÃná”†Ø”Qä/ù¥Uy×á»:eb–Ï—zÌvŒŽY!#¼ó$©»Lú¤'­Ü¦jüCn™jfŒ©H?ZJÛO‚Àpïœ)«m1¶h½è|Ò6‡²"úÀo¦6
+äò[ÆÈÍ›="¶ÆèdMÉ/=É2Pew{•á¶<b	OI¤ÑF›¨Qò©´Ôg*Gœ"€.èý¡©+YÂ¨OTZº ÜÆ¼ugš{Vlœ’”×DŠ‰0••ÉéŠu «UöŠR,ò£|hª¦]OT}á$«Û®âšÖBïôv»ÝF·?l`‰Ö­w´í†¤À¡bß¯ÔÃâ2:³¢‡¢ ·<
+¬ö6)tÙ-´áµ8bÔ}í¨ÞX³ü”Ñ%º}/@lYÓ©Úš,F¨«³Jý_t÷¤‹WÝ ˜³ÂqÀ òÂ¶Î‹½f7I`/`Ã¾$¨xþ_+@ÒÞ¬.vxµ[è´8E*sf-¼~ßzÛV6F(Þ¡«´È“•lyÅ>YÚVf¿¡týSÙí-oIƒ,÷I‰w—½ƒ–¤`’Ã÷ ôû³X˜lŒ2Î#‹«àÏoÉÍFã«ê'¯çÿ„§ÀìˆÔ7WéšÇÜ2çYÔÕW)­7täšD˜"«ºÿeü,BÕžØ³ßVäuzx`XÚ7HâûRcEqAûÿ	scöØNGž±Ôñk dƒ]¹/ˆ‚Íõr=A6^T™òáYÜ±$ó`Î0«zÀXëB,c•Õ¢óCTðLm"+"ß,õIë‚üý?Äæhê7ÕLRã[Ó»þ²ß(Ò©‡öÂaÝS5¹Ú§qà,q0:pìÌí@ý¨™œ©¬)a0WK]g›kgÉaV)DZ‹³ŒJ¥ÀÇÈÎ9ÀE&å%Á‘
+{Z¦ÿëî´°²v§ÝþÓ²ÿ Õk7È@©uª^.
+Ä\‹›7û;ØºŠv¤G\h“mäËú#¡’%¶'V¤‹f´‘·ž" ‹8¿ð1~i%Häôlv¿V÷DÚà ËN¥°
+Jew:e™ëÐ·]÷pn£cŒÅänÊsµ.iàŒÅ3ÓgÕ²‚¼™Gh•˜én‹PUœ?e=ZM­H…åI_&³’MJ‘ñ(ö#KiŠAÛ'—˜ø8…È€íÞžRsïªF”»^^(GžçurñÇnÚOl ½pcZXTË³`°O‰*³+ÆºU4ª-OävÙ¹ÅÉ­´Uk+]VRå€Ô±vqÁêÌÔþ¢£tX~!ÕQEÞtÃþ’HöÃ—ÎåKoj×¿râ?µ!‰( ·áóð7vÌEå¥þöN V[åDB®?Šš8
+½=naØ-èËÐC³Ì{WÉy³Wg9ufš(’v¯ü’Ðf•_Qµ|MÀÝÝF§`‡	€µ\W×‰ÊÉŸùN—Û;mM»R%KÐÈE/¬5>VWñÕ
+ƒ2¤àOBÿ>8<=þá	]Ü“%ŠâŸÔ§¼ ~àªT-1`¥‘Uéå¨J·€ªôÚj|“¶_o«Ü¡»„×”q£î—)´[¡ï:QÄ¶Új÷0µzÝ¥äÄm€»¨omÅ­1uÔ?tçX$yþìi5­B%þªîÕXÀSüìY¤ÄJì¡ifà¦²MFD“£ŒmÜñ8Kò‹"¡³¤1<‚>WMôÙ$Äê®ê87.}¹U
+pã`(ŒoÓâ8ç)„©.Ñ@ A½®8Ô,ÃólL‡Ì…«OÌÄg!(ÖIwð¼éBù.lh`8ôDTï_*EŠhÑ•xšh™¢Eƒ,ŽKÚû(]ñ‡5ðq›÷®×øŸãâþ=¥%ïS	d†t>–#÷d+F²ÇûOúW°ƒUj»å.âÌü¹Ä¬qãbÊÎví’|µ¿—·	ÏË²8‡…/ñÈâ±˜eÏä3úÕÿ¾¼{ü@tÉG6<‹ý½ÅÍ¶‹â¸5D&g²Ð2•D•ÊŽ\.BÍ‰bŒ^±N±\/'¨ð†®ªÖAå¶^½Hsâ®ŠOr0Ò²:äèq5ÙA§™{c3À0	`ïU¶M˜F¯Wfë·Á¯K£q´áè¢*Š~cI.H«9•Œâ"I¸¸¨co ¨¡±+[ŠrrN1(Ö²Ö&|'‡JªãÃ£#²M_ãß¼ùãÓ§ðïñáˆ^U\­>2“µ	O;ß0êO¾’n“9™Ú€êš´…9 ÃMr@Œòõnë4`@î8Ô¶…é>Å^üâö:Ü+ÉŒP-$&©‰ÄUóvõ¶€ë]Ñ0P·“jVŒ™,ÌÝ‹FB»Ó«‰v+\ëqÌgW$ÆP#×jrf"€Ëò<2FHUYa.âÕx6ÊJ^¦ó¡§JžQ\¥MšNr1Kr)žH¦êz…Yà™–'!3toU²t-ï6Þ¢ì\ÄÀ­d&ÉÅtbW&JK˜ƒv
+ï¨º0¶¦3»¬h¹Ìµ:ZVÈb*Ù¨ÅaŽy%ñh<¢d²ž¾Ì8Þðê}Ì:b™bA,ã4c¨L”r¯‘îWqSÓâàWCX•É¶Eí@7LÏÒÈXÄÒÓôâ Z¶ÙnýVsé”ïma‚YÎiš`„Ï”}DÏi=ŒµÊ±™OˆŽd'®}>åÂSH`ðY‹¼:6ÈëK`>òÔÞjµZúEåã\u6ænN¨É™šUÑwÞRË§ï6w‰ÀR}9ñ²vÅ/²|Å~È¿bGï™µ²‘9wi¶ë€=uVZå\ŸßÂwG!¼&/˜{rLäùê(‚"KkŒqÅmµË	 ’¿ÚÄ…±šÓq“	rE”Í”Ð¿ZÍ4ë(-]ÀA…¹‘>“óÎŒÄ/—QKJã€,Ì-eHêWWÉ€€šè¬ :M3µµTÑœc%SŠŒÙ^p@{xT;hçí+Z”ÝPtÒÍ¬ÓN?Rê¸Wu½Á*.[~qï›y¨ë¡‘‰ìµø«öc¯A°Q(’/á×À±\ ®HW·Go^ni%	Ó6ö4ï/š}x
+3Àwtvµ¯Àkm—ßL`BŸ õwµp–9™3ÐO’É|Föu±¢šùÁ¤>r€HxKrx404öÎtXu¦ ŸÖ_XËøjAžÛ— 5å¤/¬ÇÃ;kÕ]æ6üÝ
+¦þq û _u¶ý1©Ÿ:¯»Û?-_oÝ×½íCûuw£Y¾Sÿ ¹ßäèÛÄÎé
+û•…äò{ÀÞÒ™„78ï`õA…ŠÁ2r
+U/þÜ3Lã^¢H’>™^3À:Ågñ«Ñc¯¤§^™=t"=tbö ô~7xpäJà<4yèÀ…§ð+‘6Þd—Þ©ÝF¡ßÉKo‰5Nm£![£¥´lvœØw~ ´2Á¸;²ÅQØr ’T06›ÉáO§#aüJþ`‡ÈóÌ&ñÔî=³e€Ä—±‹ÉÎ¼’6Æã§§¶8yüjôØH~ldôØOKRøÍì![~Êð]§òcf+{ìtO%Œàýáµ¸…øÍà¡ãg?½žÂ¯äôé©É£'cšøÍà¡SGÄüf2ÉSiŽðÍè„§’O(½`r,ƒÌ£ü‚	P~:ò“!$3ïã}áœZÒ£ü‚Ñ£¯Æ™Gé“G­W~”]0xôù™„¦ø•ÔŸƒÂØü°e„@À^"
+áwR?´üÐèy`O2É}†APÙ®½Äòò&´nvd@\¿Bç–;ñüµ)ñ}lýŒd,ÅùÈaØ=˜=vC‘*&É‘·»¦ôçuW"xüJV0’I&~%´ gS‘Ì™˜‰NÒ(øµÊ$^9'`éwPgK;2›ÀS[~¯4ÂË¥(PÁ7PG\gQa„ÃàXœ~%Ý#òÔc2Ê2²âWrúòÈäÑ7öH|¿’ƒ¥z Yûfkè>o¾ô¤Qøz¿å®A1’¸7|`¿ØK“f¦çdÕ9	~%”ö<Iº›Ñ I&Ç¯äG{íRItaÃšŒt,‚_7å§àÔé!ýNN=ßs½–£1”CO³r(\àÔlVFo]•{ìx;°@¬¾,Î7¨&ƒútc…îùÁIsDcU€œüèÀG;»nÄPp WÖÒË‚×Œ8´‚±·„N›0Vv˜ôW£ÁŽllï è	ú€\ãAœ¥jö‹Ñ /gªàêÔó3rTCÀUó!NÆª!àªù‡ê}™VYH‚^ðDCñ9üfÂ¹Ü•X¾!]˜xÙdåsW5ŒtÙ`˜1Ð²æi€Äh‚’ÖÉÜý¹%Éî)[]™YËra\Í«,]üq„øFV7ÎN¥-;-]—¼‚U8—\2²i L!=ž\2xüµ4gø†d×L`ôšÏÐÑìôveÅÕcM½;½æ®‘j OðP%: j¬þ`4¨6«Ñ wÒWÅ~0ë °fÞRozÍD›Û6(ÒÂE“Ó·®\/”Žbr-7Àÿ  ÿÿì½érã8º(øží®Åî2m­Þ:²¼©Ë[[ÎÌªÌÈÈ¢$Zb%Eê”m¥+oÄÌ½óóóçNÌ1ÿÎüïy‡û$ƒà ùÑKVÕíÖ9e‚ß¾A1 …%/0]	•£&5v>J;ç#9´¾g£ºwáüh*Jˆo›0„ü¤#*È',€^ü ö„KT7±“ç,¦–OÇŠÞ÷ó™ï]K›¶aÞnúæ’Ä©çˆÓZ1$¡/ÚZè•·}ßÆ™û½ó3y%<F­Ag|v!ög×Ì‡tcù¨Þ^‰[N¯_‰ñÖö‡÷LÔ8?]½‰ÛO½&Ë?…T¥#ùà¿@Ù7Ç¶+3­¤	#&.LgÎœ¡-IœÉÂî`ä3{è $™Caœ´‘ô½Ò»pfR˜¼“à4iBŠ®æÔüdÍlW"KR;†gN,o6Y8Ž<ŽÔŒšÏõµ•JÔ„Ùâ`èùƒÜ½¶)ÊÙ.A9(úó¡/Óè¸E¡=‡™î%´[Q_1³}[ÜÒ¸ÓyêÝQMV\ m%Tºš,F>ìOÇ²4Då¤<Ô÷åžTdFö|ë‚l-ÚÞ±ÂöžéSÄéÏkÑy;‰o`øé©Ä¯è%Ùƒà¦®5e•CtOÄº'”ýP>4üt Œ»káT “#™uÒK”¥þ¼‘Ñk¡‰@[8X(7d×ìŸ·Ž­©-NÀú)>ñ®	eh6~œ}q”£Å, [²ÌîãÆ9j1ÞPÇñ†³‚XÚŠjË|0E§nÚ†²CùC`d’-*jz”Ô¥Š™“¦ý!%~Ÿ‹Q~XW"ºP.DÁ®Ç­âæÇwHtëQŸÛùÈ]é¡Õåæ"Ô—¦½Hy7É|Ã4d¨ô=Æ®É‘1E€CÏ¿¡Bµk·ËµXqHá.R„:´¦°³ƒÄ¬Œ8Ý"Ç–Y"w”mÄžM5ç ö›Í¸šÚw¦ Aå²½îÅC£^bÙyHU*óÎr®Ì»Œüßa•VHç†pN;T×è¹¢öÃZA1 ÃZ¨ÜÚ–„ôÐhðVüÛ¼Lú+Ýs<™£Šèöztè‡þü†M1:G7ª°@ÛçD¶«'îd|£ÊFžÓíîL,KœØÑ9ÛÈô†‚ïíwýEÄ¬ÈJoñÊÜzgN­â€'%·?
+2N­Ï)˜SÙÍ‚lúøúvGÆùÔšùæ'*ÍŠ¶¦´³î6(Ñ”ÕšC™}Jíc*Ÿìpâ{Ó‰,ïÇÒnQx‹Ðùq\eêP-ô'²g'£y&wq–›iÂ4DÎ´
++9ñÓM—\x!åi2_ŠoâìX!ÕF>Á—e€Q0kÅ ­ÝCÏÍÂ•ØŠZï™BÃW<¾³ß¸¡u¬Ž‹|(½‹Šì1hy¥4iCíý(cgI{–4b¨§CÁí“¼Mib€!`F2†Ôü(¼½² ks1t…À\±û£0÷Òæ1b‘¼'ÞF9àARµGEè’>‚‚Mßß‘¹ÔŒ2hÁd<?´3l+seZ³\Ú'g]KZ+X´D	YƒÉš'0¤ËñföÈûT‚Ü³nˆE|	áå“¢Á‹GGx	§åA,.?0FºF–k^ÛéÚaf7q~¬Ðræ!ášï:QZâƒ.Š‚ö4O`‘95Kž¹ú>Ê0 ˆJŠ­SßG-thÒÍ dUîSõ}g0:pð,P—¤ŸfÁU¢%†5rb\M|+‹çêû8k)¦=E¦9&ÈŸš¡oßÉÔìƒ¸µ9ræÌô«_’ä	ÿr¤ïSØZ½é€äæ«~ë£#}Ë·AvÍ«º[ÁsG®3‹,óúQQÈôó¯È>‹3îqg=Ë±ˆ7ñ8G·sã	wzrP7@–;Ìâ »“g/¢»•¼×o`‚™ÑŒÆ©hgÌÜù‚!U§P¬’Žãxˆ£ê‡–¥Wç°aTÜ!'Û¨P^Š®Å6$(ÀoÀÛK[†âV¹ØõºÑNpBÀ"ª›è>ºa»õÄõè¡Ü´ç¢‹õeK¿œˆ¬n‚Ò°$Å
+…qg¢±þ•+Õ•ÀõùWsw„’ÿòNÊ$	Ô«LÑbâHB0‡ârÇ-(h…Ë„œ$mTé7kbäK¿O ×³^Ëô¤Èž'Ù®´Õ·ÕÌ¼P®ªñC¯lc£ã­×(œs‡”ÁŠVâ¨…lÖ·pÓ®o¶.Žå‰×7hÃÿæ3Çºk4jb/o$t v£OH{·±)&$í¤kÀÌjzžÃ˜Ãq]Œçbç‡³v7PT£ëwœX*®#h'ËÑdôE×ëú‡Ö™}|Ð‘˜MÜNà)ýLl»Ælt§Û”v)j@è‘oŽ¤ü+›,³F‚?yÛ¬ï)¥f~µ†›µÍ¶´xZŒ+\ÀBKt3j@1*ÉJ®˜¸ãÃ²ý¡I!X\½¸Í@%¹%Hð£3~Dê¥–ÃŽa5PŠìøŒä›T{7å!¢ÖHCù‘üKX’ÜHqÊ˜èš{dÒ„ÚJo ÷Ž[[ée²¡Ó¶*º¤R‚CAWÂ>—,÷qìomw(Í×’å·¸¾'àYôEz	Ñç¸¸0ÅÑO=\˜Q#Ä‚ F9ˆ2®L'øS{Or}ìTrŠ4â”’6Ì Líòü=ßs?IæÇè‰î 8ïv­•6X
+êíS9¶Å€.YœÜpcúÍIn -¤‰¢¥ýÇýŠýã6‚£Æ¦O7o4¶²ü,¹AÐœ­‘©®=ühQ!É`ÂJÄ)§Ý%wHtƒìã7­¦„é„µ ¤õzí$°Ð€!pƒf_Š‡d×(þè!iä ë´1Ä!¡7¿FQå!8Q,‰,GM(!Ô7L@RÚ†Ùxs0°Ã¤¸9ÖLN±ÙlçõDúõÚ:I¥O”¤ÓÜÈŽA›ðý»T6èùRà4Ö†8ÎŒìûã&ëp¸p cstm[Î(?žtƒœšîØ¤¬i‘åR‡Ñlë…71kMÉ¿Rì‡J	ýÓcU¢pd™öi43t™¶3¨y†%Î¯6ë§âæ±kriÚÎ­¹ÀƒÁ¡eœÙ-‘FG-äÊ_ÑMÄQW:oÒ­o6j2iM›IõòP£5¤ôùT½k Dá“I…96hH£MÉòÀtŠ¾çÉ-’®ådßº±‡Öã+ôPej–ÉŸJš0Ó3ƒá
+ÓéTêtz–¾‰‡sˆŸŠõoà
+óFûÐº8­'‡¨ è©†Æ	®†Fß;Ñ+Òq±_×é÷ºçbJÜ‚èüSÿ­Ðq.1³½”fë_Îq%)N;)Ë¾jñ…L÷¨cŠ‡¶´5`È®ËÎŒinÔ‚Qi\q¥à
+ÑéTñãrmåÄv‰â}ÙX‚ëöÓž„ÅpÉóû¯PÌöDN8²<&Ž£¬Joû§R~ÿÔ@Y†ú{ºdSÚëP=µ²ç‡bGz‰{ã+û|CdiôÚØ@©Ç?¼ê_ÕEîFµ>½Ã-q}z‡Êºzr"Õ'‚KÒ§û2Š«»9$}?ºËGÀ%éÏ©&bƒ~ƒ¡s%æ£ÀåÃ¦r˜¥7¼]óE{'
+„ºðçA`›îž3·Îô•à—P¼¨>äÌ4b>¦ïŒÑßŽ%ÜO,–à¸…3—á‰"+Æ“ËG”ÅX¬’SŽ©a%â…GÊŸSÅû“ð½QJmM#×_l}<Dá¾„ ä'w¡¬Uº!?RMþTé:šâŠBÒbšq“eî`g§+s£Ä[Ù‚	qŠ_ŽÍŒÓ/iBÙ•ì`âÝÈ˜!,ûÚò3_ 4b:ò±Ør„ÎÎ?–´®¨	Ã¤¬ivù“&¬9[G!i«2€q¼M`É²Ìnáª¨˜ã‰5ÍÍ'jC-g_®ìˆ“¤ömsê¹¢í:nAtfz—åæT1j,rü#œ¢ò¦{&Þã×ìÑòlÅV”´ÚìJœîGdÇ\ŽL×±Ý8ëè¹cßÈÑhQY>ôü¨þ'ÎÑ°`	ßÒÄM¨(/ƒ0q¾çÁ0K¯Ò6µ5©–¡˜iÎ±N=ˆgËøÈÞÁx²%>zèò§žyÚŸ4¢Ö›rhxÒ„p=7™Ž%OAlÅ`âdîŽ3Ì#nÂ|•Ï2ä.iÂÈ­ÓÒs¦Ù ›¤	óþ\±¤¾N÷„æ\£¸˜98á2ÕÒF¬ï&ë±ÁÉaSÓÍä–$mäÈô‘E
+çŽceqÒF–»5ÇÌ°‚S,+86ýQ._Q©Êë‚tßEnÞ\aœŽN|3#D	¨!F>ËêŒv@'ºSasºUÝd‘.jÁtž˜^¶„oÁ˜æTÊ¤ëÇM˜wûÞÐy²,¶~AõólÎÎn¡Jç¾um¹wôX½sïLwv‰Ô‘ld=´ïp úªÙ·E»&‡sœk¥owsõßú?ÒuÌÑé91÷üfWbVÐ²ÓEJm]¹u÷Œtü)®„|‡ñ˜ÐŒ‹ù¾å„bXé…3£1þñ#Ç`Ê®fŒÿŽC*É—÷êÁñSÈHy€x!¢1pCìIò§Î±>e`8¿á+iô
+ˆ¯šç[Ÿ£ì’¯$cø+œ1ü•‘uÇ-pHßÈ.‘B…)ì$Ás¨`àˆf)Ük15«âf»¢Z	”Øš7–;–ôãèIï=ÊêÅtì€Ü8&œ1z¥½Hy·òÏ}m‡¾}m[£h­Þ€¿Vädp•;Ä‰·S{´çœP‰&¦ÈÇAÓ¯K‹'«°w3ÇãÌ(õDíÿH.Q¾}kæX¡5zå³SM:™ø°ýW<éÅìE–ðå½’ØÈö‘VÑ·›gR@=»Ftœì‰o›{¸³1<îŽ2©5È³UNÇ¢®P¢’|’¿ÆˆQãÐª·Äðä³QT(¥z˜´{ã¼¾-Ê1&+rŽ•òXô‚÷¥T£Â0o]ÅB#j&‡VCrÐÇ-˜…8·®0Z"ìy¾ç2MƒyXèM\«¿'ÅWÃ%FgºÞ“OsÀu»²÷d÷.®ˆ˜Ÿ‡k4§?e*‚ë
+ïA=Øu…þpDDW´¨vÆFÏ5º(“*§ïy‚¿|qqÕAíð«ãÓ7RQSÞ€g)œ.ñûP«D”|xC…¦òê³ë
+«1x#a%»¦²†í†ÊŠ<9ª;’Gá×(ëŠ„ÙÖ99õF–}ï[¿+a'ŠÉíI†tzUùsÏÌÞ•¸iôzç
+y,Á±LOŽÕ¾˜bç[Š`›"Âš#f×¥2"·Œ!“)¨d‡ê›S^Ò±Ò@‡–ÈâèUªÆ“þ¢1Q2NCr]~€§Ø(µ×ndÎŠZÈÀ·,´òl·ú¶IÆ[*riÙîµGµ´‘8(I
+´ºèÕ©ç.H&‰âb`ôd’ñ($ÈWç4yë7;Ž—ôº’ÍáÀ¤p“) áo¼õ{õJƒyrÛ;-âŽMþz´a‰jÑ‡·¥âýÂ!ìô9ICI`fÉÛýùàºÂ ?ÎÅA~ó»E•öìs±ÇžØÞÙýÒ’pírb1DÕU´uÉ¹†…ÔÝýs™ˆâºý$sÊŸR|w.ŸƒÓò'êàºÍ²‚zÔ‚3';C/a6b›Ø
+W(Ñ¾™ì›8æhÉù5Fs% `—«ƒ ¯‘ ðZ>Y]¢—ÒÛØ%†+ËßÖG~%)âÖ±K”ŠI±'{ÎR»5»²ÔEæHÔ“]b}ée?àÞÕK½Ø%Ž0Jýø5ÆKêÊÆ¯QR¸´(ì£/:{’¥.1o»:”Nq€KÔ$Ï¥9ž“å;œ˜þg‡ó2Gx"QbÑqÈŽW2¹Bò—#¹Û²[˜™æ9Í“¹Ü‘_cPp “&~¢¼çÝÅeuØ¢¼W(*q(	T§Ó±„ìe½<—‘]bH‹„D?àpèQtúWÏ)ÊÕÈN)b—(Ê'}»DÉÒç¨)^z2ñê¡vëÌ”¦È.qº·¬yã@WZEv‰Zyñç¸n§”ÏÈð×(Þ(wä×ÒãË)>HÞ/ÙAL¤°§¶¾“åøŠä2|Ø
+Ë¼Wø#—èÃ‡ˆÚ‘gñ=ÀP%IèÉµÙþœJò ÍžÚwáÜu6Hâw, ~*¦P™GRX‚¢!IŽÔˆIÒŽ-Æ¬i®‘?v€ßHj¹c°ÊsLß8•kz¬¾²B ÏÉµbá¹PÂ`»/í”µá&c:‹ ÌÏ†5£wÊ·†¶7¸‡>3X|“g¶£|·Ü,cD‰'™ñøÍ$+%ƒûžk0£Of,¸A¸5èqt8…Õ3C@ÜƒX¯x_
+:&“ Xaº!)ë ÎóÃ®eX¬hÀm‚†$Ý`fÈÜh•’ÕùI´Æ¾?çâ÷ð‹âpfå‹-°ž®=3-a°dÝÜhÑ]|*/K“z”çCÅšÉ·rQÎ¥‘à0ââtÍÇC\Ê³ûZÈ}-¿‰hà1Ÿ¼JC~éX¡4°•f¥vŒÈÌ®ÞD5ž²8;!¤üøž=ŒyL…Í»?p/Êfx1ñBoÃ	ÈDÆ›óf…9
+„Ï6K8Td˜ÐÏÆ¾Á«T˜fcŸ$ø™&Á(À4œênÆñbàÛ£
+³äCÞïy§ƒþ¥uíÃ1h~•ÕL;=Ó$á´òˆÅ'GwW˜_ÚýQ$Œñ¤è´Ï€›¸£@Ë>6:m<böNÓOåŸäÌ¡ãƒŽÁª]å¾•Þ©P‹¥cQVžô³Û¤BŽV×1‰Ä—ŽÞDJ|¥@1üXÇÃÛÙi—ˆrúó EÇNÌT¼¿°Çl¡ñÓì¸CÖ>êùLÓŒ¥Î(ðüAµò¾6wÖ«¬›åÉÜ¥‚â%Õ”é'FßžÎûP³d}IÜ÷Ù83È¾CkòÝ†Ã“¡¤º‘¨à(îÌè¤ós­&ÊiÄ%Iw±†ã!â¾dù¸3[Ï±èvHŠU±7’*öFœJZð^tIi¯G²BvÔº§¶l¡|ó7IéÈwRÖïñàj°RÆ•9p¬Ð€£9æPã« 0„8[ÞÝÈrç¢÷ÝÁÝÐžå
+ž N­Ðò|¦3±S.ª©éIï”=Ï4ùêöC U¡\J…©æK­<ÏLLŸRÕSJQÊ	‚ÀšàDyõn-8ú>×BB¬X¢‹[p,t»L¯g¼&Ò Ï¥ùD–â`@B9;¹
+)–D(_â1æ#Á:%¯Ì™e_‰µ€èf”ÕÕô©éÙ”Ï}„]1Õî¦Üçeðé T«¹œƒµƒòK9z=ºMà6ÊÀ¬ ô‚XêôÆâüâ»äØüdú¨hÅ×ž34]ªüw‚‰qeÍ&¾˜lß%ôîãDØCgÁ^qdy3àù._'}œÐØ4ž€Q`îZh[½±o}s„ç‚™ŸwµžKYþÁ¹ÕŒá˜pã•Ï Ò6»ˆÀ§óä½	ëý¸c,û—‘h¢S§èƒœÛè±„§„Ðmî\Ï}õ}.Å@N†ÌYÞIÜò¾ŸVù–åÃ‰MiÐ!}“T˜§Ð™¹C˜¸þlµN8‘±2˜µÞsŒ} Ž(52íLJ:=NH·fÆùÐ2]#©Ëkœy£y¡T ì¼KJŸ~ÌüØ	á„Õm7^n2ÖÌ±Gv¿fÊ8ªÆ]áR:h0‡HÐ9pQ|¹TÒ÷üªÊ£˜"ñÄ°´;:nlô8¥)¦Y”Sý­®ƒžqb.¤\XÚFxÛHÝÜI˜HÎ”0>†“ºÏÑãLt–y#ØÂL©¶TÔLXóã(™• ö…=cš½‘ýHY"êK"AìQ@=¿c¶$Ç8—¢¢äq åò ªÊàäÁºsßy$¤¤®% †FÙ*`’tÔÒ•ÍòÊ·‰ñhûÖÀGÊ4ð<)}þQtJÍ¸àCYDîÃd1q$æ C0=Güãwƒe¸ÃFGä1ÃWÇW]÷{¦Î¹Fd1GqhûT,yc")ïMJž$UQ”ü›gSÒsCVëÒ‘ŠdÉA»“Þi÷Ùlšìcß,“J‰‰3¼±Î$êü\g¢¶{¶«y1)~›Rå{¸ÇB4ýEU|éf ðè¢92Ï!c«hføŠÏ3Ž0r¾{þ¨ê!ƒ¥Ä‡\YS Ä`e'`ÖÈX?˜™ƒ,ïÙF£) É[HKHâÝ¤‘ç}>ðŽ°$rQ¹‡q±Üí#Ã$¹€ÃÌÜK2Oó§°Fò·~×¨'Æ’ºUdëŽüê#nln>2r5÷PmÏ£ß²öÕ]¬lÅCÑ`yÙÄl­ÁP•ßÍ¨ÌojØ‘QWTîgypÌ	Â¨à5ÕSÙIWž‰BÂ„g1ï|å„¾iä ;r§UZ,ÊóK?­Jàêû¿þ/ŠÖ!œðC®m‡~•5êòVªA“]â›·éõ	Õ•ïZ›š³å¡’Ý—dYG9×ÖÖè#º¯ˆb`ékìÏ5>e¸€aõô˜Ïž¢•?œpëõ.úìz-ôíéòÊZè±;]ŠzË+Õe_“å?	#­Šæsß%¡?·ôÝ¢‡–‹XýŒ5¶½ò\ÖlwèÌGV°,½ö×_ËÆ²G;XÆŒ¦J»¤ŸÕ}>¯¨ÛãM@)ÇrÇ”¢½$5å«MÑžä:kww—ÔÈ÷š]{1²oÈ¼wgæÔÚ]š×sÇ!×'ÿCÏá0k- ä—yÚ×‹ørfl‘Ðºãköwà€ó¨]«‘±93šK/5Ëö¢±´~pLgüÉc®Na.·F½F&ð0è4 bûGN3X×ŽÌLWŒqkúƒRœáG2Ÿ1{åR”l?‚Ëá¦#¾ŽŒ|yæÑe¾†â–C‹LM¨×õèé_ÃI´ò/Öá…Õfó®^›Ý½Ï®›``MA}ÑwÜ·Æ»F]zyEÅ©Àº¯)Õdz0ü<0 ´…ª$æ ¾
+¤µ;+(šÚ‹uºÿª[+dG1
+Hª¸#Øùà—UÊîV‘Ô-€ÝGk±{OŸü,®Ì44Zx¡'-Ý:ïì»ÚZ½mMßg6—LF“<ÛAü¿½Y«­·kd60Ê|\Ð›52 Ãý¹Ö®uê­÷ëÛm2 ïQM’¾}N;OÉ' ÚíÆðHB@ˆ¢Ì£$Eƒµ6àý×÷æÌ Ç”NãÆöÀÞ(Õîeü»¶(¡‡ŸõK½>ilDf–)Å¸õÍÿL2»ƒSÑóâtA”Åa¨HC‰¹¢p>xÊP2ÇÉŸ(\Z"ß|SÈ¼àgÝ³¯tdñ~	ŠÖó2Í¨…Cðwø!˜5ü^æaè¹%OŽ¬ìôÿ<·K5ì»÷ËlÏÜ™|³ÌF ”P™îb¥|¤ÀîÎã:H
+bMbv8ã‘ýÝÀf†ªõ“`bŽ¼[ÀP:´€ lPþªÊøO†2DBùîRŠ¦”w­oGÜìÊ0Æô&Eãõ­Z<Ëwµµõöìîƒ?˜ËõæöêvcµÑÚX­­5WÞ8†Ž¢û0@«¶„šÙ›§t[5‰Ç6éåÄ»±üaª¼Aþ:Ù,ÅŒŸË}Øb^Ÿ.‰":Â÷1—õbƒ~ñ…Xö¹ „ÉqÁM%Ö+fñyeYñvåÀŠÆ¨Ij»_ÿé0¼ ‹p¡#ª¥¾7´‚€Êû¶9v=`†T?öÆctw(ö—uy.÷36Â¡ÅTÀàÀ…¨«‘Š gÉýÏ£[€ÑMŠÑ”;o$h}çhÐÚ·ÀÈI§Íø®,»2FDGŠÊv]Ú?Ç°¿ºŸÿhøæïÉ· ›Óýà·Éø>€åÂ=ƒŠ]¾7IÕ®©ÌQk¼ÿ–¢Ú·šlE¨#ŠíÚ·úó ¡ä³J|`…·–å*Y­ž[Çk¤cÑåïVXËâ³K«çHÙw%ûªÿh~YQžj0yª¡§øÞ\hÏ™Sºgº6ˆüÆ$n9÷Æf»@÷Ð¼^YðB‰ê×bªßhµWëí­ÕzRý- ú"¬N¢ éåû*³O¨~ÁD´$2«©8|4ß a>·lŒ	Ãò„í3T”õ-5ÖÅ¿>3SÚ×öP$‰îØv--i¯¤	Rj¢¥wµ93~·U¾\aÕ1r€«ˆdfùôÒËóPÓy~¨¿Áx¯‹m¸0òÈ<œû”¹3ðÒh‘ù…íÎæj³!ábFß4œXÃïN'h°ûÖhWxR!vbºc
+—Ëc+|%ô[¶ÖB¨3®EÃj]X‹À7<×Y™E¿Sù¸ò¹M1²-ï¼f«A‰•0ÞÎþ1¢©ï$”pF¾Ã³¦à41ˆ¸/åžO…ùkºo;T5¾ûöÛ÷QSJEÙ%¨Ïï ÕüÚ±®C©!ùœfvÉ}.òKé«xÓ„
+ü¯Ûä/AìçÓÅÅ{Øl"T)P­_¬3pW°mu3-Ás,
+€.w”0¼þ|[¶k_¿—Q¿” ®oÖ²DoCOôÞL,—X\V[%×vÙd0/íKÅ>n˜¬Þ*ÙQ}@ÛlÚ`º#2ôs²Ò}
+ìOTËñ©h¹ŒºT„áú?û©]mÆ¼hn@æ<8ô(à1Ï‡Ad äô„>>¦Ò$8ôÖÈ¥õos›^‘#kj»vtzìÄv?²þæÌØt‹5ÅæÌ"2ÅgYdÎ à,Ž(±ãÜ¨å:Q)…9ÖåÜíôòÔcdl'vï©âiólúe¿þJþÄhá¾š‘#ßY³1Å“Y:Õ[Ž/ §];/&öˆî° –¨›
+Œ‡CÏTÇ€‚0¡/*¤gÐk4ç‘[§#T¼‹LÌcrN®lo2®á‚_êÚÎƒ¦ñ¶ÄÛÙc/ÓpýUù
+ªÕùïe%¤öŒ¹6â]®ÂÇz·s£od3Ö“ä%õ¹Z®P3Rµ›ÜØ¦ðÉ s¦Ëþpn§Q«}ýÁœ‡ÞûTsÇR>éVÐUOÂ|¡ãD´‘˜¶·Wë50;€ Ú¦¨üETÖ5Ù BÅ³í­÷Ky¨Ìé÷y*ZèCÒcÊÚ]Õœ~Éžü“´«T·ÌmªÆà—Eå„MÙ.åòFNÓù0d€…& ò™éaŠµ0sÆ°n “ˆÁ€R6V`lþû¤ÏS+N8õ¬YB§¢±˜òO?D4ÚLÐˆÕ €êA‘Ã`®•‘±ôlÅÀÓl­6¨æÒhnqíE«&¨$âÓ:öÌ€EœM¨Á"B¸J¸¹C	—8ÙéH«8^E ¬ü)Ò×Öò¬„M^+@k¤ òõ ÍÄ}Q^~Ü¢Ûº•Óè|.S¹ÉÌ¨+iA³F¿1"ªÂB½.‰ìOðYIÌA¯Å¿ØéBž?›qä®¸–íöjü¿hÔkÎP_ö\ú¦²Ezû…ªÔoµ¢,[èÞ‘	ò›z3yqJ½Æ‚Ù¨ê‹¯C¦,%UÛus½³Pà;l3O,Óg²*¤ÂÓ™Y„…Í‰ÝßØÖ-”ðb>öo©ÌëŽLô-p?ïV@´œÊ¤<¢Yîqj¤j¦Ð¬9Q¶º§ÆøŒ(&›ý‚éûÛ§ü•Ãý?„ö"##B­XÊqÆˆ@1…ÁPáøŒüÿ¢t)y=Áä*/‰p¯‰À!Q s¶ Á„J•ARQ"Æ ð¬¶Å«õBœ•UmÛ4sœ“ÊêYñcÝË3káûgt/=ÿ£ãßˆöýë“¦òu
+V#c¿Rø§ËvŠ«ÂÛ‰Åkê¹žàæËì“†
+]Zý0ãÞbº®ç^Ûãµ‘5'Ÿ#Ï†’®¨‰6F…OÂJ²Q!,‡r–tV7 l2ÛéS.BÕß2f«äÊrÁËÒ¡^~ÀµiVŸ‰Ç÷“ÈBîB^' Ë±OØ»¼	§ñªš”lÆÁKeæ¾žÜ-CPYŽJ—;³ŠÞ1/PÆ½{çÈf¯D¿è^º•3S£–9Jˆ^Æƒl9×†E·…Iö7¨X²%/·Ð¼`dôRAÝ‹îÄºñ=wß»Í™&óYÀ¿™è¤,ÝQ±¿ÌÆfåÏ”Ê(ïkmìî©€Õ WE;ñWÔVÙÿ1M1S³–&ƒ¬s$U¸ë6´„¶ÆÈÉUsÐÎÕ|PBD`ô]Ê<ˆÜ~³‹NFfÍREñ“¡Ôù•\€t©+úîñ‰­÷â'GwÒÏ®×€¤Øw”œSÐ3‚¡Ÿ÷ó½°§cøÃÝû¡H`¸«boü™˜N¸»$~sI/®yƒ_(:Ó¹ô6f«ó-ÿÂ£È¿Ø]r©æ5å¡ðav
+v`ã‚¬˜R—^·²pŸ#]Ì™=°(s° Øe6jJ5¾†*ÌÒ‹:\ÜÛt]è?9¾&s=p)¿«³€=Õ¾Ë½*sº¼ñå&í·<J	¦ñpk{ü5-ú5ôP¬#ëÑC¾%éû¼_ÂïØÔH¤Üu ¶ˆÆ ¦Œ¸¡¶àlÖTŸ)toqwJÁ—ÆÞÐÌWU’³B7„(¶6£„H•T¢u¼sJHbCçÈº6©D‚Š2P!½¼À(?— NÜxµ€2-àT´üm­3Z¡^ 
+Ô[R †¬kèÖ6BµH1f–lÀ¸J™¥àá—ÌµöÊjÈŒ³µ`ƒmÔ´ñ_ùe’¦©öÔ!ì-*g“.ÔfNYÒÛZê›«0áF;t{¢Söï³¦]}øz¹×5Cƒb·Éš:øCcæÕÌ#Žµ{E×~?Úƒ²Ô€j‚j¿±r½°_:=3§-fµÄ;É˜VGÙ|¨1Pe÷á²ZY%êv¥{]«¤âôiÐÓêÚÐ%…¦'†ì§ˆ ‚gª´ª­	k–®¶ÖŒÖ¹ìï/÷3ZìÔ@®~µQ)àð±›¥Ï óê‚¯ª°Æì–Ó£êÜ…llJ6êDôšÂ(Ã\ôþDmÔŠæ;oZk§1Îc#(¹3\»™ŽvR&µ­‰Æ/VeàPá_ÍwÕ[”1¦d—QUÂ¶R±öM£¢ë§;›g´WÐ]%´i±Ø`¬f2Pç®çW±Ïˆ-j…3à&Ü|”¸Ò •“ò‹ÜÚª çHTÌÆMsÎ‚tÓ”©MY—ûê91×}9Y‹¯ÏNî™bç Höýz±E°ñ¥4D/ÄØ~—}aY2’ ¹>M/AÈAÊÈ¯²>Ú%IVÍø¢ÒˆJbh>È³ú°xmÔen^Q7;:ØÁY1X(\ôlQž„h{H”Ð‚d”j6Çk“.¸&"mzØk<Ðì¨Ì¡x°Ùqê•€Yä¤<¦(PèŒl¯f´4FÃhÓ(ž¹|Ò’ïÅAûÓAÃ)w¥‹ñnsƒ1·8ß,¯+¼	-áú^³¶Që¾_ßÈšßý¹n5¶›ƒ÷"§(pO¤¤‹ÙBš<É§€½J©çHŒ)Íxm±…F'ëå:N­rs‹DUbÐˆsnœ8Ô"!@Ý/é…MÄxD”¶ïßbË®çÃI@9æcv-ãw¸qñÔªîOò>“CþÇïwãÀäÇl`<Æïp…¸ë’U°¾OÞÉùÑò]ËéÛŸ¬Ïï¿›è{õ¨dü·Í«*òEkVéëwŒy<Æü1»&%×ýn¶­Ô°«MÛBÍê«õíújsƒ‹ô²Pÿå~YE‹É_ˆ³éz­ÑÊ>ÀÀˆ¬PÐèŠÃÚwÖh¹¾òù”\˜¾9Å@WiàT^†ãÇ¶-ŒMEf&]m*¿µÁò¶Ã`HÞ\2­Ì&‚Sïµå³Ã* Áµx­,ˆÏ…kuiîƒÌê÷ÜÛ×bF½ÈY¶AnS¿’4¡O†ºÊ‹[¸¬ÆWô<—„‹OË¾Žb£ó9²e6îGx§3¶„é)q¯Õ×›YƒÃ Ð¹ÖªåL1ä¿†&ËÿúÐ>°Zw¶kxóðƒMÕ¥è¦r¨³2¤5Bk¬T5´(`óÂÐ–Ö ÉföGu”è3½ÑÙ…çÈw¤žÍ°ŽKDÑ»dæ{,ù¤O{2}6B×‘7
+•»2}_÷ì·¾~\)+me-ƒ•nøù+¶TQj¼ñ+¼¢´+ˆFÒÌêB«XG¢åûõWiE¾'K±7¥šåNzÝRÛ;nåoØÚJ}G`÷‘ãtï0B™¦.…±Ä1†"‰l¨rWØ¯¨<E¼Æú'x‹Ê‰™FÈ˜à¤¤½/2‰$.¬ñ°#Â@Ñƒâ„3Â¹ ÇvYQÈeR§õ36Vë[íÕzc{\X+ïKÊQp#\êVmR#n4éNcÒ+°ç‰ØSºÝ…DÆ®íK&êàìn%j§„Y*X1eØ»Dü§û)ÛB³°Þ†ÎS§ÆÊWÄ¯  —PŽt«Œúºp„²G¾ÂfÆG6p<žý¹ôÆêÌÂ¹Ý§£%­’Iô#[Ú°êZŸ/òÝ
+•§’«ÁqåžLzj…>ÄÉ«’¾ØãÉêtBÆ¡ÕËŒ ÔŠòôHÖ¯Ä›ZZ+á'ÓQž‚iœ",É…Š`$à¿ó‹«ŒêÍB{jb;BU‡W œ¼,UQaâêÈÙ€lÂ$,µK7ý}O~îvÎöû;ä¿|u¿L%	*Èšád2Þ‘	€!mAó©­|þáç’1wÈÏnw‡âàòv[1^+®±òùëÂŠEe«ñàAêX‚z1kÙ·BÓvòymsÈ`bû«Cµûe §Í¬ÌcÕöê<Ð‚ÌÊ"¼pT:Ÿ¾†L5–æ‰@:‘©Ç`·ÈÁG¥'žÊ:‘ºCj«dbAýSžÃO“z×ÓÞK,:¼xˆòª­š^+×Mî)/„r¥!¨<$Õ?¢zòe–”~ñl4›V.¬g«ÕyÉÔ½œVHfTä?T)±ƒÒ"…D–èœÝ™ä"¬­*;vI¥ÔŒÓN¨	=È‹&ýÈý!}ÉÇ”ò²/Îû¿…È¡\t…:@¨ 6oéåÅåqqyÞ=è÷{gGÎS DOd€fìÛ#ÿ (¶%QceÀ N©Ø«7õ÷¬2¨6
+E29I¶S|Ñ®Ò-z·™¯<»ôòêà¬~IúÇ‹Ôþ‡É­R‚ÚÒËw”h6j­­URysi­Ó?èœ_žvNzo;W½ó³/»§½3ã´ó#é­÷jO²ÕÑ-5<r#ªp ÃÊ¿«ÃÆV£­œ¡Sò{™¦@h!D=é\ˆ–’Ó0¹?žlC@\¶Ó÷ß7k`€]¾çÕ½wÈÖçÈèùa•Ø…5—3ŸÀ«/–×v§þÈÅ…‹‹ÝÁo¥¤š+c‹uñãIüõ-Rùû#¾â·™L,¥åeIsAE‚‚Ç²q‹Ì¤rVGé›â€òÒ	“óx~[œg;eæ%©­mAÍ¨?›[íöõ&«õç­A{x½ñmÑù.ñ/–sþê¾®Ò½¶kTAÂ”ÄÆÓ±¸¬Pˆà% ±— ÒØ,ÊBUwÊ°‰Út^gñ9@ŒP(¹Ã¯/J±ïù¼&c7ÌòvmdW'ËªÊ(+>@%ñ|è§ä™¯O¡CFš{1F¿XOõ¯Ó]™ÂW¯ ðe5Ï|ôXüÍ¶K¨¼¸CËƒj¸j$ŠWeYn‘âÖˆjÎÿ&:äå¢TÆêj ðÊ‰Ë×î—ý½íy57U8|bŠ'õ}±  I£tK§ü@á°ÐãÓª¥J”ÖªeCÊ—£Ü[…ý¾r	³,¯¢È?˜þ˜yšæˆüÀâ.èãà¶—ìhZ‹µ~>	}bR¯¤¤àMå—¬4‰
+0ÕÄæáò¨¾Ì3xlÎÄ¸Ä!2` @H”|Ý¹é"°Ç
+6ÿIùØßŒç™ÉsO}Ïdæ[åßX`fÃKØWHu‡Teˆfßóîv—j¤a5ð?Ä“3*‘ÑîÒilÖÈßiGú_Pyáÿ¯E£-øïIÿK/¶á¿ð¨xm;N<	~øÍîR$§ÅoìQ8Ù]jÐYZPäàúšþ—u2~²ªÁŸD-ý3ÍÙÜÜ\›™9Óoˆ6€®ìÚS}% 7cŒ™ç„J?z—“4òC5ÀrJÃ§¤Òóêµ(zét«h{ë%…Å…_™|ËÞ_®ù±¯¦UÛFnmªI¨k?*?1cÕ¶)× ‘mqGrR&,Bû{Ç„ÍMuäÓ‡D§)‹I`¿$¡øÐ‡é4LïššwËuŠ ú(Á&ø«ÊuÌ)%¥ê<D­¾ÞhÈš¿¢Ôñ`‘Øs@ª@³§¸ízìˆ¡Äž¦Í,½üaWÿŒ„Ã)•ÿ X#A€Ùq\8§ëEï-]’£+.¥˜©Š˜è–è¦€ÄÔYâgº¹ÌÞ‘îª,<ªrå3z{ªí‚‘ä	EŸÐ
+õê¡Š2bÆÑB"¦H~‹Š/gƒÆÑsœ<ÄcÛ‘.,&».á„´­eXtØ;¹:¸ì#õ)í;æP`dWgÙ`ß…Óßë®«ëgö]˜yÞït¯z¯«8Z´¯CwÐ›/¤Çýñ÷_[ëòÂàtµ3È1ÿæ”Â™‰¿Êð”õ—(°ŸšY›éL–÷Ï§ÙšO{«î1?áÃ¡6×¿ÒíEV(&¤%…I:ÌRái:â¯à=1Øèç‡‡šõÌþá1GAsÓ@[ÝXJH-|B&(:~]‘ßÚ®‰QŒ>¿ÜGKÖ Òû—çç¯®K¢ÅÏ/ Ñ ]jsbPà—XL4ÄÓ{ëó–ÔflVãX°YÛ¯o½/öcdëw*k¥µ5µÒ¥EFëË—míÄP(WXRYTu<±gBˆ¿ê6íÄ¶Å‰vIi¨l¡–ºÆPä^zŒCåE\¼º¤Ä.p$U•OÍY—V.Cbðc
+{gF* UŠ<)BBQÁwå5¸Äß•7#‘YÊvÕù¬ëdk•l¬|ŽÒ#1]Ì‚£ia%Ë¨àuä¶IÖ—Ò/ŒÍ3¨u+^9½’ãØåïFl/á32èk J¦§K(Ìþ'œHÎñV­Jø­ô4ÎŠ—¯d&â 6¯r	sµ „)y²U&![±ú”r†6)*19òŒâ‰ÀÌ©ìïÓV½Œž?“åÄÙB¨Xgc<+¤ò9ÂhZOFƒœ¡ñ“o{m­ÉíŸ¨!‘6Rud]k+Y‡	9ƒ_6uÙ•`¥}üú+z”l›jÔ¢S½åòÁõuÒõ-Hë»1}›rÏä<Ã3JIèrV\B8ÔÐagêì›|M–$|G+ÉºDm_“†!C/›ü²ð sÕ+OYÆ:ŒÐæ#äÐu?mbºîW»áÇ¹Îé`ƒ2ÓŸ><“ÇçÊê·±Ø¿
+‘šé/³ù'L‚·â÷=Yúsíº¾Ù0«Ì~;"àUìËßËãI— +ŒÁ‘ÙÜŸ9U?Oå´,Y\;ÍaÓ´FlS@É‡Íå‚Ger–Va°‘é¬4L’öðÍ¬­Õ+oc6·¶¶Iiå"˜ØÙô‡ùŠa˜"i¢KMUß¯™Ånƒþ·ÚèSÓ§ô™*…/àÖF–O÷á÷˜sû†
+/@òbø!ù1!H’ýù‹;7Ÿ È?¤yì(ÝÂb@bîu©µ#_¬<ÁÕ%«Ûb¤nu[ˆ¾ŒhVÍÎ'?Ê$üâÔ¼ƒ,m«¡5†Ä5%Q¦Ïs²‰à3ÚF³4°§ž+âQ¼@Ù¥åß·oS Éf-ÞhQ]zYõ­¼\íÔ¼û–†%õ)‰|US.1[bï!k„µÔê(ê[\Ò^ˆÕ**ï–*±"nIH
+)[•m^8o±.× ]]^MüeÎSƒÞ“bÞ¬-“Ïo>.×¡ñ¯äv9¹1‡âD‰`Zì`Kê¥IHG×±YùíqÍÜßKv»œÙÀšÓ"_1ª*-eÉùÐµyk|ò¼¶PŽ·•c;!¯Y`1IÆí[¦?œ”cÉV~JLå¼÷ì¹%ÙÒ™ñeKvj\]îùþz¯Ûßä—=†Ó@„dtÖèÁt`*'Kèƒ'‡ÕúV8œ@Qþ²…I	Ò¹”Ek*Ž‹Zo>$AfŒ òÍåÜT|ƒÊ.šÈ‡y71bå‹þ0[wUÄ<¦&ÇÅKW›é7ÖÚê¨JÌNz¯/v€M£Rgª‹ñ¸¼Äpœ¼Ë{·2VwãaQ¹!¹L‚Ê„W€ „á&l?oHØb†„6ˆûDž;VÕ†£&†àÒ
+QÕE×
+ic<}Œ,‹ÍA%êê*Ìî4Èˆ§8B=×”(°‚®r3V¢¬ê‘ÂDªD#DË+BZ€¢Šâô"y†\D(Ö®Eíã]0³Ý­ÊÙÔñûÊ©Y|Ê„pZHŒ½ÛmV4{&Ø·)µkPy ß;C—ty:<¼2ý±%0Ýò‰®+bÔ32^Uœ½Àzs±ÖÏÃo¡F_o¿su€²ÿg`·ÂÚÿþ9î#(Ñ"úÊR0«)	š¦eƒÊNH‡·åðÝÂC^“´ÎríSãcî;ËßŽ¨^ºCÙÈØ‚ÜÕïî¦Î_AMÝh­^Ÿ5Þ.öZƒ7wóá§šm_Ö†ûÞÍIsÔ-ÚÍÓEûf8ÞœþÒ¹=ínM‡vïx4{{|é]ô{‹Ónol½ž½mLjÑõwÇ{“ÑÑxüv¿f_]uÆ§¿ìöö{·Siß³Úpºí¿½ªÙ½O‡ÓÓ_>Þž.zãaór1h„ÎÉÉØ·'¿¼²O>µ¶NštŽŸZ»ß®¤e™šêŠùY"Åiá‚ê’©:¯,¯ôèD ®T“qA}8ö¬:;S‹{LHJ´o|_KY?ÌAkzm9¡S’¹æƒÒ‰5T*>7óD.ÊKÍ—”YßcˆDÉ·Ÿþ\#½øÜÅª´¤ŠÉ´‘ÙRÔ.° Ááå‚k‘Aª%¤–^öàÈYÒ¿ètvJLyK/±Uv#FÿÛ’“Ô‰‰dóäe²ãŠÄI9$1Y²d«díG§šANt¢—E§l$7¢üuéÓu$>yâENÍÁê3l$ƒ8$³U<µÚ×Àå_Ü¦HVWV
+Ûª!RÓË)ø—©IÕü—ŸæÉý4™c
++ZI'9<«FÈiû"ÞeYY¾”*++°:Ì£ëšVÔ¤ª%uU?MZz×§~ôÎ.ÎºÏÜ+#–Zl¢*èiÜ‹ï>ƒæ4â×`Q<!]x³}m[þ—ˆCø4êBRp””|<î÷úW—½½W•þŒ ©KXg€úÄœ´p |ESRuøí{×áÔ¼û‚á3ÈuÕ#>¨§l.ÏÉ
+Î$RT˜.:¡D5Û{Ûs24?ï\þzQ¿“ÎYRqçºxò!;y¼ÊáUˆÌ”„Ó)æì,½‹	H ¾70¶CY¹¬­­=Õ«¾rÅpDŽ£:%£ýŒÕOµ€ÙÍIÝL™3”Ö¡ÐWuZ!À?5ü/"öŸ&’_@çocû6K“@h´Ø:|fT~W'	ãPœùš†3j	»+NeÃÆWJ¥Ð[¤ÀÁêOåln‘:*¬#ÓH%ÔôÄã˜å…Qê˜íÓ1ëífÄat¢7œaŠÊ.ªÖ^eÈ€­„ÆÈÈmt„2ðÝÈ	–˜7å>5é ¢
+	~¸Ù•’²°ó§àÀ³¡(øÎvazÎölÙR¾Zþ)š(5ÉÓÙÐä“ó~Ÿ¾:ëžý‹@<Ö7Ë)E—ÎeìùììÜ®ïqà†Tø[<:J¬0$eqQwÕôQ<¯|6É2Ü–ŸbÌ hVvL±Tüˆ—è‘Þú ªÖy	áá§Ù)<ê5î+m1cÊŒFöØ‹%ÜŠ%b„ÎMÉ‰½Îãäwä4T{+åD¨Ü¦Âd’rë”Q4VÔ*Å‹=Ïûx>³ô¡fÑ€W)æè{!ìkSœûóÚó§JÙU¢/4€ûbÒ”ö0“Šò®ÞÈÅ,»w,"*˜kw`y4·Gª÷ë“¦rÒŠ”âB÷³§}e•wl»aD©ÐJP´PTJŒ» >ÛáœŠ'ÞØ’oâ¬ìáé|´P	%ŠFUSYŠéh'kHÌWÎBaýÚ†Ì&›5ÜÆËÚÐTëÙT»Ø‚ŠµAÐ1©Þ,4ˆúûIg$4‡ÞÎàQÄÔ( W¾¿¾à·‘£)FDAêÑ±ØQ™€–X5`¡9ƒ·€” ”&ˆ‡ÃŠ8‘zÀ|e,+ÐRzmØu~Å2Y;éšiLZÞ¯Š¸»BÛ×(ªƒ£¥•ÜÌ|èçj<WKEº]Ä¤]ÅTö‘
+ø‚Å­|g¯&–ŽŽ©WñÍ,Õ÷ãÇ'‘ùA[XY¥˜•Ö‘uÍÊ­Ï,ó#ý´¡5ãÇ|Ù–3ZÓu’'0;¡Ý‡sÇµça«?;¾¢ÓJNalƒ~8 Yaèùlè¤¾g
+õÌ!Ó$œX¤ñÿÐŒ¸<²Æ+däMMÛ]Óˆ»:A[0÷RÏúàÓ•kXQy…ÎŽj½#l™Œ3ˆìÀœìñœê«Ú7¥l­âiya¹)æ¹ˆ©€(NU¤»i¼`9Ä¥Òµš&²•?<ÖoF!Lé“Põg+«ò­@^ÔêôàùRøÿTÿÔœz3«€ñ'±ÿ“pýd;s<_ÌPý¥`~V°°ù ‰7ú}J‚RðGN½eå3ßö|
+ÿŸ¬@/*„¾çŽsSÊdðeW+B,	¡0³Q +ÍBS~qNÊ×fêS±èj³keà†#"VÀ5dº£ªŸÎËÆ”~|ôúó…çµpol¢Ap5/›kóµ•‡,Ä²ºhATœ*X¡t•
+fCJ>Nží¢³ó˜˜Œ”Öâb^/y}ª*òšT¹¸¼Vï~ô&:wÇ¶FY¹5žÈ_à ¢Ï_WÅ~ÇâÑfbÚ~œÔ)÷.ªÊ@i(Bªß“ïôæe%’µÐ{kÓ¥k³¼ò™\œŸŸ<‘UØ”i.…‹FdÁ¢Ç/­€Šãé[ÃLt`œñÎÐs€j¹ XÄñvÂâÂ€qB5Ý`1]Á ºò‘/åTÕ!§Š6²‚Í{¬
+‹±•VG£B†–»ˆïëäÃX67 ØLm×˜ï(D&{xqvÕú@Aâºìf¡÷óAH	3¥EÒ€h9ž÷‘8öG‹˜‰|úvÓY¼ëðÖ¤*Ñ«^&LÿwQË$dÔXBÆÑ¥óÖ=å‰Ç—ÎpÚ›oþ¾Ý›Žô¿eýÇÃ£ÃÚèèõbà¼ž›?^~ºèÿ­>l¼^¼jîM~j¼¾ íŸÞö3‰ýÎmoÿï·½ƒÛñÙ~'ùßi’AþÎïzvïèílptKçÒ¾L_I	"ÃéÈþ©?^œ]½
+zû½úYÿv|úË«úI·s{òK§þC_™8r×³·¾»ènßþôãeíí›_ür{óöèõtø©µ5œ¾þeÔÝkšo.k&çéUçöo}é›ïN÷;NÏÞ›šoîö­Ó[¯×`k5‹Æ†uÿNLHyW[Ï§‡P˜½£Ùr©¨@uj yP¬D~ó$é]3ò*Üèb²Š”p»UËæ²GœKÂw[)|ƒY¤æ‚içcR6@Ø¨îÇ*tÊÂw Åé›z­ÎEÈuS›&¶>¼º„,NmR…ßè6PÊTaU…&½„¯¼“ôušMÞYî«zKVÐµäü°¾ÙèÄäœ/¸Nèn!œ|ÙÊ½š²üXíO.¹I?p3£Rç‚Õi	1°+Þ¥Ñµå°cs¤ëŸÕ$¹³.çìJ8ñs¨²wÞÂ¯ç‚ç®ãP©{
+$Aª£‚¥…f¿BóoJwòfåjû—Òƒ%o­{çgžG\+àI!§-¤“S8ŽPóýò©ÏtkÏ™¶µˆæ5K£	³PÐŒ\Êqn§Ûúxäb‡¯hô+[:]íp§;yÝZk|8¿¸êöÞ¨+i>½
+Ž«¤÷åPä²F]ÓÙ#¨Þ¬TNµµˆÔ'ºæÂ£#˜G;ª’P/CwcÖÙs7²èù.ªJû^bˆ2ëÚ=~€6*PÃÂZa|ÃI?ä1¹ê°#4”WÕnañQš÷P,²±Jš«¤µJÚïyümyÂli8f”E[øŒœaËÒ”0NÅ|±KZP¾VLªUF?dúX¹Û$’m“ÞU0Ÿ‚ H}>ma0`¹¹–Ab–Ý–à·½µÖPÛvŠ#Úô–åB“³r,q÷4vhŠç,pPÌLÖ‹Á±_Î
+ÓzL•4ÊI¥‹(ÏQJŠ	ápòáß@¡"äE.Ü-‡êP¡>VW†T8da¢ lcQÁÆöJA*ênöGž7*
+2æS§ËlISgÂÔ“´Soo¯Ö›µèˆ‰â©“I“““×&gîÅïMÑ¾¸Ñj¯ÖÛ[«õzá‹UÈ¬$zR­ù ™¢5˜œ’KËNs—!¯ŽÔP§-•gßÅ@)_öo/k‹ÓI<üˆP¢‡[)-N7UÝOÚ@è§#Ùb]ºb¿þJ–XÑ´¥ÏäÂ·†v Ö0*W3ÜA%‹¯3º¢m#Ò¡"ñ"´‡9~µOöL?Wg'¸•FÏS)zÎ—m.àL£’ò´%¸s2åËhÕöHSçj{«¶Uo¼ÏÐõÂº¶"ë˜mvZpj	 žO·P×¯MÜþé° 75Îß¶.:çÍ¿5šwÖlÈŠi›[Qs´D0$G{ÆO/³–½
+òU°zñB-H|‘Ò™ÁjUªq¦…·«ÈÅùàZž÷§(™¥KZ£LµZÜQ•¸Å‘ðÑzAyA]Ñ¦E²ŠRüâZ„€u5¦5ÓÌÁÜ1}ÃOí^ôö?tÏÏwTdz.0ºBCëC0ô|«bÎ„þFZWº(¢E‹Êœ¡?w‡@…1 ¯ø:ŸöÁ¥sP‡CÍ”éB¨dKÂ|¯éÌ8CÈ ;XTíC§ÎÔKJ7¦4€—§éjIr±å\Gdy²šþ»ôú›^YÒåí¨—A•3ÀjøiôaGSá‰¿ Kâôé¿Ö´@)éI¾+É)A£ÿ+zb9?<sá±*s dKªþ£²à…ï]ÛŽµCþ¿ÿúŸÿÙ%@Î–:¯úý^çlECJ‹¬§:ô×qå;0§¢WK,O¤raµåð<*$•«¯N€rèRkéM<R»‚ ×¨o®nRµ¡¹à„¸™rNùIe8ñSÿ‰Å81Šé7•äÄ‰(…9	*s§'ä5U%G®)­(×XÃ]Û:ú#t¹ËÄAú†ª^ÂBk3˜ëù1rE©j¦–BÆÊº1èÑ&úqÓ@CùÉm¬È©28éöAÔ~UÓqÝ^>Ì´+ˆp@Î€Éž‰óS<Ò~›ÿsñJ– œðÅ†,Êdà¤çLJ1Ê£ƒ1º-MO ‚{ÇSˆK;Sæ¦#u5Öm?°œCé¡™Ù¢¶eLVU6:%$CéÝ‚šŠ#“©ÄeÿbU–úÿ¡Ä*ß¬Ê2U«µºÑ\Ýn!D*6>NžF}Rq*ùÄbY*Þ†ßVJf¡–¢ ¨,DÅÙ|ûVÈ#…+2_u • E%s/ ÂüQ$¨ä³ >	Ÿû(é	œ'Öèd¶ß¯ñÚ]¿W	Jûa¯ÎzWäâ óCÿ!<%Dñ7’œØûc±)žp.%¨+qì‹ËK
+•xWXÂÌLtJVÿKÈM2½ÿC‰M™ÚËXÉ)W‡¹Ht‹U•JOÒÈO*>I…<ÿy%(±jßo*D‰QÊQ(T¤"3:Gw‰ÎhXÕ½XàÌÈ2apçä
+³mÕfŠË·3Ò£Txh†žºxó°Ü/"‚‰Z]
+Ë•Æ‰aúHÌúZ­ÀQÕ?-÷¶ò˜jmÍHREÆJÞÁ;géå×Å‰UbŸ5rVµ„Íqˆ<??_¹ª°–)—Œr]†Ó*¥4aI…/©øèVQ^©ˆ%
+Y×½^ˆÒŠQÅ‡_ÝÂ©‚îÉsgžžêzìh¢œËº8Þâ!û}t~¸SD×‹1¾õ„(_0ÊÿæÞØLiÞç–€³œú%Ë,±°TP°LNk•Àr½Ë§€ÅÚnÿ¼ò¯P´ï7…y(¥ßlÅÊjÒorÎý‰í~¬(÷&}µTõ4AšÿC¬ˆùE§©£Ñ²1kçw©˜¸é>Ø#òë¯šÅþùòàÐP±ÿ4¶íûµ`>BŸÂØrm•´V>›?*#¸ubŸVºKOär}–Z¢ÂÞÞ-ýh\v~ZZ%KÝWÆÿøïðd
+´ÎN—¢Ü§Ðf?ébàÇÒžèúD£]KY0%-çW5–N …-‘Hé5™Òº:áLrWð±…ÁuJ©âInÁ!W–])MÑ˜=¾N î/áÄsÉeçˆœšÃ	¤"žX¦Ïóìz3ßZAàùdß6Ç®°ôdÚA¾Õ(¥^¬¬]Û!mÿ@qÞ´Ý³aHþ´»K ¡þå“´ ò”/(’ eþhÅ¢z£¶Wk½_ß®E’Q»Ö¬Õéu;/)è‘øÓÔ¤•ˆ?é$ãsu¥H]LŽ¢æÄ =‘h_M-t¹=¤Â¬ÍlÒføl)—TÉð+iyõí,v2IeåIü‹.˜…“îÿÇû?ji0éÉ¤"m¶$MNé3+@$Ê@šûà{¨WF(¶}(¹Cé8VÀòÇÖH¹ •J–bNqÝð¦¶.J~¤¸p(íêÕ³*TKñõÌªØêï¨$Lâºh”ÔBy×t†slDNÌÂ2d°5¯Òºi*äY¾M	feáµÀZ…­|ŸX1¨0Zµ^¥Pö%eÉ²î|\ðU˜*Tüž,]A‰DÇ"Ë#ÛaŽÓÈ«¬4Ò>%§æ\†£¸}s˜¸tæÞ…ŒX€†5Zú¼C. –u0±¯Ã€D~)ÐÜØ&G<
+rÀLà@®¸ðGÕBÐZ²ø/¼ÍýöY©mÊÉì¶˜¤ÇjzÿqQ—ÿÐ¯ú0H¾J@ãÆÊçÿü÷ß™sŠEtðt¶wèçQušbÅVñ›ÀOÍ¿®S}Ê“È
+ÖRüqM×¦rÅ%º ëI]"Xb]_Ó•þ…QÏÈ	!€öÒ
+}Ûº#¤¼€îGuPÓËÚ`nâ{\Í´öÈX‚Ž¾yy	$Ô{HÉ‘¡6³‡*Ÿsº¯¨}$dùÒ¼ÕeŸ=¨:ÊsR¤ü°aÛ{ó€þ	°×(&ç;ñ`r4³ãè2£†›T:`r°ã'":wÆýŒY¨F•|ý~mlMm×þ`BmƒÀt‰¤
+_¢Ñ†
+úÒfgÙ)ˆŠpÊn=.Å®×Ÿ’p‡RuŠ‘‘5Ç''µà%Ý73‚³dbsßÉÉ)é/\
+
+“Åb}Õ£Ld6±‡¤GåÅñ$Ü©íOÅ
+Tà¦í@üÈí³¯ú>5ï ¶n}‹-zbæ]ðÊ»Ãy æ¾`H™¨303µ‚8A3à%z1$ºYÈ}šÌs…yƒEÀñ}Me¡!Ã¢Ü|3ÏÄaŒ¥Çÿ™N}H^æ šE¢ àY²àä×»¥bÛ˜
+ÝtRF,Ìygúƒ<ó œæÑ í [_%öqçðé%õÝÒÃíÏ¡Œ¨à)F³)?õ"•HS˜háÒË{ºk¡:âpÙGñý˜¤ÐgÐ1¦l3ÙûÙSÄ(Aa}9]YºGÓ*µß!w_lÉ™ˆc7L›I¦;ôbƒ_P(‡‹6»pÆ;i-õ¨²z‹ß’Íôú6jÛb}É>' ”vW†o¥Éb1†ðÉË¦þ|
+åÚûCðDØ×”ÛžZf@1U°¥ÄÃ†4ß¬‡¥´¶²ªt÷'ÚžyìjæMþÚw0Y}½ÅO$®³háœü
+¶’›#3˜X#¹,{[ãË¼ƒ|±ƒ—ÀË"¯cŠ¢?¹âñ/k|™—E÷´§+‰våÍX4‹"	ù†J¯P¼…PTEÒ
+×«ÉgßŒfßÌFQÌC>Á‘Z|!ôuÙã íz­~ÈÜ’‰Fð£“³\1Ì¤è¶Ê½X£#UM–©LX×T&T;°«äs%üú¡‡Týx¹Oöíëk°[{S‹®±BwÕø˜r¬jvÇJÏŠµbÉôŽUÎ­ð¥ªúÂŠâf\L *‡¶òÏ?þ²K(L´(¯#ÿïÿN–»sˆUùÿÛÿš7jü>2Š3îí€ç)„p¤åÏ_ÝÏL?°F€a±ó™ìùæxLùçµÃSCƒŸ	‹;fl¢¶’'û¡5#¼·"ÆH·2ØšØt¬7¼âÒV\^9é“£N Êò-E²V,cE&Méó1¬ke¶â2eÅö#¼X™i> Ç1Ô$Q˜J›y–h(¯†ÈÇzGŽ
+ð§¤¾ƒ9e¤*7ªçv{øq÷~™©aTîëO¼Ûž;›‡Ë
+â?•²½X_¶DÇVÚÍcº“dQ“ÁAšjÉÉÁ•˜Ò¹F--8¸Ý®­ojO[h'By0eÇŒ˜ÖÈ1ûªÐ4uuX¦Ûí.]yã1•Àî(M²A(gFýÄÆšp±oNÉ?í6ÿDÌ +õ›g¬_ÝKë¤+2¹1»ûðçFcÔ´¬LÉò^²œ’xzd™~Š	pXSjš«#sZ@ÕjŸê6«üo"úû W°|¢	Ä1ÀÂŸJx…ñaR˜*s¶_xü›²NøôUã£¸T!Œ¦K­†F›[ƒÑõVŒÂ”ùPJÃhöN6¢~gÒ@­k*EÂ‚G \k“Þ~/ x2áÌ™ðÁ9û[	èI}ÇBºÖ³Ð~5±<Œ$Ø©8bù™”ä³~#
+€êW¥Ò¡_Z0]Íý×­æu»€BCLZ#7i	4»ý `=þèœ˜Ë‰ÈprùÕd¾	¤Îl÷c©ìo%¤²;_ROmÇ¡èÑ/»#Ë“ÎJÞÑ–B+áŸUf«ea/½d¹ÔVÀ§SìÒ~rÈ»´{47xñÕîâé&`—ø"ÓðZ%à‰áÝ_
+ò@DcwîC¨^ïƒ7ˆAz(Ý®<e×IÕÍ	c{Ûªô„Qøˆåü=u\†^:¨¦Z*šp&ÃÈêÙŠÌ…-Ñã«ŠiÈtã¡
+£î|¬è &¥õ?¶ôoÈ))ÌR’”’·Tª	ÍV¡UG‰“‰ŸØô³™	Éé–¸ Dn!.špw\no{núóX6©væ½¬L©&z±Z)¦pdMÑ_ìhL­–k3^{JdÒýã?ŒÆ?þC3Õçü€Ã7Ç§äB+ÂE`ÍGžñÚ³Ç!Y®­Õ·þóßá z›yÖÏHO…åÚaåOéR$Ay‚#åÉò‰íZ¦_á;0$*‘x*§`óÞ`®Ì;°Ã±¿q›29ñ%¶3*çÒî`Ÿ0meav—(^½D&àJt¥05A87•\G] 	
+
+ç<ï¦T÷™šþØvwïïÁ{²CÚ«œîFk•ùRvH6rB	­ªRjk‰uh¤‡mÉQ”ÏEìÑî%Œžÿêf‰ÜÕw—(«]ðÿÜ5øýþ¾<ñ®¯©¨²»Ô¦+]qw)2²ð¶sN wïkk­Ïú6 V ˆ_´Mß¤—:ò3(|V˜Y­®“tVåuyA+®:³U=ÃÂ7[ëÜÂ7Ûe+/­0bHíx\˜Ëç G®QæWåá‹¢ñÙDÄçX&PæÖ¥ñhQù¨…¡¼ACÖ^t)™µ )àÈ·UÉo€ç¾÷ÑÚ7©0íûæbw©AZjª@%=f#Ù½§2‘Æ+3ñ|û0ŽÂ§ø;ébð#UÕ¯óÒõn«†QW7ø±sg«S ñü`Ño½«‰šê×†‹MS?ÁCvïß-Á§¶K• :dï³KóŽ|G/ß«¿|Ne‡Ý¥ÿüwõÈ ÆßW<"l”O¹ŒÙÇ>Ðó;.¨hË ©N¼µÙnolk¾œé×:õÚv¨ ·ôçí–I	Þ’®ªˆ=D9t­è™Csj;T¨]é‹•<*òÅ€%&M©ŸÔ”s‚Ï:dÁTtß½_fìÌˆÀþJr
+ê³Áˆ‚à  Tå´<é.l´6[[Ä.l?É&h–6Á(qA¿ÖÉ« šwËøÅÐ²øQ¨s
+wVÞV/‡ôTò^2)zeIý8—Sï›øÝºò<'´ÕbU¹{ÿ¢Ë"½£géHÓÜ(‰/Û»ü‰:µöŠv'9ÌÀ–G[ñƒoxm´úZ»ø¹„ÞÓ‘[”àWØöu¥ýîÞb¶;I04Ý/`E\P´µ§y½Hlî'º,'Bîvï£urh‚]Å’­°N»÷u5kIŸøb“4uc:`g-*ZÇ(]ê~·svÖ;;"½3rqy~tyÐï“õuí¦2‹ün´³M‘`d]y³ªt‰iD	À ¨žúÆÏV ìtá, Ê}àôîx‡Õ¿±¦Úç«”=Vyòâøð‚—]ð±·'×Áú¥îs=w|ËÔÙR¹PÑð¦£ƒ¢D@±c‚WÃÔkƒ‘F\ã€°»4÷å?Gš¬F<È`ECŒ"ëá\ŠªZŠ‚5ŠÖ<l ó¬Ü¢ÛpM;ÎÙ÷Â"œówÈÆ IJ€kíÚ ®#•é£	nèŸKL6tÔ‚­Ø^yÿÌx‘ìÜ¥yË}çI–ûŽ=]C¡¾!]¬W:d‘ã<$Ô\üzDêX Éî½oòAu6¤øI†Pìáœâ²|;Ÿ¬>È~µ¢8-RMLŠö÷Ë3ºÇK{aB‘d©Ä„äžïVÉp±JL–üLv	â¯%¹=ì'²«}ŽDCÒµ’ä]óëµ RõùÉÚ×s—)Eç¤Ã¡ŽBÇåšþ|EøíÐ¡JQ³VÓ…–9ôb,™[5õû›Jë­ø`ïúv0#g–5rXÉ>áÞîè…“øwWß½ÞCÀ<qmUÙ£wÔ€ðÔ¢ì©”i4¶ZÃÍâýÅËIòó‚‘d«¤‹Ö€Â,$ßò§¶®Ûeî¨ò]²#íJæ:¼Ã,ëpYV*ð7ËW'¢U–¾”¼ÈãwJ@¢÷IŠcµ¡Âìöj£µUV±~%{íJ¼îñÊÂÚÁ|ãÕ¹f¿‚4H6ÖúX{EG`ùÿ  ÿÿì}ÛvÛH–å{}E”ÚNS•"Å«,©íÌ%K²­.YÖ’äÌîRyÉ	‰h“ -)Uzš_˜÷yž·^kÖL¿×ôüÃ|Éœ "€¸¢|ÉLt—S$@\Nœ8×}ú­?"óà v2fˆBðÎ[š(£=•Ñd…  Ï cFþ…õHÌèsÅÌ#½˜‰·ÊVw'yÔYGëêu4&¹*AÃ…PsvòH;MhDe¢áá«d7Š(V[!”¢*¥d-~:aï²Ó³k;iÝºõ,Q¾Ü•˜Ì:Ë›ûý`$êçæ‚¬|$CÐ*G£ FYäeäãÏÞå%Ü: ¯ÿ¼O^xƒK_•>@Û½sp’›ý7‘Ù?¸n)m¾Ðmªìˆ4óšÅˆÔ+dêÝŒBoðÛ­-CK?Âi`SÒˆ½žà·XŽÊ:3HÑÿö–ú»„f¤¯¡zkÝ­%hƒIlÀöäðãèÄ¿_ß`bW3»²oî–1ëÉ“VG âõ™õVƒ zj"Ç‰?þi"æ½.ßþ€šH5c/»ÔVðüÂÅm7RæðÇ›F5Í8‡¶G³8¡‡¦*èÎ¡99P¡XBG–ƒÛÕ »"^.äJBŒˆ`ÃÖ‰ÒíRhÓ‰Šqnð=Q:ßä+§¨ó§­õž¢\å‘âý’—¼íúŸÚÞdQ¤ÔâH~!Õudj3Zµßý(¬ïÞ8œ€üDhç.S/Zz9€SÿyDu¹Glñ{¨ÇíÓï`ÉºøéÕñöÅû¾—î«‹÷ýE+¤—“€^9E¼®wQÇ,Dƒ–ªöNƒn«ôg+•tdk’õLX¼™ z¾dåEm>»'éÒzõRªªqq E£Â=±´·¦M¯›ŒõÔÉ†ËÜí\zéÓÆ†‚hµWñâQ•·-&
+B
+Œ´ërcjvzJ=T<šóGÜY©ê€vyJ¿éÐc’m»æ
+ý¿Æ†uËáeÙvx=ÃÀ^Wê«F` ·»<€Øšô‡?6 (º¬KÊüþ``føÜŒ±½®÷3oïsÁÙëøàÏ<Œ˜z”ž‘<ÅÏ—šf××–É/ûòã;×¾ÏVq)lm-”xÙÐg±o–¿T|õìE4‹‡jí±L§¾/åk¦&ÄÇ)j#ec­§m]Øžc”WS3ùiÝÁ4ìp“ [Ò†”EÞ'3ñR®§,8®	èDÓŽ×cuÂÜL‡û*¡å½Ñé¼äÁäl.õÀ¾Œx¶JW]U6nU
+í/'-(RÜ—¶Ãˆå,€²•Tâ,¹%c;WèIá¤†y†U¯¹Õb•[ÔSë4
+3ªÊ„Óëú«°Âs¶
+µ^\€‘* MkJªq éR1I¥9"ƒüA±ônÈ>YõÒ_ªÓ\knáÅyt¨hjÅf|6)Â¿®n)E|›–mê66Ò‡•,¤ö¨ž«pKv55$±`>‚àW›d	ÿó#4mˆ)•Ã4‰RgKU×¤?ûÛÌa´%5Yî^÷‘ÓM4Fs¼XZ¦¢´UŠ±‚5Y#vÓ­ë¯ÂÐ(Zhû»ÕOû­ÄI:½±Òê4WÚÝ5^tÏð¾MÝû²|^|¡2í?¡¨Ujß§Nêu­ô¥cJ×±#±º€m¸×[Iÿ×lt4U6vU¯ùÕf…ˆoe*ò*ímÅ“eDz]zŸ¢©0+ÒP§FãÚrùÐ³‚yªÒ}ƒücé,f‹x§˜ÐÀß,½´ê4òÌ‡)e)‹ø®KÚ>…"¦¶R<…-c='ìViâM‘§)+ë¨–Ú2T¤Î{»7ö.5ÌK,'Ûøµ4¸ »#Þ²f{™´¦×+D, _,¯âãÍ¹B*µ¢Ì{Ï‚€—ÚÝé5Á·—Î›ÔjÚâÂãóú:“Šô”èP—.k¯,}È8/Å¯^SKñ§KË1Z¦ŸN8Og0c|4Ã­Œ§Áä¬ÕŒÏØ
+•ÊW~
+ü«á5¨¶ ž`
+}KÚ ‘êqO}h¶§Õéû7¦_£çK]mS@Ôû†]¢uh©e‹"èÏ"¤Yš+g¾W
+úÐôO§=è\iü*æJ›Ü§©DùÃq¿çÚÂÍ†µ«³ÑP\YY	}à‚”#…>jñžEõî´Í«f¸ëÍËX.¿_Hj*:ÕªEžb^ÊY»>­®2{¹³Po™K[B1É“4@^³yŒ•9Ë³ÛTËbºŠçÇ71z£±‚ÔùbŠªÉJL¦K¬š‰ƒÖZû)­Ü•‘LF—:´ÆvÓAÔuÁ},ÇêyTqŠT&@Ãº %˜W_³Òå"DrQŠ¢~o¸Å+d|o¼IÞ^\hý¾ºØ®%9îl7Ç]×Ö³ø\Ë“ÑLW_YÃ²B÷ZŽ~²7a‰+XS‰f…„gâÐ0µA“ä ck¯nÝi!'‚þ¿ÁÄÊµ­U’·¨=ÿBÐ’ŠCÅA¾F7¢P-£QpÉ¢ó8Zí˜+u$7îø‰Œb9V÷ÙÛÎ‡‘Ó°<™ÈA.¦H½iŠV4©‚z,X±rõ
+Û
+sVnÈÊïnÑ»7û×A¢h·®jX f[¼©¯a…ž‚Xaƒ¥gÀ‹V»Ýz_F§º‰F…)(éæ>mGxæ	e4º§T[ÃÊ›zÊ(‹SÄ€Ä¬ÐUM=ª£r$
+•ŸÜª’ã$`°ë“a’LãÍÕÕ«««†°Kpf@…~8^²T¹xµ?;‡¯¦“Ë' „¤Ê,ÍÎ{%f×8¸†Yõ'¬Tåãu<E×ßz&(å•-@¨XgeR†Ù_0^Í¾P{‡±d\ÙÓ«¦â²ÿ}Òr£ÓïŠÂÐ&r OWÿ„#X	]`QéÔöšêˆ
+$Œ×þõ‰ß’w{d«§–:’ËX‚Dg è.
+ÑØû¼kÕæ….•Ð"ÕápÎ›ìrÜ@Ý˜~ö"Z:ô(8?¾9Çx8•45« ™;s4?AðÙè5¥Ê[‚øÂb	‹†úê)Ý£$©«€‘ËÆ]ŒÛMeYøÎò{jâRšÇÃÀ¶F~”ÈI—
+C²ò“ÒÓºNÙ÷ÎÑF7ä'8È.‚>s‰ù›‘Âà©­ˆˆ‡a@yG~ØÅ„€aÙ©FŸ‰hÙ®ýü8ÎØ·Â—y…·–k…7Eé6f’ÕÁi½'›»9é°s ÷SÊXÏX@H®î¤!m¢£))3N†ÅãMúw^qšŠ,Ñß«¸¨Ñy½šé9-¯–M‰¯È­¾‹!ô¸<Ø5 Ö5Iù’y[åê,ÚŒ¥ÅVÔ„’:CË*ÄÆy¼µŽ±BžAYá?kjÂ´
+Æ^
+¸L«lÆ8°½¦¡!ÛŠè>Ÿà!aƒ±x­i„îeÅR?ž*?±u@³í¦HEu©°Ù3­±Jˆ|,E¿ƒ‰¦µœ¸ƒ”d¤›Û¤¶dc½ˆîd½GÖc*Âè^Ÿ±PO„nóFO3)·eÆMë/fŸWH0¸6–^4ã1s¦¯Ð\È÷Ø¶>ÆIå\Ôƒò~b¥D_wfCR–¯*ouâ,âÆJô*¦tèsÞõA+§‡ù9W[k6Ë\SÔ~ÄÍ’)O7Vž6WÚíØ+Ýåñ8¹ÀSQ¶R00q%I°ÛˆøÑ´KzhÃ¶R]¿˜EöL—´Å@µ›ù¢ªÁ¹²©[‚‘^—EÔC•6Âh]ÐM}!sûi Ç©^h=N7+o&"j	¾·º[C™«Õ”%Cw#/?*íUµ÷Ïà\dÕ7X6ŽêUø0TØŽÂþë¥­Ÿkbkì`¥Çš2$uYÄ×ÆŽlJJ!ŠºÌ3,ùåª_«û|Uo¡Lÿ€\{…v Z2µ]ÒèÎ¹JwŠ!æ;­õ÷¨Òe†CaTy$Vñ2[•¤ßÖ86š½å•æú”:Ù­ÎÆÊF›Çë€B ˜f©ƒ]Ëœf%ÇùT#¯¶›¬¤!˜îgÉèpÊ,f©ÙF®©ÚÊÿ»âòh4´NŸzÉ[«•³O^T«×“«¼ßˆu/ÃlÓ¾vè+ö^MÁ
+#éÐæ‘¼ˆ¼ à”\‡i\gDÜâDÜâl\X`Skíé
+ÒL»×džÈ2ÁÐ4Ýz«Õ,ÿ$¾¨ÓÔïX$#™åöªU˜t–&UÊ¬[Þuz7ì”)ÔÐa~éß]ø{tÉþîÁßEA\_tÔ Õñwa‚J®—ÁÏ¹^¨Ò5h…m`ââÆcÔµ[rnc5VsÑs¦<ßL’¡±äx@•Aó‹A¦½¿z¯Ðty4-,	mN¨V"HËLíOÃ4•ê øc»)Šbú:*bÜ§Þ…Vdë¢^(Å…¢^X¨_ª­]ªŸÕ+Ú¿¡4þÔm(v8c>ÐU,! Ç„ÑG²¥÷ññÞT¯ôn]7W%ÞiÍr~¾+iòs¬Ø=z¼*ÛRÝ—Çl…Yvîg¡ébÙ†*ö;Éž•¥ìV4¡2ú–(ƒòÕÕž=¢"½nOÆFÕzËï™Eál…F;BÞkãÜ ðåÖË%ŽA˜ÔÝzå3½¬u„Ä‚²g¤++¥€ë\b»Õm
+HX’Zø”éÆiU§¨ÑI³˜4”€>‡+îìíãf±I‘çi~ü¢UÁà™çÃsukt!Çd»~ŒZó&ž©ŠoÍùtJ»/)Jvnd±E‹CÎÕ²ôÑD•¢eô1d#« n°¸p*eH	û©ºIR/^ê•q4¤”0¹B¿gÔ×2 +Ú#ûëâGø¯NËv,7„ùû^’}DÛ1=ìÕáRé8í-õ£Sé>Ói®J·$µf*1×‚™JÜƒ]c*”:\AþZÁzMIÁ.(,Ôˆk'½Ò{ú¬gSœóˆÌÔ‰ÖÃ ƒ‚Æ«œÏûØG±DÁTã«—t0KA2	ª‡æWaäf+ÉÕwqt¯ctîù"©ì!»s¥0y“8ƒÕJ18-ŒdAt…!NAbR:ˆßæ
+¹0-ôÏ‹0Ë£OXj! &È±ÔÄÞÓ† óAhœ‹Åè¹&£Ôki =ãê–Ù™^TEM¢YŸþ‘­=ª™J_E9=’fót%þÊ¹æìÈŸ†‘6Mÿ[`ßrÀÑo‡{ãþõ1oap¿5Þý2ùxOÇ¹+«8~9ãb>ÝR›ô?£ÎÖ|±|z÷9Ù/ƒ>²iéóççÒ·Ó›dN^úCÝxç#Ðˆ°N¶ ggã;¤oy³ïâêÿzyûÅ¬?Œ|ýÌÝä¶Ÿ“Á‹ƒÿBþAy¼8¾/Ää¿›G!}:Óòøtn’É·[OiÀKÇE_›Ï—}q|^âôoöÉq?
+¦‰Àíóï,@Q÷²SƒG4±#U„ö£ÙÆãGÉÖÞ·,±g)`_7K_°¼žú×'­gCû­ÉêŠð‰g87ÅÁ¥”îÏ%¦óÅ^¬¾µG1†lM¼ÑMÄÔ-Qúòs‹ëæLQkÍiÃcXíñ`SøØ¦ä·NÐDÖû¸~¡öÒ{4ø6Ç¶é‡‹ï‡×Á›ê81™AÏ1lOÊYoÒ„Áx¼9­)h§íF¦V?„dCú!ïY]2¡1ÜGgê¦?‰»¨§Vv[ºÔ}Õ$ÉÙ|,™¯ƒYbîÿÈ±‰š¾¦.ƒOÚr¸bÛ®8ÏIPç€8zÐ¬aæÕZ7ËÿÖcÝu"ö€mšApCô>{†4AËˆg‹mKA
+rý9Êÿd~aüÉ(ÛóÌy–t™kzqž¿:2ôâ<’{1×IiÍÄò1?—TÀWYpñšCl1ý°m82¼Ð¼ˆêôu<­a†ò
+é}ºZAxsø°¬Eëc—8D%ªZ)¦-_+‘«h›jÛCW¥ãºÞÁHYeæœÏx\VÉp¦~uØ^\”œ3ÓQäš¨ (‰d	¨,ÎF¯Xà{¡dö—ì¢,©`Œç-ýó<‹“*í•[”çG	¯MBR
+…VIÊøg³„T^r”g#mÍ!UvŽE(ªƒi|zÑŸ(J–é”#^4dOÌ6žŒ@MÒºú»ª­l‹š¯ºLcŽŸqr3õ±bÏ…þA	î—DÁõÒ=ZÝ¯å $ºÒð£4ß0OYJÙîák@Æìo,«F,—„m%ÌÆ¦@Þò|ü˜ša0nðï7Ìå“üžòÉCûáx
+[Èop˜ìhM‡°x—pœ`Yt0BIŒýþÐ›Ð° •ø<ö¦zJQ“!ÜOý>­Ð0bA-„†]ržN@%ç>>Môý8†wžßÀ£¨ï˜(þä2˜øí‚ÒÀ!G;NXØÎ4¤‘*;  x´eÅ£Ëó‚ä•U[-¤-/*öõñ5S	ðóbýT§ý•Ì”œž‹
+Äy.³¨èÔ´åŒFAZC„ˆ7Àw1""?›Š¼ãõÉ)¡pÓÆ¾¹Ù$ÀÂî—«ð”åu4¥°„mÓw¦Ý&áîˆW ‹Ï5çð<ì4pÿ'§QÿÅÜÜ†ü&ÌF³x¾Ãæ Îßçm8üÕ¡ç4rÎºüCß»œøIç¤yöxÿ±ÎÀw›§@È,<‘xÞÂIÜ¾ñ‡ìá‡þîÍCüµ÷Hs’þ=¬D~æ¿5þ´üZé–É&Av~Çß`qS$$+Ì9Uï5.‚Hfµ‹³0äÏŸç#A|þõÒ’©dd#à ªY7ÞFƒûQº\t|?4Y5¬¿!Ã²sõ¹úSr!<³Ü0ÃBcµß+´ãëÍ<çD-ŠÅiqÒæðÑK86@¡0©i­YÈ5„g7‹á6åñ:;2Þåôw&XÇ˜]÷€ªŠˆ
+ê>ær|5Å2½néTQÞáR±Ç–kÅî2æYSc}aqê@{IµJ9RH­’gúÞ”Nç/¨kÎ& M8UJ‚ÍQÇ §M.é¶Ev`­wfŸïÛ´­»Û%bÐ åû‘yºTÃKMry^ÎêšZI¿ŽÉx„)¬”’œ¨Gì¡Kí-7²ÔtrmÈJ‡úd¡Å&t Áú0ÕB©GÄ‹˜¼ïçÏYõ²¦¨ÎõÀŽGsJÉ7S	d -gà$US¥µð#rõz³˜—[ÌYuwgäó¿YÎõ5ÁIÈŽ`éóµ)]ÒÑð&–Í1­94ÓW:vÎ”"rv€Y¡ÕÜ¢%
+IÐÅštIª¡o”ß‹RÞ¬ù²õ´½•š5·ZÍÖ¶Œ´Q2qê³¸;6ì<)ùZ"õ¼”Ã¼&Èg©j©B£+BŸ©Q*47JœÕ·pÿˆ…Z»0B,µRw?…ðäïA#•÷‹]2VjóúøÍóâÎ¡/¬«’lR­ãy®4p2*ÃxP%ÃË8JvDsŽbò(uQÃ@ÑÆØ¶üc‡‡Sü"¢im0+š4ìT¿ÞaõIírµ?þÇÿRWƒI/š=`m˜ž{×›¤Ý6ÝBÅ|´º1²7tÄ +»Y´¢â¸Çáh®aW°¥ÒáÃ>v?V{¸Á§ÖSRóškÔT:Ú–Ó`™RúpÃÝeÆOÂ­Ÿ¤öêÐ›kØîVT:úžÛZS4‡ýÉÐÆ¬›9˜õ“©ý¼:þÇþy®	H°-oÄÛ²š}«P<ËxÀíît{¢àEjÿøíùv;k†¶bxÇqýC•/pì¯A'›øñ=èþSÐÿèGqÚá»Œ›ª¹ëý~ƒ¡ÿ”K‘µüïÿúŸÿøÏþxÎÍ"ŠB›öãÎ0†ìá¦b'H;l N¼‰Ùs¨;â³fÒV §áó4Šyf€£Ì î˜¢õSâ#½“šÂŸ‹òe²’Y4!ÐÏtE´±Ã0p2í'ä9
+ÑÃÆ8˜Ôò&W©=º^&¢ƒÇ´E¹iÕr6	Û('B£š
+ ©°f)–ÚVê<X ËÜÉ³.Ã³Ù„ÒA°²ªTvY&·N£¥Tù¨èß†!K©þ³¢Ûið£Þàæ#Ü¾ªë\qí|
++qé Té·2ß˜4á:†äµV,µ î¿Û¥ëÖÈ|Ý§b€kïi­5SYÜ¼ïíÞJ{cåiÛÐõ´‰ùzÎq×¾³ÛÓÞóO†þwº+ë0õ¦þçÌ7v » w5Áw¹ÏFÝý§­ÄÊhöÝÏÚ˜¯÷ôuí|û­¯àœua>™šf>mb¾ž§§ŸkçÓ¤CÞ1½RÃx€ëtÖé ƒÐ†vü 4¹n¬Î^êê]Â‰¨/!¼Ù9b®ÒèqçÁ¹—äQ^X1D1,yôa–—",µv}Ãpª!Q*+ç4ÓJ@ðÂÔßÖšú+ú¸µå+¯¼Ídº‘?áòÄò#y’âçÐ!ˆ Chšã¢®l¼Š/B	 ¥‚§îßÂŽia4p¶Øf‹~=Nó×àLð&XÔyq¯Á£Ox–WŽË¾„OÂk°:õ:Že¡¯¡VX*…Sjë,”Ðéç¯¡ÔŒë¿ØÁp®,LZë)¬´8šôÇ.\öûÕÒ	cê‰›’9ð\Ý•­4=Nª™ ºƒç•&žê‚T¹QìªÄaé‰R¬5 &¹f‚ðæ«g¦jŠá¤	¨,zýt­ùØI„RSô‹cìKÅ°–Û©Ë'õþ´S÷O1_åÑm&†Ü=>¢KË	æ:- £‹Ø™Ÿ#"cj,#Œ’zËN‰jD÷aŠ œEVÈ2D1IµXZÁŽœ¿Þÿ‰„ÃÙƒÔ]Ô°õ&P./ÛãñÊÒò®°Šú&ùðèvÚOî°ñA¼¬ñqîqbe±.—¬ÊÉQuã`‚ì ÝÍ"î¨PèÄú‰[a™t4 ËZÛØ¹>ò7<Œ¨»#ÜL¼qÐ'ßayòó`¤aJ˜M£;>\
+ö
+)ç¹¬Ïä²Úë9ºz+¿èêÚ¨rx·ê1ULZú\c5}€ˆ—ÌB$«YW;Ms¿¾»²ÖYÙè2øz;'fD9öqqt Y÷ô,â{mq,ô½÷Üœ¶˜zÇ|q-éh«µXçùÑ^³}n™Þ6ì•«E²ÄI)”e´s¼$Æ‹œ­êy#Nwk©6„´9Ä
+kµ*¯Â8œMÛoß¾;ÙÝYÈ‘4ìÝƒèÍÉ¨a=ˆ& ëaÙŠ]sæ-œb»“dè¦7UÇRŸŒºëÃ’DW-!º‚Í%…¹ ÏIdÔ¦ 9A&Øî)90‚`©ë¥ê"@a/«¶T8ofÎE\q1\$f~ë‚>%å—­Öfáô¬ž¦ñÍ(¸œ?jÑº(ÊÎ¤óW®ë‰ÜÉ)à¿þ»ýÝŽ‘ÿ¯/§‡`–ŠQHMU0Ë%yºJ0s¬iþÈnò­•#âôHÂ“x§ ç#i4wHÛ@XØ=Ç'[/öwíÙ+„cQ†'+âÔ‹îk‡æ7³æójH¬q©pRÁÃi³¬™Ë²K+ œE6SŸÉd¡=WRëfôWçL®hS•0Fu^=·pˆnf×Ë0bå<²ÃôA¶á’lâRæn1	QÁë¢TŒGÓt/‘ebâñ(À£™¦‹@¿B§*;äìQUêléÁ°Û©VW°#ŒÝ£2íN£»,ZäÜrÈª'!ÂÄê
+;MeÔæt4|üŒ^Ðñð@¶ŒÈU‚Älë!13ù£ç™’³	ÓÉk‘»3ÁöÄoL.ÎÏ ÁX,­÷å%c¹îàýEc¹Xáï²qåÎdxáøxa²ñ?þãaeƒh\2½¦%ï™H"ú&³Ÿò¥ª2QjÑŽ"f1KìÂQ0ø]®s—ë2Ð1~|¥R]LùÅÄº”ØÒ3Ó.Ôž(ˆt
+‰®þD%»&ŠvÍF·ýÍIvÿ²ZƒarÌ¯YºËÐ¯O¼{œŸÇäeäû°½ýèò7&èePÂV9OBKÿ
+ä<± ÀÄ<¦òïRžcgÒùû:, ¯Æê åIÅ$!Oª`!8p2˜Jû¯ãàÁåðíÁïbž«˜W:	¾R9/#›¯ÁzGOÌJ¶;|bË]«×øöä»_¿åN¬Fô•‰v¯}/!Û¯Šó›ëÄâpvžXÉì+ì
+•û Ü‰-þ.ßY.ug„)¼‡ˆ·½0	oú+6ãí¿ý]lsÛ$.ÿ•ŠlbÂä“Ú†0QÙihÙÄÛïe–ƒå[Û~f¹ByàÏ-½Íõ³áÇeM1+u5³:™áÀ€vÇ´àÒ4ä½Ãö[íÏ·/›ÙåC?ô&¾I+áåqžÏS9qXÖ›¯Þ!ýèD©Ñ1üëUÍH7˜Z¢¥_!«šÉ5µ‘ª…ô7Óó\U=ÎÒ?­¯ŠfÜÚû¿à9ðglƒ­¨gYë«V‡³¨ïköCÕ’ìN°¼¬ÍÏÉ[Pœ¾$&o…Ô|–WbêóÃò²ù/êN1y!yµ	‹Ý3ëÈ%ç¨ V.x÷A‘DùSÞ …*ò–,$ÑP°`è]¢¨è.àîŠ#0¤+‰´ç+ÝG±g*Í™§$Œtø»DäëÀåO2I¯oRšìrë×…ÃKàÄ:	a¤éi¶KëŠñÌ8P=¯›HêÈÃJUÃèÌ`E{™DÁyÔVÕÍt>~4XYï4«qZØù©mlz|zzÃXYžžVi•³öÔ«T4QÒVÜ²ãŠ^ÁØ†BÙ—w"m]7€U[ÍC*Ú¬˜ØàÐ°‹Êªä‚×±ºÚM79Ì>:‘©ql”	ƒF¹ŽgLÁ€oÓL”bSY%yŽƒ“7)ü2_ÓpˆO‡g—B_¹3Â/ÝÚ¤EÞåÙ4˜R£>f¶¨8°qk^.+ón|M8Ùýñùí”›‘¿{=£„©oö·@CºÈ+'ÓO|GK¨ÎÂM²2K½bÝ¥R²iö5°§²§–¼#”%JŒat–²^MF¡7PìOëdSœªiÛáÀ|Æ±5œ[âÑþ€êãñì¼>©+Š‹*d’³ÑùæP!¹•m~~tškÍmíùa>9ªPrâ»Âyz˜íäå5,—:Qî“% 21R«°¤wY³åTüÑjÌž¤ð–UÑ ìïØ+»F„BáL6,lÛ^á‚•Òü:3@‹yg!äò`dk§¾}`
+£±o«EÐœx(}k´'öÝ‘y±-‘óú[zîý`k‡×ü)8ùâ˜‹.ßùå=w$>)T
+¹ÒÆúýjÈn›É£äNyup@j‡7¯L~°ÏC~¢ÀûÍQ ÔyG"”óÎä™.Äò_R§÷ÑÖ+rÈ§oò­þ÷)¬’éµË<k¹Ñäš—c`2c—¨Õ¦:4ø\û%¢?‹Ñc÷£p4Ba]ÖO»=kdÕ³>Èùåx‹2PqÓj¼½Lw3”¡QË©w…øüëÉEp¹Üˆ§£ ©=ù+œ¬®È
+	×õx¹¤O˜á‰;q%ŠSÅáv¡ RmqîÐ¦rTb/3G3°^Õ×à;2€Gä+=MØLã¨È÷¤uçÃTê=uHÖ‘9~¢:ÄÐƒ_ü}˜x:ûËŽos0ÕèKy²ìL{º<‡§Rû“ÚŸO½ùœ7„ôd¿!µmèá…B§j;C_†èWýä“½I?—þ¤ï/ÏU*TW4SîGÐßD]ì¤ŸzyŽß;µrovÒnMaö©Ë"ry¾6¶Õêh5W‡£åàë…2¥œ¹ŸÐkQÁE[°Õ(0QLNXŽÃGQ¨BTÏ½DÔ‹Õmª³ÖÎYM,¬™ã8;n7ÐÅÿóÖ~ÛVÓÉqK§Â”·nöÚ¶?‡×¶è ^~Ù1Â˜îIù¥à(¥Ù_cXë>ý§V«µÞ~úÞàC’:d›öºy•ô/õÚNGQÇ¾jôó_¼©Öñ›½&”ÊB™˜o	¦RÆH@?ž™»ÓË½¿ŽØ”°ÉýË OOÀK¶ãïé&ÐúsØÛ¢ÓVôüJ
+—„Ò‹@F%Çpve=¬—ÃÁá_ˆgªb.£¢ë»„A¢ß‡EÐ4£n'ÅÁO(˜yJÆ¹Üñ§£ðãÔ>‡—»$[h0ÅMŽ>E¨œ'I?ßi5?ÙV“É¤	º¶Ii±´CU ø&-gÖàÉ©nôZ¬?ºìðâÒ„ÓböÓ©Æ1Ö•£èzÍ\É—¢€¦)Nk^æå´Õh/Vnë2™Ì¨vÕ]ÛëWrmçõlqJº„¹nýtªK*ÝSô+–ñ0
+&ëösÒåL):Ô»Šn¸Hæä\ú¡y|ïª¾Þy>ƒ4.xVÛºÎfGaêÒT	—„hì³`Þ,ëm¥4y¢‚<:eQ”ÔíAgžíb
+Ùš”zÎjûI‚×AH¦Q0ö¢"ñäÈïãž4HÎà¤n9!…X’=ÆlH m„ÑG²ã%æÓwSºäÿmDþàÞâƒÖ|² rî‹V²E¨í‡Ñ±%Ðú/¯b‹ ÉÐ°5 É¿+ØÚ6>c½‡Ï­_‹ýq¯åð9´ëãaà[#?J´ZvÅRß¤Ž-b.LÅfæWšfy@o(ñ™õë×Þ/mw…ÁÈä]ûšôk‡òój×ÙN((×Ä›˜ØVŸÎF–,ÒŸ½hÍ~=»ìó»¿’=¤QQ¿æÝGµN› Z5û°`Åš5:§n›tëÁ8×¬E2uW¬Å§*ËkH¼US*ëÓØQÆ¼÷`EZ>+µ_òl«„éëRÿ9¤+ï^‡x7ÖYƒ¥on³œ¢ëß€Ó‘©_¢ ¤& µ·”ñÆÓuËèÝšlÿµ©½2S3‘ì§uQ?.¦0äçF§$°‰÷µ›i¡P¬u‡ø6ksàÛ\¡Wuˆÿ”KDÈaå¶íÂGÇ.ØmýþÇí ê|­`'t£,Ûå2i¯MÁåZ½“î
+§ÝCä !
+…PMãþ !°mNÂk“Žüx
+ÂÚ}å'Kœ?fãÒ*¬>.¥±Ê«m¦‰øˆuœoxâ=ñ¯‡ÁyÄ$¦¥Pˆ?ùDá­ÿðë(Ão÷5Ñ<œ1Äù¬DÓïº^Ô“¡_Ç\’ã›	ü‰ÕÅ0ò-Û1±ÂÇÉl„Êx
+ºÛƒÁó¥8m¨ÕcúèRé¡‹áA™˜ª†zP.ì³¬ÃbY•³W’¨T1'Ê'³(•øùmäÇ³Qòc#ÿ±\Nß«Ÿ'ÇôÂ;kødÁy\ì ûUÝØ7a4Âw‰X	òš§à-¥KßÞxüâówáŸæ·ð›…O†–Oüñ”·Œš[æ7Ÿ-ï„S`¼möÁÜzö€ôÙÔ÷`œÎ
+þié;»Yødhùð5o÷ðµ¹Uzcö·¡Å­dÆÓ¡¥=Î¿0¿Az°ôiv¨WúìôtŽ²/,3%>XúN÷,ÛD‡‘ßŸE1HùÎÎ¿Ó¿Wù¸âks ªÙ]o®àñòwÚ·o+W~­naÂ1”pÜšç·ÒGí;wä‡ŠßhßäŽgç0æE|§êÓÛÕé3ÑvpD9rJÙü£ñ‰ýÊÙ#ü³ñ™—!,jöýdÙ;Ù#òÆ·'þ4{	~Ð+G³Ivþmí¥¥ò·ªg‚j*%¨å„½ñ4¥kÁß$	,Êo¼)òH½0 <éÛó€:™Áœ(Lý(¼¢˜„FÄ»||"¬µÚåÎükXŸ^kÐÁD,°OWÿ„#?Qƒ…QÁ¡C²f7äøð·ÍƒBZ[t¦ÝüúúÔØ1<ô,ÃªüöaŠÊ‹Á'uMðc\ÊÑ‹†´›ù£{WUOˆB¯EJi¥1$ÎVïºÖu0™k`÷4ˆJ½‚ë$Ÿ©ÈEÑ¿éŽ‡¡5A	·ð^I‰V¨ßí¼æÓ•Vg†Öäú·rdqßùõ–E’%WJƒ2/ðœ{6—Œ
+Få¹pƒ±zat\Û0v#ÐËT§Ó9>:dWW©íÍ–¤ã),â‚!¨IŒé£°®6¼Lµ%‚SaGB[­V${nä>›íàÙêt‘y"®¬_oQÓ¢ÀÐ¢åõVÓÓ-¨¢,Lî–ÓF£±EÞMøsuœ¹x9¬>æá‡¿>‡˜%yUGËe[œë’g¤KËâŠ‡Q:‹‘™m´WÚÝµÔ[¼IŸË$ž%sïÌKŸ¥dæ\
+¤çQB!ÿ‡X‹Ê;¢ $ùBtg_VDí¶¨†qPw´´
+.(ÒÇáE2ö®Ï>u´ó¤ßŸ6œƒWŠý•êÑwŒyE·§š>ë3n‘q²p´³†riEû•à‘Â2ãçP†ç1xl›·!bmÓc,kd„À!¸E°vÙ²éÉð
+ìG7´Úº;ît?X§õ8‰f2î,Ó¼\§6ŸLœZnýj+a@¸NìÌk«I'¶õ5Oì¾—$Aß?Û›\øˆÂç»Îj:8§‚_Á}ZÓ*Ljh´µ¾“ºþÅ&•—#ïÆVÈhÏ’tl<1éi‰Mè!‘Šfä¢ïžé‚´¹Î®iâ~š¡
+î“É§'û¾×]
+ ­1àÀËHG’ç]cÓ]UÈYIµp›¡RFêÄ½.­˜50çMŸ‰¯Ž~î‚ÍÙTÃÍç”ïÐÆ÷œ]%Ýª¨‡JéOðawubžä6^¯î6V/å†6›¡§—•äó­`‚f2«Ã”*óŸ'èÍyÃd;!Ÿè¹ÖêÁÇî{Ì‰ˆ]ŒÏ®Œt­`1â;ÖØÛËwBÉ;%øR4ú˜BÕiÈ·Ðõ£0†sÖõ÷=J/d÷â4^[©¨qˆïkØ42=ƒ¿¡é§­^ó±®6CÑúJYz³Wbý¿`P¹ÊÈgìßªÏooÉõ&9]Â8£ÇK+d‰þ÷=¹3kù*@–mùSÊ7	È:Á$Hnô¢»Ò%Ý$Û­>0Rpõ¼È ”ð†aoÝlRÙU6?`™‚8¹ùöÑŸ—º¤{r“|`ÍV¼–„Ì¿B„]m›T
+kÀüÁéå×– Ç¸BÍFkiùNzdùÃ=†b:Ïíú];3• ·¢ÇxšÛû‹2ˆ°8ì¾¡d'±Møê*Z	ÐÜÇvL±`Q›‚ÜíGæ<hQ'qB[Ø†…KÈsËýªxVØ]ý¡?8£ýø1ŒýûßIóŸßþöâÆ"^¯S¬Å+ I-4tµe/€óþG Ï‹z·ãÈx‘×^<$Ï5Õ"áwë«9ÑÒ’½—ÐÇÁ¶PÍ[!ç”Š<ò=9oô‡^„ G[I­¹ªÍ²Ûbß8¬J- JGû'qU¿OQëé2ylmø²[ç‚˜É5tn¡Ÿ?nSxYóŸq‡¼®RÝf1BÆ!üƒìÄ—½ÎV£óyþÊÙ+W±·d“àyåÚé×a‚-e­þ O¯ÃÓÖÃ%™E+ö”û¹Í.fO =õÓÝâÆñÂC.ðFx´òŠH8-ÛyÂ®ü\v¸™ä/H—Àé)™sáé•¯ŠÃ±iztcþG+¼õ½ã›ù+Ü§¸MF¬îÃî­Vƒ¤6zzWmMÓ—­ãËš=ú¶u×·áûZ.³àDÅUÄCvUÙ•‹ŠÕÖÅ•ïI2«Ç¤m?@ØµIÚÂceÇN2±³†çk+­Š·°©ý8­]Vÿ6CŽ. Xjso™E«ïF¬Í!éÀ%GÑï¢LèzYùå-ðãüØù ùà:ÍL„¦¶›»ÔU¡ÊZS
+vXºÓÖÞe¶!§sÁž“W>¨ï¾+œ†k¦2sòå¼
+&=UZ>þÑeVpÝ’j”_ŽšR~‡×Çô} 25I“.5Ê?‚zÚ›^Swâ:ü÷NÖ”î,ZP~9í,Ç³ Ñ²‹ ÒÚlÄŒÖÛÒ2U³À9àÙj.=Ùš´ÈÐw˜É…ZÓæ1?c_µâ3Cªþr¸N©ÀdR-òÞqTïÉ|¥²­Îféu–yEn<Ì,À²eJf©Ù¤YyŸ _ƒd›·Û|¼dß„daÞ°‹PûáÑ­¬Ý=vâð¬C=}®çþØ¯{o»Å:yÕD°êâW.zuùèìÏpsþgoòv–X-v–QV‡Ò „dås¯X2o&DðÚó˜hÏsãvØ7§¢WëôŸZ~{£s®²¾\(®ž­ŽÝ³µwðò¬Ù¤
+2…>¾‡wkîº¿kªb·×Šh¸m·Ë½¹…sàÿ¨sf}nçÌÜKUî˜ŽÉcþÇ8Ù1®Z%ˆœâø½QnÖÆ|µiìŸyÉì´3fâ.G†5×—W#öÙZóñ²€‡÷wó/nµå?¥/6ø½[MCLíQK#ïÜ±0,ÁhàƒŸ<¼¯Õ›ânhx0Ic“í‘$RUSèÈ%‹É*]´ŒwSJÍ-¡Ž†á©˜úKRltöÝéRs»³Îðr´-Í‹“®†I[W¡ÙX''/÷ß[×â/ÞÔq2$>‡u¡+,„::ÿJqb%öihÍŽ?M†ÖÕèµ­«@›‹"ÜwX	)<´ÂR¸FZÖBâf´o§I0~ñM~U¶[oü³u1Žý$A-Ýq9„è‡õñ*,ˆŒqY[i­ÃioÌ·"ÜËÉ7[H¸=¸ík¨>ð¯þè–}jÐ¥µz2œ*¾
+•7JÕ_%a©WÔ®°E®÷q÷"2“
+¡rêU
+?H“bàŠ£Ž^?ýŽš¿eÜYQâ™/pÏ áŠ:4"1Q±K²Ù?¿¼Ëm—éwôóP‰¹U’ ,mfM±ïÄYc_IS`Xw£VÂ_‚[Ù¨Èi=2¬ÓÀ€+&0cšTÖanG(T|VÑœø4o&AE8²2Ö–95ÉÝ–Æ)–KÏô¤ŒC°›bš
+‰IUAƒd&qMÎ€š”ü<«wÎ‚-Õz­¾2x<vP_Rªùºô=Æ¦ý„(_—PÄŸQ«CÔœ”¬F%YdFïºBÔ”k¨Ê4Ô¤ÙØ"GÑÈAó5èn&K°‚IÀ$“ ©Ì‰™ÒboÍA‚ÀŒIs«%A}:£>™±J£5Wái"vð
+
+Œ9¯_É
+P€fª…&#Ð°ÃÊé‰&çŠ#š­T]˜ãáó,1mÆ×ý¬ô• L´\„”32È”¬ò¥ÁŠ__}ÜÊ)ñgGáHú•Ó ¥ºbIÌÐÝ7.‚,^íEZ•7YÎð'Ÿ“®Å4ü£BÍ°<²éür]ê]ùõ™ÆúDÙ^`xÄ$ÞÃ¡FˆE-{ÆÃð¶¾'µãÝíwG»ËæÁ9N+¾ÔaQ·HííáÉÞ›­}Ëk+½ØiA_À€O¶^ìÛ\áÝ@K-¼|›ÔÞü´{´÷rowÇ¡” ^’ÚÎîË½í½Ýƒ“eCš¹yó›ä j¶y”xÞì“Ÿ¼rtŠÈ6;¯Ÿ`	yÆîáTqÃ>)T‘/ëL aü¾Û\oö8• †Ë‘"§GfÏÐúº×:usÕÛr½Û’)>Œ¼öÄC
+Ñ×¼+wA#Š%&´ =_wtŠ¥î¤)(ÒQ£)À©öHãÂ=V™ÍeÃ6Ð±T)œB¨+Õ
+¤½¦¨n](-	¡}ccSH1ƒ”šrLp(§«­ž››AòÊ<]m	_K×îJ­pÚi ZŽÿ–N@½tºs3ñÆA?ñ4›©ï‚6Dž¡Mü8þíí
+aìÖ­q1ëãÀSïôÇª›£Ýzºò´¹Òîl|Ó›ãx„6…ø5VÓ),ªi‹¤“eÞ"‡~”Ì¢svp}‡ø`™¾Ü6é‡“‹YŸ~{»$ºu“P\¹C2÷e•íQtW~£ÛCsUØ™î¢ßŸi;]/·h Í'Ä‹‰7¹ù­í	ÅX÷F*(·‡l×rß!EGÙ7ºC¶§³HU|œÌP³ùŽœàùQå]bÐ¨¬¶Þlf÷€èp|˜&·ï_$ä¨~“3©ìò«ËÈ‰*à0AkÑÑìáöažTÜI.)£,ÿ¬ïúˆî9|c*4Ðˆé§ZÉØhrNSÚ¶™ŠmIÊþiðÞ˜Öæ”Òæ^Nßé–¼¦g¦´ãûáe-°‹‹ü3óüÚk”QGqRRíæ!bÌ	&môõænkë½­W9FÎbuÄ+.ÌÝD›u†w®Gµ++T1° ­ÖF›ëËïm;Rz…ðBMFÌšÕDi£¯ªÁº:=;”]Ê¥º%Á¨À7ì%:’z³ÑsYŠ|SùNéëìòó„ÓÃ(œz—”k×¬©É|4”÷ÌhmKä<˜_/qŸ÷níð€WA#Ì?¹=ßâKk¼§A8$ç8e¢“éÌ-%0¹™ÂêÓi:¯ÝÒšø¤>¿Íø¼[NÐÃÐ›\ú)—½uÌE±} À4¸"‹šé¢àYa£+B—
+Æ\ ž÷&fV«å¿„4™½Þ,²f™q»L©S®’5Y=,OÎ^¯Þ¦WQ»rh0{Â)µÊ–­¤”"Ô„L#K±Í¬1uÁXãMìÈ8X•°œª²ë–JTÖð’|ö\êPë‡lª‹ÝS:Ó2*”ºþ"‡ãVXÛ‰²ŠtÅŠŠaL|¡æ.;éüÉ€››™¿¤º»ã8Ål‚±8æQHá.™‹ŽÓnñ_§WÉ]¡Âä£Û¢š‘¦'/æÄ+7=\Ô¹Tù²–‰ÓŸÿú¼P3±£¦yDiš©šRÍ¾?¸ôu>CÚ¶ZãTÏ•ê9>DLÒfàðzsu¶[”…°S)ËÀž§è@±,v!ÿ:üXTBTu±»º²Øf$ÈÛ’¾ôGÐ—&Ø®¹4hq©ö¿–fØš§ih«lmz‡ýˆ­^}›SÇyšž;ö®¼·pò7×S«_.õöhÏ,dÇÔtf7â»xoç¬LT–¬CÞ›*‡@y>×ÍÓ)âdêm¤¦¢.äôšÙ’oP›L7_¾(NSíˆS‰É;l‡Ùöô•S«Ô€°š²‹Y wüÄFñŽ—x§EbyßH‚ddÄ`MgaØs_9À²\¢jG×‘Ø¯.cÑ–[Èo™Gšc%iVÇ}B$‹{Š±œùYà†"®ž•Í	FýÎ?™^Û™ÀEŽû˜Š¢ÙýÛŒŠÌ—RbãìÜPìcaTÇÁì,RV$¼ô°n;EV”áŠ¶ŒŠª‘Éî'oÄH‚zôh[ Ï›Cë.+'þ”yFú[Ã»WH`ÁX/t×sˆy&ð%è˜\»áêáU	ÛEŠæ^+Î.8PO…p!6ptIJ8ãnVC7Ë‚6ƒ&Oî½jâ»nqò­ˆäRœÍ1Êþê¥‹îÑª½ÆÍô Ýv+	—ð›Õ4á®NWÒd¦	¦1ÌQƒÐ¾æ„gwª6Å)æ‡íèfš„—‘7ÂAz\Nh=—Mò‰ªõþÀñ`±lŸŒˆïøõV½Ý[;c±ÝÖUu(n…€±ÔÖ&›•h£ÚÌ×¶¼Ð)>&n:jÇ%Zd5‚¡e, %W|±®q)ctËõ’Š»øZöÅD;^µJìÝVhE
+ë¼Q+ÂRñ¶Òxì:¾–9f‘äÀ÷aæ­l×}œRËdv )zÍ¡ ± aâ	ßÜL€4L’‚x:òàÇ‰7ºI‚¾§ËžË¯³0ø\pÇø¨™¦¢w†Ú$6«¦uï?¿…ôe “‘§}¡Í „ÑžÉ6Z-ÅNkKã‰„lD‰ŒW.ê|Xp	4¦8@‘b¥Š£êP°jBÝ$¶©ÍL?UZRzÅä´1Z­»–‡ŸžÜÇÓp‚FäM[mK}O…¬qÇSÜ)³íŽ„¤—É9ëëÇ˜î0FÀ²«ºe2aQ"‘?£ä&ÔÌþK.ÛÞ:Ù{{@¶ÞíìíÝ£öÝî^ù F\a{yt;ñ¯è¢~m¹‘„û!B8'2P6–“Ãáb>²”åõÒ°X*üû
+]·ê‡¨¬BÇ’Kï&'áÕÈìpFÓ\1HvÒ×¼´Ÿý~÷ÃÈ¿{ü‡?Ôëu²}´wÝ'ovOŽö¶‰4pÇ>ï­“˜):hÕâ‹‹Ë"—]æˆGêL¬„Ä `©«uÀäï­û‘>Ó±G?’¥Óu
+¹Ãkî&ï—ÜzÉÃ<?<ºzŠˆÆB˜Äf†–ÓxGê?æØ¥´›-ðÝ§°*”óÆ¿‡Á¤¶ô×ÉÒ²9øëä¯“­Y2DË'w¹f2FÚÓã½W»;ä;²ÿvûÏ»;p…ŠÈºÈH½·þàƒµð[äóQx«‹ÌæüY;ÍyÚû‡ý‚‘_<³z„Æ`b‡$u¬2‹€îÉ»£ýF?òvßžÿ;3|®aŸñ ‰AØŸa‚y;»#?Õ–¼%k#^cùÐtÆ~/ˆB“Qèánùð¯G;g¢'ýŒnœ3›n$×‰•³ñœ‡ƒ›†"Åd°=Fƒšç0 >sö`Hù%‘?9Òõ%¸f‘ÿ)ü(¬L ×ÚµÜ2–^K-ŠRkÉ,ÔNå0WJÐ1)6˜Æ©Ä8&3	Nƒ[§–wšÅˆlä–‰[š¥¥ÝkÜ¼dÛÊ¸bwD÷´Q†2e±;š•F¯Ò>÷+¾5¥Zi›†|‹A˜hzª,-³BàßVSOB­·ì©}ÊðsIg^l]„„S“€-YdSN¡L+„ï@Ç Ou”¹YÝÄEFñä(ó„âhà…h¨‡1FÄ¬tZYYŒp…$VÚ¨©Æª>BxÁÜš¢’ Œ;ß	ÀËy•Ò56{µÉŠÊ½«Í]dè™EBz«àëe†öW[ïŽ÷¶ÈÁÛ½ã]²¿ûÓî>©µþï[¾…]$u\ÇK?ÜNÂ ö÷ýO Ú>^ˆ©Ü1ÌŸøGwo“åÇÁäù’5Ùeì]?_êYo£®ªç·\ñÍG¿ÌŽ…ïà	æZ>ÍA˜K£BkJIì'YûµƒbÕü°jÐ¶˜CmÙA¹‚fÄzŒ
+rCú¬ÏZ“ÊvCVUCŠ2ü¯(7z° °ïhŒ!ýÀëãQÌKe³—)ÞëžÂâš³'a4ölaˆ„c?“ap9$ IácäSpÎ ;ã2ð¢8<šÔ€VQÉîò£(ŒàŽ0" DÁßLúCÐ¿"`žç¾7&¡ÑiKËF3Ú®ŒTß>K|±µýçWGoßì£½—'d•ÿy÷ç‡ä‡yqØÐµ’_SìTdŠ…)PpÆâ$={|!¿äwY¾¾<¼Í`6cì6ñÆa4†3àœ³ñ¸`ì§#„ùE‹¥NÀ>µ•ø£EÙd0åˆÐ{@±ú4q •WèÏ"8¤ågýïV?È;±„C‘ÀŽfDu0ÑN%ç Ðïžê58wlXt»ßL’á	[íI|$ýá“eZq6/C4G*ÃÛO‚±Î’ZOÅVÔþ±1åê8Ý‹èXw¬J¡ø9é?‘7^2làçpl·>ñ:Çès=†çé³Àk ª³¿ƒI­Õ„OœËÔhÿëDi•È§íeü¶À Y9Ô.þ„BÿÊËàÚÔZËËv¥äO¬«.ÏªiãÂÅvë¼L|z~ kMäôñØÚG6É*Øpº™†hmúä¯NüK–DãL˜mq+¤Õnš«9¹m™ÓNohòB©(-ö# ma¹Ÿ’EOº)7êå·öÒ>m$ˆ“Ý.GQ·[é2†²™tì5Ý0hÚ¦Äw#º¨’sYÒ€7Ze¯ýÐžßVa0§~ñxL„ùtÈ?áÇö…ƒiN%óD£a;0Œ™p– .—aùp·¯ŒH4®ã=‰‚K‚Ù mz@©#aÆ¢‡î3V²¨Ùrë˜û·IŽüx6Jb²Ãƒ¾ƒ¿¼ËIÔÛŸÓ€øtÑÄ*Ù~Ú”Á‡J” ˜x¿t¾¹ÌpUãï™Ãç”¬7gªž“Mõ^¹zÉÔãŒBØr çDÁµmRî¡ZÛ²òÄ™ÓC_²¬<ñ›…dåùÞ(9–Š{d—$¡×«Úl8…„Ï‘—Æf/¡Á::z>Ä^„ÄT4×ƒ†FOËO<¸'&Ø>aô‘\ÒØ Qð‹w€ÞuÓ /nˆ7À ¬œDáòÊ›Å°f%þäàpê³hL‘AKóÉ eàrå“±ïÅ3è¯†>ÎÐzFZ;dûàà¯Obà }ÊÐ|h°WL¦@¤~_Œ0‰Í÷± &ŒQ?dö2DIBOgQ€
+&ÅˆÔÃJ\§äUÃ‚IBJSq}«b"­tÎAV¦@YP’UÁFgÈˆ–~x7á„Eóê@AqN”S!^à4èùD†uÂzàÙè–/çªm6ïÛ;î–z¢c…ÌÌÂFæ‚Ù¸0×K?€äzvØ#Ð-íøÐ(“‡L×{ ŠÔJGŸŸT?¡ŠÚ<ä:-jý" Ã‡GåßïÀˆ¶z½þØ¦û(øþcÜaÜÎ’òè¶^¨Û¿hi)·Œvj´\,5Í%ÔæîÙ hÇáSäÿmÀ¡Eb*_Õñ„%Ñlâ´‹Åt1Þƒz­çlâñƒÁ¥oP¿øã†e3fðÚg0"ßéª8K[¯u¥f„`B.€„ð¿bU=G4B‡x7t¹-¬´§ÉpÀµÄ«¼ ?õ^¸Û”1*×Ó0´^›‚^·z•fc}ùý¢¯#d{ëÓ¦Ì­}¥„³}ÏWöÒWf¥uÔï”
+àVx'6…1;IÔ-w6VÖÖñÿYÃÍÞ}¸sDÌsT<õÚ¥ÀˆÛÎéºG~¢>·²ß2>ÔÝ¾ýàHÊ&b.¦»® ‰T%(ôû5ØËÌHÑ½Eö %4|Îé) "×ìk“N§õøíÉy¹õnÿ¤~òv÷hëàÄ½Û†©=zûâÝñ	Ù;Øÿímí“·‡Ð:f\líßól®z· -¾Øß%Ç»?íí’·ðïþÖáq…æŸí¿ÝGA^ínýyçíÏOÉÜäp‘øŽ)œFCAjÎì9¥½âe ¡PÝSkÏßµ?5[Æ	7ïÒÃ-ÃB\¨Kt÷‹Ñ¬ŸÌ˜Ážà £¸Av¯ûþh„Ž`,K1ÆØ¿ž†Ôx ÆÌPùÊŸ|
+à:Žã†#èi˜¥EH8Åì(ì[<õûÐ©Ìú ã„ûaÒ±Š"M£êâ’a8ƒqÂDcˆO*› ;70{LÂ~Æ<QÄ‹oÆ,aDpO£ð"ùÔ~¯!±Mƒk…)R<F›ÆÿƒR‡Ý@gÑ¥ŽòÓÈ›’« 
+=É=™ÌkOPT‰¸xÛÀ,U¿žÌ¨W(5ÚÀÈg	,þ/ø¥GXÒðG?šø£l`µö„0r”|\GH2ÐÐyD-@˜‘vÉ‡øb‡¹Ý)ž]^rC%Âp–ÔÃ‹:-ÌúùŒŠ½øˆD<õš'€.pI)‹\ú!®Ó¥\:ThùÚð¶Â ®G˜†Öpà$îO¦[ŒÕ#ÀìH_r‚}Ñ°Hç1Ñ—î­2·É=¦N&Yw¬‰7oNvÏ¶·Žößžï½qNëgÃÏVóTƒÅ$8äw~ùV}PùR{þƒXLwíz-/œC^û^2†ú
+ûú…ý™§í«&OóLT³µº3Z^S‡©‚ÌÂ608Åò`<,KKÓM6+(ø/`ð4òá´Ùhv
+5Õiw7Å;Ö$pþK¾ì­&LÑ8¸}
+Ž¡zÜ¬þË`â@Ô~;ðýé¾ïExòm!lEÄ/.ïPx¾”~Á}jKÊ8@úŸæ«ÙÂ–`Aà‰üè0ý›çK“°ž~eK ±Mh!&aa09m}
+<\~ƒFÅˆexŒï·1½E%Ö †ÊšyÔ¾Q!©Æ¡mh¾ŒšÌ2ï·ÝÄ)Îa`ÞÌFIPßÆnØ´‹N­ÉØÂuÝ›%fà¼Ä«ÀÕe¸\cË‘£ükÝ»†­C?™#ÏjŽTÚæ5‰qÙÆî‰àsùƒ€ª…¥d‹X{;K¦³„üD¥s‚·«!wµ¨9Áà°ÊsU8JŸ2u˜”÷‡ ÓGdèc,AÍ”ù§ë€Sl€Ý±c„cŽ(‘6RMÙÕ'sÍ|òWºÄ÷ÞaOŸlÏÎƒþ“Ðl@µðð×þ5ýïÛtIüãL½TÄ'ï)ÄÄÐã‘Î4EnÞÍ9ãVVDk—ìõi†Á_ØutäÎZVÊÒ»0D-¼ŠYdfÏ¤oCŸ³(elþ9).ÿerCJÙJÑ0ó[‘ú#»û)U°…~xå4Øç_îíLLCÌSìM<‹i^É
+™ÐØêÓ÷?@ï\LÇ´ÿ›é§Ón£·B:øOÿi5šü/ßÛ agó€­žöí²¾Ñha[-lzÛZwo0›JÚKI»Ø´º±Öèð¶x7;NŠË±IN[8º.6H›Z_ÇtY‡Ýz˜¯ç&ë!íQw³‡­Ó¬5ÖÝæ0%‰tÈm>Ä6v‹.Q‹¶½îÖÅ;+®HÌ‚ÛŠAðÀ_Èêœ±pŸù Ã5^ÂêS[eš¼G{;²c¢Z`›ÍÆîÁ»0ÿ±hdÒúc‘éÅË¸éÌð‰lÄ Õø˜RÑ[¾³ÅbgÓâŠðÊV`Ma^Od…©¡ˆ-ˆ‹ˆÂÛCFÉè	þÂ¬`{cÙÕ¹ÅØÞ'U˜ß)Ÿ”÷§¬IÇ2my©JŒÜ„³¹ÅÅŒ’aÚÙ|º».YprëÛ Ì¥¥$á-ÌÀÁüéÇ"÷¡‰¿mHå›ÐM7ñ9ìdv9ÕÓ¯
+HÖxÑíÍ;å
+KŒW¹ÜæVaÌµ[œ‘ÍtZ(Ál’Œ|
+ôesTWœÜŒÐNVá"ØÀ·±ZÑfJ.•A(­¬¸žZkÀ¸Û8´ÝæÙQÈÒqL«¤Õl.ß-¨úŠMþ
+,ROžâ)ÑÙ_±Bjø†:žäËø¢¾§Âk«õ±Kt_{è÷û·º{âñæ-‹ª:\Z}£ÈI%÷Rà šòÓjöd£zDæììUgWa/W&'âû	­ ØfÿQÆ{äPGRÀBýƒzR@æ£]±ëY]øvõ÷Ó’ÖêÐÍaÏ.w¼|wÄy¼æLRP…Ð"=zç³‘ÕA…œßIœz¼naÇJ±qUFT	µ¾’€`¬f&^n,úÙª,5Ú;a?‡ï–k–wß’¸ª‚ßÃ«§ôšM‰” þDsSPwBÔSÌ˜$199$5´ÂÔy’iLŽfÒÁ1ÇÐêñü¦¦*Y H‡¼<£už¹rßxù<û&¦ÝÉ¸4²ì¯Dk®ŠwóÄ{Ï“—±ö…Â+J²Zÿî[)|÷°îìŽ“¯£¾Ý[{õ0g¬Úƒò!kÚe(ïølƒ°¼¹ìã‚JÙQ÷wö•ì"À‚fa¡UíÜêIUWá•¥˜[è„¢Îp/Ï6F„¨ÂyÕ?wí½CþŽü¿ÿñ?×ZX	¾S
+&˜"X§{²ƒä˜#äl´š­AñIZ Y Ó'Ã££YvùÁL&N5ìTó2ïÝcdç<ôq1‹ÏU&µï¨hÁŠÿ^^Ã™]ÏÚ1Ÿ£È4ÃÐdÕD8âÐñiÄ]ƒl%ª›éŒ¯Ð$Òíƒƒ,þpè!ä'Aa 8>óÄŽ‚_`fò,Ó+
+&³Ç_üH=ŒfÂ¨?/F€!Cƒ"›¡ú`Å@áä„#Ô„5F£n–Ò¸QÌ¶ññ\T÷âÞMÃ.cxËÍ3	aR†Á’«ÆA?
+ëÌˆÁ+Î:ø|òúÞ¤ï¢ Lúê}œY–èÃhh,)ÏË½ q0`wåA³nSùUÇÜ(#Äü7òVÀ<’é'T¹8ò©øŒv&îyŽ&ùM.	/&ÿÝ“Íp_¤ÊŒœY‘E7%Zwè#d6	{ÐGRú^Ä²Á=ÁŸ—² Ø54ƒ…Ó¬rÊRÇ4FŠRù4H¼kdl_¬À.½€3Ï7)¦äR ¨È¿1aÐ9Z[?‚‹Õ2™÷§y-™ )‘ö9ðú<±tÒÛ)ï	.y\LÆÞGŸnzÙ,ˆ‡8À¼ùÃ=cŒcÇg0’öLãÚ‘™Â„çP—,ôÚ9¬›v Oñí´g,Ìž¿¨Ï%*X+Ê®SþBU»éÈ›ˆ¼¦8@ŒØ¦Aš”>¡ÈÇÀ?,TG§†Æ…ÇX»n$c¢5ø¹EtÆôÍo-r;5¿°p6¦.ÐÔvß&9 ÏI«¹Òl6^,ðeëìxûíÑî&zÈ7Ú‹@ëüÿ   ÿÿ IÖxœì}ÛrãH²ØûùŠZNÏ45+R¼·¤•4¡¦ú¢XI­#jfvÝ§C‚E+\x °%GG8¿;áóà°ýk?œðóœ÷sþa¿Ä™U¸€P¤¤îž™VD«E(deefefå…ìmŒ÷Gr~6È.©æ^%dž&º©yÞ™fÑýÊØ¤·µ&ÁÿØ¯šî˜ä/sÏ7Æ‹šNmŸºÄð©å…|zë‡Ïj=âÍ4ÖµN%(Ù‹gµNjúB³kÝFc«Ù ®3·GtTÏM“w¯àÿÅ·µ%ï7õgsñM7µm2…r¨ÓhÍ6,Í§µÙÜôh…l•@_ŒuÙ-í¶vS{Ûê4f·ïÊžvÅ‡¬·;¶_šš~ÍÁ¿™ÂbùlF]]ó(ñ]¸dØ“Ú1¢žO¬a­Yú.BN5ß5nÉ€šT÷É¥€ö2 ·¦ÝÒIÌ2sxÛÄésà=«(L€MÐrl'9—˜Tá'—šÚ-)Lªo€&Í^(T›P¢;@@†/&†Mü)%ÖÜôƒ®Úã¹g86™¸ÆˆøÜäÍ'øÛ:±éÜÕL2séÈÐ}¼uH§Ú{Ãq=x×ˆx¾;×}viX†ïÕK9»'­•‰€»œKÁs9W—[_“S†›>Ãû(ÐØ¬Ï©;v\K³uJN)î‘ç.Õ®GÎM¾ÞÊ}iŠ-ÌÉ.ˆ˜ˆ»Öl¡xûE£Û8lvÞ¥xž“Ë60ýv,Ú·&;S^\ƒO*H&õ¸¸»qµYRÀ…ÂoHýJíš¡¬Ù°Ö&mVk¨ôý‰·â­2ÚŸRýºo¸ºI“®®Ë™ŒZhq„2®\ªá*HX¶‰,+ˆIS¯ÈE¥%§´ºªç.ð rç&¹ ºfš›äeþ~Ó¯~Ûß(a"œÛ=¸h5¢aË—Æ—}e‹š^ƒÙm­Uï’Ù¶åêÌQB¼Ûef-’ì#ÞÝjËé˜å’ôTÓ]0½K¶wê­/ï‰æ•fhØ#câ$&|•ŸpïjÓ3Âéí4ê:=QÙIj#¹ÚÎ*£ GÀ»¤Qßéu—EŠ÷“,9ïa1Qj×´¹ïKL_¦¥ÓÞL:öÓÜÚ’ e´eŠâ(Ú¨T¥ñ]ˆÜÍ€(i;IGA§ “J3PVå ï.<ŽüG­½-ºîH€Íq}R=Û¸Ï0‘¤¾Ï \Æ“ê€Úžáïq/ ^6kÝqé½`âìDî=Ð¡®ƒŽ¨/È¹ëŒSi,¸Ç-SˆxÏ:£…ð%Ð_mA‚?b•¦[n^-ß–¢`IlxÏ.yÚŸýé&ñ8™í’V³ÛØDeZ‡«;úö—p5úÔÅOã&ÿÐÃÚ/,ÛÞ†O 8:.|Nî…pØÉŸF‘»Mu/AÛÐ&Ž­™"œÍíV'lƒÝNøÔŒà„íœ½VÎx—ÀäO­ækz+r§#`³ÇáŠ>µclö`¡Üi&¡7•ì™•`|ãúSÇ:VjÑ›½m™Û"˜ð©#s;f·“S³† sS¸Ü^ÎSØ3tÓ°SP¶ÒÜn×w(;0e§ÞH@ÙN‘æx®O=CKÃÉ[4AÎ‚Ùè	`6”Ùäq0›)d¶R”é:MÃØä¸,ñ]ÝÒfÕ**Àdÿ ÐßÄp½¦‹ý%>SÇéÝ‰òhŠšÁ.ÀÄÑD¸Y²À±klOa¿ÄW2â7V¢/Jå@€i©*;º°Ý£ÕŒ¬XÝwNØØè ¬{RÝx€w‰J¿ ò÷"i<À;"Õ4ó‚‡_Ðë3o7à\XHÇž¸×”1«ÿÞÔZÛ$¢rT§`4&¼ž‘Š<5F#j+¾(óªåS>Þ>aÆ?w?ÜÏ_˜py²<»Êþ&wweî‚èeåÎÐðF—«9„lä:µ¢1PÉ)6f˜IQjÎ¬|qoËrPJÕsî Ð%ß.=æ|¥£ï4Ó1ÏÇ¥6$ûûû¤úDÈ}{ò”hèe\l¯¾Ê³{ñËIì0”oh&.»3ÓtÐ«Á<Ü$ÜL`Ùsž
+ä‰§šì©‚‡jgUü…ÒÛ[Øœì
+[Ìg²¸QÀœ+$ôÉ6k#öÿ´f¶´Cm¿Šôõyk‡žÍxj—¼^€%6Ó\ Ð§®G¾ÊÚ7tr8ŸXè4Æ·yk:4»ÊþÌ`Ë¯<kÄnÎ·-—Zï,‘Ï³ukôŠƒ‰DÓîÌg[°ßÃáéÏ=ß±Ès°H'ìµä•«Í¦€‰ü¹gg¯=Çœ3ïºGýZƒüÿfŽ^±}õj¶cÓ†joõFû‡³Æ°À¡Ýoè½wÿàJLÍ Ê2nkÀÏö¨æé.-‘•{†5!ž«ï/G”ÎN¨æ"{‚>½ðïùäŽh¦¿_9£þã^“>BÄ_V‘ø áêÿô“¨À’Œ©ëR÷Ü1}±_±ZøU‰#¶§@TW€ÍšïÔ|2vK ³÷ mFŸ¶v€Qás§Ø\æäQs]£'¼Sè+/^ŸÌ™ÝZ.íèÐ>º"!a	!nMÅž¸Umjg²(]ua<À¢ u*Üä:3<Ú)…²w§Ä>ó«‡ óÓ˜Ø@ö³ò3TSR3»ü;©ÕO4&Õw †¦£_WDím±w”BÂ7÷¼9þy¯™sØbÙ~ï¹+Ä±ûSÍžÀSUÊÌ/—áóUZ‡tBý:¹DkÂŸ¬tã[XìÌ¾Ò‘žÈÝÖÚèðn‘ÄÁµG-#euÁ}îí:s,[Ê·þUöØB¾ËÇ?
+ª¥3cÄÌÑ\yIéhì¸7š;"§'ç•ƒÔ{[üþ•fÌÏFÿ"Õ&(û¾Czµ‡½ ž1šk&ZüDªƒkäa_{Êãƒ˜adùà¡Ÿ»F2ìQ™5zË½X6å3ã&~RŒðêÅÉ·•üMÄå]›­p4üý£Áž½àCF’ê¿þŸýF½¹>ëŒ‰å£ÊAð¹D}ÔÉõG¼1¼)Œ‡ÿ‘-20N¾]{,¶¸Õ·3 íK”F ÿoÁÜüÐ2©LCâÚÎ É2~¶ø
+ì_Ÿ>}dçcÉÉ)&£—ÜGJFƒ|’‰ŸSŽ4¶?øMªŽi¢2¤¾výãt0sq'þ #G×ëK WG ^‘ÃŸ’SÝ-sëSÒ^>/¢±DC.àŽÇdÇà=÷aÆ`ˆêÙýëiŽüÌ’"Å/wzƒTÏàmmf\‚:£5ÉÌMÍ5~¼—Þãµp¼Öšã}°;]aýýÒIÜõ_Ì}êo9“É²xË¿§ŒyÌÒQ¥Ù˜úlìPâìŠ0jæpØF ª„1¿ÒåÅáñÙñÙ+rñí9yqöêò5(nçoú¯*nÑH¹—9ˆÃ±*\èpüßá”¹'ÌS{©Ò1ÓžaÏæ
+RÐ_Ì hi R~·eØû•fCåNíïT¹5à»àX@Í;õyz¦=%ß§OÉ.I ®tdÏ§3ïúb¿ë!¥ú´ÖLJöP|›¢Á¨¹KÎ²>w=Ç­çDÓ‘1V‘Ìjé¥¢"òßâFü›” (.O@L^p™qxùÍÙ!)N.î~¢6õFSU:ÀÍ]…{9ó‘×‘%'yrÐz…ïäâW.JoXA9A•$Ô]}©©/«æˆŒŸ”Uuìù¡ÑQ‚¼óéÂ3t¯ö†eÏÉ©[‚[ÎÇ¥"7n—­Î€Ê
+„î£‰ÜØÄKZ±ü]_êž^^÷_SÕÈó7ßžHut²u²¾ÜMQ†O5“Ç§Õ¸´ågjñÝ—xTñ{É÷¿y¬"a™4îÖUtµPw×Åód²ˆä{ga˜OKJ3jûpŠ[$Ež»Ž6¢L‡ó0êò·&Iú\žœƒÖöüâÍáÑ¦ÅU_~ÿúôDI£ÞìþüWË*þM~ÏÉ;^ÎußyiÜÒQµµq÷ó_)Be¯·Š†·žTIã4G²¤n»tIõ›•0rtI³¾¬Ù®wË¤ZX=ãØ³7Ç°›ÿö•eÉ*Ò„ëgŽáÑúžšªê‡rH²ª´XU^£¥v+JŒ¶ŠŠŒV¹¼JŒ“yÂBÀµ
+8¹’"g}!ñqÅD© PÝ~ñL~tqüò’þøâûÇãñç“#×û¿4WQBŸ°ŠE¹n×dð ¹ª@€å{±v0Èo›¯ï[“¥4‚w8÷ýÂá‘áaúÊhix—AzÈõ‹ÐKŠ%qö—°°#“^ÌmÅ³ë5[ÔÚõ®X„¢×ˆ’Ù¸¢ÜÙéÆ‡¶˜µï©Š¥Hûð¶qÕ¸j5f·Wîd¨U›½Íævw³ÙÚÙlÔÛ‰¬Ì%Ï«§J[ñØõ·»‰ä¬èÛ”c-ú>€	‰4Ÿ
+#°K	¬[œI¹WJÈtìRoÚ¿I.aø­e×x3¬„´j­Âcå(Á Ž8j†¡!õzqÝ£½ÂáËª–©Ì=“AÀg"ÇÕÊ~ò·ú_dÀ’“’þáºÝgÒY6[\ä?ž{!8su]ÇÍOÞ"/É&c•’d4Ft¥ÆH”ß`÷ #,àecÕ(³ÔÛí»Ž=9ˆ“á›Â.èüŠ8±Âp½G+ŽuaL¦þ.ùÎðæ %– _ñêE®ãXäEŠÆ¹ärî;EG‡EYdÏâœ¯’.ñg¼PY˜yréÌÓ™,È‘¡M\Í"}r_%µëRÙ
+*vå¦±Ý³˜ÖÊ%¼VŒÞ\¯|Œ.N^¦Sœ­ šÖLv¯×/ÞEBrK$½„Ž¸ :±e}iP°DBR,UÃŠ-)¨jr´ÄNW†ŠTE€¨hP"?›‘‡¤š“¤@eD÷åõS„dŸ¿ý‡ÿM2ùJçj¥(Z2™ºž%dêv%)·
+¨ä8¿Ô_ÌÌ´çx¹²ƒ>a7Ìjí„Š™[#¶¬d‘Sq>åœ[@T)õ0¦¬ˆ½*Íz0åï€UWÑ.}inUPËG'C@8GSI5ÊJ>³íhf‚¼€7à‘ØÁŸ.ŽHë_ÿ`©LCx•9w¥•ršž‘9Þ{Þ)•ƒ¿ýÿªzrôš¿£ïØï·Ž¨²ðÑ©ò½á˜Ôÿ¨²U§¢-èCSe0Í6'ÿW,¹CCÌxcžø%¶B^äæˆ³ïØÍ˜€„@z–’Âîg_òOeŽ‹bŸ "ûd3ÈpcÀ“‘Ú¿dÖz3÷Qäœ±oi·ÏWbÅËËXíz4kŽ„f­p¦1oõHXÙ#ô¡¤¿·ÒïùUÆs×jCÃ4|Cím”Ä•1pX³Èkeáš¥Gy	Ý§7(ëJ—~ÝQ¨üZLé¨uŠåC%êæŽ‚º)_á˜~Y0Xº 7/–té =GåRîCRü…­„0YYsÄŸô‘ùÛÍv«!Ù2[I«ÓÝ|Öc·>ÝÙÞl7:²#¬‘ôÉ­{Ê~û$—=³žín ö’ê¿oÔ›Û?ÿUÔ¶¾­fâZ#¼öyÁù‚¿<ysî‘-0QÆÔ¥¶N?Ä’ÃJtZä”½û·‚èÁ pûðÿâ>ˆÎVÌCõW¦ÿ[7±t£.¹\è¹¼¤®eØ˜4îL<â¸ð¿ç…Åq½æ¬ënÅÕ¶ ÒÚ´ö´-æD’öJ	}%•¹`aß)Ö@×¯Î•ÅËCÔç
+`~Ü
+]DµF×©3¢¦pu`ôñët)`÷Q+u©pæÊ¾ñÒº]ØS¦C8F?”ŸœÙÆHPÑåbmOùÃô¹ˆNs÷Ãè Ë°¤äk0•wQ¾œøSr@eÇ„ìé£Â ÿº)éKQØ†"ƒØô9b"ÃÍêhQ0=ø¶ß10Ê{Í¼Òt}7˜zÐUä›ú·«àê]qÿ%Ô†À¨Ù´Ñn¸LØ¦x3ö—·È Ž'3ß/«Z²¬&c~ú)
+–ŸÕÍ¡Tµè#§©˜¨~‰ùû-v"Ø)Ú¦SœÈú=Dê‚µÀ0+¶+³[ávmØ6ž0‚9Ï’ÔY0ÈT¹×2*VìÚt&›Ä4F·ª¯%¬äõðhíÉŸÅ
+¼2ïN,&yTîtH³
+Û.Dá³F¬2]2ãíûoÿ¼bàÁæ«˜Æ©ÖWd–
+¤QhY¢MD1ˆR«×ÄK”ŠWJD—2Ì*¯T ÅÐö·úï¤ÿæôüøs7^]¿8»ã3rþçË×oÎÈ›óËãÓãwxyúo.^Ôëõ‡ÅyÙ1dÉò¢Çá?äÒl”F§€%ä[É&“c‘ úÝŠ” ] üÞ¬Ýq[9Å37G¤¾nÑ©sbçU)K^ØQŒâ[5Nj­ØhÞ"Ñ³T ¸þˆa? ®Sp­ì{ŠÁ=q²m¤Òò¨7=Ìiu˜–ââ9‚‚Ä8Ñæ¶>eÏæÖù¶E}jØlXªæDgÐÑƒ·5·N.§¨•îØ¼‘!-lÍ3sÆÒQÛÐ¬™IÉLó¾mÞô§êj°!ÆGvà—OôWÄßÆØ nYWDRÞñauËS(?HßÁ™ût—\€ø» úög/rVL\ê±ö‘}üž|E^SÍ}AU„­£Œç%ôH$»V–;ÓZ'4ñ²Z¸¢î½wA½Dƒ	ÆXkV åË
+™2&>)í†¸ŽGG½#Í×öÓ¸»‚w'†uê}g†5í7‰ËCõðO“~¯a;Ÿ¡ãûŽÅë×«¼€÷RÏÐìWxN„¡ˆ×ôH]ÓuµÅ~¥MÚ•àÛýÊÍFs»õLAXƒÿéðøgõGP+K°Ãužu»½
+aåÀpz,âûÂ„õ|XŸ§›pÄü0pÍ°‘»Ÿ³™Âg<ö(Î¿»IÆÀè»$w…†f–CvòŒ¯-rúâòâ¸Ígì‰	ß×v ±$ÿÓ{ué8 kf(½|Ø~as‹aä5ëó~7•/­F¯ù¬²ìœðÿÄs@-'_4ik§=Œ.^€<ž{xKkv[‰šæT¾Ç+ÁwB' 8Ø->ŠÒC,[„3‹xaÙî­0Šuž·‚<écÜ9ë´_a2‹‰¥JLP&û­wà'üâ{Æ™ËÖ9 ÇXƒ}þŽðXÒ#üfI`Î•¦›ßwÌÓ›€-ð„½v¯7nC¨
+Ì¡Kµ`uT¿ÜHÁ£éz…ä~%Ì/ ˜`@0Ã€`æîF.‹ûWƒgo+!ÉTtt‰4UÜËl%ØâÄ#
+ãšÓºa¯.s¹‹Þ”õ,­Ì™»5Êœ¹—ëÎ²‘sƒEò{„¦"Š”U2k|ií3}&ÄôV~\$ì´œ—Ã†êæ·ZüHÓ×†X°fÏ­¨$S°Ð×Œ}Åýf+¸”ÛýW³ÿ	äÍ‡XN!X³|5#èçµT[K!;7³G^Ë(“Fm%q/Uö»ýÖWrà˜`¹Ç•¼aòsáB†fÍëôÊ£úÝ
+ô¥šý<%Ïˆ)MqjÕWäð8È©Ê'çšMÍO ›Éœ(åj)Þ³¼g0ÓÜk¡È;:û"®æã[ó5~ÝúG¨ÉÔË ÐÕt&±ˆ©¤„nïŸ8ÃK„zÈÿç,?óžÍ‘ÚÁ¢§Dj³ ÆY5L©<¡¢ñ*;ÖZ–Júƒ o!ãFŽjÅdÿ7+P‚=Ê:/Fª•òçr;†?1–—?°Âà3<‚Ìä)e2Î…%µ“ˆ'ÓÉ´ò'*ˆÊ`‰RD˜RêßJ:-ÅRy9h
+ƒï’tÜ—|±½l”»Š×¤Œ«›uÌºñ{îÌ=ò½öPæ{%L\–Íîú´ßúLûñ,i_©šÑ¯œö[uÂº=Ê'h“²Ÿ4ñ·?<ËBâo&~Ò®“×‹!ªBaáÓ“{SþJÚßÐq®ÙD²¢ÇõµXÃw,’IA_™x. ¬dåŒ8=Y:C9ž`Yªt(…ú©Æ÷2µ¾`®–î½ÍOä0ì“Æ@kîŠ
+À9Õ®É¹Ô‹Û0W_isÏßHó(TÈþwf;N{*'ô*6ô%Æíâ[ÙY¶x¤ÍN¾æ“‰Iyç"X$ÈÈÀ°f˜å!g…Ç¼:y3w‰
+µðté=b>ž²\–ŒŒô›Äc.5@×À¨Á¸?Ãö¢á„õ;70w|^Îs®‰¥Íf8ÒÜ6|¢Sôçµñ8À8<=YTÿ‹vkOÈØðwâ^³Ò–—ò*ãyù }¡ÙÊë–˜â¼ÑnÃ6Fð/­}µ4îÈñ•Aèí¬J0c.´Zz—T«„ßLj¤Ú$¿'×ü3Ü¼A¶ØE½}eà·a‹lTÊ‹›©z^”Hðû)u)yrýÏá<ìýŽá¦£óxøó"9â8F
+Ð::o’'0õ'(Žóo!E!aø‹M½ñä<cbiì®‘cáP}Ê"àÉ0*ùÊ´ó÷@Âø
+€(žÚXø
+byò§'d,ôOc=tî 51£ÜÃÊÀ.H3¢F»ÁÚ/9þÌeùXÈO˜ô,Å‚Á€ù1 žàxÞE”ÆïÞK¬¶>1±ÚÂx• ;îpÜ(­e’¯0™„%)#ê!>¤ ýÅš™Î‚«¸±çE©Ä.‘ü¼9õ@HdjL¦5.4Â<
+<ždiÆ Hw®™˜@Èlì Ä·8ŠªšÉ^a.ÈÜCâe„â V‘ßõ«…ˆ‘êí“vm"¾ÛH¢Ôó5{Zeß4µjk‹I½ÆFtË-ÜÒ¨7:gÍx &ÛdãƒËÄ£¹Ë&Ix“Ü° ŠˆJ€\…º0ÑÓ¶ŒÚõùŒºZA×AŒ§ÇV‰›Xkãç•<$’°)ÏÛâÛaóuµ	Pš3†Ôe‘¾#PõaƒC2QÊ¦T‘÷šmxS|2¢âHAV¶â!ÓÚŸ˜LkïF¶Â±z,1·!<òtG¬>Å«·¼ i„Ú³÷2½ 6¼8 ”ÂùxŒLë: •Áº#ýÍýš3®›*›çÌ1¹Ðk†	£ÔQ>ÂÞç:£9låùúëœ™}ý5 Áâ-ŒRÅ€MØ=Y¢:î]Ü1Ç€)Ì)e¹v\g4Ç(Sw<Ü}ÑØ3µÐ*ËµälÏ`[ñ@ñåÑ›¦qMMcê8£_¥¼ì;Ö2º€ÌÀˆþ”È›«f(õW®"ó÷p¹^>¿ŒU9ª~"·\2(hƒ bž Èû ³{O¸z‡0âçÎBqó4Aìrá»ÿ Ža¶¬„ï± ô8­X2K1ÎµHéEëíŽÂ.èÒ³Ñ¢pbƒä¶XX;Ó$ ÁÚ5ì÷ð6$ä&ªw@cø0‰@û‰ÕIêJJ=¬âP`§‘Œ…Gïv•²Êlì¼ž–+&XÆ>¥üÌÜC¼tûÚu›J±øz•ŒHïš‘Îáq
+m°- ©-4¢yhué+%ÐËN_ÕrQIPS\!y´!bl…rÞ>Îû[º?§îB¥š¶´Rwb”Õûdã¨¤‹#çÆŽ†-÷uâHxÝ5]põá«¯fâ0åÂaÎ¬ÅñáÕªÙDØ Uß2þ¨Ì²Ô›Œ?BFÒ~I•ÖÁþ~
+
+¡ƒÖvØ†ö†	lÇš3þõÉ×ÎÜ0l•¦ñ®De2¥æìÊ(Î¤,^È$YÞÖ:¬Kr½›t5r•K˜g¢ØWq¿äÈ	ý •×U+ð'Q ] ,Lmý]’‹ê°ýXUE²OÔH©nÅºö€jVc'öªG_u²¥ÑÎ%‚¢dñD)õäÁÄjÌKË¢gúO±7µ·ÏXþl)j”°Ô2~C*õz½‚çÀsJÊ”ÊyØ*YCÅ&¦±MêÐön0_s¯G 0A«Áì …N±\ØÇç_ëdÞ'’ª{]¥£‡Ð¦å‡ÅÐ™¾:bD´”é¢H½{Å
+…ZælRàK¤@BŠ)³™ÄE¾ôµ¡3Z¨Eª_PM÷C’9HSÂü‹7<Œ)ñ@ÕÖº\pqoËr˜’Ÿs‡&éh’/ó††ÜÛ:äoçì¨I§ã#“Ã×#Cç{ö‰á%Kk'g[-¹ÕóM]‡-ã‡)†íš g“¼_Õ™Ú¥×c“þÊÓ—’ƒ}Bí	lÇ}¼2n¸œb¿ØÂ7Å¹¦³¢¯áÐÈDOaÈ$&6GU’šõ.«“TG)Øé‘$ÍÊúXçKþˆ<søÌá&¥G,JýÐzIüe`Ñ.+DºÑ,ËÐ-©"µGóÕ›d†”M@¯!ÀQ]Ø EÈ6‰4–ß¸!P6QQ¦áiŒ‰:è±.Ä¦Ž¬…þ=É€è’eŒÕ–eçeun.€q}MY²rÕ@"0²FÂª‰›¥|û€œà$ßÇjDÀl’¼$Èº,ðò#O–ÑóuÆW˜wW{²äI2¥bƒ„ÈŸ~8P’DT‹9)ÒÍ!©&Oiõ6¬+†¤ÆJ“eÊ«…u×²Ôò$rvGð#`‚IIŠXN¦b7èíb/¢vÜ‹¨½³¹ÓÚluz›Ø	uã]Âjczmi¼y²2xŠë¶ÙÛ³ò*³„YŽY9úéªeÐ¸“\œ]“U>c«<Ó\ô(JjÒICÒeºÌ»Uî°F¬ÄukzÈ{éñ¢;p_&_èPòc­)×‡Õ"ûóŠsH—ÿˆ|tSkb;£f2Ô¨ÔŽK—ÇÀ‡…’8ÝÉÈvÁÁu‹|Õ‘‡°‰D0¨ ]Ì‹IK„ÉË{‹\Øì†\Øl67›Ý6ïV`«îFóhiÈù36CGØ,S;c‚é{%n“¦V±jŸUä°Ë?‹¸M‡
+´Ë¼:»$©¦*ÅËVäJÍŽœÀÂ<ãÜÂÈïISþX‘R(2aóÝØ{ÓN.ŽDžåz™`ÂDá—Œòs¯­*Õs¡’
+ôl…;g-î™Ï™oúÉ•Š\SpÚÉÅfîJ0¿SF‘0gDý&B…o1TxÁâÃ²…KúB÷9†Â­n¨Ç<Ô
+¶bfJ(ée¸˜C»TQ|n‘3@XS<ˆž›ZQ*_±çDðÁ$@›È~»Bí›Œ¯é¡ÖphÎs:ÞEWÚìd_”Ÿ1K¦_ÿh8ÕÊ&©”¸\Š[”^™“¡—,å“)K%ÕWšk¦ëíi¾6ŒÎsÃüÃ6(/mÔçDÌ`Å‰+c´>‘)žfæÓ€H@=õÉV;Í–â–ã³ký)Õ¯û†«›)ÄáÑÍ3äõßaysòu1
+%kùª¢NX#¤®þ›ú%,$ý<!âwÕ5
+ÖCT[‹Þ_–¢‘7o~zy‹Ô°j¥G\ÿ*£)•Ž½[ä+Ç)#rEÑ–`	§0(Wÿb}±yo•²@¦™(ËßEòzºs.å_(ÔL¹\Á¢RAµ6°ZoX9Üû²Ü:íd†c%Kñ#6ýÉW…å…Ù(í0¯9°e,§¬cÚ‡SàNÙ¿HÌ7§ñG”MAqø,vÐçvbåì)H§†§ˆµ¬Ç ´éPI0µä¡nøP¬íUÒÜV¨Øa+ù ü+º·K~(‚óîËŠ‚!rOî‹|
+7‡Œm„µ¬àpº•4”$µ2}Œ÷ê¹Î¬ƒ…|Ð
+Î5YÑ¿¼·+­Y¶´¼Òª‰z{G´¼âP‰LßÏðJT÷—Æ-U›++‰ž%­VŠIj…ŠK~ùôbiZtuU™™wxÿÈNOŒÛØ¬WÜ,§žHX{ÓxLXDø£ÆÜ7¾“q;––ÁSË¿Ÿk¶oøü©0ÿl.òÒ˜`ð²3&§ 4æ§:î1vnÛ´‡1¶J%ÝÛF½…>kÁêÍ!rÚB}Þ£``yg{ü‡÷°;a¬”³T€¶\:ÎB]§Ó\¡sãžu˜$)YÅíÅ`Pê­¬3*Vš¿¸™EøW¨Õ’'ÅÒž³=‘6Å=¤´ü´ q] òw 7ÑcŒñŸØfá†H
+·6p“…½àlë°0œiÝéfêa¡wù€—²ÐÎyÅfžvUjJ—DzüÊ‰ï‘i/”Kë^Ý}t²©-háõ™êÊ©î•ó’Tÿí?ÿü7…è„ÎÃë’Ý¶¿4Ý%®
+T÷áI!6õXVÞK£´Çîo›Ø.N¼g;&å<
+½Å> µ¥œåbÅpc‰Ào¨°³q÷ó_?‚ð;	ò§°œ+^èØ[–Ku/¢,w,åšÏÇÂ0FÍ]”]×bÎÊ³‹¦iLX8\XÉ¹°ãâ²*zíÏ/XUŸ~dÁÐp´@;?†5»M^9æÂrÜÙôr1£ÉKôV7fx†}Òj£Èý,aPI	+¶¹ÓeÞzì¶ª}øUK8©ßví4Õ[2ŒÍÆJ†XE]–ÔÍ¤¨$èÃ[I ÆK âh‘§}æØJ©zÅæjÿÖáalRH\T_»Wb›0œRÕÃÛ
+ÕÃ—bN
+›•›p¤[‰û…9É#«VºI}ùÁ^®¾KÑ™d“èk[çäÐwpe^îÕ¸h³`€µ•R$Ë%*»e°Ýca¯–\,£¯ƒ}Ò¬÷zè.øŽ¡O‘X–ì!–>ñAc‰ÍLùÏwvðùKM7æðžãÍ¦˜C[½ìŸo ã¸CÌùáy4º¢=}wŸIs'Hi¦Íƒt ,i»S°‘<./¦¢Ñ$ìˆí?jˆ.y¢O
+mLÕùT©Õh‚UÏ_¢q‚øÒð¼9ex²J]ëâŠÖ÷FBhÕR„
+÷a˜WT`õbXa`ÅK•òkâX]¥×¥¨}g¼w€-YýXÉÝ’þ‹m1ý¡rP8³š,ªÜ÷Èÿò”ÁÇeoæxYƒ·Q©ˆ>)ôñSçôÈ¤Ææ)íêðü˜œ‡øÑ~D=cb?*³3€WæôÄ"Z;LÂâxdúúq|R(ôQÜjX—¬#ÇÓ&”¼±G^Îm×K‰ôXÔ »2ý%ùCÑßZÏ\Ì#i4ðO1¬L•:ÆSN–­ÈöTÌ¥þŸñåFÂ­kº>wµÉ„W=Œê×ðø¹àØ¯šŽ¢£+V÷æ›08õ§ŸHãŽ¸1ªeùuü‡;L˜µ½RÄåÏåY³Mb”ö®.	Ÿ	SÊpàÚ“¥5­d|ÉRÉÊjç;V[ql`‰k5/Uª“–¬©,˜lœ}ÂIµ³ðø¢`µ	!µ’g…eîS´'Î0É·²o‹£7øO¸Ž¢Qýó_Æ¬N¡äÈ|
+ÿ’-'	óGÌëÙ–¦õlo¼+ïV¢Pô¡44.½x ú73ñ«JíQÇÓ¬“	¾½–~kf¼ßëÚ0‘HÜÑl—*ùŽA~Íÿ3¥iÅ) Ôl²»ö„¢ƒÊì}L°?ˆSü¾NÒ0;Þ¸æ8âšÆ†’AVJ˜%7l|ˆ0ÔÌ;d‰ÓIídù»¸°Àïo``þ+õ–Ñ°%Ý‡·‰,ÎUžÔ(*}Û’$iÞ4Šè›9…?€Êw€LÖ¸Bºë[<‰ NO$ªèŸyôJó¯8Ü›Ù,áFwcSÈ½zÖørãqfšu-™¯~Ûä=ÏÂ-ø:U}Æu¢ôž³Â~	QÜDY¿¬a¨W%Óœ3ÙbÂ2ÿ–•ß­5›ÜÀÙnê4ÐÉ€Khž™=ÌLgT&CBs²Ú$¥²t~x£ŒFí1uÙyØ¹ëø<a€Œb—¯0³ØéUÎk¥Y!VGâµåY§Z,2w¨Êu:nú¬%o†ƒQ„kÉ“EÖ4!8Ý<ô<Ãó5PŸO‘&¶_[^p»òf¼”`ûÌ^‹"3âŸqwåùÌ"ëoõ¬*0#¯¡9wñÀó„ÐÊ±Æ"+õH–÷œzÄ4ë€vñÏ0L^»­±èc™¶Š©{iÁ"Àô£ãXí¹ÓÍK
+Xœa<{¹qXK—R‰&·Ód^‡¬FÜ?Å_y:èû(\Û‚¼+yâ=žkà&ã¸¹ÍîR–bv:9!ÅyÛå´U‘¯ÂœDeµ¸d×H’D´ç¨c!×½ ,Y8Iéö=mKáÌMÙt5™ç%·§f¡óû„ÕYÇN×s^óðò5¤ÙªËR¦ås=‘ÜÚ:Ùú%ÇéTeÝÄ‹—¤µ?…&5šdr’PªlG”Ö¯‘Å|dK*gƒÄ%²$f¯¾k
+5}XËËê	² ôÕÍÞÜ"±%½U3çOÛù.Ì<®
+¸	6Ÿ¾cóÍ¬ªÉÌš|]~•4[¡´…(»Ø¦ªÞMgGÆuùlš3…ùOöÄóÝùgKÖ,/îI—™K'LÆ)¤îeT±¬/ƒòÒAq%Mˆ×B×Z¥V«IxŠ3e+ë®Ì(Æ¨2¸¼WpVæ$¾MAXêVÎÎøfã3·ä‰3Á²±º¼Ñ¼µHº–H0	¥“#¤h2µ!M„ ñªŽåÞåâÀF” À4–™-"wÀ«‘/8»£$KåØÛb€Ê¹e%åv¨ã„°æêÂÁð{›—VKDÇÄ„Û§’â»ØƒÑ‡¤~•—þ‰1`éÏ‡@XUì“!üÓ7ö¶‚+EEd.‡Ú„õÆ
+ùÛùŸ«óÆõ§Ž;ÅÂûDe(jlr	ºTJH;ïÊÕòI>9rj˜&PØëÿN.ý’âúå¼f¹=ÇØÝ<×÷ˆŽ5Üßñ‚å9ÅvÈGã9ØR‘[˜uýÉ®ù?¯ùonÍå1?¯yæg•5¿‡öƒÙ¾2ÅG±¾ëŠVh!’YS•ØDg¢°œH\	\YX¥5é±å:gàÑÝéF+£!’_¶&ßÎðp]‡4í\Í3xÙ•bWFxÄ›‰Ñkƒ*¯Á
+‰ìÔ2øÉ²3Ç§»‘eÈ;‰a	£,"éÏÉC³©F˜‹ŸG w=0Å²¦£ÌS,«Sú*õEâc|Ò‚îØÃcòâVÅ'‡ -<ÃËøc÷2®Ãq—ÞÔ¹94ø©“™½¸tvÖÀáŒ¥%‚ãVc8I¶‡3qS3}½5üâa>ŒX¤ØÔºäà Æ% |}§»)Ìe“ÀïVfJ	Ü6…çšì9Éc!¶V}Ýºþl4ûÁ–Üî¾ŸÊK{Ë<Û‰s»¤$PðCIxX¼aÕdÅ‰zkx¼ãtt)…)O×Ò’6ë;ÅWq‹ó*}«;Äùsm	=+”Æ‘ÿ	^ò J6ÇO±Ž%ó“ÇºR‘£\Ñ;NPEŽx®èx*Gu’»ÊËwDNóa=å„Eé»|Ó%ý 7®Ü0›.éž3i|Ù*úÎjJË Þ.Ô´•$ÎÊæ3ž”ˆ´ó¼ÜËñr–—‰%—Ž÷—:Ñ@wÓ¼ ã»”[=–|^!+îÍ)¿‘¬)ªØ²Ô¤××@¬Ž»H÷j †whÄ=qT*Ñ¨‡N5¯Š\y²„ÓR®&‹ˆß™Ü‚­&Œhh¥„dxV:›¹zå”ƒ	¯(Ùâz;ÞÌ°SE½óÞPO#‰XHY/Ý„Ä2òÕéä¬s…j|?òˆ¦Ž#c<RŽ	ÖÞ¬×å­W“yZ9_S$Í#N½I~¿‚h<$TŠÍ%ÂU?YÂ0uõ‘AžÎ=ê>¶x6µGOÖè3«åþôî‡»‚ã$±.àÚè=_¾KèIxè•@HÑ½°âwRÏòqkfE*XžF%ÊÇ›©‚\`òÏIU{aÑ>­ˆõž•Ö±•Ï~ï%ú¡%ñÙ¬Jé®Tßˆ®—ä•ŸT¦Í[­?;s¶Øp2Tž*Äë•Gë¥‰iæ: û‹Èi‹9òsII þÜ”+GÞnæŠ¶›ÈÉasJ¹LdC­À2ÃôÊi‹dÚWáLpˆUúV=R3©¼€È¥¸‘®PV q~ÍÄÉjE¹Vev”4IÆG¹³Šñ#ß³Š~r;,‰¥V=”Wq€¦6¹Ë)Øbpö¬Çª“!%Y_à¼××*µèéB€ÍF±Ù‰µÖ‰TÌ‡º Â†¬„ÖƒóGÜU[ÝøCÐ.u á!Û„O©‡‰ZxIZà3MêŒ®€uËëÉªéäù>ç²n¸Aÿ[®9ã0r>–µ»=ŒRëu›iéÊó6a›¬ËuØ>:.vÂžë>ök¯×åðgÏáWqƒÝYÛI78VÙ˜[k	'²]Åž­ß'½¾ò‰‰V#	*C«Ü[PÐÐ•“„Ç¨z…w³¯¶wyó¬6†àe-›.SÞ/ W.ò¾ËðšL1²FqÖPëê
+Yƒ¾W¶ãã‚87t”‡"™®\æ¡, {§ äó®ÈÕ0©\ÌõÂo¡”RòkËû/Ê¿Ö0¿'#sX¿¢–aª¹ú4XÌ/aÅ›é)<ï‚MÄï^¸nYsßý¥Ç._R×)] ¥\â‹%þÑ,.!|3<mJZhsIC‰OÆ÷'›\ç¿_¼OðÑ‚ 
+ký	ÏÞýáïþ?   ÿÿ ]Œä¹

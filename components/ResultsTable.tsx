@@ -350,6 +350,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
       <AnimatePresence>
         {selectedIndices.length > 0 && (
           <motion.div 
+            key="results-bulk-action-panel"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -411,6 +412,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
       <AnimatePresence>
         {showAverageResult && selectedIndices.length > 0 && (
           <motion.div
+            key="results-average-result-panel"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}

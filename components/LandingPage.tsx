@@ -263,7 +263,7 @@ const FeatureCard = ({ title, description, icon: Icon, index, module, onLaunch }
         <h3 className="font-bold text-sm tracking-wide text-slate-200 group-hover:text-white transition-colors mb-2.5 flex items-center gap-2">
           {title}
         </h3>
-        <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-350 transition-colors font-medium">
+        <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors font-medium">
           {description}
         </p>
         
@@ -1244,7 +1244,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 />
                 <button 
                   onClick={onSignOut}
-                  className="bg-rose-500/10 text-rose-450 border border-rose-500/20 hover:bg-rose-550/20 px-4 py-2 rounded-full font-bold transition-all active:scale-95"
+                  className="bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 px-4 py-2 rounded-full font-bold transition-all active:scale-95"
                 >
                   {t('Sign Out')}
                 </button>
@@ -1279,7 +1279,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
             {isRegistered && (
               <button 
                 onClick={onSignOut}
-                className="text-[10px] uppercase font-black tracking-wider bg-rose-500/10 text-rose-450 px-2.5 py-1.5 rounded-lg border border-rose-500/20"
+                className="text-[10px] uppercase font-black tracking-wider bg-rose-500/10 text-rose-400 px-2.5 py-1.5 rounded-lg border border-rose-500/20"
               >
                 {t('Sign Out')}
               </button>
@@ -1315,7 +1315,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
             >
               {/* Feature Badge */}
               <div 
-                className={`inline-flex items-center gap-3 px-4 py-2 rounded-full bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/30 mb-8 shadow-xl backdrop-blur-md transition-all duration-300 cursor-default select-none`}
+                className={`inline-flex items-center gap-3 px-4 py-2 rounded-full bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/30 mb-6 shadow-xl backdrop-blur-md transition-all duration-300 cursor-default select-none`}
               >
                 <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                 <Database className="w-4 h-4 text-violet-400" />
@@ -1324,18 +1324,18 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 </span>
               </div>
 
-              {/* Graphical Welcome Indicator */}
+              {/* Graphical Welcome Indicator with Personalized Greeting */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="mb-4"
               >
-                <h2 className={`text-sm sm:text-base font-black text-cyan-400 tracking-[0.25em] uppercase flex items-center gap-3 font-mono ${isRTL ? "justify-start" : ""}`}>
-                  <span className="w-6 h-[2px] bg-cyan-400/60 rounded-full"></span>
-                  {t('Welcome')}
-                  <span className="w-6 h-[2px] bg-cyan-400/60 rounded-full"></span>
-                </h2>
+                <div className={`inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 backdrop-blur-md text-cyan-300 font-mono text-xs sm:text-sm font-black tracking-[0.2em] uppercase shadow-lg shadow-cyan-500/10 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                  <span>{isRegistered && userName ? `${t('Welcome')}, ${userName}` : t('Welcome')}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/40" />
+                </div>
               </motion.div>
 
               {/* Majestic Scientific Heading */}
@@ -1361,7 +1361,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               <div ref={heroSearchRef} className="relative max-w-2xl group w-full mb-10">
                 <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-cyan-500 rounded-[2.2rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
                 <div className={`relative flex items-center bg-[#050b14]/90 ring-1 ring-white/10 backdrop-blur-2xl rounded-[2rem] p-2.5 w-full transition-all duration-300 focus-within:ring-violet-500/50 focus-within:ring-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]`}>
-                  <div className="p-3 pl-5 text-slate-450 shrink-0">
+                  <div className="p-3 pl-5 text-slate-400 shrink-0">
                     <Search className="w-5 h-5 text-violet-400 group-hover:text-cyan-400 transition-colors" />
                   </div>
                   <input 
@@ -1398,7 +1398,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
 
                 {/* Real-time floating suggestions */}
                 {showHeroSuggestions && filteredHeroSuggestions.length > 0 && (
-                  <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-255 border border-white/5">
+                  <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300 border border-white/5">
                     <div className={`text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mb-3 px-2 flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
                       <span>{isRTL ? "تطبیق همزمان با استانداردهای پایگاه‌داده" : "Real-time DB standards match"}</span>
                       <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">{isRTL ? "کاتالوگ مرجع آفلاین" : "Offline reference catalog"}</span>
@@ -2052,7 +2052,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                           isRTL={isRTL}
                        />
                        {isRegistered ? (
-                         <button onClick={onSignOut} className="px-10 py-5 bg-transparent border border-rose-600/30 text-rose-300 rounded-2xl font-bold tracking-wide hover:bg-rose-950/20 hover:text-rose-450 transition-all active:scale-95">
+                         <button onClick={onSignOut} className="px-10 py-5 bg-transparent border border-rose-600/30 text-rose-300 rounded-2xl font-bold tracking-wide hover:bg-rose-950/20 hover:text-rose-400 transition-all active:scale-95">
                             {t('Sign Out')}
                          </button>
                        ) : (

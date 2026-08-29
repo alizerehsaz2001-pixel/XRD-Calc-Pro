@@ -704,6 +704,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               <AnimatePresence>
                 {showDecouplingExplanation && (
                   <motion.div
+                    key="wh-decoupling-explanation"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -865,6 +866,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               <AnimatePresence>
                 {showDensityExplanation && (
                   <motion.div
+                    key="wh-density-explanation"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}

@@ -494,6 +494,7 @@ export const IntegralBreadthModule: React.FC = () => {
                   <AnimatePresence>
                     {isKTypeMenuOpen && (
                       <motion.div
+                        key="k-type-menu-dropdown"
                         initial={{ opacity: 0, y: -5, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -5, scale: 0.95 }}
@@ -589,6 +590,7 @@ export const IntegralBreadthModule: React.FC = () => {
               <AnimatePresence>
                 {showDecouplingExplanation && (
                   <motion.div
+                    key="ib-decoupling-explanation"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -810,6 +812,7 @@ export const IntegralBreadthModule: React.FC = () => {
                 <AnimatePresence>
                   {showDensityExplanation && (
                     <motion.div
+                      key="ib-density-explanation"
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}

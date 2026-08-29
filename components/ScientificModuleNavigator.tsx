@@ -27,6 +27,7 @@ import {
   Terminal, 
   Check, 
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Atom,
   FlaskConical,
@@ -50,7 +51,13 @@ import {
   Sparkle,
   History,
   FileCode2,
-  Share2
+  Share2,
+  Play,
+  RotateCcw,
+  ArrowRight,
+  Tag,
+  Flame,
+  Workflow
 } from 'lucide-react';
 
 export type ModuleId = 
@@ -78,7 +85,7 @@ export type ModuleId =
   | 'dl' 
   | 'image_analysis' 
   | 'image_gen' 
-  | 'xrd_nano'
+  | 'xrd_nano' 
   | 'python_export' 
   | 'learn' 
   | 'profile' 
@@ -102,6 +109,7 @@ export interface ModuleMetadata {
   complexity?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
   descriptionDetail?: string;
   suggestedNext?: ModuleId[];
+  isPopular?: boolean;
 }
 
 export interface ResearchPathway {
@@ -114,6 +122,8 @@ export interface ResearchPathway {
   moduleIds: ModuleId[];
   tag: string;
   color: string;
+  stepLabels?: string[];
+  stepLabelsFa?: string[];
 }
 
 interface ScientificModuleNavigatorProps {
@@ -142,6 +152,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   const [viewMode, setViewMode] = useState<'grid' | 'compact' | 'split'>('grid');
   const [sortBy, setSortBy] = useState<'default' | 'alpha' | 'complexity'>('default');
   const [selectedPathway, setSelectedPathway] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
   // Quick Preview Inspector State
   const [inspectedModuleId, setInspectedModuleId] = useState<ModuleId>(activeModule);
@@ -150,18 +161,18 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   const [favorites, setFavorites] = useState<ModuleId[]>(() => {
     try {
       const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : ['bragg', 'scherrer', 'wh', 'rietveld', 'selection'];
+      return saved ? JSON.parse(saved) : ['bragg', 'scherrer', 'wh', 'rietveld', 'xrd_nano'];
     } catch {
-      return ['bragg', 'scherrer', 'wh', 'rietveld', 'selection'];
+      return ['bragg', 'scherrer', 'wh', 'rietveld', 'xrd_nano'];
     }
   });
 
   const [recents, setRecents] = useState<ModuleId[]>(() => {
     try {
       const saved = localStorage.getItem(RECENTS_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : ['bragg', 'selection', 'wh'];
+      return saved ? JSON.parse(saved) : ['bragg', 'scherrer', 'wh'];
     } catch {
-      return ['bragg', 'selection', 'wh'];
+      return ['bragg', 'scherrer', 'wh'];
     }
   });
 
@@ -205,16 +216,17 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       // Category 1: Fundamentals & Optics
       {
         id: 'bragg',
-        label: t('Bragg Basics', 'Bragg Basics'),
+        label: t('Bragg Basics & Optics', 'Bragg Basics & Optics'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
         subtitle: isRTL ? 'محاسبه زاویه 2θ، فاصله صفحات d و بردار پراکندگی Q' : 'Calculate d-spacing, 2θ angles & Q-scattering vector',
         formula: 'λ = 2d·sin(θ)',
-        tags: ['d-spacing', '2Theta', 'Q-vector', 'Wavelength', 'Bragg'],
+        tags: ['d-spacing', '2Theta', 'Q-vector', 'Wavelength', 'Bragg', 'Optics'],
         icon: <Activity className={`${defaultIconClass} text-cyan-400`} />,
         inputs: ['Wavelength (λ)', 'Bragg Angle (2θ)', 'Miller Indices (hkl)'],
         outputs: ['d-spacing (Å)', 'Scattering Vector Q (Å⁻¹)', 'Bragg Energy (keV)'],
         complexity: 'Beginner',
+        isPopular: true,
         descriptionDetail: isRTL 
           ? 'پایه و اساس پراش پرتو ایکس؛ پیوند مستقیم بین طول موج تابشی، فاصله صفحات اتمی و زاویه تداخل سازنده امواج براگ.' 
           : 'The core fundamental equation of X-ray diffraction linking radiation wavelength, crystal interplanar spacing, and constructive interference angles.',
@@ -232,6 +244,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Raw Peak Profile (2θ, I)', 'Profile Function Choice'],
         outputs: ['True β (FWHM)', 'Gaussian/Lorentzian Fraction (η)', 'Integrated Area'],
         complexity: 'Intermediate',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'برازش پیشرفته اشکال خطوط پراش جهت استخراج دقیق پهنای پیک برای روش‌های ویلیامسون-هال و شرر.'
           : 'High-precision profile deconvolution and peak fitting to separate instrumental broadening from physical sample broadening.',
@@ -300,6 +313,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Reflectometry Specular Scan (2θ < 10°)', 'Layer Stack Architecture'],
         outputs: ['Film Thickness (nm)', 'Interface Roughness (σ)', 'Electron Density Profile'],
         complexity: 'Advanced',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'محاسبه بازتاب‌سنجی پرتو ایکس با فرمول بازگشتی پارات برای اندازه‌گیری دقیق ضخامت نانومتری و زبری لایه‌ها.'
           : 'Full Parratt recursive reflectivity engine and Kiessig fringe Fourier transforms for multilayer thin film characterization.',
@@ -319,6 +333,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Peak 2θ', 'Peak FWHM β', 'Wavelength λ', 'Shape Factor K (0.89 - 1.0)'],
         outputs: ['Apparent Crystallite Domain Size (D in nm/Å)'],
         complexity: 'Beginner',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'روش کلاسیک و رایج‌ترین فرمول جهانی برای تخمین ابعاد حوزه‌های متفرق‌کننده همدوس در نانومواد.'
           : 'The classic crystallite domain size calculation equation, ideal for isotropic nanoparticles and preliminary size screening.',
@@ -336,6 +351,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Series of Peaks (2θ, β, hkl)', 'Model: UDM / USDM / UDEDM'],
         outputs: ['True Crystallite Size D', 'Lattice Microstrain ε', 'Energy Density u'],
         complexity: 'Intermediate',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'تفکیک خطی کرنش شبکه از پهن‌شدگی ابعاد دانه با پشتیبانی از مدل‌های چگالی تنش و انرژی همسانگرد و ناهمسانگرد.'
           : 'Separates size-induced broadening from microstrain using multi-peak linear regression, supporting Uniform Deformation Models.',
@@ -421,6 +437,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Two or more orders of reflections (e.g. 111 & 222)', 'Fourier Coefficients A_n'],
         outputs: ['True Column Length Distribution p(L)', 'Area-weighted Size ⟨L⟩_A', 'RMS Microstrain ⟨ε_L²⟩¹/²'],
         complexity: 'Expert',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'استاندارد طلایی تئوری عیوب بلوری برای محاسبه توزیع واقعی ابعاد و کرنش میانگین ریشه‌ای فوریه.'
           : 'The gold-standard Fourier deconvolution method yielding the true physical column length distribution and RMS microstrain.',
@@ -474,6 +491,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['List of (h k l) reflections and observed 2θ angles', 'Crystal System'],
         outputs: ['Refined Lattice Parameters (a, b, c)', 'Systematic Zero Error (Δ2θ_0)', 'Standard Deviations'],
         complexity: 'Intermediate',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'حل ماتریسی به روش کمترین مربعات برای دستیابی به دقیق‌ترین ابعاد سلول واحد همزمان با حذف خطای صفر گونیومتر.'
           : 'High-precision analytic matrix least-squares solution that eliminates systematic instrumental zero-shift and sample displacement.',
@@ -542,6 +560,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Identified Phases', '100% Peak Intensities', 'ICDD RIR Constants (I/I_corundum)'],
         outputs: ['Weight Percentage wt% per Phase', 'Phase Abundance Chart'],
         complexity: 'Intermediate',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'تعیین سریع کسر وزنی فازهای موجود در مخلوط‌های چندفازی با استفاده از نسبت شدت استاندارد کوراندوم.'
           : 'Calculates weight percentages in multiphase mineral mixtures using relative corundum scale factors (I/I_c).',
@@ -561,6 +580,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Experimental Profile y_o', 'Structural Model CIF', 'Instrument Profile Parameters (U, V, W)'],
         outputs: ['Calculated Pattern y_c', 'Difference Curve (y_o - y_c)', 'R_wp, R_exp, GOF (χ²)', 'Refined Atom Sites'],
         complexity: 'Expert',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'پالایش کامل پروفایل ریتولد برای تعیین دقیق ساختار سه‌بعدی اتمی، ضرایب اشغال، کرنش ناهمسانگرد و درصد فازی.'
           : 'Full-profile whole pattern least-squares refinement modeling atomic coordinates, thermal factors, and instrument geometry.',
@@ -631,6 +651,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Raw XRD Spectrum (1D Array 10°-90° 2θ)'],
         outputs: ['Top 5 Ranked Phase Candidates', 'Confidence Scores (%)', 'Phase Matching Heatmap'],
         complexity: 'Intermediate',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'شبکه عصبی کانولوشنی آموزش‌دیده روی بیش از ۱۰۰ هزار الگوی بلوری برای شناسایی آنی فازهای معدنی و سنتزی.'
           : 'Deep convolutional neural network trained on crystallographic databases for rapid single- and multi-phase classification.',
@@ -682,6 +703,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Natural Language Prompt', 'Uploaded Micrograph / XRD Scan', 'Editing / Annotation Instruction'],
         outputs: ['High-Res Synthesized XRD / TEM Image (512px-4K)', 'Modified / Annotated Micrograph', 'Matching Python Matplotlib Code'],
         complexity: 'Intermediate',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'تولید و ویرایش تعاملی تصاویر پراش اشعه ایکس، ساختارهای سه‌بعدی بلوری، میکروسکوپ الکترونی عبوری (HR-TEM) و حلقه‌های دبی-شرر با مدل قدرتمند Nano Banana 2.'
           : 'Advanced text-to-image creation and multimodal image-to-image editing for XRD patterns, 3D atomic lattices, and HRTEM micrographs powered by Gemini 3.1 Flash Image.',
@@ -718,6 +740,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         inputs: ['Material Name / Formula / Space Group'],
         outputs: ['Complete CIF File', 'Benchmark Theoretical Peaks', 'Atomic Fractional Coordinates'],
         complexity: 'Beginner',
+        isPopular: true,
         descriptionDetail: isRTL
           ? 'مجموعه معتبر استانداردهای بلوری کالیبراسیون و فازهای پرکاربرد سرامیکی، فلزی، اکسیدی و کوانتومی.'
           : 'Extensive library of verified standard CIF structures and reference peak profiles for instant calibration and lookup.',
@@ -777,7 +800,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
     ];
   }, [t, isRTL]);
 
-  // Curated Research Pathways / Guided Workflows
+  // Curated Research Pathways / Guided Workflows with Step Labels
   const researchPathways = useMemo<ResearchPathway[]>(() => [
     {
       id: 'size-strain',
@@ -787,6 +810,8 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       descriptionFa: 'شروع از تخمین اولیه شرر تا تفکیک پیشرفته ویلیامسون-هال و توزیع فوریه وارن-اورباخ.',
       icon: <Microscope className="w-4 h-4 text-emerald-400" />,
       moduleIds: ['scherrer', 'wh', 'monshi_scherrer', 'double_voigt', 'wa'],
+      stepLabels: ['1. Scherrer Domain Screening', '2. W-H Microstrain Separation', '3. Monshi Log Refinement', '4. Double-Voigt Convolution', '5. Warren-Averbach RMS Strain'],
+      stepLabelsFa: ['۱. غربالگری اولیه شرر', '۲. تفکیک کرنش ویلیامسون-هال', '۳. اصلاح لگاریتمی منشی', '۴. کانولوشن دابل-وویت', '۵. توزیع فوریه وارن-اورباخ'],
       tag: 'Size & Strain',
       color: 'from-emerald-600 to-teal-500'
     },
@@ -797,7 +822,9 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       description: 'Refine lattice constants via least-squares Cohen matrix, calculate metric tensors, and explore supercells.',
       descriptionFa: 'پالایش دقیق پارامترهای شبکه با روش کوهن و جبر تانسور فضای معکوس.',
       icon: <Grid className="w-4 h-4 text-purple-400" />,
-      moduleIds: ['cohen', 'metric_tensor', 'selection', 'supercell_transform'],
+      moduleIds: ['selection', 'cohen', 'metric_tensor', 'supercell_transform'],
+      stepLabels: ['1. Extinction & Selection Rules', '2. Cohen Zero-Shift Refinement', '3. Metric Tensor Algebra', '4. Supercell Transformation'],
+      stepLabelsFa: ['۱. قوانین خاموشی و انتخاب', '۲. پالایش خطای صفر کوهن', '۳. جبر تانسور متریک', '۴. تبدیل ابرسلول بلوری'],
       tag: 'Lattice & Symmetry',
       color: 'from-purple-600 to-indigo-500'
     },
@@ -809,6 +836,8 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       descriptionFa: 'محاسبه ضخامت با بازتاب‌سنجی XRR، اصلاح بافت ترجیحی و سنجش تنش‌های پسماند.',
       icon: <Zap className="w-4 h-4 text-amber-400" />,
       moduleIds: ['xrr', 'preferred_orientation', 'residual_stress'],
+      stepLabels: ['1. XRR Parratt Specular Reflectometry', '2. March-Dollase Texture Correction', '3. sin²ψ Residual Macro-Stress'],
+      stepLabelsFa: ['۱. بازتاب‌سنجی XRR پارات', '۲. تصحیح بافت مارچ-دالاس', '۳. تنش پسماند ماکرو sin²ψ'],
       tag: 'Surfaces & Films',
       color: 'from-amber-600 to-orange-500'
     },
@@ -820,6 +849,8 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       descriptionFa: 'تشخیص فاز با هوش مصنوعی، انطباق طیفی و پالایش کامل ریتولد.',
       icon: <Brain className="w-4 h-4 text-pink-400" />,
       moduleIds: ['dl', 'compare', 'rir', 'pawley_lebail', 'rietveld'],
+      stepLabels: ['1. AI PhaseID Neural Scan', '2. Spectral Pattern Overlay', '3. RIR Quantitative wt%', '4. Pawley Pattern Extraction', '5. Rietveld Whole-Profile Fit'],
+      stepLabelsFa: ['۱. اسکن شبکه عصبی PhaseID', '۲. انطباق طیفی چندگانه', '۳. وزن درصدی RIR کوراندوم', '۴. استخراج الگوی پاولی', '۵. پالایش کامل ریتولد'],
       tag: 'Quantitative Phase',
       color: 'from-pink-600 to-rose-500'
     },
@@ -831,10 +862,24 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       descriptionFa: 'ردیابی عناصر سبک (H, Li) و ساختارهای مغناطیسی با فاکتورهای فرم اسپین.',
       icon: <Magnet className="w-4 h-4 text-cyan-400" />,
       moduleIds: ['neutron', 'magnetic', 'rietveld'],
+      stepLabels: ['1. Nuclear Scattering Lengths', '2. Magnetic Form Factor & Superlattices', '3. Combined Nuclear-Magnetic Rietveld'],
+      stepLabelsFa: ['۱. طول پراکندگی هسته‌ای', '۲. فاکتور فرم و ابرشبکه مغناطیسی', '۳. پالایش توأم هسته‌ای-مغناطیسی'],
       tag: 'Quantum Physics',
       color: 'from-cyan-600 to-blue-500'
     }
   ], []);
+
+  // Quick Preset Search Tags
+  const quickSearchTags = useMemo(() => [
+    { label: isRTL ? 'اندازه و کرنش' : 'Size & Strain', tag: 'Microstrain' },
+    { label: isRTL ? 'ریتولد' : 'Rietveld', tag: 'Rietveld' },
+    { label: isRTL ? 'لایه‌های نازک و XRR' : 'Thin Films & XRR', tag: 'XRR' },
+    { label: isRTL ? 'هوش مصنوعی' : 'AI & Vision', tag: 'AI' },
+    { label: isRTL ? 'ثابت‌های شبکه' : 'Lattice Parameters', tag: 'Cohen' },
+    { label: isRTL ? 'تعیین کمی RIR' : 'Quantitative RIR', tag: 'RIR' },
+    { label: isRTL ? 'نوترون و اسپین' : 'Neutron & Magnetism', tag: 'Neutron' },
+    { label: isRTL ? 'پایگاه داده CIF' : 'CIF Standards', tag: 'CIF' },
+  ], [isRTL]);
 
   // Category List
   const categories = useMemo(() => {
@@ -858,6 +903,15 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       list = recents.map(id => moduleList.find(m => m.id === id)).filter(Boolean) as ModuleMetadata[];
     } else if (selectedCategory !== 'All' && selectedCategory !== '🎯 Pathways') {
       list = list.filter(m => m.category === selectedCategory);
+    }
+
+    // Tag Filter
+    if (selectedTag) {
+      list = list.filter(m => 
+        m.tags.some(t => t.toLowerCase() === selectedTag.toLowerCase()) ||
+        m.label.toLowerCase().includes(selectedTag.toLowerCase()) ||
+        m.subtitle.toLowerCase().includes(selectedTag.toLowerCase())
+      );
     }
 
     // Search Query Filtering
@@ -884,12 +938,17 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
     }
 
     return list;
-  }, [moduleList, selectedCategory, selectedPathway, researchPathways, favorites, recents, searchQuery, sortBy]);
+  }, [moduleList, selectedCategory, selectedPathway, selectedTag, researchPathways, favorites, recents, searchQuery, sortBy]);
 
   // Selected Inspected Module Object
   const currentInspectedModule = useMemo(() => {
     return moduleList.find(m => m.id === inspectedModuleId) || moduleList.find(m => m.id === activeModule) || moduleList[0];
   }, [moduleList, inspectedModuleId, activeModule]);
+
+  // Current active pathway object if selected
+  const activePathwayObject = useMemo(() => {
+    return researchPathways.find(p => p.id === selectedPathway);
+  }, [researchPathways, selectedPathway]);
 
   // Keyboard navigation handler (Arrows, Enter, Escape, Numbers)
   useEffect(() => {
@@ -906,6 +965,14 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       if (e.key === '/' && document.activeElement !== searchInputRef.current) {
         e.preventDefault();
         searchInputRef.current?.focus();
+        return;
+      }
+
+      // View mode toggles: 1 = Grid, 2 = Compact, 3 = Split
+      if (['1', '2', '3'].includes(e.key) && document.activeElement !== searchInputRef.current) {
+        if (e.key === '1') setViewMode('grid');
+        if (e.key === '2') setViewMode('compact');
+        if (e.key === '3') setViewMode('split');
         return;
       }
 
@@ -927,8 +994,8 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
 
         setFocusedIndex(prev => {
           let next = prev;
-          if (e.key === 'ArrowDown') next = Math.min(prev + (viewMode === 'compact' ? 1 : 3), filteredModules.length - 1);
-          if (e.key === 'ArrowUp') next = Math.max(prev - (viewMode === 'compact' ? 1 : 3), 0);
+          if (e.key === 'ArrowDown') next = Math.min(prev + (viewMode === 'compact' ? 2 : 3), filteredModules.length - 1);
+          if (e.key === 'ArrowUp') next = Math.max(prev - (viewMode === 'compact' ? 2 : 3), 0);
           if (e.key === 'ArrowRight') next = isRTL ? Math.max(prev - 1, 0) : Math.min(prev + 1, filteredModules.length - 1);
           if (e.key === 'ArrowLeft') next = isRTL ? Math.min(prev + 1, filteredModules.length - 1) : Math.max(prev - 1, 0);
 
@@ -953,12 +1020,13 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   // Keep focusedIndex in bounds when filtered list changes
   useEffect(() => {
     setFocusedIndex(0);
-  }, [searchQuery, selectedCategory, selectedPathway]);
+  }, [searchQuery, selectedCategory, selectedPathway, selectedTag]);
 
   // Reset state on open
   useEffect(() => {
     if (isOpen) {
       setSearchQuery('');
+      setSelectedTag(null);
       setInspectedModuleId(activeModule);
     }
   }, [isOpen, activeModule]);
@@ -966,14 +1034,16 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="popLayout">
       <div 
         id="scientific-suite-navigator-modal"
+        key="scientific-suite-navigator-modal-root"
         className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden select-none"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         {/* Backdrop overlay with luxury ambient glow */}
         <motion.div
+          key="navigator-backdrop"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -992,11 +1062,12 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
 
         {/* Main Modal Shell */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          key="navigator-shell"
+          initial={{ opacity: 0, scale: 0.96, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className={`relative w-full max-w-7xl h-[92vh] max-h-[950px] flex flex-col rounded-3xl border shadow-2xl overflow-hidden z-10 backdrop-blur-3xl ${
+          exit={{ opacity: 0, scale: 0.96, y: 15 }}
+          transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+          className={`relative w-full max-w-7xl h-[94vh] max-h-[960px] flex flex-col rounded-3xl border shadow-2xl overflow-hidden z-10 backdrop-blur-3xl ${
             theme === 'cyberpunk'
               ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_80px_rgba(0,255,255,0.25)]'
               : theme === 'dark'
@@ -1023,7 +1094,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
           <div className={`p-4 sm:p-5 border-b flex flex-wrap items-center justify-between gap-3 shrink-0 relative z-10 ${
             theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black/80' : theme === 'dark' ? 'border-white/10 bg-[#070C18]/90' : 'border-slate-200/80 bg-slate-50/90'
           }`}>
-            {/* Title & Badge */}
+            {/* Title & Brand Badge */}
             <div className="flex items-center gap-3.5">
               <div className={`w-11 h-11 rounded-2xl p-0.5 shadow-xl flex items-center justify-center shrink-0 ${
                 theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_20px_rgba(255,0,255,0.4)]' : 'bg-gradient-to-tr from-indigo-600 via-violet-600 to-cyan-500 shadow-indigo-500/30'
@@ -1077,42 +1148,45 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                 </select>
               </div>
 
-              {/* View Mode Switcher */}
+              {/* View Mode Switcher with Hotkey tooltips */}
               <div className={`flex items-center p-1 rounded-xl border ${
                 theme === 'cyberpunk' ? 'bg-black border-cyber-accent/40' : theme === 'dark' ? 'bg-black/40 border-white/10' : 'bg-white border-slate-200 shadow-sm'
               }`}>
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-lg transition-all ${
+                  className={`p-1.5 px-2 rounded-lg text-xs flex items-center gap-1 transition-all ${
                     viewMode === 'grid' 
-                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm')
+                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm font-bold')
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title={isRTL ? 'نمای کارت‌های بزرگ' : 'Grid View'}
+                  title={isRTL ? 'نمای کارت‌های بزرگ (کلید ۱)' : 'Grid View (Key 1)'}
                 >
-                  <LayoutGrid className="w-4 h-4" />
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline text-[10px]">Grid</span>
                 </button>
                 <button
                   onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded-lg transition-all ${
+                  className={`p-1.5 px-2 rounded-lg text-xs flex items-center gap-1 transition-all ${
                     viewMode === 'compact' 
-                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm')
+                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm font-bold')
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title={isRTL ? 'نمای فشرده و متراکم' : 'Compact List View'}
+                  title={isRTL ? 'نمای فشرده و متراکم (کلید ۲)' : 'Compact List (Key 2)'}
                 >
-                  <List className="w-4 h-4" />
+                  <List className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline text-[10px]">List</span>
                 </button>
                 <button
                   onClick={() => setViewMode('split')}
-                  className={`p-1.5 rounded-lg transition-all hidden lg:block ${
+                  className={`p-1.5 px-2 rounded-lg text-xs flex items-center gap-1 transition-all hidden lg:flex ${
                     viewMode === 'split' 
-                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm')
+                      ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm font-bold')
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title={isRTL ? 'نمای تفکیکی با پیش‌نمایش' : 'Split Inspector View'}
+                  title={isRTL ? 'نمای تفکیکی با پیش‌نمایش (کلید ۳)' : 'Split Inspector (Key 3)'}
                 >
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline text-[10px]">Inspector</span>
                 </button>
               </div>
 
@@ -1142,7 +1216,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
           </div>
 
           {/* SEARCH BAR & QUICK FILTERS */}
-          <div className={`p-4 sm:p-5 border-b space-y-3.5 shrink-0 relative z-10 ${
+          <div className={`p-4 sm:p-5 border-b space-y-3 shrink-0 relative z-10 ${
             theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black' : theme === 'dark' ? 'border-white/10 bg-[#070C18]/60' : 'border-slate-200/60 bg-slate-50/50'
           }`}>
             {/* Search Input Box */}
@@ -1155,6 +1229,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setSelectedPathway(null);
+                  setSelectedTag(null);
                 }}
                 placeholder={isRTL ? 'جستجوی ماژول، فرمول، کاربرد یا کلیدواژه (مثلا Scherrer, Rietveld, Strain, XRR, HKL, CIF, AI)...' : 'Search modules, formulas, acronyms or research questions (e.g. Scherrer, Williamson-Hall, XRR, Rietveld, HKL, CIF, AI)...'}
                 className={`w-full pl-12 pr-28 py-3.5 border rounded-2xl text-sm font-medium outline-none transition-all shadow-inner ${
@@ -1168,7 +1243,10 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
               <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 {searchQuery ? (
                   <button
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedTag(null);
+                    }}
                     className={`p-1 rounded-lg transition-colors ${
                       theme === 'cyberpunk' ? 'text-cyber-accent hover:bg-cyber-accent/20' : theme === 'dark' ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'
                     }`}
@@ -1185,8 +1263,57 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
               </div>
             </div>
 
+            {/* Quick Filter Search Presets / Fast Tag Chips */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar scrollbar-none text-xs">
+              <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1 shrink-0 px-1">
+                <Flame className="w-3 h-3 text-amber-400" />
+                <span>{isRTL ? 'کلیدواژه‌های پرتکرار:' : 'Fast Filters:'}</span>
+              </span>
+              {quickSearchTags.map((item) => {
+                const isSelected = selectedTag === item.tag;
+                return (
+                  <button
+                    key={item.tag}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedTag(null);
+                      } else {
+                        setSelectedTag(item.tag);
+                        setSelectedPathway(null);
+                      }
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all shrink-0 border ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
+                        : theme === 'cyberpunk'
+                          ? 'bg-black/60 border-cyber-accent/30 text-cyber-accent/80 hover:border-cyber-accent'
+                          : theme === 'dark'
+                            ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100 shadow-sm'
+                    }`}
+                  >
+                    #{item.label}
+                  </button>
+                );
+              })}
+              {(searchQuery || selectedTag || selectedPathway) && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedTag(null);
+                    setSelectedPathway(null);
+                    setSelectedCategory('All');
+                  }}
+                  className="px-2 py-1 rounded-lg text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 shrink-0 flex items-center gap-1"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>{isRTL ? 'بازنشانی' : 'Reset'}</span>
+                </button>
+              )}
+            </div>
+
             {/* Category Navigation Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar scrollbar-none">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar scrollbar-none pt-1">
               {categories.map((cat) => {
                 const isSelected = selectedCategory === cat && !selectedPathway;
                 let count = 0;
@@ -1202,6 +1329,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     onClick={() => {
                       setSelectedCategory(cat);
                       setSelectedPathway(null);
+                      setSelectedTag(null);
                     }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer border ${
                       isSelected
@@ -1232,7 +1360,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
               })}
             </div>
 
-            {/* Research Pathways Bar (When Pathways Tab is active or no search) */}
+            {/* Research Pathways Cards (When Pathways Tab is active) */}
             {selectedCategory === '🎯 Pathways' && (
               <div className="pt-2 border-t border-slate-700/30">
                 <div className="text-[11px] font-bold text-slate-400 mb-2 flex items-center gap-1.5">
@@ -1281,6 +1409,48 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
             )}
           </div>
 
+          {/* ACTIVE RESEARCH PATHWAY WORKFLOW STEPPER BANNER */}
+          {activePathwayObject && (
+            <div className="p-3 px-5 bg-gradient-to-r from-indigo-950/80 via-purple-950/80 to-cyan-950/80 border-b border-indigo-500/30 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-indigo-500/30 border border-indigo-400/40 text-indigo-300">
+                  <Workflow className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono uppercase text-indigo-400 font-bold">Active Guided Pathway</span>
+                    <span className="text-xs font-bold text-white">{isRTL ? activePathwayObject.titleFa : activePathwayObject.title}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">{isRTL ? activePathwayObject.descriptionFa : activePathwayObject.description}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const firstMid = activePathwayObject.moduleIds[0];
+                    if (firstMid) {
+                      recordRecent(firstMid);
+                      onSelectModule(firstMid);
+                      onClose();
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+                >
+                  <Play className="w-3 h-3 fill-white" />
+                  <span>{isRTL ? 'شروع از گام اول' : 'Start from Step 1'}</span>
+                </button>
+                <button
+                  onClick={() => setSelectedPathway(null)}
+                  className="p-1.5 rounded-xl border border-white/15 text-slate-400 hover:text-white hover:bg-white/10 text-xs"
+                  title="Exit Pathway"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* MAIN CONTENT WORKSPACE: LIST / GRID + SPLIT INSPECTOR */}
           <div className="flex-1 flex overflow-hidden relative z-10">
             {/* Left / Center: Modules Grid & List */}
@@ -1306,6 +1476,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                       setSearchQuery('');
                       setSelectedCategory('All');
                       setSelectedPathway(null);
+                      setSelectedTag(null);
                     }}
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-all cursor-pointer"
                   >
@@ -1315,7 +1486,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
               ) : (
                 <div className={
                   viewMode === 'compact' 
-                    ? "grid grid-cols-1 md:grid-cols-2 gap-2" 
+                    ? "grid grid-cols-1 md:grid-cols-2 gap-2.5" 
                     : viewMode === 'split'
                       ? "grid grid-cols-1 md:grid-cols-2 gap-3"
                       : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5"
@@ -1376,7 +1547,8 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     </div>
                     <button
                       onClick={(e) => toggleFavorite(currentInspectedModule.id, e)}
-                      className="p-1.5 rounded-lg border border-white/10 hover:bg-white/10 text-amber-400"
+                      className="p-1.5 rounded-lg border border-white/10 hover:bg-white/10 text-amber-400 transition-colors"
+                      title="Toggle Favorite"
                     >
                       <Star className={`w-4 h-4 ${favorites.includes(currentInspectedModule.id) ? 'fill-amber-400' : ''}`} />
                     </button>
@@ -1396,11 +1568,17 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     }`}>
                       {currentInspectedModule.complexity || 'Intermediate'}
                     </span>
+                    {activeModule === currentInspectedModule.id && (
+                      <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        ACTIVE
+                      </span>
+                    )}
                   </div>
 
                   {/* Mathematical Formula Banner */}
                   {currentInspectedModule.formula && (
-                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-center font-mono">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-center font-mono shadow-inner">
                       <span className="text-[10px] text-slate-400 block mb-1">Governing Equation</span>
                       <span className="text-xs font-bold text-cyan-300 tracking-wider">
                         {currentInspectedModule.formula}
@@ -1493,7 +1671,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
           }`}>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
-                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">↑↓</kbd>
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">↑↓←→</kbd>
                 <span className="text-[11px]">{isRTL ? 'جابجایی' : 'Navigate'}</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -1503,6 +1681,10 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
               <div className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">F</kbd>
                 <span className="text-[11px]">{isRTL ? 'علاقه‌مندی' : 'Star Favorite'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 hidden sm:flex">
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">1/2/3</kbd>
+                <span className="text-[11px]">{isRTL ? 'تغییر نما' : 'Views'}</span>
               </div>
             </div>
 
