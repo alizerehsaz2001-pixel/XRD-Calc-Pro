@@ -785,12 +785,12 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
       const styleLabel = SCIENTIFIC_STYLES.find(s => s.id === selectedStyle)?.label;
       const result = await generateScientificImage(prompt, size, styleLabel, aspectRatio);
       
-      if (result) {
-        setImageUrl(result);
+      if (result && result.imageUrl) {
+        setImageUrl(result.imageUrl);
         const newRecord: GenerationRecord = {
           id: Date.now().toString(),
           prompt: prompt,
-          url: result,
+          url: result.imageUrl,
           timestamp: Date.now(),
           style: selectedStyle,
           aspectRatio: aspectRatio

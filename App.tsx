@@ -30,6 +30,7 @@ import { PawleyLeBailDecompositionModule } from './components/PawleyLeBailDecomp
 import { ReferenceIntensityRatioModule } from './components/ReferenceIntensityRatioModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
+import { XrdNanoModule } from './components/XrdNanoModule';
 import { PythonExportModule } from './components/PythonExportModule';
 import { MaterialDatabaseExplorer } from './components/MaterialDatabaseExplorer';
 
@@ -53,7 +54,7 @@ import { ScientificModuleNavigator } from './components/ScientificModuleNavigato
 import { TopAppBar } from './components/TopAppBar';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
@@ -76,7 +77,7 @@ import { XRRModule } from './components/XRRModule';
 import { UserActivityPlugin } from './components/UserActivityPlugin';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -138,6 +139,8 @@ const getModuleIcon = (id: Module, active: boolean) => {
       return <ImageIcon {...iconProps} />;
     case 'image_gen':
       return <Sparkles {...iconProps} />;
+    case 'xrd_nano':
+      return <Wand2 {...iconProps} />;
     case 'python_export':
       return <Terminal {...iconProps} />;
     case 'learn':
@@ -1761,6 +1764,7 @@ const App: React.FC = () => {
                   {activeModule === 'dl' && <DeepLearningModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'image_analysis' && <ImageAnalysisModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'image_gen' && <ImageGenerationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                  {activeModule === 'xrd_nano' && <XrdNanoModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'python_export' && <PythonExportModule />}
                   {activeModule === 'learn' && <LearnModule />}
                   {activeModule === 'database' && <MaterialDatabaseExplorer pythonFeaturesEnabled={pythonFeaturesEnabled} />}

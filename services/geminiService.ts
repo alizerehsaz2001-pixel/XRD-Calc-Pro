@@ -57,30 +57,53 @@ export const isPermissionError = (error: any): boolean => {
 
 export const generateScientificImage = async (
   prompt: string, 
-  size: '1K' | '2K' | '4K', 
+  size: '512px' | '1K' | '2K' | '4K' = '1K', 
   styleLabel?: string,
-  aspectRatio: '1:1' | '16:9' | '4:3' | '3:4' = '1:1'
-): Promise<string | null> => {
-  // Create a new instance to ensure the most up-to-date API key is used (if selected via UI)
+  aspectRatio: '1:1' | '16:9' | '4:3' | '3:4' | '9:16' | '1:4' | '1:8' | '4:1' | '8:1' = '1:1'
+): Promise<{ imageUrl: string; modelUsed?: string } | null> => {
+  const customKey = typeof window !== 'undefined'
+    ? (localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || undefined)
+    : undefined;
+
+  // Step 1: Call server-side Nano Banana 2 endpoint (/api/gemini/generate-scientific-image)
+  try {
+    const res = await fetch('/api/gemini/generate-scientific-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt,
+        size,
+        styleLabel,
+        aspectRatio,
+        customKey
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.imageUrl) {
+        return { imageUrl: data.imageUrl, modelUsed: data.modelUsed || 'gemini-3.1-flash-image' };
+      }
+    }
+  } catch (serverErr) {
+    console.warn("Server-side image generation endpoint unreachable, trying client fallback:", serverErr);
+  }
+
+  // Step 2: Client fallback with getGeminiClient
   const dynamicAi = getGeminiClient();
   const styleContext = styleLabel ? ` in the style of a ${styleLabel}` : '';
-  const fullPrompt = `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis${styleContext}. Prompt: ${prompt}`;
+  const fullPrompt = `Generate a high-quality scientific illustration, crystallographic model, or experimental X-ray diffraction (XRD) diagram${styleContext}. Prompt: ${prompt}`;
 
-  // Method 1: Primary - Latest Nano Banana 2 (gemini-3.1-flash-image) model
   try {
     const response = await dynamicAi.models.generateContent({
       model: 'gemini-3.1-flash-image',
       contents: {
-        parts: [
-          {
-            text: fullPrompt
-          },
-        ],
+        parts: [{ text: fullPrompt }],
       },
       config: {
         imageConfig: {
-          aspectRatio: aspectRatio,
-          imageSize: size
+          aspectRatio: aspectRatio as any,
+          imageSize: size === '512px' ? '512px' : size === '2K' ? '2K' : size === '4K' ? '4K' : '1K'
         }
       },
     });
@@ -88,39 +111,142 @@ export const generateScientificImage = async (
     if (response.candidates?.[0]?.content?.parts) {
       for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {
-          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          const mime = part.inlineData.mimeType || 'image/png';
+          return { imageUrl: `data:${mime};base64,${part.inlineData.data}`, modelUsed: 'gemini-3.1-flash-image (Client)' };
         }
       }
     }
   } catch (nanoError: any) {
-    if (isQuotaError(nanoError) || isPermissionError(nanoError)) {
-      if (isQuotaError(nanoError)) throw new Error("Quota exceeded (429).");
-      if (isPermissionError(nanoError)) throw new Error("Permission denied (403). API key might not have image generation access.");
-      throw nanoError;
-    }
+    if (isQuotaError(nanoError)) throw new Error("Quota exceeded (429).");
+    if (isPermissionError(nanoError)) throw new Error("Permission denied (403). API key might not have image generation access.");
 
-    // Method 2: Fallback to standard Imagen 3.0 model with generateImages
+    // Fallback to standard Imagen 3.0 model with generateImages
     try {
+      const safeAspect = ['1:4', '1:8', '4:1', '8:1'].includes(aspectRatio) ? '1:1' : aspectRatio;
       const response = await dynamicAi.models.generateImages({
         model: 'imagen-3.0-generate-002',
         prompt: fullPrompt,
         config: {
           numberOfImages: 1,
           outputMimeType: 'image/jpeg',
-          aspectRatio: aspectRatio,
+          aspectRatio: safeAspect as any,
         },
       });
 
       if (response?.generatedImages?.[0]?.image?.imageBytes) {
-        return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
+        return { imageUrl: `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`, modelUsed: 'imagen-3.0-generate-002' };
       }
       return null;
     } catch (fallbackError: any) {
-      console.error("All image generation methods failed. Main error was:", nanoError, "Fallback error was:", fallbackError);
+      console.error("All image generation methods failed:", nanoError, fallbackError);
       if (isQuotaError(fallbackError)) throw new Error("Quota exceeded (429).");
-      if (isPermissionError(fallbackError)) throw new Error("Permission denied (403). API key might not have image generation access.");
+      if (isPermissionError(fallbackError)) throw new Error("Permission denied (403).");
       throw fallbackError;
     }
+  }
+  return null;
+};
+
+export const editScientificImage = async (
+  imageBase64: string,
+  prompt: string,
+  options?: {
+    aspectRatio?: '1:1' | '16:9' | '4:3' | '3:4' | '9:16' | '1:4' | '1:8' | '4:1' | '8:1';
+    size?: '512px' | '1K' | '2K' | '4K';
+  }
+): Promise<{ imageUrl: string; explanation?: string; modelUsed?: string } | null> => {
+  const customKey = typeof window !== 'undefined'
+    ? (localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || undefined)
+    : undefined;
+
+  // Step 1: Call server-side Nano Banana 2 editor endpoint (/api/gemini/edit-scientific-image)
+  try {
+    const res = await fetch('/api/gemini/edit-scientific-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: imageBase64,
+        prompt,
+        aspectRatio: options?.aspectRatio || '1:1',
+        size: options?.size || '1K',
+        customKey
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.imageUrl) {
+        return {
+          imageUrl: data.imageUrl,
+          explanation: data.explanation,
+          modelUsed: data.modelUsed || 'gemini-3.1-flash-image (Nano Banana 2 Editor)'
+        };
+      }
+    }
+  } catch (serverErr) {
+    console.warn("Server-side image edit endpoint error, trying client fallback:", serverErr);
+  }
+
+  // Step 2: Client fallback with getGeminiClient
+  const dynamicAi = getGeminiClient();
+  let mimeType = 'image/png';
+  let base64Data = imageBase64;
+  if (imageBase64.startsWith('data:')) {
+    const match = imageBase64.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (match) {
+      mimeType = match[1];
+      base64Data = match[2];
+    }
+  }
+
+  try {
+    const response = await dynamicAi.models.generateContent({
+      model: 'gemini-3.1-flash-image',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType,
+            },
+          },
+          {
+            text: `You are Nano Banana 2 (gemini-3.1-flash-image) specializing in crystallography, electron microscopy, and XRD scientific illustration editing. Edit the provided scientific image according to this instruction: "${prompt}". Maintain crystallographic precision, clear contrast, and crisp labels.`,
+          },
+        ],
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: (options?.aspectRatio || '1:1') as any,
+          imageSize: options?.size || '1K',
+        }
+      }
+    });
+
+    let editedImageUrl: string | null = null;
+    let explanationText = "";
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          const outMime = part.inlineData.mimeType || 'image/png';
+          editedImageUrl = `data:${outMime};base64,${part.inlineData.data}`;
+        } else if (part.text) {
+          explanationText += part.text + "\n";
+        }
+      }
+    }
+
+    if (editedImageUrl) {
+      return {
+        imageUrl: editedImageUrl,
+        explanation: explanationText.trim(),
+        modelUsed: 'gemini-3.1-flash-image (Client Editor)'
+      };
+    }
+  } catch (editError: any) {
+    if (isQuotaError(editError)) throw new Error("Quota exceeded (429).");
+    if (isPermissionError(editError)) throw new Error("Permission denied (403).");
+    throw editError;
   }
   return null;
 };

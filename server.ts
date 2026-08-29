@@ -2011,25 +2011,281 @@ CRITICAL RULES:
     }
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { 
-        middlewareMode: true,
-        hmr: false,
-        ws: false
-      },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "dist", "index.html"));
-    });
-  }
+  // Nano Banana 2 (gemini-3.1-flash-image) Scientific Image Generation Endpoint
+  app.post("/api/gemini/generate-scientific-image", async (req, res) => {
+    const { prompt, size, styleLabel, aspectRatio, customKey } = req.body;
+    try {
+      if (!prompt) {
+        res.status(400).json({ success: false, error: "Prompt is required" });
+        return;
+      }
+      const ai = getOrCreateGeminiClient(customKey);
+      const styleContext = styleLabel ? ` in the style of ${styleLabel}` : '';
+      const fullPrompt = `Generate a high-quality scientific illustration, crystallographic model, or experimental X-ray diffraction (XRD) diagram${styleContext}. Ensure authentic atomic, geometric, or microstructural accuracy. Prompt: ${prompt}`;
 
-  
+      const validAspect = ['1:1', '3:4', '4:3', '9:16', '16:9', '1:4', '1:8', '4:1', '8:1'].includes(aspectRatio) ? aspectRatio : '1:1';
+      const validSize = ['512px', '1K', '2K', '4K'].includes(size) ? size : '1K';
+
+      // Primary: gemini-3.1-flash-image (Nano Banana 2)
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-image',
+          contents: {
+            parts: [{ text: fullPrompt }],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: validAspect,
+              imageSize: validSize,
+            },
+          },
+        });
+
+        if (response.candidates?.[0]?.content?.parts) {
+          for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+              const mimeType = part.inlineData.mimeType || 'image/png';
+              const dataUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+              res.json({
+                success: true,
+                imageUrl: dataUrl,
+                modelUsed: 'gemini-3.1-flash-image (Nano Banana 2)',
+              });
+              return;
+            }
+          }
+        }
+      } catch (nanoErr: any) {
+        console.warn("Nano Banana 2 generation attempt error:", nanoErr?.message || nanoErr);
+        
+        // Fallback 1: gemini-3.1-flash-lite-image
+        try {
+          const fallbackAspect = ['1:4', '1:8', '4:1', '8:1'].includes(validAspect) ? '1:1' : validAspect;
+          const responseLite = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-lite-image',
+            contents: {
+              parts: [{ text: fullPrompt }],
+            },
+            config: {
+              imageConfig: {
+                aspectRatio: fallbackAspect,
+              },
+            },
+          });
+          if (responseLite.candidates?.[0]?.content?.parts) {
+            for (const part of responseLite.candidates[0].content.parts) {
+              if (part.inlineData) {
+                const mimeType = part.inlineData.mimeType || 'image/png';
+                res.json({
+                  success: true,
+                  imageUrl: `data:${mimeType};base64,${part.inlineData.data}`,
+                  modelUsed: 'gemini-3.1-flash-lite-image',
+                });
+                return;
+              }
+            }
+          }
+        } catch (liteErr: any) {
+          console.warn("Lite image generation error:", liteErr?.message);
+        }
+
+        // Fallback 2: imagen-3.0-generate-002
+        try {
+          const fallbackAspect = ['1:4', '1:8', '4:1', '8:1'].includes(validAspect) ? '1:1' : validAspect;
+          const imgResponse = await ai.models.generateImages({
+            model: 'imagen-3.0-generate-002',
+            prompt: fullPrompt,
+            config: {
+              numberOfImages: 1,
+              outputMimeType: 'image/jpeg',
+              aspectRatio: fallbackAspect,
+            },
+          });
+          if (imgResponse?.generatedImages?.[0]?.image?.imageBytes) {
+            res.json({
+              success: true,
+              imageUrl: `data:image/jpeg;base64,${imgResponse.generatedImages[0].image.imageBytes}`,
+              modelUsed: 'imagen-3.0-generate-002',
+            });
+            return;
+          }
+        } catch (imgErr: any) {
+          console.warn("Imagen fallback error:", imgErr?.message);
+        }
+
+        throw nanoErr;
+      }
+
+      res.status(500).json({ success: false, error: "No image content returned from Gemini." });
+    } catch (error: any) {
+      console.error("Scientific image generation endpoint error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to generate scientific image." });
+    }
+  });
+
+  // Nano Banana 2 (gemini-3.1-flash-image) Multimodal Scientific Image Editing Endpoint
+  app.post("/api/gemini/edit-scientific-image", async (req, res) => {
+    const { image, prompt, customKey, aspectRatio, size } = req.body;
+    try {
+      if (!image || !prompt) {
+        res.status(400).json({ success: false, error: "Both source image (base64) and edit prompt are required." });
+        return;
+      }
+
+      const ai = getOrCreateGeminiClient(customKey);
+
+      // Extract mime type and raw base64 data
+      let mimeType = 'image/png';
+      let base64Data = image;
+      if (image.startsWith('data:')) {
+        const match = image.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+        if (match) {
+          mimeType = match[1];
+          base64Data = match[2];
+        }
+      }
+
+      const editPrompt = `You are Nano Banana 2 (gemini-3.1-flash-image) specializing in crystallography, electron microscopy, and XRD scientific illustration editing.
+Edit and modify the provided input scientific image according to this instruction: "${prompt}".
+Maintain crystallographic accuracy, clean contrast, crisp labels, and professional academic standards.`;
+
+      const validAspect = ['1:1', '3:4', '4:3', '9:16', '16:9', '1:4', '1:8', '4:1', '8:1'].includes(aspectRatio) ? aspectRatio : '1:1';
+      const validSize = ['512px', '1K', '2K', '4K'].includes(size) ? size : '1K';
+
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.1-flash-image',
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: mimeType,
+                },
+              },
+              {
+                text: editPrompt,
+              },
+            ],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: validAspect,
+              imageSize: validSize,
+            },
+          },
+        });
+
+        let editedImageUrl: string | null = null;
+        let explanationText = "";
+
+        if (response.candidates?.[0]?.content?.parts) {
+          for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+              const outMime = part.inlineData.mimeType || 'image/png';
+              editedImageUrl = `data:${outMime};base64,${part.inlineData.data}`;
+            } else if (part.text) {
+              explanationText += part.text + "\n";
+            }
+          }
+        }
+
+        if (editedImageUrl) {
+          res.json({
+            success: true,
+            imageUrl: editedImageUrl,
+            explanation: explanationText.trim(),
+            modelUsed: 'gemini-3.1-flash-image (Nano Banana 2 Editor)',
+          });
+          return;
+        }
+      } catch (nanoEditErr: any) {
+        console.warn("Nano Banana 2 image editing error:", nanoEditErr?.message);
+
+        // Fallback: gemini-3.1-flash-lite-image
+        try {
+          const responseLite = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-lite-image',
+            contents: {
+              parts: [
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType: mimeType,
+                  },
+                },
+                {
+                  text: editPrompt,
+                },
+              ],
+            },
+          });
+
+          let liteImageUrl: string | null = null;
+          let liteText = "";
+          if (responseLite.candidates?.[0]?.content?.parts) {
+            for (const part of responseLite.candidates[0].content.parts) {
+              if (part.inlineData) {
+                const outMime = part.inlineData.mimeType || 'image/png';
+                liteImageUrl = `data:${outMime};base64,${part.inlineData.data}`;
+              } else if (part.text) {
+                liteText += part.text + "\n";
+              }
+            }
+          }
+
+          if (liteImageUrl) {
+            res.json({
+              success: true,
+              imageUrl: liteImageUrl,
+              explanation: liteText.trim(),
+              modelUsed: 'gemini-3.1-flash-lite-image (Editor Fallback)',
+            });
+            return;
+          }
+        } catch (liteErr: any) {
+          console.warn("Lite image editing fallback error:", liteErr?.message);
+        }
+
+        throw nanoEditErr;
+      }
+
+      res.status(500).json({ success: false, error: "No edited image generated." });
+    } catch (error: any) {
+      console.error("Scientific image edit endpoint error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to edit scientific image." });
+    }
+  });
+
+  // Scientific Image Prompt Enhancement Endpoint
+  app.post("/api/gemini/enhance-image-prompt", async (req, res) => {
+    const { prompt, style, targetType } = req.body;
+    try {
+      if (!prompt) return res.status(400).json({ success: false, error: "Prompt required" });
+      const ai = getGeminiClient();
+      const enhanceReq = `You are an elite Crystallography & Materials Characterization AI Prompt Engineer for Nano Banana 2 (gemini-3.1-flash-image).
+Enhance this user request into a comprehensive, highly descriptive scientific image generation prompt.
+Include specific crystallographic details (space groups, Miller indices, atomic positions, coordination polyhedra), optical/microscope characteristics (accelerating voltage, electron diffraction, camera length, objective aperture, field of view), lighting (volumetric, studio rim, darkfield), and high-resolution rendering keywords.
+
+Original prompt: "${prompt}"
+Selected style: "${style || '3d_schematic'}"
+Target type: "${targetType || 'xrd_nanomaterials'}"
+
+Output ONLY the final enhanced prompt text, without quotes or commentary.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: enhanceReq,
+      });
+
+      res.json({ success: true, enhancedPrompt: response.text.trim() });
+    } catch (error: any) {
+      console.error("Prompt enhance error:", error);
+      res.json({ success: false, enhancedPrompt: prompt });
+    }
+  });
+
+  // Phase chat assistant route
   app.post("/api/gemini/phase-chat", async (req, res) => {
     try {
       const { prompt, history, xrdData } = req.body;
@@ -2074,6 +2330,24 @@ CRITICAL RULES:
       return res.status(500).json({ error: error.message });
     }
   });
+
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({
+      server: { 
+        middlewareMode: true,
+        hmr: false,
+        ws: false
+      },
+      appType: "spa",
+    });
+    app.use(vite.middlewares);
+  } else {
+    app.use(express.static(path.join(__dirname, "dist")));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(__dirname, "dist", "index.html"));
+    });
+  }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

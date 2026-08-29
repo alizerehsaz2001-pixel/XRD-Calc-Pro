@@ -5,6 +5,7 @@ import {
   Search, 
   X, 
   Sparkles, 
+  Wand2,
   Activity, 
   Sliders, 
   Hash, 
@@ -77,6 +78,7 @@ export type ModuleId =
   | 'dl' 
   | 'image_analysis' 
   | 'image_gen' 
+  | 'xrd_nano'
   | 'python_export' 
   | 'learn' 
   | 'profile' 
@@ -666,7 +668,24 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'تولید تصاویر شماتیک سه‌بعدی بلورها و تنظیمات آزمایشگاهی مناسب برای چاپ در ژورنال‌ها و ارائه‌های علمی.'
           : 'Creates high-definition 3D crystal schematics, laboratory beamlines, and nanomaterial representations for journals.',
-        suggestedNext: ['learn', 'profile']
+        suggestedNext: ['xrd_nano', 'learn', 'profile']
+      },
+      {
+        id: 'xrd_nano',
+        label: t('XRD Nano Banana 2 AI Studio', 'XRD Nano Banana 2'),
+        category: t('AI & Neural Intelligence', 'AI & Neural Intelligence'),
+        categoryIcon: <Brain className="w-4 h-4 text-violet-400" />,
+        subtitle: isRTL ? 'استودیوی تصویرسازی و ویرایش چندحالته XRD و نانومواد با جمینای ۳.۱ فلش' : 'Next-gen text-to-image synthesis & multimodal image editing with Gemini 3.1 Flash Image',
+        formula: 'gemini-3.1-flash-image (Nano Banana 2)',
+        tags: ['XRD', 'Nano Banana 2', 'Gemini 3.1 Flash Image', 'Text-to-Image', 'Image Editing', 'Multimodal', 'HRTEM', 'Debye-Scherrer', 'Nanocrystals'],
+        icon: <Wand2 className={`${defaultIconClass} text-fuchsia-400`} />,
+        inputs: ['Natural Language Prompt', 'Uploaded Micrograph / XRD Scan', 'Editing / Annotation Instruction'],
+        outputs: ['High-Res Synthesized XRD / TEM Image (512px-4K)', 'Modified / Annotated Micrograph', 'Matching Python Matplotlib Code'],
+        complexity: 'Intermediate',
+        descriptionDetail: isRTL
+          ? 'تولید و ویرایش تعاملی تصاویر پراش اشعه ایکس، ساختارهای سه‌بعدی بلوری، میکروسکوپ الکترونی عبوری (HR-TEM) و حلقه‌های دبی-شرر با مدل قدرتمند Nano Banana 2.'
+          : 'Advanced text-to-image creation and multimodal image-to-image editing for XRD patterns, 3D atomic lattices, and HRTEM micrographs powered by Gemini 3.1 Flash Image.',
+        suggestedNext: ['image_analysis', 'image_gen', 'dl', 'bragg']
       },
 
       // Category 6: Databases & Lab Utilities
