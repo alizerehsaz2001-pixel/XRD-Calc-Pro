@@ -253,34 +253,36 @@ export const UserActivityPlugin: React.FC<UserActivityPluginProps> = ({
 
   return (
     <>
-      {/* Floating Action / Telemetry Button (when collapsed) */}
-      <div className="fixed bottom-5 right-5 z-40">
-        <motion.button
-          id="user-activity-plugin-btn"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-2.5 px-3.5 py-2 rounded-full border shadow-2xl backdrop-blur-xl transition-all duration-300 font-mono text-xs ${
-            isOpen
-              ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-500/30'
-              : 'bg-slate-900/90 hover:bg-slate-800/90 border-slate-700/80 hover:border-indigo-500/50 text-slate-200 shadow-black/50'
-          }`}
-          title="User Activity & Audit Telemetry Ledger"
-        >
-          <div className="relative flex items-center justify-center">
-            <Activity className={`w-4 h-4 ${isOpen ? 'text-white' : 'text-indigo-400'} animate-pulse`} />
-            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-          </div>
+      {/* Floating Action / Telemetry Button (relocated to bottom-left to prevent overlap with AI Chat at bottom-right) */}
+      {!floatingButtonOnly && (
+        <div className="fixed bottom-5 left-5 z-40">
+          <motion.button
+            id="user-activity-plugin-btn"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsOpen(!isOpen)}
+            className={`flex items-center gap-2.5 px-3.5 py-2 rounded-full border shadow-2xl backdrop-blur-xl transition-all duration-300 font-mono text-xs cursor-pointer select-none ${
+              isOpen
+                ? 'bg-indigo-600 border-indigo-400 text-white shadow-indigo-500/30'
+                : 'bg-slate-900/90 hover:bg-slate-800/90 border-slate-700/80 hover:border-indigo-500/50 text-slate-200 shadow-black/50 hover:shadow-indigo-500/20'
+            }`}
+            title="User Activity & Audit Telemetry Ledger (Click to view session log)"
+          >
+            <div className="relative flex items-center justify-center">
+              <Activity className={`w-4 h-4 ${isOpen ? 'text-white' : 'text-indigo-400'} animate-pulse`} />
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            </div>
 
-          <span className="font-bold tracking-wider hidden sm:inline">Activity Ledger</span>
-          <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-            {activities.length}
-          </span>
-        </motion.button>
-      </div>
+            <span className="font-bold tracking-wider hidden sm:inline">Activity Ledger</span>
+            <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              {activities.length}
+            </span>
+          </motion.button>
+        </div>
+      )}
 
       {/* Main Activity Modal / Drawer Inspector */}
       <AnimatePresence>

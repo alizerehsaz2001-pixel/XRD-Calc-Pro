@@ -660,8 +660,16 @@ export const ReciprocalSpaceProbe3D: React.FC<ReciprocalSpaceProbe3DProps> = ({
       });
     }
 
-    // 3. Ewald Sphere Geodesic Rings (Radius = 1/λ)
+    // 3. Ewald Sphere Geodesic Rings & Volumetric Surface (Radius = 1/λ)
     if (showEwaldSphere) {
+      const eCenterPt = project(k0_center.x, k0_center.y, k0_center.z);
+      elements.push({
+        type: 'ewald-sphere-surface',
+        p: eCenterPt,
+        radius: k0_mag,
+        z: eCenterPt.z,
+      });
+
       const ewaldPlanes = [
         { plane: 'xy', color: 'rgba(56, 189, 248, 0.35)' },
         { plane: 'xz', color: 'rgba(56, 189, 248, 0.35)' },
@@ -704,9 +712,18 @@ export const ReciprocalSpaceProbe3D: React.FC<ReciprocalSpaceProbe3DProps> = ({
       });
     }
 
-    // 4. Limiting Sphere of Reflection (Radius = 2/λ, centered at origin)
+    // 4. Limiting Sphere of Reflection & Volumetric Surface (Radius = 2/λ, centered at origin)
     if (showLimitingSphere) {
+      const originPt = project(0, 0, 0);
       const r_limit = 2 * k0_mag;
+
+      elements.push({
+        type: 'limiting-sphere-surface',
+        p: originPt,
+        radius: r_limit,
+        z: originPt.z,
+      });
+
       const limPlanes = [
         { plane: 'xy', color: 'rgba(244, 63, 94, 0.25)' },
         { plane: 'xz', color: 'rgba(244, 63, 94, 0.25)' },
@@ -845,6 +862,24 @@ export const ReciprocalSpaceProbe3D: React.FC<ReciprocalSpaceProbe3DProps> = ({
         ctx.setLineDash([3, 3]);
         ctx.stroke();
         ctx.setLineDash([]);
+      } else if (el.type === 'ewald-sphere-surface' || el.type === 'limiting-sphere-surface') {
+        const radiusPx = (el.radius * scale) / (projectionMode === 'perspective' ? Math.max(0.2, 1 - el.p.z / ((maxBound * metricTensor.aStar + 1.5) * 2.2)) : 1);
+        if (radiusPx > 0) {
+          ctx.beginPath();
+          ctx.arc(el.p.x, el.p.y, radiusPx, 0, 2 * Math.PI);
+          const grad = ctx.createRadialGradient(el.p.x - radiusPx * 0.3, el.p.y - radiusPx * 0.3, radiusPx * 0.1, el.p.x, el.p.y, radiusPx);
+          if (el.type === 'ewald-sphere-surface') {
+            grad.addColorStop(0, 'rgba(56, 189, 248, 0.1)');
+            grad.addColorStop(0.7, 'rgba(56, 189, 248, 0.04)');
+            grad.addColorStop(1, 'rgba(56, 189, 248, 0.18)');
+          } else {
+            grad.addColorStop(0, 'rgba(244, 63, 94, 0.08)');
+            grad.addColorStop(0.7, 'rgba(244, 63, 94, 0.03)');
+            grad.addColorStop(1, 'rgba(244, 63, 94, 0.12)');
+          }
+          ctx.fillStyle = grad;
+          ctx.fill();
+        }
       } else if (el.type === 'sphere-wire' || el.type === 'limiting-sphere-wire') {
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
@@ -1080,9 +1115,9 @@ export const ReciprocalSpaceProbe3D: React.FC<ReciprocalSpaceProbe3DProps> = ({
     ctx.fillText(
       `ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}° | ZOOM: ${(recipZoom * 100).toFixed(0)}%`,
       12,
-      16
+      56
     );
-    ctx.fillText('DRAG: ROTATE | SHIFT+DRAG: PAN | SCROLL: ZOOM | CLICK: TOGGLE BUFFER', 12, 28);
+    ctx.fillText('DRAG: ROTATE | SHIFT+DRAG: PAN | SCROLL: ZOOM | CLICK: TOGGLE BUFFER', 12, 68);
   }, [
     hklInput,
     recipRotation,

@@ -524,6 +524,22 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             <span>{currentClockTime}</span>
           </div>
 
+          {/* 1b. Direct Activity Ledger Toolbar Trigger */}
+          {onOpenActivityLedger && (
+            <button
+              id="topbar-activity-ledger-btn"
+              onClick={() => {
+                onOpenActivityLedger();
+                playSynthTone('switch');
+              }}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+              title={t('Open Live Activity Ledger & Telemetry Audit (Click to view)', 'Open Live Activity Ledger & Telemetry Audit')}
+            >
+              <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+              <span className="hidden xl:inline">{t('Ledger', 'Ledger')}</span>
+            </button>
+          )}
+
           {/* 2. IndexedDB ↔ Cloud Sync Monitor Widget with Interactive Popover */}
           <div className="relative" id="indexeddb-sync-container">
             <button
