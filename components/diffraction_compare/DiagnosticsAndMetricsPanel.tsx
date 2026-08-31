@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Activity, 
@@ -20,12 +20,9 @@ import {
   ArrowRight,
   HelpCircle,
   Zap,
-  Check,
-  Compass,
-  FileText
+  Check
 } from 'lucide-react';
 import { SpectralMetrics, IndexedPeakMatch, DiagTabMode } from './types';
-import { computeNelsonRileyFit } from './compareUtils';
 
 interface DiagnosticsAndMetricsPanelProps {
   metrics: SpectralMetrics;
@@ -44,7 +41,6 @@ interface DiagnosticsAndMetricsPanelProps {
   fracC: number;
   fracD?: number;
   onJumpToPeak: (twoTheta: number) => void;
-  onSearchResiduals?: () => void;
 }
 
 export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProps> = ({
@@ -63,8 +59,7 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
   fracB,
   fracC,
   fracD = 0,
-  onJumpToPeak,
-  onSearchResiduals
+  onJumpToPeak
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<DiagTabMode>('cards');
@@ -80,11 +75,6 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
   const isExcellentMatch = pearsonNum >= 90 && rpNum < 15;
   const isStrained = Math.abs(meanShift) > 0.03;
   const isMultiphase = extraInA.length > 0 || fracC > 0 || fracD > 0;
-
-  // Nelson-Riley Extrapolation Fit
-  const nelsonRileyFit = useMemo(() => {
-    return computeNelsonRileyFit(indexedPeaks, 4.0);
-  }, [indexedPeaks]);
 
   const filteredPeaks = indexedPeaks.filter(p => {
     const matchesStatus = tableFilter === 'all' || p.status === tableFilter;
@@ -236,18 +226,6 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
             <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
             <span>Strain (Δd/d)</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab('refinement')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'refinement'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Nelson-Riley (a₀)</span>
-          </button>
         </div>
       </div>
 
@@ -383,18 +361,8 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
                 </div>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-900 flex items-center justify-between gap-2 text-[10px] text-slate-500 font-mono">
-                <span>Secondary / Unmatched: <strong className="text-slate-300">{secondaryPhaseEst.toFixed(1)}%</strong></span>
-                {onSearchResiduals && (extraInA.length > 0 || secondaryPhaseEst > 5) && (
-                  <button
-                    onClick={onSearchResiduals}
-                    className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/40 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
-                    title="Search database for secondary phases matching unmatched peaks"
-                  >
-                    <Search className="w-3 h-3 text-purple-400" />
-                    <span>Identify Impurities</span>
-                  </button>
-                )}
+              <div className="mt-3 pt-2 border-t border-slate-900 text-[10px] text-slate-500 font-mono">
+                Secondary Phase / Unmatched: <strong className="text-slate-300">{secondaryPhaseEst.toFixed(1)}%</strong>
               </div>
             </div>
           </div>
@@ -646,123 +614,6 @@ export const DiagnosticsAndMetricsPanel: React.FC<DiagnosticsAndMetricsPanelProp
                 })}
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 5: NELSON-RILEY LATTICE REFINEMENT */}
-      {activeTab === 'refinement' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-xl bg-[#030712] border border-slate-800">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-300">
-                  <Compass className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-100 font-mono flex items-center gap-2">
-                    <span>Nelson-Riley Function Lattice Parameter Extrapolation</span>
-                    <span className="px-2 py-0.5 rounded text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      Zero-Error Limit
-                    </span>
-                  </h4>
-                  <p className="text-[11px] text-slate-400 font-sans mt-0.5">
-                    Extrapolates apparent lattice constants to f(θ) = 0 to eliminate systematic diffractometer errors (specimen displacement, absorption, and flat-specimen defocusing).
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {nelsonRileyFit ? (
-              <div className="space-y-4">
-                {/* Metric Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs">
-                  <div className="p-3 bg-slate-900/80 rounded-xl border border-emerald-500/30">
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">True Lattice Constant (a₀):</span>
-                    <span className="text-lg font-bold text-emerald-300">
-                      {nelsonRileyFit.a0.toFixed(5)} Å
-                    </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      ± {nelsonRileyFit.stdErrA0.toFixed(5)} Å std error
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800">
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Fit Linearity (R²):</span>
-                    <span className="text-lg font-bold text-cyan-300">
-                      {(nelsonRileyFit.rSquared * 100).toFixed(2)}%
-                    </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Slope k = {nelsonRileyFit.slope > 0 ? `+${nelsonRileyFit.slope.toFixed(5)}` : nelsonRileyFit.slope.toFixed(5)}
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800">
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Unit Cell Volume (V₀):</span>
-                    <span className="text-lg font-bold text-purple-300">
-                      {nelsonRileyFit.unitCellVolume.toFixed(3)} Å³
-                    </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      {nelsonRileyFit.deltaVolumePercent > 0 ? `+${nelsonRileyFit.deltaVolumePercent.toFixed(2)}%` : `${nelsonRileyFit.deltaVolumePercent.toFixed(2)}%`} vs ref
-                    </span>
-                  </div>
-
-                  <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800">
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Lattice Distortion (Δa/a):</span>
-                    <span className="text-lg font-bold text-amber-300">
-                      {nelsonRileyFit.strainPercent > 0 ? `+${nelsonRileyFit.strainPercent.toFixed(3)}%` : `${nelsonRileyFit.strainPercent.toFixed(3)}%`}
-                    </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      {nelsonRileyFit.deltaA > 0 ? 'Lattice Expansion' : 'Lattice Contraction'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Extrapolation Point Matrix */}
-                <div>
-                  <h5 className="text-[11px] font-mono font-bold uppercase text-slate-300 mb-2 flex items-center justify-between">
-                    <span>Nelson-Riley Reflection Points & Residuals</span>
-                    <span className="text-[10px] text-slate-400 font-normal">
-                      Function: f(θ) = (cos²θ / sinθ) + (cos²θ / θ)
-                    </span>
-                  </h5>
-
-                  <div className="overflow-x-auto rounded-lg border border-slate-800">
-                    <table className="w-full text-left font-mono text-xs">
-                      <thead className="bg-slate-900 text-slate-400 text-[10px] uppercase border-b border-slate-800">
-                        <tr>
-                          <th className="p-2.5">Reflection (hkl)</th>
-                          <th className="p-2.5">2θ (deg)</th>
-                          <th className="p-2.5">d-spacing (Å)</th>
-                          <th className="p-2.5">Nelson-Riley f(θ)</th>
-                          <th className="p-2.5">Apparent a (Å)</th>
-                          <th className="p-2.5">Fit Residual Δa (Å)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60 text-slate-200">
-                        {nelsonRileyFit.points.map((pt, idx) => (
-                          <tr key={idx} className="hover:bg-slate-900/50 transition-colors">
-                            <td className="p-2.5 font-bold text-cyan-300">{pt.hkl}</td>
-                            <td className="p-2.5">{pt.twoTheta.toFixed(2)}°</td>
-                            <td className="p-2.5">{pt.dSpacing.toFixed(4)}</td>
-                            <td className="p-2.5 text-slate-400">{pt.fnr.toFixed(4)}</td>
-                            <td className="p-2.5 font-bold text-emerald-400">{pt.apparentA.toFixed(5)}</td>
-                            <td className="p-2.5 text-slate-400">
-                              {pt.residual > 0 ? `+${pt.residual.toFixed(5)}` : pt.residual.toFixed(5)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="p-6 text-center text-xs font-mono text-slate-400 border border-dashed border-slate-800 rounded-xl">
-                <AlertTriangle className="w-6 h-6 text-amber-400 mx-auto mb-2" />
-                <span>Insufficient indexed reflections (≥2 required) to compute Nelson-Riley extrapolation line.</span>
-              </div>
-            )}
           </div>
         </div>
       )}

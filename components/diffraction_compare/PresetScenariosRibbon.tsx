@@ -4,7 +4,6 @@ import {
   Sparkles, 
   HelpCircle, 
   FileSpreadsheet, 
-  FileText,
   CheckCircle2, 
   MoveHorizontal, 
   Layers3, 
@@ -25,7 +24,6 @@ interface PresetScenariosRibbonProps {
   onOpenGuide: () => void;
   onOpenSearchMatch: () => void;
   onExportCSV: () => void;
-  onExportMarkdown?: () => void;
 }
 
 export interface PresetScenarioItem {
@@ -119,36 +117,6 @@ export const PRESET_SCENARIOS: PresetScenarioItem[] = [
     outcomeBadge: 'd₀₀₂ Shift: 26.6° → 10.8°',
     outcomeType: 'info',
     description: 'Visualizes d-spacing expansion from 3.35 Å to ~8.15 Å due to oxygen functionalization.'
-  },
-  {
-    id: 'mxene-ti3c2',
-    title: 'Ti₃AlC₂ MAX → Ti₃C₂Tₓ MXene',
-    subtitle: 'Al-Layer Etching & Exfoliation',
-    category: 'Nanomaterials',
-    icon: Flame,
-    outcomeBadge: '(104) Al-Peak Loss',
-    outcomeType: 'purple',
-    description: 'Selective etching of aluminum layers from Ti₃AlC₂ shifts the (002) reflection from 9.5° to ~6.5° 2θ.'
-  },
-  {
-    id: 'superconductor-ybco',
-    title: 'YBa₂Cu₃O₇₋δ (YBCO 93K)',
-    subtitle: 'Orthorhombic-I vs Tetragonal-II',
-    category: 'Electronic',
-    icon: Orbit,
-    outcomeBadge: 'Oxygen Vacancy Order',
-    outcomeType: 'warning',
-    description: 'High-Tc cuprate superconductor transition with distinct (013)/(103)/(110) orthorhombic peak splitting.'
-  },
-  {
-    id: 'hea-cantor',
-    title: 'FeCoNiCrMn Cantor Alloy',
-    subtitle: 'High-Entropy Single FCC Solid Solution',
-    category: 'Lattice Strain',
-    icon: MoveHorizontal,
-    outcomeBadge: 'Severe Lattice Distortion',
-    outcomeType: 'warning',
-    description: '5-component equiatomic single-phase FCC matrix exhibiting cocktail effect and anomalous peak broadening.'
   }
 ];
 
@@ -156,8 +124,7 @@ export const PresetScenariosRibbon: React.FC<PresetScenariosRibbonProps> = ({
   onSelectScenario,
   onOpenGuide,
   onOpenSearchMatch,
-  onExportCSV,
-  onExportMarkdown
+  onExportCSV
 }) => {
   const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -170,8 +137,7 @@ export const PresetScenariosRibbon: React.FC<PresetScenariosRibbonProps> = ({
     { id: 'Multi-Phase', label: 'Multi-Phase Mixtures' },
     { id: 'Lattice Strain', label: 'Lattice Strain' },
     { id: 'Energy / Battery', label: 'Battery Cathodes' },
-    { id: 'Electronic', label: 'Perovskites & Superconductors' },
-    { id: 'Nanomaterials', label: '2D Materials & MXenes' }
+    { id: 'Electronic', label: 'Perovskites & Oxides' }
   ];
 
   const filteredPresets = PRESET_SCENARIOS.filter(s => 
@@ -246,23 +212,11 @@ export const PresetScenariosRibbon: React.FC<PresetScenariosRibbonProps> = ({
             id="btn-export-csv-top"
             onClick={onExportCSV}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-mono font-bold transition-all active:scale-95 cursor-pointer hover:border-emerald-400"
-            title="Download full comparison & residual dataset as CSV"
+            title="Download full comparison & residual report as CSV"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
             <span>Export CSV</span>
           </button>
-
-          {onExportMarkdown && (
-            <button
-              id="btn-export-md-top"
-              onClick={onExportMarkdown}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 rounded-xl text-xs font-mono font-bold transition-all active:scale-95 cursor-pointer hover:border-purple-400"
-              title="Download publication-grade Markdown scientific report"
-            >
-              <FileText className="w-4 h-4 text-purple-400" />
-              <span>Report (.md)</span>
-            </button>
-          )}
 
           <button
             onClick={() => setIsExpanded(!isExpanded)}

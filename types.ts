@@ -187,80 +187,31 @@ export interface DoubleVoigtPoint {
   betaCStar: number;  // Cauchy component in reciprocal space [nm^-1]
   betaGStarSq: number;// (Gaussian component in reciprocal space)^2 [nm^-2]
   betaGStar: number;  // Gaussian component in reciprocal space [nm^-1]
-  singleDvNm: number; // Single peak apparent volume size [nm]
-  singleDaNm?: number;// Single peak apparent area size [nm]
-  singleStrain?: number; // Single peak apparent microstrain
-  singleDislocationDensityM2?: number; // Single peak apparent dislocation density [m^-2]
-  dSpacingA?: number; // d-spacing in Angstroms
-  fwhmObs?: number;   // observed FWHM in deg
-  etaObs?: number;    // observed Lorentzian mixing fraction
-  betaCSample?: number; // specimen Cauchy integral breadth [rad]
-  betaGSample?: number; // specimen Gaussian integral breadth [rad]
+  singleDvNm: number; // Single peak apparent volume size
   hkl?: [number, number, number];
-  isExcluded?: boolean;
-  residualC?: number;
-  residualG?: number;
-}
-
-export interface DoubleVoigtColumnDistributionPoint {
-  L_nm: number;
-  pA: number;          // Area-weighted column-length distribution P_A(L)
-  pV: number;          // Volume-weighted column-length distribution P_V(L)
-  cumulativeP: number; // Cumulative distribution function F(L)
-  rmsStrainL: number;  // RMS microstrain at column length L
-  aSizeFourier: number;// Fourier size coefficient A^S(L)
 }
 
 export interface DoubleVoigtResult {
   volumeSizeDvNm: number;     // D_V = 1 / beta_{C,S}* [nm]
   gaussianSizeDgNm: number;   // D_G = 1 / (pi * beta_{G,S}*) [nm]
   areaSizeDaNm: number;       // D_A area-weighted crystallite size [nm]
-  polydispersityIndex: number;// D_V / D_A (ratio indicates size spread/habit)
   cauchyStrainEc: number;     // e_C = Slope_C / 2
   gaussianStrainEg: number;   // e_G = sqrt(Slope_G / (8*pi))
   rmsStrain: number;          // <e^2>^(1/2) = sqrt(e_C^2 + 2*pi*e_G^2)
-  dislocationDensityM2: number; // Total dislocation density rho_d [m^-2] via Williamson-Smallman
-  strainEnergyDensityKjM3: number; // Elastic strain energy density W_H [kJ/m^3]
-  modeSizeNm?: number;        // Mode (peak maximum) of volume size distribution
-  medianSizeNm?: number;      // Median size from cumulative distribution
-  uncertainties: {
-    volumeSizeStdErrNm: number;
-    areaSizeStdErrNm: number;
-    rmsStrainStdErr: number;
-    slopeCStdErr: number;
-    interceptCStdErr: number;
-    slopeGStdErr: number;
-    interceptGStdErr: number;
-  };
   cauchyFit: {
     slope: number;
     intercept: number;
     rSquared: number;
-    stdErrSlope?: number;
-    stdErrIntercept?: number;
   };
   gaussianFit: {
     slope: number;
     intercept: number;
     rSquared: number;
-    stdErrSlope?: number;
-    stdErrIntercept?: number;
-  };
-  columnDistribution: DoubleVoigtColumnDistributionPoint[];
-  anisotropySummary?: {
-    aspectRatio?: number;
-    habitType?: string;
-    cAxisElongated?: boolean;
-    notes?: string;
   };
   points: DoubleVoigtPoint[];
   zeroShiftApplied?: number;
   instrumentalModeUsed?: string;
   lpCorrectionApplied?: boolean;
-  kAlpha2CorrectionApplied?: boolean;
-  shapeKApplied?: number;
-  burgersVectorNm?: number;
-  youngsModulusGpa?: number;
 }
 
 export interface WHPoint {
@@ -651,7 +602,7 @@ export interface DLPhaseCandidate {
   card_id: string;
   formula: string;
   elements?: string[];
-  matched_peaks?: { refT: number; obsT: number; refI: number; obsI?: number; saliency?: number; h?: number; k?: number; l?: number }[];
+  matched_peaks?: { refT: number; obsT: number; refI: number; h?: number; k?: number; l?: number }[];
   fitted_strain_pct?: number;
   fitted_domain_size_broadening?: number;
   // Material Intelligence Metadata

@@ -28,9 +28,7 @@ import {
   extractMaterialPeaks,
   parseCustomPattern,
   getActivePalette,
-  optimizeAlignmentAndScale,
-  generateMarkdownReport,
-  extractPositiveResidualPeaks
+  optimizeAlignmentAndScale
 } from './diffraction_compare/compareUtils';
 import { PresetScenariosRibbon } from './diffraction_compare/PresetScenariosRibbon';
 import { SampleConfigurationPanel } from './diffraction_compare/SampleConfigurationPanel';
@@ -125,8 +123,6 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   // Modals
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isSearchMatchOpen, setIsSearchMatchOpen] = useState(false);
-  const [customSearchPeaks, setCustomSearchPeaks] = useState<PeakItem[] | null>(null);
-  const [searchModalTitle, setSearchModalTitle] = useState<string>('');
 
   // Derived Active Color Palette
   const activePalette = useMemo(() => {
@@ -367,39 +363,6 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setHasPhaseC(false);
       setHasPhaseD(false);
       showToast('Loaded Scenario: Graphene vs Graphite Interlayer');
-    } else if (key === 'mxene-ti3c2') {
-      setCustomNameA('Ti3C2Tx Delaminated MXene (Etched)');
-      setCustomFormulaA('Ti3C2(OH)x F_y');
-      setCustomPatternA('6.50(100), 19.10(15), 60.80(20)');
-      setSampleBInputMode('custom');
-      setCustomNameB('Ti3AlC2 MAX Phase Precursor');
-      setCustomFormulaB('Ti3AlC2');
-      setCustomPatternB('9.50(65), 19.10(15), 34.00(35), 36.70(30), 39.00(100), 41.80(25), 60.20(30)');
-      setHasPhaseC(false);
-      setHasPhaseD(false);
-      showToast('Loaded Scenario: MAX Phase to 2D MXene Etching');
-    } else if (key === 'superconductor-ybco') {
-      setCustomNameA('YBa2Cu3O7-delta (Orthorhombic-I 93K Superconductor)');
-      setCustomFormulaA('YBa2Cu3O6.95');
-      setCustomPatternA('22.80(20), 32.50(60), 32.80(100), 38.50(25), 40.30(20), 46.70(45), 47.50(40), 58.20(35), 58.80(30)');
-      setSampleBInputMode('custom');
-      setCustomNameB('YBa2Cu3O6 (Tetragonal-II Non-Superconducting)');
-      setCustomFormulaB('YBa2Cu3O6.0');
-      setCustomPatternB('22.75(20), 32.70(100), 38.45(25), 40.25(20), 47.10(80), 58.50(65)');
-      setHasPhaseC(false);
-      setHasPhaseD(false);
-      showToast('Loaded Scenario: YBCO Superconductor Phase Split');
-    } else if (key === 'hea-cantor') {
-      setCustomNameA('FeCoNiCrMn High-Entropy Alloy (Severe Strain Broadened)');
-      setCustomFormulaA('Fe0.2Co0.2Ni0.2Cr0.2Mn0.2');
-      setCustomPatternA('43.40(100), 50.55(45), 74.35(25), 89.95(20)');
-      setSampleBInputMode('custom');
-      setCustomNameB('Pure Austenitic FCC Fe-Matrix');
-      setCustomFormulaB('gamma-Fe (Fm-3m)');
-      setCustomPatternB('43.60(100), 50.80(40), 74.70(25), 90.70(20)');
-      setHasPhaseC(false);
-      setHasPhaseD(false);
-      showToast('Loaded Scenario: High-Entropy Cantor Alloy');
     }
   };
 
@@ -434,41 +397,6 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     showToast('Comprehensive XRD Report (.csv) downloaded');
   };
 
-  // Export Markdown Research Report
-  const handleExportMarkdown = () => {
-    const md = generateMarkdownReport(
-      materialA,
-      materialB,
-      materialC,
-      materialD,
-      metrics,
-      indexing.indexedPeaks,
-      phaseFractions
-    );
-
-    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `XRD_Report_${materialA.name.replace(/\s+/g, '_')}_vs_${materialB.name.replace(/\s+/g, '_')}.md`;
-    link.click();
-    URL.revokeObjectURL(url);
-    showToast('Publication-ready Markdown Report (.md) downloaded');
-  };
-
-  // Search unindexed residual peaks in database
-  const handleSearchResiduals = () => {
-    const residualPeaks = extractPositiveResidualPeaks(profileSynthesis.points, 5.0);
-    if (residualPeaks.length === 0) {
-      showToast('No significant positive unindexed peaks found in residual spectrum (>5% intensity)', 'info');
-      return;
-    }
-    setCustomSearchPeaks(residualPeaks);
-    setSearchModalTitle('Identify Unindexed Secondary Residual Peaks');
-    setIsSearchMatchOpen(true);
-    showToast(`Searching database with ${residualPeaks.length} residual reflection(s)`);
-  };
-
   // Jump to peak position on chart
   const handleJumpToPeak = (twoTheta: number) => {
     const leftVal = Math.max(10, Math.floor(twoTheta - 5));
@@ -499,13 +427,8 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       <PresetScenariosRibbon
         onSelectScenario={handleSelectScenario}
         onOpenGuide={() => setIsGuideOpen(true)}
-        onOpenSearchMatch={() => {
-          setCustomSearchPeaks(null);
-          setSearchModalTitle('');
-          setIsSearchMatchOpen(true);
-        }}
+        onOpenSearchMatch={() => setIsSearchMatchOpen(true)}
         onExportCSV={handleExportCSV}
-        onExportMarkdown={handleExportMarkdown}
       />
 
       {/* 2. Sample Configuration Panel */}
@@ -553,11 +476,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         setEngineSettings={setEngineSettings}
 
         onSwapSamples={handleSwapSamples}
-        onOpenSearchMatch={() => {
-          setCustomSearchPeaks(null);
-          setSearchModalTitle('');
-          setIsSearchMatchOpen(true);
-        }}
+        onOpenSearchMatch={() => setIsSearchMatchOpen(true)}
       />
 
       {/* 3. Main Recharts Diffraction Profile Viewer */}
@@ -617,19 +536,14 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         fracC={phaseFractions.fracC}
         fracD={phaseFractions.fracD}
         onJumpToPeak={handleJumpToPeak}
-        onSearchResiduals={handleSearchResiduals}
       />
 
       {/* Auto Search-Match Modal */}
       <AutoSearchMatchModal
         isOpen={isSearchMatchOpen}
-        onClose={() => {
-          setIsSearchMatchOpen(false);
-          setCustomSearchPeaks(null);
-          setSearchModalTitle('');
-        }}
-        targetPeaks={customSearchPeaks || targetPeaksA}
-        sampleAName={customSearchPeaks ? (searchModalTitle || 'Residual Impurity Spectrum') : materialA.name}
+        onClose={() => setIsSearchMatchOpen(false)}
+        targetPeaks={targetPeaksA}
+        sampleAName={materialA.name}
         materialsDb={materialsDb}
         onSelectAsReferenceB={(mat) => {
           const idx = materialsDb.findIndex(m => m.name === mat.name);

@@ -70,14 +70,16 @@ export const OriginProFWHMPlotter: React.FC = () => {
   const [plotImage, setPlotImage] = useState<string | null>(null);
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [pythonScript, setPythonScript] = useState<string>('');
+  const [originProScript, setOriginProScript] = useState<string>('');
   const [jupyterNotebook, setJupyterNotebook] = useState<string>('');
   const [metrics, setMetrics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedScript, setCopiedScript] = useState<boolean>(false);
   const [copiedNotebook, setCopiedNotebook] = useState<boolean>(false);
+  const [copiedOriginPro, setCopiedOriginPro] = useState<boolean>(false);
   const [isFullscreenModal, setIsFullscreenModal] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<'plot' | 'code' | 'jupyter' | 'explain'>('plot');
+  const [activeSubTab, setActiveSubTab] = useState<'plot' | 'code' | 'jupyter' | 'explain' | 'originpro'>('plot');
 
   // Trigger Python Rendering
   const fetchOriginPlot = async (forceAutoFit = false) => {
@@ -130,6 +132,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
         setSvgContent(data.svg || null);
         setPythonScript(data.python_code);
         setJupyterNotebook(data.jupyter_notebook || '');
+        setOriginProScript(data.originpro_script || '');
         setMetrics(data.metrics);
         
         // If auto-fitted, update the state values to match the fitted parameters
@@ -320,6 +323,14 @@ export const OriginProFWHMPlotter: React.FC = () => {
     setTimeout(() => setCopiedNotebook(false), 2000);
   };
 
+
+  const copyOriginProToClipboard = () => {
+    if (!originProScript) return;
+    navigator.clipboard.writeText(originProScript);
+    setCopiedOriginPro(true);
+    setTimeout(() => setCopiedOriginPro(false), 2000);
+  };
+
   const downloadPythonScriptFile = () => {
     if (!pythonScript) return;
     const blob = new Blob([pythonScript], { type: 'text/x-python' });
@@ -377,11 +388,11 @@ export const OriginProFWHMPlotter: React.FC = () => {
                   Python Matplotlib Origin & OriginPro XRD Peak Studio
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
-                  Matplotlib 3.10 + Scipy Optimization
+                  Matplotlib 3.10 + OriginPro (op) Integration
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                Academic-grade XRD peak fitting & deconvolution engine. Generates publication-quality OriginPro styled figures, true Voigt & Pseudo-Voigt profiles, Kα₁/Kα₂ doublet splitting, Scherrer size & microstrain, and exportable Jupyter Notebooks.
+                Academic-grade XRD peak fitting & deconvolution engine. Generates publication-quality OriginPro styled Matplotlib figures, true Voigt & Pseudo-Voigt profiles, Scherrer size & microstrain, and exportable Jupyter Notebooks & native OriginPro (op) LabTalk scripts.
               </p>
             </div>
           </div>
@@ -480,6 +491,19 @@ export const OriginProFWHMPlotter: React.FC = () => {
             <FileCode className="w-4 h-4 text-cyan-400" />
             Jupyter Notebook (.ipynb)
           </button>
+
+          <button
+            onClick={() => setActiveSubTab('originpro')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeSubTab === 'originpro'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <Cpu className="w-4 h-4 text-rose-400" />
+            OriginPro Native Script (op)
+          </button>
+
 
           <button
             onClick={() => setActiveSubTab('explain')}
@@ -1243,6 +1267,40 @@ export const OriginProFWHMPlotter: React.FC = () => {
             <pre className="p-4 rounded-xl bg-slate-950 text-cyan-300 text-xs font-mono overflow-x-auto leading-relaxed border border-slate-800 max-h-[500px]">
               {jupyterNotebook || '{\n  "cells": [],\n  "metadata": {}\n}'}
             </pre>
+          </div>
+        </div>
+      )}
+
+      
+      {/* SUBTAB 5: ORIGINPRO NATIVE SCRIPT */}
+      {activeSubTab === 'originpro' && (
+        <div className="bg-[#1e1e1e] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col min-h-[500px]">
+          <div className="bg-[#2d2d2d] px-4 py-3 flex items-center justify-between border-b border-black/40">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-rose-400" />
+              <div>
+                <h4 className="text-white text-xs font-bold font-mono tracking-wider">OriginPro Native Script (op module)</h4>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Executes natively inside OriginPro 2021+ Python Console, writes to Worksheet, plots to Graph</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyOriginProToClipboard}
+                className="px-3 py-1.5 rounded bg-[#3d3d3d] hover:bg-[#4d4d4d] text-white text-xs font-mono font-medium transition-colors flex items-center gap-1.5"
+              >
+                {copiedOriginPro ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-300" />}
+                {copiedOriginPro ? 'Copied' : 'Copy Code'}
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 p-4 overflow-auto font-mono text-[11px] leading-relaxed text-[#d4d4d4] select-text">
+            {originProScript ? (
+              <pre className="whitespace-pre">{originProScript}</pre>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-500 italic">
+                {isLoading ? 'Generating OriginPro script...' : 'Click "Re-render Matplotlib" to generate OriginPro script'}
+              </div>
+            )}
           </div>
         </div>
       )}
