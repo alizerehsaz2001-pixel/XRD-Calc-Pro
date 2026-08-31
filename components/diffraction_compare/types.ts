@@ -101,7 +101,7 @@ export type DiffTheme =
   | 'high-contrast'
   | 'custom';
 
-export type DiagTabMode = 'cards' | 'table' | 'quant' | 'strain' | 'search';
+export type DiagTabMode = 'cards' | 'table' | 'quant' | 'strain' | 'refinement' | 'search';
 
 export interface CurveColorPalette {
   colorA: string;
@@ -140,6 +140,33 @@ export interface CaliperMeasurement {
   deltaQ: number;
 }
 
+export interface SavedCaliperRecord extends CaliperMeasurement {
+  id: string;
+  timestamp: string;
+  label?: string;
+}
+
+export interface NelsonRileyPoint {
+  hkl: string;
+  twoTheta: number;
+  dSpacing: number;
+  fnr: number; // Nelson-Riley function value
+  apparentA: number;
+  residual: number;
+}
+
+export interface NelsonRileyFitResult {
+  a0: number; // Extrapolated true lattice parameter in Angstrom
+  stdErrA0: number;
+  slope: number;
+  rSquared: number;
+  points: NelsonRileyPoint[];
+  deltaA: number; // vs reference standard
+  strainPercent: number;
+  unitCellVolume: number;
+  deltaVolumePercent: number;
+}
+
 export interface CompareEngineSettings {
   peakShape: PeakShapeFunction;
   fwhm: number;
@@ -157,6 +184,7 @@ export interface CompareEngineSettings {
   smoothingFilter?: SmoothingFilter;
   intensityScale?: IntensityScaleType;
   stripBackground?: boolean;
+  waterfallOffset?: number; // Custom vertical offset in stacked view
 }
 
 

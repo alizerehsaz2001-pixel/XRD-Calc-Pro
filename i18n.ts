@@ -8298,14 +8298,34 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
+    keySeparator: false,
+    nsSeparator: false,
+    returnNull: false,
+    returnEmptyString: false,
     interpolation: {
       escapeValue: false
     }
   });
 
+function safeAddResource(lang: string, key: string, val: string) {
+  if (!lang || !key || typeof val !== 'string') return;
+  try {
+    const baseLang = lang.split('-')[0] || lang;
+    if (!i18n.hasResourceBundle(lang, 'translation')) {
+      i18n.addResourceBundle(lang, 'translation', {}, true, true);
+    }
+    if (!i18n.hasResourceBundle(baseLang, 'translation')) {
+      i18n.addResourceBundle(baseLang, 'translation', {}, true, true);
+    }
+    i18n.addResource(lang, 'translation', key, val);
+  } catch {
+    // Graceful fallback
+  }
+}
+
 // Helper to preload cached translations from localStorage
 function preloadCachedTranslations(lang: string) {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || !lang) return;
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const storageKey = localStorage.key(i);
@@ -8313,7 +8333,7 @@ function preloadCachedTranslations(lang: string) {
         const key = storageKey.slice(`trans_${lang}_`.length);
         const val = localStorage.getItem(storageKey);
         if (val) {
-          i18n.addResource(lang, 'translation', key, val);
+          safeAddResource(lang, key, val);
         }
       }
     }
@@ -8375,8 +8395,12 @@ function processTranslationQueue(lang: string) {
         Object.keys(translations).forEach(key => {
           const val = translations[key];
           if (val) {
-            localStorage.setItem(`trans_${lang}_${key}`, val);
-            i18n.addResource(lang, 'translation', key, val);
+            try {
+              localStorage.setItem(`trans_${lang}_${key}`, val);
+            } catch {
+              // Ignore storage errors
+            }
+            safeAddResource(lang, key, val);
           }
         });
         
@@ -8399,7 +8423,7 @@ function processTranslationQueue(lang: string) {
       console.warn('Dynamic translation notice:', err?.message || err);
       // Populate resources with original keys as fallback so UI remains functional
       keysToTranslate.forEach(k => {
-        i18n.addResource(lang, 'translation', k, k);
+        safeAddResource(lang, k, k);
       });
       if (i18n.language === lang) {
         i18n.emit('languageChanged', lang);
@@ -8482,7 +8506,7 @@ i18n.t = ((key: any, ...args: any[]) => {
   if (result === key) {
     const cached = typeof window !== 'undefined' ? localStorage.getItem(`trans_${currentLang}_${key}`) : null;
     if (cached) {
-      i18n.addResource(currentLang, 'translation', key, cached);
+      safeAddResource(currentLang, key, cached);
       return cached;
     }
     
