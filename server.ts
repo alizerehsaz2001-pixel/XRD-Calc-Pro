@@ -1023,6 +1023,63 @@ Format your response with clear academic markdown headings, bulleted lists, and 
     }
   });
 
+  app.post("/api/gemini/texture-advisor", async (req, res) => {
+    const { model, primaryAxis, secondaryAxis, rValue, r2Value, fraction, crystalSystem, lattice, metrics, fitQuality, reflections, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-texture',
+          }
+        }
+      });
+      
+      const prompt = `Please provide a rigorous crystallographic texture & preferred orientation analysis based on experimental XRD data:
+Texture Model: ${model}
+Fiber / Preferred Axis: [${primaryAxis}] ${secondaryAxis ? `& secondary [${secondaryAxis}]` : ''}
+March Parameter r: ${rValue} (r2 = ${r2Value || 'N/A'})
+Textured Fraction f: ${fraction}
+Crystal System & Lattice: ${crystalSystem} (a=${lattice.a}, b=${lattice.b}, c=${lattice.c})
+Lotgering Orientation Factor (F): ${metrics?.lotgeringF ?? 'N/A'} (p=${metrics?.lotgeringP}, p0=${metrics?.lotgeringP0})
+ASTM Degree of Orientation (sigma_TC): ${metrics?.degreeOfOrientationSigma ?? 'N/A'}
+Texture Entropy (S_tex): ${metrics?.textureEntropy ?? 'N/A'}
+Max Preferred Plane & TC: ${metrics?.maxPreferredPlane} (TC = ${metrics?.maxHarrisTC})
+Fit Quality (Rwp, chi2): ${JSON.stringify(fitQuality, null, 2)}
+Reflection Matrix Data: ${JSON.stringify(reflections?.slice(0, 8), null, 2)}
+
+Provide a comprehensive scientific report covering:
+1. Physical Mechanism & Habit Interpretation: Explain whether the sample exhibits basal platelet compaction (r < 1), columnar/acicular needle growth (r > 1), or rolling/shear deformation.
+2. Degree of Alignment & Quality Assessment: Quantitatively interpret the Lotgering factor F, Harris TC distribution, and ASTM orientation dispersion.
+3. Microstructural & Functional Implications: Discuss expected anisotropic properties (e.g. electrical conductivity, piezoelectric coefficient d33, magnetic anisotropy, mechanical ductility/Young's modulus).
+4. Rietveld Refinement Recommendations: Provide actionable guidance for TOPAS / GSAS-II / FullProf / MAUD refinements (e.g. harmonic expansion orders, absorption corrections, microstrain broadening deconvolution).
+Format your response with clean academic markdown headings, bulleted takeaways, and LaTeX crystallographic notation.`;
+
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Chief Crystallographer and Preferred Orientation / Texture Metrology Expert. " +
+            "Your mission is to provide rigorous, peer-reviewed level crystallographic texture diagnostics covering March-Dollase models, ODF spherical harmonics, Lotgering factors, Harris texture coefficients, and anisotropic thin-film/metallurgical properties.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+      
+      res.json({ success: true, text: result.text, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini Texture Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/coder-chat", async (req, res) => {
     const { messages, context, customKey, modelPreference } = req.body;
     try {
