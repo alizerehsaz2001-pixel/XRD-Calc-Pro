@@ -1,6 +1,6 @@
 {
   "name": "XRD-Calc Pro",
-  "description": "High-precision Bragg's Law calculator and diffraction analysis tool with AI-powered material peak suggestions, neural-net Phase-ID, and expanded nuclear material databases.",
+  "description": "High-precision Bragg's Law calculator, Magnetic Neutron Diffraction Studio, and 2D/3D Neutron Scatter Plane simulator with NIST isotope database, reciprocal lattice slicing, and Ewald sphere mapping.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

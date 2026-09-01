@@ -1,10 +1,28 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
-import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters, CrystalSystem } from '../types';
-import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS, NEUTRON_WAVELENGTHS, calculateCellVolume } from '../utils/physics';
+import { LatticeParameters, CrystalSystem, StandardWavelength } from '../types';
+import {
+  NeutronAtomExtended,
+  NIST_ISOTOPE_DB,
+  NUCLEAR_PRESETS,
+  NuclearPreset,
+  NuclearMetrics,
+  DetailedDiffractionSpectrum,
+  calculateComprehensiveNuclearMetrics,
+  calculateDetailedNuclearDiffraction
+} from '../utils/neutronDiffractionPhysics';
+import { calculateCellVolume } from '../utils/physics';
 import { ScientificMathControl } from './ScientificMathControl';
 import { fetchStandardWavelengths } from '../services/geminiService';
+
+// Subcomponents
+import { ReciprocalScatterPlaneView } from './neutron_diffraction/ReciprocalScatterPlaneView';
+import { NeutronKinematicsCalculator } from './neutron_diffraction/NeutronKinematicsCalculator';
+import { IsotopeContrastWorkbench } from './neutron_diffraction/IsotopeContrastWorkbench';
+import { UnitCellFourierMap } from './neutron_diffraction/UnitCellFourierMap';
+import { DebyeScherrerRings2D } from './neutron_diffraction/DebyeScherrerRings2D';
+import { SolventContrastMatchingTool } from './neutron_diffraction/SolventContrastMatchingTool';
+
 import {
   BarChart,
   Bar,
@@ -13,132 +31,80 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Cell,
   Legend,
   ComposedChart,
   Line
 } from 'recharts';
-import { Layers, Zap, Atom, Upload, Download, Info, ChevronDown, CheckCircle, Database } from 'lucide-react';
+import {
+  Layers,
+  Zap,
+  Atom,
+  Upload,
+  Download,
+  Info,
+  ChevronDown,
+  CheckCircle,
+  Database,
+  Grid,
+  Disc,
+  Activity,
+  Droplet,
+  Compass,
+  FileSpreadsheet,
+  RefreshCw,
+  Sparkles,
+  Share2,
+  Table
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-
-const INCOHERENT_CROSS_SECTIONS: Record<string, number> = {
-  'H': 80.26,
-  'D': 2.05,
-  'He': 0.0,
-  'Li': 0.9,
-  'Be': 0.003,
-  'B': 1.7,
-  'C': 0.001,
-  'N': 0.5,
-  'O': 0.0,
-  'F': 0.0008,
-  'Ne': 0.008,
-  'Na': 1.62,
-  'Mg': 0.08,
-  'Al': 0.01,
-  'Si': 0.004,
-  'P': 0.005,
-  'S': 0.007,
-  'Cl': 3.86,
-  'Ar': 0.22,
-  'K': 0.25,
-  'Ca': 0.05,
-  'Sc': 4.5,
-  'Ti': 2.87,
-  'V': 5.08,
-  'Cr': 1.66,
-  'Mn': 0.4,
-  'Fe': 0.4,
-  'Co': 4.8,
-  'Ni': 4.8,
-  'Cu': 0.5,
-  'Zn': 0.077,
-  'Ga': 0.14,
-  'Ge': 0.09,
-  'As': 0.06,
-  'Se': 0.06,
-  'Br': 0.1,
-  'Kr': 0.0,
-  'Rb': 0.5,
-  'Sr': 0.1,
-  'Y': 0.15,
-  'Zr': 0.02,
-  'Nb': 0.002,
-  'Mo': 0.04,
-  'Tc': 0.0,
-  'Ru': 0.05,
-  'Rh': 0.0,
-  'Pd': 0.09,
-  'Ag': 0.58,
-  'Cd': 0.0,
-  'In': 0.52,
-  'Sn': 0.02,
-  'Sb': 0.12,
-  'Te': 0.09,
-  'I': 0.31,
-  'Xe': 0.0,
-  'Cs': 0.08,
-  'Ba': 0.15,
-  'La': 1.13,
-  'Ce': 0.01,
-  'Pr': 1.6,
-  'Nd': 2.4,
-  'Pm': 0.0,
-  'Sm': 0.0,
-  'Eu': 0.0,
-  'Gd': 0.0,
-  'Tb': 0.0,
-  'Dy': 3.4,
-  'Ho': 0.0,
-  'Er': 0.0,
-  'Tm': 0.0,
-  'Yb': 0.0,
-  'Lu': 0.0,
-  'Hf': 0.1,
-  'Ta': 0.01,
-  'W': 0.004,
-  'Re': 0.003,
-  'Os': 0.02,
-  'Ir': 0.3,
-  'Pt': 0.06,
-  'Au': 0.43,
-  'Hg': 0.3,
-  'Tl': 0.0,
-  'Pb': 0.003,
-  'Bi': 0.003,
-  'Th': 0.0,
-  'U': 0.01
-};
 
 export const NeutronModule: React.FC = () => {
   const { lengthUnit = 'Å' } = useSettings();
-  const [wavelength, setWavelength] = useState<number>(1.54); 
+
+  // Wavelength & Beamline State
+  const [wavelength, setWavelength] = useState<number>(1.54);
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>([
-    { label: 'Thermal', value: 1.54, type: 'Neutron' },
-    { label: 'Cold (Be Filter)', value: 3.96, type: 'Neutron' },
+    { label: 'Thermal Powder (D2B / POWGEN)', value: 1.54, type: 'Neutron' },
+    { label: 'Standard Thermal (2200 m/s)', value: 1.798, type: 'Neutron' },
+    { label: 'Cold Neutron (Be Filter)', value: 3.96, type: 'Neutron' },
+    { label: 'Cold SANS (5.0 Å)', value: 5.0, type: 'Neutron' }
   ]);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lattice, setLattice] = useState<LatticeParameters>({
-    a: 4.20, b: 4.20, c: 4.20, alpha: 90, beta: 90, gamma: 90
-  });
-  const [comparisonMode, setComparisonMode] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [importJson, setImportJson] = useState("");
-  const [importError, setImportError] = useState<string | null>(null);
-  
+
+  // Crystal Lattice & Structure State
   const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
-  const [activeRightTab, setActiveRightTab] = useState<'pattern' | 'projection' | 'contrast' | 'rings' | 'solvent'>('pattern');
-  const [projectionPlane, setProjectionPlane] = useState<'ab' | 'bc' | 'ca'>('ab');
-  const [ringRenderMode, setRingRenderMode] = useState<'total' | 'neutron' | 'xray'>('total');
-  const [showIncoherentNoise, setShowIncoherentNoise] = useState(true);
-  const [d2oFraction, setD2oFraction] = useState(50);
-  const ringsCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [atoms, setAtoms] = useState<NeutronAtom[]>([
-    { id: '1', element: 'O', label: 'Oxygen', b: 5.80, x: 0, y: 0, z: 0, B_iso: 0.5 },
-    { id: '2', element: 'Mg', label: 'Magnesium', b: 5.38, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.4 },
+  const [lattice, setLattice] = useState<LatticeParameters>({
+    a: 4.21,
+    b: 4.21,
+    c: 4.21,
+    alpha: 90,
+    beta: 90,
+    gamma: 90
+  });
+
+  const [atoms, setAtoms] = useState<NeutronAtomExtended[]>([
+    { id: '1', element: 'Mg', label: 'Mg1', b: 5.38, x: 0, y: 0, z: 0, B_iso: 0.35 },
+    { id: '2', element: 'O', label: 'O1', b: 5.80, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.45 }
   ]);
 
-  const applySymmetry = (system: CrystalSystem, l: LatticeParameters) => {
+  const [activePresetId, setActivePresetId] = useState<string>('mgo_rocksalt');
+
+  // UI Tabs & Views
+  const [activeTab, setActiveTab] = useState<
+    'scatter_plane' | 'pattern' | 'rings' | 'isotopes' | 'fourier' | 'solvent' | 'kinematics'
+  >('scatter_plane');
+
+  const [comparisonMode, setComparisonMode] = useState<boolean>(true);
+  const [ringRadiationMode, setRingRadiationMode] = useState<'neutron' | 'xray' | 'dual'>('neutron');
+  const [d2oFraction, setD2oFraction] = useState<number>(50);
+
+  // Import / Export modals
+  const [showImport, setShowImport] = useState(false);
+  const [importJson, setImportJson] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
+
+  // Symmetry Constraint Enforcement
+  const applySymmetry = (system: CrystalSystem, l: LatticeParameters): LatticeParameters => {
     switch (system) {
       case 'Cubic':
         return { ...l, b: l.a, c: l.a, alpha: 90, beta: 90, gamma: 90 };
@@ -160,1252 +126,739 @@ export const NeutronModule: React.FC = () => {
     setLattice(applySymmetry(crystalSystem, nextLattice));
   };
 
-  const [neutronResults, setNeutronResults] = useState<NeutronResult[]>([]);
-  const [xrayResults, setXrayResults] = useState<NeutronResult[]>([]);
-
-  const handleCalculate = () => {
-    const nResults = calculateNeutronDiffraction(wavelength, lattice, atoms);
-    setNeutronResults(nResults);
-
-    if (comparisonMode) {
-      const xResults = calculateXRayDiffraction(wavelength, lattice, atoms);
-      setXrayResults(xResults);
-    } else {
-      setXrayResults([]);
-    }
+  const handleSystemChange = (system: CrystalSystem) => {
+    setCrystalSystem(system);
+    setLattice(applySymmetry(system, lattice));
   };
 
-  const handleExport = () => {
-    const data = {
-      lattice,
-      atoms,
-      wavelength,
-      timestamp: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `neutron-structure-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Atom Management
+  const addAtom = () => {
+    const newId = String(Date.now());
+    setAtoms([
+      ...atoms,
+      { id: newId, element: 'O', label: `O${atoms.length + 1}`, b: 5.80, x: 0, y: 0, z: 0, B_iso: 0.5 }
+    ]);
   };
 
+  const removeAtom = (id: string) => {
+    if (atoms.length <= 1) return;
+    setAtoms(atoms.filter(a => a.id !== id));
+  };
+
+  const updateAtom = (id: string, field: keyof NeutronAtomExtended, value: any) => {
+    setAtoms(
+      atoms.map(a => {
+        if (a.id === id) {
+          const updated = { ...a, [field]: value };
+          if (field === 'element') {
+            const iso = NIST_ISOTOPE_DB[value];
+            if (iso) {
+              updated.b = iso.b_c;
+            }
+          }
+          return updated;
+        }
+        return a;
+      })
+    );
+  };
+
+  // Apply Benchmark Preset
+  const handleApplyPreset = (preset: NuclearPreset) => {
+    setActivePresetId(preset.id);
+    setCrystalSystem(preset.crystalSystem);
+    setLattice(preset.lattice);
+    setWavelength(preset.wavelength);
+    setAtoms(preset.atoms);
+  };
+
+  // Synchronize Wavelengths
   const handleSync = async () => {
     setIsSyncing(true);
     try {
       const latest = await fetchStandardWavelengths();
-      if (latest.length > 0) {
+      if (latest && latest.length > 0) {
         setAvailableWavelengths(latest.filter(w => w.type === 'Neutron'));
       }
-    } catch (err) {
-      console.error("Sync failed", err);
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsSyncing(false);
     }
   };
 
+  // Computations
+  const detailedReflections: DetailedDiffractionSpectrum[] = useMemo(() => {
+    return calculateDetailedNuclearDiffraction(wavelength, lattice, atoms, 110);
+  }, [wavelength, lattice, atoms]);
+
+  const metrics: NuclearMetrics = useMemo(() => {
+    return calculateComprehensiveNuclearMetrics(lattice, atoms, wavelength);
+  }, [lattice, atoms, wavelength]);
+
+  // Export JSON
+  const handleExportJSON = () => {
+    const data = {
+      title: 'Neutron Scatter Plane Crystal Dataset',
+      timestamp: new Date().toISOString(),
+      crystalSystem,
+      wavelength,
+      lattice,
+      atoms,
+      metrics
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `neutron-scatter-plane-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export CSV of diffraction reflections
+  const handleExportCSV = () => {
+    const headers = ['h', 'k', 'l', '2Theta_deg', 'd_spacing_A', 'q_mag_A-1', 'F_nuc_sq', 'Phase_deg', 'Intensity_nuc_pct', 'Intensity_xray_pct'];
+    const rows = detailedReflections.map(r => [
+      r.hkl[0],
+      r.hkl[1],
+      r.hkl[2],
+      r.twoTheta.toFixed(4),
+      r.dSpacing.toFixed(4),
+      r.qMag.toFixed(4),
+      r.F_nuc_sq.toFixed(2),
+      r.phase_nuc_deg.toFixed(1),
+      r.intensity_nuc.toFixed(2),
+      r.intensity_xray.toFixed(2)
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `neutron-reflections-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import JSON
   const handleImport = () => {
     try {
-      const data = JSON.parse(importJson);
-      if (data.lattice) {
-        setLattice({
-          a: data.lattice.a || 4.2,
-          b: data.lattice.b || data.lattice.a || 4.2,
-          c: data.lattice.c || data.lattice.a || 4.2,
-          alpha: data.lattice.alpha || 90,
-          beta: data.lattice.beta || 90,
-          gamma: data.lattice.gamma || 90
-        });
-      }
-      if (data.atoms && Array.isArray(data.atoms)) {
-        const newAtoms = data.atoms.map((a: any) => ({
-          id: a.id || Date.now().toString() + Math.random(),
-          element: a.element,
-          label: a.label || a.element,
-          b: a.b || NEUTRON_SCATTERING_LENGTHS[a.element] || 0,
-          x: a.x,
-          y: a.y,
-          z: a.z,
-          B_iso: a.B_iso || 0.5
-        }));
-        setAtoms(newAtoms);
-      }
+      const parsed = JSON.parse(importJson);
+      if (parsed.lattice) setLattice(parsed.lattice);
+      if (parsed.atoms) setAtoms(parsed.atoms);
+      if (parsed.wavelength) setWavelength(parsed.wavelength);
+      if (parsed.crystalSystem) setCrystalSystem(parsed.crystalSystem);
       setShowImport(false);
-      setImportJson("");
       setImportError(null);
-    } catch (e) {
-      setImportError("Invalid JSON structure. Please check commas, quotes, and braces.");
+    } catch (e: any) {
+      setImportError('Invalid JSON structure. Please verify formatting.');
     }
   };
 
-  useEffect(() => {
-    handleCalculate();
-  }, [atoms, wavelength, lattice, comparisonMode]);
-
-  const addAtom = () => {
-    setAtoms([...atoms, { 
-      id: Date.now().toString(), 
-      element: 'H', 
-      label: 'Hydrogen', 
-      b: -3.74, 
-      x: 0, 
-      y: 0, 
-      z: 0, 
-      B_iso: 0 
-    }]);
-  };
-
-  const removeAtom = (id: string) => {
-    setAtoms(atoms.filter(a => a.id !== id));
-  };
-
-  const updateAtom = (id: string, field: keyof NeutronAtom, value: any) => {
-    setAtoms(atoms.map(a => {
-      if (a.id === id) {
-        const updated = { ...a, [field]: value };
-        if (field === 'element' && NEUTRON_SCATTERING_LENGTHS[value]) {
-          updated.b = NEUTRON_SCATTERING_LENGTHS[value];
-        }
-        return updated;
-      }
-      return a;
-    }));
-  };
-
-  const loadPreset = (type: 'MgO' | 'D2O' | 'SrTiO3' | 'MnO') => {
-    if (type === 'MgO') {
-       setLattice({ a: 4.21, b: 4.21, c: 4.21, alpha: 90, beta: 90, gamma: 90 });
-       setAtoms([
-         { id: '1', element: 'Mg', label: 'Mg', b: 5.38, x: 0, y: 0, z: 0, B_iso: 0.3 },
-         { id: '2', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5 }
-       ]);
-    } else if (type === 'D2O') {
-       setLattice({ a: 6.35, b: 6.35, c: 6.35, alpha: 90, beta: 90, gamma: 90 });
-       setAtoms([
-         { id: '1', element: 'O', label: 'O', b: 5.80, x: 0, y: 0, z: 0, B_iso: 1.0 },
-         { id: '2', element: 'D', label: 'D', b: 6.67, x: 0.33, y: 0.33, z: 0.33, B_iso: 1.5 },
-         { id: '3', element: 'D', label: 'D', b: 6.67, x: 0.66, y: 0.66, z: 0.66, B_iso: 1.5 }
-       ]);
-    } else if (type === 'SrTiO3') {
-       setLattice({ a: 3.905, b: 3.905, c: 3.905, alpha: 90, beta: 90, gamma: 90 });
-       setAtoms([
-         { id: '1', element: 'Sr', label: 'Sr', b: 7.02, x: 0, y: 0, z: 0, B_iso: 0.4 },
-         { id: '2', element: 'Ti', label: 'Ti', b: -3.44, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.4 },
-         { id: '3', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0.5, z: 0, B_iso: 0.6 },
-         { id: '4', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0, z: 0.5, B_iso: 0.6 },
-         { id: '5', element: 'O', label: 'O', b: 5.80, x: 0, y: 0.5, z: 0.5, B_iso: 0.6 },
-       ]);
-    } else if (type === 'MnO') {
-      setLattice({ a: 4.44, b: 4.44, c: 4.44, alpha: 90, beta: 90, gamma: 90 });
-      setAtoms([
-        { id: '1', element: 'Mn', label: 'Mn (Neg b!)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5 },
-        { id: '2', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5 }
-      ]);
-    }
-  };
-
-  // Debye-Scherrer powder rings canvas effect
-  useEffect(() => {
-    const canvas = ringsCanvasRef.current;
-    if (!canvas || activeRightTab !== 'rings') return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    const width = rect.width;
-    const height = rect.height;
-
-    // Background: dark space look
-    ctx.fillStyle = '#090d16';
-    ctx.fillRect(0, 0, width, height);
-
-    const cx = width / 2;
-    const cy = height / 2;
-
-    // Center beam stop (classical detector design)
-    ctx.beginPath();
-    ctx.arc(cx, cy, 7, 0, 2 * Math.PI);
-    ctx.fillStyle = '#1e293b';
-    ctx.fill();
-
-    // Beam stop outline/lead cup shadow
-    ctx.beginPath();
-    ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
-    ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Scale parameter for rings
-    const scaleFactor = width / 2.3;
-
-    // Calculate background noise level based on incoherent scattering
-    const totalInc = atoms.reduce((acc, atom) => {
-      const cs = INCOHERENT_CROSS_SECTIONS[atom.element] ?? 0.1;
-      return acc + cs;
-    }, 0);
-    const noiseFactor = showIncoherentNoise ? Math.min(0.8, (totalInc / (atoms.length || 1)) * 0.12) : 0;
-
-    // Draw diffuse incoherent haze if noise is present
-    if (noiseFactor > 0) {
-      const gradient = ctx.createRadialGradient(cx, cy, 10, cx, cy, width * 0.7);
-      gradient.addColorStop(0, `rgba(148, 163, 184, ${noiseFactor * 0.35})`);
-      gradient.addColorStop(0.5, `rgba(148, 163, 184, ${noiseFactor * 0.18})`);
-      gradient.addColorStop(1, 'rgba(148, 163, 184, 0)');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-      
-      // Draw background noise speckles (haze)
-      ctx.fillStyle = `rgba(148, 163, 184, ${noiseFactor * 0.45})`;
-      const speckleCount = Math.floor(noiseFactor * 250);
-      for (let s = 0; s < speckleCount; s++) {
-        const sx = Math.random() * width;
-        const sy = Math.random() * height;
-        ctx.fillRect(sx, sy, 1, 1);
-      }
-    }
-
-    const currentResults = ringRenderMode === 'xray' ? xrayResults : neutronResults;
-
-    currentResults.forEach((r) => {
-      const intensity = r.intensity;
-      let color = ringRenderMode === 'xray' ? 'rgba(168, 85, 247, 0.45)' : 'rgba(59, 130, 246, 0.45)';
-
-      if (intensity < 0.1) return;
-
-      const twoThetaRad = (r.twoTheta / 2) * (Math.PI / 180);
-      if (r.twoTheta >= 90) return; // falls out of front plate detector
-
-      const R = scaleFactor * Math.tan(twoThetaRad * 2);
-      if (R <= 0 || R > width) return;
-
-      // Draw the main blurred ring
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, 2 * Math.PI);
-      const alpha = Math.max(0.05, 0.15 + (intensity / 100) * 0.65 - noiseFactor * 0.12);
-      ctx.strokeStyle = color.replace('0.45', alpha.toString());
-      ctx.lineWidth = 1.0 + (intensity / 100) * 3;
-      ctx.stroke();
-
-      // Add spotty graininess (powder speckles)
-      const spotCount = Math.floor(intensity * 1.8);
-      ctx.fillStyle = color.replace('0.45', '0.85');
-      for (let s = 0; s < spotCount; s++) {
-        const angle = Math.random() * 2 * Math.PI;
-        const rDev = (Math.random() - 0.5) * (1.2 + (intensity / 100) * 1.5);
-        const sx = cx + (R + rDev) * Math.cos(angle);
-        const sy = cy + (R + rDev) * Math.sin(angle);
-        ctx.fillRect(sx, sy, 1.2, 1.2);
-      }
-    });
-
-    // Label for the center beam stop
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
-    ctx.font = 'bold 8px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(ringRenderMode === 'xray' ? 'X-RAY BEAM STOP' : 'NEUTRON BEAM STOP', cx, cy - 10);
-  }, [neutronResults, xrayResults, activeRightTab, ringRenderMode, showIncoherentNoise, atoms]);
-
-  // Incoherent scattering calculation
-  const totalIncoherentCrossSection = atoms.reduce((acc, atom) => {
-    const cs = INCOHERENT_CROSS_SECTIONS[atom.element] ?? 0.1;
-    return acc + cs;
-  }, 0);
-  const averageIncoherentCrossSection = totalIncoherentCrossSection / (atoms.length || 1);
-
-  // Merge results for chart
-  const chartData = neutronResults.map(n => {
-    const x = xrayResults.find(x => x.hkl.join('') === n.hkl.join(''));
-    return {
-      ...n,
-      xrayIntensity: x ? x.intensity : 0,
-      label: n.hkl.join('')
-    };
-  });
-
-  // Physical parameters of the Neutron Unit Cell
-  const cellVolume = calculateCellVolume ? calculateCellVolume(lattice) : (lattice.a * lattice.b * lattice.c);
-  const totalB = atoms.reduce((acc, atom) => acc + atom.b, 0);
-  const sumBSq = atoms.reduce((acc, atom) => acc + atom.b * atom.b, 0);
-  const cellSLD = cellVolume > 0 ? (10 * totalB) / cellVolume : 0;
-  const coherentCrossSection = sumBSq * 4 * Math.PI * 0.01; // barns
-
-  // Solvent Contrast Matching calculations
-  const solventSLD = (d2oFraction / 100) * 6.38 + (1 - d2oFraction / 100) * (-0.56);
-  const contrastFactor = Math.pow(cellSLD - solventSLD, 2);
-
-  const contrastPoints = Array.from({ length: 11 }, (_, i) => {
-    const pct = i * 10;
-    const solvSLD = (pct / 100) * 6.38 + (1 - pct / 100) * (-0.56);
-    return {
-      d2o: pct,
-      solventSLD: parseFloat(solvSLD.toFixed(3)),
-      sampleSLD: parseFloat(cellSLD.toFixed(3)),
-      contrastSq: parseFloat(Math.pow(cellSLD - solvSLD, 2).toFixed(3))
-    };
-  });
+  const activePreset = NUCLEAR_PRESETS.find(p => p.id === activePresetId) || NUCLEAR_PRESETS[0];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
-      <div className="lg:col-span-5 space-y-6">
-        <div className="bg-[#0B1228] p-6 lg:p-8 rounded-3xl shadow-2xl border border-blue-500/15 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-          
-          {/* Corner Accents */}
-          <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-blue-500/40 pointer-events-none" />
-          <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-blue-500/40 pointer-events-none" />
-          <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-blue-500/40 pointer-events-none" />
-          <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-blue-500/40 pointer-events-none" />
+    <div className="flex flex-col gap-6 text-slate-100 max-w-7xl mx-auto w-full pb-16">
+      {/* Top Banner & Header */}
+      <div className="bg-[#070D18] p-6 rounded-3xl border border-white/10 relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-600/10 rounded-full blur-[90px] pointer-events-none" />
 
-          <div className="flex justify-between items-center mb-6 relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-2xl border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.25)] transition-all">
-                <Atom className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                  <span className="text-[9px] font-mono font-bold tracking-widest uppercase text-blue-400">
-                    [NEU-CELL] • NUCLEAR STRUCTURE
-                  </span>
-                </div>
-                <h2 className="text-xl font-black text-white uppercase tracking-tight leading-none">Neutron Cell</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Config & Simulation Matrix</p>
-              </div>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 text-left">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                Nuclear Analytics & Kinematics
+              </span>
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Isotope-Sensitive Scatter Plane
+              </span>
             </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setShowImport(true)}
-                className="group relative px-3 py-2 bg-[#070C18]/80 border border-white/5 rounded-xl transition-all hover:border-indigo-500/40 hover:bg-indigo-500/10 shadow-sm"
-              >
-                <div className="flex items-center gap-2 relative z-10">
-                  <Upload className="w-3.5 h-3.5 text-indigo-400 group-hover:text-indigo-300 transition-colors" />
-                  <span className="text-[9px] font-mono font-black text-slate-400 group-hover:text-indigo-300 uppercase tracking-widest transition-colors">Import</span>
-                </div>
-              </button>
-              <button 
-                onClick={handleExport}
-                className="group relative px-3 py-2 bg-[#070C18]/80 border border-white/5 rounded-xl transition-all hover:border-emerald-500/40 hover:bg-emerald-500/10 shadow-sm"
-              >
-                <div className="flex items-center gap-2 relative z-10">
-                  <Download className="w-3.5 h-3.5 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
-                  <span className="text-[9px] font-mono font-black text-slate-400 group-hover:text-emerald-300 uppercase tracking-widest transition-colors">Export</span>
-                </div>
-              </button>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Neutron Scatter Plane Studio
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-3xl leading-relaxed">
+              Model nuclear bound scattering lengths b_c, destructive negative phase interference (¹H, ⁴⁸Ti, ⁶²Ni), 2D reciprocal space slices (HK0, H0L), Ewald limits, 2D Debye-Scherrer detector halos, and solvent SANS contrast matching.
+            </p>
           </div>
 
-          <div className="flex gap-2 mb-8 relative z-10 overflow-x-auto pb-2 scrollbar-hide">
-            {[ 
-              { id: 'MgO', label: 'MgO', color: 'blue' },
-              { id: 'D2O', label: 'D₂O', color: 'indigo' },
-              { id: 'SrTiO3', label: 'SrTiO₃', color: 'cyan' },
-              { id: 'MnO', label: 'MnO', color: 'rose' }
-            ].map((preset) => (
-              <button 
-                key={preset.id}
-                onClick={() => loadPreset(preset.id as any)} 
-                className="px-4 py-2 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 active:scale-95 group shrink-0"
-              >
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">{preset.label}</span>
-              </button>
-            ))}
+          {/* Action Bar */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-slate-300 border border-white/10 text-xs font-bold transition-all shadow-sm"
+            >
+              <Upload className="w-3.5 h-3.5" /> Import
+            </button>
+            <button
+              onClick={handleExportJSON}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-slate-300 border border-white/10 text-xs font-bold transition-all shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" /> Export JSON
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 text-xs font-bold transition-all shadow-sm"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Reflections CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Benchmark Presets Carousel */}
+        <div className="mt-6 pt-5 border-t border-white/10">
+          <div className="flex items-center justify-between mb-3 text-left">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Benchmark Nuclear Materials & Case Studies:
+            </span>
+            <span className="text-[10px] font-mono text-slate-500">
+              {NUCLEAR_PRESETS.length} Validated Crystals
+            </span>
           </div>
 
-          {showImport && (
-            <div className="fixed inset-0 bg-slate-950/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-800 relative text-left"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl" />
-                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Import Crystal Structure</h3>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Paste Structure JSON</p>
-                
-                {importError && (
-                  <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-mono font-medium leading-relaxed">
-                    ⚠ {importError}
+          <div className="flex gap-2.5 overflow-x-auto pb-2 custom-scrollbar">
+            {NUCLEAR_PRESETS.map(p => {
+              const isSelected = activePresetId === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleApplyPreset(p)}
+                  className={`px-3.5 py-2.5 rounded-2xl border text-left shrink-0 transition-all flex flex-col justify-between max-w-[210px] ${
+                    isSelected
+                      ? 'bg-blue-500/20 border-blue-500/50 shadow-md ring-1 ring-blue-500/30'
+                      : 'bg-black/30 border-white/5 hover:border-white/20 hover:bg-black/50'
+                  }`}
+                >
+                  <div className="space-y-1">
+                    <span className="text-xs font-black text-white font-mono block truncate">
+                      {p.name.split('(')[0]}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400 block truncate">
+                      {p.category}
+                    </span>
                   </div>
-                )}
+                  <span className="text-[8px] font-mono text-blue-400 mt-2 font-bold block">
+                    {p.crystalSystem} • {p.atoms.length} sites
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-                <textarea
-                  value={importJson}
-                  onChange={(e) => {
-                    setImportJson(e.target.value);
-                    if (importError) setImportError(null);
-                  }}
-                  placeholder='{"lattice": {"a": 4.2}, "atoms": [...]}'
-                  className="w-full h-48 p-4 bg-black/40 border border-slate-800 rounded-2xl font-mono text-xs mb-6 focus:ring-2 focus:ring-blue-500 outline-none text-slate-300 resize-none"
-                />
-                <div className="flex justify-end gap-4">
-                  <button 
-                    onClick={() => {
-                      setShowImport(false);
-                      setImportError(null);
-                    }}
-                    className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={handleImport}
-                    className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-[10px] font-black uppercase tracking-widest text-white rounded-xl shadow-[0_0_30px_rgba(37,99,235,0.2)] transition-all active:scale-95"
-                  >
-                    Load Data
-                  </button>
-                </div>
-              </motion.div>
+          {/* Active Preset Scientific Insight Banner */}
+          {activePreset && (
+            <div className="mt-3 p-3.5 rounded-2xl bg-black/40 border border-white/5 text-left text-xs flex items-start gap-3">
+              <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-white font-bold">{activePreset.name}: </strong>
+                <span className="text-slate-300 leading-relaxed font-normal">{activePreset.scientificInsight}</span>
+              </div>
             </div>
           )}
+        </div>
+      </div>
 
-            <div className="grid grid-cols-2 gap-6 mb-6 relative z-10">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Crystal System</label>
-                <div className="relative">
-                  <select
-                    value={crystalSystem}
-                    onChange={(e) => {
-                      const sys = e.target.value as CrystalSystem;
-                      setCrystalSystem(sys);
-                      setLattice(applySymmetry(sys, lattice));
-                    }}
-                    className="w-full appearance-none px-4 py-3 bg-[#070C18]/80 text-blue-400 border border-white/10 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer pr-10 shadow-inner"
-                  >
-                    {['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'].map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                </div>
+      {/* Main Studio Grid: Left Config Panel + Right Analytics Display */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Side: Unit Cell & Lattice Configuration (4 Cols) */}
+        <div className="lg:col-span-4 space-y-5">
+          {/* Unit Cell & Beamline Parameters */}
+          <div className="bg-[#0B1528] p-5 rounded-3xl border border-white/10 shadow-xl space-y-5 text-left">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Grid className="w-4 h-4 text-blue-400" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-white">
+                  Diffractometer & Cell Setup
+                </h3>
               </div>
-              <div className="space-y-2">
-                 <div className="flex justify-between items-center">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength ({lengthUnit})</label>
-                   <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 text-[9px] font-black text-blue-400 hover:bg-blue-500/20 transition-colors uppercase tracking-widest border border-blue-500/30">
-                     <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
-                   </button>
-                 </div>
-                 <div className="relative group">
-                   <input
-                    type="number"
-                    step="0.01"
-                    value={String(wavelength) === 'NaN' ? '' : convertLength(wavelength, lengthUnit)}
-                    onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
-                    className="w-full px-4 py-3 bg-[#070C18]/80 text-blue-400 border border-white/10 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-blue-500/30 shadow-inner"
-                   />
-                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">{lengthUnit}</span>
-                 </div>
-                 <div className="mt-3 grid grid-cols-2 gap-2">
-                   {Object.entries(NEUTRON_WAVELENGTHS).map(([name, val]) => (
-                     <button
-                       key={name}
-                       onClick={() => setWavelength(val)}
-                       className={`py-1.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all shadow-sm
-                         ${Math.abs(wavelength - val) < 0.0001 
-                           ? 'bg-blue-500/20 border-blue-500/50 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.15)]' 
-                           : 'bg-[#070C18]/60 border-white/5 text-slate-500 hover:text-blue-400 hover:border-blue-500/30'
-                         }
-                       `}
-                     >
-                       {name.replace(' (avg)', '')}
-                     </button>
-                   ))}
-                 </div>
+              <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                {crystalSystem}
+              </span>
+            </div>
+
+            {/* Wavelength Selection */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                <span>Neutron Wavelength (λ):</span>
+                <span className="font-mono text-blue-400 font-bold">{wavelength.toFixed(3)} {lengthUnit}</span>
+              </div>
+
+              <div className="flex gap-2">
+                <select
+                  value={wavelength}
+                  onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                  className="flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-blue-500/40"
+                >
+                  {availableWavelengths.map(w => (
+                    <option key={`${w.label}-${w.value}`} value={w.value}>
+                      {w.label} ({w.value} Å)
+                    </option>
+                  ))}
+                  <option value={1.54}>Thermal Powder (1.54 Å)</option>
+                  <option value={1.798}>Standard 2200 m/s (1.798 Å)</option>
+                  <option value={2.41}>Filter Cutoff (2.41 Å)</option>
+                  <option value={3.96}>Cold Be-Filter (3.96 Å)</option>
+                  <option value={5.0}>Cold SANS (5.00 Å)</option>
+                </select>
+
+                <button
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                  className="p-2 rounded-xl bg-black/40 border border-white/10 text-slate-400 hover:text-white"
+                  title="Sync Wavelengths"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                </button>
               </div>
             </div>
 
-            <div className="space-y-8 relative z-10">
-              <div className="space-y-6">
-                <div className="space-y-4 p-4 rounded-2xl bg-[#070C18]/60 border border-white/5 shadow-inner">
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { axis: 'a', disabled: false },
-                      { axis: 'b', disabled: ['Cubic', 'Tetragonal', 'Hexagonal'].includes(crystalSystem) },
-                      { axis: 'c', disabled: ['Cubic'].includes(crystalSystem) }
-                    ].map((item) => (
-                      <div key={item.axis} className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{item.axis} ({lengthUnit})</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          disabled={item.disabled}
-                          value={String(lattice[item.axis as keyof LatticeParameters]) === 'NaN' ? '' : convertLength(Number(lattice[item.axis as keyof LatticeParameters]), lengthUnit)}
-                          onChange={(e) => handleLatticeChange(item.axis as keyof LatticeParameters, convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
-                          className={`w-full px-3 py-2 bg-black/40 text-blue-400 border border-white/10 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all shadow-inner ${item.disabled ? 'opacity-40 cursor-not-allowed border-dashed' : 'hover:border-blue-500/30'}`}
-                        />
-                      </div>
-                    ))}
+            {/* Crystal System Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
+                Crystal Symmetry Class
+              </label>
+              <select
+                value={crystalSystem}
+                onChange={(e) => handleSystemChange(e.target.value as CrystalSystem)}
+                className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-blue-500/40"
+              >
+                <option value="Cubic">Cubic (a = b = c, α = β = γ = 90°)</option>
+                <option value="Tetragonal">Tetragonal (a = b ≠ c, 90°)</option>
+                <option value="Hexagonal">Hexagonal (a = b, γ = 120°)</option>
+                <option value="Orthorhombic">Orthorhombic (a ≠ b ≠ c, 90°)</option>
+                <option value="Monoclinic">Monoclinic (β ≠ 90°)</option>
+                <option value="Triclinic">Triclinic (Arbitrary)</option>
+              </select>
+            </div>
+
+            {/* Lattice Dimensions */}
+            <div className="space-y-2">
+              <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">
+                Direct Lattice Constants ({lengthUnit} / °)
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['a', 'b', 'c'] as const).map(param => (
+                  <div key={param} className="space-y-1">
+                    <span className="text-[8px] font-mono text-slate-500 uppercase block font-bold">{param} ({lengthUnit})</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.5"
+                      value={lattice[param]}
+                      onChange={(e) => handleLatticeChange(param, parseFloat(e.target.value) || 1)}
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-blue-300 focus:outline-none focus:border-blue-500/40"
+                    />
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { angle: 'alpha', label: 'α', disabled: ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic'].includes(crystalSystem) },
-                      { angle: 'beta', label: 'β', disabled: ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic'].includes(crystalSystem) },
-                      { angle: 'gamma', label: 'γ', disabled: ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic'].includes(crystalSystem) }
-                    ].map((item) => (
-                      <div key={item.angle} className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{item.label}°</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          disabled={item.disabled}
-                          value={String(lattice[item.angle as keyof LatticeParameters]) === 'NaN' ? '' : lattice[item.angle as keyof LatticeParameters]}
-                          onChange={(e) => handleLatticeChange(item.angle as keyof LatticeParameters, parseFloat(e.target.value))}
-                          className={`w-full px-3 py-2 bg-black/40 text-blue-400 border border-white/10 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all shadow-inner ${item.disabled ? 'opacity-40 cursor-not-allowed border-dashed' : 'hover:border-blue-500/30'}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
 
-            <div className="pt-8 border-t border-white/10 relative z-10">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-1 h-3 bg-blue-500 rounded-full" />
-                  <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Atomic Basis</h4>
-                </div>
-                <button 
-                  onClick={addAtom} 
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
-                >
-                  <Atom className="w-3.5 h-3.5" />
-                  Add Atom
-                </button>
-              </div>
-              
-              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
-                {atoms.map((atom, idx) => (
-                  <div key={atom.id || idx} className="bg-[#070C18]/80 p-5 rounded-2xl border border-white/10 group/atom hover:border-blue-500/30 hover:bg-[#0A1224] transition-all relative shadow-inner">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
-                       <div className="flex flex-wrap items-center gap-2">
-                         <div className="relative">
-                            <select 
-                              value={atom.element}
-                              onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
-                              className="appearance-none font-black bg-black/40 text-white border border-white/10 px-4 py-2 rounded-xl cursor-pointer text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all w-24 text-center pr-8 shadow-inner"
-                            >
-                              {Object.keys(NEUTRON_SCATTERING_LENGTHS).sort().map(el => (
-                                <option key={el} value={el}>{el}</option>
-                              ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                            </div>
-                         </div>
-                         {atom.b < 0 && (
-                            <span className="px-2 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] font-black uppercase tracking-wider animate-pulse whitespace-nowrap shrink-0 shadow-sm">
-                              Negative b
-                            </span>
-                         )}
-                         {atom.element === 'H' && (
-                            <button
-                              onClick={() => {
-                                updateAtom(atom.id, 'element', 'D');
-                              }}
-                              className="px-2 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[9px] font-black uppercase tracking-wider hover:bg-violet-500/20 hover:border-violet-400 transition-colors shrink-0 shadow-sm"
-                              title="Exchange to Deuterium for higher coherent contrast"
-                            >
-                              ➔ D₂O Swap
-                            </button>
-                         )}
-                         {atom.element === 'D' && (
-                            <button
-                              onClick={() => {
-                                updateAtom(atom.id, 'element', 'H');
-                              }}
-                              className="px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] font-black uppercase tracking-wider hover:bg-blue-500/20 hover:border-blue-400 transition-colors shrink-0 shadow-sm"
-                            >
-                              ➔ H Swap
-                            </button>
-                         )}
-                       </div>
-
-                       <div className="flex-1 flex items-center justify-between px-4 py-2 bg-black/60 border border-white/5 rounded-xl min-w-[140px] shadow-inner">
-                          <div className="flex items-center gap-4">
-                            <div className="space-y-0.5 text-left">
-                              <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none">Width b</p>
-                              <p className={`text-xs font-mono font-black ${atom.b < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                {atom.b.toFixed(2)} <span className="text-[8px] opacity-60 font-sans font-medium text-slate-500">fm</span>
-                              </p>
-                            </div>
-                            <div className="w-px h-6 bg-white/10" />
-                            <div className="space-y-0.5 text-left">
-                              <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none">Atomic Z</p>
-                              <p className="text-xs font-mono font-black text-blue-400">
-                                {ATOMIC_NUMBERS[atom.element] || '?'}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <button 
-                            onClick={() => removeAtom(atom.id)} 
-                            className="p-1.5 text-slate-600 hover:text-rose-400 bg-black border border-white/10 rounded-lg hover:border-rose-500/30 transition-all opacity-0 group-hover/atom:opacity-100 shadow-sm"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-4 gap-4 p-3 bg-black/40 rounded-xl border border-white/5 shadow-inner">
-                      {['x', 'y', 'z', 'B_iso'].map((field) => (
-                        <div key={field} className="space-y-1.5 relative text-left">
-                          <label className="text-[9px] font-bold text-slate-600 uppercase tracking-widest ml-1">{field === 'B_iso' ? 'B-fact' : field}</label>
-                          <input 
-                            type="number" 
-                            step="0.01" 
-                            value={String(atom[field as keyof typeof atom]) === 'NaN' ? '' : atom[field as keyof typeof atom]} 
-                            onChange={(e) => updateAtom(atom.id, field as any, parseFloat(e.target.value))} 
-                            className="w-full px-3 py-2 bg-[#070C18]/80 text-blue-300 border border-white/10 rounded-lg font-mono text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all shadow-inner"
-                          />
-                        </div>
-                      ))}
-                    </div>
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                {(['alpha', 'beta', 'gamma'] as const).map(param => (
+                  <div key={param} className="space-y-1">
+                    <span className="text-[8px] font-mono text-slate-500 uppercase block font-bold">{param}°</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={lattice[param]}
+                      disabled={crystalSystem === 'Cubic' || (crystalSystem === 'Hexagonal' && param !== 'gamma')}
+                      onChange={(e) => handleLatticeChange(param, parseFloat(e.target.value) || 90)}
+                      className="w-full bg-black/60 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-300 disabled:opacity-50 focus:outline-none"
+                    />
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-[#0B1528] p-6 rounded-3xl border border-blue-500/10 relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
-           
-           <div className="flex items-center gap-3 mb-5 relative z-10 text-left">
-             <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/30">
-               <Database className="w-4 h-4 text-blue-400" />
-             </div>
-             <div>
-               <h4 className="text-xs font-black text-white uppercase tracking-widest leading-none">Nuclear Physical Signatures</h4>
-               <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 block">Computed Unit Cell Properties</span>
-             </div>
-           </div>
-
-           <div className="grid grid-cols-2 gap-4 relative z-10 text-left">
-             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Cell Volume</span>
-                <span className="text-xs font-mono font-black text-blue-400 block mt-1">{(cellVolume * Math.pow(convertLength(1, lengthUnit), 3)).toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">{lengthUnit}³</span></span>
-             </div>
-             
-             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Net b length</span>
-                <span className={`text-xs font-mono font-black block mt-1 ${totalB < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{totalB.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">fm</span></span>
-             </div>
-
-             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">SLD (Nuclear)</span>
-                <span className="text-xs font-mono font-black text-amber-400 block mt-1">{cellSLD.toFixed(3)} <span className="text-[8px] text-slate-600 font-sans font-bold">10⁻⁶Å⁻²</span></span>
-             </div>
-
-             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Est. Coherent σ</span>
-                <span className="text-xs font-mono font-black text-purple-400 block mt-1">{coherentCrossSection.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">barn</span></span>
-             </div>
-           </div>
-
-           <div className="mt-4 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-[10px] text-slate-400 leading-normal relative z-10 text-left select-none">
-             <strong>Neutron scattering</strong> relies on nuclear interactions. Unlike X-rays, scattering lengths fluctuate non-linearly with Z, enabling superior detection of light elements (e.g., ¹H vs ²D isotopic swaps).
-           </div>
-        </div>
-      </div>
-
-      <div className="lg:col-span-7 space-y-6">
-        
-        <ScientificMathControl
-          title="Neutron de Broglie Wavelength"
-          formula="E = \frac{81.8048}{\lambda^2}"
-          description="Calculate and verify the kinetic energy of a neutron in meV corresponding to its thermal de Broglie wavelength."
-          variables={[
-            { symbol: 'λ', name: 'Neutron Wavelength', value: convertLength(wavelength, lengthUnit), unit: lengthUnit }
-          ]}
-          result={wavelength !== 0 ? 81.8048 / (wavelength * wavelength) : 0}
-          resultUnit="meV"
-          resultName="Neutron Energy"
-        />
-
-        {/* Dynamic Display Panel */}
-        <div className="bg-[#0B1228] rounded-[2rem] border border-white/10 p-6 sm:p-8 flex flex-col relative overflow-hidden min-h-[500px] transition-all duration-500 hover:border-blue-500/30 shadow-2xl group">
-           <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[80px] pointer-events-none" />
-           <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/5 rounded-full blur-[60px] pointer-events-none" />
-
-           {/* Corner accents */}
-           <div className="absolute top-3 left-3 w-4 h-4 border-t-2 border-l-2 border-blue-500/40 pointer-events-none" />
-           <div className="absolute top-3 right-3 w-4 h-4 border-t-2 border-r-2 border-blue-500/40 pointer-events-none" />
-           <div className="absolute bottom-3 left-3 w-4 h-4 border-b-2 border-l-2 border-blue-500/40 pointer-events-none" />
-           <div className="absolute bottom-3 right-3 w-4 h-4 border-b-2 border-r-2 border-blue-500/40 pointer-events-none" />
-
-           {/* Tab Controls */}
-           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10 relative z-10">
-              <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/5 shadow-inner">
-                 {[
-                   { id: 'pattern', label: 'Diffraction Map', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]' },
-                    { id: 'rings', label: '2D Detector Rings', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]' },
-                    { id: 'solvent', label: 'Solvent Contrast', color: 'text-pink-400 bg-pink-500/10 border-pink-500/30 shadow-[0_0_15px_rgba(236,72,153,0.15)]' },
-                   { id: 'projection', label: 'Unit Cell Projector', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]' },
-                   { id: 'contrast', label: 'Contrast analysis', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' }
-                 ].map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setActiveRightTab(t.id as any)}
-                      className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all select-none ${
-                        activeRightTab === t.id 
-                          ? `${t.color} border` 
-                          : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-white/5'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                 ))}
-              </div>
-
-              {activeRightTab === 'pattern' && (
-                <button
-                  onClick={() => setComparisonMode(!comparisonMode)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all border shrink-0 ${
-                    comparisonMode 
-                      ? 'bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/25' 
-                      : 'bg-slate-950/50 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-300'
-                  }`}
-                >
-                  <Zap className="w-3 h-3" />
-                  {comparisonMode ? 'X-ray Compare: ON' : 'Compare with X-ray'}
-                </button>
-              )}
-
-              {activeRightTab === 'projection' && (
-                <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-slate-800">
-                  {['ab', 'bc', 'ca'].map((plane) => (
-                    <button
-                      key={plane}
-                      onClick={() => setProjectionPlane(plane as any)}
-                      className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                        projectionPlane === plane
-                          ? 'bg-emerald-500/20 text-emerald-400 font-black'
-                          : 'text-slate-600 hover:text-slate-400'
-                      }`}
-                    >
-                      {plane.toUpperCase()}-Plane
-                    </button>
-                  ))}
-                </div>
-              )}
-
-
-           {activeRightTab === 'rings' && (
-                 <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-slate-800 shrink-0">
-                   <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-2">Radiation:</span>
-                   {[
-                     { id: 'total', label: 'Neutron' },
-                     { id: 'xray', label: 'X-Ray' }
-                   ].map((mode) => (
-                     <button
-                       key={mode.id}
-                       onClick={() => setRingRenderMode(mode.id as any)}
-                       className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                         ringRenderMode === mode.id
-                           ? mode.id === 'xray' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
-                           : 'text-slate-600 hover:text-slate-400'
-                       }`}
-                     >
-                       {mode.label}
-                     </button>
-                   ))}
-                   <div className="w-px h-4 bg-slate-850 mx-1" />
-                   <button
-                     onClick={() => setShowIncoherentNoise(!showIncoherentNoise)}
-                     className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
-                       showIncoherentNoise
-                         ? 'bg-amber-500/20 text-amber-400'
-                         : 'text-slate-600 hover:text-slate-400'
-                     }`}
-                     title="Toggle isotropic incoherent background noise haze"
-                   >
-                     Haze: {showIncoherentNoise ? 'ON' : 'OFF'}
-                   </button>
-                 </div>
-               )}
-
-               {activeRightTab === 'solvent' && (
-                 <div className="flex items-center gap-2 shrink-0 bg-black/40 px-3 py-1.5 rounded-xl border border-slate-800">
-                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Solvent Mix</span>
-                   <span className="text-[10px] font-mono text-pink-400 font-extrabold bg-pink-500/10 px-1.5 py-0.5 rounded border border-pink-500/25">
-                     {100 - d2oFraction}% H₂O / {d2oFraction}% D₂O
-                   </span>
-                 </div>
-               )}
+          {/* Unit Cell Physical Signatures & Metrics */}
+          <div className="bg-[#0B1528] p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 text-left">
+            <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+              <Database className="w-4 h-4 text-emerald-400" />
+              <h3 className="text-xs font-black uppercase tracking-widest text-white">
+                Computed Nuclear Physical Signatures
+              </h3>
             </div>
 
-            {/* Panels Content */}
-           <div className="flex-1 flex flex-col justify-between relative z-10">
-              {activeRightTab === 'pattern' && (
-                 <div className="h-[360px] w-full relative z-10 flex flex-col justify-between">
-                    <div className="absolute top-0 left-0 -mt-4 -ml-4 w-32 h-32 bg-blue-600 rounded-full opacity-5 blur-3xl" />
-                    <div className="flex-1 w-full min-h-0 min-w-0">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <ComposedChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.5} />
-                          <XAxis 
-                            dataKey="twoTheta" 
-                            label={{ value: '2θ (degrees)', position: 'bottom', offset: 0, fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} 
-                            type="number" 
-                            domain={[0, 'auto']}
-                            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
-                          />
-                          <YAxis hide />
-                          <Tooltip 
-                            cursor={{fill: 'rgba(51, 65, 85, 0.2)'}} 
-                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
-                            itemStyle={{ color: '#38bdf8', fontWeight: 'bold' }}
-                            labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
-                                const d = payload[0].payload;
-                                return (
-                                  <div className="bg-slate-950 text-white p-4 rounded-2xl shadow-2xl border border-slate-800">
-                                    <p className="font-extrabold border-b border-slate-800/80 pb-2 mb-2 text-xs uppercase tracking-wider text-slate-300">Plane ({d.hkl.join(' ')}) at {d.twoTheta.toFixed(2)}°</p>
-                                    <div className="space-y-1.5 min-w-[150px]">
-                                      <p className="text-blue-400 font-black text-xs flex justify-between gap-4"><span>Neutron Intensity:</span> <span>{d.intensity.toFixed(1)}%</span></p>
-                                      {comparisonMode && (
-                                        <p className="text-purple-400 font-black text-xs flex justify-between gap-4"><span>X-ray Intensity:</span> <span>{d.xrayIntensity.toFixed(1)}%</span></p>
-                                      )}
-                                      <div className="w-full h-px bg-slate-800/60 my-2" />
-                                      <p className="text-slate-500 text-[10px] font-mono flex justify-between">
-                                         <span>d-Spacing:</span>
-                                         <span>{convertLength(d.dSpacing, lengthUnit).toFixed(3)} {lengthUnit}</span>
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                          <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }} />
-                          <Bar name="Neutron Intensity" dataKey="intensity" barSize={8} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                          {comparisonMode && (
-                            <Bar name="X-ray Intensity" dataKey="xrayIntensity" barSize={8} fill="#a855f7" radius={[4, 4, 0, 0]} />
-                          )}
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    </div>
-                 </div>
-              )}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-black/40 p-2.5 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase block">Cell Volume</span>
+                <span className="text-xs font-mono font-black text-blue-400 mt-0.5 block">
+                  {metrics.cellVolume.toFixed(2)} <span className="text-[9px] text-slate-500 font-sans">Å³</span>
+                </span>
+              </div>
 
-              {activeRightTab === 'projection' && (
-                 <div className="flex flex-col lg:flex-row gap-6 items-center flex-1 py-2">
-                    <div className="relative w-[280px] h-[280px] bg-slate-50 dark:bg-slate-950/60 rounded-3xl border border-slate-200 dark:border-slate-850 flex items-center justify-center p-2 shadow-sm dark:shadow-inner scale-100 shrink-0 overflow-hidden group/projection transition-all hover:shadow-md dark:hover:shadow-[inset_0_0_40px_rgba(0,0,0,0.4)]">
-                       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.03)_0%,transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.05)_0%,transparent_70%)] pointer-events-none opacity-0 group-hover/projection:opacity-100 transition-opacity duration-700" />
-                       {/* SVG grid renderer */}
-                       <svg width="260" height="260" viewBox="0 0 300 300" className="w-full h-full drop-shadow-sm">
-                          {/* Outer cell wireframe box */}
-                          <rect x="40" y="40" width="220" height="220" fill="rgba(255,255,255,0.02)" stroke="#94a3b8" strokeWidth="2.5" className="dark:stroke-[#334155] dark:fill-none" />
-                          <rect x="40" y="40" width="220" height="220" fill="none" stroke="#059669" strokeWidth="1.5" strokeDasharray="4 4" className="opacity-60 dark:opacity-40 animate-pulse dark:stroke-[#10b981]" />
-                          
-                          {/* Inner grid lines representing 0.25 steps */}
-                          {[0.25, 0.5, 0.75].map((g) => (
-                             <React.Fragment key={g}>
-                               <line x1={40 + g*220} y1="40" x2={40 + g*220} y2="260" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="2 2" className="dark:stroke-[#1e293b]" />
-                               <line x1="40" y1={40 + g*220} x2="260" y2={40 + g*220} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="2 2" className="dark:stroke-[#1e293b]" />
-                             </React.Fragment>
-                          ))}
+              <div className="bg-black/40 p-2.5 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase block">Net Bound b</span>
+                <span className={`text-xs font-mono font-black mt-0.5 block ${metrics.totalBoundScatLength < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {metrics.totalBoundScatLength.toFixed(2)} <span className="text-[9px] text-slate-500 font-sans">fm</span>
+                </span>
+              </div>
 
-                          {/* Axes indicators */}
-                          <text x="32" y="275" fill="#64748b" className="text-[10px] font-mono font-bold uppercase dark:fill-[#475569]">
-                             {projectionPlane === 'ab' ? 'X' : projectionPlane === 'bc' ? 'Y' : 'Z'}
-                          </text>
-                          <text x="20" y="50" fill="#64748b" className="text-[10px] font-mono font-bold uppercase dark:fill-[#475569]">
-                             {projectionPlane === 'ab' ? 'Y' : projectionPlane === 'bc' ? 'Z' : 'X'}
-                          </text>
+              <div className="bg-black/40 p-2.5 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase block">Nuclear SLD</span>
+                <span className="text-xs font-mono font-black text-amber-400 mt-0.5 block">
+                  {metrics.cellSLD.toFixed(3)} <span className="text-[8px] text-slate-500 font-sans">10⁻⁶Å⁻²</span>
+                </span>
+              </div>
 
-                          {/* Directional small arrows on axes */}
-                          <path d="M 40 260 L 60 260 M 55 257 L 60 260 L 55 263" fill="none" stroke="#64748b" strokeWidth="1.5" className="dark:stroke-[#475569]" />
-                          <path d="M 40 260 L 40 240 M 37 245 L 40 240 L 43 245" fill="none" stroke="#64748b" strokeWidth="1.5" className="dark:stroke-[#475569]" />
+              <div className="bg-black/40 p-2.5 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase block">X-ray Electron SLD</span>
+                <span className="text-xs font-mono font-black text-purple-400 mt-0.5 block">
+                  {metrics.xraySLD.toFixed(3)} <span className="text-[8px] text-slate-500 font-sans">10⁻⁶Å⁻²</span>
+                </span>
+              </div>
 
-                          {/* Atoms rendering */}
-                          {atoms.map((atom, idx) => {
-                             let coord1 = 0; let coord2 = 0;
-                             if (projectionPlane === 'ab') {
-                                coord1 = atom.x; coord2 = atom.y;
-                             } else if (projectionPlane === 'bc') {
-                                coord1 = atom.y; coord2 = atom.z;
-                             } else {
-                                coord1 = atom.z; coord2 = atom.x;
-                             }
+              <div className="bg-black/40 p-2.5 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase block">Est. Coherent σ</span>
+                <span className="text-xs font-mono font-black text-emerald-400 mt-0.5 block">
+                  {metrics.totalCoherentSigma.toFixed(2)} <span className="text-[9px] text-slate-500 font-sans">barns</span>
+                </span>
+              </div>
 
-                             // Ensure valid coordinates wrapped to 0-1 range gracefully
-                             const w1 = ((coord1 % 1) + 1) % 1;
-                             const w2 = ((coord2 % 1) + 1) % 1;
+              <div className="bg-black/40 p-2.5 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase block">1mm Transmission</span>
+                <span className="text-xs font-mono font-black text-cyan-400 mt-0.5 block">
+                  {metrics.transmission1mm.toFixed(1)}% <span className="text-[8px] text-slate-500 font-sans">T</span>
+                </span>
+              </div>
+            </div>
+          </div>
 
-                             const cx = 40 + w1 * 220;
-                             const cy = 260 - w2 * 220;
+          {/* Asymmetric Atomic Sites Manager */}
+          <div className="bg-[#0B1528] p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Atom className="w-4 h-4 text-pink-400" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-white">
+                  Atomic Scatterer Sites ({atoms.length})
+                </h3>
+              </div>
+              <button
+                onClick={addAtom}
+                className="px-2.5 py-1 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 text-[10px] font-bold"
+              >
+                + Add Site
+              </button>
+            </div>
 
-                             const r = Math.max(8, 12 + Math.abs(atom.b) * 1.2);
-                             const isNegative = atom.b < 0;
-
-                             return (
-                               <g key={atom.id + idx} className="group/projection-atom cursor-pointer">
-                                  {isNegative ? (
-                                    <>
-                                      {/* Negative width scatterer gets dashed indicators */}
-                                      <circle cx={cx} cy={cy} r={r * 1.6} fill="url(#negGlow)" opacity="0" className="group-hover/projection-atom:opacity-100 transition-opacity duration-300" />
-                                      <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke="#e11d48" strokeWidth="1.5" strokeDasharray="3 4" className="opacity-80 animate-[spin_6s_linear_infinite]" />
-                                      <circle cx={cx} cy={cy} r={r} fill="url(#negGrad)" stroke="#be123c" strokeWidth="2.5" className="dark:stroke-[#f43f5e] group-hover/projection-atom:scale-110 transition-transform duration-300 drop-shadow-md" />
-                                    </>
-                                  ) : (
-                                    <>
-                                      {/* Positive width scatterers get gorgeous cyan/emerald gradients */}
-                                      <circle cx={cx} cy={cy} r={r * 1.6} fill="url(#posGlow)" opacity="0" className="group-hover/projection-atom:opacity-100 transition-opacity duration-300" />
-                                      <circle cx={cx} cy={cy} r={r + 4} fill="none" stroke="#059669" strokeWidth="1.2" className="opacity-40 animate-[spin_8s_linear_infinite]" strokeDasharray="8 4" />
-                                      <circle cx={cx} cy={cy} r={r} fill="url(#posGrad)" stroke="#047857" strokeWidth="2.5" className="dark:stroke-[#10b981] group-hover/projection-atom:scale-110 transition-transform duration-300 drop-shadow-md" />
-                                    </>
-                                  )}
-                                  
-                                  {/* Symbol Label inside the atom */}
-                                  <text 
-                                    x={cx} 
-                                    y={cy + 3.5} 
-                                    textAnchor="middle" 
-                                    fill="#ffffff" 
-                                    className="text-[10px] font-black font-sans pointer-events-none select-none text-center drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
-                                  >
-                                     {atom.element}
-                                  </text>
-
-                                  {/* Detailed tooltip on hover */}
-                                  <title>
-                                     {atom.label} ({atom.element})&#10;
-                                     Pos: ({atom.x.toFixed(2)}, {atom.y.toFixed(2)}, {atom.z.toFixed(2)})&#10;
-                                     Scattering length b: {atom.b.toFixed(2)} fm
-                                  </title>
-                               </g>
-                             );
-                          })}
-
-                          {/* SVG Definitions for rich gradients */}
-                          <defs>
-                             <radialGradient id="posGrad" cx="30%" cy="30%" r="70%">
-                                <stop offset="0%" stopColor="#6ee7b7" className="dark:stop-color-[#34d399]" />
-                                <stop offset="50%" stopColor="#10b981" className="dark:stop-color-[#059669]" />
-                                <stop offset="100%" stopColor="#047857" className="dark:stop-color-[#064e3b]" />
-                             </radialGradient>
-                             <radialGradient id="negGrad" cx="30%" cy="30%" r="70%">
-                                <stop offset="0%" stopColor="#fca5a5" className="dark:stop-color-[#fca5a5]" />
-                                <stop offset="50%" stopColor="#e11d48" className="dark:stop-color-[#e11d48]" />
-                                <stop offset="100%" stopColor="#9f1239" className="dark:stop-color-[#881337]" />
-                             </radialGradient>
-                             <radialGradient id="posGlow" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-                             </radialGradient>
-                             <radialGradient id="negGlow" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stopColor="#e11d48" stopOpacity="0.4" />
-                                <stop offset="100%" stopColor="#e11d48" stopOpacity="0" />
-                             </radialGradient>
-                          </defs>
-                       </svg>
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+              {atoms.map((atom) => (
+                <div key={atom.id} className="bg-black/40 p-3.5 rounded-2xl border border-white/5 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={atom.label}
+                        onChange={(e) => updateAtom(atom.id, 'label', e.target.value)}
+                        className="w-16 bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono font-bold text-white focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        value={atom.element}
+                        onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
+                        className="w-14 bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-xs font-mono font-bold text-amber-300 focus:outline-none"
+                        placeholder="El/Iso"
+                      />
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-center gap-4 text-left">
-                       <div className="space-y-1">
-                          <h4 className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.25em]">Nuclear Projection</h4>
-                          <h3 className="text-base font-black text-slate-800 dark:text-white capitalize leading-tight">Unit Cell Perspective Looking Down</h3>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
-                             This visual map projects the exact $(x, y, z)$ coordinates inside your unit cell onto a 2D plane. 
-                          </p>
-                       </div>
-                       
-                       <div className="space-y-2.5 bg-white dark:bg-black/40 p-4 border border-slate-200 dark:border-slate-850 rounded-2xl shadow-sm dark:shadow-none">
-                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 dark:text-slate-400">
-                             <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-sm"/> Positive b (fm)</span>
-                             <span className="text-slate-800 dark:text-white font-black">Solid Emerald Spheres</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 dark:text-slate-400">
-                             <span className="font-bold flex items-center gap-1.5">
-                               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-sm relative">
-                                 <span className="absolute inset-0 rounded-full border border-rose-500 animate-ping"></span>
-                               </span> Negative b (fm)
-                             </span>
-                             <span className="text-rose-600 dark:text-rose-400 font-extrabold">Dashed Glowing Pink Spheres</span>
-                          </div>
-                          <div className="w-full h-px bg-slate-200 dark:bg-slate-800/80 my-1" />
-                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 dark:text-slate-400">
-                             <span className="font-bold">Calculated Volume</span>
-                             <span className="text-blue-600 dark:text-blue-400 font-black bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-500/20">{calculateCellVolume ? (calculateCellVolume(lattice) * Math.pow(convertLength(1, lengthUnit), 3)).toFixed(2) : (lattice.a*lattice.b*lattice.c * Math.pow(convertLength(1, lengthUnit), 3)).toFixed(2)} {lengthUnit}³</span>
-                          </div>
-                       </div>
-                       <p className="text-[10px] italic text-slate-500 font-medium bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200 dark:border-slate-700/50">
-                           <span className="font-bold text-amber-600 dark:text-amber-500">*Hint:</span> Negative scattering length means the nucleus scatters neutrons out-of-phase (180° shift) relative to positive cores. This only happens with specific isotopes like 1H, 48Ti, or 55Mn!
-                        </p>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right">
+                        <span className={`text-[11px] font-mono font-black ${atom.b < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                          b = {atom.b.toFixed(2)} fm
+                        </span>
+                      </div>
+                      {atoms.length > 1 && (
+                        <button
+                          onClick={() => removeAtom(atom.id)}
+                          className="text-slate-600 hover:text-rose-400 p-1 text-xs"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
-                 </div>
-              )}
+                  </div>
 
-              {activeRightTab === 'contrast' && (
-                 <div className="flex flex-col gap-6 flex-1 py-1">
-                    <div className="space-y-1 text-left">
-                       <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.25em]">Light Element Contrast</h4>
-                       <h3 className="text-base font-black text-white">X-ray (Z) vs. Neutron Scattering Length (|b|)</h3>
-                       <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                          X-rays scatter from electron shells, so heavy elements render light elements completely invisible. Neutrons scatter from nuclei and can detect light elements easily.
-                       </p>
-                    </div>
-
-                    <div className="space-y-3.5 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                       {atoms.map((atom, idx) => {
-                          const xrayVal = ATOMIC_NUMBERS[atom.element] || 1;
-                          const neutronVal = Math.abs(atom.b);
-                          
-                          // Normalize scales
-                          const xrayPct = Math.min((xrayVal / 92) * 100, 100);
-                          const neutronPct = Math.min((neutronVal / 15) * 100, 100);
-
-                          return (
-                             <div key={atom.id + '-' + idx} className="bg-black/35 p-3 sm:p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
-                                <div className="flex justify-between items-center text-[11px] font-black">
-                                   <span className="text-white font-mono flex items-center gap-2">
-                                      <span className="w-2 h-2 rounded bg-amber-400" />
-                                      {atom.label} ({atom.element})
-                                   </span>
-                                   <span className="text-slate-500 font-mono text-[10px]">
-                                      Z = {xrayVal} | b = {atom.b.toFixed(2)} fm
-                                   </span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                   {/* X-Ray strength bar */}
-                                   <div className="flex flex-col gap-1">
-                                      <div className="flex justify-between text-[8px] font-black text-purple-400 uppercase tracking-wider leading-none">
-                                         <span>X-Ray (Electrons)</span>
-                                         <span>f ~ {xrayVal}</span>
-                                      </div>
-                                      <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                                         <div className="h-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)] rounded-full transition-all duration-500" style={{ width: `${xrayPct}%` }} />
-                                      </div>
-                                   </div>
-
-                                   {/* Neutron strength bar */}
-                                   <div className="flex flex-col gap-1">
-                                      <div className="flex justify-between text-[8px] font-black text-blue-400 uppercase tracking-wider leading-none">
-                                         <span>Neutron (Nuclei)</span>
-                                         <span>|b| = {neutronVal.toFixed(1)}</span>
-                                      </div>
-                                      <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-[#1e293b]">
-                                         <div className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)] rounded-full transition-all duration-500" style={{ width: `${neutronPct}%` }} />
-                                      </div>
-                                   </div>
-                                </div>
-                             </div>
-                          );
-                       })}
-                    </div>
-
-                    <div className="bg-amber-500/5 p-4 rounded-2xl border border-amber-500/10 text-xs text-amber-300/90 leading-relaxed font-semibold italic text-left flex items-start gap-3 mt-auto">
-                       <Info className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                       <div>
-                          Notice how <strong className="text-amber-400">Hydrogen / Deuterium</strong> has virtually zero representation on the X-Ray scale, but stands out as a major coherent scatterer on the Neutron scale. Swapping H to D improves coherent signals immensely!
-                       </div>
-                    </div>
-                 </div>
-              )}
-
-               {activeRightTab === 'rings' && (
-                  <div className="flex flex-col lg:flex-row gap-6 items-center flex-1 py-1 animate-fadeIn">
-                     <div className="relative w-[280px] h-[280px] bg-slate-950 rounded-3xl border border-slate-800 flex items-center justify-center p-2 shadow-inner scale-100 shrink-0 overflow-hidden group/rings transition-all hover:shadow-[0_0_30px_rgba(34,211,238,0.15)]">
-                        <canvas 
-                          ref={ringsCanvasRef} 
-                          className="w-full h-full rounded-2xl cursor-crosshair"
-                          style={{ imageRendering: 'pixelated' }}
+                  <div className="grid grid-cols-4 gap-1.5 text-[9px] font-mono">
+                    {(['x', 'y', 'z', 'B_iso'] as const).map(field => (
+                      <div key={field} className="space-y-0.5">
+                        <span className="text-slate-500 uppercase block">{field === 'B_iso' ? 'B_iso' : field}</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={atom[field]}
+                          onChange={(e) => updateAtom(atom.id, field, parseFloat(e.target.value) || 0)}
+                          className="w-full bg-black/60 border border-white/10 rounded-lg px-1.5 py-1 text-blue-300 focus:outline-none font-bold"
                         />
-                        <div className="absolute bottom-3 right-3 bg-black/60 px-2 py-0.5 rounded text-[8px] font-mono text-slate-400 border border-slate-800 pointer-events-none">
-                           2D Powder Plate
-                        </div>
-                     </div>
-
-                     <div className="flex-1 flex flex-col justify-center gap-4 text-left">
-                        <div className="space-y-1">
-                           <h4 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.25em]">2D Debye-Scherrer Rings</h4>
-                           <h3 className="text-base font-black text-white capitalize leading-tight">Diffraction Cone Projection</h3>
-                           <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                              This detector simulates a flat-plate pixel tracker intercepting the 3D Debye-Scherrer diffraction cones backscattered from a powder sample.
-                           </p>
-                        </div>
-                        
-                        <div className="space-y-2.5 bg-black/40 p-4 border border-slate-800 rounded-2xl">
-                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                              <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shadow-sm"/> Coherent Signal</span>
-                              <span className="text-white font-black">Concentric Debye Rings</span>
-                           </div>
-                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                              <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block shadow-sm"/> Background Noise</span>
-                              <span className="text-amber-500 font-black">
-                                 {showIncoherentNoise && averageIncoherentCrossSection > 4 ? 'High Haze (H-Incoherent)' : 'Low Haze'}
-                              </span>
-                           </div>
-                           <div className="w-full h-px bg-slate-800/80 my-1" />
-                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                              <span className="font-bold">Total Inc. Cross Section</span>
-                              <span className="text-amber-400 font-black">{totalIncoherentCrossSection.toFixed(2)} barns</span>
-                           </div>
-                        </div>
-
-                        {showIncoherentNoise && averageIncoherentCrossSection > 4 && (
-                          <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10 text-[10px] text-amber-400 leading-snug">
-                             <span className="font-extrabold block uppercase tracking-wider mb-0.5">⚠️ High Incoherent Haze:</span>
-                             Hydrogen has a massive incoherent cross-section (80.26 barns) that creates a diffuse isotropic background "haze", obscuring coherent rings. Click the <strong className="text-white">"D₂O Swap" preset</strong> or deuterate your atoms to clean up the signal!
-                          </div>
-                        )}
-                     </div>
+                      </div>
+                    ))}
                   </div>
-               )}
-
-               {activeRightTab === 'solvent' && (
-                  <div className="flex flex-col gap-5 flex-1 py-1 animate-fadeIn">
-                     <div className="space-y-1 text-left">
-                        <h4 className="text-[10px] font-black text-pink-400 uppercase tracking-[0.25em]">Solvent Contrast Matching</h4>
-                        <h3 className="text-base font-black text-white">Scattering Length Density (SLD) Matching Curve</h3>
-                        <p className="text-xs text-slate-400 leading-relaxed font-semibold">
-                           In SANS/neutron diffraction, mixing H₂O ($b_H = -3.74$ fm) and D₂O ($b_D = 6.67$ fm) lets you vary the solvent's SLD to match specific parts of the sample, rendering them invisible and isolating other structures.
-                        </p>
-                     </div>
-
-                     <div className="h-[200px] w-full relative z-10">
-                        <ResponsiveContainer width="100%" height="100%">
-                           <ComposedChart data={contrastPoints} margin={{ top: 10, right: 10, bottom: 20, left: -20 }}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
-                              <XAxis 
-                                 dataKey="d2o" 
-                                 label={{ value: '% D₂O in H₂O / D₂O solvent mix', position: 'bottom', offset: 5, fill: '#64748b', fontSize: 9, fontWeight: 700 }} 
-                                 tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }}
-                              />
-                              <YAxis 
-                                 label={{ value: 'SLD (10⁻⁶ Å⁻²)', angle: -90, position: 'insideLeft', offset: 10, fill: '#64748b', fontSize: 9, fontWeight: 700 }}
-                                 tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }}
-                              />
-                              <Tooltip 
-                                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                                 content={({ active, payload }) => {
-                                    if (active && payload && payload.length) {
-                                       const d = payload[0].payload;
-                                       return (
-                                          <div className="bg-slate-950 text-white p-3 rounded-xl border border-slate-800 text-[10px] space-y-1 text-left">
-                                             <p className="font-bold text-pink-400">{d.d2o}% D₂O Solvent Mix</p>
-                                             <p className="text-slate-300">Solvent SLD: <strong>{d.solventSLD} 10⁻⁶ Å⁻²</strong></p>
-                                             <p className="text-slate-300">Sample SLD: <strong>{d.sampleSLD} 10⁻⁶ Å⁻²</strong></p>
-                                             <p className="text-slate-400">Relative Contrast: <strong>{d.contrastSq} 10⁻¹² Å⁻⁴</strong></p>
-                                          </div>
-                                       );
-                                    }
-                                    return null;
-                                 }}
-                              />
-                              <Legend verticalAlign="top" height={24} wrapperStyle={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase' }} />
-                              <Line name="Solvent SLD" type="monotone" dataKey="solventSLD" stroke="#ec4899" strokeWidth={2.5} dot={{ r: 3 }} />
-                              <Line name="Sample SLD" type="monotone" dataKey="sampleSLD" stroke="#3b82f6" strokeWidth={2.5} strokeDasharray="5 5" dot={false} />
-                           </ComposedChart>
-                        </ResponsiveContainer>
-                     </div>
-
-                     <div className="bg-black/35 p-4 rounded-2xl border border-slate-800 flex flex-col gap-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                           <div className="flex-1">
-                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider mb-1.5">
-                                 <span className="text-slate-400">Solvent D₂O Fraction</span>
-                                 <span className="text-pink-400">{d2oFraction}%</span>
-                              </div>
-                              <input 
-                                 type="range" 
-                                 min="0" 
-                                 max="100" 
-                                 value={String(d2oFraction) === 'NaN' ? '' : d2oFraction} 
-                                 onChange={(e) => setD2oFraction(parseInt(e.target.value))}
-                                 className="w-full accent-pink-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
-                              />
-                           </div>
-                           
-                           <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 min-w-[140px] text-center flex flex-col justify-center">
-                              <span className="text-[8px] font-extrabold text-slate-500 uppercase tracking-widest">Relative Contrast</span>
-                              <span className={`text-base font-black font-mono mt-0.5 ${contrastFactor < 0.15 ? 'text-emerald-400' : 'text-pink-400 shadow-pulse'}`}>
-                                 {Math.max(0, contrastFactor * 10).toFixed(2)}
-                              </span>
-                              <span className="text-[7px] text-slate-400 uppercase mt-0.5">arbitrary scale</span>
-                           </div>
-                        </div>
-
-                        <div className="w-full h-px bg-slate-800/80" />
-
-                        <div className="text-[10px] font-mono leading-relaxed text-slate-400 text-left">
-                           {contrastFactor < 0.15 ? (
-                              <p className="text-emerald-400 font-bold animate-pulse flex items-center gap-2">
-                                 ✨ MATCH POINT ACHIEVED ({d2oFraction}% D₂O): The average nuclear scattering of the solvent perfectly matches your crystal cell! The coherent scattering signal of the cell vanishes.
-                              </p>
-                           ) : (
-                              <p>
-                                 Solvent SLD is <strong className="text-pink-400 font-bold">{solventSLD.toFixed(2)} 10⁻⁶ Å⁻²</strong>. Crystal SLD is <strong className="text-blue-400 font-bold">{cellSLD.toFixed(2)} 10⁻⁶ Å⁻²</strong>. Adjust the slider to find the crossing point where contrast drops to 0!
-                              </p>
-                           )}
-                        </div>
-                     </div>
-                  </div>
-               )}
-           </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="bg-slate-900 rounded-2xl shadow-lg border border-slate-800 overflow-hidden flex flex-col max-h-[400px]">
-          <div className="p-4 border-b border-slate-800 bg-slate-800/40">
-             <h3 className="font-bold text-white text-sm uppercase tracking-widest flex items-center gap-2">
-               <span className="w-4 h-[1px] bg-slate-600"></span> Reflections Table
-             </h3>
+        {/* Right Side: Tabbed Interactive Visualizer Workspace (8 Cols) */}
+        <div className="lg:col-span-8 space-y-5">
+          {/* Top Primary Navigation Bar */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-[#0B1528] p-2 rounded-2xl border border-white/10 shadow-xl">
+            {[
+              { id: 'scatter_plane', label: 'Reciprocal Scatter Plane', icon: Compass, color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
+              { id: 'pattern', label: '1D Powder Spectrum', icon: Activity, color: 'text-blue-400 bg-blue-500/15 border-blue-500/30' },
+              { id: 'rings', label: '2D Debye-Scherrer Rings', icon: Disc, color: 'text-cyan-400 bg-cyan-500/15 border-cyan-500/30' },
+              { id: 'isotopes', label: 'Isotopes & Cross Sections', icon: Database, color: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
+              { id: 'fourier', label: 'Unit Cell & SLD Map', icon: Layers, color: 'text-purple-400 bg-purple-500/15 border-purple-500/30' },
+              { id: 'solvent', label: 'Solvent SANS Contrast', icon: Droplet, color: 'text-pink-400 bg-pink-500/15 border-pink-500/30' },
+              { id: 'kinematics', label: 'Neutron Kinematics', icon: Zap, color: 'text-indigo-400 bg-indigo-500/15 border-indigo-500/30' }
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all select-none ${
+                    isActive
+                      ? `${tab.color} border shadow-md`
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
-           <div className="overflow-auto flex-1 custom-scrollbar">
-              <table className="w-full text-sm text-left text-slate-300 border-collapse">
-                 <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-900/80 sticky top-0 backdrop-blur-sm z-10">
-                    <tr>
-                       <th className="px-5 py-4 font-black border-b border-slate-800">HKL Plane</th>
-                       <th className="px-5 py-4 font-black border-b border-slate-800 text-center">2θ (°)</th>
-                       <th className="px-5 py-4 font-black border-b border-slate-800 text-center">d ({lengthUnit})</th>
-                       <th className="px-5 py-4 font-black border-b border-slate-800 text-right">|F|²</th>
-                       <th className="px-5 py-4 font-black border-b border-slate-800 text-right text-blue-400">Int %</th>
-                       {comparisonMode && (
-                         <th className="px-5 py-4 font-black border-b border-slate-800 text-right text-purple-400">X-Ray %</th>
-                       )}
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-800/30">
-                    {chartData.map((r, i) => (
-                       <tr key={`${r.twoTheta}-${i}`} className="bg-slate-900 hover:bg-slate-800/80 transition-colors group">
-                          <td className="px-5 py-3 font-mono font-bold text-slate-200 group-hover:text-white transition-colors">
-                            <span className="opacity-30 mr-1 text-[10px]">[</span>
-                            {r.hkl.join(' ')}
-                            <span className="opacity-30 ml-1 text-[10px]">]</span>
-                          </td>
-                          <td className="px-5 py-3 text-slate-400 font-medium text-center">{r.twoTheta.toFixed(2)}</td>
-                          <td className="px-5 py-3 text-slate-500 font-medium font-mono text-center">{convertLength(r.dSpacing, lengthUnit).toFixed(3)}</td>
-                          <td className="px-5 py-3 text-right font-mono text-xs text-slate-400">
-                             {r.F_squared.toFixed(1)}
-                          </td>
-                          <td className="px-5 py-3 font-bold text-right text-blue-400 bg-blue-500/5 transition-colors group-hover:bg-blue-500/10">
-                            {r.intensity.toFixed(1)}
-                          </td>
+
+          {/* Dynamic Active Tab View Rendering */}
+          <div className="bg-[#0B1528] p-6 rounded-3xl border border-white/10 shadow-2xl min-h-[520px]">
+            {activeTab === 'scatter_plane' && (
+              <ReciprocalScatterPlaneView
+                lattice={lattice}
+                atoms={atoms}
+                wavelength={wavelength}
+                lengthUnit={lengthUnit}
+              />
+            )}
+
+            {activeTab === 'pattern' && (
+              <div className="space-y-6 text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-white">
+                      1D Nuclear Powder Diffraction Spectrum
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Synthesized neutron powder pattern with optional X-ray dual overlay.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setComparisonMode(!comparisonMode)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                        comparisonMode
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                          : 'bg-black/40 text-slate-400 border-white/10 hover:text-slate-200'
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      {comparisonMode ? 'X-Ray Compare: ON' : 'Compare with X-Ray'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 1D Recharts Plot */}
+                <div className="h-[360px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={detailedReflections} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                      <XAxis
+                        dataKey="twoTheta"
+                        label={{ value: '2θ (degrees)', position: 'bottom', offset: 5, fill: '#64748b', fontSize: 11, fontWeight: 700 }}
+                        type="number"
+                        domain={[0, 'auto']}
+                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                      />
+                      <YAxis
+                        label={{ value: 'Normalized Intensity (%)', angle: -90, position: 'insideLeft', offset: 10, fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                      />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const d = payload[0].payload as DetailedDiffractionSpectrum;
+                            return (
+                              <div className="bg-slate-950 text-white p-4 rounded-2xl shadow-2xl border border-slate-800 text-xs space-y-2">
+                                <p className="font-extrabold border-b border-slate-800 pb-1.5 text-slate-300">
+                                  Plane {d.hklStr} at {d.twoTheta.toFixed(2)}°
+                                </p>
+                                <div className="space-y-1">
+                                  <p className="text-blue-400 font-bold flex justify-between gap-4">
+                                    <span>Neutron Intensity:</span> <span>{d.intensity_nuc.toFixed(1)}%</span>
+                                  </p>
+                                  {comparisonMode && (
+                                    <p className="text-purple-400 font-bold flex justify-between gap-4">
+                                      <span>X-Ray Intensity:</span> <span>{d.intensity_xray.toFixed(1)}%</span>
+                                    </p>
+                                  )}
+                                  <div className="w-full h-px bg-slate-800 my-1" />
+                                  <p className="text-slate-400 text-[10px] font-mono flex justify-between">
+                                    <span>d-spacing:</span> <span>{d.dSpacing.toFixed(4)} Å</span>
+                                  </p>
+                                  <p className="text-slate-400 text-[10px] font-mono flex justify-between">
+                                    <span>Phase:</span> <span>{d.phase_nuc_deg.toFixed(1)}°</span>
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }} />
+                      <Bar name="Neutron Intensity" dataKey="intensity_nuc" barSize={8} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      {comparisonMode && (
+                        <Bar name="X-Ray Intensity" dataKey="intensity_xray" barSize={8} fill="#a855f7" radius={[4, 4, 0, 0]} />
+                      )}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Reflections Data Table */}
+                <div className="bg-black/40 rounded-2xl border border-white/10 overflow-hidden">
+                  <div className="p-3 border-b border-white/10 bg-black/60 flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 flex items-center gap-2">
+                      <Table className="w-3.5 h-3.5 text-blue-400" />
+                      Reflections Table ({detailedReflections.length} Peaks)
+                    </span>
+                    <button
+                      onClick={handleExportCSV}
+                      className="text-[10px] font-mono text-blue-400 hover:text-blue-300 font-bold"
+                    >
+                      Export CSV
+                    </button>
+                  </div>
+
+                  <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                    <table className="w-full text-xs text-left text-slate-300 border-collapse">
+                      <thead className="text-[9px] text-slate-500 uppercase tracking-widest bg-black/80 sticky top-0 backdrop-blur-md">
+                        <tr>
+                          <th className="px-4 py-2.5 font-black border-b border-white/10">HKL</th>
+                          <th className="px-4 py-2.5 font-black border-b border-white/10 text-center">2θ (°)</th>
+                          <th className="px-4 py-2.5 font-black border-b border-white/10 text-center">d (Å)</th>
+                          <th className="px-4 py-2.5 font-black border-b border-white/10 text-center">Phase</th>
+                          <th className="px-4 py-2.5 font-black border-b border-white/10 text-right text-blue-400">Neutron %</th>
                           {comparisonMode && (
-                            <td className="px-5 py-3 font-bold text-right text-purple-400 bg-purple-500/5 transition-colors group-hover:bg-purple-500/10">
-                              {r.xrayIntensity?.toFixed(1)}
-                            </td>
+                            <th className="px-4 py-2.5 font-black border-b border-white/10 text-right text-purple-400">X-Ray %</th>
                           )}
-                       </tr>
-                    ))}
-                 </tbody>
-              </table>
-           </div>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 font-mono">
+                        {detailedReflections.map((r, i) => (
+                          <tr key={`${r.hklStr}-${i}`} className="hover:bg-white/5">
+                            <td className="px-4 py-2 font-bold text-white">[{r.hkl.join(' ')}]</td>
+                            <td className="px-4 py-2 text-center text-slate-400">{r.twoTheta.toFixed(2)}</td>
+                            <td className="px-4 py-2 text-center text-slate-400">{r.dSpacing.toFixed(3)}</td>
+                            <td className={`px-4 py-2 text-center ${r.phase_nuc_deg < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              {r.phase_nuc_deg.toFixed(0)}°
+                            </td>
+                            <td className="px-4 py-2 text-right font-black text-blue-400">{r.intensity_nuc.toFixed(1)}</td>
+                            {comparisonMode && (
+                              <td className="px-4 py-2 text-right font-black text-purple-400">{r.intensity_xray.toFixed(1)}</td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'rings' && (
+              <DebyeScherrerRings2D
+                neutronReflections={detailedReflections}
+                radiationMode={ringRadiationMode}
+                onRadiationModeChange={setRingRadiationMode}
+                metrics={metrics}
+                lengthUnit={lengthUnit}
+              />
+            )}
+
+            {activeTab === 'isotopes' && (
+              <IsotopeContrastWorkbench
+                atoms={atoms}
+                onUpdateAtom={updateAtom}
+                onBulkUpdateAtoms={setAtoms}
+                lattice={lattice}
+                wavelength={wavelength}
+                lengthUnit={lengthUnit}
+              />
+            )}
+
+            {activeTab === 'fourier' && (
+              <UnitCellFourierMap
+                lattice={lattice}
+                atoms={atoms}
+                wavelength={wavelength}
+                lengthUnit={lengthUnit}
+              />
+            )}
+
+            {activeTab === 'solvent' && (
+              <SolventContrastMatchingTool
+                cellSLD={metrics.cellSLD}
+                d2oFraction={d2oFraction}
+                onD2oFractionChange={setD2oFraction}
+              />
+            )}
+
+            {activeTab === 'kinematics' && (
+              <NeutronKinematicsCalculator
+                wavelength={wavelength}
+                onWavelengthChange={setWavelength}
+                lengthUnit={lengthUnit}
+              />
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Import Modal */}
+      {showImport && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0B1528] border border-white/10 p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl text-left">
+            <h3 className="text-sm font-black uppercase tracking-widest text-white">
+              Import Crystal & Nuclear Dataset
+            </h3>
+            <textarea
+              value={importJson}
+              onChange={(e) => setImportJson(e.target.value)}
+              placeholder="Paste JSON configuration containing lattice and atoms..."
+              className="w-full h-48 bg-black/60 border border-white/10 rounded-2xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-blue-500/40"
+            />
+            {importError && (
+              <p className="text-xs text-rose-400 font-bold">{importError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowImport(false)}
+                className="px-4 py-2 rounded-xl bg-black/40 text-slate-400 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImport}
+                className="px-4 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold shadow-md"
+              >
+                Load Dataset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
