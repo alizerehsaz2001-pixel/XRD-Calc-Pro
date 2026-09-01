@@ -1,4 +1,6 @@
-/**
+import os
+
+code = '''/**
  * X-Ray Reflectometry (XRR) Physics & Parratt Recursion Engine (v2.0 Pro)
  * 
  * Comprehensive thin film specular reflectivity modeling, Parratt recursive matrix formalism,
@@ -16,8 +18,7 @@
 export interface XRRLayer {
   id: string;
   name: string;
-  formula?: string;
-  material?: string;             // Chemical formula (e.g. 'TiO2', 'Al2O3', 'SrTiO3')
+  formula?: string;             // Chemical formula (e.g. 'TiO2', 'Al2O3', 'SrTiO3')
   thickness: number;            // in Angstroms (Å) - 0 for substrate/ambient
   roughness: number;            // RMS interface roughness σ in Angstroms (Å)
   density: number;              // Mass density in g/cm³
@@ -43,7 +44,6 @@ export interface XRRLayer {
 export interface XRRMaterialPreset {
   name: string;
   formula?: string;
-  material?: string;
   density: number;              // g/cm³
   delta: number;                // × 10⁻⁶ (at Cu K-alpha = 1.54056 Å)
   beta: number;                 // × 10⁻⁷
@@ -273,11 +273,17 @@ export const RADIATION_SOURCES: Record<string, RadiationSourceInfo> = {
   }
 };
 
+/**
+ * Converts photon energy (keV) to wavelength (Å): λ = hc / E = 12.39841984 / E(keV)
+ */
 export function energyKeVToWavelength(energyKeV: number): number {
   if (!energyKeV || energyKeV <= 0) return 1.54056;
   return Number((12.39841984 / energyKeV).toFixed(5));
 }
 
+/**
+ * Converts wavelength (Å) to photon energy (keV): E = 12.39841984 / λ(Å)
+ */
 export function wavelengthToEnergyKeV(wavelength: number): number {
   if (!wavelength || wavelength <= 0) return 8.048;
   return Number((12.39841984 / wavelength).toFixed(4));
@@ -290,11 +296,11 @@ export function wavelengthToEnergyKeV(wavelength: number): number {
 interface AtomicData {
   name: string;
   atomicMass: number;
-  densityBulk: number;
-  f1_Cu: number;
-  f2_Cu: number;
-  f1_Mo: number;
-  f2_Mo: number;
+  densityBulk: number; // g/cm³
+  f1_Cu: number;       // f1 at Cu Kα (8.048 keV)
+  f2_Cu: number;       // f2 at Cu Kα (8.048 keV)
+  f1_Mo: number;       // f1 at Mo Kα (17.479 keV)
+  f2_Mo: number;       // f2 at Mo Kα (17.479 keV)
 }
 
 export const ATOMIC_DATABASE: Record<string, AtomicData> = {
@@ -367,11 +373,15 @@ export const ATOMIC_DATABASE: Record<string, AtomicData> = {
   U:  { name: 'Uranium', atomicMass: 238.03, densityBulk: 19.10, f1_Cu: 105.8, f2_Cu: 47.00, f1_Mo: 117.0, f2_Mo: 61.50 },
 };
 
+/**
+ * Parses chemical formula into element counts (e.g. 'SrTiO3' -> {Sr: 1, Ti: 1, O: 3}, 'Ba0.5Sr0.5TiO3' -> {Ba: 0.5, Sr: 0.5, Ti: 1, O: 3})
+ */
 export function parseChemicalFormula(formula: string): Record<string, number> {
   const result: Record<string, number> = {};
   if (!formula || typeof formula !== 'string') return result;
 
   const cleaned = formula.trim().replace(/\s+/g, '');
+  // Match Element symbol followed by optional decimal number
   const regex = /([A-Z][a-z]?)([\d\.]*)/g;
   let match;
 
@@ -386,6 +396,9 @@ export function parseChemicalFormula(formula: string): Record<string, number> {
   return result;
 }
 
+/**
+ * Computes exact optical constants (delta, beta), molar mass, and electron density from chemical formula
+ */
 export function calculateOpticalConstantsFromFormula(
   formula: string,
   density?: number,
@@ -401,7 +414,9 @@ export function calculateOpticalConstantsFromFormula(
   let totalF2 = 0;
   const elementDetails: FormulaOpticalResult['elements'] = [];
 
-  const isMoScale = wavelength < 1.0;
+  // Determine if using Cu-like or Mo-like energy range
+  const energy = energyKeVToWavelength(wavelength); // keV approx
+  const isMoScale = wavelength < 1.0; // Hard X-ray
 
   for (const elem of elementKeys) {
     const count = elementsParsed[elem];
@@ -425,8 +440,10 @@ export function calculateOpticalConstantsFromFormula(
     });
   }
 
+  // Theoretical density default if not provided
   let massDensity = density;
   if (!massDensity || massDensity <= 0) {
+    // Weighted bulk density estimate
     let sumWeight = 0;
     let sumDens = 0;
     for (const elem of elementKeys) {
@@ -440,22 +457,32 @@ export function calculateOpticalConstantsFromFormula(
     massDensity = sumWeight > 0 ? sumDens / sumWeight : 3.5;
   }
 
+  // Classical electron radius r_e = 2.8179403262e-5 Å
   const r_e = 2.81794e-5; // Å
+  // Avogadro's constant NA = 6.02214076e23 mol⁻¹
   const NA = 6.02214e23;
+
+  // Number density of molecules N_V = (ρ * NA / M) * 1e-24 molecules/Å³
   const nV = (massDensity * NA * 1e-24) / totalMolarMass;
+
+  // Electron density ρe = nV * totalF1 (in e⁻/Å³)
   const electronDensity = nV * totalF1;
 
+  // Optical dispersion: δ = (r_e * λ² / 2π) * nV * totalF1
+  // Optical absorption: β = (r_e * λ² / 2π) * nV * totalF2
   const factor = (r_e * wavelength * wavelength) / (2 * Math.PI);
   const deltaRaw = factor * nV * totalF1;
   const betaRaw = factor * nV * totalF2;
 
-  const delta = Number((deltaRaw * 1e6).toFixed(2));
-  const beta = Number((betaRaw * 1e7).toFixed(3));
+  const delta = Number((deltaRaw * 1e6).toFixed(2)); // in × 10⁻⁶
+  const beta = Number((betaRaw * 1e7).toFixed(3));   // in × 10⁻⁷
 
+  // Critical angle θc (deg) ≈ sqrt(2 * δ) * (180 / π)
   const thetaCritRad = Math.sqrt(Math.max(0, 2 * deltaRaw));
   const criticalAngleDeg = Number(((thetaCritRad * 180) / Math.PI).toFixed(3));
 
-  const mu = (4 * Math.PI / wavelength) * betaRaw;
+  // Linear absorption coefficient μ = (4π / λ) * β_raw (Å⁻¹) -> 1/e penetration depth = 1 / μ (μm)
+  const mu = (4 * Math.PI / wavelength) * betaRaw; // Å⁻¹
   const absorptionLengthUm = mu > 0 ? Number(((1 / mu) * 1e-4).toFixed(2)) : 9999;
 
   return {
@@ -597,7 +624,9 @@ function cAbs2(z: Complex): number {
   return z.re * z.re + z.im * z.im;
 }
 
+// Error Function Approximation for SLD Interface Profiles
 export function erf(x: number): number {
+  // Abramowitz and Stegun formula 7.1.26
   const a1 =  0.254829592;
   const a2 = -0.284496736;
   const a3 =  1.421413741;
@@ -617,6 +646,11 @@ export function erf(x: number): number {
 // Parratt Specular Reflectivity Core Engine
 // ----------------------------------------------------------------------------
 
+/**
+ * Parratt Specular Reflectivity Calculation
+ * Calculates theoretical reflectivity curve R(θ) for a given multilayer stack using Parratt's recursion formula
+ * with Névot-Croce / Debye-Waller roughness attenuation factors and beam divergence convolution.
+ */
 export function calculateReflectivityCurve(
   layers: XRRLayer[],
   config: XRRSimulationConfig,
@@ -641,13 +675,15 @@ export function calculateReflectivityCurve(
 
   const numSteps = Math.max(10, Math.floor((angleEnd - angleStart) / angleStep) + 1);
 
+  // Expand layers with grading/interdiffusion or continuous density profiles if configured
   const processedLayers: XRRLayer[] = [];
   for (const l of layers) {
     if (l.gradientType && l.gradientType !== 'none' && l.gradientDeltaDensity && l.thickness > 10) {
+      // Sub-slice layer with continuous density profile into 6 thin slabs
       const numSlices = 6;
       const subThick = l.thickness / numSlices;
       for (let s = 0; s < numSlices; s++) {
-        const normZ = (s + 0.5) / numSlices;
+        const normZ = (s + 0.5) / numSlices; // 0 to 1 depth fraction
         let factor = 0;
         if (l.gradientType === 'linear') {
           factor = (normZ - 0.5) * l.gradientDeltaDensity;
@@ -673,6 +709,7 @@ export function calculateReflectivityCurve(
         });
       }
     } else if (l.gradingThickness && l.gradingThickness > 0 && l.thickness > l.gradingThickness) {
+      // Sub-slice interdiffusion zone into 4 graded sub-layers
       const bulkThick = l.thickness - l.gradingThickness;
       processedLayers.push({ ...l, thickness: bulkThick });
       const subThick = l.gradingThickness / 4;
@@ -694,6 +731,7 @@ export function calculateReflectivityCurve(
     }
   }
 
+  // Full stack including Ambient (index 0) and Substrate (index N+1)
   const ambientLayer: XRRLayer = {
     id: 'ambient',
     name: 'Air / Ambient',
@@ -711,11 +749,13 @@ export function calculateReflectivityCurve(
 
   for (let i = 0; i < numSteps; i++) {
     const rawThetaDeg = angleStart + i * angleStep;
-    const thetaDeg = rawThetaDeg + angleOffset;
+    const thetaDeg = rawThetaDeg + angleOffset; // Apply angular zero-point offset correction
     const thetaRad = (Math.max(0.0005, thetaDeg) * Math.PI) / 180;
     const twoThetaDeg = rawThetaDeg * 2;
     const qz = (4 * Math.PI * Math.sin(thetaRad)) / wavelength;
 
+    // Calculate perpendicular wavevector component kz for each layer
+    // kz_j = (2π / λ) * sqrt(sin^2(θ) - 2δ_j - 2iβ_j)
     const sin2Theta = Math.sin(thetaRad) * Math.sin(thetaRad);
     const k0 = (2 * Math.PI) / wavelength;
 
@@ -724,6 +764,7 @@ export function calculateReflectivityCurve(
       const deltaVal = fullStack[j].delta * 1e-6;
       const betaVal = fullStack[j].beta * 1e-7;
 
+      // Radicand = sin^2(θ) - 2δ - 2iβ
       const radicand: Complex = {
         re: sin2Theta - 2 * deltaVal,
         im: -2 * betaVal
@@ -736,17 +777,20 @@ export function calculateReflectivityCurve(
       });
     }
 
+    // Parratt Recursion from bottom substrate (index numLayers - 1) up to ambient (index 0)
     let R_next: Complex = { re: 0, im: 0 };
 
     for (let j = numLayers - 2; j >= 0; j--) {
       const kz_j = kzLayers[j];
       const kz_next = kzLayers[j + 1];
-      const sigma = fullStack[j + 1].roughness;
+      const sigma = fullStack[j + 1].roughness; // Interface roughness
 
+      // Fresnel reflection coefficient: r_j,j+1 = (kz_j - kz_j+1) / (kz_j + kz_j+1)
       const numR = cSub(kz_j, kz_next);
       const denR = cAdd(kz_j, kz_next);
       const r_fresnel = cDiv(numR, denR);
 
+      // Interface Roughness Damping Model (Névot-Croce vs Debye-Waller)
       const isDebyeWaller = roughnessModel === 'debye-waller';
       const roughExpTerm = isDebyeWaller ? cMul(kz_j, kz_j) : cMul(kz_j, kz_next);
       const roughExponent: Complex = {
@@ -755,8 +799,10 @@ export function calculateReflectivityCurve(
       };
       const roughDamping = cExp(roughExponent);
 
+      // Rough Fresnel coefficient r_rough = r_fresnel * roughDamping
       const r_rough = cMul(r_fresnel, roughDamping);
 
+      // Layer phase shift term for layer j+1 (if j+1 is not substrate)
       let phaseFactor: Complex = { re: 1, im: 0 };
       if (j + 1 < numLayers - 1) {
         const d_layer = fullStack[j + 1].thickness;
@@ -767,6 +813,7 @@ export function calculateReflectivityCurve(
         phaseFactor = cExp(phaseExp);
       }
 
+      // Parratt iteration
       const R_phase = cMul(R_next, phaseFactor);
       const topTerm = cAdd(r_rough, R_phase);
       const bottomTerm = cAdd({ re: 1, im: 0 }, cMul(r_rough, R_phase));
@@ -774,21 +821,27 @@ export function calculateReflectivityCurve(
       R_next = cDiv(topTerm, bottomTerm);
     }
 
+    // Beam Footprint Correction Factor F(θ) = min(1, (L * sinθ) / w)
     let footprintFactor = 1.0;
     if (footprintCorrection && sampleLengthMm > 0 && beamWidthMm > 0) {
       footprintFactor = Math.min(1.0, (sampleLengthMm * Math.sin(thetaRad)) / beamWidthMm);
       footprintFactor = Math.max(0.01, footprintFactor);
     }
 
+    // Reflectivity = |R_0|^2 * intensityScale * footprintFactor
     let rIntensity = cAbs2(R_next) * intensityScale * footprintFactor;
+
+    // Apply Background Noise Floor
     rIntensity = Math.max(rIntensity, background);
 
+    // Ideal Fresnel Reflectivity for Substrate alone
     const kz0 = kzLayers[0];
     const kzSub = kzLayers[numLayers - 1];
     const numSub = cSub(kz0, kzSub);
     const denSub = cAdd(kz0, kzSub);
     const fresnelSub = cAbs2(cDiv(numSub, denSub)) * intensityScale * footprintFactor;
 
+    // Fresnel Compensated: R * qz^4
     const qz4 = Math.pow(Math.max(0.005, qz), 4);
     const rCalcCompensated = rIntensity * qz4;
 
@@ -803,11 +856,13 @@ export function calculateReflectivityCurve(
     });
   }
 
+  // Beam Divergence Convolution (Gaussian Smoothing over Angle)
   let finalPoints = rawPoints;
   if (beamDivergence > 0.0005) {
     finalPoints = applyBeamDivergenceConvolution(rawPoints, beamDivergence, angleStep);
   }
 
+  // Attach experimental data points if provided
   if (expData && expData.length > 0) {
     finalPoints = alignExperimentalData(finalPoints, expData, config.angleUnit);
   }
@@ -815,6 +870,10 @@ export function calculateReflectivityCurve(
   return finalPoints;
 }
 
+/**
+ * Beam Divergence Convolution
+ * Applies Gaussian instrumental broadening to reflectivity curve
+ */
 function applyBeamDivergenceConvolution(
   points: XRRDataPoint[],
   divergenceDeg: number,
@@ -854,6 +913,9 @@ function applyBeamDivergenceConvolution(
   return result;
 }
 
+/**
+ * Aligns experimental curve onto calculation dataset
+ */
 function alignExperimentalData(
   calcPoints: XRRDataPoint[],
   expData: { angle: number; intensity: number }[],
@@ -864,6 +926,7 @@ function alignExperimentalData(
     if (unit === 'twoTheta') targetX = pt.twoTheta;
     if (unit === 'qz') targetX = pt.qz;
 
+    // Find nearest experimental point
     let closestExp = expData[0];
     let minDiff = Math.abs(expData[0].angle - targetX);
 
@@ -892,17 +955,23 @@ function alignExperimentalData(
 // Real-Space Scattering Length Density (SLD) & Depth Profiling
 // ----------------------------------------------------------------------------
 
+/**
+ * Calculates Scattering Length Density (SLD) & Optical Potential Profile along depth z
+ */
 export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number = 350): SLDPoint[] {
   if (layers.length === 0) return [];
 
+  // Total thickness of thin films
   const filmThickness = layers.slice(0, -1).reduce((acc, l) => acc + l.thickness, 0);
-  const substrateThickness = 120;
-  const ambientPadding = 60;
+  const substrateThickness = 120; // Å padding for substrate
+  const ambientPadding = 60;      // Å padding for air above top surface
 
   const totalDepth = ambientPadding + filmThickness + substrateThickness;
   const zStep = totalDepth / numDepthPoints;
 
   const result: SLDPoint[] = [];
+
+  // Stack interfaces z positions
   const interfaces: { zPos: number; roughness: number; layerAbove: XRRLayer; layerBelow: XRRLayer }[] = [];
 
   const ambientLayer: XRRLayer = {
@@ -935,6 +1004,7 @@ export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number =
 
     let activeLayerName = stack[0].name;
 
+    // Find local dominant layer
     for (let s = 0; s < stack.length; s++) {
       let startZ = 0;
       let endZ = totalDepth;
@@ -953,6 +1023,7 @@ export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number =
       }
     }
 
+    // Sum error function contributions for each interface
     let currentDensity = stack[0].density;
     let currentDelta = stack[0].delta;
     let currentBeta = stack[0].beta;
@@ -964,14 +1035,18 @@ export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number =
       currentBeta += (interf.layerBelow.beta - interf.layerAbove.beta) * stepFactor;
     }
 
+    // Electron density approximation: ρ_e ≈ 0.285 * ρ (e⁻/Å³)
     const electronDensity = 0.285 * currentDensity;
+
+    // Real part of optical potential V(z) = 4π / λ² * δ * 10⁻⁶ (in 10⁻⁶ Å⁻²)
     const opticalPotential = (4 * Math.PI / (1.54056 * 1.54056)) * currentDelta;
 
+    // Porosity estimation relative to highest density layer in stack
     const maxStackDensity = Math.max(...stack.map(l => l.density), 1.0);
     const porosity = currentDensity > 0 ? Math.max(0, Math.min(100, (1 - currentDensity / maxStackDensity) * 100)) : 100;
 
     result.push({
-      z: Number((z - ambientPadding).toFixed(2)),
+      z: Number((z - ambientPadding).toFixed(2)), // Shift surface z = 0
       density: Math.max(0, Number(currentDensity.toFixed(3))),
       delta: Math.max(0, Number(currentDelta.toFixed(3))),
       beta: Math.max(0, Number(currentBeta.toFixed(4))),
@@ -989,18 +1064,24 @@ export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number =
 // Modified Bragg Refraction-Corrected Kiessig Fringe Analyzer
 // ----------------------------------------------------------------------------
 
+/**
+ * Analyzes Kiessig Fringes with Modified Bragg Equation and Refraction Correction
+ * Equation: sin²(θ_m) = (m * λ / (2 * d))² + 2δ_eff = m² * Slope + θc²
+ */
 export function analyzeKiessigFringes(
   dataPoints: XRRDataPoint[],
   wavelength: number = 1.54056
 ): KiessigAnalysisResult | null {
   if (dataPoints.length < 20) return null;
 
+  // Compensation for Fresnel qz^-4 decay: Intensity * qz^4
   const compensated = dataPoints.map(pt => ({
     qz: pt.qz,
     theta: pt.theta,
     val: pt.rCalc * Math.pow(Math.max(0.01, pt.qz), 4)
   }));
 
+  // Find local maxima and minima above critical angle
   const rawPeaks: { qz: number; theta: number; r: number }[] = [];
   const rawValleys: { qz: number; theta: number; r: number }[] = [];
 
@@ -1029,6 +1110,7 @@ export function analyzeKiessigFringes(
 
   if (rawPeaks.length < 2) return null;
 
+  // Calculate average peak-to-peak distance Δqz
   let sumDeltaQz = 0;
   for (let i = 1; i < rawPeaks.length; i++) {
     sumDeltaQz += (rawPeaks[i].qz - rawPeaks[i - 1].qz);
@@ -1036,17 +1118,21 @@ export function analyzeKiessigFringes(
   const avgDeltaQz = sumDeltaQz / (rawPeaks.length - 1);
   const estimatedThickness = (2 * Math.PI) / avgDeltaQz;
 
+  // Δθ period
   let sumDeltaTheta = 0;
   for (let i = 1; i < rawPeaks.length; i++) {
     sumDeltaTheta += (rawPeaks[i].theta - rawPeaks[i - 1].theta);
   }
   const avgDeltaTheta = sumDeltaTheta / (rawPeaks.length - 1);
 
+  // Modified Bragg Equation Linear Fit:
+  // Assign fringe orders m = 1, 2, 3...
   const peaksWithOrder = rawPeaks.map((p, idx) => ({
     ...p,
     order: idx + 1
   }));
 
+  // Linear Regression: Y = sin²(θ_m), X = m²
   let sumX = 0;
   let sumY = 0;
   let sumXY = 0;
@@ -1070,14 +1156,18 @@ export function analyzeKiessigFringes(
   const slope = (N * sumXY - sumX * sumY) / (N * sumX2 - sumX * sumX);
   const intercept = (sumY - slope * sumX) / N;
 
+  // d = λ / (2 * sqrt(slope))
   const dBragg = slope > 0 ? wavelength / (2 * Math.sqrt(slope)) : estimatedThickness;
 
+  // Critical angle θc = asin(sqrt(intercept)) in degrees
   const sinThetaCrit = intercept > 0 ? Math.sqrt(intercept) : 0;
   const thetaCritDeg = sinThetaCrit > 0 && sinThetaCrit < 1 ? (Math.asin(sinThetaCrit) * 180) / Math.PI : 0.22;
 
+  // Effective delta δ_eff = 0.5 * intercept
   const deltaEff = Math.max(0, intercept * 0.5 * 1e6);
   const densityEff = deltaEff / 3.24;
 
+  // Calculate R² coefficient
   const meanY = sumY / N;
   let ssTot = 0;
   let ssRes = 0;
@@ -1118,14 +1208,20 @@ export function analyzeKiessigFringes(
 // Fast Fourier Transform (FFT) Thickness Extraction Engine
 // ----------------------------------------------------------------------------
 
+/**
+ * Calculates Spatial Frequency Thickness Power Spectrum via Discrete Fourier Transform
+ * Computes |FFT(R(qz) * qz^4)| to extract layer thicknesses and multilayer harmonics
+ */
 export function calculateFFTThickness(
   dataPoints: XRRDataPoint[],
   maxThicknessA: number = 1200,
   stepA: number = 2.0
 ): FFTThicknessResult | null {
+  // Filter points in valid Kiessig oscillation range (qz > 0.04 Å⁻¹)
   const valid = dataPoints.filter(p => p.qz >= 0.04 && p.qz <= 0.6);
   if (valid.length < 30) return null;
 
+  // Equidistant qz grid interpolation
   const minQz = valid[0].qz;
   const maxQz = valid[valid.length - 1].qz;
   const numGrid = 256;
@@ -1134,6 +1230,7 @@ export function calculateFFTThickness(
   const signal: { qz: number; val: number }[] = [];
   for (let i = 0; i < numGrid; i++) {
     const qTarget = minQz + i * deltaQz;
+    // Nearest neighbor interpolation with Hanning window
     let closestVal = valid[0].rCalcCompensated || valid[0].rCalc * Math.pow(valid[0].qz, 4);
     let minD = Math.abs(valid[0].qz - qTarget);
 
@@ -1145,16 +1242,19 @@ export function calculateFFTThickness(
       }
     }
 
+    // Apply Hanning Window to suppress Fourier spectral leakage
     const window = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (numGrid - 1)));
     signal.push({ qz: qTarget, val: closestVal * window });
   }
 
+  // Remove mean DC baseline
   const meanVal = signal.reduce((sum, s) => sum + s.val, 0) / signal.length;
   const centered = signal.map(s => s.val - meanVal);
 
   const spatialFrequencies: FFTThicknessResult['spatialFrequencies'] = [];
   let maxAmp = 0;
 
+  // Real space thickness loop from 10 Å to maxThicknessA
   for (let z = 10; z <= maxThicknessA; z += stepA) {
     let re = 0;
     let im = 0;
@@ -1176,16 +1276,18 @@ export function calculateFFTThickness(
     });
   }
 
+  // Normalize power spectrum to 0 - 100%
   const normalized = spatialFrequencies.map(f => ({
     ...f,
     normalizedAmp: maxAmp > 0 ? Number(((f.amplitude / maxAmp) * 100).toFixed(1)) : 0
   }));
 
+  // Detect Peak Maxima in Fourier Spectrum
   const detectedPeaks: FFTThicknessResult['detectedPeaks'] = [];
   for (let i = 2; i < normalized.length - 2; i++) {
     const curr = normalized[i].normalizedAmp;
     if (
-      curr > 12 &&
+      curr > 12 && // Minimum 12% prominence
       curr > normalized[i - 1].normalizedAmp &&
       curr > normalized[i - 2].normalizedAmp &&
       curr > normalized[i + 1].normalizedAmp &&
@@ -1203,6 +1305,7 @@ export function calculateFFTThickness(
     }
   }
 
+  // Sort peaks by amplitude descending
   detectedPeaks.sort((a, b) => b.amplitude - a.amplitude);
 
   return {
@@ -1216,9 +1319,13 @@ export function calculateFFTThickness(
 // Critical Angle & Surface Density Detection
 // ----------------------------------------------------------------------------
 
+/**
+ * Detects Critical Angle θc and estimates surface/substrate mass density
+ */
 export function detectCriticalAngle(dataPoints: XRRDataPoint[]): CriticalAngleResult | null {
   if (dataPoints.length < 10) return null;
 
+  // Critical angle corresponds to drop in reflectivity (max derivative |dR/dθ|) below 1.0°
   let maxSlopeIdx = 0;
   let maxSlope = 0;
 
@@ -1235,9 +1342,12 @@ export function detectCriticalAngle(dataPoints: XRRDataPoint[]): CriticalAngleRe
   const critPoint = dataPoints[maxSlopeIdx];
   if (!critPoint) return null;
 
+  // Critical angle formula: θc (rad) ≈ sqrt(2δ)
+  // δ ≈ (θc_rad)^2 / 2
   const thetaCritRad = (critPoint.theta * Math.PI) / 180;
   const deltaEst = 0.5 * thetaCritRad * thetaCritRad;
 
+  // Estimate mass density ρ ≈ deltaEst / (3.24e-6) for Cu K-alpha
   const densityEst = Math.min(24, Math.max(0.5, deltaEst / 3.24e-6));
   const electronDensityEst = 0.285 * densityEst;
 
@@ -1254,6 +1364,9 @@ export function detectCriticalAngle(dataPoints: XRRDataPoint[]): CriticalAngleRe
 // Goodness-of-Fit Quality Assessment
 // ----------------------------------------------------------------------------
 
+/**
+ * Calculates Goodness-of-Fit metrics (Log-RMSE, Rwp, Chi-square, R^2)
+ */
 export function calculateFitQuality(points: XRRDataPoint[]): FitQualityResult {
   const valid = points.filter(p => p.rExp !== undefined && p.rExp > 0 && p.rCalc > 0);
   if (valid.length === 0) {
@@ -1265,6 +1378,7 @@ export function calculateFitQuality(points: XRRDataPoint[]): FitQualityResult {
   let sumExpSq = 0;
   let sumChiSq = 0;
 
+  // R² on log scale
   const logExpVals = valid.map(p => Math.log10(p.rExp!));
   const meanLogExp = logExpVals.reduce((a, b) => a + b, 0) / logExpVals.length;
   let ssTotLog = 0;
@@ -1281,6 +1395,7 @@ export function calculateFitQuality(points: XRRDataPoint[]): FitQualityResult {
     sumDiffSq += diffLinear * diffLinear;
     sumExpSq += p.rExp! * p.rExp!;
 
+    // Poisson estimated variance in XRR count rate
     const variance = Math.max(1e-12, p.rExp!);
     sumChiSq += (diffLinear * diffLinear) / variance;
 
@@ -1305,6 +1420,10 @@ export function calculateFitQuality(points: XRRDataPoint[]): FitQualityResult {
 // Superlattice Periodic Multilayer Satellite Peaks
 // ----------------------------------------------------------------------------
 
+/**
+ * Superlattice Satellite Bragg Peak Analysis
+ * Calculates expected satellite Bragg angles for periodic multilayer superlattices
+ */
 export function calculateSuperlatticeBraggPeaks(
   layers: XRRLayer[],
   config: XRRSimulationConfig
@@ -1314,18 +1433,22 @@ export function calculateSuperlatticeBraggPeaks(
   const films = layers.slice(0, -1);
   if (films.length < 2) return null;
 
+  // Calculate bilayer period (sum of adjacent film thicknesses)
   const period = films[0].thickness + films[1].thickness;
   if (period <= 10) return null;
 
   const peaks: SuperlatticePeak[] = [];
   const wavelength = config.wavelength;
 
+  // Average delta for refraction correction
   const avgDelta = films.reduce((sum, f) => sum + f.delta * (f.thickness / period), 0) * 1e-6;
 
   for (let m = 1; m <= 8; m++) {
+    // Kinematic approximation: sin(θ_m) ≈ m * λ / (2 * Λ)
     const sinThetaApprox = (m * wavelength) / (2 * period);
     if (sinThetaApprox >= 0.99) break;
 
+    // Refraction corrected angle: sin²(θ_m) = (m λ / 2 Λ)² + 2δ_avg
     const sinThetaCorr = Math.sqrt(sinThetaApprox * sinThetaApprox + 2 * avgDelta);
     if (sinThetaCorr >= 0.99) break;
 
@@ -1351,6 +1474,10 @@ export function calculateSuperlatticeBraggPeaks(
 // Monte Carlo Sensitivity & Uncertainty Envelope
 // ----------------------------------------------------------------------------
 
+/**
+ * Monte Carlo Sensitivity Analysis
+ * Computes 95% confidence limits by running N randomized parameter variations
+ */
 export function calculateMonteCarloConfidenceEnvelope(
   layers: XRRLayer[],
   config: XRRSimulationConfig,
@@ -1364,7 +1491,7 @@ export function calculateMonteCarloConfidenceEnvelope(
 
   for (let s = 0; s < numSimulations; s++) {
     const perturbedLayers = layers.map(l => {
-      if (l.thickness === 0) return l;
+      if (l.thickness === 0) return l; // Substrate
       const pThick = Math.max(5, l.thickness * (1 + (Math.random() - 0.5) * 2 * (variationPercent / 100)));
       const pRough = Math.max(0.2, l.roughness * (1 + (Math.random() - 0.5) * 2 * (variationPercent / 100)));
       const pDens = Math.max(0.1, l.density * (1 + (Math.random() - 0.5) * 2 * (variationPercent / 100)));
@@ -1399,6 +1526,9 @@ export function calculateMonteCarloConfidenceEnvelope(
 // Multi-Platform Simulation Code Generators (Refnx, GenX, BornAgain, SciPy)
 // ----------------------------------------------------------------------------
 
+/**
+ * Generates automated Python script for XRR analysis with Refnx
+ */
 export function generatePythonXRRScript(layers: XRRLayer[], config: XRRSimulationConfig): string {
   const filmCode = layers.slice(0, -1).map((l, idx) => `
 # Layer ${idx + 1}: ${l.name}
@@ -1464,6 +1594,9 @@ else:
 `;
 }
 
+/**
+ * Generates GenX Differential Evolution Fitting Script
+ */
 export function generateGenXScript(layers: XRRLayer[], config: XRRSimulationConfig): string {
   const films = layers.slice(0, -1);
   const sub = layers[layers.length - 1];
@@ -1488,6 +1621,9 @@ print("Initialized GenX Multilayer Optimization Model.")
 `;
 }
 
+/**
+ * Generates BornAgain GISAXS / XRR Simulation Script
+ */
 export function generateBornAgainScript(layers: XRRLayer[], config: XRRSimulationConfig): string {
   return `# ==============================================================================
 # BornAgain Framework XRR Simulation Script
@@ -1498,6 +1634,7 @@ import bornagain as ba
 from bornagain import deg, angstrom, nm
 
 def get_sample():
+    # Vacuum ambient
     m_ambient = ba.RefractiveMaterial("Vacuum", 0.0, 0.0)
     l_ambient = ba.Layer(m_ambient)
 
@@ -1510,6 +1647,7 @@ ${layers.slice(0, -1).map((l, i) => `    # Layer ${i + 1}: ${l.name}
     r_${i + 1} = ba.LayerRoughness(${(l.roughness / 10).toFixed(3)} * nm, 0.7, 10.0 * nm)
     multi_layer.addLayerWithTopRoughness(l_${i + 1}, r_${i + 1})`).join('\n\n')}
 
+    # Substrate
     sub_mat = ba.RefractiveMaterial("Substrate", ${layers[layers.length - 1]?.delta * 1e-6 || 7.56e-6}, ${layers[layers.length - 1]?.beta * 1e-7 || 1.7e-7})
     sub_layer = ba.Layer(sub_mat)
     sub_rough = ba.LayerRoughness(${((layers[layers.length - 1]?.roughness || 3.0) / 10).toFixed(3)} * nm, 0.7, 10.0 * nm)
@@ -1521,6 +1659,9 @@ print("BornAgain Multilayer Sample Stack compiled.")
 `;
 }
 
+/**
+ * Generates copyable LaTeX Publication Summary Table
+ */
 export function generateLatexTable(
   layers: XRRLayer[],
   quality?: FitQualityResult,
@@ -1540,7 +1681,7 @@ export function generateLatexTable(
 \\hline
 `;
 
-  films.forEach((l) => {
+  films.forEach((l, i) => {
     const rho_e = (0.285 * l.density).toFixed(3);
     latex += `${l.name} & ${l.thickness.toFixed(1)} & ${l.roughness.toFixed(2)} & ${l.density.toFixed(2)} & ${l.delta.toFixed(2)} & ${l.beta.toFixed(3)} & ${rho_e} \\\\\n`;
   });
@@ -1570,137 +1711,9 @@ export function generateLatexTable(
 
   return latex;
 }
+'''
 
-export const estimateOpticalConstantsFromFormula = calculateOpticalConstantsFromFormula;
+with open("utils/xrrPhysics.ts", "w", encoding="utf-8") as f:
+    f.write(code)
 
-
-// ----------------------------------------------------------------------------
-// Backward Compatibility Aliases & Helpers
-// ----------------------------------------------------------------------------
-export type SLDProfilePoint = SLDPoint;
-export const calculateKiessigFringes = analyzeKiessigFringes;
-export const calculateCriticalAngle = detectCriticalAngle;
-
-export interface XRRStackPreset {
-  id: string;
-  name: string;
-  description: string;
-  layers: XRRLayer[];
-}
-
-export const PRESET_STACKS: XRRStackPreset[] = [
-  {
-    id: 'single_film',
-    name: 'Single Film: 50nm TiO₂ / Si(001)',
-    description: 'Standard 50 nm TiO₂ thin film on native oxide Silicon (001) wafer.',
-    layers: [
-      { id: 'layer-1', name: 'TiO₂ Film', formula: 'TiO2', thickness: 500, roughness: 3.5, density: 4.23, delta: 14.5, beta: 0.32 },
-      { id: 'layer-2', name: 'SiO₂ Native Oxide', formula: 'SiO2', thickness: 20, roughness: 2.5, density: 2.20, delta: 7.18, beta: 0.15 },
-      { id: 'layer-sub', name: 'Si (001) Substrate', formula: 'Si', thickness: 0, roughness: 2.0, density: 2.33, delta: 7.56, beta: 0.17 }
-    ]
-  },
-  {
-    id: 'bilayer_highk',
-    name: 'High-k Bilayer: HfO₂ / Al₂O₃ / Si',
-    description: 'High-k dielectric gate stack with 15 nm HfO₂ capping layer and 3 nm Al₂O₃ interfacial barrier.',
-    layers: [
-      { id: 'layer-1', name: 'HfO₂ Cap', formula: 'HfO2', thickness: 150, roughness: 4.0, density: 9.68, delta: 28.5, beta: 2.10 },
-      { id: 'layer-2', name: 'Al₂O₃ Barrier', formula: 'Al2O3', thickness: 30, roughness: 2.8, density: 3.98, delta: 12.8, beta: 0.22 },
-      { id: 'layer-sub', name: 'Si Substrate', formula: 'Si', thickness: 0, roughness: 2.2, density: 2.33, delta: 7.56, beta: 0.17 }
-    ]
-  },
-  {
-    id: 'superlattice',
-    name: 'Periodic Multilayer: [Mo/Si] × 10 Superlattice',
-    description: 'EUV mirror Bragg multilayer stack with alternating 3.5 nm Mo and 4.5 nm Si bilayers.',
-    layers: [
-      { id: 'layer-1', name: 'Mo (Layer 1)', formula: 'Mo', thickness: 35, roughness: 3.2, density: 10.2, delta: 29.5, beta: 1.85 },
-      { id: 'layer-2', name: 'Si (Layer 1)', formula: 'Si', thickness: 45, roughness: 3.0, density: 2.33, delta: 7.56, beta: 0.17 },
-      { id: 'layer-3', name: 'Mo (Layer 2)', formula: 'Mo', thickness: 35, roughness: 3.2, density: 10.2, delta: 29.5, beta: 1.85 },
-      { id: 'layer-4', name: 'Si (Layer 2)', formula: 'Si', thickness: 45, roughness: 3.0, density: 2.33, delta: 7.56, beta: 0.17 },
-      { id: 'layer-sub', name: 'Fused Silica Substrate', formula: 'SiO2', thickness: 0, roughness: 2.5, density: 2.20, delta: 7.18, beta: 0.15 }
-    ]
-  },
-  {
-    id: 'metal_capping',
-    name: 'Spintronic Stack: Pt / CoFeB / MgO / Substrate',
-    description: 'Magnetic tunnel junction structure with heavy metal spin-Hall Pt top contact.',
-    layers: [
-      { id: 'layer-1', name: 'Pt Cap', formula: 'Pt', thickness: 50, roughness: 3.8, density: 21.45, delta: 49.5, beta: 4.80 },
-      { id: 'layer-2', name: 'CoFeB Ferromagnet', formula: 'CoFeB', thickness: 30, roughness: 2.5, density: 8.20, delta: 24.2, beta: 1.15 },
-      { id: 'layer-3', name: 'MgO Tunnel Barrier', formula: 'MgO', thickness: 15, roughness: 2.2, density: 3.58, delta: 11.2, beta: 0.18 },
-      { id: 'layer-sub', name: 'Si / SiO₂ Substrate', formula: 'Si', thickness: 0, roughness: 2.0, density: 2.33, delta: 7.56, beta: 0.17 }
-    ]
-  }
-];
-
-/**
- * Robust Multi-Format XRR Experimental Data Parser
- * Supports: .dat, .csv, .xy, .txt, Rigaku .ras, PANalytical .xrdml
- */
-export function parseXRRDataFile(content: string, wavelength: number = 1.54056): { theta: number; qz: number; intensity: number }[] {
-  const points: { theta: number; qz: number; intensity: number }[] = [];
-  const lines = content.split(/\r?\n/);
-
-  let isTwoTheta = false;
-  let isQz = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('*') || trimmed.startsWith('//')) {
-      if (trimmed.toLowerCase().includes('2theta') || trimmed.toLowerCase().includes('2-theta')) {
-        isTwoTheta = true;
-      }
-      if (trimmed.toLowerCase().includes('qz') || trimmed.toLowerCase().includes('q_z')) {
-        isQz = true;
-      }
-      continue;
-    }
-
-    const parts = trimmed.split(/[\s,;\t]+/).filter(p => p.length > 0);
-    if (parts.length >= 2) {
-      const xVal = parseFloat(parts[0]);
-      const yVal = parseFloat(parts[1]);
-
-      if (!isNaN(xVal) && !isNaN(yVal) && yVal >= 0) {
-        let theta = xVal;
-        let qz = 0;
-
-        if (isTwoTheta || xVal > 8.0) {
-          // If angles are given in 2θ, convert to θ
-          theta = xVal / 2.0;
-          qz = (4 * Math.PI / wavelength) * Math.sin((theta * Math.PI) / 180);
-        } else if (isQz || (xVal > 0.01 && xVal < 1.5 && parts[0].includes('.'))) {
-          // If x is qz, convert to theta
-          const sinTheta = (xVal * wavelength) / (4 * Math.PI);
-          if (sinTheta >= 0 && sinTheta <= 1) {
-            theta = (Math.asin(sinTheta) * 180) / Math.PI;
-            qz = xVal;
-          }
-        } else {
-          // Default: θ in degrees
-          qz = (4 * Math.PI / wavelength) * Math.sin((theta * Math.PI) / 180);
-        }
-
-        if (theta > 0 && theta < 20) {
-          points.push({ theta, qz, intensity: yVal });
-        }
-      }
-    }
-  }
-
-  // Sort by theta ascending
-  points.sort((a, b) => a.theta - b.theta);
-
-  // Normalize intensity to maximum 1.0 if raw counts > 1.0
-  if (points.length > 0) {
-    const maxI = Math.max(...points.map(p => p.intensity));
-    if (maxI > 1.0) {
-      for (const p of points) {
-        p.intensity = p.intensity / maxI;
-      }
-    }
-  }
-
-  return points;
-}
+print("utils/xrrPhysics.ts written successfully!")

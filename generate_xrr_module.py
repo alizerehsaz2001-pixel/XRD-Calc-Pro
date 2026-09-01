@@ -1,4 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import os
+
+module_code = r"""import React, { useState, useMemo, useEffect } from 'react';
 import {
   XRRLayer,
   XRRSimulationConfig,
@@ -60,21 +62,19 @@ export const XRRModule: React.FC = () => {
 
   // Simulation & Instrument Configuration
   const [config, setConfig] = useState<XRRSimulationConfig>({
-    radiationSource: 'cu-ka1',
+    radiationSource: 'Cu-Ka1',
     wavelength: 1.5406,
-    angleStart: 0.1,
-    angleEnd: 5.0,
-    angleStep: 0.01,
-    angleUnit: 'theta',
-    beamDivergence: 0.01,
+    thetaMin: 0.1,
+    thetaMax: 5.0,
+    thetaStep: 0.01,
     roughnessModel: 'nevot-croce',
     background: 1e-8,
-    
-    
+    instrumentResolution: 0.01,
+    beamLengthMm: 20.0,
     sampleLengthMm: 15.0,
-    footprintCorrection: true,
-    
-    
+    applyFootprintCorrection: true,
+    polarizationFactor: 1.0,
+    monteCarloEnvelope: true
   });
 
   // Experimental Measurement Data
@@ -95,7 +95,7 @@ export const XRRModule: React.FC = () => {
   };
 
   // Handle Radiation Source Change
-  const handleSourceChange = (sourceKey: any) => {
+  const handleSourceChange = (sourceKey: string) => {
     const src = RADIATION_SOURCES[sourceKey];
     if (src) {
       setConfig(prev => ({
@@ -114,13 +114,13 @@ export const XRRModule: React.FC = () => {
   // Merge Simulation and Experimental Data
   const mergedDataPoints = useMemo<XRRDataPoint[]>(() => {
     return simCurve.map(pt => {
-      const matched = expData.find(e => Math.abs(e.theta - pt.theta) < config.angleStep * 0.8);
+      const matched = expData.find(e => Math.abs(e.theta - pt.theta) < config.thetaStep * 0.8);
       return {
         ...pt,
         rExp: matched ? matched.intensity : undefined
       };
     });
-  }, [simCurve, expData, config.angleStep]);
+  }, [simCurve, expData, config.thetaStep]);
 
   // Calculate SLD Real-Space Profile
   const sldProfile = useMemo<SLDProfilePoint[]>(() => {
@@ -134,7 +134,7 @@ export const XRRModule: React.FC = () => {
 
   // Calculate Critical Angle Detection
   const critAngleResult = useMemo<CriticalAngleResult | null>(() => {
-    return calculateCriticalAngle(mergedDataPoints);
+    return calculateCriticalAngle(mergedDataPoints, config.wavelength);
   }, [mergedDataPoints, config.wavelength]);
 
   // Calculate Fit Quality Metrics
@@ -153,7 +153,7 @@ export const XRRModule: React.FC = () => {
     const newLayer: XRRLayer = {
       id: newId,
       name: `Cap Layer ${layers.length}`,
-      formula: 'TiO2', material: 'TiO2',
+      material: 'TiO2',
       thickness: 100,
       roughness: 4.0,
       density: 4.23,
@@ -192,7 +192,7 @@ export const XRRModule: React.FC = () => {
     const newLayer: XRRLayer = {
       id: `layer-${Date.now()}`,
       name: result.formula,
-      formula: result.formula, material: result.formula,
+      material: result.formula,
       thickness: 150,
       roughness: 3.5,
       density: result.density,
@@ -331,8 +331,8 @@ export const XRRModule: React.FC = () => {
           <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer pb-1">
             <input
               type="checkbox"
-              checked={config.footprintCorrection}
-              onChange={(e) => setConfig(prev => ({ ...prev, footprintCorrection: e.target.checked }))}
+              checked={config.applyFootprintCorrection}
+              onChange={(e) => setConfig(prev => ({ ...prev, applyFootprintCorrection: e.target.checked }))}
               className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0"
             />
             <span>Beam Footprint Geometry</span>
@@ -391,8 +391,8 @@ export const XRRModule: React.FC = () => {
                     <td className="py-2 px-3">
                       <input
                         type="text"
-                        value={layer.formula || layer.name}
-                        onChange={(e) => handleUpdateLayerParam(layer.id, 'formula', e.target.value)}
+                        value={layer.material}
+                        onChange={(e) => handleUpdateLayerParam(layer.id, 'material', e.target.value)}
                         className="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-slate-200 focus:outline-none focus:border-cyan-500 font-sans"
                       />
                     </td>
@@ -658,3 +658,9 @@ export const XRRModule: React.FC = () => {
     </div>
   );
 };
+"""
+
+with open("components/XRRModule.tsx", "w", encoding="utf-8") as f:
+    f.write(module_code)
+
+print("components/XRRModule.tsx written successfully!")

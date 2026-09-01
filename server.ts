@@ -971,6 +971,58 @@ Provide a step-by-step strategy for the refinement of this specific system. Outl
     }
   });
 
+  app.post("/api/gemini/xrr-advisor", async (req, res) => {
+    const { layers, config, fitQuality, kiessigResult, critAngleResult, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-xrr',
+          }
+        }
+      });
+      
+      const prompt = `Please provide an advanced thin film physics & X-ray Reflectometry (XRR) analysis for the following multilayer structure:
+Stack Layers: ${JSON.stringify(layers, null, 2)}
+Simulation / Instrument Configuration: ${JSON.stringify(config, null, 2)}
+Fit Quality Metrics: ${JSON.stringify(fitQuality, null, 2)}
+Kiessig Fringe Extraction: ${JSON.stringify(kiessigResult, null, 2)}
+Critical Angle Detection: ${JSON.stringify(critAngleResult, null, 2)}
+
+Provide a comprehensive scientific report covering:
+1. Stack Architecture Evaluation: Assess thickness validity, interdiffusion, and interface sharpness based on RMS roughness values (Névot-Croce / Debye-Waller considerations).
+2. Density Deficits & Porosity Analysis: Compare measured densities vs theoretical bulk densities to evaluate film porosity, void fraction, or potential oxidation/contamination.
+3. Kiessig Fringe Assessment: Comment on fringe contrast, damping rate, and correlation with top surface vs substrate interface quality.
+4. Refinement / Fitting Strategy: Suggest specific parameter adjustments, parameter constraints/locks, and optimization guidance to achieve sub-1% Log-RMSE.
+Format your response with clear academic markdown headings, bulleted lists, and concise physical interpretations.`;
+
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Senior Thin Film Physicist and X-Ray Reflectometry (XRR) Specialist. " +
+            "Your mission is to provide rigorous, scientifically grounded evaluations of XRR multilayer stacks, Kiessig fringes, critical angles, interface roughness models, electron density profiles (SLD), and Parratt recursion fits. " +
+            "Always deliver practical, actionable insights for thin film growers, crystallographers, and synchrotron researchers.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+      
+      res.json({ success: true, text: result.text, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini XRR Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/coder-chat", async (req, res) => {
     const { messages, context, customKey, modelPreference } = req.body;
     try {
