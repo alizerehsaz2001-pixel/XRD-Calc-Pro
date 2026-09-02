@@ -36,7 +36,12 @@ import {
   Bookmark,
   Volume2,
   VolumeX,
-  Keyboard
+  Keyboard,
+  BarChart3,
+  Target,
+  CircleDot,
+  Split,
+  RefreshCw
 } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import {
@@ -48,7 +53,15 @@ import {
   StructureFactorResult,
   DirectAndReciprocalBasis,
   vectorLength,
-  Vector3D
+  Vector3D,
+  calculateCrystallographicMultiplicity,
+  checkSpaceGroupExtinction,
+  calculateInterplanarAngle,
+  calculateEwaldSphereKinematics,
+  generateKinematicPowderSpectrum,
+  KinematicPeakSummary,
+  EwaldKinematicsResult,
+  InterplanarAngleResult
 } from '../utils/braggBasisEngine';
 
 interface BraggVisualizationProps {
@@ -56,7 +69,7 @@ interface BraggVisualizationProps {
   twoTheta: number;
 }
 
-type BasisTab = 'kinematics' | 'atomic_basis' | 'reciprocal_basis' | 'plane_stacking' | '2d_lattice';
+type BasisTab = 'kinematics' | 'atomic_basis' | 'reciprocal_basis' | 'powder_spectrum' | 'ewald_sphere' | 'plane_stacking' | '2d_lattice';
 
 export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ 
   wavelength, 
@@ -107,6 +120,16 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
 
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+
+  // Advanced Kinematics & Powder XRD States
+  const [includeAnomalous, setIncludeAnomalous] = useState<boolean>(false);
+  const [radiationSource, setRadiationSource] = useState<'CuKa' | 'MoKa' | 'Custom'>('CuKa');
+  const [twoThetaMaxSpectrum, setTwoThetaMaxSpectrum] = useState<number>(90);
+  const [filterExtinctSpectrum, setFilterExtinctSpectrum] = useState<boolean>(true);
+  const [interplanarH1, setInterplanarH1] = useState<[number, number, number]>([1, 0, 0]);
+  const [interplanarH2, setInterplanarH2] = useState<[number, number, number]>([1, 1, 0]);
+  const [crystalliteThicknessA, setCrystalliteThicknessA] = useState<number>(250);
+  const [selectedSpectrumPeak, setSelectedSpectrumPeak] = useState<KinematicPeakSummary | null>(null);
 
   // 2D Projection axis in lattice tab
   const [projectionPlane, setProjectionPlane] = useState<'ab' | 'bc' | 'ac'>('ab');
@@ -162,6 +185,10 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
         setActiveTab('plane_stacking');
       } else if (e.key === '5') {
         setActiveTab('2d_lattice');
+      } else if (e.key === '6') {
+        setActiveTab('powder_spectrum');
+      } else if (e.key === '7') {
+        setActiveTab('ewald_sphere');
       } else if (e.key === '[' || e.key === '{') {
         e.preventDefault();
         setLocalTwoTheta(prev => Math.max(5, parseFloat((prev - 0.2).toFixed(2))));
@@ -236,8 +263,48 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({
   }, [unitCell]);
 
   const structureFactorResult: StructureFactorResult = useMemo(() => {
-    return calculateStructureFactor(millerH, millerK, millerL, unitCell, basisAtoms, wavelength);
-  }, [millerH, millerK, millerL, unitCell, basisAtoms, wavelength]);
+    const currentPreset = STANDARD_BASIS_PRESETS.find(p => p.id === selectedPresetId);
+    return calculateStructureFactor(millerH, millerK, millerL, unitCell, basisAtoms, wavelength, {
+      includeAnomalous,
+      radiationType: radiationSource,
+      crystalSystem: currentPreset?.crystalSystem || 'Cubic',
+      spaceGroup: currentPreset?.spaceGroup || '',
+      spaceGroupNumber: currentPreset?.spaceGroupNumber || 0
+    });
+  }, [millerH, millerK, millerL, unitCell, basisAtoms, wavelength, includeAnomalous, radiationSource, selectedPresetId]);
+
+  // Full Kinematic Powder XRD Spectrum
+  const powderSpectrum: KinematicPeakSummary[] = useMemo(() => {
+    const currentPreset = STANDARD_BASIS_PRESETS.find(p => p.id === selectedPresetId);
+    return generateKinematicPowderSpectrum(unitCell, basisAtoms, wavelength, twoThetaMaxSpectrum, {
+      includeAnomalous,
+      radiationType: radiationSource,
+      crystalSystem: currentPreset?.crystalSystem || 'Cubic',
+      spaceGroup: currentPreset?.spaceGroup || '',
+      spaceGroupNumber: currentPreset?.spaceGroupNumber || 0,
+      debyeWallerB
+    });
+  }, [unitCell, basisAtoms, wavelength, twoThetaMaxSpectrum, includeAnomalous, radiationSource, selectedPresetId, debyeWallerB]);
+
+  // Ewald Sphere Kinematics & Deviation Error
+  const ewaldKinematics: EwaldKinematicsResult = useMemo(() => {
+    return calculateEwaldSphereKinematics(
+      wavelength,
+      localTwoTheta,
+      structureFactorResult.dSpacing,
+      reflectionOrder,
+      crystalliteThicknessA
+    );
+  }, [wavelength, localTwoTheta, structureFactorResult.dSpacing, reflectionOrder, crystalliteThicknessA]);
+
+  // Interplanar Angles & Zone Axis Geometry
+  const interplanarResult: InterplanarAngleResult = useMemo(() => {
+    return calculateInterplanarAngle(
+      interplanarH1[0], interplanarH1[1], interplanarH1[2],
+      interplanarH2[0], interplanarH2[1], interplanarH2[2],
+      unitCell
+    );
+  }, [interplanarH1, interplanarH2, unitCell]);
 
   // ---------------------------------------------------------------------------
   // 2D Ray Tracing / Kinematics Physics Calculations
@@ -654,6 +721,32 @@ ${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0
               <Grid className="w-3.5 h-3.5" />
               <span>5. 2D Real-Space</span>
             </button>
+
+            <button
+              id="tab-powder-spectrum"
+              onClick={() => setActiveTab('powder_spectrum')}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === 'powder_spectrum'
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span>6. Powder XRD</span>
+            </button>
+
+            <button
+              id="tab-ewald-sphere"
+              onClick={() => setActiveTab('ewald_sphere')}
+              className={`px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                activeTab === 'ewald_sphere'
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Target className="w-3.5 h-3.5" />
+              <span>7. Ewald & Geometry</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-1">
@@ -726,8 +819,8 @@ ${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0
                   <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-amber-300 font-bold">Space</kbd>
                 </div>
                 <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
-                  <span className="text-slate-400">Tabs 1 to 5:</span>
-                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-emerald-300 font-bold">1 - 5</kbd>
+                  <span className="text-slate-400">Tabs 1 to 7:</span>
+                  <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 text-emerald-300 font-bold">1 - 7</kbd>
                 </div>
                 <div className="p-2 bg-black/60 border border-slate-800 flex justify-between items-center">
                   <span className="text-slate-400">Step 2θ ± 0.2°:</span>
@@ -1263,6 +1356,47 @@ ${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0
             </div>
           </div>
 
+          {/* Advanced Physics Options Bar: Anomalous Dispersion & Space Group */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-black/60 p-2.5 border border-slate-800/80 text-xs">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={includeAnomalous}
+                  onChange={(e) => setIncludeAnomalous(e.target.checked)}
+                  className="rounded-none accent-amber-400 cursor-pointer"
+                />
+                <span className="text-[11px] font-bold text-slate-300">
+                  Anomalous Dispersion <span className="text-amber-400 font-mono">(f = f₀ + f' + i·f'')</span>
+                </span>
+              </label>
+
+              {includeAnomalous && (
+                <div className="flex items-center gap-2 bg-slate-900 px-2 py-1 border border-slate-700">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">Radiation:</span>
+                  <select
+                    value={radiationSource}
+                    onChange={(e) => setRadiationSource(e.target.value as any)}
+                    className="bg-transparent text-[11px] font-mono font-bold text-sky-400 outline-none cursor-pointer"
+                  >
+                    <option value="CuKa" className="bg-slate-900 text-slate-200">Cu Kα (1.5406 Å)</option>
+                    <option value="MoKa" className="bg-slate-900 text-slate-200">Mo Kα (0.7107 Å)</option>
+                    <option value="Custom" className="bg-slate-900 text-slate-200">Current λ ({wavelength.toFixed(4)} Å)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {includeAnomalous && structureFactorResult.bijvoetRatio !== undefined && (
+              <div className="flex items-center gap-3 font-mono text-[11px]">
+                <span className="text-slate-400">Friedel Pair |F(-h-k-l)|:</span>
+                <span className="text-amber-300 font-bold">{structureFactorResult.fFriedelDiff !== undefined ? (structureFactorResult.fMag - structureFactorResult.fFriedelDiff).toFixed(3) : '--'}</span>
+                <span className="text-slate-400 pl-2">Bijvoet Ratio:</span>
+                <span className="text-emerald-400 font-bold">{(structureFactorResult.bijvoetRatio * 100).toFixed(2)}%</span>
+              </div>
+            )}
+          </div>
+
           {/* Structure Factor Output Telemetry Banner */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             <div className={`p-3 border ${structureFactorResult.isExtinct ? 'bg-rose-950/20 border-rose-500/40 text-rose-300' : 'bg-emerald-950/20 border-emerald-500/40 text-emerald-300'}`}>
@@ -1280,6 +1414,11 @@ ${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0
                   </>
                 )}
               </span>
+              {structureFactorResult.extinctionClass && (
+                <span className="text-[8px] font-mono block text-slate-400 truncate mt-0.5" title={structureFactorResult.extinctionClass}>
+                  {structureFactorResult.extinctionClass}
+                </span>
+              )}
             </div>
 
             <div className="p-3 bg-[#0B0F17] border border-slate-800/80">
@@ -2130,6 +2269,570 @@ ${basisAtoms.map(a => `${a.label.replace(/\s+/g, '_')} ${a.element} ${a.coords[0
                   Next Bragg Plane (Phase φ = 360° / 2π)
                 </span>
                 <span className="text-[9px] font-mono text-slate-400">z = 1.00 d_hkl</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: KINEMATIC POWDER XRD DIFFRACTION SPECTRUM */}
+      {activeTab === 'powder_spectrum' && (
+        <div className="space-y-5">
+          {/* Header Controls Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0B0F17] p-3.5 border border-slate-800/80 text-xs">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase">2θ Max Range:</span>
+                <input
+                  type="range"
+                  min="30"
+                  max="140"
+                  step="5"
+                  value={twoThetaMaxSpectrum}
+                  onChange={(e) => setTwoThetaMaxSpectrum(parseInt(e.target.value))}
+                  className="w-24 accent-rose-500 h-1.5 bg-slate-800"
+                />
+                <span className="font-mono text-rose-400 font-bold">{twoThetaMaxSpectrum}°</span>
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={filterExtinctSpectrum}
+                  onChange={(e) => setFilterExtinctSpectrum(e.target.checked)}
+                  className="rounded-none accent-rose-500 cursor-pointer"
+                />
+                <span className="text-[11px] text-slate-300">Filter Systematic Absences</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={includeAnomalous}
+                  onChange={(e) => setIncludeAnomalous(e.target.checked)}
+                  className="rounded-none accent-amber-500 cursor-pointer"
+                />
+                <span className="text-[11px] text-slate-300">Anomalous (f'+if'')</span>
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const headers = 'h,k,l,d_A,two_theta_deg,F_mag,multiplicity,intensity_rel\n';
+                  const rows = powderSpectrum
+                    .filter(p => !filterExtinctSpectrum || !p.isExtinct)
+                    .map(p => `${p.h},${p.k},${p.l},${p.dSpacing.toFixed(4)},${p.twoTheta.toFixed(3)},${p.fMag.toFixed(3)},${p.multiplicity},${p.relativeIntensity.toFixed(2)}`)
+                    .join('\n');
+                  const blob = new Blob([headers + rows], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `powder_spectrum_${selectedPresetId}_${radiationSource}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 transition-all flex items-center gap-1.5"
+              >
+                <Download className="w-3 h-3" /> Export CSV
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Powder Diffractogram Stick Pattern */}
+          <div className="bg-[#020408] border border-slate-800/80 p-4 space-y-2 relative">
+            <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+              <span className="flex items-center gap-2">
+                <BarChart3 className="w-3.5 h-3.5 text-rose-400" />
+                Kinematic Powder XRD Diffractogram (λ = {wavelength.toFixed(4)} Å, {radiationSource})
+              </span>
+              <span>
+                {powderSpectrum.filter(p => !p.isExtinct).length} Observable Reflections
+              </span>
+            </div>
+
+            <div className="w-full h-56 relative bg-black/60 border border-slate-900 overflow-hidden">
+              <svg width="100%" height="100%" viewBox="0 0 800 200" preserveAspectRatio="none" className="overflow-visible">
+                {/* Y-axis gridlines */}
+                {[0, 25, 50, 75, 100].map(pct => {
+                  const y = 170 - (pct / 100) * 140;
+                  return (
+                    <g key={`ygrid-${pct}`}>
+                      <line x1="40" y1={y} x2="780" y2={y} stroke="rgba(255,255,255,0.05)" strokeDasharray="2 2" />
+                      <text x="32" y={y + 3} fill="#64748b" fontSize="8" textAnchor="end" className="font-mono">{pct}%</text>
+                    </g>
+                  );
+                })}
+
+                {/* 2Theta X-Axis Ticks */}
+                {(() => {
+                  const ticks = [];
+                  const step = twoThetaMaxSpectrum <= 60 ? 10 : 20;
+                  for (let tt = 10; tt <= twoThetaMaxSpectrum; tt += step) {
+                    const x = 40 + ((tt - 10) / (twoThetaMaxSpectrum - 10)) * 740;
+                    ticks.push(
+                      <g key={`ttick-${tt}`}>
+                        <line x1={x} y1="170" x2={x} y2="175" stroke="#475569" />
+                        <text x={x} y="188" fill="#64748b" fontSize="9" textAnchor="middle" className="font-mono">{tt}°</text>
+                      </g>
+                    );
+                  }
+                  return ticks;
+                })()}
+
+                {/* Goniometer Current 2Theta Position Marker */}
+                {localTwoTheta >= 10 && localTwoTheta <= twoThetaMaxSpectrum && (
+                  <g>
+                    {(() => {
+                      const curX = 40 + ((localTwoTheta - 10) / (twoThetaMaxSpectrum - 10)) * 740;
+                      return (
+                        <>
+                          <line x1={curX} y1="15" x2={curX} y2="170" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.7" />
+                          <circle cx={curX} cy="18" r="3" fill="#38bdf8" />
+                          <text x={curX} y="10" fill="#38bdf8" fontSize="8" textAnchor="middle" className="font-mono font-bold">2θ={localTwoTheta.toFixed(1)}°</text>
+                        </>
+                      );
+                    })()}
+                  </g>
+                )}
+
+                {/* Reflection Peaks (Sticks) */}
+                {powderSpectrum.map((peak, idx) => {
+                  if (filterExtinctSpectrum && peak.isExtinct) return null;
+                  if (peak.twoTheta < 10 || peak.twoTheta > twoThetaMaxSpectrum) return null;
+
+                  const x = 40 + ((peak.twoTheta - 10) / (twoThetaMaxSpectrum - 10)) * 740;
+                  const peakHeight = Math.max(3, (peak.relativeIntensity / 100) * 140);
+                  const yTop = 170 - peakHeight;
+                  const isSelected = selectedSpectrumPeak?.hklStr === peak.hklStr || (millerH === peak.h && millerK === peak.k && millerL === peak.l);
+
+                  return (
+                    <g 
+                      key={`stick-${peak.hklStr}-${idx}`}
+                      className="cursor-pointer group"
+                      onClick={() => {
+                        setSelectedSpectrumPeak(peak);
+                        setMillerH(peak.h);
+                        setMillerK(peak.k);
+                        setMillerL(peak.l);
+                        setLocalTwoTheta(parseFloat(peak.twoTheta.toFixed(2)));
+                      }}
+                    >
+                      <line
+                        x1={x}
+                        y1="170"
+                        x2={x}
+                        y2={yTop}
+                        stroke={peak.isExtinct ? '#f43f5e' : isSelected ? '#fbbf24' : '#f43f5e'}
+                        strokeWidth={isSelected ? '3.5' : '2'}
+                        opacity={peak.isExtinct ? 0.3 : 0.9}
+                      />
+                      <circle
+                        cx={x}
+                        cy={yTop}
+                        r={isSelected ? 4 : 2.5}
+                        fill={isSelected ? '#fbbf24' : '#f43f5e'}
+                      />
+                      {/* Label on top peaks */}
+                      {peak.relativeIntensity > 15 && !peak.isExtinct && (
+                        <text
+                          x={x}
+                          y={yTop - 6}
+                          fill={isSelected ? '#fbbf24' : '#cbd5e1'}
+                          fontSize="8"
+                          textAnchor="middle"
+                          className="font-mono font-bold select-none pointer-events-none"
+                        >
+                          ({peak.h}{peak.k}{peak.l})
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            <div className="flex items-center justify-between text-[9px] text-slate-500 font-mono pt-1">
+              <span>Click any peak stick to set goniometer 2θ and inspect Miller plane (h k l)</span>
+              <span className="flex items-center gap-3">
+                <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-rose-500"></span> Kinematic Peak</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-sky-400"></span> Current 2θ</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-amber-400"></span> Selected</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Reflections Data Table */}
+          <div className="bg-[#0B0F17] border border-slate-800/80 p-4 space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                Calculated Reflection Table (Kinematic Intensities I_hkl ∝ |F|² · M · LP)
+              </span>
+              <span className="text-[9px] font-mono text-slate-400">
+                Sorted by 2θ ascending
+              </span>
+            </div>
+
+            <div className="overflow-x-auto custom-scrollbar max-h-72">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 text-[9px] uppercase font-bold text-slate-500">
+                    <th className="pb-1.5 px-2">h k l</th>
+                    <th className="pb-1.5 px-2">2θ (deg)</th>
+                    <th className="pb-1.5 px-2">d (Å)</th>
+                    <th className="pb-1.5 px-2">|F(hkl)|</th>
+                    <th className="pb-1.5 px-2">Multiplicity</th>
+                    <th className="pb-1.5 px-2">LP Factor</th>
+                    <th className="pb-1.5 px-2">I / I_max (%)</th>
+                    <th className="pb-1.5 px-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                  {powderSpectrum
+                    .filter(p => !filterExtinctSpectrum || !p.isExtinct)
+                    .map((p, idx) => {
+                      const isSelected = millerH === p.h && millerK === p.k && millerL === p.l;
+                      return (
+                        <tr
+                          key={`row-${p.hklStr}-${idx}`}
+                          onClick={() => {
+                            setMillerH(p.h);
+                            setMillerK(p.k);
+                            setMillerL(p.l);
+                            setLocalTwoTheta(parseFloat(p.twoTheta.toFixed(2)));
+                          }}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected ? 'bg-sky-500/10 text-sky-200' : 'hover:bg-white/[0.02] text-slate-300'
+                          }`}
+                        >
+                          <td className="py-1.5 px-2 font-bold text-sky-400">
+                            ({p.h} {p.k} {p.l})
+                          </td>
+                          <td className="py-1.5 px-2 text-slate-200">{p.twoTheta.toFixed(2)}°</td>
+                          <td className="py-1.5 px-2 text-emerald-400">{p.dSpacing.toFixed(4)}</td>
+                          <td className="py-1.5 px-2 text-amber-400">{p.fMag.toFixed(3)}</td>
+                          <td className="py-1.5 px-2 text-slate-400">{p.multiplicity}</td>
+                          <td className="py-1.5 px-2 text-slate-400">{p.lorentzPolarization.toFixed(2)}</td>
+                          <td className="py-1.5 px-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-12 text-right font-bold text-rose-400">{p.relativeIntensity.toFixed(1)}%</span>
+                              <div className="w-16 h-1.5 bg-slate-800 rounded-none overflow-hidden">
+                                <div className="h-full bg-rose-500" style={{ width: `${Math.min(100, p.relativeIntensity)}%` }} />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-1.5 px-2 text-[9px]">
+                            {p.isExtinct ? (
+                              <span className="text-rose-400 font-bold">EXTINCT</span>
+                            ) : (
+                              <span className="text-emerald-400 font-bold">ALLOWED</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 7: EWALD SPHERE KINEMATICS & INTERPLANAR ANGLES */}
+      {activeTab === 'ewald_sphere' && (
+        <div className="space-y-5">
+          {/* Ewald Geometry Canvas & Scherrer Rocking Curve */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Ewald Sphere 2D Vector Cut (7 cols) */}
+            <div className="lg:col-span-7 bg-[#020408] border border-slate-800/80 p-4 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-emerald-400" />
+                  Ewald Sphere Kinematics (Radius k = 1/λ = {(1 / wavelength).toFixed(3)} Å⁻¹)
+                </span>
+                <span className="text-[9px] font-mono text-sky-400">
+                  s_g = {ewaldKinematics.excitationError.toFixed(5)} Å⁻¹
+                </span>
+              </div>
+
+              {/* 2D Vector Cut Visualizer */}
+              <div className="w-full aspect-[4/3] relative bg-black/60 border border-slate-900 flex items-center justify-center">
+                <svg width="100%" height="100%" viewBox="-160 -130 320 260" className="overflow-visible">
+                  <defs>
+                    <marker id="ewald-arrow-k0" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+                    </marker>
+                    <marker id="ewald-arrow-kh" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                      <path d="M 0 1 L 10 5 L 0 9 z" fill="#fbbf24" />
+                    </marker>
+                    <marker id="ewald-arrow-q" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+                    </marker>
+                  </defs>
+
+                  {(() => {
+                    const radiusPx = 90;
+                    const ewaldCenter = { x: -radiusPx, y: 0 };
+                    const origPt = { x: 0, y: 0 };
+
+                    // Diffracted angle 2theta
+                    const twoThetaRad = (localTwoTheta * Math.PI) / 180;
+                    const diffractedEnd = {
+                      x: ewaldCenter.x + radiusPx * Math.cos(twoThetaRad),
+                      y: ewaldCenter.y - radiusPx * Math.sin(twoThetaRad)
+                    };
+
+                    // Reciprocal lattice node G_hkl location at exact Bragg angle
+                    const braggAngleRad = structureFactorResult.twoTheta > 0 
+                      ? (structureFactorResult.twoTheta * Math.PI) / 180 
+                      : twoThetaRad;
+                    const gNode = {
+                      x: ewaldCenter.x + radiusPx * Math.cos(braggAngleRad),
+                      y: ewaldCenter.y - radiusPx * Math.sin(braggAngleRad)
+                    };
+
+                    return (
+                      <g>
+                        {/* Ewald Sphere Boundary */}
+                        <circle
+                          cx={ewaldCenter.x}
+                          cy={ewaldCenter.y}
+                          r={radiusPx}
+                          stroke="rgba(56, 189, 248, 0.25)"
+                          strokeWidth="1.5"
+                          fill="none"
+                        />
+                        <circle cx={ewaldCenter.x} cy={ewaldCenter.y} r="2.5" fill="#38bdf8" />
+                        <text x={ewaldCenter.x - 12} y={ewaldCenter.y - 6} fill="#64748b" fontSize="8" className="font-mono">C</text>
+
+                        {/* Reciprocal Origin (0,0,0) */}
+                        <circle cx="0" cy="0" r="4" fill="#ffffff" />
+                        <text x="6" y="12" fill="#ffffff" fontSize="9" className="font-mono font-bold">O (000)</text>
+
+                        {/* Incident beam k_0 */}
+                        <line
+                          x1={ewaldCenter.x}
+                          y1={ewaldCenter.y}
+                          x2="0"
+                          y2="0"
+                          stroke="#38bdf8"
+                          strokeWidth="2"
+                          markerEnd="url(#ewald-arrow-k0)"
+                        />
+                        <text x={ewaldCenter.x / 2} y="14" fill="#38bdf8" fontSize="9" className="font-mono font-bold">k_0</text>
+
+                        {/* Diffracted wavevector k_h */}
+                        <line
+                          x1={ewaldCenter.x}
+                          y1={ewaldCenter.y}
+                          x2={diffractedEnd.x}
+                          y2={diffractedEnd.y}
+                          stroke="#fbbf24"
+                          strokeWidth="2"
+                          markerEnd="url(#ewald-arrow-kh)"
+                        />
+                        <text x={(ewaldCenter.x + diffractedEnd.x) / 2 - 8} y={(ewaldCenter.y + diffractedEnd.y) / 2 - 8} fill="#fbbf24" fontSize="9" className="font-mono font-bold">k_h</text>
+
+                        {/* Scattering vector Q = k_h - k_0 from O to diffracted point */}
+                        <line
+                          x1="0"
+                          y1="0"
+                          x2={diffractedEnd.x}
+                          y2={diffractedEnd.y}
+                          stroke="#10b981"
+                          strokeWidth="2"
+                          strokeDasharray="3 3"
+                          markerEnd="url(#ewald-arrow-q)"
+                        />
+                        <text x={diffractedEnd.x / 2 + 10} y={diffractedEnd.y / 2} fill="#10b981" fontSize="9" className="font-mono font-bold">Q</text>
+
+                        {/* Reciprocal Lattice Node G_hkl */}
+                        <circle cx={gNode.x} cy={gNode.y} r="4" fill="#f43f5e" />
+                        <text x={gNode.x + 8} y={gNode.y + 4} fill="#f43f5e" fontSize="9" className="font-mono font-bold">
+                          G({millerH}{millerK}{millerL})
+                        </text>
+
+                        {/* Excitation error vector s_g between reciprocal node and sphere */}
+                        <line
+                          x1={diffractedEnd.x}
+                          y1={diffractedEnd.y}
+                          x2={gNode.x}
+                          y2={gNode.y}
+                          stroke="#a855f7"
+                          strokeWidth="2.5"
+                        />
+                      </g>
+                    );
+                  })()}
+                </svg>
+              </div>
+
+              {/* Telemetry Footer */}
+              <div className="grid grid-cols-3 gap-2 text-[10px] font-mono bg-black/60 p-2 border border-slate-800">
+                <div>
+                  <span className="text-slate-500 block">k = |k_0|</span>
+                  <span className="font-bold text-sky-400">{(1 / wavelength).toFixed(4)} Å⁻¹</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">|G_hkl| = 1/d</span>
+                  <span className="font-bold text-rose-400">{(1 / structureFactorResult.dSpacing).toFixed(4)} Å⁻¹</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Deviation s_g</span>
+                  <span className="font-bold text-purple-400">{ewaldKinematics.excitationError.toFixed(5)} Å⁻¹</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Crystallite Thickness & Rocking Curve (5 cols) */}
+            <div className="lg:col-span-5 bg-[#0B0F17] border border-slate-800/80 p-4 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Crystallite Size & Rocking Curve
+                </span>
+                <span className="text-[9px] font-mono text-emerald-400">
+                  t = {crystalliteThicknessA} Å ({ (crystalliteThicknessA / 10).toFixed(1) } nm)
+                </span>
+              </div>
+
+              {/* Thickness Slider */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] text-slate-400">
+                  <span>Crystal Thickness t:</span>
+                  <span className="font-bold text-slate-200">{crystalliteThicknessA} Å</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="1000"
+                  step="10"
+                  value={crystalliteThicknessA}
+                  onChange={(e) => setCrystalliteThicknessA(parseInt(e.target.value))}
+                  className="w-full accent-emerald-500 h-1.5 bg-slate-800"
+                />
+              </div>
+
+              {/* Sinc^2 Rocking Curve Profile */}
+              <div className="space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block">
+                  Rocking Profile sinc²(π·t·s_g)
+                </span>
+                <div className="w-full h-28 bg-black/60 border border-slate-800 relative">
+                  <svg width="100%" height="100%" viewBox="-100 0 200 100" preserveAspectRatio="none">
+                    {/* Central Bragg position line */}
+                    <line x1="0" y1="0" x2="0" y2="100" stroke="rgba(255,255,255,0.1)" strokeDasharray="2 2" />
+                    {/* Rocking curve path */}
+                    {(() => {
+                      const points = [];
+                      for (let px = -100; px <= 100; px += 2) {
+                        const sVal = (px / 100) * 0.02; // Range +/- 0.02 A^-1
+                        const arg = Math.PI * crystalliteThicknessA * sVal;
+                        const sincVal = Math.abs(arg) < 1e-4 ? 1 : Math.pow(Math.sin(arg) / arg, 2);
+                        const py = 90 - sincVal * 80;
+                        points.push(`${px},${py}`);
+                      }
+                      return (
+                        <polyline
+                          points={points.join(' ')}
+                          fill="none"
+                          stroke="#10b981"
+                          strokeWidth="2"
+                        />
+                      );
+                    })()}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Scherrer Equation Telemetry */}
+              <div className="p-2.5 bg-black/60 border border-slate-800 text-[10px] space-y-1.5 font-mono">
+                <div className="text-slate-400 font-bold uppercase tracking-wider">Scherrer Peak Broadening</div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">FWHM Δ(2θ):</span>
+                  <span className="font-bold text-emerald-400">{ewaldKinematics.rockingCurveFwhmDeg.toFixed(3)}°</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Peak Broadening β:</span>
+                  <span className="font-bold text-slate-200">{((ewaldKinematics.rockingCurveFwhmDeg * Math.PI) / 180).toFixed(4)} rad</span>
+                </div>
+                <p className="text-[8px] text-slate-500 pt-1 border-t border-white/5">
+                  Δ(2θ)_FWHM = (0.94 · λ) / (t · cos θ_B)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Interplanar Angles & Zone Axis Calculator */}
+          <div className="bg-[#0B0F17] border border-slate-800/80 p-4 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Split className="w-3.5 h-3.5 text-purple-400" />
+                Interplanar Angle & Weiss Zone Axis [uvw] Calculator
+              </span>
+              <span className="text-[9px] font-mono text-purple-400 font-bold">
+                cos φ = (h₁ᵀ · G* · h₂) / (|h₁|·|h₂|)
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+              {/* Plane 1 Stepper */}
+              <div className="md:col-span-4 bg-black/60 p-3 border border-slate-800 space-y-2">
+                <span className="text-[9px] font-bold text-sky-400 uppercase block">Plane 1 (h₁ k₁ l₁)</span>
+                <div className="grid grid-cols-3 gap-1">
+                  {[0, 1, 2].map(idx => (
+                    <input
+                      key={`h1-${idx}`}
+                      type="number"
+                      value={interplanarH1[idx]}
+                      onChange={(e) => {
+                        const next = [...interplanarH1] as [number, number, number];
+                        next[idx] = parseInt(e.target.value) || 0;
+                        setInterplanarH1(next);
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 text-center font-mono font-bold text-xs py-1 text-slate-200 outline-none"
+                    />
+                  ))}
+                </div>
+                <span className="text-[9px] font-mono text-slate-500 block">
+                  d₁ = {interplanarResult.d1.toFixed(4)} Å
+                </span>
+              </div>
+
+              {/* Plane 2 Stepper */}
+              <div className="md:col-span-4 bg-black/60 p-3 border border-slate-800 space-y-2">
+                <span className="text-[9px] font-bold text-amber-400 uppercase block">Plane 2 (h₂ k₂ l₂)</span>
+                <div className="grid grid-cols-3 gap-1">
+                  {[0, 1, 2].map(idx => (
+                    <input
+                      key={`h2-${idx}`}
+                      type="number"
+                      value={interplanarH2[idx]}
+                      onChange={(e) => {
+                        const next = [...interplanarH2] as [number, number, number];
+                        next[idx] = parseInt(e.target.value) || 0;
+                        setInterplanarH2(next);
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 text-center font-mono font-bold text-xs py-1 text-slate-200 outline-none"
+                    />
+                  ))}
+                </div>
+                <span className="text-[9px] font-mono text-slate-500 block">
+                  d₂ = {interplanarResult.d2.toFixed(4)} Å
+                </span>
+              </div>
+
+              {/* Calculated Result Card */}
+              <div className="md:col-span-4 bg-purple-950/20 border border-purple-500/40 p-3 space-y-1 font-mono text-xs">
+                <div className="text-[9px] font-bold text-purple-300 uppercase">Interplanar Angle φ</div>
+                <div className="text-xl font-black text-purple-200">
+                  {interplanarResult.angleDeg.toFixed(2)}°
+                </div>
+                <div className="text-[10px] text-slate-400 pt-1">
+                  Zone Axis: <span className="font-bold text-sky-400">[{interplanarResult.zoneAxis.join(' ')}]</span>
+                </div>
+                <div className="text-[9px] text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Weiss Zone Law: h·u + k·v + l·w = 0
+                </div>
               </div>
             </div>
           </div>

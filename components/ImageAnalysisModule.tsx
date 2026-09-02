@@ -9,7 +9,7 @@ import {
   Grid, CircleDot, SlidersHorizontal, Copy, Eye,
   Database, Sliders, Play, Shuffle, HelpCircle, Flame,
   Type, Table, ListFilter, FileSpreadsheet, Compass,
-  BookOpen, ChevronRight, Check
+  BookOpen, ChevronRight, Check, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { OpenCVVisionPanel, OpenCVResultsData } from './OpenCVVisionPanel';
 import { BENCHMARK_PATTERNS, generateBenchmarkPatternDataUrl } from '../utils/benchmarkPatterns';
+import { analyzeImageClient } from '../utils/clientImageAnalyzer';
 
 // CV Diagnostic Logs component
 const CVLoader: React.FC = () => {
@@ -103,7 +104,10 @@ const OCR_PRESETS = [
   },
 ];
 
-export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
+export const ImageAnalysisModule: React.FC<{ 
+  pythonFeaturesEnabled?: boolean;
+  onLoadPeaks?: (peaksStr: string, hklStr: string, matName: string) => void;
+}> = ({ pythonFeaturesEnabled = false, onLoadPeaks }) => {
   const [image, setImage] = useState<string | null>(null);
   const [context, setContext] = useState('');
   const [result, setResult] = useState('');
@@ -133,6 +137,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
 
   // Python + OpenCV Vision Solver States
   const [analysisMode, setAnalysisMode] = useState<'neural' | 'python_cv'>('neural');
+  const [engineType, setEngineType] = useState<'python_server' | 'client_web' | null>(null);
   const [cvResults, setCvResults] = useState<OpenCVResultsData | null>(null);
   const [activeFilterTab, setActiveFilterTab] = useState<string>('ring_fits');
   const [rightPanelTab, setRightPanelTab] = useState<'report' | 'structured_ocr' | 'radial_profile' | 'tuning'>('report');
@@ -165,12 +170,6 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
   const previewRef = useRef<HTMLImageElement>(null);
   const [magnifier, setMagnifier] = useState<{x: number, y: number} | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!pythonFeaturesEnabled && analysisMode === 'python_cv') {
-      setAnalysisMode('neural');
-    }
-  }, [pythonFeaturesEnabled, analysisMode]);
 
   useEffect(() => {
     if (result && scrollRef.current) {
@@ -280,45 +279,62 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
     setError(null);
     setCvResults(null);
 
-    try {
-      const activeParams = overrideParams || cvParams;
-      const response = await fetch("/api/image/analyze-cv", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          image,
-          params: activeParams
-        })
-      });
+    const activeParams = overrideParams || cvParams;
+    let data: OpenCVResultsData | null = null;
+    let usedEngine: 'python_server' | 'client_web' = 'client_web';
 
-      if (!response.ok) {
-        throw new Error(`HTTP Error ${response.status}`);
+    // 1. Try server-side Python OpenCV if pythonFeaturesEnabled
+    if (pythonFeaturesEnabled) {
+      try {
+        const response = await fetch("/api/image/analyze-cv", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            image,
+            params: activeParams
+          })
+        });
+
+        if (response.ok) {
+          const resJson = await response.json();
+          if (resJson && resJson.success) {
+            data = resJson;
+            usedEngine = 'python_server';
+          }
+        }
+      } catch (serverErr) {
+        console.warn("Python OpenCV server endpoint unavailable, shifting to Client Web CV Engine:", serverErr);
       }
+    }
 
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || "Computer Vision solver failed");
+    // 2. Client Web CV Engine (Native Canvas + Float32Array + Peak Fingerprinting)
+    if (!data) {
+      try {
+        data = await analyzeImageClient(image, activeParams);
+        usedEngine = 'client_web';
+      } catch (clientErr: any) {
+        console.error("Client Web CV Engine failed:", clientErr);
+        setError(`Computer Vision Fault: ${clientErr.message || "Failed to process image matrix"}`);
       }
+    }
 
+    if (data) {
+      setEngineType(usedEngine);
       setCvResults(data);
       setResult(data.report_md); // Sync markdown report with active result viewer
       setActiveFilterTab('ring_fits'); // Default filter display
       
       setHistory(prev => [{ 
-        context: "Python OpenCV Vision Core Run", 
-        result: data.report_md, 
+        context: usedEngine === 'python_server' ? "Python OpenCV 5.x Server Run" : "Client Web Computer Vision Run", 
+        result: data!.report_md, 
         date: new Date().toLocaleTimeString() 
       }, ...prev.slice(0, 4)]);
-
-    } catch (err: any) {
-      console.error("OpenCV processing failed", err);
-      setError(`OpenCV Core Fault: ${err.message || "Invalid matrix projection"}`);
-    } finally {
-      setLoading(false);
-      setTimeout(() => setScanActive(false), 1000);
     }
+
+    setLoading(false);
+    setTimeout(() => setScanActive(false), 1000);
   };
 
   const handleParamChange = (key: string, value: any) => {
@@ -374,32 +390,43 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
   return (
     <div className="space-y-6 text-left">
       {/* Mode Switcher Tabs */}
-      {pythonFeaturesEnabled && (
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex max-w-lg shadow-inner">
           <button
             onClick={() => { setAnalysisMode('neural'); setError(null); }}
-            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+            className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
               analysisMode === 'neural'
                 ? 'bg-sky-500 text-white shadow-md'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-            Neural Stream (Gemini)
+            Neural Stream (Gemini OCR)
           </button>
           <button
             onClick={() => { setAnalysisMode('python_cv'); setError(null); }}
-            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+            className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
               analysisMode === 'python_cv'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
-            Python + OpenCV Vision
+            Computer Vision (OpenCV & Web)
           </button>
         </div>
-      )}
+
+        {analysisMode === 'python_cv' && (
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${pythonFeaturesEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-indigo-400'}`} />
+              {pythonFeaturesEnabled 
+                ? 'Python 3.x + OpenCV 5.x Server + Web CV' 
+                : 'Client Web Computer Vision Engine Active'}
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Benchmark Patterns Quick Bar */}
       <div className="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -875,6 +902,34 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                       </div>
 
                       <div className="space-y-4">
+                        {/* Quick Presets for Common Diffraction Modes */}
+                        <div className="space-y-1.5 pb-3 border-b border-slate-800/60">
+                          <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest block">
+                            Diffraction Optics Presets
+                          </span>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {[
+                              { id: 'powder', label: '🎯 Powder Rings', desc: 'Top-Hat + CLAHE + radial integration', params: { denoise_method: 'bilateral' as const, apply_clahe: true, tophat_radius: 25, clahe_clip: 3.0, prominence: 0.05, num_bins: 300 } },
+                              { id: 'saed', label: '💎 SAED Matrix', desc: 'Spot extraction & reciprocal vectors', params: { denoise_method: 'gaussian' as const, apply_clahe: false, tophat_radius: 15, spot_neighborhood: 11, spot_threshold_p: 95, prominence: 0.08 } },
+                              { id: 'fiber', label: '🌀 Fiber Texture', desc: '360° Azimuthal pole profiling', params: { denoise_method: 'bilateral' as const, apply_clahe: true, azimuth_start: 0, azimuth_end: 360, num_bins: 360, prominence: 0.04 } },
+                              { id: 'thin_film', label: '🔬 Low Contrast', desc: 'High-gain background subtraction', params: { denoise_method: 'bilateral' as const, apply_clahe: true, tophat_radius: 35, clahe_clip: 5.0, prominence: 0.03, num_bins: 400 } },
+                            ].map(preset => (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => {
+                                  setCvParams(prev => ({ ...prev, ...preset.params }));
+                                  showToast(`Applied ${preset.label} preset`);
+                                }}
+                                className="p-2 bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 rounded-xl text-left transition-all group cursor-pointer"
+                              >
+                                <span className="text-[10px] font-bold text-white group-hover:text-indigo-300 block">{preset.label}</span>
+                                <span className="text-[8px] text-slate-500 line-clamp-1">{preset.desc}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         {/* Radiation Source Presets */}
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
@@ -1278,7 +1333,25 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
 
               {/* View 1: Python OpenCV Full Diagnostic Panel */}
               {analysisMode === 'python_cv' && cvResults ? (
-                <OpenCVVisionPanel results={cvResults} />
+                <OpenCVVisionPanel 
+                  results={cvResults} 
+                  onSelectPhase={(phaseName, latticeA) => {
+                    if (onLoadPeaks && cvResults.detected_rings?.length) {
+                      const peaksStr = cvResults.detected_rings.map(r => `${r.two_theta_deg.toFixed(2)}, ${r.intensity.toFixed(1)}`).join('\n');
+                      const hklStr = cvResults.detected_rings.map(r => r.ring_index ? `Ring ${r.ring_index}` : '').join('\n');
+                      onLoadPeaks(peaksStr, hklStr, phaseName);
+                      showToast(`Loaded ${phaseName} reflections into Bragg Simulator!`);
+                    } else {
+                      showToast(`Selected ${phaseName} (a = ${latticeA || 'N/A'} Å)`);
+                    }
+                  }}
+                  onSendToPeakFit={(xyData) => {
+                    if (onLoadPeaks) {
+                      onLoadPeaks(xyData, '', 'CV Extracted Diffractogram');
+                      showToast('Transferred 1D Diffractogram into Bragg Simulator!');
+                    }
+                  }}
+                />
               ) : null}
 
               {/* View 2: Structured Peak Table Digitizer View */}
@@ -1357,13 +1430,32 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                           className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-[10px] font-mono text-slate-300 focus:border-sky-500 focus:outline-none"
                         />
                       </div>
-                      <button
-                        onClick={handleExportPeaksCSV}
-                        className="px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-xl text-[9px] font-mono font-extrabold uppercase border border-sky-500/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
-                      >
-                        <FileSpreadsheet className="w-3 h-3" />
-                        Copy Peak Table CSV
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {onLoadPeaks && (
+                          <button
+                            onClick={() => {
+                              if (structuredOcrData?.peaks?.length) {
+                                const peaksStr = structuredOcrData.peaks.map(p => `${p.twoTheta}, ${p.intensity}`).join('\n');
+                                const hklStr = structuredOcrData.peaks.map(p => p.hkl || '').join('\n');
+                                const matName = structuredOcrData.phases?.[0]?.phaseName || 'OCR Digitized Peaks';
+                                onLoadPeaks(peaksStr, hklStr, matName);
+                                showToast(`Loaded ${structuredOcrData.peaks.length} peaks into Bragg Simulator!`);
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[9px] font-mono font-extrabold uppercase flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Send to Bragg
+                          </button>
+                        )}
+                        <button
+                          onClick={handleExportPeaksCSV}
+                          className="px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-xl text-[9px] font-mono font-extrabold uppercase border border-sky-500/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+                        >
+                          <FileSpreadsheet className="w-3 h-3" />
+                          Copy Peak Table CSV
+                        </button>
+                      </div>
                     </div>
 
                     <div className="overflow-x-auto max-h-96 custom-scrollbar border border-slate-800 rounded-2xl">

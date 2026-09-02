@@ -83,15 +83,28 @@ export interface OpenCVResultsData {
   report_md: string;
   opencv_enabled: boolean;
   scipy_enabled: boolean;
+  candidate_phases?: Array<{
+    name: string;
+    formula: string;
+    crystalSystem: string;
+    spaceGroup: string;
+    fom: number;
+    matchedPeaksCount: number;
+    totalReferencePeaks: number;
+    referenceDSpacings: number[];
+    meanDeltaD: number;
+    latticeA?: number;
+  }>;
 }
 
 interface OpenCVVisionPanelProps {
   results: OpenCVResultsData;
   onSendToPeakFit?: (xyData: string) => void;
+  onSelectPhase?: (phaseName: string, latticeA?: number) => void;
 }
 
-export const OpenCVVisionPanel: React.FC<OpenCVVisionPanelProps> = ({ results, onSendToPeakFit }) => {
-  const [activeTab, setActiveTab] = useState<'report' | 'radial_profile' | 'texture_azimuth' | 'spot_matrix' | 'tilt_ellipse' | 'python_script'>('report');
+export const OpenCVVisionPanel: React.FC<OpenCVVisionPanelProps> = ({ results, onSendToPeakFit, onSelectPhase }) => {
+  const [activeTab, setActiveTab] = useState<'report' | 'radial_profile' | 'phase_id' | 'texture_azimuth' | 'spot_matrix' | 'tilt_ellipse' | 'python_script'>('report');
   const [xUnit, setXUnit] = useState<'two_theta' | 'radius_px' | 'q_inv' | 'd_spacing'>('two_theta');
   const [scherrerK, setScherrerK] = useState<number>(0.94);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -371,6 +384,7 @@ if __name__ == "__main__":
         {[
           { id: 'report', label: 'Diagnostic Report', icon: FileSpreadsheet },
           { id: 'radial_profile', label: '1D Diffractogram', icon: Activity },
+          { id: 'phase_id', label: 'Phase ID & Matcher', icon: Layers },
           { id: 'texture_azimuth', label: 'Azimuthal Texture', icon: Compass },
           { id: 'spot_matrix', label: 'Spot Matrix (SAED)', icon: Grid },
           { id: 'tilt_ellipse', label: 'Ring Ellipticity & Tilt', icon: Gauge },
@@ -611,6 +625,172 @@ if __name__ == "__main__":
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Phase Identification & Reference Library Matcher */}
+      {activeTab === 'phase_id' && (
+        <div className="space-y-6">
+          <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-400" />
+                <h4 className="text-sm font-black text-white uppercase tracking-wider">
+                  Automated Phase Identification & Reference Fingerprinting
+                </h4>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Matches detected Debye-Scherrer interplanar d-spacings against crystallographic reference standards.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-mono text-slate-400">
+                λ = {results.detector_geometry?.wavelength || 1.5406} Å
+              </span>
+              <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-lg">
+                {results.candidate_phases?.length || 0} Phase Candidates
+              </span>
+            </div>
+          </div>
+
+          {results.candidate_phases && results.candidate_phases.length > 0 ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.candidate_phases.map((phase, pIdx) => {
+                  const isTopMatch = pIdx === 0;
+                  return (
+                    <div 
+                      key={`phase-${pIdx}`}
+                      className={`p-5 rounded-2xl border transition-all ${
+                        isTopMatch 
+                          ? 'bg-slate-900/90 border-indigo-500/50 shadow-lg shadow-indigo-500/10' 
+                          : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-sm tracking-tight">{phase.name}</span>
+                            {isTopMatch && (
+                              <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase rounded-full border border-emerald-500/30">
+                                Best Match
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400 font-mono">
+                            <span className="text-sky-300 font-bold">{phase.formula}</span>
+                            <span>•</span>
+                            <span>{phase.crystalSystem}</span>
+                            <span>•</span>
+                            <span className="bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">{phase.spaceGroup}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-[8px] font-black uppercase text-slate-500 block">Figure of Merit</span>
+                          <span className={`text-lg font-black font-mono ${phase.fom >= 85 ? 'text-emerald-400' : phase.fom >= 65 ? 'text-amber-400' : 'text-slate-400'}`}>
+                            {phase.fom.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress Bar for FOM */}
+                      <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mb-3">
+                        <div 
+                          className={`h-full transition-all duration-500 ${phase.fom >= 85 ? 'bg-emerald-500' : phase.fom >= 65 ? 'bg-amber-500' : 'bg-indigo-500'}`}
+                          style={{ width: `${Math.min(100, phase.fom)}%` }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 bg-black/30 p-2.5 rounded-xl border border-slate-800/50 text-center font-mono text-[9px] mb-4">
+                        <div>
+                          <span className="text-slate-500 block text-[7px] uppercase">Matched Peaks</span>
+                          <span className="text-white font-bold">{phase.matchedPeaksCount} / {phase.totalReferencePeaks}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[7px] uppercase">Mean |Δd|/d</span>
+                          <span className="text-amber-300 font-bold">{(phase.meanDeltaD * 100).toFixed(2)}%</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 block text-[7px] uppercase">Lattice (a)</span>
+                          <span className="text-sky-300 font-bold">{phase.latticeA ? `${phase.latticeA} Å` : 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {onSelectPhase && (
+                          <button
+                            onClick={() => onSelectPhase(phase.name, phase.latticeA)}
+                            className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Send to Bragg Simulator
+                          </button>
+                        )}
+                        <button
+                          onClick={() => copyToClipboard(
+                            `${phase.name} (${phase.formula})\nSpace Group: ${phase.spaceGroup} (${phase.crystalSystem})\nFOM: ${phase.fom}%\nLattice a: ${phase.latticeA || 'N/A'} Å\nMatched Peaks: ${phase.matchedPeaksCount}/${phase.totalReferencePeaks}`,
+                            `phase-${pIdx}`
+                          )}
+                          className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-bold border border-slate-700 flex items-center justify-center gap-1 transition-all cursor-pointer"
+                          title="Copy Phase Card"
+                        >
+                          {copiedKey === `phase-${pIdx}` ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Matching d-spacing reflection detail table */}
+              <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                    Reference Phase Standard Reflection Catalog
+                  </span>
+                </div>
+                <div className="overflow-x-auto max-h-64 custom-scrollbar border border-slate-800/80 rounded-xl">
+                  <table className="w-full text-left font-mono text-[11px]">
+                    <thead className="bg-slate-900 text-indigo-400 font-black uppercase text-[9px] sticky top-0">
+                      <tr>
+                        <th className="p-2.5">Candidate Phase</th>
+                        <th className="p-2.5">Ref d-spacings (Å)</th>
+                        <th className="p-2.5">Measured d-spacings (Å)</th>
+                        <th className="p-2.5">Match FOM</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/50 text-slate-300">
+                      {results.candidate_phases.map((cp, idx) => (
+                        <tr key={idx} className="hover:bg-slate-900/50 transition-colors">
+                          <td className="p-2.5 font-bold text-white">{cp.name} ({cp.formula})</td>
+                          <td className="p-2.5 text-slate-400">{cp.referenceDSpacings.slice(0, 5).join(', ')}{cp.referenceDSpacings.length > 5 ? '...' : ''}</td>
+                          <td className="p-2.5 text-sky-400">{results.detected_rings.slice(0, 5).map(r => r.d_spacing_a.toFixed(3)).join(', ')}</td>
+                          <td className="p-2.5 text-emerald-400 font-bold">{cp.fom.toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-950/60 p-8 rounded-2xl border border-slate-800/80 text-center space-y-3">
+              <Layers className="w-8 h-8 text-slate-600 mx-auto" />
+              <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                No High-Confidence Phase Fingerprint Found
+              </h5>
+              <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                No standard database phase matched with {'>'}50% Figure of Merit. Try calibrating the direct beam center (cx, cy), adjusting the sample-to-detector distance (D = {results.detector_geometry?.detector_distance_mm || 150} mm), or lowering the ring prominence threshold.
+              </p>
             </div>
           )}
         </div>

@@ -1762,7 +1762,17 @@ const App: React.FC = () => {
                   {activeModule === 'neutron' && <NeutronModule />}
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
                   {activeModule === 'dl' && <DeepLearningModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
-                  {activeModule === 'image_analysis' && <ImageAnalysisModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                  {activeModule === 'image_analysis' && (
+                    <ImageAnalysisModule 
+                      pythonFeaturesEnabled={pythonFeaturesEnabled} 
+                      onLoadPeaks={(peaksStr, hklStr, matName) => {
+                        setRawPeaks(peaksStr);
+                        if (hklStr) setRawHKL(hklStr);
+                        if (matName) setMaterialName(matName);
+                        setActiveModule('bragg');
+                      }}
+                    />
+                  )}
                   {activeModule === 'image_gen' && <ImageGenerationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'xrd_nano' && <XrdNanoModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'python_export' && <PythonExportModule />}
