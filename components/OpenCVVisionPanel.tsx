@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { 
   Activity, Download, Copy, CheckCircle2, FileSpreadsheet, 
   Layers, Compass, Grid, Sparkles, Code2, ShieldAlert,
-  ChevronRight, ArrowRight, Eye, RefreshCw, Cpu, Gauge
+  ChevronRight, ArrowRight, Eye, RefreshCw, Cpu, Gauge,
+  Share2, Sliders, ExternalLink, FileCode
 } from 'lucide-react';
 import { 
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, 
@@ -92,6 +93,7 @@ interface OpenCVVisionPanelProps {
 export const OpenCVVisionPanel: React.FC<OpenCVVisionPanelProps> = ({ results, onSendToPeakFit }) => {
   const [activeTab, setActiveTab] = useState<'report' | 'radial_profile' | 'texture_azimuth' | 'spot_matrix' | 'tilt_ellipse' | 'python_script'>('report');
   const [xUnit, setXUnit] = useState<'two_theta' | 'radius_px' | 'q_inv' | 'd_spacing'>('two_theta');
+  const [scherrerK, setScherrerK] = useState<number>(0.94);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, key: string) => {
@@ -100,6 +102,22 @@ export const OpenCVVisionPanel: React.FC<OpenCVVisionPanelProps> = ({ results, o
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
+  // Recalculate crystallite sizes dynamically based on user-selected Scherrer shape factor K
+  const adjustedRings = useMemo(() => {
+    const wl = results.detector_geometry?.wavelength || 1.5406;
+    return results.detected_rings.map(r => {
+      const thetaRad = (r.two_theta_deg / 2) * (Math.PI / 180);
+      const fwhmRad = (r.fwhm_2theta_deg * Math.PI) / 180;
+      const sizeNm = fwhmRad > 0 && Math.cos(thetaRad) > 0 
+        ? (scherrerK * (wl * 0.1)) / (fwhmRad * Math.cos(thetaRad))
+        : r.crystallite_size_nm;
+      return {
+        ...r,
+        crystallite_size_nm: sizeNm
+      };
+    });
+  }, [results.detected_rings, results.detector_geometry, scherrerK]);
+
   const handleDownloadXY = () => {
     if (!results.radial_profile?.length) return;
     const lines = results.radial_profile.map(p => `${p.two_theta_deg.toFixed(4)} ${p.intensity.toFixed(2)}`);
@@ -107,11 +125,36 @@ export const OpenCVVisionPanel: React.FC<OpenCVVisionPanelProps> = ({ results, o
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `extracted_diffractogram_1D_${Date.now()}.xy`;
+    a.download = `diffractogram_1D_${Date.now()}.xy`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadDAT = () => {
+    if (!results.radial_profile?.length) return;
+    const header = `# 1D Powder Pattern Extracted from Area Detector\n# Wavelength: ${results.detector_geometry?.wavelength || 1.5406} Angstrom\n# 2Theta(deg) Intensity Intensity_Error\n`;
+    const lines = results.radial_profile.map(p => `${p.two_theta_deg.toFixed(4)} ${p.intensity.toFixed(2)} ${p.intensity_std.toFixed(2)}`);
+    const blob = new Blob([header + lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diffractogram_powder_${Date.now()}.dat`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(results, null, 2));
+    const a = document.createElement('a');
+    a.href = dataStr;
+    a.download = `cv_vision_analysis_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handleExportCSV = () => {
@@ -130,6 +173,30 @@ export const OpenCVVisionPanel: React.FC<OpenCVVisionPanelProps> = ({ results, o
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportPeakTableCSV = () => {
+    if (!adjustedRings?.length) return;
+    const headers = ['Ring_Index,Radius_px,TwoTheta_deg,Q_inv_A,dSpacing_A,Intensity,FWHM_2Theta_deg,Scherrer_Size_nm'];
+    const rows = adjustedRings.map(r => 
+      `${r.ring_index},${r.radius_px.toFixed(2)},${r.two_theta_deg.toFixed(4)},${r.q_inv_a.toFixed(4)},${r.d_spacing_a.toFixed(4)},${r.intensity.toFixed(2)},${r.fwhm_2theta_deg.toFixed(4)},${r.crystallite_size_nm.toFixed(2)}`
+    );
+    const csvContent = [headers, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `detected_bragg_rings_${Date.now()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleTransferToPeakFit = () => {
+    if (!onSendToPeakFit || !results.radial_profile?.length) return;
+    const xyText = results.radial_profile.map(p => `${p.two_theta_deg.toFixed(4)} ${p.intensity.toFixed(2)}`).join('\n');
+    onSendToPeakFit(xyText);
   };
 
   const generatePythonScript = () => {
@@ -159,43 +226,29 @@ PIXEL_SIZE_MM = PIXEL_SIZE_UM * 1e-3
 CALIBRATED_CX = ${cx}        # Calibrated Beam Center X (pixels)
 CALIBRATED_CY = ${cy}        # Calibrated Beam Center Y (pixels)
 
-def process_diffractogram(image_path: str):
-    # Load raw image
+def process_diffractogram(image_path):
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
-        raise FileNotFoundError(f"Could not open image: {image_path}")
+        raise FileNotFoundError(f"Image not found at {image_path}")
         
-    h, w = img.shape
-    print(f"Loaded image {w}x{h} px from {image_path}")
+    H, W = img.shape
     
-    # 2. Preprocessing: Bilateral Denoising & Top-Hat Background Subtraction
-    denoised = cv2.bilateralFilter(img, d=7, sigmaColor=50, sigmaSpace=50)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (51, 51))
-    tophat = cv2.morphologyEx(denoised, cv2.MORPH_TOPHAT, kernel)
-    
-    # 3. 2D Polar Azimuthal Integration (Cake Integration)
-    y_grid, x_grid = np.indices((h, w), dtype=float)
-    r_grid = np.sqrt((x_grid - CALIBRATED_CX)**2 + (y_grid - CALIBRATED_CY)**2)
-    max_radius = int(np.min([CALIBRATED_CX, CALIBRATED_CY, w - CALIBRATED_CX, h - CALIBRATED_CY]))
-    
-    num_bins = 300
-    bins = np.linspace(1.0, max_radius, num_bins)
-    bin_centers = 0.5 * (bins[:-1] + bins[1:])
-    bin_indices = np.digitize(r_grid, bins)
-    
+    # 2. Polar Azimuthal Integration
+    max_radius = int(min(CALIBRATED_CX, CALIBRATED_CY, W - CALIBRATED_CX, H - CALIBRATED_CY))
     radii_px = []
     two_theta_list = []
     intensities = []
     
-    for i in range(1, len(bins)):
-        mask = bin_indices == i
-        pixels = tophat[mask]
-        mean_int = float(np.mean(pixels)) if np.any(mask) else 0.0
-        
-        r_px = bin_centers[i-1]
-        r_mm = r_px * PIXEL_SIZE_MM
-        two_theta_rad = np.arctan2(r_mm, DETECTOR_DIST_MM)
+    for r_px in range(5, max_radius, 1):
+        radius_mm = r_px * PIXEL_SIZE_MM
+        two_theta_rad = np.arctan(radius_mm / DETECTOR_DIST_MM)
         two_theta_deg = np.degrees(two_theta_rad)
+        
+        # Circular mask ring
+        mask = np.zeros((H, W), dtype=np.uint8)
+        cv2.circle(mask, (int(CALIBRATED_CX), int(CALIBRATED_CY)), r_px, 255, 1)
+        pixels = img[mask == 255]
+        mean_int = float(np.mean(pixels)) if len(pixels) > 0 else 0.0
         
         radii_px.append(r_px)
         two_theta_list.append(two_theta_deg)
@@ -204,7 +257,7 @@ def process_diffractogram(image_path: str):
     two_theta_arr = np.array(two_theta_list)
     intensities_arr = np.array(intensities)
     
-    # 4. Peak Finding & Scherrer Sizing
+    # 3. Peak Finding & Scherrer Sizing
     peaks, _ = find_peaks(intensities_arr, prominence=np.max(intensities_arr)*0.06, distance=6)
     widths_res = peak_widths(intensities_arr, peaks, rel_height=0.5)
     fwhm_bins = widths_res[0]
@@ -219,13 +272,11 @@ def process_diffractogram(image_path: str):
         d_val = WAVELENGTH_A / (2.0 * np.sin(theta_rad)) if np.sin(theta_rad) > 0 else 0
         fwhm_deg = fwhm_bins[p_idx] * deg_per_bin
         fwhm_rad = np.radians(fwhm_deg)
-        crystallite_nm = (0.94 * (WAVELENGTH_A * 0.1)) / (fwhm_rad * np.cos(theta_rad))
+        crystallite_nm = (${scherrerK} * (WAVELENGTH_A * 0.1)) / (fwhm_rad * np.cos(theta_rad))
         print(f"#{p_idx+1:<7} {tt_val:<15.3f} {d_val:<15.3f} {fwhm_deg:<12.3f} {crystallite_nm:<10.1f}")
         
-    # 5. Publication Visualization
+    # 4. Publication Visualization
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
-    
-    # Detector overlay
     ax1.imshow(img, cmap='inferno')
     ax1.plot(CALIBRATED_CX, CALIBRATED_CY, 'c+', markersize=15, markeredgewidth=2)
     for p in peaks:
@@ -235,7 +286,6 @@ def process_diffractogram(image_path: str):
     ax1.set_title("2D Diffractogram with Calibrated Bragg Rings")
     ax1.axis('off')
     
-    # 1D Diffractogram
     ax2.plot(two_theta_arr, intensities_arr, color='#0284c7', lw=1.5, label='1D Radial Integration')
     ax2.plot(two_theta_arr[peaks], intensities_arr[peaks], 'rx', markersize=8, label='Bragg Peaks')
     ax2.set_xlabel(r"$2\\theta$ (degrees)", fontsize=12)
@@ -243,17 +293,14 @@ def process_diffractogram(image_path: str):
     ax2.set_title("Extracted 1D Powder Pattern", fontsize=12)
     ax2.grid(True, linestyle=':', alpha=0.6)
     ax2.legend()
-    
     plt.tight_layout()
     plt.show()
 
 if __name__ == "__main__":
-    # Example execution: process_diffractogram("diffraction_pattern.png")
-    pass
+    process_diffractogram("diffraction_pattern.png")
 `;
   };
 
-  // Helper for X-axis data accessor in Recharts
   const getXAxisDataKey = () => {
     switch (xUnit) {
       case 'two_theta': return 'two_theta_deg';
@@ -273,7 +320,7 @@ if __name__ == "__main__":
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left">
       {/* Top Metric Telemetry Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
         <div className="bg-slate-950/70 p-3 rounded-2xl border border-slate-800/80 flex flex-col justify-between">
@@ -362,44 +409,83 @@ if __name__ == "__main__":
         <div className="space-y-6">
           {/* Controls Bar for Plot */}
           <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">X-Axis Scale:</span>
-              <div className="flex bg-black/50 p-1 rounded-xl border border-slate-800">
-                {[
-                  { id: 'two_theta', label: '2θ (°)' },
-                  { id: 'q_inv', label: 'q (Å⁻¹)' },
-                  { id: 'd_spacing', label: 'd (Å)' },
-                  { id: 'radius_px', label: 'Radius (px)' },
-                ].map(unit => (
-                  <button
-                    key={unit.id}
-                    onClick={() => setXUnit(unit.id as any)}
-                    className={`px-2.5 py-1 rounded-lg text-[9px] font-mono font-bold transition-all ${
-                      xUnit === unit.id 
-                        ? 'bg-indigo-600 text-white shadow-md' 
-                        : 'text-slate-500 hover:text-slate-300'
-                    }`}
-                  >
-                    {unit.label}
-                  </button>
-                ))}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">X-Axis Scale:</span>
+                <div className="flex bg-black/50 p-1 rounded-xl border border-slate-800">
+                  {[
+                    { id: 'two_theta', label: '2θ (°)' },
+                    { id: 'q_inv', label: 'q (Å⁻¹)' },
+                    { id: 'd_spacing', label: 'd (Å)' },
+                    { id: 'radius_px', label: 'Radius (px)' },
+                  ].map(unit => (
+                    <button
+                      key={unit.id}
+                      onClick={() => setXUnit(unit.id as any)}
+                      className={`px-2.5 py-1 rounded-lg text-[9px] font-mono font-bold transition-all ${
+                        xUnit === unit.id 
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {unit.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Live Scherrer Shape Factor K Tuning */}
+              <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-xl border border-slate-800">
+                <span className="text-[8px] font-black text-slate-400 uppercase">Scherrer K:</span>
+                <span className="text-xs font-mono font-bold text-purple-400">{scherrerK.toFixed(2)}</span>
+                <input 
+                  type="range"
+                  min="0.85"
+                  max="1.15"
+                  step="0.01"
+                  value={scherrerK}
+                  onChange={(e) => setScherrerK(parseFloat(e.target.value))}
+                  className="w-16 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  title="Scherrer crystallite shape factor K (0.89 spherical, 0.94 cubic, 1.00 uniform)"
+                />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Export & Integration Suite */}
+            <div className="flex flex-wrap items-center gap-2">
+              {onSendToPeakFit && (
+                <button
+                  onClick={handleTransferToPeakFit}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[9px] font-mono font-extrabold uppercase flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+                  title="Transfer 1D pattern to Bragg Crystallography Analysis"
+                >
+                  <Share2 className="w-3 h-3" />
+                  Send to Peak Fit
+                </button>
+              )}
               <button
                 onClick={handleDownloadXY}
                 className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[9px] font-mono font-extrabold uppercase border border-slate-700 flex items-center gap-1.5 transition-all active:scale-95"
+                title="Export standard 2-column .XY diffractogram"
               >
                 <Download className="w-3 h-3 text-sky-400" />
-                Export .XY Profile
+                .XY
+              </button>
+              <button
+                onClick={handleDownloadDAT}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[9px] font-mono font-extrabold uppercase border border-slate-700 flex items-center gap-1.5 transition-all active:scale-95"
+                title="Export 3-column FullProf / GSAS .DAT diffractogram"
+              >
+                <FileCode className="w-3 h-3 text-emerald-400" />
+                .DAT
               </button>
               <button
                 onClick={handleExportCSV}
                 className="px-3 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-xl text-[9px] font-mono font-extrabold uppercase border border-indigo-500/30 flex items-center gap-1.5 transition-all active:scale-95"
+                title="Export full CSV spectrum dataset"
               >
                 <FileSpreadsheet className="w-3 h-3 text-indigo-400" />
-                Export CSV
+                CSV
               </button>
             </div>
           </div>
@@ -477,16 +563,22 @@ if __name__ == "__main__":
           </div>
 
           {/* Extracted Bragg Rings Table */}
-          {results.detected_rings?.length > 0 && (
+          {adjustedRings?.length > 0 && (
             <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   <span className="text-[11px] font-black text-white uppercase tracking-wider">
-                    Resolved Debye-Scherrer Concentric Shells ({results.detected_rings.length})
+                    Resolved Debye-Scherrer Concentric Shells ({adjustedRings.length})
                   </span>
                 </div>
-                <span className="text-[8px] font-mono text-slate-500">Volume-weighted Scherrer D</span>
+                <button
+                  onClick={handleExportPeakTableCSV}
+                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg text-[9px] font-mono border border-slate-800 flex items-center gap-1.5 transition-all"
+                >
+                  <FileSpreadsheet className="w-3 h-3 text-amber-400" />
+                  Export Rings CSV
+                </button>
               </div>
 
               <div className="overflow-x-auto max-h-64 custom-scrollbar border border-slate-800/80 rounded-xl">
@@ -500,11 +592,11 @@ if __name__ == "__main__":
                       <th className="p-2.5">d-spacing (Å)</th>
                       <th className="p-2.5">Intensity</th>
                       <th className="p-2.5">FWHM (2θ)</th>
-                      <th className="p-2.5">Scherrer D</th>
+                      <th className="p-2.5">Scherrer D (K={scherrerK.toFixed(2)})</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50 text-slate-300">
-                    {results.detected_rings.map((ring, idx) => (
+                    {adjustedRings.map((ring, idx) => (
                       <tr key={idx} className="hover:bg-slate-900/50 transition-colors">
                         <td className="p-2.5 font-bold text-amber-400">#{ring.ring_index}</td>
                         <td className="p-2.5">{ring.radius_px.toFixed(1)} px</td>

@@ -1145,15 +1145,32 @@ export function calculateComprehensiveNuclearMetrics(
   };
 }
 
+export type ScatterPlaneType = 'HK0' | 'H0L' | '0KL' | 'HHL' | 'H-HL' | 'HK1' | 'HK2' | 'custom';
+
+export interface ReciprocalLineCutPoint {
+  index: number;
+  h: number;
+  k: number;
+  l: number;
+  hklStr: string;
+  qMag: number;
+  dSpacing: number;
+  intensity_nuc: number;
+  intensity_xray: number;
+  F_nuc_sq: number;
+  F_xray_sq: number;
+}
+
 /**
- * Calculates 2D Reciprocal Scatter Plane slice (e.g. HK0, H0L, 0KL, HHL) with exact structure factors
+ * Calculates 2D Reciprocal Scatter Plane slice (e.g. HK0, H0L, 0KL, HHL, H-HL, HK1, HK2, custom) with exact structure factors
  */
 export function calculateReciprocalScatterPlane(
-  planeType: 'HK0' | 'H0L' | '0KL' | 'HHL' | 'HK1',
+  planeType: ScatterPlaneType,
   maxIndex: number,
   lattice: LatticeParameters,
   atoms: NeutronAtomExtended[],
-  wavelength: number
+  wavelength: number,
+  layerOffset: number = 0
 ): { points: ReciprocalPoint[]; qMax: number } {
   const points: ReciprocalPoint[] = [];
   const { a, b, c } = lattice;
@@ -1167,15 +1184,15 @@ export function calculateReciprocalScatterPlane(
       let qx = 0; let qy = 0;
 
       if (planeType === 'HK0') {
-        h = u; k = v; l = 0;
+        h = u; k = v; l = layerOffset;
         qx = (2 * Math.PI / a) * h;
         qy = (2 * Math.PI / b) * k;
       } else if (planeType === 'H0L') {
-        h = u; k = 0; l = v;
+        h = u; k = layerOffset; l = v;
         qx = (2 * Math.PI / a) * h;
         qy = (2 * Math.PI / c) * l;
       } else if (planeType === '0KL') {
-        h = 0; k = u; l = v;
+        h = layerOffset; k = u; l = v;
         qx = (2 * Math.PI / b) * k;
         qy = (2 * Math.PI / c) * l;
       } else if (planeType === 'HHL') {
@@ -1183,17 +1200,29 @@ export function calculateReciprocalScatterPlane(
         // qx along [110]*
         qx = (2 * Math.PI / Math.sqrt(a * a + b * b)) * u * Math.SQRT2;
         qy = (2 * Math.PI / c) * l;
+      } else if (planeType === 'H-HL') {
+        h = u; k = -u; l = v;
+        qx = (2 * Math.PI / Math.sqrt(a * a + b * b)) * u * Math.SQRT2;
+        qy = (2 * Math.PI / c) * l;
       } else if (planeType === 'HK1') {
         h = u; k = v; l = 1;
         qx = (2 * Math.PI / a) * h;
         qy = (2 * Math.PI / b) * k;
+      } else if (planeType === 'HK2') {
+        h = u; k = v; l = 2;
+        qx = (2 * Math.PI / a) * h;
+        qy = (2 * Math.PI / b) * k;
+      } else if (planeType === 'custom') {
+        h = u; k = v; l = layerOffset;
+        qx = (2 * Math.PI / a) * h;
+        qy = (2 * Math.PI / b) * k;
       }
 
-      if (h === 0 && k === 0 && l === 0) continue;
+      if (h === 0 && k === 0 && l === 0 && layerOffset === 0) continue;
 
       const d = calculateDSpacing(h, k, l, lattice);
-      const qMag = (2 * Math.PI) / d;
-      const sinTheta = wavelength / (2 * d);
+      const qMag = d > 0 ? (2 * Math.PI) / d : 0;
+      const sinTheta = d > 0 ? wavelength / (2 * d) : 0;
       const isBraggReachable = sinTheta <= 1.0;
       const twoTheta = isBraggReachable ? 2 * Math.asin(sinTheta) * (180 / Math.PI) : 180;
 
@@ -1265,6 +1294,108 @@ export function calculateReciprocalScatterPlane(
   const qMax = (2 * Math.PI / Math.min(a, b, c)) * (maxIndex + 0.5);
 
   return { points, qMax };
+}
+
+/**
+ * Calculates continuous 1D Line-Cut in Reciprocal Space between start and end (H, K, L)
+ */
+export function calculateReciprocalLineCut(
+  startHkl: [number, number, number],
+  endHkl: [number, number, number],
+  numSteps: number,
+  lattice: LatticeParameters,
+  atoms: NeutronAtomExtended[],
+  wavelength: number,
+  peakSigma: number = 0.08
+): ReciprocalLineCutPoint[] {
+  const result: ReciprocalLineCutPoint[] = [];
+  const [h1, k1, l1] = startHkl;
+  const [h2, k2, l2] = endHkl;
+
+  // Precompute reciprocal lattice points in vicinity
+  const maxIdx = Math.max(Math.abs(h1), Math.abs(h2), Math.abs(k1), Math.abs(k2), Math.abs(l1), Math.abs(l2)) + 2;
+  const discretePoints: { h: number; k: number; l: number; F_nuc_sq: number; F_xray_sq: number }[] = [];
+
+  for (let h = -maxIdx; h <= maxIdx; h++) {
+    for (let k = -maxIdx; k <= maxIdx; k++) {
+      for (let l = -maxIdx; l <= maxIdx; l++) {
+        let F_nuc_r = 0; let F_nuc_i = 0;
+        let F_xray_r = 0; let F_xray_i = 0;
+        const d = calculateDSpacing(h, k, l, lattice);
+        const s = d > 0 ? 1 / (2 * d) : 0;
+
+        for (const atom of atoms) {
+          const phase = 2 * Math.PI * (h * atom.x + k * atom.y + l * atom.z);
+          const dw = Math.exp(-atom.B_iso * s * s);
+          const b_eff = atom.b * dw;
+
+          F_nuc_r += b_eff * Math.cos(phase);
+          F_nuc_i += b_eff * Math.sin(phase);
+
+          const iso = NIST_ISOTOPE_DB[atom.element];
+          const Z = iso ? iso.Z : (atom.element === 'H' || atom.element === 'D' ? 1 : 12);
+          const f_xray = Z * Math.exp(-2.0 * s * s) * dw;
+
+          F_xray_r += f_xray * Math.cos(phase);
+          F_xray_i += f_xray * Math.sin(phase);
+        }
+
+        const F_nuc_sq = F_nuc_r * F_nuc_r + F_nuc_i * F_nuc_i;
+        const F_xray_sq = F_xray_r * F_xray_r + F_xray_i * F_xray_i;
+        if (F_nuc_sq > 0.001 || F_xray_sq > 0.001) {
+          discretePoints.push({ h, k, l, F_nuc_sq, F_xray_sq });
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i <= numSteps; i++) {
+    const t = i / numSteps;
+    const curH = h1 + t * (h2 - h1);
+    const curK = k1 + t * (k2 - k1);
+    const curL = l1 + t * (l2 - l1);
+
+    const d = calculateDSpacing(curH, curK, curL, lattice);
+    const qMag = d > 0 ? (2 * Math.PI) / d : 0;
+
+    // Sum Gaussian contribution from discrete Bragg nodes to simulate real continuous measurement
+    let totalNucInt = 0.5; // Small thermal diffuse scattering background
+    let totalXrayInt = 0.5;
+    let closestF_nuc_sq = 0;
+    let closestF_xray_sq = 0;
+
+    for (const dp of discretePoints) {
+      const dh = curH - dp.h;
+      const dk = curK - dp.k;
+      const dl = curL - dp.l;
+      const distSq = dh * dh + dk * dk + dl * dl;
+      if (distSq < 0.25) {
+        const weight = Math.exp(-distSq / (2 * peakSigma * peakSigma));
+        totalNucInt += dp.F_nuc_sq * weight;
+        totalXrayInt += dp.F_xray_sq * weight;
+        if (distSq < 0.04) {
+          closestF_nuc_sq = dp.F_nuc_sq;
+          closestF_xray_sq = dp.F_xray_sq;
+        }
+      }
+    }
+
+    result.push({
+      index: i,
+      h: parseFloat(curH.toFixed(3)),
+      k: parseFloat(curK.toFixed(3)),
+      l: parseFloat(curL.toFixed(3)),
+      hklStr: `(${curH.toFixed(2)} ${curK.toFixed(2)} ${curL.toFixed(2)})`,
+      qMag,
+      dSpacing: d,
+      intensity_nuc: totalNucInt,
+      intensity_xray: totalXrayInt,
+      F_nuc_sq: closestF_nuc_sq,
+      F_xray_sq: closestF_xray_sq
+    });
+  }
+
+  return result;
 }
 
 /**
