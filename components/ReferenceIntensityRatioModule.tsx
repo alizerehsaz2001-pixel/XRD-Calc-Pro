@@ -54,6 +54,8 @@ import { RIRCalibrationStudio } from './rir/RIRCalibrationStudio';
 import { RIRDiffractionVisualizer } from './rir/RIRDiffractionVisualizer';
 import { RIRDatabaseExplorer, RIRDatabaseItem, DATABASE_PRESETS } from './rir/RIRDatabaseExplorer';
 import { RIRTheoryGuide } from './rir/RIRTheoryGuide';
+import { RIRScriptExport } from './rir/RIRScriptExport';
+import { RIRBrindleyInspector, calcBrindleyTau } from './rir/RIRBrindleyInspector';
 import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
@@ -142,11 +144,13 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
   const [computingStep, setComputingStep] = useState(-1);
 
-  const [mainTab, setMainTab] = useState<'analysis' | 'matrix' | 'calibration' | 'spectrum' | 'database' | 'theory'>('analysis');
+  const [mainTab, setMainTab] = useState<'analysis' | 'matrix' | 'calibration' | 'spectrum' | 'database' | 'microabsorption' | 'script' | 'theory'>('analysis');
   const [amorphousWtPct, setAmorphousWtPct] = useState<number>(0);
   const [internalStandardMode, setInternalStandardMode] = useState<boolean>(false);
   const [standardPhaseId, setStandardPhaseId] = useState<string>('3');
   const [standardAddedWtPct, setStandardAddedWtPct] = useState<number>(10.0);
+  const [useBrindley, setUseBrindley] = useState<boolean>(false);
+  const [particleDiameterUm, setParticleDiameterUm] = useState<number>(5.0);
 
   // Uncertainty Estimator State
   const [intensityUncertaintyPct, setIntensityUncertaintyPct] = useState<number>(3.0);
@@ -277,53 +281,110 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
   // Quantitative calculations
   const calculations = useMemo(() => {
-    let totalReducedIntensity = 0;
+    // 1. Effective intensities (incorporating Brindley microabsorption if active)
+    const D_cm = (particleDiameterUm || 5.0) * 1e-4;
+
+    // Estimate preliminary sample linear absorption muBar
+    const tempPhaseProps = phases.map(p => {
+      const rho = p.density && p.density > 0 ? p.density : 3.0;
+      const mac = p.mac && p.mac > 0 ? p.mac : 50.0;
+      const mu = rho * mac;
+      const rI = (p.intensity || 0) / (p.rir > 0 ? p.rir : 1.0);
+      return { id: p.id, rho, mac, mu, rI };
+    });
+    const tempSumRI = tempPhaseProps.reduce((s, p) => s + p.rI, 0);
+    const sampleMuBar = tempSumRI > 0
+      ? tempPhaseProps.reduce((s, p) => s + (p.rI / tempSumRI) * p.mu, 0)
+      : 150.0;
+
+    const effPhases = phases.map(p => {
+      const rho = p.density && p.density > 0 ? p.density : 3.0;
+      const mac = p.mac && p.mac > 0 ? p.mac : 50.0;
+      const mu = rho * mac;
+      const tau = useBrindley ? calcBrindleyTau(mu - sampleMuBar, D_cm) : 1.0;
+      const effI = (p.intensity || 0) / tau;
+      const rI = effI / (p.rir > 0 ? p.rir : 1.0);
+      return {
+        ...p,
+        rho,
+        mac,
+        mu,
+        tau,
+        effI,
+        rI
+      };
+    });
+
+    let totalReducedIntensity = effPhases.reduce((sum, p) => sum + p.rI, 0);
     let weightedMacSum = 0;
 
-    const reducedIntensities = phases.map(p => {
-      const rI = (p.intensity || 0) / (p.rir > 0 ? p.rir : 1.0);
-      totalReducedIntensity += rI;
-      return { id: p.id, rI };
-    });
-
     let totalVolumeFactor = 0;
-    const volumeFactors = phases.map(p => {
-      const match = reducedIntensities.find(r => r.id === p.id);
-      const rI = match ? match.rI : 0;
-      const rho = p.density && p.density > 0 ? p.density : 3.0;
-      const vFactor = rI / rho;
+    const volumeFactors = effPhases.map(p => {
+      const vFactor = p.rI / p.rho;
       totalVolumeFactor += vFactor;
-      return { id: p.id, rI, rho, vFactor };
+      return { id: p.id, vFactor };
     });
-
-    const amorphousFactor = (100 - Math.min(99, Math.max(0, amorphousWtPct))) / 100;
 
     const relErrI = (intensityUncertaintyPct || 0) / 100;
     const relErrRIR = (rirUncertaintyPct || 0) / 100;
     const baseRelError = Math.sqrt(relErrI * relErrI + relErrRIR * relErrRIR);
 
-    const phaseResults = phases.map((p, idx) => {
-      const match = reducedIntensities.find(r => r.id === p.id);
-      const rI = match ? match.rI : 0;
+    // Check if internal standard mode is active and standard exists
+    const standardPhase = internalStandardMode ? effPhases.find(p => p.id === standardPhaseId) : null;
+    const standardSpikedFrac = (standardAddedWtPct || 10.0) / 100;
 
-      const crystallineFraction = totalReducedIntensity > 0 ? (rI / totalReducedIntensity) * 100 : 0;
-      const totalSampleFraction = crystallineFraction * amorphousFactor;
+    let measuredAmorphousPct = amorphousWtPct;
+    let originalSampleCrystSum = 0;
 
-      const vMatch = volumeFactors.find(v => v.id === p.id);
-      const rho = vMatch ? vMatch.rho : (p.density || 3.0);
-      const crystallineVolFraction = totalVolumeFactor > 0 ? ((rI / rho) / totalVolumeFactor) * 100 : 0;
+    if (standardPhase && standardPhase.rI > 0 && standardSpikedFrac > 0 && standardSpikedFrac < 1) {
+      // Calculate original sample crystalline fractions (wt%) for unknown phases
+      const mult = standardSpikedFrac / (1 - standardSpikedFrac);
+      effPhases.forEach(p => {
+        if (p.id !== standardPhase.id) {
+          const w_orig = mult * (p.rI / standardPhase.rI) * 100;
+          originalSampleCrystSum += w_orig;
+        }
+      });
+      measuredAmorphousPct = Math.max(0, Number((100 - originalSampleCrystSum).toFixed(2)));
+    }
+
+    const effectiveAmorphousWtPct = internalStandardMode && standardPhase ? measuredAmorphousPct : amorphousWtPct;
+    const amorphousFactor = (100 - Math.min(99, Math.max(0, effectiveAmorphousWtPct))) / 100;
+
+    const phaseResults = effPhases.map((p, idx) => {
+      let crystallineFraction = 0;
+      let totalSampleFraction = 0;
+
+      if (standardPhase && standardPhase.rI > 0 && standardSpikedFrac > 0 && standardSpikedFrac < 1) {
+        if (p.id === standardPhase.id) {
+          // Standard phase was added externally: 0 wt% in original sample, standardSpikedFrac in spiked blend
+          crystallineFraction = 0;
+          totalSampleFraction = standardSpikedFrac * 100;
+        } else {
+          const mult = standardSpikedFrac / (1 - standardSpikedFrac);
+          const w_orig = mult * (p.rI / standardPhase.rI) * 100;
+          crystallineFraction = originalSampleCrystSum > 0 ? (w_orig / originalSampleCrystSum) * 100 : 0;
+          totalSampleFraction = w_orig;
+        }
+      } else {
+        // Standard Chung adiabatic normalization
+        crystallineFraction = totalReducedIntensity > 0 ? (p.rI / totalReducedIntensity) * 100 : 0;
+        totalSampleFraction = crystallineFraction * amorphousFactor;
+      }
+
+      const crystallineVolFraction = totalVolumeFactor > 0 ? ((p.rI / p.rho) / totalVolumeFactor) * 100 : 0;
       const totalSampleVolFraction = crystallineVolFraction * amorphousFactor;
 
       const errMarginCrystalline = crystallineFraction * baseRelError;
       const errMarginTotal = totalSampleFraction * baseRelError;
       const errMarginVol = crystallineVolFraction * baseRelError;
 
-      weightedMacSum += (crystallineFraction / 100) * (p.mac || 50.0);
+      weightedMacSum += (crystallineFraction / 100) * p.mac;
 
       return {
         ...p,
-        density: rho,
-        reducedIntensity: rI,
+        reducedIntensity: p.rI,
+        tau: p.tau,
         crystallineFraction,
         totalSampleFraction,
         crystallineVolFraction,
@@ -331,20 +392,24 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         errMarginCrystalline,
         errMarginTotal,
         errMarginVol,
+        isInternalStandard: p.id === standardPhaseId,
         color: p.color || COLOR_PALETTE[idx % COLOR_PALETTE.length]
       };
     });
 
-    const totalSampleMAC = (weightedMacSum * amorphousFactor) + ((amorphousWtPct / 100) * 30.0);
+    const totalSampleMAC = (weightedMacSum * amorphousFactor) + ((effectiveAmorphousWtPct / 100) * 30.0);
 
     return {
       totalReducedIntensity,
       totalVolumeFactor,
       phaseResults,
       amorphousFactor,
+      effectiveAmorphousWtPct,
+      measuredAmorphousPct,
+      isInternalStandardActive: !!(standardPhase && standardPhase.rI > 0),
       totalSampleMAC
     };
-  }, [phases, amorphousWtPct, intensityUncertaintyPct, rirUncertaintyPct]);
+  }, [phases, amorphousWtPct, intensityUncertaintyPct, rirUncertaintyPct, useBrindley, particleDiameterUm, internalStandardMode, standardPhaseId, standardAddedWtPct]);
 
   const dominantPhase = useMemo(() => {
     if (!calculations.phaseResults || calculations.phaseResults.length === 0) return null;
@@ -640,6 +705,31 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             </button>
 
             <button
+              onClick={() => { playSynthTone('tick'); setMainTab('microabsorption'); }}
+              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                mainTab === 'microabsorption'
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-cyan-400" />
+              <span>7. Brindley Correction</span>
+              {useBrindley && <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />}
+            </button>
+
+            <button
+              onClick={() => { playSynthTone('tick'); setMainTab('script'); }}
+              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                mainTab === 'script'
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+              }`}
+            >
+              <Code2 className="w-4 h-4 text-purple-400" />
+              <span>8. Script Export</span>
+            </button>
+
+            <button
               onClick={() => { playSynthTone('tick'); setMainTab('theory'); }}
               className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'theory'
@@ -648,7 +738,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               }`}
             >
               <BookOpen className="w-4 h-4 text-rose-300" />
-              <span>6. Theory</span>
+              <span>9. Theory</span>
             </button>
 
             <button
@@ -826,28 +916,151 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Amorphous Slider & Global Error Bounds */}
-                    <div className="pt-3 border-t border-slate-800 space-y-4">
-                      <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2">
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-rose-500" />
-                            Amorphous Matrix Content Correction:
-                          </span>
-                          <span className="font-mono font-bold text-rose-400 text-sm">
-                            {amorphousWtPct}%
-                          </span>
+                    {/* Internal Standard Spiking Engine */}
+                    <div className="pt-3 border-t border-slate-800 space-y-3">
+                      <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Scale className="w-4 h-4 text-amber-400" />
+                            <span className="text-xs font-bold text-slate-200">Internal Standard Spiking Method</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playSynthTone('tick');
+                              setInternalStandardMode(!internalStandardMode);
+                            }}
+                            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                              internalStandardMode
+                                ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20'
+                                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {internalStandardMode ? 'Active (Spiked)' : 'Disabled'}
+                          </button>
                         </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="90"
-                          step="1"
-                          value={amorphousWtPct}
-                          onChange={(e) => setAmorphousWtPct(parseFloat(e.target.value) || 0)}
-                          className="w-full accent-rose-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                        />
+
+                        {internalStandardMode && (
+                          <div className="space-y-3 pt-2 border-t border-slate-800/80">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                                  Spiked Reference Phase
+                                </label>
+                                <select
+                                  value={standardPhaseId}
+                                  onChange={(e) => setStandardPhaseId(e.target.value)}
+                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-amber-500/60"
+                                >
+                                  {phases.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name} (RIR: {p.rir})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-400">
+                                  <span>Added Standard wt%</span>
+                                  <span className="font-mono text-amber-300 font-bold">{standardAddedWtPct}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max="30"
+                                  step="0.5"
+                                  value={standardAddedWtPct}
+                                  onChange={(e) => setStandardAddedWtPct(parseFloat(e.target.value) || 10.0)}
+                                  className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="bg-amber-950/20 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-200/90 flex items-center justify-between">
+                              <span>Experimentally Determined Amorphous:</span>
+                              <span className="font-mono font-bold text-amber-300 text-xs">
+                                {calculations.measuredAmorphousPct.toFixed(2)} wt%
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Brindley Microabsorption Quick Card */}
+                      <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Layers className="w-4 h-4 text-cyan-400" />
+                            <span className="text-xs font-bold text-slate-200">Brindley Microabsorption Correction</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playSynthTone('tick');
+                              setUseBrindley(!useBrindley);
+                            }}
+                            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                              useBrindley
+                                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/20'
+                                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {useBrindley ? 'Active' : 'Off'}
+                          </button>
+                        </div>
+
+                        {useBrindley && (
+                          <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-slate-400 text-[11px]">Mean Particle Diameter (D):</span>
+                              <span className="font-mono text-cyan-300 font-bold">{particleDiameterUm} µm</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0.5"
+                              max="45"
+                              step="0.5"
+                              value={particleDiameterUm}
+                              onChange={(e) => setParticleDiameterUm(parseFloat(e.target.value) || 5.0)}
+                              className="w-full accent-cyan-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                            />
+                            <div className="flex justify-between items-center text-[10px] text-slate-400">
+                              <span>Transmission factors applied to all Bragg intensities</span>
+                              <button
+                                onClick={() => setMainTab('microabsorption')}
+                                className="text-cyan-400 hover:underline font-bold"
+                              >
+                                View Detailed Inspector →
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Amorphous Slider (if not in internal standard mode) */}
+                      {!internalStandardMode && (
+                        <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-rose-500" />
+                              Manual Amorphous Matrix Correction:
+                            </span>
+                            <span className="font-mono font-bold text-rose-400 text-sm">
+                              {amorphousWtPct}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="90"
+                            step="1"
+                            value={amorphousWtPct}
+                            onChange={(e) => setAmorphousWtPct(parseFloat(e.target.value) || 0)}
+                            className="w-full accent-rose-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 space-y-1">
@@ -1032,6 +1245,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             <RIRDiffractionVisualizer
               phases={phases}
               amorphousWtPct={amorphousWtPct}
+              internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
             />
           )}
 
@@ -1042,7 +1256,33 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             />
           )}
 
-          {/* TAB 6: THEORY & EQUATIONS */}
+          {/* TAB 7: BRINDLEY MICROABSORPTION INSPECTOR */}
+          {mainTab === 'microabsorption' && (
+            <RIRBrindleyInspector
+              phases={phases}
+              particleDiameterUm={particleDiameterUm}
+              onUpdateParticleDiameter={setParticleDiameterUm}
+              useBrindley={useBrindley}
+              onToggleBrindley={setUseBrindley}
+            />
+          )}
+
+          {/* TAB 8: PYTHON & ORIGIN LAB SCRIPT EXPORT */}
+          {mainTab === 'script' && (
+            <RIRScriptExport
+              phases={phases}
+              amorphousWtPct={calculations.effectiveAmorphousWtPct}
+              intensityUncertaintyPct={intensityUncertaintyPct}
+              rirUncertaintyPct={rirUncertaintyPct}
+              quantMode={internalStandardMode ? 'spiking' : 'adiabatic'}
+              internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
+              standardAddedWtPct={internalStandardMode ? standardAddedWtPct : undefined}
+              useBrindley={useBrindley}
+              particleDiameterUm={particleDiameterUm}
+            />
+          )}
+
+          {/* TAB 9: THEORY & EQUATIONS */}
           {mainTab === 'theory' && (
             <RIRTheoryGuide />
           )}
@@ -1112,7 +1352,14 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => { playSynthTone('tick'); setMainTab('script'); setAppState('setup'); }}
+                className="px-3.5 py-2 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 text-purple-300 text-xs font-bold border border-purple-500/40 flex items-center gap-2 transition-all shadow-md"
+              >
+                <Code2 className="w-4 h-4 text-purple-400" />
+                <span>Python & Origin Scripts</span>
+              </button>
               <button
                 onClick={copyReportToClipboard}
                 className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all"
@@ -1141,15 +1388,19 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Crystalline Mass</span>
-              <span className="text-xl font-mono font-black text-indigo-400 mt-1">{(100 - amorphousWtPct).toFixed(1)} wt%</span>
+              <span className="text-xl font-mono font-black text-indigo-400 mt-1">{(100 - calculations.effectiveAmorphousWtPct).toFixed(1)} wt%</span>
             </div>
             <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Amorphous Matrix</span>
-              <span className="text-xl font-mono font-black text-rose-400 mt-1">{amorphousWtPct.toFixed(1)} wt%</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                {calculations.isInternalStandardActive ? 'Spiked Amorphous' : 'Amorphous Matrix'}
+              </span>
+              <span className="text-xl font-mono font-black text-rose-400 mt-1">{calculations.effectiveAmorphousWtPct.toFixed(1)} wt%</span>
             </div>
             <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Volume Factor</span>
-              <span className="text-xl font-mono font-black text-amber-400 mt-1">{calculations.totalVolumeFactor.toFixed(1)}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Microabsorption</span>
+              <span className="text-sm font-mono font-black text-cyan-400 mt-1">
+                {useBrindley ? `Brindley (${particleDiameterUm} µm)` : 'None (Ideal)'}
+              </span>
             </div>
             <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sample MAC (μ*)</span>

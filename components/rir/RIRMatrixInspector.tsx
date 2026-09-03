@@ -38,6 +38,7 @@ export interface RIRMatrixPhase {
   rir: number; // I / I_c
   density?: number; // g/cm^3
   mac?: number; // cm^2/g
+  relIntensity?: number; // % relative intensity of chosen reflection (1-100)
   color?: string;
 }
 

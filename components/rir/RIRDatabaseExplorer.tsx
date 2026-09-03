@@ -52,6 +52,17 @@ export const DATABASE_PRESETS: RIRDatabaseItem[] = [
   { name: 'Iron (α-Ferrite)', formula: 'α-Fe', pdfCard: '01-087-0721', crystalSystem: 'Cubic', hkl: '(110)', twoTheta: 44.67, rir: 10.80, density: 7.87, macCu: 308.0, category: 'Metals & Alloys', notes: 'BCC ferromagnetic steel matrix' },
   { name: 'Austenite (γ-Fe)', formula: 'γ-Fe', pdfCard: '01-088-2324', crystalSystem: 'Cubic', hkl: '(111)', twoTheta: 43.60, rir: 9.20, density: 8.05, macCu: 305.0, category: 'Metals & Alloys', notes: 'Retained FCC austenite phase' },
   { name: 'Titanium (α-Ti)', formula: 'α-Ti', pdfCard: '01-089-2762', crystalSystem: 'Hexagonal', hkl: '(101)', twoTheta: 40.17, rir: 2.15, density: 4.51, macCu: 208.0, category: 'Metals & Alloys', notes: 'HCP aerospace alloy base' },
+  { name: 'β-Tricalcium Phosphate', formula: 'β-Ca3(PO4)2', pdfCard: '01-070-2065', crystalSystem: 'Trigonal', hkl: '(0 2 10)', twoTheta: 31.02, rir: 1.40, density: 3.07, macCu: 81.5, category: 'Biomaterials', notes: 'Bioactive resorbable orthopaedic ceramic' },
+  { name: 'Lithium Cobalt Oxide (LCO)', formula: 'LiCoO2', pdfCard: '01-075-0532', crystalSystem: 'Trigonal', hkl: '(003)', twoTheta: 18.90, rir: 2.10, density: 5.05, macCu: 185.0, category: 'Oxides & Ceramics', notes: 'Layered high-energy battery cathode' },
+  { name: 'Graphite (2H)', formula: 'C', pdfCard: '01-075-1621', crystalSystem: 'Hexagonal', hkl: '(002)', twoTheta: 26.54, rir: 5.80, density: 2.26, macCu: 4.6, category: 'Semiconductors', notes: 'Standard lithium-ion battery anode' },
+  { name: 'Zirconia (Monoclinic)', formula: 'm-ZrO2', pdfCard: '01-072-1669', crystalSystem: 'Monoclinic', hkl: '(-111)', twoTheta: 28.18, rir: 3.10, density: 5.68, macCu: 142.0, category: 'Oxides & Ceramics', notes: 'Baddeleyite refractory ceramic' },
+  { name: 'Zirconia (Tetragonal)', formula: 't-ZrO2', pdfCard: '01-080-0965', crystalSystem: 'Tetragonal', hkl: '(101)', twoTheta: 30.27, rir: 3.75, density: 6.10, macCu: 142.0, category: 'Oxides & Ceramics', notes: 'Yttria-stabilized transformation toughened phase' },
+  { name: 'Mullite', formula: 'Al6Si2O13', pdfCard: '01-079-1455', crystalSystem: 'Orthorhombic', hkl: '(120)', twoTheta: 26.26, rir: 0.60, density: 3.17, macCu: 33.2, category: 'Oxides & Ceramics', notes: 'High-temperature refractory aluminosilicate' },
+  { name: 'Pyrite', formula: 'FeS2', pdfCard: '01-071-1680', crystalSystem: 'Cubic', hkl: '(200)', twoTheta: 33.04, rir: 2.70, density: 5.01, macCu: 175.0, category: 'Minerals', notes: 'Iron sulfide mineral (fool\'s gold)' },
+  { name: 'Tricalcium Aluminate (C3A)', formula: 'Ca3Al2O6', pdfCard: '01-074-0570', crystalSystem: 'Cubic', hkl: '(440)', twoTheta: 33.18, rir: 1.60, density: 3.04, macCu: 73.0, category: 'Cements', notes: 'Flash-setting phase in Portland cement' },
+  { name: 'Tetracalcium Aluminoferrite (C4AF)', formula: 'Ca4Al2Fe2O10', pdfCard: '01-071-0667', crystalSystem: 'Orthorhombic', hkl: '(141)', twoTheta: 33.80, rir: 1.35, density: 3.77, macCu: 120.0, category: 'Cements', notes: 'Brownmillerite ferrite flux phase' },
+  { name: 'Gibbsite', formula: 'Al(OH)3', pdfCard: '01-074-1775', crystalSystem: 'Monoclinic', hkl: '(002)', twoTheta: 18.28, rir: 1.20, density: 2.42, macCu: 18.5, category: 'Minerals', notes: 'Primary bauxite aluminum ore' },
+  { name: 'Boehmite', formula: 'AlO(OH)', pdfCard: '01-072-0198', crystalSystem: 'Orthorhombic', hkl: '(020)', twoTheta: 14.48, rir: 1.65, density: 3.02, macCu: 24.1, category: 'Minerals', notes: 'High-temperature bauxite oxyhydroxide' }
 ];
 
 interface RIRDatabaseExplorerProps {

@@ -33,6 +33,7 @@ import { RIRMatrixPhase } from './RIRMatrixInspector';
 interface RIRDiffractionVisualizerProps {
   phases: RIRMatrixPhase[];
   amorphousWtPct: number;
+  internalStandardPhaseId?: string;
 }
 
 const WAVELENGTHS = [
@@ -44,7 +45,8 @@ const WAVELENGTHS = [
 
 export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> = ({
   phases,
-  amorphousWtPct
+  amorphousWtPct,
+  internalStandardPhaseId
 }) => {
   const [spectrumMode, setSpectrumMode] = useState<'continuous' | 'stick'>('continuous');
   const [profileFWHM, setProfileFWHM] = useState<number>(0.28);
@@ -84,10 +86,36 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
         twoTheta: shifted2Theta,
         intensity: p.intensity || 0,
         rir: p.rir,
-        color: p.color || '#6366f1'
+        color: p.color || '#6366f1',
+        isStandard: p.id === internalStandardPhaseId
       };
     });
-  }, [phases, wavelengthFactor]);
+  }, [phases, wavelengthFactor, internalStandardPhaseId]);
+
+  // Peak Overlap and Deconvolution Analysis
+  const peakOverlapWarnings = useMemo(() => {
+    const activeSticks = simulatedPeakSticks.filter(s => visiblePhases[s.id] !== false);
+    const warnings: { phaseA: string; phaseB: string; angleA: number; angleB: number; delta2Theta: number; severity: 'high' | 'medium' }[] = [];
+
+    for (let i = 0; i < activeSticks.length; i++) {
+      for (let j = i + 1; j < activeSticks.length; j++) {
+        const p1 = activeSticks[i];
+        const p2 = activeSticks[j];
+        const delta = Math.abs(p1.twoTheta - p2.twoTheta);
+        if (delta < profileFWHM * 1.5) {
+          warnings.push({
+            phaseA: p1.name,
+            phaseB: p2.name,
+            angleA: p1.twoTheta,
+            angleB: p2.twoTheta,
+            delta2Theta: delta,
+            severity: delta < profileFWHM * 0.8 ? 'high' : 'medium'
+          });
+        }
+      }
+    }
+    return warnings;
+  }, [simulatedPeakSticks, visiblePhases, profileFWHM]);
 
   // Continuous Pseudo-Voigt Diffraction Profile
   const continuousPatternData = useMemo(() => {
@@ -138,6 +166,24 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
     return data;
   }, [phases, simulatedPeakSticks, visiblePhases, profileFWHM, showAmorphousHump, amorphousWtPct, amorphousCenterAngle, wavelength]);
 
+  // Export Diffractogram XY Data
+  const exportPatternCSV = () => {
+    playSynthTone('success');
+    if (continuousPatternData.length === 0) return;
+    const header = ['twoTheta', 'Total', 'Background', ...phases.map(p => `"${p.name}"`)].join(',');
+    const rows = continuousPatternData.map(pt => {
+      const pCols = phases.map(p => pt[p.name] || 0);
+      return [pt.twoTheta, pt.Total, pt.Background || 0, ...pCols].join(',');
+    });
+    const csvContent = 'data:text/csv;charset=utf-8,' + encodeURIComponent([header, ...rows].join('\n'));
+    const link = document.createElement('a');
+    link.setAttribute('href', csvContent);
+    link.setAttribute('download', `RIR_Diffractogram_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md flex flex-col gap-6 text-slate-100">
       {/* Top Banner */}
@@ -156,30 +202,62 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
           </div>
         </div>
 
-        {/* Spectrum Mode Switcher */}
-        <div className="bg-slate-950/80 border border-slate-800 p-1.5 rounded-2xl flex gap-1.5 shadow-inner">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => { playSynthTone('tick'); setSpectrumMode('continuous'); }}
-            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
-              spectrumMode === 'continuous'
-                ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-            }`}
+            onClick={exportPatternCSV}
+            className="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+            title="Export full 2-Theta vs Intensity profile as CSV"
           >
-            Continuous Pseudo-Voigt
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Export Diffractogram XY</span>
           </button>
-          <button
-            onClick={() => { playSynthTone('tick'); setSpectrumMode('stick'); }}
-            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
-              spectrumMode === 'stick'
-                ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-            }`}
-          >
-            Stick Diagram (I)
-          </button>
+
+          {/* Spectrum Mode Switcher */}
+          <div className="bg-slate-950/80 border border-slate-800 p-1 rounded-xl flex gap-1 shadow-inner">
+            <button
+              onClick={() => { playSynthTone('tick'); setSpectrumMode('continuous'); }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                spectrumMode === 'continuous'
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              Continuous
+            </button>
+            <button
+              onClick={() => { playSynthTone('tick'); setSpectrumMode('stick'); }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                spectrumMode === 'stick'
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              Stick (I)
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Peak Overlap & Deconvolution Risk Banner */}
+      {peakOverlapWarnings.length > 0 && (
+        <div className="bg-amber-950/30 border border-amber-500/40 rounded-2xl p-4 flex flex-col gap-2 text-xs">
+          <div className="flex items-center gap-2 text-amber-300 font-bold">
+            <Zap className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>Peak Overlap Detected ({peakOverlapWarnings.length} severe Bragg overlaps within 1.5× FWHM):</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-amber-200/90 font-mono">
+            {peakOverlapWarnings.map((w, idx) => (
+              <div key={idx} className="bg-slate-950/60 p-2 rounded-xl border border-amber-500/20 flex justify-between items-center">
+                <span>{w.phaseA} ({w.angleA}°) ↔ {w.phaseB} ({w.angleB}°)</span>
+                <span className="font-bold text-amber-400">Δ2θ = {w.delta2Theta.toFixed(2)}°</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-amber-300/70 italic">
+            Tip: In cases of peak overlap, select an alternate secondary reflection (lower I_rel) or perform peak deconvolution profile fitting.
+          </p>
+        </div>
+      )}
 
       {/* Control Bar: Wavelength, FWHM, Amorphous Hump */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
@@ -265,7 +343,7 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
                             2θ: {data.twoTheta}° | Intensity: {data.intensity} cps
                           </span>
                           <span className="text-slate-400 font-mono text-[10px] block">
-                            RIR: {data.rir}
+                            RIR: {data.rir} {data.isStandard && '⭐ [Internal Standard]'}
                           </span>
                         </div>
                       );
