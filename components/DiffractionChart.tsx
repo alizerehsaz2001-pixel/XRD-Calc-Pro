@@ -35,7 +35,11 @@ import {
   Sparkles,
   Flame,
   Binary,
-  Check
+  Check,
+  TrendingDown,
+  Gauge,
+  BarChart3,
+  Microscope
 } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings, convertLength } from './SettingsContext';
@@ -50,6 +54,7 @@ import {
   identifyAnode 
 } from '../utils/calculatedProfileEngine';
 import { ProfileTuningPanel } from './ProfileTuningPanel';
+import { ReflectionInspector } from './ReflectionInspector';
 
 interface DiffractionChartProps {
   results: BraggResult[];
@@ -101,6 +106,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   const [showSubPeaks, setShowSubPeaks] = useState(false);
   const [showBraggTicks, setShowBraggTicks] = useState(true);
   const [showResidual, setShowResidual] = useState(false);
+  const [selectedPeakIndex, setSelectedPeakIndex] = useState<number | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
@@ -500,6 +506,11 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           extendedPt[`subPeak_${idx}`] = val;
         });
       }
+      if (pt.subPeaksDisplay) {
+        Object.entries(pt.subPeaksDisplay).forEach(([idx, val]) => {
+          extendedPt[`subPeakDisplay_${idx}`] = val;
+        });
+      }
       return extendedPt;
     });
 
@@ -524,7 +535,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
 
       processedPoints = processedPoints.map((point, i) => ({
         ...point,
-        intensity: Math.max(0, point.intensity - background[i])
+        intensity: Math.max(0, point.intensity - background[i]),
+        intensityDisplay: Math.max(0, (point.intensityDisplay || point.intensity) - background[i])
       }));
     }
 
@@ -533,14 +545,17 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       const windowSize = 5;
       processedPoints = processedPoints.map((point, i) => {
         let sum = 0;
+        let sumDisp = 0;
         let count = 0;
         for (let j = Math.max(0, i - windowSize); j <= Math.min(processedPoints.length - 1, i + windowSize); j++) {
           sum += processedPoints[j].intensity;
+          sumDisp += (processedPoints[j].intensityDisplay !== undefined ? processedPoints[j].intensityDisplay : processedPoints[j].intensity);
           count++;
         }
         return {
           ...point,
           intensity: Number((sum / count).toFixed(2)),
+          intensityDisplay: Number((sumDisp / count).toFixed(2)),
         };
       });
     }
@@ -558,6 +573,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
         fwhm: meta?.fwhm || 0.18,
         integralBreadth: meta?.integralBreadth || 0.20,
         integratedArea: meta?.integratedArea || 20,
+        scherrerSizeNm: meta?.scherrerSizeNm || 45,
+        kaSplitDeg: meta?.kaSplitDeg,
         ka2Theta: meta?.ka2Theta,
         isLabelVisible: false,
         labelLevel: 0,
@@ -622,7 +639,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       points: processedPoints, 
       peakData, 
       tickData,
-      metrics: synthesis.globalMetrics 
+      metrics: synthesis.globalMetrics,
+      agreementMetrics: synthesis.agreementMetrics
     };
   }, [results, materialName, activeWavelengthVal, profileParams, showSubPeaks, showBraggTicks, smoothChart, subtractBaseline]);
 
@@ -920,6 +938,63 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 <option value="Diamond">C (Diamond)</option>
               </select>
             )}
+
+            {/* Intensity Scale Segmented Control */}
+            <div className="flex items-center bg-slate-900/80 border border-white/10 rounded-xl p-0.5 ml-1 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setProfileParams(p => ({ ...p, intensityScale: 'linear' }))}
+                className={`px-2 py-1 rounded-lg text-[9px] font-mono font-black uppercase transition-all ${
+                  profileParams.intensityScale === 'linear'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Linear Intensity Scale (0-100%)"
+              >
+                Lin
+              </button>
+              <button
+                type="button"
+                onClick={() => setProfileParams(p => ({ ...p, intensityScale: 'log10' }))}
+                className={`px-2 py-1 rounded-lg text-[9px] font-mono font-black uppercase transition-all ${
+                  profileParams.intensityScale === 'log10'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Logarithmic Intensity Scale (Log₁₀) for wide dynamic range"
+              >
+                Log
+              </button>
+              <button
+                type="button"
+                onClick={() => setProfileParams(p => ({ ...p, intensityScale: 'sqrt' }))}
+                className={`px-2 py-1 rounded-lg text-[9px] font-mono font-black uppercase transition-all ${
+                  profileParams.intensityScale === 'sqrt'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Square Root Intensity Scale (√I - Poisson variance matching)"
+              >
+                √I
+              </button>
+            </div>
+
+            {/* Rietveld Difference / Residual Curve Quick Toggle */}
+            <button 
+              onClick={() => {
+                setShowResidual(!showResidual);
+                setProfileParams(p => ({ ...p, showDifferenceCurve: !p.showDifferenceCurve }));
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 ml-1 ${
+                (showResidual || profileParams.showDifferenceCurve)
+                  ? 'bg-pink-600 text-white shadow-[0_0_15px_rgba(236,72,153,0.4)] border border-pink-400/40' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Toggle Rietveld Residual Difference Curve (Ycalc - Ytheor)"
+            >
+              <TrendingDown className="w-3 h-3" />
+              <span>{t('Residuals Δ', 'Residuals Δ')}</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-1.5 relative">
@@ -1065,6 +1140,44 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           </span>
         </div>
       </div>
+
+      {/* Rietveld Agreement Metrics Banner */}
+      {chartData.agreementMetrics && (
+        <div className="relative z-10 mb-4 bg-gradient-to-r from-indigo-950/60 via-purple-950/50 to-pink-950/60 border border-indigo-500/30 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-lg backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-pink-400 animate-ping" />
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">
+              {t('Rietveld Agreement Metrics', 'Rietveld Agreement Metrics')}
+            </span>
+            <span className="text-[8px] px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono font-bold">
+              vs. {materialName || 'Theoretical Reference'}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 font-mono text-xs">
+            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
+              <span className="text-[9px] text-slate-400 font-sans font-bold">Rp:</span>
+              <span className="font-extrabold text-emerald-400">{chartData.agreementMetrics.rp.toFixed(2)}%</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
+              <span className="text-[9px] text-slate-400 font-sans font-bold">Rwp:</span>
+              <span className="font-extrabold text-amber-400">{chartData.agreementMetrics.rwp.toFixed(2)}%</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
+              <span className="text-[9px] text-slate-400 font-sans font-bold">χ² (GoF):</span>
+              <span className="font-extrabold text-indigo-400">{chartData.agreementMetrics.chi2.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
+              <span className="text-[9px] text-slate-400 font-sans font-bold">P/B:</span>
+              <span className="font-extrabold text-teal-400">{chartData.metrics.peakToBackgroundRatio.toFixed(1)}:1</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
+              <span className="text-[9px] text-slate-400 font-sans font-bold">Scale:</span>
+              <span className="font-extrabold text-cyan-300 uppercase text-[10px]">{profileParams.intensityScale}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={`w-full min-w-0 relative z-10 select-none bg-[#020617]/40 rounded-3xl border border-white/5 p-4 shadow-inner ${isFullScreen ? 'h-[500px]' : 'h-[400px]'}`}>
         {/* Floating Zoom & Pan Control Center */}
@@ -1349,13 +1462,23 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               onClick={handleLegendClick}
             />
 
+            {/* Selected Reflection Reticle Marker */}
+            {selectedPeakIndex !== null && results[selectedPeakIndex] && (
+              <ReferenceLine 
+                x={xAxisUnit === 'twoTheta' ? results[selectedPeakIndex].twoTheta : xAxisUnit === 'q' ? results[selectedPeakIndex].qVector : results[selectedPeakIndex].dSpacing} 
+                stroke="#818cf8" 
+                strokeWidth={2} 
+                strokeDasharray="3 3"
+              />
+            )}
+
             {/* Constituent Sub-Peaks Deconvolution Areas */}
             {showSubPeaks && chartData.peakData.slice(0, 10).map((peak, idx) => (
               <Area 
                 key={`subpeak-area-${peak.originalIdx}`}
                 data={chartData.points}
                 type="monotone"
-                dataKey={`subPeak_${peak.originalIdx}`}
+                dataKey={profileParams.intensityScale !== 'linear' ? `subPeakDisplay_${peak.originalIdx}` : `subPeak_${peak.originalIdx}`}
                 name={`Peak #${idx + 1} (${peak.hkl ? `(${peak.hkl})` : `${peak.twoTheta.toFixed(2)}°`})`}
                 stroke={SUBPEAK_PALETTE[idx % SUBPEAK_PALETTE.length]}
                 strokeWidth={1.5}
@@ -1365,6 +1488,30 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 isAnimationActive={false}
               />
             ))}
+
+            {/* Rietveld Residual Difference Curve (Ycalc - Ytheor) */}
+            {(showResidual || profileParams.showDifferenceCurve) && (
+              <>
+                <ReferenceLine 
+                  y={8} 
+                  stroke="#ec4899" 
+                  strokeDasharray="4 4" 
+                  strokeWidth={1}
+                  opacity={0.5} 
+                />
+                <Area 
+                  data={chartData.points}
+                  type="monotone"
+                  dataKey="residualDisplay"
+                  name={t('Residual (Ycalc - Ytheor)', 'Residual (Ycalc - Ytheor)')}
+                  stroke="#ec4899"
+                  strokeWidth={1.8}
+                  fill="#ec4899"
+                  fillOpacity={0.15}
+                  isAnimationActive={false}
+                />
+              </>
+            )}
 
             {/* Baseline Bragg Positions (Ticks) */}
             {showBraggTicks && (
@@ -1398,7 +1545,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               <Area 
                 data={chartData.points}
                 type="monotone"
-                dataKey="intensity"
+                dataKey={profileParams.intensityScale !== 'linear' ? "intensityDisplay" : "intensity"}
                 name={t('Observed Pattern', 'Observed Pattern')}
                 stroke="#6366f1"
                 strokeWidth={3}
@@ -1413,7 +1560,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               <Line 
                 data={chartData.points}
                 type="monotone"
-                dataKey="theoreticalIntensity"
+                dataKey={profileParams.intensityScale !== 'linear' ? "theoreticalIntensityDisplay" : "theoreticalIntensity"}
                 name={`${materialName}`}
                 stroke="#f59e0b"
                 strokeWidth={2}
@@ -1463,12 +1610,16 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                     <circle 
                       cx={cx} 
                       cy={cy} 
-                      r={isThisDragged ? 8 : 6} 
-                      fill={isThisDragged ? "#3b82f6" : markerColor} 
+                      r={isThisDragged ? 8 : (selectedPeakIndex === payload.originalIdx ? 7 : 6)} 
+                      fill={isThisDragged ? "#3b82f6" : (selectedPeakIndex === payload.originalIdx ? "#818cf8" : markerColor)} 
                       filter="url(#glowShadow)" 
-                      stroke="white" 
-                      strokeWidth={2} 
-                      className="cursor-ew-resize hover:scale-125 transition-all duration-150"
+                      stroke={selectedPeakIndex === payload.originalIdx ? "#ffffff" : "white"} 
+                      strokeWidth={selectedPeakIndex === payload.originalIdx ? 2.5 : 2} 
+                      className="cursor-pointer hover:scale-125 transition-all duration-150"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPeakIndex(payload.originalIdx);
+                      }}
                       onMouseDown={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
@@ -1575,6 +1726,27 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
         </ResponsiveContainer>
       </div>
 
+      {/* Single-Reflection Metrology Deep Inspector */}
+      {selectedPeakIndex !== null && results[selectedPeakIndex] && (
+        <div className="relative z-20 mt-6 animate-in fade-in slide-in-from-top-4 duration-300">
+          <ReflectionInspector
+            reflection={results[selectedPeakIndex]}
+            index={selectedPeakIndex}
+            metadata={chartData.peakData.find(pd => pd.originalIdx === selectedPeakIndex)}
+            params={profileParams}
+            wavelength={activeWavelengthVal}
+            lengthUnit={lengthUnit}
+            precision={precision}
+            onUpdateAngle={(newAngle) => updatePeakTwoTheta(selectedPeakIndex, newAngle)}
+            onFocusZoom={() => {
+              setLeft(Number(Math.max(0, results[selectedPeakIndex].twoTheta - 3).toFixed(2)));
+              setRight(Number(Math.min(180, results[selectedPeakIndex].twoTheta + 3).toFixed(2)));
+            }}
+            onClose={() => setSelectedPeakIndex(null)}
+          />
+        </div>
+      )}
+
       {/* Crystallographic Phase Metrology Table */}
       {results.length > 0 && (
         <div className="relative z-10 mt-6 bg-slate-950/40 border border-white/5 rounded-3xl p-6 shadow-inner">
@@ -1589,7 +1761,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               </span>
             </div>
             <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-              {t('Click Row to Snap Center • Hover Row to Highlight', 'Click Row to Snap Center • Hover Row to Highlight')}
+              {t('Click Row to Inspect Peak & Snap Center • Hover Row to Highlight', 'Click Row to Inspect Peak & Snap Center • Hover Row to Highlight')}
             </span>
           </div>
 
@@ -1604,6 +1776,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                   <th className="py-2.5 px-3">{t('Wavevector Q (Å⁻¹)', 'Wavevector Q (Å⁻¹)')}</th>
                   <th className="py-2.5 px-3 text-right">{t('Rel. Intensity', 'Rel. Intensity')}</th>
                   <th className="py-2.5 px-3 text-right">{t('FWHM (Γ)', 'FWHM (Γ)')}</th>
+                  <th className="py-2.5 px-3 text-right">{t('Size Dhkl', 'Size Dhkl')}</th>
+                  <th className="py-2.5 px-3 text-right">{t('Kα Split', 'Kα Split')}</th>
                   <th className="py-2.5 px-3 text-right">{t('Area (∫I)', 'Area (∫I)')}</th>
                   <th className="py-2.5 px-3 text-center">{t('Fine Tuning', 'Fine Tuning')}</th>
                   <th className="py-2.5 px-3 text-right">{t('Phase Alignment', 'Phase Alignment')}</th>
@@ -1612,6 +1786,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               <tbody>
                 {results.map((peak, idx) => {
                   const isHovered = hoveredPeakTheta === peak.twoTheta;
+                  const isSelected = selectedPeakIndex === idx;
                   const matchingCalculatedPeak = chartData.peakData.find(pd => pd.originalIdx === idx || Math.abs(pd.twoTheta - peak.twoTheta) < 0.05);
                   const isMatch = matchingCalculatedPeak?.isMatch;
                   
@@ -1619,6 +1794,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                     <tr 
                       key={`table-peak-row-${idx}`}
                       onClick={() => {
+                        setSelectedPeakIndex(idx);
                         setLeft(Number(Math.max(0, peak.twoTheta - 4).toFixed(2)));
                         setRight(Number(Math.min(180, peak.twoTheta + 4).toFixed(2)));
                       }}
@@ -1635,12 +1811,19 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                         setHoveredPeakData(null);
                       }}
                       className={`border-b border-white/5 cursor-pointer transition-all duration-150 ${
-                        isHovered 
+                        isSelected
+                          ? 'bg-indigo-600/20 text-white border-indigo-500/50 shadow-md ring-1 ring-indigo-500/30'
+                          : isHovered 
                           ? 'bg-indigo-500/15 text-white border-indigo-500/30' 
                           : 'hover:bg-slate-900/40 text-slate-300 hover:text-white'
                       }`}
                     >
-                      <td className="py-3 px-3 font-mono font-bold text-slate-500">#{idx + 1}</td>
+                      <td className="py-3 px-3 font-mono font-bold text-slate-500">
+                        <span className="flex items-center gap-1">
+                          {isSelected && <Microscope className="w-3 h-3 text-indigo-400" />}
+                          #{idx + 1}
+                        </span>
+                      </td>
                       <td className="py-3 px-3 font-mono font-extrabold text-indigo-400">{peak.twoTheta.toFixed(3)}°</td>
                       <td className="py-3 px-3">
                         <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
@@ -1663,6 +1846,12 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-violet-400 font-semibold">
                         {matchingCalculatedPeak?.fwhm ? `${matchingCalculatedPeak.fwhm.toFixed(3)}°` : '---'}
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono text-teal-300 font-semibold">
+                        {matchingCalculatedPeak?.scherrerSizeNm ? `${matchingCalculatedPeak.scherrerSizeNm.toFixed(1)} nm` : '---'}
+                      </td>
+                      <td className="py-3 px-3 text-right font-mono text-indigo-300 font-semibold">
+                        {matchingCalculatedPeak?.kaSplitDeg ? `+${matchingCalculatedPeak.kaSplitDeg.toFixed(3)}°` : '---'}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-amber-300 font-semibold">
                         {matchingCalculatedPeak?.integratedArea ? matchingCalculatedPeak.integratedArea.toFixed(1) : '---'}

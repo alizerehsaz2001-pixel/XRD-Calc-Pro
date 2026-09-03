@@ -4,6 +4,8 @@ import {
   ProfileShape, 
   BackgroundType, 
   XAxisUnit,
+  IntensityScale,
+  INSTRUMENT_PRESETS,
   identifyAnode 
 } from '../utils/calculatedProfileEngine';
 import { 
@@ -13,11 +15,11 @@ import {
   Layers, 
   Radio, 
   RotateCcw, 
-  Eye, 
-  EyeOff, 
   Flame, 
   Atom, 
-  HelpCircle 
+  SlidersHorizontal,
+  TrendingDown,
+  Gauge
 } from 'lucide-react';
 
 interface ProfileTuningPanelProps {
@@ -46,24 +48,54 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
     onChange({ ...params, [key]: val });
   };
 
+  const applyPreset = (presetId: string) => {
+    const preset = INSTRUMENT_PRESETS.find(p => p.id === presetId);
+    if (preset) {
+      onChange({ ...params, ...preset.params });
+    }
+  };
+
   return (
     <div className="bg-[#090f20]/95 backdrop-blur-xl border border-indigo-500/20 rounded-3xl p-6 shadow-2xl relative z-30 animate-in fade-in slide-in-from-top-3 duration-300">
-      <div className="flex items-center justify-between pb-4 mb-5 border-b border-white/10">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 mb-5 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30 text-indigo-400">
             <Sliders className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-black text-white uppercase tracking-wider">
+            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
               Diffraction Profile Optics & Synthesis Tuning
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Lab Grade v2.4
+              </span>
             </h4>
             <p className="text-[10px] text-slate-400 font-mono">
-              Configure crystallographic line shapes, Caglioti/Scherrer broadening, Ka doublets, and background models.
+              Configure crystallographic line shapes, Caglioti/Scherrer broadening, Ka doublets, asymmetry, and background models.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Quick Preset Selector */}
+          <div className="flex items-center gap-1.5 bg-slate-900 border border-white/10 rounded-xl px-2.5 py-1 text-slate-300">
+            <Gauge className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[9px] font-mono uppercase text-slate-400 font-bold">Preset:</span>
+            <select
+              onChange={(e) => {
+                if (e.target.value) applyPreset(e.target.value);
+              }}
+              defaultValue=""
+              className="bg-transparent text-[10px] font-mono font-bold text-cyan-300 focus:outline-none cursor-pointer"
+            >
+              <option value="" disabled className="bg-slate-900 text-slate-400">Select Diffractometer...</option>
+              {INSTRUMENT_PRESETS.map(preset => (
+                <option key={preset.id} value={preset.id} className="bg-slate-900 text-slate-200">
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="button"
             onClick={onReset}
@@ -84,7 +116,7 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-        {/* Column 1: Peak Profile Shape */}
+        {/* Column 1: Peak Profile Shape & Asymmetry */}
         <div className="bg-slate-950/60 p-4 rounded-2xl border border-white/5 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
@@ -155,6 +187,27 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
               />
             </div>
           )}
+
+          {/* Low-Angle Axial Divergence Asymmetry */}
+          <div className="space-y-1 pt-2 border-t border-white/5">
+            <div className="flex justify-between text-[9px] font-mono text-slate-400">
+              <span title="Axial divergence peak asymmetry at low 2θ angles">Low-Angle Asymmetry</span>
+              <span className="text-purple-400 font-bold">{(params.asymmetry || 0).toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="0.25"
+              step="0.01"
+              value={params.asymmetry || 0}
+              onChange={(e) => updateParam('asymmetry', parseFloat(e.target.value))}
+              className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+            />
+            <div className="flex justify-between text-[8px] text-slate-600 font-mono">
+              <span>0.00 (Symmetric)</span>
+              <span>0.25 (Strong Soller slit divergence)</span>
+            </div>
+          </div>
         </div>
 
         {/* Column 2: Line Broadening (Instrumental & Sample) */}
@@ -195,7 +248,7 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
               </div>
               <input
                 type="range"
-                min="0.04"
+                min="0.02"
                 max="1.20"
                 step="0.01"
                 value={params.manualFwhm}
@@ -204,15 +257,15 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
               />
               <div className="flex gap-1.5 pt-1">
                 {[
-                  { label: 'Ultra Sharp', val: 0.08 },
-                  { label: 'Standard Lab', val: 0.18 },
-                  { label: 'Nanocrystal', val: 0.45 }
+                  { label: 'Synchrotron (0.025°)', val: 0.025 },
+                  { label: 'Standard Lab (0.14°)', val: 0.14 },
+                  { label: 'Nanocrystal (0.45°)', val: 0.45 }
                 ].map(pre => (
                   <button
                     key={pre.label}
                     type="button"
                     onClick={() => updateParam('manualFwhm', pre.val)}
-                    className="flex-1 py-1 bg-slate-900 hover:bg-slate-800 border border-white/5 rounded text-[8px] font-mono text-slate-300"
+                    className="flex-1 py-1 bg-slate-900 hover:bg-slate-800 border border-white/5 rounded text-[8px] font-mono text-slate-300 truncate"
                   >
                     {pre.label}
                   </button>
@@ -303,7 +356,7 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
               <Flame className="w-3.5 h-3.5 text-amber-400" />
-              3. Radiation & Ka Doublet
+              3. Radiation & Optics
             </span>
             <span className="text-[9px] font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
               {anode.anode} Anode
@@ -314,7 +367,7 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
             <label className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-slate-900/60 cursor-pointer group hover:border-indigo-500/30 transition-all">
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold text-white group-hover:text-indigo-300">
-                  Kα₁ / Kα₂ Characteristic Doublet
+                  Kα₁ / Kα₂ Doublet Splitting
                 </span>
                 <span className="text-[8px] text-slate-400 font-mono">
                   λ₁={anode.ka1.toFixed(5)} Å • λ₂={anode.ka2.toFixed(5)} Å
@@ -346,6 +399,32 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
               </div>
             )}
 
+            {/* Dynamic Range Intensity Scaling */}
+            <div className="pt-2 border-t border-white/5 space-y-1.5">
+              <span className="text-[9px] font-mono text-slate-400 block">Intensity Display Scale:</span>
+              <div className="flex bg-slate-900 p-1 rounded-xl border border-white/5">
+                {[
+                  { id: 'linear', label: 'Linear' },
+                  { id: 'log10', label: 'Log₁₀' },
+                  { id: 'sqrt', label: '√I (Powder)' },
+                ].map(sc => (
+                  <button
+                    key={sc.id}
+                    type="button"
+                    onClick={() => updateParam('intensityScale', sc.id as IntensityScale)}
+                    className={`flex-1 py-1.5 px-2 rounded-lg text-[9px] font-mono font-bold transition-all ${
+                      params.intensityScale === sc.id
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {sc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* X-Axis Unit */}
             <div className="pt-2 border-t border-white/5 space-y-1.5">
               <span className="text-[9px] font-mono text-slate-400 block">X-Axis Coordinate Unit:</span>
               <div className="flex bg-slate-900 p-1 rounded-xl border border-white/5">
@@ -372,12 +451,12 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
           </div>
         </div>
 
-        {/* Column 4: Background & Noise Model */}
+        {/* Column 4: Background & Difference Curve */}
         <div className="bg-slate-950/60 p-4 rounded-2xl border border-white/5 space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-cyan-400" />
-              4. Background & Noise
+              4. Background & Residuals
             </span>
           </div>
 
@@ -444,7 +523,7 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
           {/* Noise Injection */}
           <div className="space-y-1 pt-2 border-t border-white/5">
             <div className="flex justify-between text-[9px] font-mono text-slate-400">
-              <span>Poisson Noise Factor</span>
+              <span>Poisson Counting Noise</span>
               <span className="text-indigo-400 font-bold">{params.noiseLevel.toFixed(1)}%</span>
             </div>
             <input
@@ -456,10 +535,27 @@ export const ProfileTuningPanel: React.FC<ProfileTuningPanelProps> = ({
               onChange={(e) => updateParam('noiseLevel', parseFloat(e.target.value))}
               className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
             />
-            <div className="flex justify-between text-[8px] text-slate-600 font-mono">
-              <span>0% (Pristine Theory)</span>
-              <span>5% (Real Lab Count Noise)</span>
-            </div>
+          </div>
+
+          {/* Difference Curve Toggle */}
+          <div className="pt-2 border-t border-white/5">
+            <label className="flex items-center justify-between p-2.5 rounded-xl border border-white/5 bg-slate-900/60 cursor-pointer group hover:border-pink-500/30 transition-all">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-white group-hover:text-pink-300 flex items-center gap-1">
+                  <TrendingDown className="w-3 h-3 text-pink-400" />
+                  Rietveld Difference Curve
+                </span>
+                <span className="text-[8px] text-slate-400 font-mono">
+                  Plot (Ycalc - Ytheor) along bottom baseline
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={params.showDifferenceCurve}
+                onChange={(e) => updateParam('showDifferenceCurve', e.target.checked)}
+                className="w-4 h-4 rounded text-pink-600 bg-slate-800 border-white/10 focus:ring-0 cursor-pointer"
+              />
+            </label>
           </div>
         </div>
       </div>

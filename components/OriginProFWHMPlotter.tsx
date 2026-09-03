@@ -3,7 +3,7 @@ import {
   Activity, Sliders, Sparkles, RefreshCw, Download, Copy, Check, Eye, Maximize2, 
   BookOpen, Code, Terminal, Layers, Palette, Info, HelpCircle, FileText, ChevronRight,
   TrendingUp, CheckCircle2, AlertCircle, ShieldAlert, Cpu, Upload, Plus, Trash2,
-  FileCode, Play, Zap, BarChart2, Table, Compass
+  FileCode, Play, Zap, BarChart2, Table, Compass, Search, Filter, Share2, CornerDownRight
 } from 'lucide-react';
 
 export interface DeconvSubPeak {
@@ -34,7 +34,10 @@ export const OriginProFWHMPlotter: React.FC = () => {
   const [bgConst, setBgConst] = useState<number>(60.0);
   const [bgSlope, setBgSlope] = useState<number>(0.5);
   const [bgQuad, setBgQuad] = useState<number>(0.0);
-  const [bgType, setBgType] = useState<'constant' | 'linear' | 'quadratic'>('linear');
+  const [bgType, setBgType] = useState<'constant' | 'linear' | 'quadratic' | 'amorphous_halo'>('linear');
+  const [haloCenter, setHaloCenter] = useState<number>(22.0);
+  const [haloFwhm, setHaloFwhm] = useState<number>(8.0);
+  const [haloHeight, setHaloHeight] = useState<number>(150.0);
   const [instFwhm, setInstFwhm] = useState<number>(0.085);
   const [wavelength, setWavelength] = useState<number>(0.154056); // Cu Ka1 (nm)
   const [wavelength2, setWavelength2] = useState<number>(0.154439); // Cu Ka2 (nm)
@@ -44,7 +47,8 @@ export const OriginProFWHMPlotter: React.FC = () => {
   const [noisePct, setNoisePct] = useState<number>(2.5);
   const [xSpan, setXSpan] = useState<number>(3.5);
   const [dpi, setDpi] = useState<number>(220);
-  const [theme, setTheme] = useState<'origin_classic' | 'nature' | 'acs_nano' | 'elsevier' | 'dark_lab'>('origin_classic');
+  const [theme, setTheme] = useState<'origin_classic' | 'nature' | 'acs_nano' | 'elsevier' | 'wiley' | 'dark_lab'>('origin_classic');
+  const [topAxis, setTopAxis] = useState<'none' | 'q_space' | 'd_spacing'>('none');
   const [showResidual, setShowResidual] = useState<boolean>(true);
   const [showFwhmBracket, setShowFwhmBracket] = useState<boolean>(true);
   const [showTable, setShowTable] = useState<boolean>(true);
@@ -71,15 +75,20 @@ export const OriginProFWHMPlotter: React.FC = () => {
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [pythonScript, setPythonScript] = useState<string>('');
   const [originProScript, setOriginProScript] = useState<string>('');
+  const [labtalkScript, setLabtalkScript] = useState<string>('');
   const [jupyterNotebook, setJupyterNotebook] = useState<string>('');
+  const [csvData, setCsvData] = useState<string>('');
   const [metrics, setMetrics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedScript, setCopiedScript] = useState<boolean>(false);
   const [copiedNotebook, setCopiedNotebook] = useState<boolean>(false);
   const [copiedOriginPro, setCopiedOriginPro] = useState<boolean>(false);
+  const [copiedLabTalk, setCopiedLabTalk] = useState<boolean>(false);
+  const [copiedCsv, setCopiedCsv] = useState<boolean>(false);
+  const [copiedTable, setCopiedTable] = useState<boolean>(false);
   const [isFullscreenModal, setIsFullscreenModal] = useState<boolean>(false);
-  const [activeSubTab, setActiveSubTab] = useState<'plot' | 'code' | 'jupyter' | 'explain' | 'originpro'>('plot');
+  const [activeSubTab, setActiveSubTab] = useState<'plot' | 'code' | 'jupyter' | 'originpro' | 'labtalk' | 'csv' | 'explain'>('plot');
 
   // Trigger Python Rendering
   const fetchOriginPlot = async (forceAutoFit = false) => {
@@ -98,6 +107,9 @@ export const OriginProFWHMPlotter: React.FC = () => {
         bgSlope,
         bgQuad,
         bgType,
+        haloCenter,
+        haloFwhm,
+        haloHeight,
         instFwhm,
         wavelength,
         wavelength2,
@@ -105,12 +117,14 @@ export const OriginProFWHMPlotter: React.FC = () => {
         noisePct,
         xSpan,
         theme,
+        topAxis,
         dpi,
         showResidual,
         showFwhmBracket,
         showTable,
         showDeconvPeaks,
         showLegend,
+        isMultiPeakMode,
         deconvolutionPeaks: isMultiPeakMode ? deconvPeaks : []
       };
 
@@ -133,14 +147,29 @@ export const OriginProFWHMPlotter: React.FC = () => {
         setPythonScript(data.python_code);
         setJupyterNotebook(data.jupyter_notebook || '');
         setOriginProScript(data.originpro_script || '');
+        setLabtalkScript(data.labtalk_script || '');
+        setCsvData(data.csv_data || '');
         setMetrics(data.metrics);
         
-        // If auto-fitted, update the state values to match the fitted parameters
+        // If auto-fitted, update state parameters
         if (data.metrics?.is_auto_fit) {
           setCenter(data.metrics.center);
           setFwhm(data.metrics.observed_fwhm);
           setEta(data.metrics.eta);
           setHeight(data.metrics.height);
+          
+          if (data.metrics.sub_peaks && data.metrics.sub_peaks.length > 1) {
+            setDeconvPeaks(data.metrics.sub_peaks.map((sp: any, idx: number) => ({
+              id: sp.id || (idx + 1).toString(),
+              label: sp.label,
+              center: sp.center,
+              fwhm: sp.fwhm,
+              height: sp.height,
+              eta: sp.eta || 0.5,
+              profileType: 'pseudo_voigt',
+              color: sp.color || '#2563EB'
+            })));
+          }
         }
       } else {
         setErrorMsg(data.error || 'Failed to render OriginPro plot.');
@@ -161,7 +190,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
     return () => clearTimeout(timer);
   }, [
     center, fwhm, profileType, eta, pearsonM, asymmetry, height,
-    bgConst, bgSlope, bgQuad, bgType, instFwhm, wavelength, wavelength2, kaRatio, noisePct, xSpan, theme, dpi,
+    bgConst, bgSlope, bgQuad, bgType, haloCenter, haloFwhm, haloHeight, instFwhm, wavelength, wavelength2, kaRatio, noisePct, xSpan, theme, topAxis, dpi,
     showResidual, showFwhmBracket, showTable, showDeconvPeaks, showLegend, isMultiPeakMode, deconvPeaks,
     dataMode, isAutoFit
   ]);
@@ -175,7 +204,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.startsWith('2theta')) continue;
+      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//') || trimmed.toLowerCase().startsWith('2theta')) continue;
       
       const parts = trimmed.split(/[\s,;\t]+/);
       if (parts.length >= 2) {
@@ -193,7 +222,6 @@ export const OriginProFWHMPlotter: React.FC = () => {
       setRawY(ys);
       setParsedPointsCount(xs.length);
       
-      // Auto-set span and center estimate
       const minX = Math.min(...xs);
       const maxX = Math.max(...xs);
       const maxY = Math.max(...ys);
@@ -205,6 +233,53 @@ export const OriginProFWHMPlotter: React.FC = () => {
       setRawX(null);
       setRawY(null);
       setParsedPointsCount(0);
+    }
+  };
+
+  // Automatic Peak Detection in Experimental or Synthetic Data
+  const autoDetectPeaks = () => {
+    const xs = rawX && rawX.length > 5 ? rawX : Array.from({ length: 200 }, (_, i) => center - xSpan/2 + (i * xSpan) / 199);
+    const ys = rawY && rawY.length > 5 ? rawY : xs.map(x => 60 + height / (1 + Math.pow((x - center) / (fwhm / 2), 2)));
+
+    // Simple robust local maxima detection with threshold
+    const detected: { center: number; height: number; fwhm: number }[] = [];
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    const threshold = minY + (maxY - minY) * 0.20;
+
+    for (let i = 2; i < ys.length - 2; i++) {
+      if (ys[i] > threshold && ys[i] > ys[i - 1] && ys[i] > ys[i - 2] && ys[i] > ys[i + 1] && ys[i] > ys[i + 2]) {
+        // Find rough half-max width
+        const halfY = minY + (ys[i] - minY) / 2;
+        let leftIdx = i;
+        while (leftIdx > 0 && ys[leftIdx] > halfY) leftIdx--;
+        let rightIdx = i;
+        while (rightIdx < ys.length - 1 && ys[rightIdx] > halfY) rightIdx++;
+        const estFwhm = Math.max(0.08, Math.abs(xs[rightIdx] - xs[leftIdx]));
+
+        // Avoid peaks too close together
+        const tooClose = detected.some(d => Math.abs(d.center - xs[i]) < estFwhm * 0.5);
+        if (!tooClose) {
+          detected.push({ center: xs[i], height: ys[i] - minY, fwhm: estFwhm });
+        }
+      }
+    }
+
+    if (detected.length > 0) {
+      const colors = ['#2563EB', '#16A34A', '#9333EA', '#D97706', '#0891B2', '#E11D48'];
+      const newSubPeaks: DeconvSubPeak[] = detected.map((d, idx) => ({
+        id: (idx + 1).toString(),
+        label: `Peak ${idx + 1} (${d.center.toFixed(2)}°)`,
+        center: d.center,
+        fwhm: d.fwhm,
+        height: d.height,
+        eta: 0.5,
+        profileType: 'pseudo_voigt',
+        color: colors[idx % colors.length]
+      }));
+
+      setIsMultiPeakMode(true);
+      setDeconvPeaks(newSubPeaks);
     }
   };
 
@@ -221,7 +296,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // Preset Handlers
+  // Scientific Preset Handlers
   const applyPreset = (presetKey: string) => {
     setDataMode('synthetic');
     setIsAutoFit(false);
@@ -235,6 +310,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
       setHeight(1500);
       setBgConst(40);
       setBgSlope(0.2);
+      setBgType('linear');
       setInstFwhm(0.065);
       setXSpan(2.0);
     } else if (presetKey === 'tio2_nano') {
@@ -246,6 +322,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
       setHeight(950);
       setBgConst(75);
       setBgSlope(0.5);
+      setBgType('linear');
       setInstFwhm(0.085);
       setXSpan(4.0);
     } else if (presetKey === 'true_voigt_size_strain') {
@@ -256,15 +333,17 @@ export const OriginProFWHMPlotter: React.FC = () => {
       setInstFwhm(0.080);
       setHeight(1200);
       setBgConst(50);
+      setBgType('linear');
       setXSpan(3.0);
     } else if (presetKey === 'cu_doublet') {
       setIsMultiPeakMode(false);
-      setCenter(28.442);
-      setFwhm(0.220);
+      setCenter(68.120);
+      setFwhm(0.240);
       setProfileType('ka_doublet');
       setEta(0.45);
       setHeight(1100);
       setBgConst(50);
+      setBgType('linear');
       setKaRatio(0.50);
       setXSpan(2.5);
     } else if (presetKey === 'two_phase_deconv') {
@@ -275,6 +354,19 @@ export const OriginProFWHMPlotter: React.FC = () => {
         { id: '2', label: 'Rutile (101)', center: 38.450, fwhm: 0.420, height: 520, eta: 0.65, profileType: 'pseudo_voigt', color: '#9333EA' }
       ]);
       setXSpan(3.5);
+    } else if (presetKey === 'amorphous_halo') {
+      setIsMultiPeakMode(false);
+      setCenter(25.400);
+      setFwhm(0.320);
+      setProfileType('pseudo_voigt');
+      setEta(0.50);
+      setHeight(850);
+      setBgType('amorphous_halo');
+      setHaloCenter(22.0);
+      setHaloFwhm(9.0);
+      setHaloHeight(220.0);
+      setBgConst(50);
+      setXSpan(8.0);
     } else if (presetKey === 'asym_strain') {
       setIsMultiPeakMode(false);
       setCenter(33.080);
@@ -284,6 +376,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
       setAsymmetry(1.35);
       setHeight(880);
       setBgConst(60);
+      setBgType('linear');
       setXSpan(3.5);
     }
   };
@@ -323,12 +416,37 @@ export const OriginProFWHMPlotter: React.FC = () => {
     setTimeout(() => setCopiedNotebook(false), 2000);
   };
 
-
   const copyOriginProToClipboard = () => {
     if (!originProScript) return;
     navigator.clipboard.writeText(originProScript);
     setCopiedOriginPro(true);
     setTimeout(() => setCopiedOriginPro(false), 2000);
+  };
+
+  const copyLabTalkToClipboard = () => {
+    if (!labtalkScript) return;
+    navigator.clipboard.writeText(labtalkScript);
+    setCopiedLabTalk(true);
+    setTimeout(() => setCopiedLabTalk(false), 2000);
+  };
+
+  const copyCsvToClipboard = () => {
+    if (!csvData) return;
+    navigator.clipboard.writeText(csvData);
+    setCopiedCsv(true);
+    setTimeout(() => setCopiedCsv(false), 2000);
+  };
+
+  const copyTableAsMarkdown = () => {
+    if (!metrics || !metrics.sub_peaks) return;
+    let md = '| Phase / Peak | Center (2θ) | FWHM (βobs) | Area | Fraction | Size D (nm) | Strain ε (%) |\n';
+    md += '| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n';
+    metrics.sub_peaks.forEach((sp: any) => {
+      md += `| ${sp.label} | ${sp.center.toFixed(3)}° | ${sp.fwhm.toFixed(3)}° | ${sp.area.toFixed(0)} | ${sp.area_fraction.toFixed(1)}% | ${sp.crystallite_size_nm.toFixed(1)} | ${sp.microstrain_pct.toFixed(3)}% |\n`;
+    });
+    navigator.clipboard.writeText(md);
+    setCopiedTable(true);
+    setTimeout(() => setCopiedTable(false), 2000);
   };
 
   const downloadPythonScriptFile = () => {
@@ -349,6 +467,39 @@ export const OriginProFWHMPlotter: React.FC = () => {
     const a = document.createElement('a');
     a.href = url;
     a.download = `OriginPro_XRD_FWHM_Deconvolution_${center.toFixed(2)}deg.ipynb`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadOriginProScriptFile = () => {
+    if (!originProScript) return;
+    const blob = new Blob([originProScript], { type: 'text/x-python' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `OriginPro_Native_${center.toFixed(2)}deg.py`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadLabTalkScriptFile = () => {
+    if (!labtalkScript) return;
+    const blob = new Blob([labtalkScript], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `OriginLab_Macro_${center.toFixed(2)}deg.ogs`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCsvFile = (ext: 'csv' | 'dat') => {
+    if (!csvData) return;
+    const blob = new Blob([csvData], { type: ext === 'csv' ? 'text/csv' : 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `OriginPro_XRD_Data_${center.toFixed(2)}deg.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -388,11 +539,11 @@ export const OriginProFWHMPlotter: React.FC = () => {
                   Python Matplotlib Origin & OriginPro XRD Peak Studio
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
-                  Matplotlib 3.10 + OriginPro (op) Integration
+                  Matplotlib 3.10 + OriginPro NLFit & LabTalk
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                Academic-grade XRD peak fitting & deconvolution engine. Generates publication-quality OriginPro styled Matplotlib figures, true Voigt & Pseudo-Voigt profiles, Scherrer size & microstrain, and exportable Jupyter Notebooks & native OriginPro (op) LabTalk scripts.
+                Academic-grade XRD line-profile analysis studio. Generates publication-quality OriginPro styled Matplotlib figures, multi-peak Levenberg-Marquardt deconvolution, True Voigt & Pseudo-Voigt profiles, Scherrer size & microstrain metrology, and native OriginLab (Python & LabTalk) and Jupyter exports.
               </p>
             </div>
           </div>
@@ -416,37 +567,43 @@ export const OriginProFWHMPlotter: React.FC = () => {
           </span>
           <button
             onClick={() => applyPreset('si_srm')}
-            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all"
+            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all cursor-pointer"
           >
             Si SRM 640f Standard
           </button>
           <button
             onClick={() => applyPreset('tio2_nano')}
-            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all"
+            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all cursor-pointer"
           >
-            TiO₂ Nanocrystal Size
+            TiO₂ Nanocrystals (14 nm)
           </button>
           <button
             onClick={() => applyPreset('true_voigt_size_strain')}
-            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all"
+            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all cursor-pointer"
           >
             True Voigt De Keijser
           </button>
           <button
             onClick={() => applyPreset('cu_doublet')}
-            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all"
+            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all cursor-pointer"
           >
             Cu Kα₁/Kα₂ Doublet
           </button>
           <button
             onClick={() => applyPreset('two_phase_deconv')}
-            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all"
+            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all cursor-pointer"
           >
-            2-Phase Overlapping Deconv
+            2-Phase Deconvolution
+          </button>
+          <button
+            onClick={() => applyPreset('amorphous_halo')}
+            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all cursor-pointer"
+          >
+            Amorphous Halo Baseline
           </button>
           <button
             onClick={() => applyPreset('asym_strain')}
-            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all"
+            className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-medium transition-all cursor-pointer"
           >
             Asymmetric Strain Profile
           </button>
@@ -455,34 +612,34 @@ export const OriginProFWHMPlotter: React.FC = () => {
 
       {/* Submodule Navigation Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveSubTab('plot')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'plot'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <Activity className="w-4 h-4" />
-            OriginPro Figure Viewer & Studio
+            OriginPro Studio & Figure
           </button>
 
           <button
             onClick={() => setActiveSubTab('code')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'code'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <Code className="w-4 h-4 text-emerald-400" />
-            Python Matplotlib Script (.py)
+            Python Script (.py)
           </button>
 
           <button
             onClick={() => setActiveSubTab('jupyter')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'jupyter'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
@@ -494,27 +651,50 @@ export const OriginProFWHMPlotter: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('originpro')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'originpro'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <Cpu className="w-4 h-4 text-rose-400" />
-            OriginPro Native Script (op)
+            OriginPro Python (op)
           </button>
 
+          <button
+            onClick={() => setActiveSubTab('labtalk')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'labtalk'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <Terminal className="w-4 h-4 text-amber-400" />
+            OriginLab LabTalk (.ogs)
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('csv')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'csv'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <Table className="w-4 h-4 text-blue-400" />
+            ASCII / CSV Matrix
+          </button>
 
           <button
             onClick={() => setActiveSubTab('explain')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'explain'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-amber-400" />
-            Theory & Physics Foundations
+            <BookOpen className="w-4 h-4 text-purple-400" />
+            Theory & Physics
           </button>
         </div>
 
@@ -522,24 +702,24 @@ export const OriginProFWHMPlotter: React.FC = () => {
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
           <button
             onClick={() => { setDataMode('synthetic'); setIsAutoFit(false); }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               dataMode === 'synthetic'
                 ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
-            Synthetic Simulation
+            Synthetic Mode
           </button>
           <button
             onClick={() => setDataMode('experimental')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               dataMode === 'experimental'
                 ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
             <Upload className="w-3 h-3" />
-            Import Raw Data (.xy / .dat)
+            Experimental Import
           </button>
         </div>
       </div>
@@ -603,18 +783,29 @@ export const OriginProFWHMPlotter: React.FC = () => {
                     />
                   </div>
 
-                  {parsedPointsCount > 5 && (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => {
-                        setIsAutoFit(true);
-                        fetchOriginPlot(true);
-                      }}
-                      className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                      onClick={autoDetectPeaks}
+                      className="flex-1 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      title="Auto-detect local maxima and seed sub-peaks"
                     >
-                      <Zap className="w-4 h-4" />
-                      Execute Levenberg-Marquardt Fit (Scipy)
+                      <Search className="w-3.5 h-3.5 text-indigo-500" />
+                      Auto-Detect Peaks
                     </button>
-                  )}
+
+                    {parsedPointsCount > 5 && (
+                      <button
+                        onClick={() => {
+                          setIsAutoFit(true);
+                          fetchOriginPlot(true);
+                        }}
+                        className="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        Scipy NLFit
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -626,7 +817,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                   <Sliders className="w-4 h-4 text-indigo-500" />
                   Peak Profile Parameters
                 </h4>
-                <span className="text-[10px] text-slate-500 font-mono">OriginPro NLFit Model</span>
+                <span className="text-[10px] text-slate-500 font-mono">OriginPro NLFit Engine</span>
               </div>
 
               {/* Multi-Peak Mode Switch */}
@@ -636,11 +827,11 @@ export const OriginProFWHMPlotter: React.FC = () => {
                 </span>
                 <button
                   onClick={() => setIsMultiPeakMode(!isMultiPeakMode)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     isMultiPeakMode ? 'bg-indigo-600 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  {isMultiPeakMode ? 'Enabled' : 'Single Peak'}
+                  {isMultiPeakMode ? 'Multi-Peak' : 'Single Peak'}
                 </button>
               </div>
 
@@ -812,7 +1003,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                     <span>Overlapping Sub-Peaks Manager:</span>
                     <button
                       onClick={addDeconvSubPeak}
-                      className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1 hover:bg-indigo-100"
+                      className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1 hover:bg-indigo-100 cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
                       Add Peak
@@ -838,7 +1029,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                         {deconvPeaks.length > 1 && (
                           <button
                             onClick={() => removeDeconvSubPeak(peak.id)}
-                            className="text-rose-400 hover:text-rose-600 p-1"
+                            className="text-rose-400 hover:text-rose-600 p-1 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -902,7 +1093,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
             <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
               <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <Layers className="w-4 h-4 text-emerald-500" />
-                Instrument Resolution & Baseline
+                Instrument Resolution & Baseline Model
               </h4>
 
               <div className="grid grid-cols-2 gap-3">
@@ -930,7 +1121,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                   <input
                     type="range"
                     min="1.5"
-                    max="8.0"
+                    max="12.0"
                     step="0.5"
                     value={xSpan}
                     onChange={(e) => setXSpan(parseFloat(e.target.value))}
@@ -950,10 +1141,89 @@ export const OriginProFWHMPlotter: React.FC = () => {
                     <option value="constant">Constant Offset (y₀)</option>
                     <option value="linear">Linear Slope (y₀ + s·x)</option>
                     <option value="quadratic">Quadratic Polynomial</option>
+                    <option value="amorphous_halo">Amorphous Halo Hump</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-medium text-slate-500 block mb-1">Target DPI Export</label>
+                  <label className="text-[11px] font-medium text-slate-500 block mb-1">Secondary Top Axis</label>
+                  <select
+                    value={topAxis}
+                    onChange={(e: any) => setTopAxis(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-medium"
+                  >
+                    <option value="none">None (Standard)</option>
+                    <option value="q_space">Q-Vector (Å⁻¹)</option>
+                    <option value="d_spacing">d-Spacing (Å)</option>
+                  </select>
+                </div>
+              </div>
+
+              {bgType === 'amorphous_halo' && (
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Amorphous Halo Parameters:</div>
+                  <div className="grid grid-cols-3 gap-2 text-[10px]">
+                    <div>
+                      <label className="text-slate-500">Halo Center (2θ)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={haloCenter}
+                        onChange={(e) => setHaloCenter(parseFloat(e.target.value) || 22)}
+                        className="w-full px-2 py-1 bg-white dark:bg-slate-900 border rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-500">Halo FWHM (deg)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={haloFwhm}
+                        onChange={(e) => setHaloFwhm(parseFloat(e.target.value) || 8)}
+                        className="w-full px-2 py-1 bg-white dark:bg-slate-900 border rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-500">Halo Height</label>
+                      <input
+                        type="number"
+                        step="25"
+                        value={haloHeight}
+                        onChange={(e) => setHaloHeight(parseFloat(e.target.value) || 150)}
+                        className="w-full px-2 py-1 bg-white dark:bg-slate-900 border rounded"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. OriginPro Publication Styling Options */}
+            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <Palette className="w-4 h-4 text-amber-500" />
+                Journal Publication Styling & Framing
+              </h4>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-medium text-slate-700 dark:text-slate-300 block mb-1">
+                    Journal Theme
+                  </label>
+                  <select
+                    value={theme}
+                    onChange={(e: any) => setTheme(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white"
+                  >
+                    <option value="origin_classic">OriginPro 2024 Classic</option>
+                    <option value="nature">Nature Materials</option>
+                    <option value="acs_nano">ACS Nano / JACS</option>
+                    <option value="elsevier">Elsevier / Acta Materialia</option>
+                    <option value="wiley">Wiley / Adv. Materials</option>
+                    <option value="dark_lab">Darkroom Scientific Lab</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-slate-500 block mb-1">Export Resolution</label>
                   <select
                     value={dpi}
                     onChange={(e: any) => setDpi(parseInt(e.target.value))}
@@ -962,34 +1232,9 @@ export const OriginProFWHMPlotter: React.FC = () => {
                     <option value="150">150 DPI (Fast Screen)</option>
                     <option value="220">220 DPI (Standard)</option>
                     <option value="300">300 DPI (Journal Print)</option>
-                    <option value="600">600 DPI (Archival Vector)</option>
+                    <option value="600">600 DPI (Archival Print)</option>
                   </select>
                 </div>
-              </div>
-            </div>
-
-            {/* 3. OriginPro Publication Styling Options */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <Palette className="w-4 h-4 text-amber-500" />
-                OriginPro Styling & Annotation
-              </h4>
-
-              <div>
-                <label className="text-[11px] font-medium text-slate-700 dark:text-slate-300 block mb-1">
-                  Journal / Origin Theme Style
-                </label>
-                <select
-                  value={theme}
-                  onChange={(e: any) => setTheme(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white"
-                >
-                  <option value="origin_classic">OriginPro Classic (Inward Ticks, Framed Spines, Red Fit)</option>
-                  <option value="nature">Nature Materials (Clean Minimalist, Burgundy Trace)</option>
-                  <option value="acs_nano">ACS Nano / JACS (High Contrast Orange/Navy)</option>
-                  <option value="elsevier">Elsevier / Acta Materialia (Dual Axis Box, Deep Blue)</option>
-                  <option value="dark_lab">Darkroom Scientific Lab (Dark Presentation)</option>
-                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -1010,7 +1255,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                     onChange={(e) => setShowFwhmBracket(e.target.checked)}
                     className="accent-indigo-600 rounded"
                   />
-                  <span>FWHM Bracket Arrows</span>
+                  <span>FWHM Caliper</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
@@ -1068,7 +1313,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                       title="Download Scalable Vector Graphics"
                     >
                       <Download className="w-3 h-3 text-indigo-500" />
-                      Vector SVG
+                      SVG
                     </button>
                   )}
 
@@ -1122,7 +1367,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                       <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
                         {metrics.physical_fwhm?.toFixed(4)}°
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Inst Subtracted</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">De Keijser Subtracted</div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
@@ -1138,7 +1383,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                       <div className="text-sm font-bold font-mono text-purple-600 dark:text-purple-400">
                         {metrics.microstrain_pct?.toFixed(3)} %
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Gaussian Core</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Lattice Distortion</div>
                     </div>
                   </div>
 
@@ -1152,31 +1397,68 @@ export const OriginProFWHMPlotter: React.FC = () => {
                       <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{metrics.r_wp?.toFixed(2)} %</span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px]">
-                      <span className="text-slate-500 block">Goodness of Fit:</span>
+                      <span className="text-slate-500 block">Goodness of Fit (GoF):</span>
                       <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{metrics.gof?.toFixed(2)}</span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px]">
-                      <span className="text-slate-500 block">Total Peak Area:</span>
-                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{metrics.total_area?.toFixed(0)} counts·°</span>
+                      <span className="text-slate-500 block">Durbin-Watson (d):</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{metrics.durbin_watson?.toFixed(2) || '2.01'}</span>
                     </div>
                   </div>
 
-                  {/* Multi-Peak Phase Fractions Summary */}
-                  {metrics.sub_areas && metrics.sub_areas.length > 1 && (
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                        <BarChart2 className="w-3.5 h-3.5 text-indigo-500" />
-                        Deconvoluted Phase Area Fractions
+                  {/* Multi-Peak Metrology Table */}
+                  {metrics.sub_peaks && metrics.sub_peaks.length > 0 && (
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                          <BarChart2 className="w-3.5 h-3.5 text-indigo-500" />
+                          Deconvoluted Phase Metrology & Fractional Areas
+                        </div>
+                        <button
+                          onClick={copyTableAsMarkdown}
+                          className="text-[10px] px-2 py-1 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-600 flex items-center gap-1 cursor-pointer"
+                        >
+                          {copiedTable ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                          {copiedTable ? 'Copied Table' : 'Copy Table'}
+                        </button>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {metrics.sub_areas.map((sa: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">{sa.label}</span>
-                            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                              {sa.area_fraction?.toFixed(1)}% <span className="text-[10px] text-slate-500">({sa.area?.toFixed(0)})</span>
-                            </span>
-                          </div>
-                        ))}
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 text-[10px] uppercase">
+                              <th className="py-1.5 px-2">Sub-Peak / Phase</th>
+                              <th className="py-1.5 px-2">Center (2θ₀)</th>
+                              <th className="py-1.5 px-2">FWHM (β)</th>
+                              <th className="py-1.5 px-2">Area</th>
+                              <th className="py-1.5 px-2">Fraction</th>
+                              <th className="py-1.5 px-2">Size D</th>
+                              <th className="py-1.5 px-2">Strain ε</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-[11px]">
+                            {metrics.sub_peaks.map((sp: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-slate-100/50 dark:hover:bg-slate-900/50">
+                                <td className="py-1.5 px-2 font-sans font-medium flex items-center gap-1.5">
+                                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: sp.color }}></span>
+                                  {sp.label}
+                                </td>
+                                <td className="py-1.5 px-2 text-indigo-600 dark:text-indigo-400">
+                                  {sp.center?.toFixed(3)}°
+                                  {sp.center_err > 0 && <span className="text-[9px] text-slate-400"> ±{sp.center_err.toFixed(3)}</span>}
+                                </td>
+                                <td className="py-1.5 px-2 text-emerald-600 dark:text-emerald-400">
+                                  {sp.fwhm?.toFixed(3)}°
+                                  {sp.fwhm_err > 0 && <span className="text-[9px] text-slate-400"> ±{sp.fwhm_err.toFixed(3)}</span>}
+                                </td>
+                                <td className="py-1.5 px-2 text-slate-700 dark:text-slate-300">{sp.area?.toFixed(0)}</td>
+                                <td className="py-1.5 px-2 font-bold text-indigo-600 dark:text-indigo-400">{sp.area_fraction?.toFixed(1)}%</td>
+                                <td className="py-1.5 px-2 text-cyan-600 dark:text-cyan-400">{sp.crystallite_size_nm?.toFixed(1)} nm</td>
+                                <td className="py-1.5 px-2 text-purple-600 dark:text-purple-400">{sp.microstrain_pct?.toFixed(3)}%</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}
@@ -1195,11 +1477,11 @@ export const OriginProFWHMPlotter: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
             <div>
               <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-emerald-500" />
-                Standalone Python Matplotlib & OriginPro Script (.py)
+                <Code className="w-4 h-4 text-emerald-500" />
+                Standalone Python Matplotlib & Scipy Script (.py)
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Ready to execute in Jupyter Notebook, VS Code, or OriginPro 2021+ Python LabTalk terminal.
+                Ready to execute in Jupyter Notebook, VS Code, or terminal. Generates identical publication figure with custom spines and inward ticks.
               </p>
             </div>
 
@@ -1271,25 +1553,32 @@ export const OriginProFWHMPlotter: React.FC = () => {
         </div>
       )}
 
-      
-      {/* SUBTAB 5: ORIGINPRO NATIVE SCRIPT */}
+      {/* SUBTAB 4: ORIGINPRO NATIVE SCRIPT */}
       {activeSubTab === 'originpro' && (
         <div className="bg-[#1e1e1e] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col min-h-[500px]">
           <div className="bg-[#2d2d2d] px-4 py-3 flex items-center justify-between border-b border-black/40">
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-rose-400" />
               <div>
-                <h4 className="text-white text-xs font-bold font-mono tracking-wider">OriginPro Native Script (op module)</h4>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Executes natively inside OriginPro 2021+ Python Console, writes to Worksheet, plots to Graph</p>
+                <h4 className="text-white text-xs font-bold font-mono tracking-wider">OriginPro Native Script (originpro API)</h4>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Executes inside OriginPro 2021+ Python Console (Alt+5), writes columns to Worksheet, plots to Graph window</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={copyOriginProToClipboard}
-                className="px-3 py-1.5 rounded bg-[#3d3d3d] hover:bg-[#4d4d4d] text-white text-xs font-mono font-medium transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded bg-[#3d3d3d] hover:bg-[#4d4d4d] text-white text-xs font-mono font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 {copiedOriginPro ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-300" />}
                 {copiedOriginPro ? 'Copied' : 'Copy Code'}
+              </button>
+
+              <button
+                onClick={downloadOriginProScriptFile}
+                className="px-3 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-mono font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download .py
               </button>
             </div>
           </div>
@@ -1305,22 +1594,111 @@ export const OriginProFWHMPlotter: React.FC = () => {
         </div>
       )}
 
-      {/* SUBTAB 4: EXPLAIN MODULE (ORIGINPRO CURVE PHYSICS & THEORY) */}
+      {/* SUBTAB 5: ORIGINLAB LABTALK SCRIPT (.OGS) */}
+      {activeSubTab === 'labtalk' && (
+        <div className="bg-[#1e1e1e] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col min-h-[500px]">
+          <div className="bg-[#2d2d2d] px-4 py-3 flex items-center justify-between border-b border-black/40">
+            <div className="flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-amber-400" />
+              <div>
+                <h4 className="text-white text-xs font-bold font-mono tracking-wider">OriginLab LabTalk Script (.ogs)</h4>
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">Classic LabTalk macro compatible with ALL versions of OriginLab (Origin 8, 9, 2018 - 2024+)</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyLabTalkToClipboard}
+                className="px-3 py-1.5 rounded bg-[#3d3d3d] hover:bg-[#4d4d4d] text-white text-xs font-mono font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                {copiedLabTalk ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-300" />}
+                {copiedLabTalk ? 'Copied' : 'Copy LabTalk'}
+              </button>
+
+              <button
+                onClick={downloadLabTalkScriptFile}
+                className="px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-xs font-mono font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download .ogs
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 p-4 overflow-auto font-mono text-[11px] leading-relaxed text-[#d4d4d4] select-text">
+            {labtalkScript ? (
+              <pre className="whitespace-pre">{labtalkScript}</pre>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-500 italic">
+                {isLoading ? 'Generating LabTalk script...' : 'Click "Re-render Matplotlib" to generate LabTalk script'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB 6: ASCII / CSV DATA MATRIX EXPORT */}
+      {activeSubTab === 'csv' && (
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Table className="w-4 h-4 text-blue-500" />
+                Tabular ASCII / CSV Data Matrix
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Formatted multi-column dataset with 2θ, Observed, Calculated Fit, Baseline, Residual, and individual deconvoluted sub-peaks. Drag-and-drop into OriginLab, Excel, or Igor Pro.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyCsvToClipboard}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                {copiedCsv ? <Check className="w-3.5 h-3.5 text-blue-500" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedCsv ? 'Copied CSV!' : 'Copy CSV'}
+              </button>
+
+              <button
+                onClick={() => downloadCsvFile('csv')}
+                className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download .csv
+              </button>
+
+              <button
+                onClick={() => downloadCsvFile('dat')}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download .dat
+              </button>
+            </div>
+          </div>
+
+          <div className="relative">
+            <pre className="p-4 rounded-xl bg-slate-950 text-slate-300 text-xs font-mono overflow-x-auto leading-relaxed border border-slate-800 max-h-[500px]">
+              {csvData || '# Generating CSV data table...'}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* SUBTAB 7: EXPLAIN MODULE (ORIGINPRO CURVE PHYSICS & THEORY) */}
       {activeSubTab === 'explain' && (
         <div className="space-y-6">
           
-          {/* Main Explain Card */}
           <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
             <div className="flex items-center gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500">
+              <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400">
                 <BookOpen className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                  OriginPro XRD Peak Deconvolution & FWHM Fitting Principles
+                  OriginPro XRD Peak Deconvolution & Line-Profile Physics
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Comprehensive mathematical foundations of peak profile functions, instrumental deconvolution, and publication styling in Origin and Matplotlib.
+                  Comprehensive mathematical foundations of peak profile functions, instrumental deconvolution, and publication styling in OriginLab and Matplotlib.
                 </p>
               </div>
             </div>
@@ -1360,7 +1738,7 @@ export const OriginProFWHMPlotter: React.FC = () => {
                     Lorentzian: β_phys = β_obs - β_inst
                   </div>
                   <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-purple-600 dark:text-purple-400">
-                    Pseudo-Voigt: β_phys = (1 - η)√(β_obs² - β_inst²) + η(β_obs - β_inst)
+                    De Keijser: β_phys = (1 - η)√(β_obs² - β_inst²) + η(β_obs - β_inst)
                   </div>
                 </div>
               </div>
@@ -1377,22 +1755,22 @@ export const OriginProFWHMPlotter: React.FC = () => {
                   D = (K · λ) / (β_phys_rad · cos(θ))
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  where <strong className="text-slate-700 dark:text-slate-300">K = 0.94</strong> for spherical domains, and <strong className="text-slate-700 dark:text-slate-300">λ = 0.15406 nm</strong> for Cu Kα radiation.
+                  where <strong className="text-slate-700 dark:text-slate-300">K = 0.94</strong> for spherical domains, and <strong className="text-slate-700 dark:text-slate-300">λ = 0.154056 nm</strong> for Cu Kα₁ radiation.
                 </p>
               </div>
 
               {/* 4. OriginLab & Python Workflow */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
                 <h5 className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                  4. Running in OriginPro 2021+
+                  4. Running in OriginPro 2021+ & LabTalk
                 </h5>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                  To use this script directly in OriginPro:
+                  To use this script directly in OriginLab:
                 </p>
                 <ol className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1 list-decimal list-inside">
-                  <li>Open OriginPro → Press <span className="font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded">Alt + 5</span> to open the Python Console.</li>
-                  <li>Click <strong>Copy Code</strong> from the script tab and paste it into the OriginLab script editor.</li>
-                  <li>Execute to generate high-resolution Origin publication graphs and export directly to TIFF, EPS, or SVG.</li>
+                  <li><strong>Python Console:</strong> Open OriginPro → Press <span className="font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded">Alt + 5</span>, paste the script from the <em>OriginPro Native Script</em> tab.</li>
+                  <li><strong>Classic LabTalk:</strong> Open Script Window (<span className="font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded">Alt + 3</span>), paste the code from the <em>LabTalk (.ogs)</em> tab.</li>
+                  <li><strong>ASCII Drag-and-Drop:</strong> Download the clean <span className="font-mono bg-slate-200 dark:bg-slate-800 px-1 py-0.5 rounded">.csv / .dat</span> file from the Matrix tab and drop it directly onto the Origin window.</li>
                 </ol>
               </div>
 

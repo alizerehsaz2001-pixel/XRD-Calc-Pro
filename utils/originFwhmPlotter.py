@@ -15,15 +15,18 @@ try:
 except ImportError:
     SCIPY_AVAILABLE = False
 
+
 def gaussian(x, x0, fwhm, height):
-    """Gaussian profile"""
-    sigma = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    """Standard Gaussian normal distribution profile."""
+    sigma = max(1e-7, fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0))))
     return height * np.exp(-0.5 * ((x - x0) / sigma) ** 2)
 
+
 def lorentzian(x, x0, fwhm, height):
-    """Lorentzian / Cauchy profile"""
-    gamma = fwhm / 2.0
+    """Cauchy-Lorentzian profile."""
+    gamma = max(1e-7, fwhm / 2.0)
     return height / (1.0 + ((x - x0) / gamma) ** 2)
+
 
 def pseudo_voigt(x, x0, fwhm, eta, height):
     """
@@ -32,27 +35,28 @@ def pseudo_voigt(x, x0, fwhm, eta, height):
     eta = 1: Pure Lorentzian
     """
     eta = np.clip(eta, 0.0, 1.0)
-    sigma = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
-    gamma = fwhm / 2.0
+    sigma = max(1e-7, fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0))))
+    gamma = max(1e-7, fwhm / 2.0)
     
     G = np.exp(-0.5 * ((x - x0) / sigma) ** 2)
     L = 1.0 / (1.0 + ((x - x0) / gamma) ** 2)
     
     return height * ((1.0 - eta) * G + eta * L)
 
+
 def true_voigt(x, x0, fwhm_g, fwhm_l, height):
     """
     True Voigt profile via Faddeeva function w(z).
-    fwhm_g: Gaussian FWHM (Instrument / strain)
-    fwhm_l: Lorentzian FWHM (Crystallite size / lifetime)
+    fwhm_g: Gaussian FWHM (instrumental & strain broadening)
+    fwhm_l: Lorentzian FWHM (crystallite size & lifetime broadening)
     """
     if not SCIPY_AVAILABLE:
-        # Fallback to Thompson-Cox-Hastings pseudo-Voigt
-        f_g5 = fwhm_g**5
-        f_l5 = fwhm_l**5
+        # Thompson-Cox-Hastings pseudo-Voigt fallback
+        f_g5 = max(1e-9, fwhm_g)**5
+        f_l5 = max(1e-9, fwhm_l)**5
         fwhm_tot = (f_g5 + 2.69269*fwhm_g**4*fwhm_l + 2.42843*fwhm_g**3*fwhm_l**2 + 
                     4.47163*fwhm_g**2*fwhm_l**3 + 0.07842*fwhm_g*fwhm_l**4 + f_l5)**0.2
-        eta_eff = 1.36603 * (fwhm_l / fwhm_tot) - 0.47719 * (fwhm_l / fwhm_tot)**2 + 0.11116 * (fwhm_l / fwhm_tot)**3
+        eta_eff = np.clip(1.36603 * (fwhm_l / fwhm_tot) - 0.47719 * (fwhm_l / fwhm_tot)**2 + 0.11116 * (fwhm_l / fwhm_tot)**3, 0.0, 1.0)
         return pseudo_voigt(x, x0, fwhm_tot, eta_eff, height)
     
     sigma = max(1e-7, fwhm_g / (2.0 * np.sqrt(2.0 * np.log(2.0))))
@@ -60,25 +64,27 @@ def true_voigt(x, x0, fwhm_g, fwhm_l, height):
     z = ((x - x0) + 1j * gamma) / (sigma * np.sqrt(2.0))
     v = np.real(wofz(z)) / (sigma * np.sqrt(2.0 * np.pi))
     
-    # Normalize peak height to 'height'
     z0 = (1j * gamma) / (sigma * np.sqrt(2.0))
     v0 = np.real(wofz(z0)) / (sigma * np.sqrt(2.0 * np.pi))
     return height * (v / max(1e-9, v0))
 
+
 def pearson_vii(x, x0, fwhm, m, height):
     """
     Pearson VII peak profile function.
-    m = 1: Lorentzian
-    m -> infinity: Gaussian
+    m = 1: Lorentzian, m -> infinity: Gaussian
     """
     if m <= 0.5:
         m = 0.51
     c = 2.0 * np.sqrt(2.0 ** (1.0 / m) - 1.0) / max(1e-6, fwhm)
     return height * (1.0 + (c * (x - x0)) ** 2) ** (-m)
 
+
 def asymmetric_pseudo_voigt(x, x0, fwhm, eta, height, asym):
     """
-    Asymmetric / Split Pseudo-Voigt profile with left/right half-width modulation.
+    Split Asymmetric Pseudo-Voigt profile with left/right half-width modulation.
+    asym > 1: tail extends toward higher angles (positive asymmetry)
+    asym < 1: tail extends toward lower angles (negative asymmetry / axial divergence)
     """
     asym = max(0.2, min(5.0, asym))
     fwhm_l = 2.0 * fwhm / (1.0 + asym)
@@ -91,6 +97,7 @@ def asymmetric_pseudo_voigt(x, x0, fwhm, eta, height, asym):
     y[left_mask] = pseudo_voigt(x[left_mask], x0, fwhm_l, eta, height)
     y[right_mask] = pseudo_voigt(x[right_mask], x0, fwhm_r, eta, height)
     return y
+
 
 def ka1_ka2_doublet(x, x0, fwhm, eta, height, lambda1=0.154056, lambda2=0.154439, ratio=0.5):
     """
@@ -105,12 +112,21 @@ def ka1_ka2_doublet(x, x0, fwhm, eta, height, lambda1=0.154056, lambda2=0.154439
     theta2_rad = np.arcsin(sin_theta2)
     x0_ka2 = np.degrees(theta2_rad) * 2.0
     
-    # Ka1 component
     y_ka1 = pseudo_voigt(x, x0, fwhm, eta, height)
-    # Ka2 component (ratio of Ka1 height, slightly broader due to dispersion)
     y_ka2 = pseudo_voigt(x, x0_ka2, fwhm * 1.05, eta, height * ratio)
     
     return y_ka1 + y_ka2, y_ka1, y_ka2, x0_ka2
+
+
+def integrate_area(y_arr, x_arr):
+    """Trapezoidal integration compatible with numpy versions."""
+    if hasattr(np, 'trapezoid'):
+        return float(np.trapezoid(y_arr, x_arr))
+    elif hasattr(np, 'trapz'):
+        return float(np.trapz(y_arr, x_arr))
+    else:
+        return float(np.sum(y_arr[:-1] + y_arr[1:]) * 0.5 * np.mean(np.diff(x_arr)))
+
 
 def generate_jupyter_notebook_json(python_code: str, title="OriginPro_XRD_FWHM_Deconvolution") -> str:
     """Generates standard Jupyter Notebook (.ipynb) structure as JSON string."""
@@ -121,8 +137,8 @@ def generate_jupyter_notebook_json(python_code: str, title="OriginPro_XRD_FWHM_D
                 "metadata": {},
                 "source": [
                     f"# {title}\n",
-                    "### Generated by **XRD Scientific Suite - OriginPro Matplotlib Studio**\n",
-                    "This interactive notebook performs high-precision peak deconvolution, instrumental FWHM correction, and Scherrer/De Keijser crystallite size extraction."
+                    "### Generated by **OriginPro & Matplotlib XRD Peak Studio**\n",
+                    "This interactive notebook performs high-precision peak deconvolution, instrumental FWHM correction, and Scherrer / Williamson-Hall / De Keijser crystallite size extraction with academic publication formatting."
                 ]
             },
             {
@@ -154,18 +170,17 @@ def generate_jupyter_notebook_json(python_code: str, title="OriginPro_XRD_FWHM_D
     }
     return json.dumps(notebook, indent=2)
 
+
 def generate_origin_fwhm_plot(params: dict) -> dict:
     """
     Generates an advanced, publication-grade OriginPro XRD Peak Fitting & FWHM Deconvolution plot.
-    Supports synthetic exploration, real experimental data auto-fitting, Ka1/Ka2 doublet separation,
-    multi-peak deconvolution, True Voigt De Keijser size/microstrain, and multi-format export.
+    Supports multi-peak Levenberg-Marquardt non-linear least squares, secondary Q / d-spacing axes,
+    journal-ready themes, and multi-format script/data export (OriginPro Python, LabTalk, Jupyter, CSV).
     """
-    # 1. Parse Primary Parameters
+    # 1. Primary Parameters
     center = float(params.get('center', 28.442))
     fwhm = float(params.get('fwhm', 0.285))
-    profile_type = params.get('profileType', 'pseudo_voigt') 
-    # Profile types: 'pseudo_voigt', 'gaussian', 'lorentzian', 'true_voigt', 'pearson7', 'asymmetric', 'ka_doublet'
-    
+    profile_type = params.get('profileType', 'pseudo_voigt')
     eta = float(params.get('eta', 0.50))
     pearson_m = float(params.get('pearsonM', 2.0))
     asymmetry = float(params.get('asymmetry', 1.15))
@@ -175,28 +190,35 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     bg_const = float(params.get('bgConst', 60.0))
     bg_slope = float(params.get('bgSlope', 0.5))
     bg_quad = float(params.get('bgQuad', 0.0))
-    bg_type = params.get('bgType', 'linear') # 'constant', 'linear', 'quadratic', 'shirley'
+    bg_type = params.get('bgType', 'linear')  # 'constant', 'linear', 'quadratic', 'amorphous_halo'
+    halo_center = float(params.get('haloCenter', 22.0))
+    halo_fwhm = float(params.get('haloFwhm', 8.0))
+    halo_height = float(params.get('haloHeight', 150.0))
     
-    # Instrumental broadening
+    # Instrumental broadening & Radiation
     inst_fwhm = float(params.get('instFwhm', 0.085))
-    wavelength = float(params.get('wavelength', 0.154056)) # nm (Cu Ka1)
-    wavelength2 = float(params.get('wavelength2', 0.154439)) # nm (Cu Ka2)
+    wavelength = float(params.get('wavelength', 0.154056))  # nm (Cu Ka1)
+    wavelength2 = float(params.get('wavelength2', 0.154439))  # nm (Cu Ka2)
     ka_ratio = float(params.get('kaRatio', 0.5))
     
-    # Noise and domain span
+    # Domain span & noise
     noise_pct = float(params.get('noisePct', 2.5))
-    x_span = float(params.get('xSpan', 3.5)) # total 2-theta span in degrees
+    x_span = float(params.get('xSpan', 3.5))
     n_points = int(params.get('numPoints', 350))
     
-    # Deconvolution sub-peaks
-    peaks_data = params.get('deconvolutionPeaks', [])
-    theme = params.get('theme', 'origin_classic') # 'origin_classic', 'nature', 'acs_nano', 'elsevier', 'dark_lab'
+    # Visual & Theme options
+    theme = params.get('theme', 'origin_classic')
+    top_axis = params.get('topAxis', 'none')  # 'none', 'q_space', 'd_spacing'
     show_residual = bool(params.get('showResidual', True))
     show_fwhm_bracket = bool(params.get('showFwhmBracket', True))
     show_table = bool(params.get('showTable', True))
     show_deconv_peaks = bool(params.get('showDeconvPeaks', True))
     show_legend = bool(params.get('showLegend', True))
     dpi = int(params.get('dpi', 220))
+    
+    # Sub-peaks for multi-peak mode
+    peaks_data = params.get('deconvolutionPeaks', [])
+    is_multi_peak_mode = bool(params.get('isMultiPeakMode', False)) or len(peaks_data) > 1
     
     # Experimental Data Fitting input
     raw_x = params.get('rawX', None)
@@ -207,113 +229,180 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     if is_auto_fit and len(raw_x) > 5 and len(raw_y) > 5:
         x = np.array(raw_x, dtype=float)
         y_observed = np.array(raw_y, dtype=float)
-        x_min = np.min(x)
-        x_max = np.max(x)
-        center_est = x[np.argmax(y_observed)]
+        x_min = float(np.min(x))
+        x_max = float(np.max(x))
+        center_est = float(x[np.argmax(y_observed)])
     else:
         x_min = center - x_span / 2.0
         x_max = center + x_span / 2.0
         x = np.linspace(x_min, x_max, n_points)
         center_est = center
 
-    # 3. Compute Baseline
-    if bg_type == 'quadratic':
-        bg = bg_const + bg_slope * (x - center_est) + bg_quad * (x - center_est) ** 2
-    elif bg_type == 'constant':
-        bg = np.full_like(x, bg_const)
-    else:
-        bg = bg_const + bg_slope * (x - center_est)
+    # 3. Compute Baseline Function
+    def compute_baseline(x_arr, b0, b1, b2=0.0):
+        if bg_type == 'quadratic':
+            base = b0 + b1 * (x_arr - center_est) + b2 * (x_arr - center_est) ** 2
+        elif bg_type == 'constant':
+            base = np.full_like(x_arr, b0)
+        else:
+            base = b0 + b1 * (x_arr - center_est)
+        if bg_type == 'amorphous_halo':
+            base += gaussian(x_arr, halo_center, halo_fwhm, halo_height)
+        return base
+
+    bg = compute_baseline(x, bg_const, bg_slope, bg_quad)
     
-    # 4. Construct Sub-Curves and Model
+    # 4. Multi-Peak Least-Squares Optimization or Construction
+    palette_colors = ['#2563EB', '#16A34A', '#9333EA', '#D97706', '#0891B2', '#E11D48', '#4F46E5', '#059669', '#DB2777', '#CA8A04']
     sub_curves = []
-    y_total_calc = np.copy(bg)
     ka2_info = None
+    y_total_calc = np.copy(bg)
+    fit_errors = {}
 
-    if is_auto_fit and SCIPY_AVAILABLE:
-        # Perform Scipy Non-Linear Least Squares Auto-Fitting
+    # Determine if we should run Scipy Multi-Peak Fitting
+    if is_auto_fit and SCIPY_AVAILABLE and is_multi_peak_mode and len(peaks_data) > 0:
+        # Multi-peak simultaneous fitting
+        n_sub = len(peaks_data)
         try:
-            def fit_model(x_arr, c0, fw, h, et, b0, b1):
-                return b0 + b1*(x_arr - c0) + pseudo_voigt(x_arr, c0, fw, et, h)
+            def multi_pv_model(x_arr, b0, b1, *p_peaks):
+                res = b0 + b1 * (x_arr - center_est)
+                for i in range(n_sub):
+                    ci = p_peaks[i * 4]
+                    fwi = p_peaks[i * 4 + 1]
+                    hi = p_peaks[i * 4 + 2]
+                    eti = p_peaks[i * 4 + 3]
+                    res += pseudo_voigt(x_arr, ci, fwi, eti, hi)
+                return res
 
-            p0 = [center_est, max(0.1, fwhm), np.max(y_observed) - np.min(y_observed), eta, np.min(y_observed), 0.0]
+            p0 = [np.min(y_observed), 0.0]
+            lb = [0.0, -1000.0]
+            ub = [np.max(y_observed), 1000.0]
+
+            for pk in peaks_data:
+                p0.extend([float(pk.get('center', center_est)), float(pk.get('fwhm', fwhm)), float(pk.get('height', height)), float(pk.get('eta', eta))])
+                lb.extend([x_min, 0.02, 1.0, 0.0])
+                ub.extend([x_max, x_span, np.max(y_observed) * 3.0, 1.0])
+
+            popt, pcov = curve_fit(multi_pv_model, x, y_observed, p0=p0, bounds=(lb, ub), maxfev=6000)
+            perr = np.sqrt(np.diag(pcov))
+
+            bg_const = float(popt[0])
+            bg_slope = float(popt[1])
+            bg = compute_baseline(x, bg_const, bg_slope)
+            y_total_calc = np.copy(bg)
+
+            for i, pk in enumerate(peaks_data):
+                ci = float(popt[2 + i * 4])
+                fwi = float(popt[2 + i * 4 + 1])
+                hi = float(popt[2 + i * 4 + 2])
+                eti = float(popt[2 + i * 4 + 3])
+                
+                c_err = float(perr[2 + i * 4]) if not np.isinf(perr[2 + i * 4]) else 0.001
+                fw_err = float(perr[2 + i * 4 + 1]) if not np.isinf(perr[2 + i * 4 + 1]) else 0.001
+                h_err = float(perr[2 + i * 4 + 2]) if not np.isinf(perr[2 + i * 4 + 2]) else 1.0
+                eta_err = float(perr[2 + i * 4 + 3]) if not np.isinf(perr[2 + i * 4 + 3]) else 0.01
+
+                y_pk = pseudo_voigt(x, ci, fwi, eti, hi)
+                y_total_calc += y_pk
+
+                sub_curves.append({
+                    'id': str(i + 1),
+                    'label': pk.get('label', f'Phase #{i+1}'),
+                    'center': ci,
+                    'center_err': c_err,
+                    'fwhm': fwi,
+                    'fwhm_err': fw_err,
+                    'height': hi,
+                    'height_err': h_err,
+                    'eta': eti,
+                    'eta_err': eta_err,
+                    'y': y_pk + bg,
+                    'y_pure': y_pk,
+                    'color': pk.get('color', palette_colors[i % len(palette_colors)])
+                })
+        except Exception:
+            # Fallback if multi-peak fit encounters singularity
+            for i, pk in enumerate(peaks_data):
+                ci = float(pk.get('center', center))
+                fwi = float(pk.get('fwhm', fwhm))
+                hi = float(pk.get('height', height))
+                eti = float(pk.get('eta', eta))
+                y_pk = pseudo_voigt(x, ci, fwi, eti, hi)
+                y_total_calc += y_pk
+                sub_curves.append({
+                    'id': str(i + 1),
+                    'label': pk.get('label', f'Phase #{i+1}'),
+                    'center': ci,
+                    'fwhm': fwi,
+                    'height': hi,
+                    'eta': eti,
+                    'y': y_pk + bg,
+                    'y_pure': y_pk,
+                    'color': pk.get('color', palette_colors[i % len(palette_colors)])
+                })
+    elif is_auto_fit and SCIPY_AVAILABLE:
+        # Single peak Levenberg-Marquardt fitting
+        try:
+            def fit_single_pv(x_arr, c0, fw, h, et, b0, b1):
+                return b0 + b1 * (x_arr - c0) + pseudo_voigt(x_arr, c0, fw, et, h)
+
+            p0 = [center_est, max(0.08, fwhm), np.max(y_observed) - np.min(y_observed), eta, np.min(y_observed), 0.0]
             bounds = (
-                [x_min, 0.01, 1.0, 0.0, 0.0, -1000.0],
+                [x_min, 0.02, 1.0, 0.0, 0.0, -1000.0],
                 [x_max, x_span, np.max(y_observed) * 3.0, 1.0, np.max(y_observed), 1000.0]
             )
-            popt, pcov = curve_fit(fit_model, x, y_observed, p0=p0, bounds=bounds, maxfev=4000)
-            
+            popt, pcov = curve_fit(fit_single_pv, x, y_observed, p0=p0, bounds=bounds, maxfev=4000)
+            perr = np.sqrt(np.diag(pcov))
+
             center = float(popt[0])
             fwhm = float(popt[1])
             height = float(popt[2])
             eta = float(popt[3])
             bg_const = float(popt[4])
             bg_slope = float(popt[5])
-            bg = bg_const + bg_slope * (x - center)
-            
-            y_peak = pseudo_voigt(x, center, fwhm, eta, height)
-            y_total_calc = bg + y_peak
-            
+            bg = compute_baseline(x, bg_const, bg_slope)
+
+            y_pk = pseudo_voigt(x, center, fwhm, eta, height)
+            y_total_calc = bg + y_pk
+
+            fit_errors = {
+                'center_err': float(perr[0]),
+                'fwhm_err': float(perr[1]),
+                'height_err': float(perr[2]),
+                'eta_err': float(perr[3])
+            }
+
             sub_curves.append({
-                'label': f'Fitted Pseudo-Voigt Peak',
+                'id': '1',
+                'label': 'Fitted Pseudo-Voigt Peak',
                 'center': center,
+                'center_err': fit_errors['center_err'],
                 'fwhm': fwhm,
+                'fwhm_err': fit_errors['fwhm_err'],
                 'height': height,
+                'height_err': fit_errors['height_err'],
+                'eta': eta,
+                'eta_err': fit_errors['eta_err'],
                 'y': y_total_calc,
-                'y_pure': y_peak,
+                'y_pure': y_pk,
                 'color': '#2563EB'
             })
-        except Exception as e:
-            # Fallback if fit failed
-            y_peak = pseudo_voigt(x, center, fwhm, eta, height)
-            y_total_calc = bg + y_peak
+        except Exception:
+            y_pk = pseudo_voigt(x, center, fwhm, eta, height)
+            y_total_calc = bg + y_pk
             sub_curves.append({
+                'id': '1',
                 'label': 'Peak 1',
                 'center': center,
                 'fwhm': fwhm,
                 'height': height,
+                'eta': eta,
                 'y': y_total_calc,
-                'y_pure': y_peak,
+                'y_pure': y_pk,
                 'color': '#2563EB'
             })
-    elif not peaks_data:
-        # Standard Single Peak / Ka doublet / True Voigt
-        if profile_type == 'gaussian':
-            y_peak = gaussian(x, center, fwhm, height)
-            y_total_calc += y_peak
-            sub_curves.append({'label': 'Gaussian Peak', 'center': center, 'fwhm': fwhm, 'height': height, 'y': y_peak + bg, 'y_pure': y_peak, 'color': '#2563EB'})
-        elif profile_type == 'lorentzian':
-            y_peak = lorentzian(x, center, fwhm, height)
-            y_total_calc += y_peak
-            sub_curves.append({'label': 'Lorentzian Peak', 'center': center, 'fwhm': fwhm, 'height': height, 'y': y_peak + bg, 'y_pure': y_peak, 'color': '#2563EB'})
-        elif profile_type == 'true_voigt':
-            # True Voigt deconvolution: fwhm_g (inst) and fwhm_l (sample size)
-            fwhm_g = max(0.01, inst_fwhm)
-            fwhm_l = max(0.01, np.sqrt(max(1e-6, fwhm**2 - inst_fwhm**2)))
-            y_peak = true_voigt(x, center, fwhm_g, fwhm_l, height)
-            y_total_calc += y_peak
-            sub_curves.append({'label': f'True Voigt (βG={fwhm_g:.3f}°, βL={fwhm_l:.3f}°)', 'center': center, 'fwhm': fwhm, 'height': height, 'y': y_peak + bg, 'y_pure': y_peak, 'color': '#2563EB'})
-        elif profile_type == 'pearson7':
-            y_peak = pearson_vii(x, center, fwhm, pearson_m, height)
-            y_total_calc += y_peak
-            sub_curves.append({'label': f'Pearson VII (m={pearson_m:.1f})', 'center': center, 'fwhm': fwhm, 'height': height, 'y': y_peak + bg, 'y_pure': y_peak, 'color': '#2563EB'})
-        elif profile_type == 'asymmetric':
-            y_peak = asymmetric_pseudo_voigt(x, center, fwhm, eta, height, asymmetry)
-            y_total_calc += y_peak
-            sub_curves.append({'label': f'Asymmetric PsdVoigt (Asym={asymmetry:.2f})', 'center': center, 'fwhm': fwhm, 'height': height, 'y': y_peak + bg, 'y_pure': y_peak, 'color': '#2563EB'})
-        elif profile_type == 'ka_doublet':
-            y_doublet, y_ka1, y_ka2, x0_ka2 = ka1_ka2_doublet(x, center, fwhm, eta, height, wavelength, wavelength2, ka_ratio)
-            y_total_calc += y_doublet
-            ka2_info = {'x0_ka1': center, 'x0_ka2': x0_ka2, 'separation': x0_ka2 - center}
-            sub_curves.append({'label': f'Kα1 (λ={wavelength*10:.4f} Å)', 'center': center, 'fwhm': fwhm, 'height': height, 'y': y_ka1 + bg, 'y_pure': y_ka1, 'color': '#2563EB'})
-            sub_curves.append({'label': f'Kα2 (λ={wavelength2*10:.4f} Å, I={ka_ratio:.2f})', 'center': x0_ka2, 'fwhm': fwhm * 1.05, 'height': height * ka_ratio, 'y': y_ka2 + bg, 'y_pure': y_ka2, 'color': '#16A34A'})
-        else:
-            # Pseudo-Voigt
-            y_peak = pseudo_voigt(x, center, fwhm, eta, height)
-            y_total_calc += y_peak
-            sub_curves.append({'label': f'Pseudo-Voigt (η={eta:.2f})', 'center': center, 'fwhm': fwhm, 'height': height, 'y': y_peak + bg, 'y_pure': y_peak, 'color': '#2563EB'})
-    else:
-        # Multi-peak deconvolution mode
-        palette_colors = ['#2563EB', '#16A34A', '#9333EA', '#D97706', '#0891B2', '#E11D48', '#4F46E5', '#059669']
+    elif is_multi_peak_mode and len(peaks_data) > 0:
+        # Multi-peak manual synthesis
         for i, pk in enumerate(peaks_data):
             p_center = float(pk.get('center', center))
             p_fwhm = float(pk.get('fwhm', fwhm))
@@ -322,7 +411,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             p_type = pk.get('profileType', profile_type)
             p_label = pk.get('label', f'Phase #{i+1}')
             p_color = pk.get('color', palette_colors[i % len(palette_colors)])
-            
+
             if p_type == 'gaussian':
                 y_p = gaussian(x, p_center, p_fwhm, p_height)
             elif p_type == 'lorentzian':
@@ -333,26 +422,62 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
                 y_p = asymmetric_pseudo_voigt(x, p_center, p_fwhm, p_eta, p_height, asymmetry)
             else:
                 y_p = pseudo_voigt(x, p_center, p_fwhm, p_eta, p_height)
-                
+
             y_total_calc += y_p
             sub_curves.append({
+                'id': str(i + 1),
                 'label': p_label,
                 'center': p_center,
                 'fwhm': p_fwhm,
                 'height': p_height,
+                'eta': p_eta,
                 'y': y_p + bg,
                 'y_pure': y_p,
                 'color': p_color
             })
+    else:
+        # Single peak standard models
+        if profile_type == 'gaussian':
+            y_pk = gaussian(x, center, fwhm, height)
+            y_total_calc += y_pk
+            sub_curves.append({'id': '1', 'label': 'Gaussian Peak', 'center': center, 'fwhm': fwhm, 'height': height, 'eta': 0.0, 'y': y_pk + bg, 'y_pure': y_pk, 'color': '#2563EB'})
+        elif profile_type == 'lorentzian':
+            y_pk = lorentzian(x, center, fwhm, height)
+            y_total_calc += y_pk
+            sub_curves.append({'id': '1', 'label': 'Lorentzian Peak', 'center': center, 'fwhm': fwhm, 'height': height, 'eta': 1.0, 'y': y_pk + bg, 'y_pure': y_pk, 'color': '#2563EB'})
+        elif profile_type == 'true_voigt':
+            fwhm_g = max(0.01, inst_fwhm)
+            fwhm_l = max(0.01, np.sqrt(max(1e-6, fwhm**2 - inst_fwhm**2)))
+            y_pk = true_voigt(x, center, fwhm_g, fwhm_l, height)
+            y_total_calc += y_pk
+            sub_curves.append({'id': '1', 'label': f'True Voigt (βG={fwhm_g:.3f}°, βL={fwhm_l:.3f}°)', 'center': center, 'fwhm': fwhm, 'height': height, 'eta': eta, 'y': y_pk + bg, 'y_pure': y_pk, 'color': '#2563EB'})
+        elif profile_type == 'pearson7':
+            y_pk = pearson_vii(x, center, fwhm, pearson_m, height)
+            y_total_calc += y_pk
+            sub_curves.append({'id': '1', 'label': f'Pearson VII (m={pearson_m:.1f})', 'center': center, 'fwhm': fwhm, 'height': height, 'eta': eta, 'y': y_pk + bg, 'y_pure': y_pk, 'color': '#2563EB'})
+        elif profile_type == 'asymmetric':
+            y_pk = asymmetric_pseudo_voigt(x, center, fwhm, eta, height, asymmetry)
+            y_total_calc += y_pk
+            sub_curves.append({'id': '1', 'label': f'Asym Pseudo-Voigt (Asym={asymmetry:.2f})', 'center': center, 'fwhm': fwhm, 'height': height, 'eta': eta, 'y': y_pk + bg, 'y_pure': y_pk, 'color': '#2563EB'})
+        elif profile_type == 'ka_doublet':
+            y_doublet, y_ka1, y_ka2, x0_ka2 = ka1_ka2_doublet(x, center, fwhm, eta, height, wavelength, wavelength2, ka_ratio)
+            y_total_calc += y_doublet
+            ka2_info = {'x0_ka1': center, 'x0_ka2': x0_ka2, 'separation': x0_ka2 - center}
+            sub_curves.append({'id': '1', 'label': f'Kα₁ (λ={wavelength*10:.4f} Å)', 'center': center, 'fwhm': fwhm, 'height': height, 'eta': eta, 'y': y_ka1 + bg, 'y_pure': y_ka1, 'color': '#2563EB'})
+            sub_curves.append({'id': '2', 'label': f'Kα₂ (λ={wavelength2*10:.4f} Å, I={ka_ratio:.2f})', 'center': x0_ka2, 'fwhm': fwhm * 1.05, 'height': height * ka_ratio, 'eta': eta, 'y': y_ka2 + bg, 'y_pure': y_ka2, 'color': '#16A34A'})
+        else:
+            y_pk = pseudo_voigt(x, center, fwhm, eta, height)
+            y_total_calc += y_pk
+            sub_curves.append({'id': '1', 'label': f'Pseudo-Voigt (η={eta:.2f})', 'center': center, 'fwhm': fwhm, 'height': height, 'eta': eta, 'y': y_pk + bg, 'y_pure': y_pk, 'color': '#2563EB'})
 
-    # 5. Generate Observed Data with Gaussian Noise (if not provided as raw experimental points)
+    # 5. Generate Observed Scatter Points if not provided experimentally
     if not is_auto_fit:
         np.random.seed(42)
-        noise_sigma = (height * (noise_pct / 100.0))
+        noise_sigma = float(max(1.0, height * (noise_pct / 100.0)))
         noise = np.random.normal(0, noise_sigma, len(x))
         y_observed = y_total_calc + noise
     else:
-        noise_sigma = np.std(y_observed - y_total_calc)
+        noise_sigma = float(max(0.5, np.std(y_observed - y_total_calc)))
 
     # 6. Residual & Metrology Calculations
     residual = y_observed - y_total_calc
@@ -360,14 +485,17 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     ss_tot = np.sum((y_observed - np.mean(y_observed)) ** 2)
     r_squared = float(np.clip(1.0 - (ss_res / ss_tot) if ss_tot > 0 else 0.9999, 0.0, 0.99999))
     
-    # Weighted Profile R-factor R_wp & Profile R_p
     weights = 1.0 / np.maximum(1.0, y_observed)
     r_wp = float(np.sqrt(np.sum(weights * (residual ** 2)) / np.maximum(1e-6, np.sum(weights * (y_observed ** 2)))) * 100.0)
     r_p = float((np.sum(np.abs(residual)) / np.maximum(1e-6, np.sum(y_observed))) * 100.0)
     
-    dof = max(1, len(x) - (len(sub_curves) * 3 + 2))
+    dof = max(1, len(x) - (len(sub_curves) * 4 + 2))
     reduced_chi_sq = float((ss_res / (max(1e-6, noise_sigma) ** 2)) / dof)
     gof = float(np.sqrt(max(0.01, reduced_chi_sq)))
+    
+    # Durbin-Watson statistic for serial correlation
+    diff_res = np.diff(residual)
+    durbin_watson = float(np.sum(diff_res ** 2) / max(1e-6, ss_res))
 
     # 7. Physical Deconvolved FWHM & Microstructure (De Keijser & Scherrer)
     if fwhm > inst_fwhm:
@@ -375,40 +503,53 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
         beta_phys_lorentz = fwhm - inst_fwhm
         beta_phys = (1.0 - eta) * beta_phys_gauss + eta * beta_phys_lorentz
     else:
-        beta_phys = fwhm * 0.15 # Instrumental limit boundary
+        beta_phys = fwhm * 0.15
         
     theta_rad = np.radians(center / 2.0)
     beta_rad = np.radians(beta_phys)
     crystallite_size_nm = float((0.94 * wavelength) / (beta_rad * np.cos(theta_rad))) if beta_rad > 0 else 0.0
-    
-    # Microstrain estimate (e = beta_G / (4 * tan(theta)))
     microstrain_pct = float((np.radians(max(0.001, (1.0 - eta) * beta_phys)) / (4.0 * np.tan(max(1e-4, theta_rad)))) * 100.0)
-    
-    # Helper for robust trapezoidal integration across numpy versions
-    def integrate_area(y_arr, x_arr):
-        if hasattr(np, 'trapezoid'):
-            return float(np.trapezoid(y_arr, x_arr))
-        elif hasattr(np, 'trapz'):
-            return float(np.trapz(y_arr, x_arr))
-        else:
-            try:
-                from scipy.integrate import trapezoid
-                return float(trapezoid(y_arr, x_arr))
-            except Exception:
-                return float(np.sum(y_arr[:-1] + y_arr[1:]) * 0.5 * np.mean(np.diff(x_arr)))
 
-    # Integrated Peak Areas
+    # Calculate Sub-Peak Areas, Crystallite Size, and Strain per peak
     total_area = integrate_area(y_total_calc - bg, x)
-    sub_areas = []
+    sub_peaks_metrics = []
     for sc in sub_curves:
         area_i = integrate_area(sc['y_pure'], x)
-        sub_areas.append({
+        sc_center = sc['center']
+        sc_fwhm = sc['fwhm']
+        sc_eta = sc.get('eta', eta)
+        
+        # Per-peak size and strain
+        if sc_fwhm > inst_fwhm:
+            bp_g = np.sqrt(sc_fwhm**2 - inst_fwhm**2)
+            bp_l = sc_fwhm - inst_fwhm
+            bp_i = (1.0 - sc_eta) * bp_g + sc_eta * bp_l
+        else:
+            bp_i = sc_fwhm * 0.15
+        
+        th_rad_i = np.radians(sc_center / 2.0)
+        c_size_i = float((0.94 * wavelength) / (np.radians(bp_i) * np.cos(th_rad_i))) if bp_i > 0 else 0.0
+        m_strain_i = float((np.radians(max(0.001, (1.0 - sc_eta) * bp_i)) / (4.0 * np.tan(max(1e-4, th_rad_i)))) * 100.0)
+
+        sub_peaks_metrics.append({
+            'id': sc.get('id', '1'),
             'label': sc['label'],
+            'center': sc_center,
+            'center_err': sc.get('center_err', 0.0),
+            'fwhm': sc_fwhm,
+            'fwhm_err': sc.get('fwhm_err', 0.0),
+            'height': sc['height'],
+            'height_err': sc.get('height_err', 0.0),
+            'eta': sc_eta,
+            'eta_err': sc.get('eta_err', 0.0),
             'area': area_i,
-            'area_fraction': float(area_i / max(1e-6, total_area)) * 100.0
+            'area_fraction': float(area_i / max(1e-6, total_area)) * 100.0,
+            'crystallite_size_nm': c_size_i,
+            'microstrain_pct': m_strain_i,
+            'color': sc['color']
         })
 
-    # 8. Theme Configuration for Academic Journal Quality
+    # 8. Theme Configurations for Academic Publishing
     theme_cfg = {
         'origin_classic': {
             'bg_fig': '#FFFFFF',
@@ -426,7 +567,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             'grid_color': '#E2E8F0',
             'grid_ls': ':',
             'font_family': 'sans-serif',
-            'badge': 'OriginPro Classic'
+            'badge': 'OriginPro 2024 Classic'
         },
         'nature': {
             'bg_fig': '#FFFFFF',
@@ -436,7 +577,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             'spine_width': 1.2,
             'obs_marker': 's',
             'obs_color': '#111827',
-            'obs_face': '#F3F4F6',
+            'obs_face': '#E5E7EB',
             'fit_color': '#991B1B',
             'bg_color': '#9CA3AF',
             'res_color': '#374151',
@@ -444,7 +585,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             'grid_color': '#F3F4F6',
             'grid_ls': '-',
             'font_family': 'sans-serif',
-            'badge': 'Nature Materials'
+            'badge': 'Nature / Springer Nature'
         },
         'acs_nano': {
             'bg_fig': '#FAFAFA',
@@ -480,7 +621,25 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             'grid_color': '#D1D5DB',
             'grid_ls': ':',
             'font_family': 'sans-serif',
-            'badge': 'Elsevier / Acta Mater.'
+            'badge': 'Elsevier / Acta Materialia'
+        },
+        'wiley': {
+            'bg_fig': '#FFFFFF',
+            'bg_ax': '#FFFFFF',
+            'text_color': '#1E293B',
+            'spine_color': '#334155',
+            'spine_width': 1.5,
+            'obs_marker': 'D',
+            'obs_color': '#0F172A',
+            'obs_face': '#F1F5F9',
+            'fit_color': '#D97706',
+            'bg_color': '#64748B',
+            'res_color': '#0284C7',
+            'grid': True,
+            'grid_color': '#E2E8F0',
+            'grid_ls': ':',
+            'font_family': 'sans-serif',
+            'badge': 'Wiley / Adv. Energy Mater.'
         },
         'dark_lab': {
             'bg_fig': '#0B0F19',
@@ -498,13 +657,13 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             'grid_color': '#1E293B',
             'grid_ls': ':',
             'font_family': 'sans-serif',
-            'badge': 'Darkroom Scientific'
+            'badge': 'Darkroom Scientific Lab'
         }
     }
     
     cfg = theme_cfg.get(theme, theme_cfg['origin_classic'])
 
-    # 9. Initialize Matplotlib Layout
+    # 9. Matplotlib Canvas & Grid Setup
     plt.rcParams['font.family'] = cfg['font_family']
     plt.rcParams['mathtext.fontset'] = 'cm'
     
@@ -525,7 +684,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     if ax2:
         ax2.set_facecolor(cfg['bg_ax'])
 
-    # 10. OriginPro Inward Ticks & Double-Box Spines
+    # 10. Inward Ticks & Double-Box Spines
     for ax in ([ax1, ax2] if ax2 else [ax1]):
         ax.tick_params(
             direction='in', 
@@ -544,7 +703,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
         if cfg['grid']:
             ax.grid(True, which='major', color=cfg['grid_color'], linestyle=cfg['grid_ls'], alpha=0.7)
 
-    # 11. Plot Observed Experimental Scatter Data (Origin Point Style)
+    # 11. Plot Observed Scatter Points
     step = max(1, len(x) // 140)
     ax1.scatter(
         x[::step], 
@@ -558,7 +717,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
         zorder=3
     )
 
-    # 12. Plot Deconvoluted Sub-Peaks & Filled Shading
+    # 12. Plot Deconvoluted Sub-Peaks with subtle shading
     if show_deconv_peaks and len(sub_curves) > 1:
         for idx, sub in enumerate(sub_curves):
             ax1.plot(
@@ -570,7 +729,6 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
                 label=f"{sub['label']}",
                 zorder=4
             )
-            # Subtle fill under peak
             ax1.fill_between(x, bg, sub['y'], color=sub['color'], alpha=0.12, zorder=2)
 
     # 13. Plot Baseline
@@ -584,7 +742,7 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
         zorder=2
     )
 
-    # 14. Plot Total Calculated Curve
+    # 14. Plot Total Calculated Profile Curve
     ax1.plot(
         x, 
         y_total_calc, 
@@ -609,7 +767,6 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             zorder=6
         )
         
-        # Center peak drop line
         ax1.vlines(
             x=center, 
             ymin=bg_const, 
@@ -692,7 +849,38 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     y_top = max(np.max(y_observed), np.max(y_total_calc)) * 1.25
     ax1.set_ylim(bottom=max(0, bg_const - height * 0.15), top=y_top)
 
-    # 18. Residual Subplot
+    # 18. Secondary Top Axis (Q-space or d-spacing)
+    lam_angstrom = wavelength * 10.0
+    if top_axis == 'q_space':
+        try:
+            def tth_to_q(tth):
+                return (4.0 * np.pi / lam_angstrom) * np.sin(np.radians(np.maximum(0.1, tth) / 2.0))
+
+            def q_to_tth(q):
+                val = (q * lam_angstrom) / (4.0 * np.pi)
+                return 2.0 * np.degrees(np.arcsin(np.clip(val, -1.0, 1.0)))
+
+            secax = ax1.secondary_xaxis('top', functions=(tth_to_q, q_to_tth))
+            secax.set_xlabel(r'Scattering Wavevector $Q\ (\mathrm{\AA}^{-1})$', fontsize=10, fontweight='bold', color=cfg['text_color'])
+            secax.tick_params(direction='in', which='both', colors=cfg['text_color'])
+        except Exception:
+            pass
+    elif top_axis == 'd_spacing':
+        try:
+            def tth_to_d(tth):
+                return lam_angstrom / (2.0 * np.sin(np.radians(np.maximum(0.5, tth) / 2.0)))
+
+            def d_to_tth(d):
+                val = lam_angstrom / (2.0 * np.maximum(0.1, d))
+                return 2.0 * np.degrees(np.arcsin(np.clip(val, -1.0, 1.0)))
+
+            secax = ax1.secondary_xaxis('top', functions=(tth_to_d, d_to_tth))
+            secax.set_xlabel(r'Interplanar Spacing $d\ (\mathrm{\AA})$', fontsize=10, fontweight='bold', color=cfg['text_color'])
+            secax.tick_params(direction='in', which='both', colors=cfg['text_color'])
+        except Exception:
+            pass
+
+    # 19. Residual Subplot
     if ax2:
         ax2.scatter(
             x[::step], 
@@ -710,14 +898,14 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
         ax2.set_xlabel(r'Diffraction Angle $2\theta$ (degrees)', fontsize=11, fontweight='bold', color=cfg['text_color'])
         ax2.set_ylabel(r'$\Delta I$', fontsize=10, fontweight='bold', color=cfg['text_color'])
         
-        max_res = max(abs(np.min(residual)), abs(np.max(residual))) * 1.35
+        max_res = max(abs(float(np.min(residual))), abs(float(np.max(residual)))) * 1.35
         if max_res == 0:
             max_res = 1.0
         ax2.set_ylim(-max_res, max_res)
     else:
         ax1.set_xlabel(r'Diffraction Angle $2\theta$ (degrees)', fontsize=11, fontweight='bold', color=cfg['text_color'])
 
-    # 19. Export Base64 PNG and Vector SVG
+    # 20. Export High-Res PNG and Vector SVG
     buf_png = io.BytesIO()
     plt.savefig(
         buf_png, 
@@ -741,7 +929,27 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     svg_content = buf_svg.getvalue()
     plt.close(fig)
 
-    # 20. Generate Clean Standalone Python Code for Origin / Jupyter Notebook
+    # 21. Generate Clean CSV / ASCII Data Export
+    csv_header = [
+        f"# OriginPro & Matplotlib XRD Peak Studio Export",
+        f"# Center: {center:.4f} deg | Observed FWHM: {fwhm:.4f} deg | Inst FWHM: {inst_fwhm:.4f} deg",
+        f"# Wavelength: {wavelength:.6f} nm ({lam_angstrom:.4f} Angstroms) | Scherrer Size: {crystallite_size_nm:.2f} nm",
+        f"# Fit Quality: R^2 = {r_squared:.5f} | R_wp = {r_wp:.2f}% | GoF = {gof:.2f}"
+    ]
+    col_names = ["2Theta_deg", "Intensity_Obs", "Intensity_Calc", "Baseline", "Residual"]
+    for sc in sub_curves:
+        safe_label = sc['label'].replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_')
+        col_names.append(f"{safe_label}")
+        
+    csv_lines = [", ".join(csv_header[:2]), ", ".join(csv_header[2:]), ", ".join(col_names)]
+    for i in range(len(x)):
+        row = [f"{x[i]:.4f}", f"{y_observed[i]:.2f}", f"{y_total_calc[i]:.2f}", f"{bg[i]:.2f}", f"{residual[i]:.2f}"]
+        for sc in sub_curves:
+            row.append(f"{sc['y_pure'][i]:.2f}")
+        csv_lines.append(", ".join(row))
+    csv_data = "\n".join(csv_lines)
+
+    # 22. Generate Standalone Python Code for Matplotlib
     python_code = f"""# ==============================================================================
 # OriginPro / Python Publication XRD Peak Fitting & FWHM Deconvolution
 # Generated by XRD Scientific Intelligence Suite (OriginPro Matplotlib Studio)
@@ -785,18 +993,17 @@ theta_rad = np.radians(center / 2.0)
 d_scherrer = (0.94 * wavelength) / (np.radians(beta_phys) * np.cos(theta_rad))
 microstrain = (np.radians(max(0.001, (1.0 - eta) * beta_phys)) / (4.0 * np.tan(theta_rad))) * 100.0
 
-print(f"--- OriginPro Peak Metrology ---")
-print(f"Center 2-Theta : {{center:.4f}} deg")
-print(f"Observed FWHM  : {{fwhm:.4f}} deg")
-print(f"Physical Beta  : {{beta_phys:.4f}} deg")
+print("--- OriginPro Peak Metrology ---")
+print(f"Center 2-Theta  : {{center:.4f}} deg")
+print(f"Observed FWHM   : {{fwhm:.4f}} deg")
+print(f"Physical Beta   : {{beta_phys:.4f}} deg")
 print(f"Crystallite Size: {{d_scherrer:.2f}} nm")
-print(f"Microstrain    : {{microstrain:.4f}} %")
+print(f"Microstrain     : {{microstrain:.4f}} %")
 
-# --- OriginPro Publication Figure Setup ---
+# --- Publication Figure Setup ---
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8.5, 6.5), dpi=300, 
                                gridspec_kw={{'height_ratios': [3.5, 1.0], 'hspace': 0.04}}, sharex=True)
 
-# OriginLab inward ticks style
 for ax in [ax1, ax2]:
     ax.tick_params(direction='in', which='both', top=True, right=True, length=6, width=1.3)
     ax.tick_params(which='minor', length=3, width=0.8)
@@ -825,11 +1032,11 @@ plt.tight_layout()
 plt.show()
 """
 
-    
+    # 23. Generate Native OriginPro Python Script (`import originpro as op`)
     originpro_code = f"""# ==============================================================================
-# OriginPro Native Script (using originpro python API)
-# Generates the Worksheet and Native Plot inside OriginLab
-# Instructions: Open Origin 2021+ -> Alt+5 to open Python Console -> Paste this code.
+# OriginPro Native Python Script (originpro API)
+# Generates native multi-column worksheet and graph window in OriginLab 2021+
+# Instructions: In OriginPro, press Alt+5 to open Python Console, paste & run.
 # ==============================================================================
 import numpy as np
 import originpro as op
@@ -843,7 +1050,6 @@ def pseudo_voigt(x, x0, fwhm, eta, height):
     L = 1.0 / (1.0 + ((x - x0) / gamma) ** 2)
     return height * ((1.0 - eta) * G + eta * L)
 
-# Parameters
 center = {center:.4f}
 fwhm = {fwhm:.4f}
 eta = {eta:.3f}
@@ -851,42 +1057,112 @@ height = {height:.1f}
 bg_const = {bg_const:.1f}
 bg_slope = {bg_slope:.3f}
 
-# Check if Origin is accessible
+# Check OriginPro Ext access
 if op and op.oext:
     op.set_show(True)
 else:
-    print("This script must be run inside OriginPro Python Console or with OriginPro Ext.")
-    sys.exit(0)
+    print("This script is designed to run directly inside OriginPro Python Console (Alt+5).")
 
-# Generate Data
+# Generate Data Arrays
 x = np.linspace({x_min:.3f}, {x_max:.3f}, {n_points})
 bg = bg_const + bg_slope * (x - center)
 y_calc = bg + pseudo_voigt(x, center, fwhm, eta, height)
+noise = np.random.normal(0, {noise_sigma:.2f}, len(x))
+y_obs = y_calc + noise
+residual = y_obs - y_calc
 
-# Create Worksheet
-wks = op.new_sheet()
-wks.name = 'XRD_Peak_Data'
-wks.set_labels(['2Theta', 'Intensity_Obs', 'Intensity_Fit', 'Baseline'])
-wks.from_list(0, x.tolist(), 'X')
-# Simulating obs with fit for synthetic, otherwise you'd inject real Y here
-wks.from_list(1, y_calc.tolist(), 'Y') 
-wks.from_list(2, y_calc.tolist(), 'Y')
-wks.from_list(3, bg.tolist(), 'Y')
+# Create OriginPro Workbook & Worksheet
+wks = op.new_sheet('w', 'XRD_Deconv_Studio')
+wks.set_labels(['2Theta', 'Intensity_Obs', 'Intensity_Calc', 'Baseline', 'Residual'])
+wks.from_list(0, x.tolist(), 'X', units='deg', comments='Diffraction Angle')
+wks.from_list(1, y_obs.tolist(), 'Y', units='counts', comments='Observed Data')
+wks.from_list(2, y_calc.tolist(), 'Y', units='counts', comments='OriginPro Fit')
+wks.from_list(3, bg.tolist(), 'Y', units='counts', comments='Background Baseline')
+wks.from_list(4, residual.tolist(), 'Y', units='counts', comments='Fit Residual')
 
-# Create Graph
+# Create Publication Double-Layer Graph
 gp = op.new_graph(template='Origin')
 gl = gp[0]
-gl.add_plot(wks, coly=1, colx=0, type='scatter')
-gl.add_plot(wks, coly=2, colx=0, type='line')
-gl.add_plot(wks, coly=3, colx=0, type='line')
 
-# Customize Graph
+# Add Plots to Layer 1
+plot_obs = gl.add_plot(wks, coly=1, colx=0, type='scatter')
+plot_fit = gl.add_plot(wks, coly=2, colx=0, type='line')
+plot_bg  = gl.add_plot(wks, coly=3, colx=0, type='line')
+
+# Format Layer 1
 gl.set_xlim({x_min:.3f}, {x_max:.3f}, 0.5)
-gl.xaxis.title = 'Diffraction Angle 2\\theta (degrees)'
+gl.xaxis.title = r'Diffraction Angle 2\\theta (\\+(o))'
 gl.yaxis.title = 'Intensity I (counts)'
 gl.rescale()
 
-print("Successfully exported XRD Fit to OriginPro Worksheet & Graph.")
+print("Successfully exported XRD Peak Deconvolution to OriginPro Worksheet & Graph.")
+"""
+
+    # 24. Generate Classic OriginLab LabTalk Script (.ogs)
+    labtalk_code = f"""// ==============================================================================
+// OriginLab Native LabTalk Macro Script (.ogs)
+// Compatible with all versions of OriginLab (Origin 8, 9, 2018 - 2024+)
+// Instructions: In OriginLab, open Script Window (Alt+3 or Window -> Script Window),
+// paste this script, select all and press Enter.
+// ==============================================================================
+
+// 1. Create a new workbook
+newbook name:="XRD_Peak_Studio" sheet:=1;
+page.title$ = "XRD Peak Deconvolution & Metrology";
+
+// 2. Setup Columns & Units
+wks.nCols = 5;
+wks.col1.name$ = "TwoTheta";
+wks.col1.unit$ = "deg";
+wks.col1.type = 4; // X column
+
+wks.col2.name$ = "Observed";
+wks.col2.unit$ = "counts";
+
+wks.col3.name$ = "Fit_Calc";
+wks.col3.unit$ = "counts";
+
+wks.col4.name$ = "Baseline";
+wks.col4.unit$ = "counts";
+
+wks.col5.name$ = "Residual";
+wks.col5.unit$ = "counts";
+
+// 3. Set Parameters in Project Variables
+double c0 = {center:.4f};
+double fw = {fwhm:.4f};
+double ht = {height:.1f};
+double eta = {eta:.3f};
+double bg0 = {bg_const:.1f};
+double bgs = {bg_slope:.3f};
+double xmin = {x_min:.3f};
+double xmax = {x_max:.3f};
+int npts = {n_points};
+
+// 4. Fill 2-Theta Grid
+col(TwoTheta) = data(xmin, xmax, (xmax - xmin) / (npts - 1));
+
+// 5. Fill Baseline & Pseudo-Voigt Fit Functions
+double sig = fw / (2.0 * sqrt(2.0 * ln(2.0)));
+double gam = fw / 2.0;
+
+col(Baseline) = bg0 + bgs * (col(TwoTheta) - c0);
+col(Fit_Calc) = col(Baseline) + ht * ((1 - eta) * exp(-0.5 * ((col(TwoTheta) - c0)/sig)^2) + eta / (1 + ((col(TwoTheta) - c0)/gam)^2));
+col(Observed) = col(Fit_Calc);
+col(Residual) = col(Observed) - col(Fit_Calc);
+
+// 6. Plot Origin Graph
+win -t plot origin;
+layer.x.ticks = 3; // Inward ticks
+layer.y.ticks = 3;
+plotxy iy:=[XRD_Peak_Studio]1!(1,2) plot:=201; // Scatter
+plotxy iy:=[XRD_Peak_Studio]1!(1,3) plot:=200; // Line Fit
+plotxy iy:=[XRD_Peak_Studio]1!(1,4) plot:=200; // Baseline
+
+label -xb "Diffraction Angle 2\\theta (\\+(o))";
+label -yl "Intensity I (counts)";
+
+type "OriginLab LabTalk XRD Data successfully generated!";
 """
 
     jupyter_notebook = generate_jupyter_notebook_json(python_code, title="OriginPro_XRD_FWHM_Deconvolution")
@@ -898,6 +1174,8 @@ print("Successfully exported XRD Fit to OriginPro Worksheet & Graph.")
         'python_code': python_code,
         'jupyter_notebook': jupyter_notebook,
         'originpro_script': originpro_code,
+        'labtalk_script': labtalk_code,
+        'csv_data': csv_data,
         'metrics': {
             'center': center,
             'observed_fwhm': fwhm,
@@ -911,9 +1189,12 @@ print("Successfully exported XRD Fit to OriginPro Worksheet & Graph.")
             'r_p': r_p,
             'gof': gof,
             'reduced_chi_sq': reduced_chi_sq,
+            'durbin_watson': durbin_watson,
             'height': height,
             'total_area': total_area,
-            'sub_areas': sub_areas,
+            'sub_areas': [{'label': sp['label'], 'area': sp['area'], 'area_fraction': sp['area_fraction']} for sp in sub_peaks_metrics],
+            'sub_peaks': sub_peaks_metrics,
+            'fit_errors': fit_errors,
             'is_auto_fit': is_auto_fit,
             'ka2_info': ka2_info
         }
