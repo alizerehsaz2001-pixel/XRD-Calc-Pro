@@ -39,10 +39,12 @@ import {
   Grid,
   RefreshCw,
   Flame,
-  User
+  User,
+  Box
 } from 'lucide-react';
+import { UnitCellsSection } from './fundamentals/UnitCellsSection';
 
-type Topic = 'start' | 'system_overview' | 'input' | 'generators' | 'polymer_calc' | 'rietveld_protocol' | 'troubleshoot' | 'ai_advisor';
+type Topic = 'start' | 'unit_cells' | 'system_overview' | 'input' | 'generators' | 'polymer_calc' | 'rietveld_protocol' | 'troubleshoot' | 'ai_advisor';
 
 interface PlatformSectionInfo {
   id: string;
@@ -54,6 +56,14 @@ interface PlatformSectionInfo {
 }
 
 const PLATFORM_SECTIONS: PlatformSectionInfo[] = [
+  {
+    id: 'unit_cells',
+    label: 'Unit Cells & Crystal Systems',
+    group: 'Fundamentals',
+    description: 'The foundation of materials crystallography: formal unit cell definition, coordinate basis vectors (a, b, c), interaxial angles (α, β, γ), Primitive (P) vs. centered (I, F, C) lattices, and complete breakdown of all 7 crystal systems and 14 Bravais lattices.',
+    updates: 'New comprehensive textbook section with interactive 3D/isometric orbital geometry viewer, real-world mineral/alloy catalog, and live d-spacing calculator.',
+    status: 'validated'
+  },
   {
     id: 'bragg',
     label: 'Bragg Basics',
@@ -634,6 +644,7 @@ export const LearnModule: React.FC = () => {
   // Topic definitions
   const topics: { id: Topic; label: string; icon: any; color: string; bg: string; description: string }[] = [
     { id: 'start', label: 'Roadmap & Checklist', icon: Rocket, color: 'text-indigo-505 dark:text-indigo-400', bg: 'bg-indigo-500/10', description: 'Core experimental guidelines and checklist' },
+    { id: 'unit_cells', label: 'Unit Cells & Crystal Systems', icon: Box, color: 'text-amber-505 dark:text-amber-400', bg: 'bg-amber-500/10', description: 'Lattice parameters, 14 Bravais lattices & 7 systems' },
     { id: 'system_overview', label: 'Platform Manual & Updates', icon: BookOpen, color: 'text-sky-550 dark:text-sky-400', bg: 'bg-sky-500/10', description: 'All modules Explained & Latest updates' },
     { id: 'input', label: 'Data Formatting sandbox', icon: FileCode, color: 'text-emerald-505 dark:text-emerald-400', bg: 'bg-emerald-500/10', description: 'Input validator and standard data formats' },
     { id: 'generators', label: 'Interactive Solvers', icon: Calculator, color: 'text-violet-505 dark:text-violet-400', bg: 'bg-violet-500/10', description: 'Live Scherrer and Bragg d-spacing calculations' },
@@ -1518,6 +1529,11 @@ ${checklistSteps.map((step, i) => `[${checklist[i] ? 'X' : ' '}] ${step.text} - 
                 </div>
               )}
 
+              {/* Topic: Unit Cells & Crystal Systems */}
+              {activeTopic === 'unit_cells' && (
+                <UnitCellsSection />
+              )}
+
               {/* Topic: Platform System Overview & Updates */}
               {activeTopic === 'system_overview' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
@@ -1679,6 +1695,19 @@ ${checklistSteps.map((step, i) => `[${checklist[i] ? 'X' : ' '}] ${step.text} - 
                           <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                             {sec.updates}
                           </p>
+                          {sec.id === 'unit_cells' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveTopic('unit_cells');
+                              }}
+                              className="w-full mt-2 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-500/20"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                              <span>Open Unit Cells Textbook Section →</span>
+                            </button>
+                          )}
                         </div>
 
                       </motion.div>

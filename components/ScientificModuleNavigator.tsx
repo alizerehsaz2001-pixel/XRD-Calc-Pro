@@ -57,10 +57,12 @@ import {
   ArrowRight,
   Tag,
   Flame,
-  Workflow
+  Workflow,
+  Box
 } from 'lucide-react';
 
 export type ModuleId = 
+  | 'unit_cells'
   | 'bragg' 
   | 'fwhm' 
   | 'selection' 
@@ -214,6 +216,24 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
     const defaultIconClass = "w-5 h-5";
     return [
       // Category 1: Fundamentals & Optics
+      {
+        id: 'unit_cells',
+        label: t('Unit Cells & Crystal Systems', 'Unit Cells & Crystal Systems'),
+        category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
+        categoryIcon: <FlaskConical className="w-4 h-4 text-amber-400" />,
+        subtitle: isRTL ? 'مبانی سلول واحد، پارامترهای شبکه، ۷ دستگاه بلوری و ۱۴ شبکه براوه' : 'Unit cell geometry, axial vectors (a,b,c), 7 crystal systems & 14 Bravais lattices',
+        formula: 'a, b, c, α, β, γ',
+        tags: ['Unit Cell', 'Crystal Systems', 'Bravais Lattices', 'Lattice Parameters', 'Cubic', 'Tetragonal', 'Hexagonal', 'Theory'],
+        icon: <Box className={`${defaultIconClass} text-amber-400`} />,
+        inputs: ['Crystal System Selection', 'Lattice Parameters (a,b,c,α,β,γ)', 'Centering Mode (P,I,F,C,R)'],
+        outputs: ['3D Orbital Unit Cell Projection', 'Cell Volume (V)', 'Reciprocal Metric Spacing d(hkl)', 'Symmetry Elements'],
+        complexity: 'Beginner',
+        isPopular: true,
+        descriptionDetail: isRTL 
+          ? 'بخش آموزشی و رفرانس جامع بلورشناسی و فیزیک حالت جامد پیرامون سلول‌های واحد، شبکه‌های اولیه و مرکزدار، و ویژگی‌های تقارنی ۷ دستگاه بلوری.' 
+          : 'Textbook-grade crystallography and solid-state physics reference module covering unit cell definitions, primitive vs. centered lattices, the 7 canonical crystal systems, and all 14 Bravais lattices with interactive 3D projections.',
+        suggestedNext: ['bragg', 'selection', 'metric_tensor']
+      },
       {
         id: 'bragg',
         label: t('Bragg Basics & Optics', 'Bragg Basics & Optics'),
