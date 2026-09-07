@@ -109,6 +109,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   const [showRefSticks, setShowRefSticks] = useState<boolean>(true);
   const [showHklBadges, setShowHklBadges] = useState<boolean>(true);
   const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [showBrush, setShowBrush] = useState<boolean>(true);
 
   // Wavelength Selection
   const [selectedWavelengthId, setSelectedWavelengthId] = useState<string>("cu_ka1");
@@ -1167,7 +1168,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
         )}
 
         {/* TOP INTERACTIVE SCIENTIFIC CONTROLS TOOLBAR */}
-        <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 z-20 pointer-events-auto">
+        <div className="w-full bg-[#080E1B]/95 border-b border-slate-800/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2 z-20 pointer-events-auto">
           {/* Left: Coordinate Space & Intensity Scale Selectors */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Coordinate Domain Switcher */}
@@ -1245,7 +1246,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             </div>
           </div>
 
-          {/* Right: Layer Toggles & Residual Mode */}
+          {/* Right: Layer Toggles, Brush & Residual Mode */}
           <div className="flex flex-wrap items-center gap-1.5 bg-[#09101F]/95 p-1 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-lg font-mono text-[9px]">
             {/* Toggle Experimental Continuous Profile */}
             <button
@@ -1309,6 +1310,18 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               </button>
             )}
 
+            {/* Toggle Range Zoom Slider (Brush) */}
+            <button
+              onClick={() => setShowBrush(!showBrush)}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
+                showBrush ? "text-cyan-200 bg-cyan-950/70 border border-cyan-500/50" : "text-slate-500 hover:text-slate-300"
+              }`}
+              title="Toggle bottom range zoom slider"
+            >
+              <div className={`w-2 h-2 rounded-full ${showBrush ? "bg-cyan-400 shadow-[0_0_6px_#22d3ee]" : "bg-slate-600"}`} />
+              Zoom Slider
+            </button>
+
             {/* Residual Curve Mode Toggle */}
             {selectedCandidate && (
               <button
@@ -1326,28 +1339,12 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
           </div>
         </div>
 
-        {/* BOTTOM METADATA INSTRUMENT STAMP */}
-        <div className="absolute bottom-4 right-4 z-10 bg-[#09101F]/90 px-3 py-2 rounded-xl border border-slate-700/80 backdrop-blur-md flex flex-col items-end gap-0.5 pointer-events-none opacity-70 group-hover/chart:opacity-100 transition-opacity">
-          <span className="text-[8px] font-mono text-slate-400 font-bold uppercase tracking-wider mb-0.5 border-b border-slate-800 pb-0.5 w-full text-right">
-            Instrumental Optics & Source
-          </span>
-          <span className="text-[9px] font-mono text-slate-400">
-            Radiation: <span className="text-slate-200 font-semibold">{activeWavelength.toFixed(5)} Å ({selectedWavelengthId})</span>
-          </span>
-          <span className="text-[9px] font-mono text-slate-400">
-            FWHM Model: <span className="text-slate-200 font-semibold">{effFwhm.toFixed(2)}° 2θ (Gaussian)</span>
-          </span>
-          <span className="text-[9px] font-mono text-slate-400">
-            Scale Domain: <span className="text-slate-200 font-semibold">{coordSpace} ({intensityScale})</span>
-          </span>
-        </div>
-
         {/* RECHARTS COMPOSED CHART VIEWPORT */}
-        <div className="flex-1 relative mt-[58px] mx-4 mb-3 z-10">
+        <div className="flex-1 relative w-full px-2 pt-2 pb-1 min-h-[360px] z-10">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={chartData}
-              margin={{ top: 20, right: 24, left: 16, bottom: 20 }}
+              margin={{ top: 16, right: 24, left: 16, bottom: showBrush ? 10 : 20 }}
               onClick={handleChartClick}
             >
               <defs>
@@ -1614,19 +1611,21 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               )}
 
               {/* Navigation Brush Slider */}
-              <Brush
-                dataKey="coordX"
-                height={26}
-                stroke="#22d3ee"
-                fill="#0f172a"
-                tickFormatter={(val) => Number(val).toFixed(0)}
-                style={{ opacity: 0.8 }}
-                travellerWidth={8}
-              >
-                <AreaChart>
-                  <Area type="monotone" dataKey="intensity" fill="#22d3ee" stroke="none" />
-                </AreaChart>
-              </Brush>
+              {showBrush && (
+                <Brush
+                  dataKey="coordX"
+                  height={26}
+                  stroke="#22d3ee"
+                  fill="#0f172a"
+                  tickFormatter={(val) => Number(val).toFixed(coordSpace === "twoTheta" ? 0 : 1)}
+                  style={{ opacity: 0.8 }}
+                  travellerWidth={8}
+                >
+                  <AreaChart>
+                    <Area type="monotone" dataKey="intensity" fill="#22d3ee" stroke="none" />
+                  </AreaChart>
+                </Brush>
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -1666,6 +1665,35 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             </div>
           </div>
         )}
+
+        {/* BOTTOM STATUS & INSTRUMENT OPTICS FOOTER */}
+        <div className="w-full bg-[#050813] border-t border-slate-800/80 px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-[10px] font-mono text-slate-400 z-10">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="uppercase text-[9px] tracking-wider text-slate-500 font-normal">Source:</span>
+              <span>{activeWavelength.toFixed(5)} Å ({selectedWavelengthId})</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="uppercase text-[9px] tracking-wider text-slate-500">FWHM Model:</span>
+              <span className="text-slate-200 font-semibold">{effFwhm.toFixed(2)}° 2θ (Gaussian)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="uppercase text-[9px] tracking-wider text-slate-500">Scale Domain:</span>
+              <span className="text-slate-200 font-semibold">{coordSpace === "twoTheta" ? "2θ (Bragg)" : coordSpace === "dSpacing" ? "d-spacing (Å)" : "Q-vector (Å⁻¹)"} ({intensityScale})</span>
+            </div>
+            {(zeroShiftDeg !== 0 || latticeStrainPct !== 0) && (
+              <div className="flex items-center gap-1.5 text-amber-300">
+                <span className="uppercase text-[9px] tracking-wider text-amber-500">Active Offset:</span>
+                <span className="font-semibold">Δ2θ {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}° | Strain {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-[9px] text-slate-500">
+            {showBrush && <span>Drag slider handles to zoom</span>}
+          </div>
+        </div>
 
         {/* EMPTY STATE BACKDROP */}
         {!inputData.trim() && (
