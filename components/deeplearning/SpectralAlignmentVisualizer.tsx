@@ -3,6 +3,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Area,
+  Line,
   Scatter,
   XAxis,
   YAxis,
@@ -37,6 +38,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { DLPhaseCandidate } from "../../types";
+import { calculatePeakProfile, getKa2Position, ProfileShapeType, COLOR_THEMES } from "./curveOpticsHelper";
 
 export type CoordinateSpace = "twoTheta" | "dSpacing" | "qVector";
 export type IntensityScale = "linear" | "sqrt" | "log";
@@ -147,6 +149,18 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
   // RAG Diagnostics Panel Toggle
   const [showRagDiagnostics, setShowRagDiagnostics] = useState<boolean>(true);
+
+  // Curve Optics & Styling Panel
+  const [showCurveOpticsPanel, setShowCurveOpticsPanel] = useState<boolean>(false);
+  const [profileShape, setProfileShape] = useState<"pseudoVoigt" | "gaussian" | "lorentzian" | "pearsonVII">("pseudoVoigt");
+  const [lorentzianFraction, setLorentzianFraction] = useState<number>(0.35);
+  const [enableKaDoublet, setEnableKaDoublet] = useState<boolean>(false);
+  const [curveOffsetMode, setCurveOffsetMode] = useState<"overlay" | "stacked">("overlay");
+  const [stackOffsetPct, setStackOffsetPct] = useState<number>(30);
+  const [calcLineStyle, setCalcLineStyle] = useState<"solid" | "dashed" | "dotted">("solid");
+  const [curveTheme, setCurveTheme] = useState<"scientific" | "darkScientific">("scientific");
+  const [showBraggTicksTrack, setShowBraggTicksTrack] = useState<boolean>(true);
+  const [expDataRenderMode, setExpDataRenderMode] = useState<"curve" | "points" | "curvePoints">("curve");
 
   // Export Menu
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
@@ -274,18 +288,45 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
     const evalTheoretical = (t: number) => {
       let totalRefI = 0;
+      const cutoff = 8 * effFwhm; // Evaluation cutoff radius
+
       activeCandidates.forEach((cand) => {
         const weight = phaseWeights[cand.phase_name] ?? 1.0;
         const peaks = getCalibratedRefPeaks(cand);
+        
         for (const p of peaks) {
           const diff = t - p.calibratedRefT;
-          if (Math.abs(diff) < 4 * sigma) {
-            totalRefI += p.refI * weight * Math.exp(-Math.pow(diff, 2) / sigma22);
+          if (Math.abs(diff) < cutoff) {
+            totalRefI += (p.refI * weight) * calculatePeakProfile(
+              diff, 
+              effFwhm, 
+              profileShape as ProfileShapeType, 
+              lorentzianFraction, 
+              0, // asymmetry
+              1.8 // mExponent
+            );
+
+            if (enableKaDoublet) {
+              const ka2Pos = getKa2Position(p.calibratedRefT);
+              if (ka2Pos !== null) {
+                const diff2 = t - ka2Pos;
+                if (Math.abs(diff2) < cutoff) {
+                  totalRefI += (p.refI * weight * 0.5) * calculatePeakProfile(
+                    diff2, 
+                    effFwhm, 
+                    profileShape as ProfileShapeType, 
+                    lorentzianFraction
+                  );
+                }
+              }
+            }
           }
         }
       });
       return totalRefI;
     };
+
+    const stackOffset = curveOffsetMode === "stacked" ? stackOffsetPct : 0;
 
     if (!isDiscrete) {
       return sortedPoints.map((p) => {
@@ -298,7 +339,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
           rawIntensity: p.intensity,
           intensity: transformIntensity(p.intensity),
           rawRefIntensity: Number(refI.toFixed(1)),
-          refIntensity: transformIntensity(refI),
+          refIntensity: transformIntensity(refI + stackOffset),
           rawResidual: residual !== null ? Number(residual.toFixed(1)) : null,
           residual: residual !== null ? transformIntensity(Math.abs(residual)) : null,
           signedResidual: residual !== null ? Number(residual.toFixed(1)) : null,
@@ -313,13 +354,19 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     const maxT = Math.min(120, Math.ceil(sortedPoints[sortedPoints.length - 1].twoTheta + 4));
     const step = 0.04;
     const data = [];
+    const cutoff = 8 * effFwhm;
 
     for (let t = minT; t <= maxT; t += step) {
       let expIntensity = 0;
       for (const p of sortedPoints) {
         const diff = t - p.twoTheta;
-        if (Math.abs(diff) < 4 * sigma) {
-          expIntensity += p.intensity * Math.exp(-Math.pow(diff, 2) / sigma22);
+        if (Math.abs(diff) < cutoff) {
+          expIntensity += p.intensity * calculatePeakProfile(
+            diff,
+            effFwhm,
+            profileShape as ProfileShapeType,
+            lorentzianFraction
+          );
         }
       }
 
@@ -332,7 +379,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
         rawIntensity: Number(expIntensity.toFixed(1)),
         intensity: transformIntensity(expIntensity),
         rawRefIntensity: Number(refI.toFixed(1)),
-        refIntensity: transformIntensity(refI),
+        refIntensity: transformIntensity(refI + stackOffset),
         rawResidual: residual !== null ? Number(residual.toFixed(1)) : null,
         residual: residual !== null ? transformIntensity(Math.abs(residual)) : null,
         signedResidual: residual !== null ? Number(residual.toFixed(1)) : null,
@@ -839,6 +886,20 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               Reflections ({staggeredRefPeaks.length})
             </button>
 
+            {/* Curve Optics Panel Toggle */}
+            <button
+              onClick={() => setShowCurveOpticsPanel(!showCurveOpticsPanel)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-mono text-[10px] font-bold uppercase tracking-wider transition-all duration-300 ${
+                showCurveOpticsPanel
+                  ? "bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                  : "bg-slate-800/40 text-slate-400 border-slate-700/60 hover:bg-slate-700/50 hover:text-slate-200"
+              }`}
+              title="Toggle Curve Optics & Display Settings"
+            >
+              <Sparkle className="w-3.5 h-3.5" />
+              Optics
+            </button>
+
             {/* Calibration Sliders Panel Toggle */}
             <button
               onClick={() => setShowCalibrationPanel(!showCalibrationPanel)}
@@ -987,6 +1048,175 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             </div>
           </div>
         )}
+
+        {/* CURVE OPTICS & STYLING PANEL (Collapsible) */}
+        <AnimatePresence>
+          {showCurveOpticsPanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="bg-[#050A14] border border-purple-500/30 rounded-2xl p-4 shadow-xl overflow-hidden relative"
+            >
+              <div className="absolute top-0 right-0 p-3 opacity-20 pointer-events-none">
+                <Sparkle className="w-16 h-16 text-purple-400" />
+              </div>
+              <h4 className="text-purple-300 font-mono text-[10px] font-bold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <Layers className="w-4 h-4" /> Scientific Curve Optics & Appearance
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                {/* 1. Peak Profile Physics */}
+                <div className="space-y-3">
+                  <div className="flex justify-between text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-1 border-b border-slate-800 pb-1">
+                    <span>Peak Profile Function</span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" checked={profileShape === "pseudoVoigt"} onChange={() => setProfileShape("pseudoVoigt")} className="text-purple-500 bg-slate-800 border-slate-700" />
+                      <span className="text-[11px] font-mono text-slate-300 group-hover:text-purple-300 transition-colors">Pseudo-Voigt (Gaussian+Lorentzian)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" checked={profileShape === "pearsonVII"} onChange={() => setProfileShape("pearsonVII")} className="text-purple-500 bg-slate-800 border-slate-700" />
+                      <span className="text-[11px] font-mono text-slate-300 group-hover:text-purple-300 transition-colors">Pearson VII (m=1.8)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" checked={profileShape === "gaussian"} onChange={() => setProfileShape("gaussian")} className="text-purple-500 bg-slate-800 border-slate-700" />
+                      <span className="text-[11px] font-mono text-slate-300 group-hover:text-purple-300 transition-colors">Gaussian (Instrumental)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" checked={profileShape === "lorentzian"} onChange={() => setProfileShape("lorentzian")} className="text-purple-500 bg-slate-800 border-slate-700" />
+                      <span className="text-[11px] font-mono text-slate-300 group-hover:text-purple-300 transition-colors">Lorentzian (Size Broadened)</span>
+                    </label>
+                  </div>
+
+                  {profileShape === "pseudoVoigt" && (
+                    <div className="mt-3 bg-[#0A101C] p-2.5 rounded-lg border border-slate-800/80">
+                      <div className="flex justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-2">
+                        <span>Lorentzian Mixing (η)</span>
+                        <span className="text-purple-400 font-bold">{lorentzianFraction.toFixed(2)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={lorentzianFraction}
+                        onChange={(e) => setLorentzianFraction(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      />
+                      <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1.5">
+                        <span>Pure Gaussian</span>
+                        <span>Pure Lorentzian</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <label className="flex items-center gap-2 mt-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableKaDoublet}
+                      onChange={(e) => setEnableKaDoublet(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-800 text-purple-500 focus:ring-0 w-3.5 h-3.5"
+                    />
+                    <span className="text-[11px] font-mono text-slate-300">Enable Cu-Kα₁/α₂ Doublet Splitting</span>
+                  </label>
+                </div>
+
+                {/* 2. Visual Layer Configuration */}
+                <div className="space-y-3">
+                  <div className="flex justify-between text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-1 border-b border-slate-800 pb-1">
+                    <span>Rendering Layout</span>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" checked={curveOffsetMode === "overlay"} onChange={() => setCurveOffsetMode("overlay")} className="text-cyan-500 bg-slate-800 border-slate-700" />
+                      <span className="text-[11px] font-mono text-slate-300 group-hover:text-cyan-300 transition-colors">Direct Overlay Plot</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="radio" checked={curveOffsetMode === "stacked"} onChange={() => setCurveOffsetMode("stacked")} className="text-cyan-500 bg-slate-800 border-slate-700" />
+                      <span className="text-[11px] font-mono text-slate-300 group-hover:text-cyan-300 transition-colors">Stacked Y-Offset Plot</span>
+                    </label>
+                  </div>
+
+                  {curveOffsetMode === "stacked" && (
+                    <div className="mt-3 bg-[#0A101C] p-2.5 rounded-lg border border-slate-800/80">
+                      <div className="flex justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-2">
+                        <span>Stack Offset Percentage</span>
+                        <span className="text-cyan-400 font-bold">+{stackOffsetPct}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="10"
+                        max="80"
+                        step="5"
+                        value={stackOffsetPct}
+                        onChange={(e) => setStackOffsetPct(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-4 pt-3 border-t border-slate-800/60">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-2">
+                      Experimental Data Render
+                    </div>
+                    <div className="flex items-center gap-2 bg-[#0A101C] p-1 rounded-lg border border-slate-800">
+                      <button onClick={() => setExpDataRenderMode("curve")} className={`flex-1 py-1 text-[10px] font-mono rounded ${expDataRenderMode === "curve" ? "bg-cyan-500/20 text-cyan-300 font-bold" : "text-slate-500 hover:text-slate-300"}`}>Continuous</button>
+                      <button onClick={() => setExpDataRenderMode("points")} className={`flex-1 py-1 text-[10px] font-mono rounded ${expDataRenderMode === "points" ? "bg-cyan-500/20 text-cyan-300 font-bold" : "text-slate-500 hover:text-slate-300"}`}>Cross Pts</button>
+                      <button onClick={() => setExpDataRenderMode("curvePoints")} className={`flex-1 py-1 text-[10px] font-mono rounded ${expDataRenderMode === "curvePoints" ? "bg-cyan-500/20 text-cyan-300 font-bold" : "text-slate-500 hover:text-slate-300"}`}>Curve+Pts</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Aesthetic & Theme Controls */}
+                <div className="space-y-3">
+                  <div className="flex justify-between text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider mb-1 border-b border-slate-800 pb-1">
+                    <span>Aesthetics & Theme</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">Theme:</span>
+                    <select
+                      value={curveTheme}
+                      onChange={(e) => setCurveTheme(e.target.value as any)}
+                      className="bg-[#0A101C] border border-slate-700 text-amber-300 font-mono text-[10px] font-bold px-2 py-1 rounded focus:outline-none"
+                    >
+                      <option value="scientific">Standard Scientific</option>
+                      <option value="darkScientific">Dark Scientific (High Contrast)</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3 bg-[#0A101C] p-2.5 rounded-lg border border-slate-800/80">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Ref Stroke Style</span>
+                    <select
+                      value={calcLineStyle}
+                      onChange={(e) => setCalcLineStyle(e.target.value as any)}
+                      className="bg-transparent text-emerald-400 font-mono text-[10px] font-bold focus:outline-none text-right"
+                    >
+                      <option value="solid" className="bg-[#0b1220]">Solid Line</option>
+                      <option value="dashed" className="bg-[#0b1220]">Dashed Line</option>
+                      <option value="dotted" className="bg-[#0b1220]">Dotted Line</option>
+                    </select>
+                  </div>
+
+                  <label className="flex items-center gap-2 mt-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showBraggTicksTrack}
+                      onChange={(e) => setShowBraggTicksTrack(e.target.checked)}
+                      className="rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-0 w-3.5 h-3.5"
+                    />
+                    <span className="text-[11px] font-mono text-slate-300">Show Bragg Tick Bar (|)</span>
+                  </label>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* CALIBRATION SLIDERS PANEL (Collapsible) */}
         <AnimatePresence>
@@ -1465,19 +1695,34 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
               {/* Experimental Pattern Area (Continuous) */}
               {showExpPattern && (
-                <Area
-                  type="natural"
+                <Line
+                  type="monotone"
                   dataKey="intensity"
-                  stroke="#06b6d4"
-                  fill="url(#specPatternGrad)"
-                  strokeWidth={2.2}
+                  stroke={COLOR_THEMES[curveTheme]?.expStroke || "#000"}
+                  strokeWidth={1.5}
                   name="Observed Diffractogram"
+                  dot={
+                    expDataRenderMode === "points" || expDataRenderMode === "curvePoints"
+                      ? (props: any) => {
+                          const { cx, cy, index } = props;
+                          if (index % 2 !== 0 && !isDiscrete) return null; // performance downsample
+                          return (
+                            <g key={`exp_dot_${index}`}>
+                              <circle cx={cx} cy={cy} r={2} fill={COLOR_THEMES[curveTheme]?.expStroke || "#000"} />
+                              <line x1={cx - 3} y1={cy} x2={cx + 3} y2={cy} stroke={COLOR_THEMES[curveTheme]?.expStroke || "#000"} strokeWidth={0.8} />
+                              <line x1={cx} y1={cy - 3} x2={cx} y2={cy + 3} stroke={COLOR_THEMES[curveTheme]?.expStroke || "#000"} strokeWidth={0.8} />
+                            </g>
+                          );
+                        }
+                      : false
+                  }
+                  strokeOpacity={expDataRenderMode === "points" ? 0 : 1}
+                  isAnimationActive={false}
                   activeDot={{
                     r: 5.5,
-                    fill: "#22d3ee",
-                    stroke: "#050b14",
+                    fill: COLOR_THEMES[curveTheme]?.expStroke || "#000",
+                    stroke: "#ffffff",
                     strokeWidth: 2,
-                    className: "drop-shadow-[0_0_12px_rgba(34,211,238,0.9)]",
                   }}
                 />
               )}
@@ -1505,28 +1750,46 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
               {/* Theoretical Reference Simulation Profile */}
               {selectedCandidate && showCalcProfile && (
-                <Area
-                  type="natural"
+                <Line
+                  type="monotone"
                   dataKey="refIntensity"
-                  stroke="#f43f5e"
-                  fill="url(#specRefGrad)"
-                  fillOpacity={0.3}
-                  strokeWidth={2}
-                  strokeDasharray="4 3"
+                  stroke={COLOR_THEMES[curveTheme]?.refStroke || "#ef4444"}
+                  strokeWidth={1.5}
+                  strokeDasharray={calcLineStyle === "solid" ? undefined : calcLineStyle === "dashed" ? "5 4" : "1 3"}
                   name={`${selectedCandidate.phase_name} (Calculated)`}
+                  isAnimationActive={false}
+                  dot={false}
                 />
               )}
 
               {/* Residual (Difference) Curve in Overlay Mode */}
               {selectedCandidate && residualView === "overlay" && (
-                <Area
-                  type="natural"
+                <Line
+                  type="monotone"
                   dataKey="residual"
-                  stroke="#f59e0b"
-                  strokeWidth={1.2}
-                  fill="url(#specResidGrad)"
-                  fillOpacity={0.4}
+                  stroke={COLOR_THEMES[curveTheme]?.resStroke || "#64748b"}
+                  strokeWidth={1.5}
                   name="Difference (ΔI)"
+                  isAnimationActive={false}
+                  dot={false}
+                />
+              )}
+
+              {/* Bragg Ticks Track */}
+              {showBraggTicksTrack && selectedCandidate && (
+                <Scatter
+                  data={primaryCalibratedPeaks}
+                  dataKey="refIntensity"
+                  name={`${selectedCandidate.phase_name} (Bragg Ticks)`}
+                  shape={(props: any) => {
+                    const { cx, yAxis } = props;
+                    const bottomY = yAxis && typeof yAxis.scale === "function" ? yAxis.scale(0) : 350;
+                    return (
+                      <g className="transition-all duration-300">
+                        <line x1={cx} y1={bottomY + 15} x2={cx} y2={bottomY + 25} stroke={COLOR_THEMES[curveTheme]?.refStroke || "#ef4444"} strokeWidth={1.5} />
+                      </g>
+                    );
+                  }}
                 />
               )}
 
@@ -1652,13 +1915,14 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     tick={{ fill: "#64748b", fontSize: 8, fontFamily: "monospace" }}
                     width={38}
                   />
-                  <ReferenceLine y={0} stroke="#f59e0b" strokeWidth={1.5} />
-                  <Area
-                    type="natural"
+                  <ReferenceLine y={0} stroke="#475569" strokeWidth={1} />
+                  <Line
+                    type="monotone"
                     dataKey="signedResidual"
-                    stroke="#f59e0b"
-                    fill="url(#specResidGrad)"
-                    fillOpacity={0.4}
+                    stroke={COLOR_THEMES[curveTheme]?.resStroke || "#64748b"}
+                    strokeWidth={1.5}
+                    isAnimationActive={false}
+                    dot={false}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
