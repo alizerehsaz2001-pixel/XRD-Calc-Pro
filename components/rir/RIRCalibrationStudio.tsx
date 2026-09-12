@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import katex from 'katex';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import {
   Calculator,
@@ -447,13 +449,10 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
             <p className="text-xs text-slate-300 leading-relaxed">
               When mixing a target analyte ($A$) with a known reference standard ($B$, typically Corundum with $RIR_B = 1.0$) in a known mass ratio $W_A/W_B$:
             </p>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-amber-300 overflow-x-auto">
-              <span dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  'RIR_A = RIR_B \\times \\left(\\frac{I_A}{I_B}\\right) \\times \\left(\\frac{W_B}{W_A}\\right)',
-                  { throwOnError: false, displayMode: true }
-                )
-              }} />
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-amber-300 overflow-x-auto text-sm">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {`$$ RIR_A = RIR_B \\times \\left(\\frac{I_A}{I_B}\\right) \\times \\left(\\frac{W_B}{W_A}\\right) $$`}
+              </ReactMarkdown>
             </div>
           </div>
 
@@ -541,13 +540,10 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
             <p className="text-xs text-slate-300 leading-relaxed">
               By adding a known mass fraction (W_S) of an internal crystalline standard into the sample, absolute phase weights are determined independently of matrix attenuation, allowing direct determination of amorphous matrix content:
             </p>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-indigo-300 overflow-x-auto">
-              <span dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  'W_i^{\\text{orig}} = \\frac{I_i}{I_s} \\cdot \\frac{RIR_s}{RIR_i} \\cdot W_s \\cdot \\frac{1}{1 - W_s / 100}',
-                  { throwOnError: false, displayMode: true }
-                )
-              }} />
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-indigo-300 overflow-x-auto text-sm">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {`$$ W_i^{\\text{orig}} = \\frac{I_i}{I_s} \\cdot \\frac{RIR_s}{RIR_i} \\cdot W_s \\cdot \\frac{1}{1 - W_s / 100} $$`}
+              </ReactMarkdown>
             </div>
           </div>
 

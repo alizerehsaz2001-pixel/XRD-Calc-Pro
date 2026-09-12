@@ -12,9 +12,17 @@ import {
   ChevronRight,
   ShieldCheck,
   Rotate3d,
-  Sliders
+  Sliders,
+  Box,
+  Hexagon,
+  Grid3x3,
+  Combine
 } from 'lucide-react';
 import { playSynthTone } from '../../utils/sound';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 export type APFStructureKey = 'sc' | 'bcc' | 'fcc' | 'hcp' | 'diamond' | 'nacl';
 
@@ -470,8 +478,10 @@ export const APFMathematicsSection: React.FC = () => {
 
             <div className="flex items-center gap-2 text-xs font-mono">
               <span className="text-slate-400">Universal Definition:</span>
-              <span className="px-3 py-1 rounded-xl bg-slate-950/80 border border-indigo-500/30 text-emerald-400 font-bold">
-                APF = V_atoms / V_unit_cell
+              <span className="px-3 py-1 rounded-xl bg-slate-950/80 border border-indigo-500/30 text-emerald-400 font-bold overflow-hidden flex items-center min-h-[32px]">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {`$$\\text{APF} = \\frac{V_{\\text{atoms}}}{V_{\\text{unit\\_cell}}}$$`}
+                </ReactMarkdown>
               </span>
             </div>
           </div>
@@ -488,9 +498,11 @@ export const APFMathematicsSection: React.FC = () => {
           {/* Quick Universal Formula Callout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
             <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
-              <span className="text-[11px] font-mono text-indigo-400 uppercase block font-bold">1. General Formulation</span>
-              <div className="mt-2 text-sm font-mono text-white font-bold">
-                APF = (N_net · V_atom) / V_cell
+              <span className="text-[11px] font-mono text-indigo-400 uppercase block font-bold mb-1">1. General Formulation</span>
+              <div className="text-sm font-mono text-white font-bold py-1 overflow-x-auto min-h-[40px] flex items-center">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {`$$\\text{APF} = \\frac{N_{\\text{net}} \\cdot V_{\\text{atom}}}{V_{\\text{cell}}}$$`}
+                </ReactMarkdown>
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
                 Where N_net is the effective number of sphere equivalents inside the unit cell.
@@ -498,9 +510,11 @@ export const APFMathematicsSection: React.FC = () => {
             </div>
 
             <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
-              <span className="text-[11px] font-mono text-emerald-400 uppercase block font-bold">2. Sphere Volume</span>
-              <div className="mt-2 text-sm font-mono text-white font-bold">
-                V_atom = (4/3) π R³
+              <span className="text-[11px] font-mono text-emerald-400 uppercase block font-bold mb-1">2. Sphere Volume</span>
+              <div className="text-sm font-mono text-white font-bold py-1 overflow-x-auto min-h-[40px] flex items-center">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {`$$V_{\\text{atom}} = \\frac{4}{3}\\pi R^3$$`}
+                </ReactMarkdown>
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
                 Rigid hard-sphere approximation where R is the metallic or covalent radius.
@@ -508,9 +522,11 @@ export const APFMathematicsSection: React.FC = () => {
             </div>
 
             <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800">
-              <span className="text-[11px] font-mono text-rose-400 uppercase block font-bold">3. Void Fraction (Porosity)</span>
-              <div className="mt-2 text-sm font-mono text-white font-bold">
-                Φ_void = 1 - APF
+              <span className="text-[11px] font-mono text-rose-400 uppercase block font-bold mb-1">3. Void Fraction (Porosity)</span>
+              <div className="text-sm font-mono text-white font-bold py-1 overflow-x-auto min-h-[40px] flex items-center">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {`$$\\Phi_{\\text{void}} = 1 - \\text{APF}$$`}
+                </ReactMarkdown>
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
                 Complementary fraction of unit cell volume available as interstitial void space.
@@ -582,8 +598,10 @@ export const APFMathematicsSection: React.FC = () => {
                   </span>
                 </div>
                 <div className="text-xs font-bold text-white mt-1 truncate">{item.name.split(' (')[0]}</div>
-                <div className="text-[10px] font-mono text-amber-400 mt-2 font-semibold">
-                  {item.exactFormulaDisplay}
+                <div className="text-[10px] font-mono text-amber-400 mt-2 font-semibold overflow-x-auto whitespace-nowrap hide-scrollbar flex items-center min-h-[30px] prose prose-invert prose-p:my-0 prose-math:text-amber-400">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {`$$${item.exactFormulaLatex}$$`}
+                  </ReactMarkdown>
                 </div>
               </button>
             );
@@ -611,8 +629,13 @@ export const APFMathematicsSection: React.FC = () => {
                   <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-sm inline-block">
                     APF = {active.percentValue}
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400 block mt-1">
-                    Closed-Form: {active.exactFormulaDisplay}
+                  <span className="text-[10px] font-mono text-slate-400 mt-1 flex items-center justify-end gap-1">
+                    <span>Closed-Form:</span>
+                    <span className="prose prose-invert prose-p:my-0 prose-math:text-slate-400">
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        {`$$${active.exactFormulaLatex}$$`}
+                      </ReactMarkdown>
+                    </span>
                   </span>
                 </div>
               </div>
@@ -661,8 +684,13 @@ export const APFMathematicsSection: React.FC = () => {
                   </p>
 
                   {/* Math Formula Callout Box */}
-                  <div className="ml-8 p-3.5 rounded-xl bg-slate-950 border border-slate-800/90 font-mono text-xs text-emerald-300 font-bold overflow-x-auto shadow-inner">
-                    <code>{step.math}</code>
+                  <div className="ml-8 p-4 rounded-xl bg-slate-950 border border-slate-800/90 font-mono text-[13px] text-emerald-300 font-bold overflow-x-auto shadow-inner prose prose-invert prose-p:my-0 prose-math:text-emerald-300">
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkMath]} 
+                      rehypePlugins={[rehypeKatex]}
+                    >
+                      {`$$${step.math}$$`}
+                    </ReactMarkdown>
                   </div>
 
                   {step.notes && (
@@ -685,8 +713,10 @@ export const APFMathematicsSection: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950/80 border border-indigo-500/20">
                 <div className="space-y-1">
                   <span className="text-[11px] font-mono text-slate-400">Closed-Form Analytical Formula:</span>
-                  <div className="text-xl font-mono font-black text-amber-400">
-                    APF = {active.exactFormulaDisplay}
+                  <div className="text-xl font-mono font-black text-amber-400 overflow-x-auto min-w-[200px]">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                      {`$$${active.exactFormulaLatex}$$`}
+                    </ReactMarkdown>
                   </div>
                 </div>
                 <div className="sm:text-right space-y-1">
@@ -714,10 +744,19 @@ export const APFMathematicsSection: React.FC = () => {
                 </span>
               </div>
 
-              <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800/80 flex flex-col items-center justify-center min-h-[190px] relative overflow-hidden">
-                <div className="text-center space-y-2">
-                  <div className="text-3xl font-black font-mono text-indigo-400 tracking-tight">
-                    {active.exactFormulaDisplay}
+              <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800/80 flex flex-col items-center justify-center min-h-[190px] relative overflow-hidden group/geom">
+                {active.id === 'sc' && <Box className="absolute -right-6 -bottom-6 w-32 h-32 text-indigo-500/10 group-hover/geom:text-indigo-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+                {active.id === 'bcc' && <Box className="absolute -right-6 -bottom-6 w-32 h-32 text-amber-500/10 group-hover/geom:text-amber-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+                {active.id === 'fcc' && <Box className="absolute -right-6 -bottom-6 w-32 h-32 text-emerald-500/10 group-hover/geom:text-emerald-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+                {active.id === 'hcp' && <Hexagon className="absolute -right-6 -bottom-6 w-32 h-32 text-sky-500/10 group-hover/geom:text-sky-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+                {active.id === 'diamond' && <Combine className="absolute -right-6 -bottom-6 w-32 h-32 text-rose-500/10 group-hover/geom:text-rose-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+                {active.id === 'nacl' && <Grid3x3 className="absolute -right-6 -bottom-6 w-32 h-32 text-fuchsia-500/10 group-hover/geom:text-fuchsia-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+                
+                <div className="text-center space-y-2 w-full relative z-10">
+                  <div className="text-3xl font-black font-mono text-indigo-400 tracking-tight overflow-x-auto w-full flex justify-center py-2">
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                      {`$$${active.exactFormulaLatex}$$`}
+                    </ReactMarkdown>
                   </div>
                   <div className="text-xs font-mono text-emerald-400 font-bold">
                     = {active.percentValue}
@@ -819,32 +858,56 @@ export const APFMathematicsSection: React.FC = () => {
             </p>
           </div>
 
-          {/* Interactive Radius Slider */}
-          <div className="bg-slate-950 rounded-2xl p-5 border border-slate-800 space-y-4 max-w-2xl">
-            <div className="flex justify-between items-center text-xs font-mono">
-              <span className="text-slate-300 font-bold flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-indigo-400" />
-                <span>Atomic Radius (R)</span>
-              </span>
-              <span className="px-3 py-1 rounded-lg bg-indigo-950 text-indigo-300 font-bold border border-indigo-500/20">
-                R = {customRadius.toFixed(3)} Å (0.{Math.round(customRadius * 100)} nm)
-              </span>
+          {/* Interactive Configuration Box */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+            {/* Radius Slider */}
+            <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 space-y-5">
+              <div className="flex justify-between items-center text-xs font-mono">
+                <span className="text-slate-300 font-bold flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-indigo-400" />
+                  <span>Atomic Radius (R)</span>
+                </span>
+                <span className="px-3 py-1 rounded-lg bg-indigo-950 text-indigo-300 font-bold border border-indigo-500/20 shadow-inner">
+                  R = {customRadius.toFixed(3)} Å
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min="0.5"
+                max="2.5"
+                step="0.01"
+                value={customRadius}
+                onChange={(e) => setCustomRadius(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-slate-800 accent-indigo-500 rounded-lg cursor-pointer"
+              />
+
+              <div className="flex justify-between text-[10px] font-mono text-slate-500 px-1">
+                <span>0.50 Å (Be/C)</span>
+                <span>1.25 Å (Metals)</span>
+                <span>2.50 Å (Alkalis)</span>
+              </div>
             </div>
 
-            <input
-              type="range"
-              min="0.5"
-              max="2.5"
-              step="0.01"
-              value={customRadius}
-              onChange={(e) => setCustomRadius(parseFloat(e.target.value))}
-              className="w-full h-1.5 bg-slate-800 accent-indigo-500 rounded-lg cursor-pointer"
-            />
+            {/* Geometric Live Preview */}
+            <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800/80 flex items-center justify-between overflow-hidden relative min-h-[140px] group/geom">
+              {active.id === 'sc' && <Box className="absolute -right-2 -bottom-4 w-32 h-32 text-indigo-500/10 group-hover/geom:text-indigo-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+              {active.id === 'bcc' && <Box className="absolute -right-2 -bottom-4 w-32 h-32 text-amber-500/10 group-hover/geom:text-amber-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+              {active.id === 'fcc' && <Box className="absolute -right-2 -bottom-4 w-32 h-32 text-emerald-500/10 group-hover/geom:text-emerald-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+              {active.id === 'hcp' && <Hexagon className="absolute -right-2 -bottom-4 w-32 h-32 text-sky-500/10 group-hover/geom:text-sky-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+              {active.id === 'diamond' && <Combine className="absolute -right-2 -bottom-4 w-32 h-32 text-rose-500/10 group-hover/geom:text-rose-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
+              {active.id === 'nacl' && <Grid3x3 className="absolute -right-2 -bottom-4 w-32 h-32 text-fuchsia-500/10 group-hover/geom:text-fuchsia-500/20 group-hover/geom:scale-110 transition-all duration-500" />}
 
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>0.50 Å (Smallest, e.g. Be/C)</span>
-              <span>1.25 Å (Transition metals)</span>
-              <span>2.50 Å (Large alkalis, e.g. Cs)</span>
+              <div className="space-y-1 relative z-10">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest block">Structural Invariance</span>
+                <div className="text-xl font-black font-mono text-white tracking-tight">
+                  <span className="text-emerald-400">APF</span> = {active.percentValue}
+                </div>
+                <div className="text-[11px] font-mono text-slate-400 pt-1">
+                  Volumes scale by <span className="text-white font-bold">R³</span>,<br />
+                  but their ratio is constant.
+                </div>
+              </div>
             </div>
           </div>
 
@@ -885,8 +948,13 @@ export const APFMathematicsSection: React.FC = () => {
               <div className="text-xl font-mono font-black text-emerald-400">
                 {(calcDetails.computedAPF * 100).toFixed(2)}%
               </div>
-              <span className="text-[10px] font-mono text-slate-400 block">
-                Closed-form: {active.exactFormulaDisplay}
+              <span className="text-[10px] font-mono text-slate-400 mt-1 flex items-center gap-1">
+                <span>Closed-form:</span>
+                <span className="prose prose-invert prose-p:my-0 prose-math:text-slate-400">
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    {`$$${active.exactFormulaLatex}$$`}
+                  </ReactMarkdown>
+                </span>
               </span>
             </div>
           </div>
@@ -970,7 +1038,13 @@ export const APFMathematicsSection: React.FC = () => {
                       <td className="p-3.5 text-slate-300">{s.contactDirection}</td>
                       <td className="p-3.5 text-amber-300">{s.latticeParamFormula}</td>
                       <td className="p-3.5 text-slate-200">{s.netAtomsValue}</td>
-                      <td className="p-3.5 text-emerald-400 font-bold">{s.exactFormulaDisplay}</td>
+                      <td className="p-3.5 text-emerald-400 font-bold overflow-x-auto min-w-[80px]">
+                        <div className="prose prose-invert prose-p:my-0 prose-math:text-emerald-400 flex items-center min-h-[30px]">
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {`$$${s.exactFormulaLatex}$$`}
+                          </ReactMarkdown>
+                        </div>
+                      </td>
                       <td className="p-3.5 text-emerald-300 font-bold">{s.percentValue}</td>
                       <td className="p-3.5 text-sky-400">{s.voidFractionPercent}</td>
                     </tr>
@@ -989,8 +1063,12 @@ export const APFMathematicsSection: React.FC = () => {
             <p className="text-xs text-slate-300 leading-relaxed">
               In 1611, Johannes Kepler conjectured that no arrangement of equally sized spheres fills 3D space with a density greater than the face-centered cubic (FCC) or hexagonal close-packed (HCP) arrangements:
             </p>
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs text-emerald-300 font-bold text-center">
-              APF_max = π / (3√2) = (π√2) / 6 ≈ 0.740480489693... (74.05%)
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[13px] text-emerald-300 font-bold text-center flex items-center justify-center min-h-[50px] overflow-x-auto">
+              <span className="prose prose-invert prose-p:my-0 prose-math:text-emerald-300">
+                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                  {`$$\\text{APF}_{\\max} = \\frac{\\pi}{3\\sqrt{2}} = \\frac{\\pi\\sqrt{2}}{6} \\approx 0.74048... \\quad (74.05\\%)$$`}
+                </ReactMarkdown>
+              </span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
               This longstanding mathematical theorem was formally proved with computer verification by Thomas Hales in 1998 (published in 2005). FCC and HCP share this identical packing density, differing only in stacking sequence (ABCABC... vs ABABAB...).

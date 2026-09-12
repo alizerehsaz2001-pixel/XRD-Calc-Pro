@@ -646,104 +646,104 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-1.5 backdrop-blur-md flex flex-wrap gap-1.5 shadow-xl">
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('analysis'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'analysis'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <FlaskConical className="w-4 h-4 text-indigo-300" />
-              <span>1. Phase Engine</span>
+              <span>Phase Engine</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('matrix'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'matrix'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <Cpu className="w-4 h-4 text-cyan-300" />
-              <span>2. Matrix & Covariance</span>
+              <span>Matrix & Covariance</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('calibration'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'calibration'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <Calculator className="w-4 h-4 text-amber-300" />
-              <span>3. Calibration Studio</span>
+              <span>Calibration Studio</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('spectrum'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'spectrum'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <BarChart3 className="w-4 h-4 text-emerald-300" />
-              <span>4. XRD Spectrum</span>
+              <span>XRD Spectrum</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('database'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'database'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <Database className="w-4 h-4 text-purple-300" />
-              <span>5. Reference DB</span>
+              <span>Reference DB</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('microabsorption'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'microabsorption'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <Layers className="w-4 h-4 text-cyan-400" />
-              <span>7. Brindley Correction</span>
+              <span>Brindley Correction</span>
               {useBrindley && <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />}
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('script'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'script'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <Code2 className="w-4 h-4 text-purple-400" />
-              <span>8. Script Export</span>
+              <span>Script Export</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setMainTab('theory'); }}
-              className={`flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
                 mainTab === 'theory'
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
               }`}
             >
               <BookOpen className="w-4 h-4 text-rose-300" />
-              <span>9. Theory</span>
+              <span>Theory</span>
             </button>
 
             <button
               onClick={startComputation}
-              className="flex-1 min-w-[130px] py-3 px-3.5 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white shadow-lg shadow-emerald-500/20 font-black border border-emerald-400/40 active:scale-95"
+              className="flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md ring-1 ring-emerald-500/50 active:scale-95"
             >
               <Play className="w-4 h-4 fill-white" />
               <span>Compute RIR</span>

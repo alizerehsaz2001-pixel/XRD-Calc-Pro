@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import katex from 'katex';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import {
   Cpu,
@@ -587,13 +589,10 @@ if amorphous_wt_pct > 0:
             <p className="text-xs text-slate-300 leading-relaxed">
               In matrix notation, quantitative phase analysis maps measured peak intensities (I) and reference intensity ratio constants (K) into normalized weight fractions (w) via the diagonal scaling matrix K^-1:
             </p>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-indigo-300 overflow-x-auto">
-              <span dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  '\\mathbf{w} = \\frac{\\mathbf{K}^{-1} \\mathbf{I}}{\\mathbf{1}^T \\mathbf{K}^{-1} \\mathbf{I}} = \\frac{\\tilde{\\mathbf{I}}}{\\sum_{k=1}^n \\tilde{I}_k}, \\quad \\text{where } \\tilde{I}_i = \\frac{I_i}{K_i}',
-                  { throwOnError: false, displayMode: true }
-                )
-              }} />
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-indigo-300 overflow-x-auto text-sm">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {`$$ \\mathbf{w} = \\frac{\\mathbf{K}^{-1} \\mathbf{I}}{\\mathbf{1}^T \\mathbf{K}^{-1} \\mathbf{I}} = \\frac{\\tilde{\\mathbf{I}}}{\\sum_{k=1}^n \\tilde{I}_k}, \\quad \\text{where } \\tilde{I}_i = \\frac{I_i}{K_i} $$`}
+              </ReactMarkdown>
             </div>
           </div>
 
@@ -693,13 +692,10 @@ if amorphous_wt_pct > 0:
             <p className="text-xs text-slate-300 leading-relaxed">
               The Jacobian matrix J_I defines how infinitesimal fluctuations in measured peak intensity of phase j alter the calculated weight fraction of phase i:
             </p>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-cyan-300 overflow-x-auto">
-              <span dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  'J_{I, ij} = \\frac{\\partial w_i}{\\partial I_j} = \\frac{1}{S \\cdot K_j} \\left( \\delta_{ij} - w_i \\right), \\quad \\text{where } S = \\sum_{k=1}^n \\frac{I_k}{K_k}',
-                  { throwOnError: false, displayMode: true }
-                )
-              }} />
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-cyan-300 overflow-x-auto text-sm">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {`$$ J_{I, ij} = \\frac{\\partial w_i}{\\partial I_j} = \\frac{1}{S \\cdot K_j} \\left( \\delta_{ij} - w_i \\right), \\quad \\text{where } S = \\sum_{k=1}^n \\frac{I_k}{K_k} $$`}
+              </ReactMarkdown>
             </div>
           </div>
 
@@ -759,13 +755,10 @@ if amorphous_wt_pct > 0:
             <p className="text-xs text-slate-300 leading-relaxed">
               Propagating experimental intensity variance and reference constant uncertainty through the multivariable chain rule yields the exact analytical covariance tensor:
             </p>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-emerald-300 overflow-x-auto">
-              <span dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  '\\mathbf{\\Sigma}_{\\mathbf{w}} = \\mathbf{J}_{\\mathbf{I}} \\mathbf{\\Sigma}_{\\mathbf{I}} \\mathbf{J}_{\\mathbf{I}}^T + \\mathbf{J}_{\\mathbf{K}} \\mathbf{\\Sigma}_{\\mathbf{K}} \\mathbf{J}_{\\mathbf{K}}^T',
-                  { throwOnError: false, displayMode: true }
-                )
-              }} />
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-emerald-300 overflow-x-auto text-sm">
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                {`$$ \\mathbf{\\Sigma}_{\\mathbf{w}} = \\mathbf{J}_{\\mathbf{I}} \\mathbf{\\Sigma}_{\\mathbf{I}} \\mathbf{J}_{\\mathbf{I}}^T + \\mathbf{J}_{\\mathbf{K}} \\mathbf{\\Sigma}_{\\mathbf{K}} \\mathbf{J}_{\\mathbf{K}}^T $$`}
+              </ReactMarkdown>
             </div>
           </div>
 
