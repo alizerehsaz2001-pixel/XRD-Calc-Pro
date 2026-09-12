@@ -2124,21 +2124,33 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
     maxT = Math.min(150, maxT + 5);
     
     const chartPoints = [];
-    // Increase points count for smoother and more complete rendering
-    const pointsCount = 200; 
-    const step = (maxT - minT) / pointsCount;
+    // High-resolution scientific grid with adaptive step size (~0.04° to 0.05°)
+    const span = maxT - minT;
+    const targetPoints = Math.min(1200, Math.max(400, Math.round(span / 0.05)));
+    const step = span / targetPoints;
+
+    const fwhm = typeof inputBroadening === 'number' && inputBroadening > 0.02 ? inputBroadening : 0.18;
+    const s = fwhm / 2.35482;
+    const s22 = 2 * s * s;
+    const eta = 0.35; // Standard crystallographic Pseudo-Voigt Lorentzian fraction
     
     for (let x = minT; x <= maxT; x += step) {
       let calcInt = 0;
       for (const p of sorted) {
-        // Gaussian peak shape model utilizing interactive inputBroadening
-        const s = inputBroadening / 2.355; 
-        const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(s, 2)));
-        calcInt += val;
+        const diff = x - p.twoTheta;
+        if (Math.abs(diff) < 5 * fwhm) {
+          // Physical Pseudo-Voigt peak shape (Gaussian instrumental + Lorentzian crystallite size)
+          const gVal = Math.exp(-Math.pow(diff, 2) / s22);
+          const lVal = 1 / (1 + 4 * Math.pow(diff / fwhm, 2));
+          calcInt += p.intensity * (eta * lVal + (1 - eta) * gVal);
+        }
       }
       
       // Amorphous background halo centered at 28.0 deg utilizing interactive inputBgAmorphous
-      const bg = inputBgAmorphous * 3 * Math.exp(-Math.pow(x - 28.0, 2) / (2 * Math.pow(15.0, 2)));
+      const bgAmorphous = inputBgAmorphous * 3 * Math.exp(-Math.pow(x - 28.0, 2) / (2 * Math.pow(15.0, 2)));
+      // Low-angle air scatter typical of laboratory Bragg-Brentano geometry
+      const bgAirScatter = 4.0 * Math.exp(-0.12 * x);
+      const bg = bgAmorphous + bgAirScatter;
       
       // Poisson-like noise modeling utilizing interactive inputNoiseLevel
       const baseSignal = calcInt + bg;
@@ -2153,6 +2165,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
         twoTheta: Number(x.toFixed(2)),
         intensity: Number(finalVal.toFixed(2)),
         saliency: Number(saliencyWeight.toFixed(1)),
+        baseline: Number(bg.toFixed(2)),
       });
     }
     return chartPoints;
@@ -2269,9 +2282,17 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
     );
     
     // Use realistic scientific XRD instrumental broadening
-    const effFwhm = typeof inputBroadening === 'number' && inputBroadening > 0.05 ? inputBroadening : 0.18;
+    const effFwhm = typeof inputBroadening === 'number' && inputBroadening > 0.02 ? inputBroadening : 0.18;
     const sigma = calcSigma(effFwhm);
     const sigma22 = Math.max(0.0001, 2 * sigma * sigma);
+    const eta = 0.35; // Standard crystallographic Pseudo-Voigt Lorentzian mixing fraction
+
+    // Pseudo-Voigt profile function
+    const pvPeak = (diff: number, fwhm: number) => {
+      const g = Math.exp(-Math.pow(diff, 2) / sigma22);
+      const l = 1 / (1 + 4 * Math.pow(diff / fwhm, 2));
+      return eta * l + (1 - eta) * g;
+    };
 
     if (!isDiscrete) {
       // If it's continuous experimental data, calculate match and residual
@@ -2279,8 +2300,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
         let refIntensity = 0;
         if (selectedCandidate && selectedCandidate.matched_peaks) {
           for (const mp of selectedCandidate.matched_peaks) {
-            refIntensity +=
-              mp.refI * Math.exp(-Math.pow(p.twoTheta - mp.refT, 2) / sigma22);
+            const diff = p.twoTheta - mp.refT;
+            if (Math.abs(diff) < 5 * effFwhm) {
+              refIntensity += mp.refI * pvPeak(diff, effFwhm);
+            }
           }
         }
 
@@ -2299,7 +2322,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       });
     }
 
-    // For discrete stick data, generate a high-resolution scientific gaussian spectrum
+    // For discrete stick data, generate a high-resolution scientific Pseudo-Voigt spectrum
     const minT = Math.max(5, Math.floor(sortedPoints[0].twoTheta - 5));
     const maxT = Math.min(120, Math.ceil(sortedPoints[sortedPoints.length - 1].twoTheta + 5));
 
@@ -2310,8 +2333,8 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       let intensity = 0;
       for (const p of sortedPoints) {
         const diff = t - p.twoTheta;
-        if (Math.abs(diff) < 4 * sigma) {
-          intensity += p.intensity * Math.exp(-Math.pow(diff, 2) / sigma22);
+        if (Math.abs(diff) < 5 * effFwhm) {
+          intensity += p.intensity * pvPeak(diff, effFwhm);
         }
       }
 
@@ -2319,8 +2342,8 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       if (selectedCandidate && selectedCandidate.matched_peaks) {
         for (const mp of selectedCandidate.matched_peaks) {
           const diff = t - mp.refT;
-          if (Math.abs(diff) < 4 * sigma) {
-            refIntensity += mp.refI * Math.exp(-Math.pow(diff, 2) / sigma22);
+          if (Math.abs(diff) < 5 * effFwhm) {
+            refIntensity += mp.refI * pvPeak(diff, effFwhm);
           }
         }
       }

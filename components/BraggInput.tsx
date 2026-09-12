@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { fetchStandardWavelengths } from '../services/geminiService';
-import { StandardWavelength } from '../types';
+import { fetchStandardWavelengths, suggestHKLPlanes } from '../services/geminiService';
+import { StandardWavelength, SuggestHKLsResponse } from '../types';
 import { XRAY_WAVELENGTHS, parseSingleHKL, validateHKLAgainstCrystalSystem } from '../utils/physics';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { 
@@ -195,6 +195,58 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   const [refineLogs, setRefineLogs] = useState<string[]>([]);
   const [refinedPeaksResult, setRefinedPeaksResult] = useState<Array<{ original: number, refined: number, reference: number | null, shift: number, matched: boolean }>>([]);
   const [optimalAutoShift, setOptimalAutoShift] = useState<number>(0);
+
+  // AI-driven HKL Suggestion States
+  const [isSuggestingHKLs, setIsSuggestingHKLs] = useState(false);
+  const [hklSuggestionResult, setHklSuggestionResult] = useState<SuggestHKLsResponse | null>(null);
+  const [hklSuggestionMessage, setHklSuggestionMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [showHklSuggestionDetail, setShowHklSuggestionDetail] = useState(false);
+
+  const handleSuggestHKLs = async () => {
+    if (parsedPeaks.length === 0) {
+      setHklSuggestionMessage({
+        type: 'error',
+        text: 'Please enter at least one experimental peak angle (2θ) first.'
+      });
+      return;
+    }
+
+    setIsSuggestingHKLs(true);
+    setHklSuggestionMessage(null);
+
+    try {
+      const result = await suggestHKLPlanes({
+        rawPeaks,
+        peaks: parsedPeaks,
+        crystalSystem: crystalSystem || 'SC',
+        wavelength,
+        sampleId
+      });
+
+      if (result && result.success && result.hklString) {
+        setRawHKL(result.hklString);
+        setHklSuggestionResult(result);
+        setShowHklSuggestionDetail(true);
+        setHklSuggestionMessage({
+          type: 'success',
+          text: `Successfully assigned ${result.suggestions.length} reflection indices for ${result.crystalSystemUsed} (${result.estimatedLatticeConstant || 'Indexed'}).`
+        });
+      } else {
+        setHklSuggestionMessage({
+          type: 'error',
+          text: result?.error || 'Failed to determine reflection indices for the provided peaks.'
+        });
+      }
+    } catch (err: any) {
+      console.error('Error suggesting HKLs:', err);
+      setHklSuggestionMessage({
+        type: 'error',
+        text: err?.message || 'Error occurred while running crystallographic indexing.'
+      });
+    } finally {
+      setIsSuggestingHKLs(false);
+    }
+  };
 
   // Converts pattern string (intensity and peaks) into an array of twoTheta peak angles, 
   // shifted properly for the active wavelength.
@@ -828,19 +880,93 @@ export const BraggInput: React.FC<BraggInputProps> = ({
 
             <div className="bg-slate-50/80 dark:bg-slate-950/50 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col justify-between">
               <div>
-                <label className="block text-[10px] uppercase tracking-widest font-black text-slate-600 dark:text-slate-400 mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[10px] uppercase tracking-widest font-black text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-indigo-500" />
                     {t('Miller Indices')}
-                  </span>
-                  <span className="text-[9px] font-mono text-indigo-500 font-bold">{parsedHKLs.length} planes</span>
-                </label>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-mono text-indigo-500 font-bold">{parsedHKLs.length} planes</span>
+                    <button
+                      id="suggest-hkls-btn-header"
+                      type="button"
+                      onClick={handleSuggestHKLs}
+                      disabled={isSuggestingHKLs || parsedPeaks.length === 0}
+                      className="px-2.5 py-0.5 text-[8.5px] font-black uppercase rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 border border-indigo-500/30 transition-all cursor-pointer flex items-center gap-1 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="AI Analysis: Suggest HKL reflection planes from current raw peaks based on crystal system extinction rules"
+                    >
+                      <Sparkles className={`w-2.5 h-2.5 ${isSuggestingHKLs ? 'animate-spin' : ''}`} />
+                      {isSuggestingHKLs ? 'Indexing...' : 'Suggest HKLs'}
+                    </button>
+                  </div>
+                </div>
                 <textarea
                   value={rawHKL}
                   onChange={(e) => setRawHKL(e.target.value)}
                   placeholder="e.g., 111, 220, 311"
                   className="w-full h-24 px-3.5 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-mono text-xs leading-relaxed custom-scrollbar resize-none shadow-xs"
                 />
+
+                {/* Suggest HKLs Action Bar */}
+                <div className="flex items-center gap-1.5 mt-2">
+                  <button
+                    id="suggest-hkls-btn"
+                    type="button"
+                    onClick={handleSuggestHKLs}
+                    disabled={isSuggestingHKLs || parsedPeaks.length === 0}
+                    className="flex-1 py-1.5 px-3 text-[9.5px] font-black uppercase rounded-xl bg-gradient-to-r from-indigo-500/15 via-indigo-600/15 to-violet-600/15 hover:from-indigo-500/25 hover:to-violet-600/25 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={`Analyze ${parsedPeaks.length} peaks and suggest HKL planes for ${crystalSystem}`}
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 ${isSuggestingHKLs ? 'animate-spin text-indigo-500' : 'text-indigo-500'}`} />
+                    <span>{isSuggestingHKLs ? 'Analyzing Peaks & Lattice...' : `Suggest HKLs (${crystalSystem})`}</span>
+                  </button>
+                  {hklSuggestionResult && (
+                    <button
+                      id="view-hkl-analysis-toggle"
+                      type="button"
+                      onClick={() => setShowHklSuggestionDetail(!showHklSuggestionDetail)}
+                      className={`px-2.5 py-1.5 text-[9px] font-bold rounded-xl border transition-colors cursor-pointer flex items-center gap-1 ${
+                        showHklSuggestionDetail 
+                          ? 'bg-indigo-600 text-white border-indigo-600 dark:bg-indigo-500' 
+                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                      }`}
+                      title="Toggle AI Indexing Breakdown"
+                    >
+                      {showHklSuggestionDetail ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      <span>Details</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* HKL Suggestion Toast Message */}
+                {hklSuggestionMessage && (
+                  <div
+                    id="hkl-suggestion-feedback-banner"
+                    className={`text-[9.5px] p-2 rounded-xl border flex items-center justify-between gap-1.5 transition-all mt-2 ${
+                      hklSuggestionMessage.type === 'success'
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                        : hklSuggestionMessage.type === 'error'
+                        ? 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+                        : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 overflow-hidden text-ellipsis">
+                      {hklSuggestionMessage.type === 'success' ? (
+                        <Check className="w-3 h-3 shrink-0" />
+                      ) : (
+                        <AlertTriangle className="w-3 h-3 shrink-0" />
+                      )}
+                      <span>{hklSuggestionMessage.text}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setHklSuggestionMessage(null)}
+                      className="p-0.5 hover:bg-black/5 dark:hover:bg-white/5 rounded cursor-pointer shrink-0"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="mt-2.5 space-y-2">
                 <div className="flex flex-wrap gap-1 items-center">
@@ -886,6 +1012,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 </div>
               </div>
             </div>
+
           </div>
           
           {/* Dynamic Parsing Preview Badge Board */}
@@ -977,6 +1104,107 @@ export const BraggInput: React.FC<BraggInputProps> = ({
               })()}
             </div>
           )}
+
+          {/* AI HKL Suggestion Full Academic Breakdown Panel */}
+          <AnimatePresence>
+            {hklSuggestionResult && showHklSuggestionDetail && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                id="ai-hkl-suggestion-detail-panel"
+                className="p-4 bg-gradient-to-br from-indigo-50/70 via-slate-50 to-purple-50/50 dark:from-indigo-950/30 dark:via-slate-900/50 dark:to-purple-950/20 rounded-2xl border border-indigo-200/70 dark:border-indigo-800/50 shadow-xs space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-indigo-600 text-white rounded-lg">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white flex items-center gap-2">
+                        AI Crystallographic Indexing Solution
+                        <span className="px-2 py-0.5 text-[9px] font-mono font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-300 rounded-md">
+                          {hklSuggestionResult.crystalSystemUsed}
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {hklSuggestionResult.modelUsed || 'XRD AI Indexer'} • {hklSuggestionResult.estimatedLatticeConstant || 'Lattice Parameter Evaluated'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRawHKL(hklSuggestionResult.hklString)}
+                      className="px-2.5 py-1 text-[9px] font-black uppercase rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-colors cursor-pointer flex items-center gap-1"
+                      title="Re-apply these suggested HKLs to the input"
+                    >
+                      <Check className="w-3 h-3" />
+                      Apply HKLs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowHklSuggestionDetail(false)}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-900/80 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/30 leading-relaxed font-sans">
+                  {hklSuggestionResult.analysisSummary}
+                </div>
+
+                {/* Table of reflections */}
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-[10px] text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-indigo-100 dark:border-indigo-900/40 text-[9px] font-black uppercase text-slate-400 dark:text-slate-500">
+                        <th className="py-1 px-2">#</th>
+                        <th className="py-1 px-2">2θ (Observed)</th>
+                        <th className="py-1 px-2">d-Spacing (Å)</th>
+                        <th className="py-1 px-2">Suggested (hkl)</th>
+                        <th className="py-1 px-2">Confidence</th>
+                        <th className="py-1 px-2">Symmetry Rule Verification</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40 font-mono">
+                      {hklSuggestionResult.suggestions.map((sug, i) => (
+                        <tr key={i} className="hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 transition-colors">
+                          <td className="py-1.5 px-2 font-sans font-bold text-slate-400">{i + 1}</td>
+                          <td className="py-1.5 px-2 font-bold text-slate-700 dark:text-slate-300">{sug.twoTheta.toFixed(3)}°</td>
+                          <td className="py-1.5 px-2 text-indigo-600 dark:text-indigo-400">{sug.dSpacing.toFixed(4)}</td>
+                          <td className="py-1.5 px-2">
+                            <span className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded font-black">
+                              ({sug.hkl})
+                            </span>
+                          </td>
+                          <td className="py-1.5 px-2 font-sans">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-emerald-500 rounded-full"
+                                  style={{ width: `${Math.round((sug.confidence || 0.9) * 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400">
+                                {Math.round((sug.confidence || 0.9) * 100)}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-1.5 px-2 font-sans text-[9.5px] text-slate-600 dark:text-slate-400 max-w-xs truncate" title={sug.explanation}>
+                            {sug.explanation || 'Satisfies crystal system extinction rules'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Expandable Alignment & Goniometer Error Corrections Section */}

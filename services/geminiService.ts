@@ -1,7 +1,8 @@
 
 import { GoogleGenAI, Type, Chat, GroundingChunk, ThinkingLevel } from "@google/genai";
-import { AIResponse, GroundingSource, StandardWavelength } from '../types';
+import { AIResponse, GroundingSource, StandardWavelength, SuggestHKLsResponse, HKLPlaneSuggestion } from '../types';
 import { MATERIAL_DB } from "../utils/materialDB";
+import { suggestHKLPlanesAlgorithmic } from "../utils/physics";
 
 // Dynamic client getter supporting user custom key overrides
 const getGeminiClient = (): GoogleGenAI => {
@@ -821,4 +822,59 @@ export const deleteLearnedMaterial = async (name: string): Promise<boolean> => {
     console.error("Error deleting learned material:", err);
     return false;
   }
+};
+
+export const suggestHKLPlanes = async ({
+  rawPeaks,
+  peaks,
+  crystalSystem = 'SC',
+  wavelength = 1.54060,
+  sampleId
+}: {
+  rawPeaks?: string;
+  peaks?: number[];
+  crystalSystem?: string;
+  wavelength?: number;
+  sampleId?: string;
+}): Promise<SuggestHKLsResponse> => {
+  const customKey = typeof window !== 'undefined'
+    ? (localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || undefined)
+    : undefined;
+
+  try {
+    const res = await fetch('/api/gemini/suggest-hkls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rawPeaks,
+        peaks,
+        crystalSystem,
+        wavelength,
+        sampleId,
+        customKey
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        return data;
+      }
+    }
+  } catch (serverErr) {
+    console.warn("Server-side suggest-hkls endpoint unreachable, switching to client-side physics engine:", serverErr);
+  }
+
+  // Fallback to client-side deterministic Bragg indexing engine
+  let numericPeaks: number[] = [];
+  if (Array.isArray(peaks) && peaks.length > 0) {
+    numericPeaks = peaks;
+  } else if (typeof rawPeaks === 'string') {
+    numericPeaks = rawPeaks
+      .split(/[\s,;]+/)
+      .map(s => parseFloat(s.trim()))
+      .filter(n => !isNaN(n) && n > 0 && n < 180);
+  }
+
+  return suggestHKLPlanesAlgorithmic(numericPeaks, crystalSystem, wavelength);
 };

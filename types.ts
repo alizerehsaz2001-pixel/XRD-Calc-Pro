@@ -58,6 +58,29 @@ export interface AIResponse {
 
 export type CrystalSystem = 'SC' | 'BCC' | 'FCC' | 'Diamond' | 'Cubic' | 'Tetragonal' | 'Tetragonal_I' | 'Orthorhombic' | 'Orthorhombic_F' | 'Orthorhombic_C' | 'Hexagonal' | 'Monoclinic' | 'Triclinic';
 
+export interface HKLPlaneSuggestion {
+  twoTheta: number;
+  dSpacing: number;
+  hkl: string;
+  h: number;
+  k: number;
+  l: number;
+  confidence?: number;
+  explanation?: string;
+  isValidForSymmetry?: boolean;
+}
+
+export interface SuggestHKLsResponse {
+  success: boolean;
+  hklString: string;
+  suggestions: HKLPlaneSuggestion[];
+  estimatedLatticeConstant?: string;
+  crystalSystemUsed: string;
+  analysisSummary: string;
+  modelUsed?: string;
+  error?: string;
+}
+
 export interface SelectionRuleResult {
   hkl: [number, number, number];
   status: 'Allowed' | 'Forbidden';
