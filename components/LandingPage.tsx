@@ -42,12 +42,17 @@ import {
   Atom,
   Search,
   Calculator,
-  Loader2
+  Loader2,
+  Palette,
+  SlidersHorizontal
 } from 'lucide-react';
 
 import { SideSeekBar } from './SideSeekBar';
 import { FooterInfoModal, FooterModalType } from './FooterInfoModal';
 import { AppLaunchPortal, AnimatedGoToAppButton } from './AppLaunchPortal';
+import { ModulesDirectory, SCIENTIFIC_MODULES } from './landing/ModulesDirectory';
+import { WorkflowsSection } from './landing/WorkflowsSection';
+import { ScherrerBroadeningDemo } from './landing/ScherrerBroadeningDemo';
 
 // --- Background Decorations ---
 const DiffractionGrid = () => (
@@ -291,7 +296,7 @@ const PlatformIcon = ({ icon: Icon, label, desc }: { icon: any, label: string, d
 );
 
 // --- Interactive Bragg Sandbox Component ---
-const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
+const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => void }) => {
   const [lambda, setLambda] = useState(1.5406); // Cu-Ka default
   const [dSpace, setDSpace] = useState(2.82);   // NaCl default
   const [order, setOrder] = useState(1);
@@ -353,8 +358,9 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
   const presets = [
     { name: 'Copper (Cu)', symbol: 'Cu', val: 1.5406, color: 'bg-amber-500/10 border-amber-500/30 text-amber-300' },
     { name: 'Molybdenum (Mo)', symbol: 'Mo', val: 0.7107, color: 'bg-blue-500/10 border-blue-500/30 text-blue-300' },
-    { name: 'Chromium (Cr)', symbol: 'Cr', val: 2.290, color: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' },
     { name: 'Cobalt (Co)', symbol: 'Co', val: 1.789, color: 'bg-pink-500/10 border-pink-500/30 text-pink-300' },
+    { name: 'Iron (Fe)', symbol: 'Fe', val: 1.9360, color: 'bg-orange-500/10 border-orange-500/30 text-orange-300' },
+    { name: 'Chromium (Cr)', symbol: 'Cr', val: 2.290, color: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' },
   ];
 
   const materialPresets = [
@@ -362,6 +368,8 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
     { name: 'Silicon (Si)', symbol: 'Si', d: 3.135, group: 'Fd-3m', system: 'Cubic', hkl: '(111)', notes: 'Ultra-pure semiconductor standard' },
     { name: 'Gold Foil (Au)', symbol: 'Au', d: 2.355, group: 'Fm-3m', system: 'Cubic', hkl: '(111)', notes: 'FCC precious metal metric' },
     { name: 'Anatase (TiO2)', symbol: 'TiO2', d: 3.520, group: 'I41/amd', system: 'Tetragonal', hkl: '(101)', notes: 'Photocatalytic oxide lattice' },
+    { name: 'Quartz (SiO2)', symbol: 'SiO2', d: 3.343, group: 'P3221', system: 'Trigonal', hkl: '(101)', notes: 'Standard α-quartz geological reference' },
+    { name: 'Corundum (Al2O3)', symbol: 'Al2O3', d: 2.552, group: 'R-3c', system: 'Trigonal', hkl: '(104)', notes: 'Synthetic sapphire standard' },
     { name: 'Graphite Carbon (C)', symbol: 'C', d: 3.354, group: 'P63/mmc', system: 'Hexagonal', hkl: '(002)', notes: 'Layered basal plane graphene sheets' },
   ];
 
@@ -372,6 +380,8 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
   const thetaRad = isValid ? Math.asin(sinTheta) : 0;
   const thetaDeg = (thetaRad * 180) / Math.PI;
   const twoThetaDeg = thetaDeg * 2;
+  // Reciprocal space scattering vector: q = (4π sin(θ)) / λ  (Å^-1)
+  const qVector = isValid ? (4 * Math.PI * Math.sin(thetaRad)) / lambda : 0;
 
   // SVG dimensions for diffraction trace
   const svgW = 420;
@@ -781,22 +791,44 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
           </div>
         </div>
 
+        {/* Reciprocal Scattering Vector Metadata */}
+        {isValid && (
+          <div className="w-full flex items-center justify-between px-3 py-2 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[10px] font-mono">
+            <span className="text-slate-400">Reciprocal Vector |q| = 4π·sin(θ)/λ:</span>
+            <span className="text-emerald-400 font-bold">{qVector.toFixed(4)} Å⁻¹</span>
+          </div>
+        )}
+
         {/* User Sandbox Call-to-Action to unlock whole suite */}
         <div className="w-full mt-6 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
           <div className="space-y-1">
             <p className="text-xs font-black text-slate-300 uppercase tracking-widest leading-none">
-              Diffracted! Unlock high-tier simulations
+              Calculated! Transfer parameters or unlock full studio
             </p>
             <p className="text-[10px] text-slate-500">
-              Unlock Rietveld Refinements, Phase ID neural networks, and raw data loaders.
+              Transfer λ={lambda.toFixed(4)}Å, d={dSpace.toFixed(3)}Å to Bragg Lab or launch full suite.
             </p>
           </div>
-          <button
-            onClick={onEnter}
-            className="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black uppercase tracking-wider text-[10px] rounded-xl transition-all shadow-lg hover:shadow-cyan-400/25 active:scale-95 cursor-pointer flex items-center gap-2"
-          >
-            Launch Core Studio <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                try {
+                  localStorage.setItem('xrd_sandbox_lambda', String(lambda));
+                  localStorage.setItem('xrd_sandbox_d', String(dSpace));
+                } catch (e) {}
+                onEnter('bragg');
+              }}
+              className="px-4 py-2.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 font-black uppercase tracking-wider text-[10px] rounded-xl transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+            >
+              Transfer to Bragg Lab
+            </button>
+            <button
+              onClick={() => onEnter()}
+              className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black uppercase tracking-wider text-[10px] rounded-xl transition-all shadow-lg hover:shadow-cyan-400/25 active:scale-95 cursor-pointer flex items-center gap-2"
+            >
+              Launch Core Studio <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1076,10 +1108,16 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
     setShowCookieBanner(false);
   };
 
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const themePickerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
       if (heroSearchRef.current && !heroSearchRef.current.contains(event.target as Node)) {
         setShowHeroSuggestions(false);
+      }
+      if (themePickerRef.current && !themePickerRef.current.contains(event.target as Node)) {
+        setShowThemePicker(false);
       }
     };
     document.addEventListener("mousedown", handleOutsideClick);
@@ -1089,11 +1127,40 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const filteredHeroSuggestions = useMemo(() => {
     if (!heroSearchTerm || heroSearchTerm.length < 1) return [];
     const term = heroSearchTerm.toLowerCase().trim();
-    return getActiveMaterials().filter(item => 
+
+    // 1. Search across scientific modules / tools
+    const matchedModules = SCIENTIFIC_MODULES.filter(m => 
+      m.title.toLowerCase().includes(term) || 
+      m.description.toLowerCase().includes(term) ||
+      (m.formula && m.formula.toLowerCase().includes(term)) ||
+      (m.badge && m.badge.toLowerCase().includes(term)) ||
+      m.categoryLabel.toLowerCase().includes(term)
+    ).slice(0, 4).map(m => ({
+      type: 'module' as const,
+      id: m.id,
+      name: m.title,
+      description: m.description,
+      badge: m.badge || m.categoryLabel,
+      formula: m.formula,
+      category: m.categoryLabel
+    }));
+
+    // 2. Search across crystal standard materials
+    const matchedMaterials = getActiveMaterials().filter(item => 
       item.name.toLowerCase().includes(term) || 
       item.formula.toLowerCase().includes(term) ||
       (item.crystalSystem && item.crystalSystem.toLowerCase().includes(term))
-    ).slice(0, 4);
+    ).slice(0, 3).map(item => ({
+      type: 'material' as const,
+      id: item.name,
+      name: item.name,
+      description: item.description,
+      badge: item.formula,
+      formula: item.crystalSystem,
+      category: 'Crystal Standard'
+    }));
+
+    return [...matchedModules, ...matchedMaterials].slice(0, 6);
   }, [heroSearchTerm]);
 
   useEffect(() => {
@@ -1188,23 +1255,8 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       {/* Side Seek Navigation */}
       <SideSeekBar theme={theme} />
 
-      {/* Theme Switcher Shared with App */}
-      <div className="fixed top-24 right-6 z-[110] flex flex-col gap-2 bg-slate-900/90 backdrop-blur-2xl p-2.5 rounded-2xl border border-white/10 shadow-2xl opacity-70 hover:opacity-100 transition-opacity duration-300">
-        <span className="text-[8px] font-black tracking-widest text-[#94a3b8] text-center uppercase mb-1">Theme</span>
-        {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic', 'gruvbox', 'monokai'].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTheme(t as any)}
-            className={`w-6 h-6 rounded-lg transition-all border border-transparent ${
-              theme === t ? 'bg-violet-500 scale-110 shadow-lg shadow-violet-500/50 border-white/20' : 'bg-slate-800 opacity-50 hover:opacity-100'
-            }`}
-            title={`Switch to ${t} theme`}
-          />
-        ))}
-      </div>
-
       {/* Dynamic Navbar */}
-      <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/80 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
+      <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/85 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}>
              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-700 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 relative overflow-hidden">
@@ -1223,12 +1275,58 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <div className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-slate-300">
             <LanguageSelector compact={true} />
-            <a href="#sandbox" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-black px-3 py-2 rounded-lg hover:bg-cyan-500/10"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />Interactive Lab</a>
-            <a href="#features" className="hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Framework</a>
-            <a href="#platform" className="hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Methods</a>
-            <div className="w-px h-5 bg-slate-700 mx-2" />
+
+            {/* Clean Integrated Theme Picker */}
+            <div className="relative" ref={themePickerRef}>
+              <button
+                onClick={() => setShowThemePicker(!showThemePicker)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700/60 rounded-xl text-[11px] font-mono text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Change UI Theme"
+              >
+                <Palette className="w-3.5 h-3.5 text-violet-400" />
+                <span className="capitalize">{theme}</span>
+              </button>
+
+              {showThemePicker && (
+                <div className="absolute top-10 right-0 z-[120] w-48 p-2 bg-slate-900/95 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl grid grid-cols-1 gap-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-800 mb-1">
+                    Crystallography Theme
+                  </div>
+                  {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic', 'gruvbox', 'monokai'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => {
+                        setTheme(t as any);
+                        setShowThemePicker(false);
+                      }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium capitalize flex items-center justify-between transition-colors cursor-pointer ${
+                        theme === t ? 'bg-violet-600/30 text-violet-300 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <span>{t}</span>
+                      {theme === t && <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <a href="#sandbox" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-bold px-2 py-1 rounded-lg hover:bg-cyan-500/10">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              Diffraction Lab
+            </a>
+            <a href="#broadening" className="hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+              Broadening
+            </a>
+            <a href="#modules" className="hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+              30+ Instruments
+            </a>
+            <a href="#workflows" className="hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
+              Workflows
+            </a>
+            <div className="w-px h-5 bg-slate-700 mx-1" />
             
             {isRegistered ? (
               <>
@@ -1372,7 +1470,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                       setShowHeroSuggestions(true);
                     }}
                     onFocus={() => setShowHeroSuggestions(true)}
-                    placeholder={isRTL ? "جستجوی ساختارها... مانند 'TiO2 Anatase' یا 'NaCl'" : "Search structures... e.g. 'TiO2 Anatase', 'NaCl'"} 
+                    placeholder={isRTL ? "جستجوی ابزارهای تحلیلی و ساختارهای بلوری... مانند 'Scherrer', 'Williamson', 'NaCl'" : "Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'"} 
                     className={`flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-base sm:text-lg px-2 w-full ${isRTL ? "text-right font-sans" : "text-left font-sans"}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleEnterApp(isRegistered ? 'login' : 'register');
@@ -1400,40 +1498,76 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 {showHeroSuggestions && filteredHeroSuggestions.length > 0 && (
                   <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300 border border-white/5">
                     <div className={`text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mb-3 px-2 flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span>{isRTL ? "تطبیق همزمان با استانداردهای پایگاه‌داده" : "Real-time DB standards match"}</span>
-                      <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">{isRTL ? "کاتالوگ مرجع آفلاین" : "Offline reference catalog"}</span>
+                      <span>{isRTL ? "تطبیق بلورشناسی و ابزارهای تحلیلی" : "Crystallography & Instrument Matches"}</span>
+                      <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">{isRTL ? "جستجوی هوشمند محلی" : "Local rapid index"}</span>
                     </div>
                     <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                       {filteredHeroSuggestions.map((item) => (
                         <div 
-                          key={item.name}
+                          key={`${item.type}-${item.id}`}
                           onClick={() => {
                             setHeroSearchTerm(item.name);
                             setShowHeroSuggestions(false);
-                            try {
-                              localStorage.setItem("xrd_initial_search", item.name);
-                            } catch (err) {}
-                            handleEnterApp(isRegistered ? 'login' : 'register', 'database');
+                            if (item.type === 'module') {
+                              handleEnterApp(isRegistered ? 'login' : 'register', item.id);
+                            } else {
+                              try {
+                                localStorage.setItem("xrd_initial_search", item.name);
+                              } catch (err) {}
+                              handleEnterApp(isRegistered ? 'login' : 'register', 'database');
+                            }
                           }}
                           className={`w-full p-3 rounded-2xl bg-white/[0.01] hover:bg-violet-600/10 border border-transparent hover:border-violet-500/20 transition-all duration-200 cursor-pointer flex items-center justify-between group/suggest ${isRTL ? "flex-row-reverse text-right" : ""}`}
                         >
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-slate-200 group-hover/suggest:text-violet-300 transition-colors">{item.name}</span>
+                          <div className="flex flex-col pr-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-200 group-hover/suggest:text-violet-300 transition-colors">{item.name}</span>
+                              <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded ${
+                                item.type === 'module' 
+                                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
+                                  : 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
+                              }`}>
+                                {item.type === 'module' ? 'Instrument' : 'Standard'}
+                              </span>
+                            </div>
                             <span className="text-xs text-slate-500 font-sans line-clamp-1 mt-0.5">{item.description}</span>
                           </div>
                           <div className={`flex items-center gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-                            <span className="font-mono text-[10px] uppercase tracking-wider bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded-md border border-violet-500/20 font-black">
-                              {item.formula}
-                            </span>
-                            <span className="font-mono text-[10px] text-slate-400">
-                              {item.crystalSystem}
-                            </span>
+                            {item.badge && (
+                              <span className="font-mono text-[10px] uppercase tracking-wider bg-slate-800/80 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700/60 font-medium">
+                                {item.badge}
+                              </span>
+                            )}
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover/suggest:text-cyan-400 transition-colors" />
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Quick Launch Direct Tool Access */}
+              <div className={`flex flex-wrap items-center gap-2 max-w-2xl mb-4 select-none ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
+                <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mr-1 font-mono">
+                  {isRTL ? "ابزارهای پرکاربرد:" : "Quick Tools:"}
+                </span>
+                {[
+                  { name: 'Bragg Solver', icon: '⚡', mod: 'bragg' },
+                  { name: 'Williamson-Hall', icon: '📐', mod: 'wh' },
+                  { name: 'Scherrer Sizing', icon: '🔬', mod: 'scherrer' },
+                  { name: '3D Unit Cells', icon: '⚛️', mod: 'unit_cells' },
+                  { name: 'AI Phase ID', icon: '🤖', mod: 'dl' },
+                ].map((tool) => (
+                  <button
+                    key={tool.mod}
+                    onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', tool.mod)}
+                    className="px-2.5 py-1 bg-cyan-950/25 hover:bg-cyan-900/40 border border-cyan-800/40 hover:border-cyan-500/50 rounded-lg text-xs font-mono text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <span>{tool.icon}</span>
+                    <span className="font-bold">{tool.name}</span>
+                  </button>
+                ))}
               </div>
 
               {/* Popular Lattice Quick Keys */}
@@ -1673,32 +1807,35 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 Simulate Diffraction Instantly
               </h2>
               <p className="text-slate-400 font-medium leading-relaxed">
-                No setup required. Experience how Bragg's Law controls structural diffraction. Drag the atomic lattice spacing <span className="font-mono text-cyan-400">(d)</span>, tune the X-ray wavelength <span className="font-mono text-violet-400">(λ)</span>, and observe the diffraction peak emerge.
+                No setup required. Experience how Bragg's Law controls structural diffraction. Drag the atomic lattice spacing <span className="font-mono text-cyan-400">(d)</span>, tune the X-ray wavelength <span className="font-mono text-violet-400">(λ)</span>, and observe the diffraction peak emerge with reciprocal scattering vector calculations.
               </p>
             </div>
 
-            <BraggSandboxWrapper onEnter={() => handleEnterApp(isRegistered ? 'login' : 'register')} />
+            <BraggSandboxWrapper onEnter={(targetMod) => handleEnterApp(isRegistered ? 'login' : 'register', targetMod || 'bragg')} />
           </div>
         </section>
 
-        {/* --- Capabilities Grid --- */}
-        <section id="features" className="py-32 px-6 relative overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-violet-600/5 blur-[200px] rounded-full pointer-events-none" />
-          <div className="max-w-7xl mx-auto relative z-10">
-            <SectionHeading 
-              badge="Standard Suite"
-              title="Next-Generation Analysis Framework"
-              description="A multi-modal environment designed for high-resolution refinement, automated peak identification, and structural simulation."
-              center
+        {/* --- Scherrer Peak Broadening Interactive Physics Sandbox --- */}
+        <section id="broadening" className="py-20 px-6 bg-[#030712] relative z-10 border-b border-slate-900">
+          <div className="max-w-7xl mx-auto">
+            <ScherrerBroadeningDemo 
+              onLaunchModule={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)}
+              isRTL={isRTL}
             />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-              {features.map((f, i) => (
-                <FeatureCard key={i} index={i} {...f} onLaunch={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)} />
-              ))}
-            </div>
           </div>
         </section>
+
+        {/* --- Complete 30+ Scientific Modules Directory --- */}
+        <ModulesDirectory 
+          onLaunchModule={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)}
+          isRTL={isRTL}
+        />
+
+        {/* --- Guided Research Pipelines & Scientific Workflows --- */}
+        <WorkflowsSection 
+          onLaunchModule={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)}
+          isRTL={isRTL}
+        />
 
         {/* --- AI Advisor Feature Section --- */}
         <section className="py-24 px-6 relative z-10 border-t border-slate-900 bg-slate-950/50 overflow-hidden">
