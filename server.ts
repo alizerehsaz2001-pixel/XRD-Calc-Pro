@@ -13,6 +13,15 @@ import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { exec, execSync } from "child_process";
 import https from "https";
 import os from "os";
+import { runCohenLeastSquaresRefinement, type CrystalSystemType, type SystematicErrorFunction, type WeightingModel } from "./utils/cohenLeastSquaresRefinement";
+
+// Process-level failure guards to prevent abrupt container crashes
+process.on("unhandledRejection", (reason) => {
+  console.error("[Server Process] Unhandled Promise Rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[Server Process] Uncaught Exception:", err);
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +29,38 @@ const __dirname = path.dirname(__filename);
 const USERS_FILE = path.join(__dirname, "users.json");
 const LEARNED_MATERIALS_FILE = path.join(__dirname, "learned_materials.json");
 const TRANSLATIONS_FILE = path.join(__dirname, "translation_cache.json");
+
+// Safe Asynchronous & Atomic JSON File I/O Helpers
+async function safeReadJsonFile<T>(filePath: string, fallback: T): Promise<T> {
+  try {
+    if (fs.existsSync(filePath)) {
+      const raw = await fs.promises.readFile(filePath, "utf-8");
+      if (!raw || !raw.trim()) return fallback;
+      return JSON.parse(raw) as T;
+    }
+  } catch (err) {
+    console.warn(`[SafeFileIO] Warning reading JSON file ${path.basename(filePath)}:`, err);
+  }
+  return fallback;
+}
+
+async function safeWriteJsonFile(filePath: string, data: any): Promise<boolean> {
+  const tmpPath = `${filePath}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}.tmp`;
+  try {
+    const jsonStr = JSON.stringify(data, null, 2);
+    await fs.promises.writeFile(tmpPath, jsonStr, "utf-8");
+    await fs.promises.rename(tmpPath, filePath);
+    return true;
+  } catch (err) {
+    console.error(`[SafeFileIO] Error writing JSON file ${path.basename(filePath)}:`, err);
+    try {
+      if (fs.existsSync(tmpPath)) {
+        await fs.promises.unlink(tmpPath);
+      }
+    } catch {}
+    return false;
+  }
+}
 
 // Multi-Client Gemini Pooling & In-Memory Response Caching
 const geminiClientsMap = new Map<string, GoogleGenAI>();
@@ -352,24 +393,91 @@ async function startServer() {
   });
   app.use('/api', apiLimiter);
 
-  // API routes
-  app.post("/api/register", (req, res) => {
-    const userData = req.body;
-    
-    let users = [];
-    if (fs.existsSync(USERS_FILE)) {
-      const data = fs.readFileSync(USERS_FILE, "utf-8");
-      users = JSON.parse(data);
-    }
-    
-    users.push({
-      ...userData,
-      registeredAt: new Date().toISOString()
+  // 6. High-Performance HTTP Request Latency Logging
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      if (req.path.startsWith("/api")) {
+        const color = res.statusCode >= 400 ? "\x1b[31m" : "\x1b[32m";
+        console.log(`[HTTP] ${color}${res.statusCode}\x1b[0m ${req.method} ${req.originalUrl || req.url} - ${duration}ms`);
+      }
     });
-    
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    
-    res.json({ success: true, message: "User registered successfully" });
+    next();
+  });
+
+  // Health check endpoint for container probes and network latency ping
+  app.all("/api/health", (req, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    if (req.method === "HEAD") {
+      res.status(200).end();
+      return;
+    }
+    const mem = process.memoryUsage();
+    res.json({
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: Math.round(process.uptime()),
+      pythonReady: pythonDepsReady,
+      memory: {
+        rssMb: Math.round(mem.rss / (1024 * 1024)),
+        heapUsedMb: Math.round(mem.heapUsed / (1024 * 1024)),
+        heapTotalMb: Math.round(mem.heapTotal / (1024 * 1024)),
+      },
+      env: process.env.NODE_ENV || "development"
+    });
+  });
+
+  // API routes
+  app.post("/api/register", async (req, res) => {
+    try {
+      const userData = req.body;
+      if (!userData || typeof userData !== "object") {
+        res.status(400).json({ success: false, error: "Invalid registration payload." });
+        return;
+      }
+
+      const name = typeof userData.name === "string" ? userData.name.trim() : "";
+      const email = typeof userData.email === "string" ? userData.email.trim() : "";
+      const affiliation = typeof userData.affiliation === "string" ? userData.affiliation.trim() : "";
+
+      if (!name) {
+        res.status(400).json({ success: false, error: "Researcher name is required for registration." });
+        return;
+      }
+
+      let users = await safeReadJsonFile<any[]>(USERS_FILE, []);
+      if (!Array.isArray(users)) users = [];
+
+      const record = {
+        ...userData,
+        name,
+        email,
+        affiliation,
+        registeredAt: new Date().toISOString(),
+        clientIp: req.ip || req.headers["x-forwarded-for"] || "unknown"
+      };
+
+      // Deduplicate by email if provided
+      if (email) {
+        const existingIdx = users.findIndex(u => (u.email || "").toLowerCase() === email.toLowerCase());
+        if (existingIdx >= 0) {
+          users[existingIdx] = { ...users[existingIdx], ...record, updatedAt: new Date().toISOString() };
+        } else {
+          users.push(record);
+        }
+      } else {
+        users.push(record);
+      }
+
+      await safeWriteJsonFile(USERS_FILE, users);
+      res.json({ success: true, message: "User registered successfully", user: { name, email, affiliation } });
+    } catch (err: any) {
+      console.error("User registration error:", err);
+      res.status(500).json({ success: false, error: err.message || "Failed to complete user registration." });
+    }
   });
 
   let translationQuotaExhaustedUntil = 0;
@@ -465,7 +573,7 @@ async function startServer() {
       };
 
       let responseText = "";
-      const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash"];
+      const modelsToTry = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite"];
       
       for (const model of modelsToTry) {
         if (Date.now() < translationQuotaExhaustedUntil) {
@@ -572,12 +680,73 @@ async function startServer() {
     }
   });
 
-  app.get("/api/users", (req, res) => {
-    if (fs.existsSync(USERS_FILE)) {
-      const data = fs.readFileSync(USERS_FILE, "utf-8");
-      res.json(JSON.parse(data));
-    } else {
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await safeReadJsonFile<any[]>(USERS_FILE, []);
+      res.json(Array.isArray(users) ? users : []);
+    } catch (err: any) {
+      console.error("Error reading users:", err);
       res.json([]);
+    }
+  });
+
+  // Cohen's Least-Squares Unit Cell Parameter Refinement Solver Endpoint
+  app.post(["/api/xrd/refine", "/api/xrd/refine-cohen"], (req, res) => {
+    try {
+      const {
+        reflections,
+        wavelength = 1.54056,
+        crystalSystem = "Cubic",
+        systematicError = "nelson_riley",
+        weighting = "statistical",
+        initialMonoclinicBeta = 90.0,
+        initialRhombohedralAlpha = 60.0
+      } = req.body;
+
+      if (!reflections || !Array.isArray(reflections) || reflections.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: "At least 2 indexed reflections with (h, k, l, twoTheta) are required for least-squares refinement."
+        });
+        return;
+      }
+
+      const lam = Number(wavelength) || 1.54056;
+
+      const formattedPeaks = reflections.map((r: any, idx: number) => {
+        const twoTheta = Number(r.twoTheta ?? r.twoThetaObs ?? 0);
+        const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+        const sinTheta = Math.sin(thetaRad);
+        const dVal = Number(r.dObs ?? r.dSpacing ?? (sinTheta > 0 ? lam / (2 * sinTheta) : 0));
+        return {
+          id: String(r.id || `refl_${idx + 1}`),
+          twoThetaObs: twoTheta,
+          dObs: dVal,
+          h: Number(r.h || 0),
+          k: Number(r.k || 0),
+          l: Number(r.l || 0),
+          intensity: Number(r.intensity ?? 100),
+          weight: Number(r.weight ?? 1)
+        };
+      });
+
+      const refinementResult = runCohenLeastSquaresRefinement(
+        formattedPeaks,
+        lam,
+        crystalSystem as CrystalSystemType,
+        (systematicError as SystematicErrorFunction) || 'nelson_riley',
+        (weighting as WeightingModel) || 'statistical',
+        Number(initialMonoclinicBeta) || 90.0,
+        Number(initialRhombohedralAlpha) || 60.0
+      );
+
+      res.json({
+        success: refinementResult.converged,
+        ...refinementResult
+      });
+    } catch (err: any) {
+      console.error("Lattice Refinement Error:", err);
+      res.status(500).json({ success: false, error: err.message || "Failed to execute Cohen refinement." });
     }
   });
 
@@ -655,6 +824,28 @@ async function startServer() {
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+  // Canonical mapping of Gemini models to modern, supported aliases
+  function normalizeGeminiModels(inputModels: string[]): string[] {
+    const aliasMap: Record<string, string> = {
+      "gemini-1.5-flash": "gemini-3.8-flash",
+      "gemini-3.5-flash": "gemini-3.8-flash",
+      "gemini-3.6-flash": "gemini-3.8-flash",
+      "gemini-3.7-flash": "gemini-3.8-flash",
+      "gemini-1.5-pro": "gemini-2.5-pro",
+    };
+    const deduplicated: string[] = [];
+    for (const raw of inputModels) {
+      const canonical = aliasMap[raw] || raw;
+      if (!deduplicated.includes(canonical)) {
+        deduplicated.push(canonical);
+      }
+    }
+    // Ensure high-reliability fallback defaults exist
+    if (!deduplicated.includes("gemini-3.8-flash")) deduplicated.push("gemini-3.8-flash");
+    if (!deduplicated.includes("gemini-2.5-flash")) deduplicated.push("gemini-2.5-flash");
+    return deduplicated;
+  }
+
   async function callGeminiWithResilientFallback({
     ai,
     models,
@@ -669,8 +860,9 @@ async function startServer() {
     maxRetriesPerModel?: number;
   }): Promise<{ text: string; modelUsed: string }> {
     let lastError: any = null;
+    const normalizedModels = normalizeGeminiModels(models);
 
-    for (const model of models) {
+    for (const model of normalizedModels) {
       for (let attempt = 0; attempt <= maxRetriesPerModel; attempt++) {
         try {
           const modelConfig = { ...config };
@@ -705,7 +897,9 @@ async function startServer() {
           console.warn(`[Gemini Engine] Model '${model}' attempt ${attempt + 1}/${maxRetriesPerModel + 1} failed: ${errMsg}`);
 
           if (isTransient && attempt < maxRetriesPerModel) {
-            await sleep(500 * (attempt + 1));
+            // Exponential backoff with small random jitter
+            const backoffMs = Math.floor(600 * Math.pow(1.8, attempt) + Math.random() * 200);
+            await sleep(backoffMs);
             continue;
           }
           break;
@@ -1826,22 +2020,17 @@ CRITICAL RULES:
   });
 
   // Learned Materials Persistent Storage Endpoints
-  app.get("/api/materials/learned", (req, res) => {
+  app.get("/api/materials/learned", async (req, res) => {
     try {
-      if (fs.existsSync(LEARNED_MATERIALS_FILE)) {
-        const raw = fs.readFileSync(LEARNED_MATERIALS_FILE, "utf-8");
-        const list = JSON.parse(raw);
-        res.json({ success: true, materials: Array.isArray(list) ? list : [] });
-      } else {
-        res.json({ success: true, materials: [] });
-      }
+      const list = await safeReadJsonFile<any[]>(LEARNED_MATERIALS_FILE, []);
+      res.json({ success: true, materials: Array.isArray(list) ? list : [] });
     } catch (err: any) {
       console.error("Error reading learned materials:", err);
       res.json({ success: true, materials: [] });
     }
   });
 
-  app.post("/api/materials/learn", (req, res) => {
+  app.post("/api/materials/learn", async (req, res) => {
     try {
       const materialData = req.body;
       if (!materialData || !materialData.name) {
@@ -1849,14 +2038,8 @@ CRITICAL RULES:
         return;
       }
 
-      let list: any[] = [];
-      if (fs.existsSync(LEARNED_MATERIALS_FILE)) {
-        try {
-          const raw = fs.readFileSync(LEARNED_MATERIALS_FILE, "utf-8");
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) list = parsed;
-        } catch (e) {}
-      }
+      let list = await safeReadJsonFile<any[]>(LEARNED_MATERIALS_FILE, []);
+      if (!Array.isArray(list)) list = [];
 
       const learnedItem = {
         ...materialData,
@@ -1866,14 +2049,14 @@ CRITICAL RULES:
       };
 
       // Upsert by name
-      const existingIdx = list.findIndex(m => m.name.toLowerCase() === materialData.name.toLowerCase());
+      const existingIdx = list.findIndex(m => (m.name || "").toLowerCase() === (materialData.name || "").toLowerCase());
       if (existingIdx >= 0) {
         list[existingIdx] = learnedItem;
       } else {
         list.unshift(learnedItem);
       }
 
-      fs.writeFileSync(LEARNED_MATERIALS_FILE, JSON.stringify(list, null, 2), "utf-8");
+      await safeWriteJsonFile(LEARNED_MATERIALS_FILE, list);
       console.log(`[Learned DB] Successfully persisted new learned material: ${materialData.name}`);
 
       res.json({ success: true, message: `Material '${materialData.name}' learned and permanently saved.`, material: learnedItem });
@@ -1883,7 +2066,7 @@ CRITICAL RULES:
     }
   });
 
-  app.delete("/api/materials/learned/:name", (req, res) => {
+  app.delete("/api/materials/learned/:name", async (req, res) => {
     try {
       const name = decodeURIComponent(req.params.name);
       if (!name) {
@@ -1891,13 +2074,10 @@ CRITICAL RULES:
         return;
       }
 
-      if (fs.existsSync(LEARNED_MATERIALS_FILE)) {
-        const raw = fs.readFileSync(LEARNED_MATERIALS_FILE, "utf-8");
-        const list = JSON.parse(raw);
-        if (Array.isArray(list)) {
-          const filtered = list.filter(m => m.name !== name);
-          fs.writeFileSync(LEARNED_MATERIALS_FILE, JSON.stringify(filtered, null, 2), "utf-8");
-        }
+      const list = await safeReadJsonFile<any[]>(LEARNED_MATERIALS_FILE, []);
+      if (Array.isArray(list)) {
+        const filtered = list.filter(m => (m.name || "").toLowerCase() !== name.toLowerCase());
+        await safeWriteJsonFile(LEARNED_MATERIALS_FILE, filtered);
       }
 
       res.json({ success: true, message: `Material '${name}' removed from learned database.` });
@@ -2068,28 +2248,68 @@ CRITICAL RULES:
   app.post("/api/rietveld/refine", async (req, res) => {
     const payload = req.body;
     try {
-      const scriptPath = path.join(__dirname, "utils", "rietveldRefinement.py");
-      
-      // Escape the payload JSON string safely
-      const escapedPayload = JSON.stringify(JSON.stringify(payload));
+      if (!payload || typeof payload !== "object") {
+        res.status(400).json({ success: false, error: "Valid JSON payload is required for Rietveld refinement." });
+        return;
+      }
 
-      const { exec } = await import("child_process");
-      
-      exec(`python3 "${scriptPath}" --json=${escapedPayload}`, (error, stdout, stderr) => {
-        if (error) {
-          console.error("Python Rietveld Solver Execution Error:", error, stderr);
-          res.status(500).json({ success: false, error: "Error executing Python Rietveld Solver: " + stderr });
+      const scriptPath = path.join(__dirname, "utils", "rietveldRefinement.py");
+      const { spawn } = await import("child_process");
+      const child = spawn("python3", [scriptPath]);
+
+      let stdout = "";
+      let stderr = "";
+      let responded = false;
+
+      // 30-second execution safety timeout guard
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          try { child.kill("SIGKILL"); } catch (e) {}
+          res.status(504).json({ success: false, error: "Rietveld refinement solver timed out (maximum 30s limit reached)." });
+        }
+      }, 30000);
+
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          console.error("Python Rietveld Process Error:", err);
+          res.status(500).json({ success: false, error: "Failed to spawn Python Rietveld process: " + err.message });
+        }
+      });
+
+      child.on("close", (exitCode) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (exitCode !== 0 && !stdout.trim()) {
+          console.error("Python Rietveld Solver Execution Error:", stderr);
+          res.status(500).json({ success: false, error: "Error executing Python Rietveld Solver: " + (stderr || "Exit code " + exitCode) });
           return;
         }
 
         try {
-          const results = JSON.parse(stdout);
+          const results = JSON.parse(stdout.trim());
           res.json({ success: true, ...results });
         } catch (parseError) {
           console.error("Failed to parse Python Rietveld output:", stdout, parseError);
-          res.status(500).json({ success: false, error: "Failed to parse Python Rietveld output: " + stdout });
+          res.status(500).json({ success: false, error: "Failed to parse Python Rietveld output: " + (stderr || stdout.slice(0, 300)) });
         }
       });
+
+      // Safely stream JSON payload to stdin to avoid CLI argument length limitations
+      child.stdin.write(JSON.stringify(payload));
+      child.stdin.end();
 
     } catch (error: any) {
       console.error("Rietveld Refinement Endpoint Error:", error);
@@ -2337,6 +2557,27 @@ CRITICAL RULES:
 
       let stdout = "";
       let stderr = "";
+      let responded = false;
+
+      // 25-second execution safety timeout guard
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          try { child.kill("SIGKILL"); } catch (e) {}
+          res.status(504).json({
+            success: false,
+            exitCode: -1,
+            stdout: stdout.trim(),
+            stderr: (stderr.trim() + "\n[Execution Error]: Script timed out after 25 seconds.").trim()
+          });
+        }
+      }, 25000);
+
+      req.on("close", () => {
+        if (!responded) {
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
+      });
 
       child.stdout.on("data", (data) => {
         stdout += data.toString();
@@ -2346,7 +2587,19 @@ CRITICAL RULES:
         stderr += data.toString();
       });
 
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          console.error("Python Spawn Error:", err);
+          res.status(500).json({ success: false, error: "Failed to spawn Python process: " + err.message });
+        }
+      });
+
       child.on("close", (exitCode) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
         res.json({
           success: exitCode === 0,
           exitCode,
@@ -2661,7 +2914,7 @@ Target type: "${targetType || 'xrd_nanomaterials'}"
 Output ONLY the final enhanced prompt text, without quotes or commentary.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.7-flash",
+        model: "gemini-3.8-flash",
         contents: enhanceReq,
       });
 
@@ -2675,13 +2928,10 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
   // Phase chat assistant route
   app.post("/api/gemini/phase-chat", async (req, res) => {
     try {
-      const { prompt, history, xrdData } = req.body;
+      const { prompt, history, xrdData, customKey } = req.body;
       if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
-      const ai = new GoogleGenAI({ 
-        apiKey: process.env.GEMINI_API_KEY,
-        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
-      });
+      const ai = getOrCreateGeminiClient(customKey);
 
       let systemInstruction = "You are an expert AI Crystallography Assistant. Help the user identify material phases and understand their X-ray Diffraction (XRD) pattern data.\n\n";
       if (xrdData) {
@@ -2691,7 +2941,7 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
 
       const contents = [];
       if (history && Array.isArray(history)) {
-        history.forEach((msg) => {
+        history.forEach((msg: any) => {
           contents.push({
             role: msg.role === 'model' ? 'model' : 'user',
             parts: [{ text: msg.text }]
@@ -2703,19 +2953,33 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
         parts: [{ text: prompt }]
       });
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models: ["gemini-3.1-pro-preview", "gemini-2.5-pro", "gemini-3.8-flash"],
         contents,
         config: {
           systemInstruction,
           tools: [{ googleSearch: {} }],
         }
       });
-      return res.json({ success: true, text: response.text });
+      return res.json({ success: true, text: result.text, modelUsed: result.modelUsed });
     } catch (error: any) {
       console.error("Phase chat error:", error);
       return res.status(500).json({ error: error.message });
     }
+  });
+
+  // Centralized Express Error Handling Middleware
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("[Server Error Handler]", err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    const statusCode = typeof err.status === 'number' ? err.status : (typeof err.statusCode === 'number' ? err.statusCode : 500);
+    res.status(statusCode).json({
+      success: false,
+      error: err.message || "An internal server error occurred."
+    });
   });
 
   // Vite middleware for development
@@ -2731,14 +2995,29 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.join(__dirname, "dist")));
-    app.get("*", (req, res) => {
+    app.get("*all", (req, res) => {
       res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  const gracefulShutdown = (signal: string) => {
+    console.log(`[Server] Received ${signal}. Initiating graceful shutdown...`);
+    server.close(() => {
+      console.log("[Server] HTTP server closed gracefully.");
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.error("[Server] Forceful shutdown after 10s timeout.");
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 }
 
 startServer();

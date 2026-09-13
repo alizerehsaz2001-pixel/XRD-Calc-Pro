@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, useMotionValue, useSpring } from 'motion/react';
+import { motion, useMotionValue, useSpring, AnimatePresence } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
 import { LinkedinIcon, GithubIcon } from './SocialIcons';
 import { getActiveMaterials } from '../utils/materialsHelper';
@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Sparkles,
   ChevronRight,
+  ChevronUp,
   Shield,
   Star,
   Users,
@@ -44,7 +45,18 @@ import {
   Calculator,
   Loader2,
   Palette,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Menu,
+  X,
+  Plus,
+  Minus,
+  RefreshCw,
+  Play,
+  BookOpen,
+  Command,
+  CornerDownLeft,
+  Compass,
+  Check
 } from 'lucide-react';
 
 import { SideSeekBar } from './SideSeekBar';
@@ -53,6 +65,8 @@ import { AppLaunchPortal, AnimatedGoToAppButton } from './AppLaunchPortal';
 import { ModulesDirectory, SCIENTIFIC_MODULES } from './landing/ModulesDirectory';
 import { WorkflowsSection } from './landing/WorkflowsSection';
 import { ScherrerBroadeningDemo } from './landing/ScherrerBroadeningDemo';
+import { InteractiveHeroDiffractionShowcase } from './landing/InteractiveHeroDiffractionShowcase';
+import { WelcomeTourModal } from './landing/WelcomeTourModal';
 
 // --- Background Decorations ---
 const DiffractionGrid = () => (
@@ -373,6 +387,15 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
     { name: 'Graphite Carbon (C)', symbol: 'C', d: 3.354, group: 'P63/mmc', system: 'Hexagonal', hkl: '(002)', notes: 'Layered basal plane graphene sheets' },
   ];
 
+  // Quick 1-click benchmark combos
+  const benchmarkCombos = [
+    { label: '💎 Silicon (111) + Cu-Kα', anode: 'Cu', lambda: 1.5406, material: 'Si', d: 3.135 },
+    { label: '🧂 NaCl (200) + Cu-Kα', anode: 'Cu', lambda: 1.5406, material: 'NaCl', d: 2.820 },
+    { label: '🧪 TiO2 Anatase + Cu-Kα', anode: 'Cu', lambda: 1.5406, material: 'TiO2', d: 3.520 },
+    { label: '⚡ Gold (111) + Mo-Kα', anode: 'Mo', lambda: 0.7107, material: 'Au', d: 2.355 },
+    { label: '🪨 Quartz SiO2 + Cr-Kα', anode: 'Cr', lambda: 2.290, material: 'SiO2', d: 3.343 },
+  ];
+
   // Bragg's Law calculation: 2d sin(theta) = n * lambda
   const sinTheta = (order * lambda) / (2 * dSpace);
   const isValid = sinTheta >= 0 && sinTheta <= 1;
@@ -381,7 +404,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
   const thetaDeg = (thetaRad * 180) / Math.PI;
   const twoThetaDeg = thetaDeg * 2;
   // Reciprocal space scattering vector: q = (4π sin(θ)) / λ  (Å^-1)
-  const qVector = isValid ? (4 * Math.PI * Math.sin(thetaRad)) / lambda : 0;
+  const qVector = isValid && lambda > 0 ? (4 * Math.PI * Math.sin(thetaRad)) / lambda : 0;
 
   // SVG dimensions for diffraction trace
   const svgW = 420;
@@ -439,20 +462,62 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start bg-slate-900/30 backdrop-blur-3xl border border-slate-800/80 p-8 md:p-12 rounded-[3rem] shadow-2xl">
       {/* Settings Panel */}
-      <div className="lg:col-span-5 space-y-8">
-        <div>
-          <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-            Parameter Sandbox & Mini Lab
-          </h3>
-          <p className="text-xs text-slate-400 font-medium leading-relaxed">
-            Interactively tune wavelength, choose crystal standard samples, and observe the diffraction peak position calibrate.
-          </p>
+      <div className="lg:col-span-5 space-y-7">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+              Parameter Sandbox & Mini Lab
+            </h3>
+            <p className="text-xs text-slate-400 font-medium leading-relaxed mt-1">
+              Interactively tune wavelength, choose crystal standards, and observe reciprocal scattering physics calibrate.
+            </p>
+          </div>
+          <button
+            onClick={() => onEnter('bragg')}
+            className="self-start px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/40 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-sm"
+            title="Open dedicated Bragg Solver Module"
+          >
+            <span>Full Tool</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {/* 1-CLICK BENCHMARK COMBOS */}
+        <div className="space-y-2 bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              Quick Benchmark Presets
+            </span>
+            <span className="text-[9px] font-mono text-slate-500">1-click calibrate</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {benchmarkCombos.map((combo, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setActiveAnode(combo.anode);
+                  setLambda(combo.lambda);
+                  setSelectedMaterial(combo.material);
+                  setDSpace(combo.d);
+                  setOrder(1);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold transition-all border cursor-pointer ${
+                  selectedMaterial === combo.material && activeAnode === combo.anode
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]'
+                    : 'bg-slate-900/80 hover:bg-slate-800/90 border-slate-700/60 text-slate-300 hover:text-white'
+                }`}
+              >
+                {combo.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* MATERIAL STANDARDS CONFIG */}
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">
+        <div className="space-y-2.5">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">
             Select Calibration Crystal Standard
           </label>
           <div className="flex flex-wrap gap-2">
@@ -463,7 +528,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
                   setDSpace(mat.d);
                   setSelectedMaterial(mat.symbol);
                 }}
-                className={`flex-1 min-w-[110px] px-3 py-2.5 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
+                className={`flex-1 min-w-[105px] px-3 py-2 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
                   selectedMaterial === mat.symbol
                     ? 'border-violet-500 bg-violet-500/15 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.2)]'
                     : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700 hover:text-slate-300'
@@ -473,18 +538,18 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
                   <Atom className={`w-3.5 h-3.5 ${selectedMaterial === mat.symbol ? 'text-violet-400' : 'text-slate-500'}`} />
                   <span className="text-[11px] font-black tracking-wider block">{mat.symbol}</span>
                 </div>
-                <span className="text-[10px] font-mono opacity-80 mt-1">{mat.d.toFixed(3)} Å</span>
+                <span className="text-[10px] font-mono opacity-80 mt-0.5">{mat.d.toFixed(3)} Å</span>
               </button>
             ))}
           </div>
         </div>
 
         {/* PRESSET ANODE selection */}
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">
+        <div className="space-y-2.5">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">
             Anode Target Tube (Radiation Source λ)
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {presets.map((p) => (
               <button
                 key={p.symbol}
@@ -492,7 +557,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
                   setLambda(p.val);
                   setActiveAnode(p.symbol);
                 }}
-                className={`px-3 py-2 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
+                className={`px-2.5 py-2 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
                   activeAnode === p.symbol
                     ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)]'
                     : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700 hover:text-slate-300'
@@ -505,15 +570,39 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
           </div>
         </div>
 
-        {/* SLIDER FOR LAMBDA */}
-        <div className="space-y-3">
+        {/* SLIDER FOR LAMBDA WITH FINE-STEPPERS */}
+        <div className="space-y-2">
           <div className="flex justify-between items-baseline">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               Wavelength Tuning (λ)
             </label>
-            <span className="text-xs font-mono font-bold text-violet-300">
-              {lambda.toFixed(4)} Å {activeAnode === 'custom' ? '(Custom)' : `(${activeAnode}-Kα)`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-violet-300">
+                {lambda.toFixed(4)} Å {activeAnode === 'custom' ? '(Custom)' : `(${activeAnode}-Kα)`}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    setLambda(prev => Math.max(0.4, Number((prev - 0.01).toFixed(4))));
+                    setActiveAnode('custom');
+                  }}
+                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
+                  title="Decrease wavelength by 0.01 Å"
+                >
+                  -
+                </button>
+                <button
+                  onClick={() => {
+                    setLambda(prev => Math.min(3.5, Number((prev + 0.01).toFixed(4))));
+                    setActiveAnode('custom');
+                  }}
+                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
+                  title="Increase wavelength by 0.01 Å"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
           <input
             type="range"
@@ -529,15 +618,39 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
           />
         </div>
 
-        {/* SLIDER FOR D_SPACING */}
-        <div className="space-y-4">
+        {/* SLIDER FOR D_SPACING WITH FINE-STEPPERS */}
+        <div className="space-y-2">
           <div className="flex justify-between items-baseline">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
               Interplanar Spacing (d)
             </label>
-            <span className="text-xs font-mono font-bold text-cyan-300">
-              {dSpace.toFixed(3)} Å {selectedMaterial !== 'custom' ? `(${selectedMaterial})` : '(Custom)'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-bold text-cyan-300">
+                {dSpace.toFixed(3)} Å {selectedMaterial !== 'custom' ? `(${selectedMaterial})` : '(Custom)'}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    setDSpace(prev => Math.max(1.0, Number((prev - 0.05).toFixed(3))));
+                    setSelectedMaterial('custom');
+                  }}
+                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
+                  title="Decrease d-spacing by 0.05 Å"
+                >
+                  -
+                </button>
+                <button
+                  onClick={() => {
+                    setDSpace(prev => Math.min(6.0, Number((prev + 0.05).toFixed(3))));
+                    setSelectedMaterial('custom');
+                  }}
+                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
+                  title="Increase d-spacing by 0.05 Å"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
           <input
             type="range"
@@ -554,18 +667,18 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
         </div>
 
         {/* ORDER PICKER */}
-        <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">
             Diffraction Reflection Order (n)
           </label>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             {[1, 2, 3].map((num) => (
               <button
                 key={num}
                 onClick={() => setOrder(num)}
-                className={`flex-1 py-2 rounded-xl border text-xs font-mono tracking-widest font-black uppercase transition-all cursor-pointer ${
+                className={`flex-1 py-1.5 rounded-xl border text-xs font-mono tracking-widest font-black uppercase transition-all cursor-pointer ${
                   order === num
-                    ? 'bg-violet-600/10 border-violet-500 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.15)]'
+                    ? 'bg-violet-600/20 border-violet-500 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.2)]'
                     : 'bg-slate-950/40 border-slate-800 text-slate-500 hover:border-slate-700/50 hover:text-slate-300'
                 }`}
               >
@@ -604,20 +717,26 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none" />
         
         {/* Real-time Math Outputs Header */}
-        <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4 relative z-10 text-center">
-          <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/40">
-            <span className="block text-[9px] font-mono text-slate-500 uppercase tracking-widest">Bragg angle (θ)</span>
-            <span className="text-xl font-black font-mono text-white">
+        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 relative z-10 text-center">
+          <div className="bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60">
+            <span className="block text-[9px] font-mono text-slate-400 uppercase tracking-widest">Bragg (θ)</span>
+            <span className="text-lg font-black font-mono text-white">
               {isValid ? `${thetaDeg.toFixed(2)}°` : '🚫 Limit'}
             </span>
           </div>
-          <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/40">
-            <span className="block text-[9px] font-mono text-slate-500 uppercase tracking-widest">Peak Position (2θ)</span>
-            <span className="text-xl font-black font-mono text-cyan-400">
+          <div className="bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60">
+            <span className="block text-[9px] font-mono text-slate-400 uppercase tracking-widest">Peak (2θ)</span>
+            <span className="text-lg font-black font-mono text-cyan-400">
               {isValid ? `${twoThetaDeg.toFixed(2)}°` : '🚫 Invalid'}
             </span>
           </div>
-          <div className="col-span-2 sm:col-span-1 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/40 flex items-center justify-center">
+          <div className="bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60">
+            <span className="block text-[9px] font-mono text-slate-400 uppercase tracking-widest">Scattering (q)</span>
+            <span className="text-lg font-black font-mono text-violet-300">
+              {isValid ? `${qVector.toFixed(3)} Å⁻¹` : '—'}
+            </span>
+          </div>
+          <div className="col-span-2 sm:col-span-1 bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60 flex items-center justify-center">
             {isValid ? (
               <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 flex items-center gap-1.5 justify-center">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
@@ -625,15 +744,16 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
               </span>
             ) : (
               <span className="text-[10px] uppercase font-black tracking-wide text-rose-400 leading-tight">
-                🚫 Limit: nλ &gt; 2d
+                🚫 nλ &gt; 2d Limit
               </span>
             )}
           </div>
         </div>
 
         {/* Dragging instruction badge */}
-        <div className="text-[9px] font-mono bg-slate-900/80 px-3 py-1 rounded-full text-slate-400 border border-slate-800 text-center select-none uppercase tracking-widest mb-2 z-10">
-          ↔ Drag canvas background to adjust d-spacing ↔
+        <div className="text-[9px] font-mono bg-slate-900/80 px-3.5 py-1.5 rounded-full text-slate-400 border border-slate-800 text-center select-none uppercase tracking-widest mb-2 z-10 flex items-center gap-2 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span>Drag canvas vertically to alter lattice d-spacing dynamically</span>
         </div>
 
         {/* Simulated Ray Tracing Canvas SVG */}
@@ -742,7 +862,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
           {/* Atomic description overlay marker */}
           <div className="absolute left-6 bottom-4 flex flex-col gap-1 z-10 text-[9px] uppercase font-mono tracking-wider text-slate-500">
             <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />Atomic Spacing Plane</div>
-            <div>Plane Interdistance d = {dSpace.toFixed(2)} Å</div>
+            <div>Plane Interdistance d = {dSpace.toFixed(2)} Å | Path Diff = {order}λ</div>
           </div>
         </div>
 
@@ -1075,9 +1195,11 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   onSignOut?: () => void
 }) => {
   const { t, i18n } = useTranslation();
+  const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
   const [isScrolled, setIsScrolled] = useState(false);
   const [userName, setUserName] = useState<string>('');
   const [heroSearchTerm, setHeroSearchTerm] = useState('');
+  const [searchCategory, setSearchCategory] = useState<'all' | 'diffraction' | 'crystallite' | 'ai' | 'standards'>('all');
   const [showHeroSuggestions, setShowHeroSuggestions] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -1087,7 +1209,25 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const [isEnteringApp, setIsEnteringApp] = useState(false);
   const [pendingLaunchMode, setPendingLaunchMode] = useState<'login' | 'register'>('login');
   const [pendingTargetModule, setPendingTargetModule] = useState<any>(null);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [showWelcomeTour, setShowWelcomeTour] = useState(false);
+  
   const heroSearchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const timeOfDayGreeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (isRTL) {
+      if (hour < 12) return 'صبح بخیر';
+      if (hour < 17) return 'عصر بخیر';
+      return 'شب بخیر';
+    } else {
+      if (hour < 12) return 'Good morning';
+      if (hour < 17) return 'Good afternoon';
+      return 'Good evening';
+    }
+  }, [isRTL]);
 
   const handleEnterApp = (mode: 'login' | 'register' = 'login', targetModule?: any) => {
     setPendingLaunchMode(mode);
@@ -1111,6 +1251,29 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const [showThemePicker, setShowThemePicker] = useState(false);
   const themePickerRef = useRef<HTMLDivElement>(null);
 
+  // Global keyboard shortcut to focus search (/ or Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is currently typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      if (e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key === 'k')) {
+        e.preventDefault();
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+          searchInputRef.current.select();
+          heroSearchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setShowHeroSuggestions(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
       if (heroSearchRef.current && !heroSearchRef.current.contains(event.target as Node)) {
@@ -1128,14 +1291,36 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
     if (!heroSearchTerm || heroSearchTerm.length < 1) return [];
     const term = heroSearchTerm.toLowerCase().trim();
 
-    // 1. Search across scientific modules / tools
-    const matchedModules = SCIENTIFIC_MODULES.filter(m => 
-      m.title.toLowerCase().includes(term) || 
-      m.description.toLowerCase().includes(term) ||
-      (m.formula && m.formula.toLowerCase().includes(term)) ||
-      (m.badge && m.badge.toLowerCase().includes(term)) ||
-      m.categoryLabel.toLowerCase().includes(term)
-    ).slice(0, 4).map(m => ({
+    // Filter scientific modules by search query & active category
+    const matchedModules = SCIENTIFIC_MODULES.filter(m => {
+      // Category filter check
+      if (searchCategory === 'diffraction') {
+        const cat = (m.categoryLabel || '').toLowerCase();
+        if (!cat.includes('diffraction') && !cat.includes('bragg') && !cat.includes('fundamental') && !m.id.includes('bragg')) {
+          return false;
+        }
+      } else if (searchCategory === 'crystallite') {
+        const cat = (m.categoryLabel || '').toLowerCase();
+        if (!cat.includes('crystallite') && !cat.includes('size') && !cat.includes('scherrer') && !cat.includes('williamson') && !cat.includes('strain')) {
+          return false;
+        }
+      } else if (searchCategory === 'ai') {
+        const cat = (m.categoryLabel || '').toLowerCase();
+        if (!cat.includes('ai') && !cat.includes('rietveld') && !cat.includes('advanced') && !cat.includes('learning')) {
+          return false;
+        }
+      } else if (searchCategory === 'standards') {
+        return false; // only show material standards
+      }
+
+      return (
+        m.title.toLowerCase().includes(term) || 
+        m.description.toLowerCase().includes(term) ||
+        (m.formula && m.formula.toLowerCase().includes(term)) ||
+        (m.badge && m.badge.toLowerCase().includes(term)) ||
+        m.categoryLabel.toLowerCase().includes(term)
+      );
+    }).slice(0, 5).map(m => ({
       type: 'module' as const,
       id: m.id,
       name: m.title,
@@ -1145,12 +1330,12 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       category: m.categoryLabel
     }));
 
-    // 2. Search across crystal standard materials
-    const matchedMaterials = getActiveMaterials().filter(item => 
+    // Filter crystal standard materials
+    const matchedMaterials = searchCategory === 'crystallite' || searchCategory === 'ai' ? [] : getActiveMaterials().filter(item => 
       item.name.toLowerCase().includes(term) || 
       item.formula.toLowerCase().includes(term) ||
       (item.crystalSystem && item.crystalSystem.toLowerCase().includes(term))
-    ).slice(0, 3).map(item => ({
+    ).slice(0, 4).map(item => ({
       type: 'material' as const,
       id: item.name,
       name: item.name,
@@ -1160,8 +1345,8 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       category: 'Crystal Standard'
     }));
 
-    return [...matchedModules, ...matchedMaterials].slice(0, 6);
-  }, [heroSearchTerm]);
+    return [...matchedModules, ...matchedMaterials].slice(0, 7);
+  }, [heroSearchTerm, searchCategory]);
 
   useEffect(() => {
     try {
@@ -1176,8 +1361,6 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       }
     } catch (e) {}
   }, [isRegistered]);
-
-  const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -1198,6 +1381,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
+      setShowBackToTop(window.scrollY > 400);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -1374,6 +1558,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
           </div>
 
           <div className="flex md:hidden items-center gap-2">
+            <LanguageSelector compact={true} />
             {isRegistered && (
               <button 
                 onClick={onSignOut}
@@ -1382,11 +1567,88 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 {t('Sign Out')}
               </button>
             )}
-            <button onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700">
-              <ArrowRight className="w-5 h-5 text-violet-400" />
+            <button 
+              onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)} 
+              className="p-2.5 bg-slate-900/80 hover:bg-slate-800 rounded-xl border border-slate-700/80 text-slate-300 transition-colors cursor-pointer"
+              aria-label="Toggle Navigation Menu"
+            >
+              {isMobileDrawerOpen ? <X className="w-5 h-5 text-violet-400" /> : <Menu className="w-5 h-5 text-violet-400" />}
             </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Drawer */}
+        <AnimatePresence>
+          {isMobileDrawerOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="md:hidden bg-[#050B14]/95 backdrop-blur-3xl border-b border-white/10 px-6 py-5 shadow-2xl overflow-hidden"
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between py-1 border-b border-slate-800">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Quick Navigation</span>
+                  <div className="relative" ref={themePickerRef}>
+                    <button
+                      onClick={() => setShowThemePicker(!showThemePicker)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-mono text-slate-300 cursor-pointer"
+                    >
+                      <Palette className="w-3 h-3 text-violet-400" />
+                      <span className="capitalize">{theme}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <a 
+                    href="#sandbox" 
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="p-2.5 bg-cyan-950/30 border border-cyan-800/40 rounded-xl text-xs font-bold text-cyan-300 flex items-center gap-2"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    <span>Diffraction Lab</span>
+                  </a>
+                  <a 
+                    href="#broadening" 
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2"
+                  >
+                    <span>🔬 Broadening</span>
+                  </a>
+                  <a 
+                    href="#modules" 
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2"
+                  >
+                    <span>🗂️ 30+ Instruments</span>
+                  </a>
+                  <a 
+                    href="#workflows" 
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2"
+                  >
+                    <span>🧭 Workflows</span>
+                  </a>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      handleEnterApp(isRegistered ? 'login' : 'register');
+                    }}
+                    className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 text-cyan-300" />
+                    <span>{isRegistered ? 'Launch Workbench' : 'Enter Suite (Instant Access)'}</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       <main className="flex-1 relative z-10">
@@ -1422,18 +1684,30 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 </span>
               </div>
 
-              {/* Graphical Welcome Indicator with Personalized Greeting */}
+              {/* Graphical Welcome Indicator with Personalized Salutation & Tour Button */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="mb-4"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="mb-5 flex flex-wrap items-center gap-2.5"
               >
-                <div className={`inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 backdrop-blur-md text-cyan-300 font-mono text-xs sm:text-sm font-black tracking-[0.2em] uppercase shadow-lg shadow-cyan-500/10 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-                  <span>{isRegistered && userName ? `${t('Welcome')}, ${userName}` : t('Welcome')}</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/40" />
+                {/* Main Welcome Pill */}
+                <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-gradient-to-r from-violet-600/20 via-cyan-500/15 to-indigo-600/20 border border-cyan-500/30 backdrop-blur-xl text-cyan-200 font-mono text-xs sm:text-sm font-bold shadow-xl shadow-cyan-500/10 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
+                  <span className="text-white font-black">{timeOfDayGreeting}</span>
+                  <span className="text-slate-400">•</span>
+                  <span>{isRegistered && userName ? `${t('Welcome')}, ${userName}` : (isRTL ? "به سامانه XRD CalcPro خوش آمدید" : "Welcome to XRD CalcPro")}</span>
                 </div>
+
+                {/* 3-Step Guided Tour Quick Action */}
+                <button
+                  onClick={() => setShowWelcomeTour(true)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-900/80 hover:bg-violet-950/80 border border-violet-500/40 hover:border-cyan-400/60 text-slate-200 hover:text-white font-mono text-xs font-bold transition-all shadow-lg cursor-pointer group/tour active:scale-95 ${isRTL ? "flex-row-reverse" : ""}`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-cyan-300 group-hover/tour:rotate-12 transition-transform" />
+                  <span>{isRTL ? "تور سریع ۴ مرحله‌ای" : "3-Step Guided Tour"}</span>
+                  <ArrowRight className="w-3 h-3 text-cyan-400 group-hover/tour:translate-x-0.5 transition-transform" />
+                </button>
               </motion.div>
 
               {/* Majestic Scientific Heading */}
@@ -1451,18 +1725,46 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               </h1>
               
               {/* Premium Hero Description */}
-              <p className="text-base sm:text-lg text-slate-300 font-medium mb-10 leading-relaxed max-w-2xl">
+              <p className="text-base sm:text-lg text-slate-300 font-medium mb-8 leading-relaxed max-w-2xl">
                 {t('Hero Description') || 'The ultimate computational suite for X-ray powder diffraction (XRD). Extract precise phase data, determine crystallite size, calculate strain metrics, and perform structure refinement with institutional-grade computational models directly in your browser.'}
               </p>
 
-              {/* Dynamic Interactive Search Module replacing standard buttons */}
-              <div ref={heroSearchRef} className="relative max-w-2xl group w-full mb-10">
+              {/* CATEGORY FILTER CHIPS FOR SEARCH */}
+              <div className={`flex flex-wrap items-center gap-1.5 mb-3 max-w-2xl ${isRTL ? "flex-row-reverse" : ""}`}>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mr-1">Filter:</span>
+                {[
+                  { id: 'all', label: 'All (30+ Tools)' },
+                  { id: 'diffraction', label: 'Diffraction & Bragg' },
+                  { id: 'crystallite', label: 'Crystallite & Strain' },
+                  { id: 'ai', label: 'AI & Refinement' },
+                  { id: 'standards', label: 'COD Standards' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setSearchCategory(cat.id as any);
+                      if (heroSearchTerm) setShowHeroSuggestions(true);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all cursor-pointer ${
+                      searchCategory === cat.id
+                        ? 'bg-violet-600/30 border border-violet-400/80 text-violet-200 font-bold shadow-sm'
+                        : 'bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Dynamic Interactive Search Module */}
+              <div ref={heroSearchRef} className="relative max-w-2xl group w-full mb-6">
                 <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-cyan-500 rounded-[2.2rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
                 <div className={`relative flex items-center bg-[#050b14]/90 ring-1 ring-white/10 backdrop-blur-2xl rounded-[2rem] p-2.5 w-full transition-all duration-300 focus-within:ring-violet-500/50 focus-within:ring-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]`}>
-                  <div className="p-3 pl-5 text-slate-400 shrink-0">
+                  <div className="p-3 pl-4 text-slate-400 shrink-0 flex items-center gap-1.5">
                     <Search className="w-5 h-5 text-violet-400 group-hover:text-cyan-400 transition-colors" />
                   </div>
                   <input 
+                    ref={searchInputRef}
                     type="text" 
                     value={heroSearchTerm}
                     onChange={(e) => {
@@ -1476,17 +1778,24 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                       if (e.key === 'Enter') handleEnterApp(isRegistered ? 'login' : 'register');
                     }}
                   />
+
+                  {/* Keyboard shortcut badge */}
+                  <div className="hidden lg:flex items-center gap-1 mr-2 px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-[10px] font-mono text-slate-400 shrink-0 select-none">
+                    <span>Press</span>
+                    <kbd className="bg-slate-900 px-1 py-0.2 text-cyan-300 font-bold rounded">/</kbd>
+                  </div>
+
                   <div className={`flex gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
                     <AnimatedGoToAppButton
                       onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                      text={isRegistered ? t('Go to App') : (isRTL ? "دسترسی دمو" : "Demo Access")}
+                      text={isRegistered ? t('Go to App') : (isRTL ? "کاوش فوری" : "Guest Explorer")}
                       variant="secondary"
                       isRTL={isRTL}
                       className="hidden sm:flex py-3.5 h-12"
                     />
                     <AnimatedGoToAppButton
                       onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                      text={isRegistered ? (isRTL ? "ورود به سیستم" : "Launch Core") : (isRTL ? "شروع به کار" : "Start")}
+                      text={isRegistered ? (isRTL ? "ورود به سیستم" : "Launch Core") : (isRTL ? "شروع به کار" : "Launch Workbench")}
                       variant="primary"
                       isRTL={isRTL}
                       className="py-3.5 h-12"
@@ -1498,7 +1807,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 {showHeroSuggestions && filteredHeroSuggestions.length > 0 && (
                   <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300 border border-white/5">
                     <div className={`text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mb-3 px-2 flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span>{isRTL ? "تطبیق بلورشناسی و ابزارهای تحلیلی" : "Crystallography & Instrument Matches"}</span>
+                      <span>{isRTL ? "تطبیق بلورشناسی و ابزارهای تحلیلی" : `Matches in ${searchCategory === 'all' ? 'All Categories' : searchCategory}`}</span>
                       <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">{isRTL ? "جستجوی هوشمند محلی" : "Local rapid index"}</span>
                     </div>
                     <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
@@ -1626,102 +1935,11 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               </div>
             </motion.div>
 
-            {/* Premium Dashboard Visualization Showcase */}
-            <motion.div 
-               initial={{ opacity: 0, scale: 0.95, x: 40 }}
-               animate={{ opacity: 1, scale: 1, x: 0 }}
-               transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-               className="relative group perspective-2000 hidden lg:block"
-            >
-              <div className="absolute inset-0 bg-gradient-to-tr from-violet-600/10 via-cyan-500/5 to-transparent blur-[120px] rounded-full group-hover:bg-violet-600/15 transition-all duration-1000" />
-              <div className="relative z-10 transform rotate-y-[-10deg] rotate-x-[6deg] group-hover:rotate-0 group-hover:scale-[1.03] transition-all duration-750">
-                
-                {/* Dashboard Iframe Frame */}
-                <div className="bg-[#050B14]/90 backdrop-blur-md rounded-[2.5rem] border border-white/10 overflow-hidden shadow-[0_50px_100px_-15px_rgba(0,0,0,0.85)] aspect-[16/11] flex flex-col ring-1 ring-white/15">
-                  
-                  {/* Top Header Controls Bar */}
-                  <div className={`p-5 border-b border-white/5 bg-white/[0.03] flex items-center justify-between backdrop-blur-md ${isRTL ? "flex-row-reverse" : ""}`}>
-                    <div className="flex gap-2">
-                      <div className="w-3 h-3 rounded-full bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
-                      <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                    </div>
-                    <div className="text-[11px] font-mono uppercase tracking-[0.2em] text-slate-400 bg-slate-900/40 px-3.5 py-1.5 rounded-full border border-white/5 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
-                      <span>{isRTL ? "خروجی آنالیز هوش مصنوعی" : "AI Analysis Output"}</span>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="w-24 h-2 bg-white/5 rounded-full overflow-hidden">
-                        <motion.div animate={{ width: ['0%', '100%'] }} transition={{ duration: 4, repeat: Infinity, ease: 'linear' }} className="h-full bg-gradient-to-r from-violet-500 to-cyan-400" />
-                      </div>
-                      <div className="w-10 h-2 bg-white/10 rounded-full" />
-                    </div>
-                  </div>
-
-                  {/* Core Simulated Analyzer Output */}
-                  <div className="flex-1 p-8 flex flex-col gap-6">
-                    <div className="h-44 w-full bg-[#070D18] rounded-2xl border border-white/5 relative overflow-hidden flex items-end p-6 gap-2 group/chart">
-                       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none" />
-                       
-                       {/* Animated Diffraction Peaks */}
-                       {Array.from({ length: 24 }).map((_, i) => (
-                         <div 
-                           key={i} 
-                           className="flex-1 bg-gradient-to-t from-violet-600/50 via-cyan-500/50 to-cyan-400/80 rounded-t-lg transition-all duration-300 group-hover/chart:opacity-90" 
-                           style={{ height: `${Math.sin(i * 0.4) * 35 + 55}%`, animationDelay: `${i * 50}ms` }} 
-                         />
-                       ))}
-                       
-                       {/* Sweeping Laser Line representing real-time hardware scan */}
-                       <div className="absolute left-0 w-full h-[2px] bg-cyan-400/80 shadow-[0_0_12px_rgba(34,211,238,0.9)] border-dashed animate-bounce" style={{ top: '40%', animationDuration: '6s' }} />
-                       <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/5 text-[9px] font-mono tracking-wider text-cyan-400 uppercase">
-                         {isRTL ? "پراش فعال پرتو" : "Active Beam Diffraction"}
-                       </div>
-                    </div>
-
-                    {/* Interactive Metrics Cells */}
-                    <div className="grid grid-cols-3 gap-6 flex-1">
-                      <div className="bg-slate-900/40 rounded-2xl border border-white/5 p-5 flex flex-col justify-between hover:bg-slate-900/60 hover:border-violet-500/20 transition-all duration-300 group/cell select-none">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover/cell:scale-110 transition-transform">
-                          <Activity className="w-4 h-4 text-emerald-400" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            {isRTL ? "پسماند خطای RMS" : "RMS Residual"}
-                          </p>
-                          <p className="text-base font-black font-mono text-white tracking-tight">0.0423</p>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-900/40 rounded-2xl border border-white/5 p-5 flex flex-col justify-between hover:bg-slate-900/60 hover:border-violet-500/20 transition-all duration-300 group/cell select-none">
-                        <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center group-hover/cell:scale-110 transition-transform">
-                          <Cpu className="w-4 h-4 text-violet-400" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            {isRTL ? "هسته‌های فعال" : "Cores Active"}
-                          </p>
-                          <p className="text-base font-black font-mono text-white tracking-tight">X92-A</p>
-                        </div>
-                      </div>
-
-                      <div className="bg-slate-900/40 rounded-2xl border border-white/5 p-5 flex flex-col justify-between hover:bg-slate-900/60 hover:border-cyan-500/20 transition-all duration-300 group/cell select-none">
-                        <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center group-hover/cell:scale-110 transition-transform">
-                          <Shapes className="w-4 h-4 text-cyan-400" />
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                            {isRTL ? "تقارن بلوری" : "Symmetry"}
-                          </p>
-                          <p className="text-base font-black font-mono text-white tracking-tight">Fm-3m</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </motion.div>
+            {/* Interactive Live Diffractogram & Crystal Analyzer Showcase */}
+            <InteractiveHeroDiffractionShowcase 
+              onLaunch={(matId) => handleEnterApp(isRegistered ? 'login' : 'register', matId ? 'database' : undefined)}
+              isRTL={isRTL}
+            />
           </div>
         </section>
 
@@ -2469,6 +2687,14 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
         }}
       />
 
+      {/* Welcome Tour Modal */}
+      <WelcomeTourModal
+        isOpen={showWelcomeTour}
+        onClose={() => setShowWelcomeTour(false)}
+        onLaunch={handleEnterApp}
+        isRTL={isRTL}
+      />
+
       {/* Cookie Banner */}
       {showCookieBanner && (
         <CookieBanner 
@@ -2476,6 +2702,34 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
           onAccept={handleAcceptCookies} 
         />
       )}
+
+      {/* Floating Quick Action Dock */}
+      <div className={`fixed bottom-6 ${isRTL ? 'left-6' : 'right-6'} z-50 flex items-center gap-2 pointer-events-auto`}>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 shadow-2xl backdrop-blur-xl transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95"
+            title="Back to Top"
+            aria-label="Back to Top"
+          >
+            <ChevronUp className="w-5 h-5" />
+          </motion.button>
+        )}
+
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 text-white font-bold text-xs shadow-[0_0_25px_rgba(139,92,246,0.5)] border border-white/20 backdrop-blur-xl flex items-center gap-2 cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
+          <span className="hidden sm:inline">{isRegistered ? 'Go to Suite' : 'Launch XRD Workbench'}</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </motion.button>
+      </div>
     </div>
   );
 };

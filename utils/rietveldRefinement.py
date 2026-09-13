@@ -473,14 +473,22 @@ def run_rietveld_refinement(payload: dict) -> dict:
     }
 
 if __name__ == "__main__":
-    # Standard shell reader interface
+    # Standard shell reader interface supporting both --json argument and stdin stream
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--json", type=str, required=True, help="Input parameters in nested JSON encoding")
+    parser.add_argument("--json", type=str, required=False, default=None, help="Input parameters in nested JSON encoding")
     args = parser.parse_args()
 
     try:
-        data_payload = json.loads(args.json)
+        if args.json:
+            raw_input = args.json
+        else:
+            raw_input = sys.stdin.read().strip()
+
+        if not raw_input:
+            raise ValueError("No input JSON data provided via --json argument or standard input.")
+
+        data_payload = json.loads(raw_input)
         # Handle stringified nested JSON if passed
         if isinstance(data_payload, str):
             data_payload = json.loads(data_payload)
