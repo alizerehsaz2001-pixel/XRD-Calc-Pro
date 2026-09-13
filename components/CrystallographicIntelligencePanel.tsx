@@ -20,8 +20,29 @@ import {
   Eye,
   SlidersHorizontal,
   Flame,
-  Zap
+  Zap,
+  Download,
+  FileText,
+  HelpCircle,
+  Crosshair,
+  Maximize2
 } from 'lucide-react';
+import {
+  LatticeParameters,
+  RadiationSource,
+  XRAY_ANODES,
+  computeLatticeTensors,
+  calculatePlaneMetrology,
+  calculateInterplanarAngle,
+  calculateZoneAxis,
+  checkWeissZoneLaw,
+  estimateVolumeUnderPressure,
+  calculateCubicAnisotropicE,
+  calculateScherrerSize,
+  generateCIFString
+} from '../src/utils/crystallographyMath';
+import { UnitCell3DViewer } from './crystallography/UnitCell3DViewer';
+import { StickSpectrumChart, TheoreticalReflection } from './crystallography/StickSpectrumChart';
 
 export interface CrystallographicData {
   phase_name?: string;
@@ -52,28 +73,38 @@ interface Props {
   className?: string;
 }
 
-// X-ray Radiation Wavelengths (Angstroms)
-export const XRAY_ANODES = [
-  { id: 'cu_ka1', name: 'Cu-Kα₁', lambda: 1.540598, color: 'text-cyan-400', border: 'border-cyan-500/40', bg: 'bg-cyan-500/10' },
-  { id: 'mo_ka1', name: 'Mo-Kα₁', lambda: 0.709300, color: 'text-emerald-400', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10' },
-  { id: 'co_ka1', name: 'Co-Kα₁', lambda: 1.788965, color: 'text-amber-400', border: 'border-amber-500/40', bg: 'bg-amber-500/10' },
-  { id: 'cr_ka1', name: 'Cr-Kα₁', lambda: 2.289700, color: 'text-rose-400', border: 'border-rose-500/40', bg: 'bg-rose-500/10' },
-  { id: 'fe_ka1', name: 'Fe-Kα₁', lambda: 1.936042, color: 'text-purple-400', border: 'border-purple-500/40', bg: 'bg-purple-500/10' },
-  { id: 'ag_ka1', name: 'Ag-Kα₁', lambda: 0.559408, color: 'text-sky-300', border: 'border-sky-500/40', bg: 'bg-sky-500/10' },
-];
-
 export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, className = '' }) => {
-  const [activeTab, setActiveTab] = useState<'metrics' | 'hkl_solver' | 'unit_cell_3d' | 'reflections_table' | 'strain_sim'>('metrics');
-  const [selectedAnode, setSelectedAnode] = useState('cu_ka1');
+  const [activeTab, setActiveTab] = useState<
+    'metrics' | 'hkl_solver' | 'zone_axis' | 'unit_cell_3d' | 'reflections_table' | 'size_strain' | 'hp_ht_eos'
+  >('metrics');
+  const [selectedAnodeId, setSelectedAnodeId] = useState('cu_ka1');
 
-  // Custom Miller Indices for interactive calculator
-  const [h, setH] = useState(1);
-  const [k, setK] = useState(1);
-  const [l, setL] = useState(1);
+  // Custom Primary Miller Indices (h1, k1, l1)
+  const [h1, setH1] = useState(1);
+  const [k1, setK1] = useState(1);
+  const [l1, setL1] = useState(1);
 
-  // Microstrain and Thermal Expansion simulation
-  const [appliedStrainPct, setAppliedStrainPct] = useState(0); // in percent (-2% to +2%)
-  const [tempDeltaK, setTempDeltaK] = useState(0); // in Kelvin (0 to 1000 K)
+  // Secondary Miller Indices (h2, k2, l2) for Interplanar Angle & Zone Axis
+  const [h2, setH2] = useState(2);
+  const [k2, setK2] = useState(0);
+  const [l2, setL2] = useState(0);
+
+  // Zone Axis [u v w]
+  const [zoneU, setZoneU] = useState(0);
+  const [zoneV, setZoneV] = useState(0);
+  const [zoneW, setZoneW] = useState(1);
+
+  // Scherrer / Size-Strain state
+  const [fwhmObs, setFwhmObs] = useState(0.24);      // in degrees 2theta
+  const [fwhmInst, setFwhmInst] = useState(0.06);    // instrumental broadening in deg
+  const [shapeFactorK, setShapeFactorK] = useState(0.94);
+
+  // HP-HT and Strain simulation
+  const [appliedStrainPct, setAppliedStrainPct] = useState(0); // -2% to +2%
+  const [tempDeltaK, setTempDeltaK] = useState(0);             // 0 to 1000 K
+  const [appliedP_GPa, setAppliedP_GPa] = useState(0);         // 0 to 30 GPa
+  const [bulkModulusB0, setBulkModulusB0] = useState(160);     // GPa
+  const [zenerRatio, setZenerRatio] = useState(1.6);           // Anisotropy
 
   // Copy feedback
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -83,11 +114,93 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // 1. Rigorous Lattice Parameters Resolution
+  // Active Radiation source
+  const activeAnode = useMemo(() => {
+    return XRAY_ANODES.find((a) => a.id === selectedAnodeId) || XRAY_ANODES[0];
+  }, [selectedAnodeId]);
+
+  // 1. Crystal System, Space Group, Bravais Centering & Symmetry Resolution
+  const symmetryInfo = useMemo(() => {
+    const sg = candidate.spaceGroup || '';
+    const cs = candidate.crystalSystem || 'Cubic';
+    const csl = cs.toLowerCase();
+
+    // Centering determination
+    let centering = 'Primitive (P)';
+    let centeringCode = 'P';
+    if (sg.startsWith('F') || sg.includes('Fm') || sg.includes('Fd') || csl.includes('fcc')) {
+      centering = 'Face-Centered (F)';
+      centeringCode = 'F';
+    } else if (sg.startsWith('I') || sg.includes('Im') || sg.includes('Ia') || sg.includes('I4') || csl.includes('bcc')) {
+      centering = 'Body-Centered (I)';
+      centeringCode = 'I';
+    } else if (sg.startsWith('C') || sg.startsWith('A') || sg.startsWith('B')) {
+      centering = 'Base-Centered (C)';
+      centeringCode = 'C';
+    } else if (sg.startsWith('R') || csl.includes('rhombohedral')) {
+      centering = 'Rhombohedral (R)';
+      centeringCode = 'R';
+    }
+
+    // Laue, Point Group & Pearson Symbol
+    let laueGroup = 'm-3m';
+    let pointGroup = 'm-3m (Oh)';
+    let pearson = `c${centeringCode}`;
+
+    if (csl.includes('cubic')) {
+      laueGroup = 'm-3m';
+      pointGroup = sg.includes('43m') ? '-43m (Td)' : sg.includes('23') ? '23 (T)' : 'm-3m (Oh)';
+      pearson = `c${centeringCode}`;
+    } else if (csl.includes('hexagonal')) {
+      laueGroup = '6/mmm';
+      pointGroup = sg.includes('63mc') ? '6mm (C6v)' : '6/mmm (D6h)';
+      pearson = `h${centeringCode}`;
+    } else if (csl.includes('trigonal') || csl.includes('rhombohedral')) {
+      laueGroup = '-3m';
+      pointGroup = '-3m (D3d)';
+      pearson = 'hR';
+    } else if (csl.includes('tetragonal')) {
+      laueGroup = '4/mmm';
+      pointGroup = '4/mmm (D4h)';
+      pearson = `t${centeringCode}`;
+    } else if (csl.includes('orthorhombic')) {
+      laueGroup = 'mmm';
+      pointGroup = 'mmm (D2h)';
+      pearson = `o${centeringCode}`;
+    } else if (csl.includes('monoclinic')) {
+      laueGroup = '2/m';
+      pointGroup = '2/m (C2h)';
+      pearson = `m${centeringCode}`;
+    } else if (csl.includes('triclinic')) {
+      laueGroup = '-1';
+      pointGroup = '-1 (Ci)';
+      pearson = 'aP';
+    }
+
+    // Systematic Absences
+    let extinctionRule = 'All (hkl) reflections allowed';
+    if (centeringCode === 'F') extinctionRule = 'h, k, l all odd or all even (unmixed)';
+    else if (centeringCode === 'I') extinctionRule = 'h + k + l = 2n (even sum)';
+    else if (centeringCode === 'C') extinctionRule = 'h + k = 2n (even)';
+    else if (centeringCode === 'R') extinctionRule = '-h + k + l = 3n';
+
+    return {
+      crystalSystem: cs,
+      spaceGroup: sg || 'P 1',
+      centering,
+      centeringCode,
+      laueGroup,
+      pointGroup,
+      pearson,
+      extinctionRule,
+    };
+  }, [candidate]);
+
+  // 2. Exact Direct & Reciprocal Metric Tensors
   const lattice = useMemo(() => {
     const cs = (candidate.crystalSystem || 'Cubic').toLowerCase();
-    
-    // Default simulated parameters for each system if unprovided
+
+    // Default lattice values if unprovided
     let defA = 4.156, defB = 4.156, defC = 4.156;
     let defAlpha = 90, defBeta = 90, defGamma = 90;
 
@@ -113,170 +226,34 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
     const baseBeta = raw.beta ?? defBeta;
     const baseGamma = raw.gamma ?? defGamma;
 
-    // Apply linear strain and thermal expansion (approx alpha_thermal = 1.2e-5 / K)
-    const strainFactor = 1 + appliedStrainPct / 100 + (tempDeltaK * 1.2e-5);
-    const a = baseA * strainFactor;
-    const b = baseB * strainFactor;
-    const c = baseC * strainFactor;
-    const alpha = baseAlpha;
-    const beta = baseBeta;
-    const gamma = baseGamma;
-
-    // Exact Triclinic/General Unit Cell Volume
-    const aRad = (alpha * Math.PI) / 180;
-    const bRad = (beta * Math.PI) / 180;
-    const gRad = (gamma * Math.PI) / 180;
-
-    const cosA = Math.cos(aRad);
-    const cosB = Math.cos(bRad);
-    const cosG = Math.cos(gRad);
-    const sinA = Math.sin(aRad);
-    const sinB = Math.sin(bRad);
-    const sinG = Math.sin(gRad);
-
-    const term = 1 - cosA * cosA - cosB * cosB - cosG * cosG + 2 * cosA * cosB * cosG;
-    const vol = a * b * c * Math.sqrt(Math.max(0.0001, term));
-
-    // Direct Metric Tensor G
-    const G = [
-      [a * a, a * b * cosG, a * c * cosB],
-      [a * b * cosG, b * b, b * c * cosA],
-      [a * c * cosB, b * c * cosA, c * c]
-    ];
-
-    // Reciprocal Lattice Lengths and Angles
-    const aStar = (b * c * sinA) / vol;
-    const bStar = (a * c * sinB) / vol;
-    const cStar = (a * b * sinG) / vol;
-
-    const cosAStar = (cosB * cosG - cosA) / (sinB * sinG);
-    const cosBStar = (cosA * cosG - cosB) / (sinA * sinG);
-    const cosGStar = (cosA * cosB - cosG) / (sinA * sinB);
-
-    const alphaStar = (Math.acos(Math.max(-1, Math.min(1, cosAStar))) * 180) / Math.PI;
-    const betaStar = (Math.acos(Math.max(-1, Math.min(1, cosBStar))) * 180) / Math.PI;
-    const gammaStar = (Math.acos(Math.max(-1, Math.min(1, cosGStar))) * 180) / Math.PI;
-
-    const volStar = 1 / vol;
-
-    // Reciprocal Metric Tensor G*
-    const GStar = [
-      [aStar * aStar, aStar * bStar * cosGStar, aStar * cStar * cosBStar],
-      [aStar * bStar * cosGStar, bStar * bStar, bStar * cStar * cosAStar],
-      [aStar * cStar * cosBStar, bStar * cStar * cosAStar, cStar * cStar]
-    ];
-
-    return {
-      a, b, c,
-      alpha, beta, gamma,
-      vol,
-      aStar, bStar, cStar,
-      alphaStar, betaStar, gammaStar,
-      volStar,
-      G, GStar,
-      cosA, cosB, cosG,
-      sinA, sinB, sinG,
-      cosAStar, cosBStar, cosGStar,
-    };
+    return computeLatticeTensors(
+      baseA,
+      baseB,
+      baseC,
+      baseAlpha,
+      baseBeta,
+      baseGamma,
+      appliedStrainPct,
+      tempDeltaK
+    );
   }, [candidate, appliedStrainPct, tempDeltaK]);
 
-  // 2. Crystal System, Space Group, Bravais Centering & Symmetry Information
-  const symmetryInfo = useMemo(() => {
-    const sg = candidate.spaceGroup || '';
-    const cs = candidate.crystalSystem || 'Cubic';
-    const sgLower = sg.toLowerCase();
-
-    // Bravais Centering Type
-    let centering = 'Primitive (P)';
-    let centeringCode = 'P';
-    if (sg.startsWith('F') || sg.includes('Fm') || sg.includes('Fd')) {
-      centering = 'Face-Centered (F)';
-      centeringCode = 'F';
-    } else if (sg.startsWith('I') || sg.includes('Im') || sg.includes('Ia') || sg.includes('I4')) {
-      centering = 'Body-Centered (I)';
-      centeringCode = 'I';
-    } else if (sg.startsWith('C') || sg.startsWith('A') || sg.startsWith('B')) {
-      centering = 'Base-Centered (C)';
-      centeringCode = 'C';
-    } else if (sg.startsWith('R') || cs.toLowerCase().includes('rhombohedral')) {
-      centering = 'Rhombohedral (R)';
-      centeringCode = 'R';
-    }
-
-    // Laue Class
-    let laueGroup = 'm-3m (Cubic High)';
-    let pointGroup = 'm-3m (Oh)';
-    let pearson = 'cP';
-
-    const csl = cs.toLowerCase();
-    if (csl.includes('cubic')) {
-      laueGroup = 'm-3m';
-      pointGroup = sg.includes('43m') ? '-43m (Td)' : sg.includes('23') ? '23 (T)' : 'm-3m (Oh)';
-      pearson = `c${centeringCode}`;
-    } else if (csl.includes('hexagonal')) {
-      laueGroup = '6/mmm';
-      pointGroup = sg.includes('63mc') ? '6mm (C6v)' : '6/mmm (D6h)';
-      pearson = `h${centeringCode}`;
-    } else if (csl.includes('trigonal') || csl.includes('rhombohedral')) {
-      laueGroup = '-3m';
-      pointGroup = '-3m (D3d)';
-      pearson = `hR`;
-    } else if (csl.includes('tetragonal')) {
-      laueGroup = '4/mmm';
-      pointGroup = '4/mmm (D4h)';
-      pearson = `t${centeringCode}`;
-    } else if (csl.includes('orthorhombic')) {
-      laueGroup = 'mmm';
-      pointGroup = 'mmm (D2h)';
-      pearson = `o${centeringCode}`;
-    } else if (csl.includes('monoclinic')) {
-      laueGroup = '2/m';
-      pointGroup = '2/m (C2h)';
-      pearson = `m${centeringCode}`;
-    } else if (csl.includes('triclinic')) {
-      laueGroup = '-1';
-      pointGroup = '-1 (Ci)';
-      pearson = `aP`;
-    }
-
-    // Extinction Conditions Description
-    let extinctionRule = 'All (hkl) reflections allowed';
-    if (centeringCode === 'F') {
-      extinctionRule = 'h, k, l all odd or all even (unmixed)';
-    } else if (centeringCode === 'I') {
-      extinctionRule = 'h + k + l = 2n (even sum)';
-    } else if (centeringCode === 'C') {
-      extinctionRule = 'h + k = 2n (even)';
-    } else if (centeringCode === 'R') {
-      extinctionRule = '-h + k + l = 3n';
-    }
-
-    return {
-      crystalSystem: cs,
-      spaceGroup: sg || 'P1 (1)',
-      centering,
-      centeringCode,
-      laueGroup,
-      pointGroup,
-      pearson,
-      extinctionRule
-    };
-  }, [candidate]);
-
-  // 3. Physics & Density Calculations
-  const physicsMetrics = useMemo(() => {
+  // 3. Density, Packing & Attenuation Physics
+  const physics = useMemo(() => {
     const mw = candidate.molecularWeight || 100.0;
     const Z = candidate.zValue || (lattice.vol ? Math.max(1, Math.round(lattice.vol / 35)) : 4);
     const NA = 6.02214076e23;
-    
+
     // Theoretical Density: rho = (Z * Mw) / (NA * V * 10^-24) g/cm3
     const theorDensity = (Z * mw) / (NA * lattice.vol * 1e-24);
     const densityVal = candidate.density || theorDensity;
 
-    // Mass Attenuation Coefficient estimate for Cu-Ka (approx based on mean atomic number/density)
-    const muRhoCu = Math.max(15, densityVal * 7.5);
-    const linearMuCu = muRhoCu * densityVal; // in cm^-1
-    const penetrationDepthUm = (1 / linearMuCu) * 1e4; // in micrometers
+    // Mass Attenuation Coefficient (mu/rho) estimation for active anode wavelength
+    // Approx scaling with (lambda / 1.54)^3
+    const lambdaFactor = Math.pow(activeAnode.lambda / 1.5406, 2.7);
+    const muRho = Math.max(12, densityVal * 7.2 * lambdaFactor);
+    const linearMu = muRho * densityVal; // cm^-1
+    const penetrationDepthUm = (1 / linearMu) * 1e4; // micrometers
 
     // Atomic Packing Factor (APF)
     let apf = 0.68;
@@ -291,117 +268,90 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
       mw,
       theorDensity,
       densityVal,
-      muRhoCu,
-      linearMuCu,
+      muRho,
+      linearMu,
       penetrationDepthUm,
-      apf
+      apf,
     };
-  }, [candidate, lattice, symmetryInfo]);
+  }, [candidate, lattice, symmetryInfo, activeAnode]);
 
-  // 4. Exact d_hkl and 2Theta Solver for any (h, k, l)
-  const calcMillerPlane = (hVal: number, kVal: number, lVal: number, wavelength: number) => {
-    if (hVal === 0 && kVal === 0 && lVal === 0) {
-      return { d: 0, twoTheta: 0, theta: 0, q: 0, lpFactor: 0, allowed: false };
-    }
+  // 4. Primary Plane Metrology (h1, k1, l1)
+  const plane1Metrology = useMemo(() => {
+    return calculatePlaneMetrology(
+      h1,
+      k1,
+      l1,
+      lattice,
+      activeAnode.lambda,
+      symmetryInfo.centeringCode
+    );
+  }, [h1, k1, l1, lattice, activeAnode, symmetryInfo]);
 
-    // 1/d^2 = h^2 a*^2 + k^2 b*^2 + l^2 c*^2 + 2hk a*b*cos(gamma*) + 2kl b*c*cos(alpha*) + 2hl a*c*cos(beta*)
-    const invD2 = 
-      hVal * hVal * lattice.GStar[0][0] +
-      kVal * kVal * lattice.GStar[1][1] +
-      lVal * lVal * lattice.GStar[2][2] +
-      2 * hVal * kVal * lattice.GStar[0][1] +
-      2 * kVal * lVal * lattice.GStar[1][2] +
-      2 * hVal * lVal * lattice.GStar[0][2];
+  // 5. Secondary Plane Metrology (h2, k2, l2) & Interplanar Angle (phi)
+  const interplanarAngle = useMemo(() => {
+    return calculateInterplanarAngle(h1, k1, l1, h2, k2, l2, lattice);
+  }, [h1, k1, l1, h2, k2, l2, lattice]);
 
-    if (invD2 <= 0) return { d: 0, twoTheta: 0, theta: 0, q: 0, lpFactor: 0, allowed: false };
-
-    const d = 1 / Math.sqrt(invD2);
-    const sinTheta = wavelength / (2 * d);
-    
-    // Extinction verification
-    let allowed = true;
-    if (symmetryInfo.centeringCode === 'F') {
-      const hMod = Math.abs(hVal) % 2;
-      const kMod = Math.abs(kVal) % 2;
-      const lMod = Math.abs(lVal) % 2;
-      allowed = (hMod === kMod) && (kMod === lMod);
-    } else if (symmetryInfo.centeringCode === 'I') {
-      allowed = (Math.abs(hVal + kVal + lVal) % 2 === 0);
-    } else if (symmetryInfo.centeringCode === 'C') {
-      allowed = (Math.abs(hVal + kVal) % 2 === 0);
-    }
-
-    if (sinTheta > 1) {
-      // Reflection is outside Ewald Sphere for this wavelength
-      return { d, twoTheta: 0, theta: 0, q: (4 * Math.PI) / d, lpFactor: 0, allowed: false, outOfRange: true };
-    }
-
-    const thetaRad = Math.asin(sinTheta);
-    const thetaDeg = (thetaRad * 180) / Math.PI;
-    const twoTheta = 2 * thetaDeg;
-    const q = (4 * Math.PI * sinTheta) / wavelength;
-
-    // Lorentz-Polarization Factor (standard unpolarized laboratory beam)
-    const sin2T = Math.sin(2 * thetaRad);
-    const cos2T = Math.cos(2 * thetaRad);
-    const lpFactor = (1 + cos2T * cos2T) / (Math.sin(thetaRad) * Math.sin(thetaRad) * Math.cos(thetaRad));
+  // 6. Zone Axis Calculation & Weiss Zone Law
+  const zoneAxisResult = useMemo(() => {
+    const calcFromPlanes = calculateZoneAxis(h1, k1, l1, h2, k2, l2, lattice);
+    const inZone1 = checkWeissZoneLaw(h1, k1, l1, zoneU, zoneV, zoneW);
+    const inZone2 = checkWeissZoneLaw(h2, k2, l2, zoneU, zoneV, zoneW);
 
     return {
-      d,
-      twoTheta,
-      theta: thetaDeg,
-      q,
-      lpFactor,
-      allowed,
-      outOfRange: false
+      ...calcFromPlanes,
+      inZone1,
+      inZone2,
     };
-  };
+  }, [h1, k1, l1, h2, k2, l2, zoneU, zoneV, zoneW, lattice]);
 
-  const activeAnode = XRAY_ANODES.find(a => a.id === selectedAnode) || XRAY_ANODES[0];
-  const currentPlane = useMemo(() => {
-    return calcMillerPlane(h, k, l, activeAnode.lambda);
-  }, [h, k, l, activeAnode, lattice, symmetryInfo]);
+  // 7. Scherrer Size & Dislocation Calculation
+  const sizeStrainResult = useMemo(() => {
+    return calculateScherrerSize(
+      fwhmObs,
+      fwhmInst,
+      plane1Metrology.twoTheta || 38.0,
+      activeAnode.lambda,
+      shapeFactorK
+    );
+  }, [fwhmObs, fwhmInst, plane1Metrology, activeAnode, shapeFactorK]);
 
-  // 5. Theoretical Bragg Reflection Table Generation (First ~12 prominent reflections)
-  const theoreticalReflections = useMemo(() => {
-    const list: Array<{
-      h: number;
-      k: number;
-      l: number;
-      hkl: string;
-      d: number;
-      twoTheta: number;
-      multiplicity: number;
-      allowed: boolean;
-      relIntensity: number;
-    }> = [];
-
+  // 8. Theoretical Reflection Table (sorted by 2Theta)
+  const theoreticalReflections = useMemo((): TheoreticalReflection[] => {
+    const list: TheoreticalReflection[] = [];
     const cs = (candidate.crystalSystem || 'Cubic').toLowerCase();
 
-    // Standard reflection scan ranges
     for (let hIdx = 0; hIdx <= 4; hIdx++) {
       for (let kIdx = 0; kIdx <= 4; kIdx++) {
         for (let lIdx = 0; lIdx <= 4; lIdx++) {
           if (hIdx === 0 && kIdx === 0 && lIdx === 0) continue;
 
-          // For symmetry unique reduction (approximate for cubic/tetragonal/hexagonal)
+          // Symmetry unique reduction
           if (cs.includes('cubic') && (hIdx < kIdx || kIdx < lIdx)) continue;
-          if (cs.includes('tetragonal') && (hIdx < kIdx)) continue;
-          if (cs.includes('hexagonal') && (hIdx < kIdx)) continue;
+          if (cs.includes('tetragonal') && hIdx < kIdx) continue;
+          if (cs.includes('hexagonal') && hIdx < kIdx) continue;
 
-          const res = calcMillerPlane(hIdx, kIdx, lIdx, activeAnode.lambda);
-          if (res.twoTheta > 5 && res.twoTheta < 110 && !res.outOfRange) {
-            // Estimate multiplicity
+          const res = calculatePlaneMetrology(
+            hIdx,
+            kIdx,
+            lIdx,
+            lattice,
+            activeAnode.lambda,
+            symmetryInfo.centeringCode
+          );
+
+          if (res.twoTheta >= 8 && res.twoTheta <= 115 && !res.outOfRange) {
+            // Multiplicity estimation
             let mult = 6;
             if (cs.includes('cubic')) {
-              if (hIdx === kIdx && kIdx === lIdx) mult = 8; // (111)
-              else if (hIdx !== 0 && kIdx === 0 && lIdx === 0) mult = 6; // (100)
-              else if (hIdx === kIdx && lIdx === 0) mult = 12; // (110)
+              if (hIdx === kIdx && kIdx === lIdx) mult = 8;
+              else if (hIdx !== 0 && kIdx === 0 && lIdx === 0) mult = 6;
+              else if (hIdx === kIdx && lIdx === 0) mult = 12;
               else if (hIdx !== kIdx && kIdx !== lIdx && lIdx !== 0) mult = 48;
               else mult = 24;
             } else if (cs.includes('hexagonal')) {
-              if (hIdx === 0 && kIdx === 0) mult = 2; // (00l)
-              else if (lIdx === 0) mult = 6; // (hk0)
+              if (hIdx === 0 && kIdx === 0) mult = 2;
+              else if (lIdx === 0) mult = 6;
               else mult = 12;
             } else if (cs.includes('tetragonal')) {
               if (hIdx === 0 && kIdx === 0) mult = 2;
@@ -411,7 +361,6 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
               mult = 2;
             }
 
-            // Approximate structure factor profile
             const fFactor = (hIdx + kIdx + lIdx) % 2 === 0 ? 1.0 : 0.65;
             const rawInt = mult * res.lpFactor * fFactor * Math.exp(-0.02 * res.q * res.q);
 
@@ -420,149 +369,143 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
               k: kIdx,
               l: lIdx,
               hkl: `(${hIdx}${kIdx}${lIdx})`,
+              millerBravais: res.millerBravais,
               d: res.d,
               twoTheta: res.twoTheta,
               multiplicity: mult,
               allowed: res.allowed,
               relIntensity: rawInt,
+              q: res.q,
+              lpFactor: res.lpFactor,
             });
           }
         }
       }
     }
 
-    // Sort by 2Theta
     list.sort((a, b) => a.twoTheta - b.twoTheta);
+    const maxInt = Math.max(1, ...list.filter((x) => x.allowed).map((x) => x.relIntensity));
 
-    // Normalize intensity
-    const maxInt = Math.max(1, ...list.filter(x => x.allowed).map(x => x.relIntensity));
-    return list.map(item => ({
+    return list.map((item) => ({
       ...item,
-      relIntensity: item.allowed ? Math.round((item.relIntensity / maxInt) * 100) : 0
-    })).slice(0, 14);
+      relIntensity: item.allowed ? Math.round((item.relIntensity / maxInt) * 100) : 0,
+    })).slice(0, 16);
   }, [lattice, symmetryInfo, activeAnode, candidate]);
 
-  // 6. 3D Isometric Unit Cell Projection Coordinates & Miller Plane Facet
-  const unitCell3D = useMemo(() => {
-    // 3D Isometric / Dimetric projection matrix
-    const cos30 = Math.cos((30 * Math.PI) / 180);
-    const sin30 = Math.sin((30 * Math.PI) / 180);
+  // 9. High-Pressure & Anisotropic Elasticity
+  const hpCompressedVolume = useMemo(() => {
+    return estimateVolumeUnderPressure(appliedP_GPa, lattice.vol, bulkModulusB0);
+  }, [appliedP_GPa, lattice.vol, bulkModulusB0]);
 
-    const project3D = (x: number, y: number, z: number, scale = 110) => {
-      // Screen coordinates centered at (150, 150)
-      // x-axis points down-left (+x goes -X_screen, +Y_screen)
-      // y-axis points down-right (+y goes +X_screen, +Y_screen)
-      // z-axis points straight up (+z goes -Y_screen)
-      const aNorm = x;
-      const bNorm = y;
-      const cNorm = z;
+  const anisotropicE = useMemo(() => {
+    return calculateCubicAnisotropicE(
+      h1,
+      k1,
+      l1,
+      candidate.elasticModulus || 200,
+      candidate.poissonsRatio || 0.28,
+      zenerRatio
+    );
+  }, [h1, k1, l1, candidate, zenerRatio]);
 
-      const screenX = 150 + (bNorm * cos30 - aNorm * cos30) * scale;
-      const screenY = 150 + (aNorm * sin30 + bNorm * sin30 - cNorm) * scale;
-      return { x: screenX, y: screenY };
-    };
-
-    // 8 Box Vertices
-    const v000 = project3D(0, 0, 0);
-    const v100 = project3D(1, 0, 0);
-    const v010 = project3D(0, 1, 0);
-    const v110 = project3D(1, 1, 0);
-    const v001 = project3D(0, 0, 1);
-    const v101 = project3D(1, 0, 1);
-    const v011 = project3D(0, 1, 1);
-    const v111 = project3D(1, 1, 1);
-
-    // Compute (hkl) Plane Intercepts on Unit Cell axes (1/h, 1/k, 1/l)
-    const interceptA = h !== 0 ? Math.min(1, Math.max(0, 1 / Math.abs(h))) : 1;
-    const interceptB = k !== 0 ? Math.min(1, Math.max(0, 1 / Math.abs(k))) : 1;
-    const interceptC = l !== 0 ? Math.min(1, Math.max(0, 1 / Math.abs(l))) : 1;
-
-    // Plane vertices on axes
-    const pA = project3D(interceptA, 0, 0);
-    const pB = project3D(0, interceptB, 0);
-    const pC = project3D(0, 0, interceptC);
-
-    let planePoints = `${pA.x},${pA.y} ${pB.x},${pB.y} ${pC.x},${pC.y}`;
-    if (h === 0 && k !== 0 && l !== 0) {
-      const pB2 = project3D(1, interceptB, 0);
-      const pC2 = project3D(1, 0, interceptC);
-      planePoints = `${pB.x},${pB.y} ${pB2.x},${pB2.y} ${pC2.x},${pC2.y} ${pC.x},${pC.y}`;
-    } else if (k === 0 && h !== 0 && l !== 0) {
-      const pA2 = project3D(interceptA, 1, 0);
-      const pC2 = project3D(0, 1, interceptC);
-      planePoints = `${pA.x},${pA.y} ${pA2.x},${pA2.y} ${pC2.x},${pC2.y} ${pC.x},${pC.y}`;
-    } else if (l === 0 && h !== 0 && k !== 0) {
-      const pA2 = project3D(interceptA, 0, 1);
-      const pB2 = project3D(0, interceptB, 1);
-      planePoints = `${pA.x},${pA.y} ${pA2.x},${pA2.y} ${pB2.x},${pB2.y} ${pB.x},${pB.y}`;
-    }
-
-    return {
-      v000, v100, v010, v110, v001, v101, v011, v111,
-      planePoints,
-      pA, pB, pC,
-      project3D
-    };
-  }, [h, k, l, lattice]);
+  // Download CIF File
+  const handleDownloadCIF = () => {
+    const cifContent = generateCIFString(
+      candidate.phase_name || candidate.name || 'Phase',
+      candidate.formula || '',
+      symmetryInfo.spaceGroup,
+      lattice,
+      physics.Z,
+      physics.theorDensity
+    );
+    const blob = new Blob([cifContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${(candidate.phase_name || candidate.name || 'crystal').replace(/\s+/g, '_')}.cif`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
-    <div className={`bg-[#050A14]/90 p-6 sm:p-8 rounded-[2rem] border border-slate-800 relative overflow-hidden shadow-2xl transition-all ${className}`}>
+    <div className={`bg-[#050A14]/95 p-6 sm:p-8 rounded-[2rem] border border-slate-800 relative overflow-hidden shadow-2xl transition-all ${className}`}>
       {/* Background ambient lighting */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[90px] pointer-events-none -translate-y-20 translate-x-32" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-600/5 rounded-full blur-[80px] pointer-events-none translate-y-20 -translate-x-20" />
+      <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none -translate-y-24 translate-x-36" />
+      <div className="absolute bottom-0 left-0 w-[450px] h-[450px] bg-cyan-600/5 rounded-full blur-[90px] pointer-events-none translate-y-24 -translate-x-24" />
 
       {/* Header Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 relative z-10 border-b border-slate-800/80 pb-5">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 relative z-10 border-b border-slate-800/80 pb-5">
         <div className="flex items-center gap-3.5">
           <div className="p-3 bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 rounded-2xl border border-indigo-500/30 shadow-[inset_0_2px_10px_rgba(99,102,241,0.2)]">
             <Box className="w-6 h-6 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-mono font-black text-indigo-400 uppercase tracking-[0.25em]">
                 Crystallographic Intelligence & Metrology
               </span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono font-bold">
-                Direct & Reciprocal Tensor
+                Direct & Reciprocal Tensor [G/G*]
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-[9px] font-mono font-bold">
+                {symmetryInfo.crystalSystem} ({symmetryInfo.pearson})
               </span>
             </div>
             <h3 className="text-xl sm:text-2xl font-serif italic text-white tracking-wide mt-0.5">
               {candidate.phase_name || candidate.name || 'Crystalline Phase'}
+              {candidate.formula && <span className="text-slate-400 font-mono text-base font-normal ml-2">[{candidate.formula}]</span>}
             </h3>
           </div>
         </div>
 
-        {/* Radiation Target Picker */}
-        <div className="flex items-center gap-2 self-start lg:self-auto bg-[#09101F] p-1.5 rounded-xl border border-slate-700/80 shadow-md">
-          <span className="text-[9px] font-mono text-slate-400 uppercase font-bold pl-2 pr-1 flex items-center gap-1">
-            <Zap className="w-3 h-3 text-amber-400" /> Source:
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {XRAY_ANODES.map((anode) => (
-              <button
-                key={anode.id}
-                onClick={() => setSelectedAnode(anode.id)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all ${
-                  selectedAnode === anode.id
-                    ? `${anode.bg} ${anode.color} ${anode.border} border shadow-sm`
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
-                }`}
-              >
-                {anode.name}
-              </button>
-            ))}
+        {/* Action Controls & Radiation Picker */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start xl:self-auto">
+          {/* CIF Download Button */}
+          <button
+            onClick={handleDownloadCIF}
+            className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm"
+            title="Download standard Crystallographic Information File (.cif)"
+          >
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            Export CIF
+          </button>
+
+          {/* Radiation Source Picker */}
+          <div className="flex items-center gap-1.5 bg-[#09101F] p-1.5 rounded-xl border border-slate-700/80 shadow-md">
+            <span className="text-[9px] font-mono text-slate-400 uppercase font-bold pl-2 pr-1 flex items-center gap-1">
+              <Zap className="w-3 h-3 text-amber-400" /> Source:
+            </span>
+            <div className="flex flex-wrap gap-1">
+              {XRAY_ANODES.slice(0, 6).map((anode) => (
+                <button
+                  key={anode.id}
+                  onClick={() => setSelectedAnodeId(anode.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all ${
+                    selectedAnodeId === anode.id
+                      ? `${anode.bg} ${anode.color} ${anode.border} border shadow-sm`
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  {anode.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation Sub-Tabs */}
+      {/* Navigation Sub-Tabs (7 Comprehensive Scientific Tabs) */}
       <div className="flex flex-wrap items-center gap-2 mb-6 relative z-10 border-b border-slate-800/60 pb-3">
         {[
-          { id: 'metrics', label: 'Unit Cell & Reciprocal Net', icon: Ruler },
-          { id: 'hkl_solver', label: 'Miller (hkl) & Bragg Solver', icon: Compass },
+          { id: 'metrics', label: 'Unit Cell & Metric Tensors [G/G*]', icon: Ruler },
+          { id: 'hkl_solver', label: 'Miller (hkl) & Bragg Metrology', icon: Compass },
+          { id: 'zone_axis', label: 'Zone Axis [uvw] & Weiss Law', icon: Crosshair },
           { id: 'unit_cell_3d', label: '3D Unit Cell & Planes', icon: Box },
-          { id: 'reflections_table', label: 'Theoretical Reflection Table', icon: Table },
-          { id: 'strain_sim', label: 'Microstrain & Thermal Drift', icon: Flame },
+          { id: 'reflections_table', label: 'Diffractogram Stick Spectrum', icon: Table },
+          { id: 'size_strain', label: 'Scherrer Size-Strain Metrology', icon: Activity },
+          { id: 'hp_ht_eos', label: 'HP-HT Equation of State & Elasticity', icon: Flame },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -583,10 +526,12 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
         })}
       </div>
 
-      {/* TAB 1: METRICS & RECIPROCAL NET */}
+      {/* ========================================================================= */}
+      {/* TAB 1: UNIT CELL & METRIC TENSORS [G] & [G*]                              */}
+      {/* ========================================================================= */}
       {activeTab === 'metrics' && (
         <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
-          {/* Top Quick Badges */}
+          {/* Quick Badges */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-[#09101F] p-3.5 rounded-xl border border-slate-800 flex flex-col">
               <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">Crystal System</span>
@@ -604,23 +549,23 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
               <span className="text-[8px] font-mono text-slate-500 mt-1">Point Group: {symmetryInfo.pointGroup}</span>
             </div>
             <div className="bg-[#09101F] p-3.5 rounded-xl border border-slate-800 flex flex-col">
-              <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">Extinction Rule</span>
+              <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">Systematic Absences</span>
               <span className="text-xs font-mono font-bold text-amber-300 mt-0.5 truncate" title={symmetryInfo.extinctionRule}>
                 {symmetryInfo.extinctionRule}
               </span>
-              <span className="text-[8px] font-mono text-slate-500 mt-1">Systematic Absences</span>
+              <span className="text-[8px] font-mono text-slate-500 mt-1">Reflections</span>
             </div>
           </div>
 
           {/* Direct & Reciprocal Metric Comparison Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Direct Real-Space Lattice Box */}
-            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-indigo-500/30 flex flex-col gap-4 shadow-lg relative overflow-hidden">
+            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-indigo-500/30 flex flex-col gap-4 shadow-lg">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Ruler className="w-4 h-4 text-indigo-400" />
                   <span className="text-xs font-mono font-black text-indigo-300 uppercase tracking-wider">
-                    Direct Real-Space Lattice (Direct Basis)
+                    Direct Real-Space Lattice (Basis Vectors)
                   </span>
                 </div>
                 <span className="text-[9px] font-mono text-slate-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
@@ -658,20 +603,20 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
                 </div>
               </div>
 
-              <div className="p-3 bg-indigo-950/30 rounded-xl border border-indigo-500/20 flex items-center justify-between">
+              <div className="p-3.5 bg-indigo-950/30 rounded-xl border border-indigo-500/20 grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Unit Cell Volume (V)</span>
                   <span className="text-lg font-mono font-black text-indigo-200">{lattice.vol.toFixed(3)} Å³</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Calc Density (ρ_xrd)</span>
-                  <span className="text-base font-mono font-black text-emerald-400">{physicsMetrics.theorDensity.toFixed(3)} g/cm³</span>
+                <div>
+                  <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Calculated Density (ρ)</span>
+                  <span className="text-base font-mono font-black text-emerald-400">{physics.theorDensity.toFixed(3)} g/cm³</span>
                 </div>
               </div>
             </div>
 
             {/* Reciprocal Space Lattice Box */}
-            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-cyan-500/30 flex flex-col gap-4 shadow-lg relative overflow-hidden">
+            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-cyan-500/30 flex flex-col gap-4 shadow-lg">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-cyan-400" />
@@ -714,54 +659,89 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
                 </div>
               </div>
 
-              <div className="p-3 bg-cyan-950/30 rounded-xl border border-cyan-500/20 flex items-center justify-between">
+              <div className="p-3.5 bg-cyan-950/30 rounded-xl border border-cyan-500/20 grid grid-cols-2 gap-3">
                 <div>
-                  <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Reciprocal Volume (V*)</span>
+                  <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Reciprocal Vol (V*)</span>
                   <span className="text-lg font-mono font-black text-cyan-200">{lattice.volStar.toFixed(6)} Å⁻³</span>
                 </div>
-                <div className="text-right">
+                <div>
                   <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest block">Packing Fraction (APF)</span>
-                  <span className="text-base font-mono font-black text-amber-300">{(physicsMetrics.apf * 100).toFixed(1)}%</span>
+                  <span className="text-base font-mono font-black text-amber-300">{(physics.apf * 100).toFixed(1)}%</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Metric Tensor Matrix Preview */}
-          <div className="bg-[#09101F] p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Compass className="w-5 h-5 text-indigo-400" />
-              <div>
-                <span className="text-xs font-mono font-bold text-slate-200">Direct Metric Tensor Matrix [G]</span>
-                <p className="text-[10px] font-mono text-slate-400">Used for interatomic vector dot-products, angle dot-products & unit cell strain</p>
+          {/* Metric Tensor Matrices [G] and [G*] side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-[#09101F] p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-indigo-300">Direct Metric Tensor [G] (Å²)</span>
+                <span className="text-[10px] font-mono text-slate-500">det(G) = {lattice.detG.toFixed(2)}</span>
+              </div>
+              <div className="bg-black/60 p-3 rounded-lg border border-slate-800 font-mono text-xs text-center grid grid-cols-3 gap-2 text-indigo-200 font-bold">
+                <span>{lattice.G[0][0].toFixed(3)}</span>
+                <span>{lattice.G[0][1].toFixed(3)}</span>
+                <span>{lattice.G[0][2].toFixed(3)}</span>
+                <span>{lattice.G[1][0].toFixed(3)}</span>
+                <span>{lattice.G[1][1].toFixed(3)}</span>
+                <span>{lattice.G[1][2].toFixed(3)}</span>
+                <span>{lattice.G[2][0].toFixed(3)}</span>
+                <span>{lattice.G[2][1].toFixed(3)}</span>
+                <span>{lattice.G[2][2].toFixed(3)}</span>
               </div>
             </div>
-            <div className="font-mono text-xs bg-black/60 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-3">
-              <span>[G] =</span>
-              <div className="grid grid-cols-3 gap-2 text-indigo-300 font-bold">
-                <span>{lattice.G[0][0].toFixed(2)}</span>
-                <span>{lattice.G[0][1].toFixed(2)}</span>
-                <span>{lattice.G[0][2].toFixed(2)}</span>
-                <span>{lattice.G[1][0].toFixed(2)}</span>
-                <span>{lattice.G[1][1].toFixed(2)}</span>
-                <span>{lattice.G[1][2].toFixed(2)}</span>
-                <span>{lattice.G[2][0].toFixed(2)}</span>
-                <span>{lattice.G[2][1].toFixed(2)}</span>
-                <span>{lattice.G[2][2].toFixed(2)}</span>
+
+            <div className="bg-[#09101F] p-4 rounded-xl border border-slate-800 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-cyan-300">Reciprocal Metric Tensor [G*] (Å⁻²)</span>
+                <span className="text-[10px] font-mono text-slate-500">det(G*) = {lattice.detGStar.toExponential(3)}</span>
               </div>
+              <div className="bg-black/60 p-3 rounded-lg border border-slate-800 font-mono text-xs text-center grid grid-cols-3 gap-2 text-cyan-200 font-bold">
+                <span>{lattice.GStar[0][0].toFixed(4)}</span>
+                <span>{lattice.GStar[0][1].toFixed(4)}</span>
+                <span>{lattice.GStar[0][2].toFixed(4)}</span>
+                <span>{lattice.GStar[1][0].toFixed(4)}</span>
+                <span>{lattice.GStar[1][1].toFixed(4)}</span>
+                <span>{lattice.GStar[1][2].toFixed(4)}</span>
+                <span>{lattice.GStar[2][0].toFixed(4)}</span>
+                <span>{lattice.GStar[2][1].toFixed(4)}</span>
+                <span>{lattice.GStar[2][2].toFixed(4)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* X-ray Absorption & Beam Penetration Metrology */}
+          <div className="bg-[#09101F] p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Gauge className="w-5 h-5 text-amber-400" />
+              <div>
+                <span className="text-xs font-mono font-bold text-slate-200">
+                  X-ray Beam Penetration Metrology (Source: {activeAnode.name})
+                </span>
+                <p className="text-[10px] font-mono text-slate-400">
+                  Mass attenuation μ/ρ ≈ {physics.muRho.toFixed(1)} cm²/g · Linear absorption coefficient μ = {physics.linearMu.toFixed(1)} cm⁻¹
+                </p>
+              </div>
+            </div>
+            <div className="bg-black/60 px-4 py-2 rounded-xl border border-slate-800 text-center">
+              <span className="text-[9px] font-mono text-slate-400 uppercase block">1/e Penetration Depth</span>
+              <span className="text-base font-mono font-black text-amber-300">{physics.penetrationDepthUm.toFixed(2)} μm</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: MILLER (HKL) & BRAGG ANGLE SOLVER */}
+      {/* ========================================================================= */}
+      {/* TAB 2: MILLER (HKL) & BRAGG METROLOGY + INTERPLANAR ANGLE (PHI)           */}
+      {/* ========================================================================= */}
       {activeTab === 'hkl_solver' && (
         <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Controls Box */}
+            {/* Primary Plane Controls */}
             <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-slate-800 flex flex-col gap-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-xs font-mono font-bold text-slate-300 uppercase">Input Miller Indices (hkl)</span>
+                <span className="text-xs font-mono font-bold text-slate-300 uppercase">Primary Miller Plane (h k l)</span>
                 <span className="text-[10px] font-mono text-cyan-400">λ = {activeAnode.lambda.toFixed(4)} Å</span>
               </div>
 
@@ -772,10 +752,10 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
                   [2, 1, 1], [2, 2, 0], [3, 1, 1], [0, 0, 2], [1, 0, 2]
                 ].map(([ph, pk, pl]) => (
                   <button
-                    key={`${ph}-${pk}-${pl}`}
-                    onClick={() => { setH(ph); setK(pk); setL(pl); }}
+                    key={`p1-${ph}-${pk}-${pl}`}
+                    onClick={() => { setH1(ph); setK1(pk); setL1(pl); }}
                     className={`px-2 py-1 rounded-md text-[10px] font-mono font-bold transition-all ${
-                      h === ph && k === pk && l === pl
+                      h1 === ph && k1 === pk && l1 === pl
                         ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
                         : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
                     }`}
@@ -788,42 +768,42 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
               {/* Spinners */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-black/50 p-3 rounded-xl border border-slate-800 flex flex-col items-center">
-                  <span className="text-xs font-mono font-bold text-slate-400 mb-2">h</span>
+                  <span className="text-xs font-mono font-bold text-slate-400 mb-2">h₁</span>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setH(Math.max(0, h - 1))} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">-</button>
-                    <span className="text-lg font-mono font-black text-white">{h}</span>
-                    <button onClick={() => setH(h + 1)} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">+</button>
+                    <button onClick={() => setH1(Math.max(0, h1 - 1))} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">-</button>
+                    <span className="text-lg font-mono font-black text-white">{h1}</span>
+                    <button onClick={() => setH1(h1 + 1)} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">+</button>
                   </div>
                 </div>
 
                 <div className="bg-black/50 p-3 rounded-xl border border-slate-800 flex flex-col items-center">
-                  <span className="text-xs font-mono font-bold text-slate-400 mb-2">k</span>
+                  <span className="text-xs font-mono font-bold text-slate-400 mb-2">k₁</span>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setK(Math.max(0, k - 1))} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">-</button>
-                    <span className="text-lg font-mono font-black text-white">{k}</span>
-                    <button onClick={() => setK(k + 1)} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">+</button>
+                    <button onClick={() => setK1(Math.max(0, k1 - 1))} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">-</button>
+                    <span className="text-lg font-mono font-black text-white">{k1}</span>
+                    <button onClick={() => setK1(k1 + 1)} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">+</button>
                   </div>
                 </div>
 
                 <div className="bg-black/50 p-3 rounded-xl border border-slate-800 flex flex-col items-center">
-                  <span className="text-xs font-mono font-bold text-slate-400 mb-2">l</span>
+                  <span className="text-xs font-mono font-bold text-slate-400 mb-2">l₁</span>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setL(Math.max(0, l - 1))} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">-</button>
-                    <span className="text-lg font-mono font-black text-white">{l}</span>
-                    <button onClick={() => setL(l + 1)} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">+</button>
+                    <button onClick={() => setL1(Math.max(0, l1 - 1))} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">-</button>
+                    <span className="text-lg font-mono font-black text-white">{l1}</span>
+                    <button onClick={() => setL1(l1 + 1)} className="w-6 h-6 rounded bg-slate-800 text-slate-200 font-bold hover:bg-slate-700">+</button>
                   </div>
                 </div>
               </div>
 
               {/* Status Badge */}
               <div className={`p-3 rounded-xl border text-xs font-mono flex items-center justify-between ${
-                currentPlane.allowed
+                plane1Metrology.allowed
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
                   : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
               }`}>
-                <span>Extinction Status:</span>
+                <span>Centering Condition:</span>
                 <span className="font-black font-mono">
-                  {currentPlane.allowed ? '✓ Allowed Reflection' : '✗ Systematically Extinct'}
+                  {plane1Metrology.allowed ? '✓ Allowed Reflection' : '✗ Systematically Extinct'}
                 </span>
               </div>
             </div>
@@ -831,11 +811,18 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
             {/* Calculated Output Values */}
             <div className="p-5 lg:col-span-2 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-cyan-500/30 flex flex-col justify-between gap-4 shadow-lg">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider">
-                  Crystallographic Solution for Plane ({h} {k} {l})
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider">
+                    Crystallographic Solution ({h1} {k1} {l1})
+                  </span>
+                  {plane1Metrology.millerBravais && (
+                    <span className="text-[10px] font-mono text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/30">
+                      Hexagonal: {plane1Metrology.millerBravais}
+                    </span>
+                  )}
+                </div>
                 <button
-                  onClick={() => handleCopy(`Plane (${h}${k}${l}): d = ${currentPlane.d.toFixed(4)} A, 2Theta(${activeAnode.name}) = ${currentPlane.twoTheta.toFixed(2)} deg`, 'hkl')}
+                  onClick={() => handleCopy(`Plane (${h1}${k1}${l1}): d = ${plane1Metrology.d.toFixed(4)} A, 2Theta(${activeAnode.name}) = ${plane1Metrology.twoTheta.toFixed(3)} deg`, 'hkl')}
                   className="flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-cyan-300"
                 >
                   {copiedKey === 'hkl' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
@@ -846,23 +833,23 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-black/50 p-3.5 rounded-xl border border-slate-800/80">
                   <span className="text-[9px] font-mono text-slate-400 uppercase">Interplanar (d_hkl)</span>
-                  <p className="text-xl font-mono font-black text-emerald-400 mt-1">{currentPlane.d.toFixed(4)} <span className="text-xs">Å</span></p>
+                  <p className="text-xl font-mono font-black text-emerald-400 mt-1">{plane1Metrology.d.toFixed(4)} <span className="text-xs">Å</span></p>
                 </div>
                 <div className="bg-black/50 p-3.5 rounded-xl border border-slate-800/80">
                   <span className="text-[9px] font-mono text-slate-400 uppercase">Diffraction 2θ</span>
                   <p className="text-xl font-mono font-black text-cyan-300 mt-1">
-                    {currentPlane.outOfRange ? '—' : `${currentPlane.twoTheta.toFixed(3)}°`}
+                    {plane1Metrology.outOfRange ? '—' : `${plane1Metrology.twoTheta.toFixed(3)}°`}
                   </p>
                 </div>
                 <div className="bg-black/50 p-3.5 rounded-xl border border-slate-800/80">
                   <span className="text-[9px] font-mono text-slate-400 uppercase">Bragg Angle (θ)</span>
                   <p className="text-xl font-mono font-black text-sky-400 mt-1">
-                    {currentPlane.outOfRange ? '—' : `${currentPlane.theta.toFixed(3)}°`}
+                    {plane1Metrology.outOfRange ? '—' : `${plane1Metrology.theta.toFixed(3)}°`}
                   </p>
                 </div>
                 <div className="bg-black/50 p-3.5 rounded-xl border border-slate-800/80">
                   <span className="text-[9px] font-mono text-slate-400 uppercase">Scattering (q)</span>
-                  <p className="text-xl font-mono font-black text-amber-300 mt-1">{currentPlane.q.toFixed(3)} <span className="text-xs">Å⁻¹</span></p>
+                  <p className="text-xl font-mono font-black text-amber-300 mt-1">{plane1Metrology.q.toFixed(3)} <span className="text-xs">Å⁻¹</span></p>
                 </div>
               </div>
 
@@ -872,8 +859,8 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
                   Theoretical 2θ Position Across Laboratory Sources
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs font-mono">
-                  {XRAY_ANODES.map((anode) => {
-                    const planeRes = calcMillerPlane(h, k, l, anode.lambda);
+                  {XRAY_ANODES.slice(0, 6).map((anode) => {
+                    const planeRes = calculatePlaneMetrology(h1, k1, l1, lattice, anode.lambda, symmetryInfo.centeringCode);
                     return (
                       <div key={anode.id} className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
                         <span className={`text-[9px] font-bold block ${anode.color}`}>{anode.name}</span>
@@ -887,176 +874,402 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
               </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* TAB 3: 3D UNIT CELL & PLANES */}
-      {activeTab === 'unit_cell_3d' && (
-        <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-slate-800 flex flex-col justify-between gap-4">
-              <div>
-                <span className="text-xs font-mono font-bold text-slate-300 uppercase block mb-1">
-                  3D Lattice Projection & Plane ({h} {k} {l})
+          {/* Interplanar Angle Tool: Plane 1 vs Plane 2 */}
+          <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-indigo-500/30 flex flex-col gap-4 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-2">
+              <div className="flex items-center gap-2">
+                <Compass className="w-4 h-4 text-indigo-400" />
+                <span className="text-xs font-mono font-bold text-indigo-300 uppercase tracking-wider">
+                  Interplanar Angle Metrology: ({h1} {k1} {l1}) ∡ ({h2} {k2} {l2})
                 </span>
-                <p className="text-[11px] font-mono text-slate-400 leading-relaxed">
-                  Interactive real-time crystallographic unit cell wireframe. The colored shaded surface highlights the lattice plane intersecting crystallographic axes at intercepts (1/h, 1/k, 1/l).
-                </p>
               </div>
-
-              <div className="space-y-2 font-mono text-xs bg-black/40 p-3 rounded-xl border border-slate-800">
-                <div className="flex justify-between"><span className="text-slate-500">Crystal System:</span> <span className="text-white font-bold">{symmetryInfo.crystalSystem}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Plane Intercept a:</span> <span className="text-cyan-300 font-bold">{h !== 0 ? (1/h).toFixed(2) : '∞ (Parallel)'}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Plane Intercept b:</span> <span className="text-cyan-300 font-bold">{k !== 0 ? (1/k).toFixed(2) : '∞ (Parallel)'}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Plane Intercept c:</span> <span className="text-cyan-300 font-bold">{l !== 0 ? (1/l).toFixed(2) : '∞ (Parallel)'}</span></div>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 0], [1, 0, 1], [0, 1, 1], [1, 1, 1], [2, 0, 0], [2, 2, 0]
-                ].map(([ph, pk, pl]) => (
-                  <button
-                    key={`p-${ph}-${pk}-${pl}`}
-                    onClick={() => { setH(ph); setK(pk); setL(pl); }}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all ${
-                      h === ph && k === pk && l === pl
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                        : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-                    }`}
-                  >
-                    Plane ({ph}{pk}{pl})
-                  </button>
-                ))}
-              </div>
+              <span className="text-[10px] font-mono text-slate-400">
+                cos(ϕ) = (h₁ᵀ G* h₂) / [√(h₁ᵀ G* h₁) · √(h₂ᵀ G* h₂)]
+              </span>
             </div>
 
-            {/* SVG 3D Canvas */}
-            <div className="p-5 lg:col-span-2 bg-[#03060C] rounded-2xl border border-slate-800 flex items-center justify-center min-h-[300px] relative overflow-hidden">
-              <svg viewBox="0 0 300 300" className="w-full max-w-[320px] h-[280px]">
-                {/* Coordinate Grid / Axes vectors */}
-                <defs>
-                  <linearGradient id="planeGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.15} />
-                  </linearGradient>
-                </defs>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              {/* Secondary Plane Selectors */}
+              <div className="bg-black/40 p-3 rounded-xl border border-slate-800 flex flex-col gap-2">
+                <span className="text-[10px] font-mono text-slate-400 uppercase">Secondary Reference Plane (h₂ k₂ l₂)</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-mono text-slate-500">h₂:</span>
+                    <input
+                      type="number"
+                      value={h2}
+                      onChange={(e) => setH2(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white text-center"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-mono text-slate-500">k₂:</span>
+                    <input
+                      type="number"
+                      value={k2}
+                      onChange={(e) => setK2(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white text-center"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-mono text-slate-500">l₂:</span>
+                    <input
+                      type="number"
+                      value={l2}
+                      onChange={(e) => setL2(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white text-center"
+                    />
+                  </div>
+                </div>
+              </div>
 
-                {/* Shaded Plane Polygon */}
-                {unitCell3D.planePoints && (
-                  <polygon
-                    points={unitCell3D.planePoints}
-                    fill="url(#planeGrad)"
-                    stroke="#fb7185"
-                    strokeWidth="1.5"
-                    strokeDasharray="2 2"
-                  />
-                )}
-
-                {/* Rear Box Edges */}
-                <line x1={unitCell3D.v000.x} y1={unitCell3D.v000.y} x2={unitCell3D.v100.x} y2={unitCell3D.v100.y} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1={unitCell3D.v000.x} y1={unitCell3D.v000.y} x2={unitCell3D.v010.x} y2={unitCell3D.v010.y} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
-                <line x1={unitCell3D.v000.x} y1={unitCell3D.v000.y} x2={unitCell3D.v001.x} y2={unitCell3D.v001.y} stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
-
-                {/* Front Box Edges */}
-                <line x1={unitCell3D.v100.x} y1={unitCell3D.v100.y} x2={unitCell3D.v110.x} y2={unitCell3D.v110.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v010.x} y1={unitCell3D.v010.y} x2={unitCell3D.v110.x} y2={unitCell3D.v110.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v001.x} y1={unitCell3D.v001.y} x2={unitCell3D.v101.x} y2={unitCell3D.v101.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v001.x} y1={unitCell3D.v001.y} x2={unitCell3D.v011.x} y2={unitCell3D.v011.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v101.x} y1={unitCell3D.v101.y} x2={unitCell3D.v111.x} y2={unitCell3D.v111.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v011.x} y1={unitCell3D.v011.y} x2={unitCell3D.v111.x} y2={unitCell3D.v111.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v100.x} y1={unitCell3D.v100.y} x2={unitCell3D.v101.x} y2={unitCell3D.v101.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v010.x} y1={unitCell3D.v010.y} x2={unitCell3D.v011.x} y2={unitCell3D.v011.y} stroke="#64748b" strokeWidth="1.5" />
-                <line x1={unitCell3D.v110.x} y1={unitCell3D.v110.y} x2={unitCell3D.v111.x} y2={unitCell3D.v111.y} stroke="#64748b" strokeWidth="1.5" />
-
-                {/* 8 Corner Atoms */}
-                {[
-                  unitCell3D.v000, unitCell3D.v100, unitCell3D.v010, unitCell3D.v110,
-                  unitCell3D.v001, unitCell3D.v101, unitCell3D.v011, unitCell3D.v111
-                ].map((pt, i) => (
-                  <circle key={`atom-${i}`} cx={pt.x} cy={pt.y} r={3.5} fill="#38bdf8" stroke="#0369a1" strokeWidth={1} />
-                ))}
-
-                {/* Axis Labels */}
-                <text x={unitCell3D.v100.x - 12} y={unitCell3D.v100.y + 14} fill="#f43f5e" fontSize="11" fontFamily="monospace" fontWeight="bold">a</text>
-                <text x={unitCell3D.v010.x + 12} y={unitCell3D.v010.y + 14} fill="#38bdf8" fontSize="11" fontFamily="monospace" fontWeight="bold">b</text>
-                <text x={unitCell3D.v001.x} y={unitCell3D.v001.y - 10} fill="#34d399" fontSize="11" fontFamily="monospace" fontWeight="bold">c</text>
-              </svg>
+              {/* Interplanar Angle Result */}
+              <div className="md:col-span-2 bg-black/60 p-4 rounded-xl border border-indigo-500/20 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Interplanar Angle ϕ</span>
+                  <span className="text-2xl font-mono font-black text-indigo-300">
+                    {interplanarAngle.phiDeg.toFixed(2)}° <span className="text-xs font-normal text-slate-400">({interplanarAngle.phiRad.toFixed(3)} rad)</span>
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Metric Tensor Dot Product</span>
+                  <span className="text-sm font-mono font-bold text-cyan-300">h₁ᵀ G* h₂ = {interplanarAngle.dotProduct.toFixed(4)}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 4: THEORETICAL REFLECTION TABLE */}
-      {activeTab === 'reflections_table' && (
-        <div className="space-y-4 relative z-10 animate-in fade-in duration-300">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-slate-300 uppercase">
-              Calculated Bragg Reflections (Source: {activeAnode.name}, λ={activeAnode.lambda} Å)
-            </span>
-            <span className="text-[10px] font-mono text-slate-500">Sorted by 2θ diffraction angle</span>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-slate-800">
-            <table className="w-full text-left border-collapse text-xs font-mono">
-              <thead>
-                <tr className="bg-[#09101F] text-slate-400 border-b border-slate-800">
-                  <th className="p-3">Reflection (hkl)</th>
-                  <th className="p-3">d-spacing (Å)</th>
-                  <th className="p-3">2θ Angle (°)</th>
-                  <th className="p-3">Multiplicity (m)</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Relative Intensity I/I₀</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 bg-black/40">
-                {theoreticalReflections.map((ref, idx) => (
-                  <tr
-                    key={`ref-${idx}`}
-                    onClick={() => { setH(ref.h); setK(ref.k); setL(ref.l); setActiveTab('hkl_solver'); }}
-                    className="hover:bg-indigo-500/10 cursor-pointer transition-colors"
-                  >
-                    <td className="p-3 font-black text-rose-300 flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                      {ref.hkl}
-                    </td>
-                    <td className="p-3 text-emerald-400 font-bold">{ref.d.toFixed(4)}</td>
-                    <td className="p-3 text-cyan-300 font-black">{ref.twoTheta.toFixed(2)}°</td>
-                    <td className="p-3 text-slate-300">{ref.multiplicity}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        ref.allowed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
-                      }`}>
-                        {ref.allowed ? 'Allowed' : 'Extinct'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-rose-400 rounded-full" style={{ width: `${ref.relIntensity}%` }} />
-                        </div>
-                        <span className="text-white font-bold w-8 text-right">{ref.relIntensity}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 5: MICROSTRAIN & THERMAL EXPANSION DRIFT */}
-      {activeTab === 'strain_sim' && (
+      {/* ========================================================================= */}
+      {/* TAB 3: ZONE AXIS [UVW] & WEISS ZONE LAW                                   */}
+      {/* ========================================================================= */}
+      {activeTab === 'zone_axis' && (
         <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Sliders */}
+            {/* Zone Axis Cross Product Calculator */}
+            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-slate-800 flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <span className="text-xs font-mono font-bold text-cyan-300 uppercase">
+                  Cross-Product Zone Axis u = (h₁k₁l₁) × (h₂k₂l₂)
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">Right-Hand Rule</span>
+              </div>
+
+              <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-2 text-xs font-mono">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Plane 1 (h₁k₁l₁):</span>
+                  <span className="text-white font-bold">({h1} {k1} {l1})</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Plane 2 (h₂k₂l₂):</span>
+                  <span className="text-white font-bold">({h2} {k2} {l2})</span>
+                </div>
+                <div className="border-t border-slate-800 pt-2 flex justify-between items-center">
+                  <span className="text-cyan-400 font-bold">Computed Zone Axis [uvw]:</span>
+                  <span className="text-lg font-black text-cyan-300 bg-cyan-950/40 px-3 py-1 rounded border border-cyan-500/30">
+                    {zoneAxisResult.zoneSymbol}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div className="bg-black/50 p-3 rounded-xl border border-slate-800">
+                  <span className="text-[9px] font-mono text-slate-400 uppercase block">Zone Repeat Vector |r_uvw|</span>
+                  <span className="text-base font-mono font-black text-emerald-400 mt-1">{zoneAxisResult.repeatDist.toFixed(4)} Å</span>
+                </div>
+                <div className="bg-black/50 p-3 rounded-xl border border-slate-800">
+                  <span className="text-[9px] font-mono text-slate-400 uppercase block">ZOLZ Layer Spacing (1/|r|)</span>
+                  <span className="text-base font-mono font-black text-indigo-300 mt-1">{zoneAxisResult.layerSpacing.toFixed(4)} Å⁻¹</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Weiss Zone Law Verification */}
+            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-indigo-500/30 flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <span className="text-xs font-mono font-bold text-indigo-300 uppercase">
+                  Weiss Zone Law Checker: hu + kv + lw = 0
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">Electron / X-ray Diffraction</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400">Zone u:</span>
+                  <input
+                    type="number"
+                    value={zoneU}
+                    onChange={(e) => setZoneU(parseInt(e.target.value) || 0)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white text-center"
+                  />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400">Zone v:</span>
+                  <input
+                    type="number"
+                    value={zoneV}
+                    onChange={(e) => setZoneV(parseInt(e.target.value) || 0)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white text-center"
+                  />
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400">Zone w:</span>
+                  <input
+                    type="number"
+                    value={zoneW}
+                    onChange={(e) => setZoneW(parseInt(e.target.value) || 0)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs font-mono text-white text-center"
+                  />
+                </div>
+              </div>
+
+              {/* Status evaluations for Plane 1 and Plane 2 */}
+              <div className="space-y-2 text-xs font-mono">
+                <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                  zoneAxisResult.inZone1 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                }`}>
+                  <span>Plane ({h1} {k1} {l1}) in Zone [{zoneU} {zoneV} {zoneW}]:</span>
+                  <span className="font-bold font-mono">
+                    {zoneAxisResult.inZone1 ? '✓ Lies in Zone (ZOLZ)' : '✗ Not in Zone'}
+                  </span>
+                </div>
+                <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                  zoneAxisResult.inZone2 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                }`}>
+                  <span>Plane ({h2} {k2} {l2}) in Zone [{zoneU} {zoneV} {zoneW}]:</span>
+                  <span className="font-bold font-mono">
+                    {zoneAxisResult.inZone2 ? '✓ Lies in Zone (ZOLZ)' : '✗ Not in Zone'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: 3D UNIT CELL & MILLER PLANES                                       */}
+      {/* ========================================================================= */}
+      {activeTab === 'unit_cell_3d' && (
+        <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
+          <UnitCell3DViewer
+            lattice={lattice}
+            h={h1}
+            k={k1}
+            l={l1}
+            crystalSystem={symmetryInfo.crystalSystem}
+            centeringCode={symmetryInfo.centeringCode}
+          />
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: THEORETICAL REFLECTION TABLE & STICK SPECTRUM                      */}
+      {/* ========================================================================= */}
+      {activeTab === 'reflections_table' && (
+        <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
+          {/* Interactive Stick Spectrum Chart */}
+          <StickSpectrumChart
+            reflections={theoreticalReflections}
+            selectedHkl={`(${h1}${k1}${l1})`}
+            onSelectReflection={(ref) => {
+              setH1(ref.h);
+              setK1(ref.k);
+              setL1(ref.l);
+            }}
+            anodeName={activeAnode.name}
+            lambda={activeAnode.lambda}
+          />
+
+          {/* Reflections Table */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-slate-300 uppercase">
+                Bragg Reflection Peak Metrology (Source: {activeAnode.name}, λ = {activeAnode.lambda.toFixed(4)} Å)
+              </span>
+              <span className="text-[10px] font-mono text-slate-500">Click any row to solve Miller plane</span>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-slate-800">
+              <table className="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr className="bg-[#09101F] text-slate-400 border-b border-slate-800">
+                    <th className="p-3">Plane (hkl)</th>
+                    <th className="p-3">d-spacing (Å)</th>
+                    <th className="p-3">2θ Angle (°)</th>
+                    <th className="p-3">q (Å⁻¹)</th>
+                    <th className="p-3">Multiplicity (m)</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Relative Intensity I/I₀</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 bg-black/40">
+                  {theoreticalReflections.map((ref, idx) => (
+                    <tr
+                      key={`ref-${idx}`}
+                      onClick={() => {
+                        setH1(ref.h);
+                        setK1(ref.k);
+                        setL1(ref.l);
+                        setActiveTab('hkl_solver');
+                      }}
+                      className={`hover:bg-indigo-500/10 cursor-pointer transition-colors ${
+                        h1 === ref.h && k1 === ref.k && l1 === ref.l ? 'bg-cyan-500/10' : ''
+                      }`}
+                    >
+                      <td className="p-3 font-black text-rose-300 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                        {ref.hkl}
+                      </td>
+                      <td className="p-3 text-emerald-400 font-bold">{ref.d.toFixed(4)}</td>
+                      <td className="p-3 text-cyan-300 font-black">{ref.twoTheta.toFixed(3)}°</td>
+                      <td className="p-3 text-amber-300">{ref.q.toFixed(3)}</td>
+                      <td className="p-3 text-slate-300">{ref.multiplicity}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          ref.allowed ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
+                        }`}>
+                          {ref.allowed ? 'Allowed' : 'Extinct'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${ref.relIntensity}%` }} />
+                          </div>
+                          <span className="text-white font-bold w-8 text-right">{ref.relIntensity}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 6: SCHERRER SIZE-STRAIN METROLOGY                                     */}
+      {/* ========================================================================= */}
+      {activeTab === 'size_strain' && (
+        <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Input Broadening Controls */}
             <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-slate-800 flex flex-col gap-5">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-xs font-mono font-bold text-slate-300 uppercase flex items-center gap-1.5">
-                  <SlidersHorizontal className="w-4 h-4 text-amber-400" /> Lattice Stress & Thermal Sliders
+                <span className="text-xs font-mono font-bold text-cyan-300 uppercase">
+                  Scherrer & Broadening Deconvolution
+                </span>
+                <span className="text-[10px] font-mono text-slate-400">D = Kλ / (β cos θ)</span>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-mono mb-1.5">
+                  <span className="text-slate-400">Observed Experimental FWHM (β_obs):</span>
+                  <span className="font-bold text-white">{fwhmObs.toFixed(3)}° 2θ</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.08"
+                  max="1.50"
+                  step="0.01"
+                  value={fwhmObs}
+                  onChange={(e) => setFwhmObs(parseFloat(e.target.value))}
+                  className="w-full accent-cyan-400"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-mono mb-1.5">
+                  <span className="text-slate-400">Instrumental Broadening (β_inst):</span>
+                  <span className="font-bold text-amber-300">{fwhmInst.toFixed(3)}° 2θ</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.01"
+                  max="0.15"
+                  step="0.005"
+                  value={fwhmInst}
+                  onChange={(e) => setFwhmInst(parseFloat(e.target.value))}
+                  className="w-full accent-amber-400"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-mono mb-1.5">
+                  <span className="text-slate-400">Scherrer Shape Factor (K):</span>
+                  <span className="font-bold text-indigo-300">{shapeFactorK.toFixed(2)} (Spherical)</span>
+                </div>
+                <div className="flex gap-2">
+                  {[0.89, 0.94, 1.0].map((kVal) => (
+                    <button
+                      key={kVal}
+                      onClick={() => setShapeFactorK(kVal)}
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold border ${
+                        shapeFactorK === kVal ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      K = {kVal}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Calculated Crystallite Size & Dislocation Density */}
+            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-emerald-500/30 flex flex-col justify-between gap-4 shadow-lg">
+              <span className="text-xs font-mono font-bold text-emerald-300 uppercase">
+                Metrology Output for Reflection ({h1} {k1} {l1}) at 2θ = {plane1Metrology.twoTheta.toFixed(2)}°
+              </span>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-black/50 p-3.5 rounded-xl border border-slate-800">
+                  <span className="text-[9px] font-mono text-slate-400 uppercase block">Crystallite Size (D)</span>
+                  <span className="text-2xl font-mono font-black text-emerald-300 mt-1">
+                    {sizeStrainResult.crystalliteSizeNm.toFixed(1)} <span className="text-xs font-normal">nm</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-500 block mt-0.5">({sizeStrainResult.crystalliteSizeAngstrom.toFixed(0)} Å)</span>
+                </div>
+
+                <div className="bg-black/50 p-3.5 rounded-xl border border-slate-800">
+                  <span className="text-[9px] font-mono text-slate-400 uppercase block">Physical FWHM (β_sample)</span>
+                  <span className="text-xl font-mono font-black text-cyan-300 mt-1">
+                    {sizeStrainResult.betaSampleDeg.toFixed(4)}°
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-500 block mt-0.5">√(β_obs² - β_inst²)</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-emerald-950/20 rounded-xl border border-emerald-500/20 text-xs font-mono">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Dislocation Density (δ = 1/D²):</span>
+                  <span className="text-base font-black text-amber-300">
+                    {sizeStrainResult.dislocationDensity.toExponential(3)} lines/m²
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 7: HP-HT EQUATION OF STATE & ANISOTROPIC ELASTICITY                   */}
+      {/* ========================================================================= */}
+      {activeTab === 'hp_ht_eos' && (
+        <div className="space-y-6 relative z-10 animate-in fade-in duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Sliders: Pressure & Temperature */}
+            <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-slate-800 flex flex-col gap-5">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <span className="text-xs font-mono font-bold text-amber-300 uppercase flex items-center gap-1.5">
+                  <Flame className="w-4 h-4 text-amber-400" /> In-Situ Pressure & Temperature Sliders
                 </span>
                 <button
-                  onClick={() => { setAppliedStrainPct(0); setTempDeltaK(0); }}
+                  onClick={() => { setAppliedP_GPa(0); setTempDeltaK(0); setAppliedStrainPct(0); }}
                   className="flex items-center gap-1 text-[10px] font-mono text-slate-400 hover:text-white"
                 >
                   <RotateCcw className="w-3 h-3" /> Reset
@@ -1065,25 +1278,23 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
 
               <div>
                 <div className="flex justify-between text-xs font-mono mb-1.5">
-                  <span className="text-slate-400">Microstrain (ε = Δa/a):</span>
-                  <span className={`font-black ${appliedStrainPct > 0 ? 'text-amber-400' : appliedStrainPct < 0 ? 'text-cyan-400' : 'text-white'}`}>
-                    {appliedStrainPct > 0 ? `+${appliedStrainPct.toFixed(2)}% (Tensile)` : appliedStrainPct < 0 ? `${appliedStrainPct.toFixed(2)}% (Compressive)` : '0.00% (Relaxed)'}
-                  </span>
+                  <span className="text-slate-400">Hydrostatic Pressure (P):</span>
+                  <span className="font-black text-indigo-400">{appliedP_GPa} GPa</span>
                 </div>
                 <input
                   type="range"
-                  min="-2.0"
-                  max="2.0"
-                  step="0.05"
-                  value={appliedStrainPct}
-                  onChange={(e) => setAppliedStrainPct(parseFloat(e.target.value))}
-                  className="w-full accent-amber-400"
+                  min="0"
+                  max="30"
+                  step="1"
+                  value={appliedP_GPa}
+                  onChange={(e) => setAppliedP_GPa(parseInt(e.target.value))}
+                  className="w-full accent-indigo-400"
                 />
               </div>
 
               <div>
                 <div className="flex justify-between text-xs font-mono mb-1.5">
-                  <span className="text-slate-400">Temperature Shift (ΔT):</span>
+                  <span className="text-slate-400">Temperature Delta (ΔT):</span>
                   <span className="font-black text-rose-400">+{tempDeltaK} K</span>
                 </div>
                 <input
@@ -1096,32 +1307,48 @@ export const CrystallographicIntelligencePanel: React.FC<Props> = ({ candidate, 
                   className="w-full accent-rose-400"
                 />
               </div>
+
+              <div>
+                <div className="flex justify-between text-xs font-mono mb-1.5">
+                  <span className="text-slate-400">Zener Anisotropy Ratio (A = 2C₄₄/(C₁₁-C₁₂)):</span>
+                  <span className="font-black text-amber-300">{zenerRatio.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="3.5"
+                  step="0.1"
+                  value={zenerRatio}
+                  onChange={(e) => setZenerRatio(parseFloat(e.target.value))}
+                  className="w-full accent-amber-400"
+                />
+              </div>
             </div>
 
-            {/* Shift Metrics */}
+            {/* Shift & Anisotropy Metrics */}
             <div className="p-5 bg-gradient-to-br from-[#09101F] to-[#040810] rounded-2xl border border-amber-500/30 flex flex-col justify-between gap-4 shadow-lg">
               <span className="text-xs font-mono font-bold text-amber-300 uppercase">
-                Simulated Peak Shift for ({h} {k} {l})
+                Birch-Murnaghan EOS & Anisotropic Young's Modulus
               </span>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-black/50 p-3 rounded-xl border border-slate-800">
-                  <span className="text-[9px] font-mono text-slate-400 uppercase block">Strained Cell Volume (V)</span>
-                  <span className="text-lg font-mono font-black text-amber-200">{lattice.vol.toFixed(3)} Å³</span>
+                  <span className="text-[9px] font-mono text-slate-400 uppercase block">Compressed Vol V(P)</span>
+                  <span className="text-lg font-mono font-black text-indigo-300">{hpCompressedVolume.toFixed(3)} Å³</span>
+                  <span className="text-[9px] font-mono text-slate-500">({((hpCompressedVolume / lattice.vol) * 100).toFixed(1)}% of V₀)</span>
                 </div>
+
                 <div className="bg-black/50 p-3 rounded-xl border border-slate-800">
-                  <span className="text-[9px] font-mono text-slate-400 uppercase block">Calculated Stress (σ)</span>
-                  <span className="text-lg font-mono font-black text-rose-300">
-                    {candidate.elasticModulus ? `${(-candidate.elasticModulus * (appliedStrainPct / 100)).toFixed(2)} GPa` : `${(-150 * (appliedStrainPct / 100)).toFixed(2)} GPa`}
-                  </span>
+                  <span className="text-[9px] font-mono text-slate-400 uppercase block">Directional E({h1}{k1}{l1})</span>
+                  <span className="text-lg font-mono font-black text-amber-300">{anisotropicE.modulusGPa.toFixed(1)} GPa</span>
+                  <span className="text-[9px] font-mono text-slate-500">Γ = {anisotropicE.orientationGamma.toFixed(3)}</span>
                 </div>
               </div>
 
               <div className="p-3 bg-amber-950/20 rounded-xl border border-amber-500/30 text-xs font-mono">
-                <span className="text-slate-400">Bragg Angle Peak Shift:</span>
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-slate-300">Shifted 2θ:</span>
-                  <span className="text-base font-black text-amber-300">{currentPlane.twoTheta.toFixed(3)}°</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Peak Shift for ({h1}{k1}{l1}):</span>
+                  <span className="text-base font-black text-amber-300">2θ = {plane1Metrology.twoTheta.toFixed(3)}°</span>
                 </div>
               </div>
             </div>

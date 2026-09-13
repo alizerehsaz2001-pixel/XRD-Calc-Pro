@@ -1091,11 +1091,18 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [trainingLogs, setTrainingLogs] = useState<string[]>([]);
   
   // Advanced Neural Net Curve & Dynamics Visualizer States
-  const [trainCurveTab, setTrainCurveTab] = useState<'dual' | 'loss' | 'accuracy' | 'roc' | 'dynamics'>('dual');
+  const [trainCurveTab, setTrainCurveTab] = useState<'dual' | 'loss' | 'accuracy' | 'roc' | 'pr' | 'calibration' | 'dynamics'>('dual');
   const [isLogLoss, setIsLogLoss] = useState<boolean>(false);
   const [activeRocClasses, setActiveRocClasses] = useState<string[]>(['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic']);
+  const [activePrClasses, setActivePrClasses] = useState<string[]>(['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic']);
   const [showOverfitDelta, setShowOverfitDelta] = useState<boolean>(true);
+  const [showMovingAverage, setShowMovingAverage] = useState<boolean>(false);
   const [curveSmoothing, setCurveSmoothing] = useState<'monotone' | 'linear'>('monotone');
+
+  // Live Pattern Multi-Curve Display Modes
+  const [showCandidateOverlay, setShowCandidateOverlay] = useState<boolean>(true);
+  const [showResidualCurve, setShowResidualCurve] = useState<boolean>(true);
+  const [showDeconvolutedPeaks, setShowDeconvolutedPeaks] = useState<boolean>(false);
 
   // Multi-Class ROC Curves Dataset
   const rocCurveData = React.useMemo(() => {
@@ -1115,6 +1122,58 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
         MacroAverage: Number(Math.min(1, Math.pow(fpr, 0.12)).toFixed(3)),
       };
     });
+  }, []);
+
+  // Multi-Class Precision-Recall (PR) Curves Dataset
+  const prCurveData = React.useMemo(() => {
+    const steps = 30;
+    return Array.from({ length: steps + 1 }, (_, i) => {
+      const recall = i / steps;
+      // Precision decreases as recall approaches 1.0
+      const cubicPrec = Number(Math.max(0.14, 1.0 - 0.06 * Math.pow(recall, 3.5)).toFixed(3));
+      const hexPrec = Number(Math.max(0.14, 1.0 - 0.04 * Math.pow(recall, 4.0)).toFixed(3));
+      const tetraPrec = Number(Math.max(0.14, 1.0 - 0.18 * Math.pow(recall, 2.5)).toFixed(3));
+      const orthoPrec = Number(Math.max(0.14, 1.0 - 0.24 * Math.pow(recall, 2.2)).toFixed(3));
+      const monoPrec = Number(Math.max(0.14, 1.0 - 0.35 * Math.pow(recall, 1.8)).toFixed(3));
+      const triPrec = Number(Math.max(0.14, 1.0 - 0.44 * Math.pow(recall, 1.5)).toFixed(3));
+      const macroPrec = Number(((cubicPrec + hexPrec + tetraPrec + orthoPrec + monoPrec + triPrec) / 6).toFixed(3));
+      
+      // Iso-F1 curves (where F1 = 0.5, 0.7, 0.9) -> P = (F1 * R) / (2R - F1)
+      const f1_90 = recall > 0.48 ? Number(((0.9 * recall) / (2 * recall - 0.9)).toFixed(3)) : null;
+      const f1_70 = recall > 0.36 ? Number(((0.7 * recall) / (2 * recall - 0.7)).toFixed(3)) : null;
+
+      return {
+        recall: Number(recall.toFixed(3)),
+        recallPercent: Number((recall * 100).toFixed(1)),
+        baseline: 0.143, // Random 1/7 chance
+        Cubic: cubicPrec,
+        Hexagonal: hexPrec,
+        Tetragonal: tetraPrec,
+        Orthorhombic: orthoPrec,
+        Monoclinic: monoPrec,
+        Triclinic: triPrec,
+        MacroAverage: macroPrec,
+        isoF1_70: f1_70 !== null && f1_70 <= 1 ? f1_70 : null,
+        isoF1_90: f1_90 !== null && f1_90 <= 1 ? f1_90 : null,
+      };
+    });
+  }, []);
+
+  // Reliability Diagram (Calibration Curve) Dataset
+  const calibrationCurveData = React.useMemo(() => {
+    const bins = [
+      { bin: '0.0 - 0.1', mid: 0.05, observed: 0.048, perfect: 0.05, count: 120, confGap: -0.002 },
+      { bin: '0.1 - 0.2', mid: 0.15, observed: 0.142, perfect: 0.15, count: 95, confGap: -0.008 },
+      { bin: '0.2 - 0.3', mid: 0.25, observed: 0.238, perfect: 0.25, count: 80, confGap: -0.012 },
+      { bin: '0.3 - 0.4', mid: 0.35, observed: 0.361, perfect: 0.35, count: 74, confGap: +0.011 },
+      { bin: '0.4 - 0.5', mid: 0.45, observed: 0.439, perfect: 0.45, count: 68, confGap: -0.011 },
+      { bin: '0.5 - 0.6', mid: 0.55, observed: 0.564, perfect: 0.55, count: 92, confGap: +0.014 },
+      { bin: '0.6 - 0.7', mid: 0.65, observed: 0.672, perfect: 0.65, count: 110, confGap: +0.022 },
+      { bin: '0.7 - 0.8', mid: 0.75, observed: 0.768, perfect: 0.75, count: 145, confGap: +0.018 },
+      { bin: '0.8 - 0.9', mid: 0.85, observed: 0.865, perfect: 0.85, count: 210, confGap: +0.015 },
+      { bin: '0.9 - 1.0', mid: 0.95, observed: 0.972, perfect: 0.95, count: 480, confGap: +0.022 },
+    ];
+    return bins;
   }, []);
 
   // Stress & Perturbation Degradation Curve Dataset
@@ -2222,13 +2281,34 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
     
     for (let x = minT; x <= maxT; x += step) {
       let calcInt = 0;
-      for (const p of sorted) {
+      let deconvoluted1 = 0;
+      let deconvoluted2 = 0;
+
+      for (let i = 0; i < sorted.length; i++) {
+        const p = sorted[i];
         const diff = x - p.twoTheta;
         if (Math.abs(diff) < 5 * fwhm) {
           // Physical Pseudo-Voigt peak shape (Gaussian instrumental + Lorentzian crystallite size)
           const gVal = Math.exp(-Math.pow(diff, 2) / s22);
           const lVal = 1 / (1 + 4 * Math.pow(diff / fwhm, 2));
-          calcInt += p.intensity * (eta * lVal + (1 - eta) * gVal);
+          const comp = p.intensity * (eta * lVal + (1 - eta) * gVal);
+          calcInt += comp;
+          if (i === 0) deconvoluted1 += comp;
+          if (i === 1) deconvoluted2 += comp;
+        }
+      }
+
+      // Theoretical simulated diffraction envelope for active/selected candidate
+      let candInt = 0;
+      if (selectedCandidate && selectedCandidate.matched_peaks && selectedCandidate.matched_peaks.length > 0) {
+        for (const mp of selectedCandidate.matched_peaks) {
+          const cTheta = mp.refT || mp.obsT;
+          const cDiff = x - cTheta;
+          if (Math.abs(cDiff) < 5 * fwhm) {
+            const gVal = Math.exp(-Math.pow(cDiff, 2) / s22);
+            const lVal = 1 / (1 + 4 * Math.pow(cDiff / fwhm, 2));
+            candInt += (mp.refI || 60) * (eta * lVal + (1 - eta) * gVal);
+          }
         }
       }
       
@@ -2246,16 +2326,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       // Convolutional Attentional Saliency (Grad-CAM weight calculation)
       const peakContribution = calcInt / Math.max(1, calcInt + bg);
       const saliencyWeight = Math.min(100, Math.round(peakContribution * 95 * Math.min(1, calcInt / 15)));
+
+      // Residual Subtraction Curve: I_exp - I_cand
+      const diffResidual = Number((finalVal - (candInt > 0 ? candInt + bg : calcInt)).toFixed(2));
       
       chartPoints.push({
         twoTheta: Number(x.toFixed(2)),
         intensity: Number(finalVal.toFixed(2)),
+        candidateOverlay: candInt > 0 ? Number((candInt + bg).toFixed(2)) : null,
+        residualDiff: diffResidual,
+        deconv1: deconvoluted1 > 0 ? Number(deconvoluted1.toFixed(2)) : null,
+        deconv2: deconvoluted2 > 0 ? Number(deconvoluted2.toFixed(2)) : null,
         saliency: Number(saliencyWeight.toFixed(1)),
         baseline: Number(bg.toFixed(2)),
       });
     }
     return chartPoints;
-  }, [inputData, inputBroadening, inputNoiseLevel, inputBgAmorphous]);
+  }, [inputData, inputBroadening, inputNoiseLevel, inputBgAmorphous, selectedCandidate]);
 
   // Savitzky-Golay compared preview data
   const sgPreviewData = React.useMemo(() => {
@@ -4000,9 +4087,39 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <span className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
                           <Activity className="w-4 h-4 text-cyan-500 animate-pulse" /> Simulated Input Pattern
                         </span>
-                        <span className="text-xs text-slate-500 font-mono uppercase tracking-wider">Crystalline Phase Diffraction Signature</span>
+                        <span className="text-xs text-slate-500 font-mono uppercase tracking-wider">Crystalline Phase Diffraction Signature & Difference Envelopes</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShowCandidateOverlay(!showCandidateOverlay);
+                            playSynthTone("tick");
+                          }}
+                          className={`text-xs font-mono font-bold border px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                            showCandidateOverlay
+                              ? "bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-[0_0_12px_rgba(168,85,247,0.3)]"
+                              : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                          }`}
+                          title="Overlay Predicted Phase Diffraction Curve"
+                        >
+                          <Layers className="w-3.5 h-3.5 text-purple-400" />
+                          {showCandidateOverlay ? "Candidate Match Overlay" : "Overlay Match"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowResidualCurve(!showResidualCurve);
+                            playSynthTone("tick");
+                          }}
+                          className={`text-xs font-mono font-bold border px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                            showResidualCurve
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]"
+                              : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
+                          }`}
+                          title="Display Subtraction Difference / Residual Curve (I_exp - I_calc)"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+                          {showResidualCurve ? "Residuals Active" : "Residuals"}
+                        </button>
                         <button
                           onClick={() => {
                             setShowGradCam(!showGradCam);
@@ -4016,7 +4133,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           title="Overlay Grad-CAM Convolutional Saliency Map"
                         >
                           <Brain className="w-3.5 h-3.5 text-rose-400" />
-                          {showGradCam ? "Grad-CAM Saliency Active" : "Grad-CAM Saliency"}
+                          {showGradCam ? "Grad-CAM Saliency" : "Grad-CAM"}
                         </button>
                         <button
                           onClick={() => {
@@ -4028,7 +4145,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           className="text-xs font-mono font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2 py-1 rounded transition-all"
                           title="Reset simulation parameters to default calibration"
                         >
-                          Reset Params
+                          Reset
                         </button>
                         <span className="text-xs px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 font-black font-mono border border-cyan-500/30 shadow-sm flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
@@ -4054,6 +4171,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4} />
                                   <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
                                 </linearGradient>
+                                <linearGradient id="colorCandidatePattern" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.35} />
+                                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="colorResidualDiff" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
+                                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
+                                </linearGradient>
                               </defs>
                               <XAxis
                                 dataKey="twoTheta"
@@ -4064,13 +4189,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 axisLine={{ stroke: '#1e293b' }}
                                 label={{ value: '2θ Diffraction Angle (degrees)', position: 'bottom', offset: 5, fill: '#475569', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
                               />
-                              <YAxis hide domain={[0, 'auto']} />
+                              <YAxis hide domain={['auto', 'auto']} />
                               <CartesianGrid strokeDasharray="3 3" opacity={0.15} stroke="#334155" />
                               
                               {/* Background reference areas for typical diffraction angles */}
                               <ReferenceArea x1={20} x2={40} fill="#22d3ee" fillOpacity={0.02} />
                               <ReferenceArea x1={40} x2={75} fill="#a855f7" fillOpacity={0.02} />
                               
+                              {/* Continuous Input Experimental Intensity */}
                               <Area
                                 type="monotone"
                                 dataKey="intensity"
@@ -4081,6 +4207,43 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 name="Continuous Intensity"
                               />
 
+                              {/* Candidate Phase Prediction Overlay Curve */}
+                              {showCandidateOverlay && (
+                                <Area
+                                  type="monotone"
+                                  dataKey="candidateOverlay"
+                                  stroke="#c084fc"
+                                  fill="url(#colorCandidatePattern)"
+                                  strokeWidth={2}
+                                  strokeDasharray="4 4"
+                                  name="Candidate Theoretical Match"
+                                />
+                              )}
+
+                              {/* Residual Subtraction Difference Curve */}
+                              {showResidualCurve && (
+                                <Area
+                                  type="monotone"
+                                  dataKey="residualDiff"
+                                  stroke="#f59e0b"
+                                  fill="url(#colorResidualDiff)"
+                                  strokeWidth={1.5}
+                                  name="Residual Difference (I_exp - I_calc)"
+                                />
+                              )}
+
+                              {/* Amorphous Baseline */}
+                              <Line
+                                type="monotone"
+                                dataKey="baseline"
+                                stroke="#475569"
+                                strokeDasharray="2 2"
+                                strokeWidth={1}
+                                dot={false}
+                                name="Baseline Background"
+                              />
+
+                              {/* Grad-CAM Saliency Map */}
                               {showGradCam && (
                                 <Area
                                   type="monotone"
@@ -4108,14 +4271,38 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 content={({ active, payload }) => {
                                   if (active && payload && payload.length) {
                                     const val = payload[0].value as number;
-                                    const theta = payload[0].payload.twoTheta as number;
+                                    const data = payload[0].payload;
+                                    const theta = data.twoTheta as number;
                                     const rad = (theta / 2) * (Math.PI / 180);
                                     const d = 1.5406 / (2 * Math.sin(rad));
                                     return (
-                                      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3 rounded-xl shadow-xl text-xs font-mono text-slate-300">
-                                        <div className="font-bold text-cyan-400 mb-1">Position: {theta.toFixed(2)}° 2θ</div>
-                                        <div>d-spacing: {isNaN(d) ? 'N/A' : d.toFixed(4)} Å</div>
-                                        <div className="text-emerald-400 mt-1">Intensity: {val.toFixed(1)} a.u.</div>
+                                      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3.5 rounded-xl shadow-2xl text-xs font-mono text-slate-300 space-y-1 min-w-[210px]">
+                                        <div className="font-bold text-cyan-400 border-b border-slate-700 pb-1 flex justify-between">
+                                          <span>{theta.toFixed(2)}° 2θ</span>
+                                          <span className="text-slate-400">d = {isNaN(d) ? 'N/A' : d.toFixed(4)} Å</span>
+                                        </div>
+                                        <div className="text-cyan-400 flex justify-between">
+                                          <span>Observed:</span>
+                                          <span className="font-bold">{data.intensity} a.u.</span>
+                                        </div>
+                                        {data.candidateOverlay !== null && data.candidateOverlay !== undefined && (
+                                          <div className="text-purple-300 flex justify-between">
+                                            <span>Candidate Calc:</span>
+                                            <span className="font-bold">{data.candidateOverlay} a.u.</span>
+                                          </div>
+                                        )}
+                                        {showResidualCurve && data.residualDiff !== undefined && (
+                                          <div className="text-amber-400 flex justify-between border-t border-slate-800 pt-0.5">
+                                            <span>Residual Δ:</span>
+                                            <span className="font-bold">{data.residualDiff}</span>
+                                          </div>
+                                        )}
+                                        {showGradCam && data.saliency !== undefined && (
+                                          <div className="text-rose-400 flex justify-between">
+                                            <span>Grad-CAM Saliency:</span>
+                                            <span className="font-bold">{data.saliency}%</span>
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   }
@@ -8432,12 +8619,14 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                             {/* Mode Selection Pills */}
                             <div className="flex flex-wrap items-center gap-2">
-                              <div className="flex items-center p-1 bg-slate-900/90 rounded-xl border border-slate-800 text-xs font-mono font-bold">
+                              <div className="flex flex-wrap items-center p-1 bg-slate-900/90 rounded-xl border border-slate-800 text-xs font-mono font-bold gap-1">
                                 {[
                                   { id: 'dual', label: 'Dual-Axis', icon: Zap },
                                   { id: 'loss', label: 'Loss Curves', icon: Activity },
                                   { id: 'accuracy', label: 'Accuracy', icon: CheckCircle2 },
                                   { id: 'roc', label: 'Multi-ROC', icon: Target },
+                                  { id: 'pr', label: 'PR Curves', icon: Layers },
+                                  { id: 'calibration', label: 'Calibration', icon: Sliders },
                                   { id: 'dynamics', label: 'Gradients', icon: Cpu },
                                 ].map((tab) => {
                                   const IconComponent = tab.icon;
@@ -8511,7 +8700,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               <div className="max-w-md space-y-1.5">
                                 <h5 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Neural Net Curves & Dynamics Ready</h5>
                                 <p className="text-xs text-slate-400 font-mono tracking-wide leading-relaxed">
-                                  Execute the multi-epoch gradient optimizer or load pre-calculated benchmark curves to inspect cross-entropy loss convergence, top-1 accuracy curves, and multi-class ROC profiles.
+                                  Execute the multi-epoch gradient optimizer or load pre-calculated benchmark curves to inspect cross-entropy loss convergence, top-1 accuracy curves, multi-class ROC profiles, precision-recall trajectories, and calibration diagrams.
                                 </p>
                               </div>
                               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -8538,7 +8727,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                             <div className="space-y-5 flex-grow relative z-10">
                               {/* Auxiliary Chart Controls Bar */}
                               <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs font-mono">
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-3">
                                   {trainCurveTab === 'loss' && (
                                     <label className="flex items-center gap-2 text-slate-400 hover:text-slate-200 cursor-pointer">
                                       <input
@@ -8561,15 +8750,17 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                       <span>Show Generalization Delta Gap</span>
                                     </label>
                                   )}
-                                  <label className="flex items-center gap-2 text-slate-400 hover:text-slate-200 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      checked={curveSmoothing === 'monotone'}
-                                      onChange={(e) => setCurveSmoothing(e.target.checked ? 'monotone' : 'linear')}
-                                      className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0 w-3.5 h-3.5"
-                                    />
-                                    <span>Cubic Spline Smoothing</span>
-                                  </label>
+                                  {trainCurveTab !== 'calibration' && (
+                                    <label className="flex items-center gap-2 text-slate-400 hover:text-slate-200 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={curveSmoothing === 'monotone'}
+                                        onChange={(e) => setCurveSmoothing(e.target.checked ? 'monotone' : 'linear')}
+                                        className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0 w-3.5 h-3.5"
+                                      />
+                                      <span>Cubic Spline Smoothing</span>
+                                    </label>
+                                  )}
                                 </div>
 
                                 <div className="flex items-center gap-2 text-slate-400">
@@ -8577,6 +8768,57 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                   <span>{trainingHistory.length} Epochs Recorded</span>
                                 </div>
                               </div>
+
+                              {/* Interactive Class Selector Pills for ROC and PR tabs */}
+                              {(trainCurveTab === 'roc' || trainCurveTab === 'pr') && (
+                                <div className="flex flex-wrap items-center gap-2 px-1 pt-1 pb-2 border-b border-slate-800/80 text-xs font-mono">
+                                  <span className="text-slate-500 font-bold uppercase mr-1">Active Symmetry Curves:</span>
+                                  {[
+                                    { name: 'Cubic', color: '#10b981', auc: '0.988', ap: '0.994' },
+                                    { name: 'Hexagonal', color: '#06b6d4', auc: '0.991', ap: '0.992' },
+                                    { name: 'Tetragonal', color: '#6366f1', auc: '0.962', ap: '0.971' },
+                                    { name: 'Orthorhombic', color: '#f59e0b', auc: '0.954', ap: '0.963' },
+                                    { name: 'Monoclinic', color: '#d946ef', auc: '0.938', ap: '0.945' },
+                                    { name: 'Triclinic', color: '#f43f5e', auc: '0.922', ap: '0.931' },
+                                  ].map((cls) => {
+                                    const isSelected = trainCurveTab === 'roc' 
+                                      ? activeRocClasses.includes(cls.name)
+                                      : activePrClasses.includes(cls.name);
+                                    return (
+                                      <button
+                                        key={cls.name}
+                                        onClick={() => {
+                                          if (trainCurveTab === 'roc') {
+                                            setActiveRocClasses(prev => 
+                                              prev.includes(cls.name) 
+                                                ? prev.filter(c => c !== cls.name) 
+                                                : [...prev, cls.name]
+                                            );
+                                          } else {
+                                            setActivePrClasses(prev => 
+                                              prev.includes(cls.name) 
+                                                ? prev.filter(c => c !== cls.name) 
+                                                : [...prev, cls.name]
+                                            );
+                                          }
+                                          playSynthTone("tick");
+                                        }}
+                                        className={`px-2 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
+                                          isSelected
+                                            ? 'bg-slate-800 text-white border-slate-600 shadow-sm'
+                                            : 'bg-slate-900/50 text-slate-500 border-slate-800 opacity-60 hover:opacity-100'
+                                        }`}
+                                      >
+                                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cls.color }} />
+                                        <span>{cls.name}</span>
+                                        <span className="text-[10px] text-slate-400 font-normal">
+                                          {trainCurveTab === 'roc' ? `AUC ${cls.auc}` : `AP ${cls.ap}`}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
 
                               {/* Main Interactive Chart Canvas */}
                               <div className="h-72 sm:h-80 w-full bg-[#030712]/90 border border-slate-800/90 rounded-2xl p-3 relative shadow-inner overflow-hidden">
@@ -8774,12 +9016,12 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                                   FPR: {(data.fpr * 100).toFixed(1)}% (Threshold Sweep)
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
-                                                  <span className="text-emerald-400">Cubic TPR: {data.Cubic}</span>
-                                                  <span className="text-cyan-400">Hexagonal: {data.Hexagonal}</span>
-                                                  <span className="text-indigo-400">Tetragonal: {data.Tetragonal}</span>
-                                                  <span className="text-amber-400">Orthorhombic: {data.Orthorhombic}</span>
-                                                  <span className="text-fuchsia-400">Monoclinic: {data.Monoclinic}</span>
-                                                  <span className="text-rose-400">Triclinic: {data.Triclinic}</span>
+                                                  {activeRocClasses.includes('Cubic') && <span className="text-emerald-400">Cubic TPR: {data.Cubic}</span>}
+                                                  {activeRocClasses.includes('Hexagonal') && <span className="text-cyan-400">Hexagonal: {data.Hexagonal}</span>}
+                                                  {activeRocClasses.includes('Tetragonal') && <span className="text-indigo-400">Tetragonal: {data.Tetragonal}</span>}
+                                                  {activeRocClasses.includes('Orthorhombic') && <span className="text-amber-400">Orthorhombic: {data.Orthorhombic}</span>}
+                                                  {activeRocClasses.includes('Monoclinic') && <span className="text-fuchsia-400">Monoclinic: {data.Monoclinic}</span>}
+                                                  {activeRocClasses.includes('Triclinic') && <span className="text-rose-400">Triclinic: {data.Triclinic}</span>}
                                                 </div>
                                                 <div className="text-emerald-300 font-bold border-t border-slate-800 pt-1 text-[11px]">
                                                   Macro-Avg TPR: {data.MacroAverage}
@@ -8792,12 +9034,117 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                       />
                                       <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
                                       <Line type="linear" name="Random Guess (AUC: 0.50)" dataKey="randomGuess" stroke="#475569" strokeWidth={1.5} strokeDasharray="3 3" dot={false} />
-                                      <Line type={curveSmoothing} name="Cubic (AUC: 0.988)" dataKey="Cubic" stroke="#10b981" strokeWidth={2.5} dot={false} />
-                                      <Line type={curveSmoothing} name="Hexagonal (AUC: 0.991)" dataKey="Hexagonal" stroke="#06b6d4" strokeWidth={2.5} dot={false} />
-                                      <Line type={curveSmoothing} name="Tetragonal (AUC: 0.962)" dataKey="Tetragonal" stroke="#6366f1" strokeWidth={2.5} dot={false} />
-                                      <Line type={curveSmoothing} name="Orthorhombic (AUC: 0.954)" dataKey="Orthorhombic" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
-                                      <Line type={curveSmoothing} name="Monoclinic (AUC: 0.938)" dataKey="Monoclinic" stroke="#d946ef" strokeWidth={2.5} dot={false} />
-                                      <Line type={curveSmoothing} name="Triclinic (AUC: 0.922)" dataKey="Triclinic" stroke="#f43f5e" strokeWidth={2.5} dot={false} />
+                                      {activeRocClasses.includes('Cubic') && <Line type={curveSmoothing} name="Cubic (AUC: 0.988)" dataKey="Cubic" stroke="#10b981" strokeWidth={2.5} dot={false} />}
+                                      {activeRocClasses.includes('Hexagonal') && <Line type={curveSmoothing} name="Hexagonal (AUC: 0.991)" dataKey="Hexagonal" stroke="#06b6d4" strokeWidth={2.5} dot={false} />}
+                                      {activeRocClasses.includes('Tetragonal') && <Line type={curveSmoothing} name="Tetragonal (AUC: 0.962)" dataKey="Tetragonal" stroke="#6366f1" strokeWidth={2.5} dot={false} />}
+                                      {activeRocClasses.includes('Orthorhombic') && <Line type={curveSmoothing} name="Orthorhombic (AUC: 0.954)" dataKey="Orthorhombic" stroke="#f59e0b" strokeWidth={2.5} dot={false} />}
+                                      {activeRocClasses.includes('Monoclinic') && <Line type={curveSmoothing} name="Monoclinic (AUC: 0.938)" dataKey="Monoclinic" stroke="#d946ef" strokeWidth={2.5} dot={false} />}
+                                      {activeRocClasses.includes('Triclinic') && <Line type={curveSmoothing} name="Triclinic (AUC: 0.922)" dataKey="Triclinic" stroke="#f43f5e" strokeWidth={2.5} dot={false} />}
+                                    </ComposedChart>
+                                  ) : trainCurveTab === 'pr' ? (
+                                    /* Multi-Class Precision-Recall (PR) Curves View */
+                                    <ComposedChart data={prCurveData} margin={{ top: 15, right: 20, left: 10, bottom: 20 }}>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />
+                                      <XAxis
+                                        dataKey="recall"
+                                        type="number"
+                                        domain={[0, 1]}
+                                        stroke="#64748b"
+                                        tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                                        label={{ value: 'RECALL (TRUE POSITIVE RATE)', position: 'insideBottom', offset: -12, fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                                      />
+                                      <YAxis
+                                        type="number"
+                                        domain={[0, 1]}
+                                        stroke="#10b981"
+                                        tick={{ fill: '#10b981', fontSize: 11, fontFamily: 'monospace' }}
+                                        label={{ value: 'PRECISION (PPV)', angle: -90, position: 'insideLeft', offset: 0, fill: '#10b981', fontSize: 11, fontFamily: 'monospace' }}
+                                      />
+                                      <Tooltip
+                                        content={({ active, payload }) => {
+                                          if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                              <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3.5 rounded-xl shadow-2xl font-mono text-xs text-slate-300 space-y-1.5 min-w-[210px]">
+                                                <div className="font-bold text-emerald-400 border-b border-slate-700 pb-1">
+                                                  Recall: {(data.recall * 100).toFixed(1)}%
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+                                                  {activePrClasses.includes('Cubic') && <span className="text-emerald-400">Cubic: {data.Cubic}</span>}
+                                                  {activePrClasses.includes('Hexagonal') && <span className="text-cyan-400">Hexagonal: {data.Hexagonal}</span>}
+                                                  {activePrClasses.includes('Tetragonal') && <span className="text-indigo-400">Tetragonal: {data.Tetragonal}</span>}
+                                                  {activePrClasses.includes('Orthorhombic') && <span className="text-amber-400">Orthorhombic: {data.Orthorhombic}</span>}
+                                                  {activePrClasses.includes('Monoclinic') && <span className="text-fuchsia-400">Monoclinic: {data.Monoclinic}</span>}
+                                                  {activePrClasses.includes('Triclinic') && <span className="text-rose-400">Triclinic: {data.Triclinic}</span>}
+                                                </div>
+                                                <div className="text-cyan-300 font-bold border-t border-slate-800 pt-1 text-[11px]">
+                                                  Macro-Avg Precision: {data.MacroAverage}
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                          return null;
+                                        }}
+                                      />
+                                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                                      <Line type="linear" name="No-Skill Baseline (0.14)" dataKey="baseline" stroke="#475569" strokeWidth={1.5} strokeDasharray="3 3" dot={false} />
+                                      {activePrClasses.includes('Cubic') && <Line type={curveSmoothing} name="Cubic (AP: 0.994)" dataKey="Cubic" stroke="#10b981" strokeWidth={2.5} dot={false} />}
+                                      {activePrClasses.includes('Hexagonal') && <Line type={curveSmoothing} name="Hexagonal (AP: 0.992)" dataKey="Hexagonal" stroke="#06b6d4" strokeWidth={2.5} dot={false} />}
+                                      {activePrClasses.includes('Tetragonal') && <Line type={curveSmoothing} name="Tetragonal (AP: 0.971)" dataKey="Tetragonal" stroke="#6366f1" strokeWidth={2.5} dot={false} />}
+                                      {activePrClasses.includes('Orthorhombic') && <Line type={curveSmoothing} name="Orthorhombic (AP: 0.963)" dataKey="Orthorhombic" stroke="#f59e0b" strokeWidth={2.5} dot={false} />}
+                                      {activePrClasses.includes('Monoclinic') && <Line type={curveSmoothing} name="Monoclinic (AP: 0.945)" dataKey="Monoclinic" stroke="#d946ef" strokeWidth={2.5} dot={false} />}
+                                      {activePrClasses.includes('Triclinic') && <Line type={curveSmoothing} name="Triclinic (AP: 0.931)" dataKey="Triclinic" stroke="#f43f5e" strokeWidth={2.5} dot={false} />}
+                                    </ComposedChart>
+                                  ) : trainCurveTab === 'calibration' ? (
+                                    /* Reliability Diagram / Calibration Curve View */
+                                    <ComposedChart data={calibrationCurveData} margin={{ top: 15, right: 20, left: 10, bottom: 20 }}>
+                                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.6} />
+                                      <XAxis
+                                        dataKey="mid"
+                                        type="number"
+                                        domain={[0, 1]}
+                                        stroke="#64748b"
+                                        tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                                        label={{ value: 'MEAN PREDICTED CONFIDENCE PROBABILITY', position: 'insideBottom', offset: -12, fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                                      />
+                                      <YAxis
+                                        type="number"
+                                        domain={[0, 1]}
+                                        stroke="#06b6d4"
+                                        tick={{ fill: '#06b6d4', fontSize: 11, fontFamily: 'monospace' }}
+                                        label={{ value: 'EMPIRICAL ACCURACY (FRACTION OF POSITIVES)', angle: -90, position: 'insideLeft', offset: 0, fill: '#06b6d4', fontSize: 11, fontFamily: 'monospace' }}
+                                      />
+                                      <Tooltip
+                                        content={({ active, payload }) => {
+                                          if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            return (
+                                              <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3.5 rounded-xl shadow-2xl font-mono text-xs text-slate-300 space-y-1 min-w-[220px]">
+                                                <div className="font-bold text-cyan-400 border-b border-slate-700 pb-1 flex justify-between">
+                                                  <span>Bin: {data.bin}</span>
+                                                  <span className="text-slate-400">N = {data.count}</span>
+                                                </div>
+                                                <div className="text-cyan-400 flex justify-between">
+                                                  <span>Mean Confidence:</span>
+                                                  <span className="font-bold">{(data.mid * 100).toFixed(0)}%</span>
+                                                </div>
+                                                <div className="text-emerald-400 flex justify-between">
+                                                  <span>Empirical Accuracy:</span>
+                                                  <span className="font-bold">{(data.observed * 100).toFixed(1)}%</span>
+                                                </div>
+                                                <div className="text-amber-400 flex justify-between border-t border-slate-800 pt-0.5 text-[11px]">
+                                                  <span>Calibration Error:</span>
+                                                  <span className="font-bold">{(data.confGap * 100).toFixed(2)}%</span>
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+                                          return null;
+                                        }}
+                                      />
+                                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                                      <Line type="linear" name="Perfect Calibration (45° Diagonal)" dataKey="perfect" stroke="#64748b" strokeWidth={2} strokeDasharray="4 4" dot={false} />
+                                      <Line type={curveSmoothing} name="Model Observed Reliability" dataKey="observed" stroke="#06b6d4" strokeWidth={3} dot={{ r: 5, fill: '#06b6d4' }} activeDot={{ r: 7 }} />
                                     </ComposedChart>
                                   ) : (
                                     /* Gradient & Learning Dynamics View */
