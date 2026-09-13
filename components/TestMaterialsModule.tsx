@@ -2791,13 +2791,13 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <div className="p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
             <Database className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] leading-none">Standard Reference Registries</h3>
-            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 block">Scientific Material Presets & Catalog</span>
+            <h3 className="text-base font-bold text-slate-100 uppercase tracking-wider leading-none">Standard Reference Registries</h3>
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide mt-1 block">Scientific Material Presets & Catalog</span>
           </div>
         </div>
         
@@ -2811,20 +2811,20 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:shadow-lg"
+            className="px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wide transition-colors flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white hover:shadow-lg cursor-pointer"
             title="Import custom suites from JSON"
           >
-            <Upload className="w-3 h-3" />
+            <Upload className="w-4 h-4" />
             Import CSV/JSON
           </button>
           
           {customPresets.length > 0 && (
             <button
               onClick={handleExportJSON}
-              className="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+              className="px-3 py-1.5 rounded text-xs font-semibold uppercase tracking-wide transition-colors flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white cursor-pointer"
               title="Export custom suites to JSON"
             >
-              <Download className="w-3 h-3" />
+              <Download className="w-4 h-4" />
               Export
             </button>
           )}
@@ -2835,13 +2835,13 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               setFormError(null);
               setSuccessMsg(null);
             }}
-            className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 border shadow-sm ${
+            className={`px-3.5 py-1.5 rounded text-xs font-bold uppercase tracking-wide transition-colors flex items-center gap-1.5 border shadow-sm cursor-pointer ${
               isAdding 
                 ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 hover:bg-rose-500/30' 
                 : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30 hover:shadow-emerald-500/20'
             }`}
           >
-            {isAdding ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             {isAdding ? 'Close Builder' : 'New Phase Entry'}
           </button>
         </div>
@@ -2851,25 +2851,25 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       {isAdding && (
         <div className="mb-6 p-5 rounded-2xl bg-[#0F172A]/90 border border-emerald-500/20 shadow-inner relative z-10 animate-in slide-in-from-top duration-300">
           <form onSubmit={handleAddCustomPreset} className="space-y-4">
-            <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+            <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> Define Custom Crystal Suite
             </h4>
 
             {formError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono text-[10px] leading-relaxed">
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono text-xs leading-relaxed">
                 ⚠ {formError}
               </div>
             )}
             
             {successMsg && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold font-sans text-[10px] flex items-center gap-1.5">
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold font-sans text-xs flex items-center gap-1.5">
                 <Check className="w-4 h-4" /> {successMsg}
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Standard Name *</label>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Standard Name *</label>
                 <input
                   type="text"
                   placeholder="e.g. Zinc Nitride Reference"
@@ -2880,7 +2880,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Chemical Formula *</label>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Chemical Formula *</label>
                 <input
                   type="text"
                   placeholder="e.g. Zn3N2"
@@ -2893,7 +2893,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Wavelength ({lengthUnit})</label>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Wavelength ({lengthUnit})</label>
                 <input
                   type="number"
                   step="0.0001"
@@ -2904,7 +2904,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Crystal System (Opt)</label>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Crystal System (Opt)</label>
                 <input
                   type="text"
                   placeholder="e.g. Cubic"
@@ -2915,7 +2915,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Space Group (Opt)</label>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Space Group (Opt)</label>
                 <input
                   type="text"
                   placeholder="e.g. Ia-3 (No. 206)"
@@ -2927,7 +2927,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
             </div>
 
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Lattice Dimensions (Opt)</label>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Lattice Dimensions (Opt)</label>
               <input
                 type="text"
                 placeholder="e.g. a = 9.78 Å"
@@ -2939,7 +2939,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Diffraction Peaks (2θ, comma separated) *</label>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Diffraction Peaks (2θ, comma separated) *</label>
                 <textarea
                   rows={2}
                   placeholder="e.g. 21.24, 30.56, 35.88"
@@ -2950,7 +2950,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">HKL Indices (comma separated, matching peaks counter)</label>
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">HKL Indices (comma separated, matching peaks counter)</label>
                 <textarea
                   rows={2}
                   placeholder="e.g. 110, 200, 211"
@@ -2962,7 +2962,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
             </div>
 
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Description (Opt)</label>
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Description (Opt)</label>
               <input
                 type="text"
                 placeholder="Refractory nitride powder prepared by chemical synthesis."
@@ -2976,13 +2976,13 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               <button
                 type="button"
                 onClick={() => setIsAdding(false)}
-                className="px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-400 bg-slate-800 hover:text-white transition-colors"
+                className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider text-slate-400 bg-slate-800 hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 hover:bg-emerald-500/30 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center gap-1.5"
               >
                 <Database className="w-3.5 h-3.5" /> Save Suite
               </button>
@@ -3000,11 +3000,11 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Database Query</h4>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">Global unified registry search & material suite filtering</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1.5">Global unified registry search & material suite filtering</p>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-black/50 border border-emerald-500/20 rounded-lg">
               <Database className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="text-[10px] font-mono font-bold text-emerald-400">{filteredPresets.length} / {allPresets.length} Records</span>
+              <span className="text-xs font-mono font-bold text-emerald-400">{filteredPresets.length} / {allPresets.length} Records</span>
             </div>
           </div>
           
@@ -3039,14 +3039,14 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-2.5 whitespace-nowrap ${
+              className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-2.5 whitespace-nowrap ${
                 activeTab === tab
                   ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_4_25px_rgba(16,185,129,0.2)] ring-1 ring-emerald-500/30 -translate-y-0.5'
                   : 'bg-black/40 border-emerald-500/10 text-slate-400 hover:text-emerald-100 hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:-translate-y-0.5 hover:shadow-[0_4_15px_rgba(16,185,129,0.1)]'
               }`}
             >
               {tab}
-              <span className={`text-[9px] px-2 py-0.5 rounded-lg border font-mono transition-colors ${
+              <span className={`text-xs px-2 py-0.5 rounded-lg border font-mono transition-colors ${
                 activeTab === tab 
                   ? 'bg-emerald-400/20 text-emerald-200 border-emerald-400/30 shadow-inner' 
                   : 'bg-black/50 text-slate-500 border-white/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-300 group-hover:border-emerald-500/30'
@@ -3061,7 +3061,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       {/* Database Registry Filters */}
       <div className="relative z-10 border-t border-emerald-500/10 pt-4 mb-6">
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none select-none max-w-full items-center">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-2 shrink-0 flex items-center gap-1.5">
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2 shrink-0 flex items-center gap-1.5">
             <Database className="w-3 h-3 text-emerald-500/70" /> Reference Registry:
           </span>
           {(['All', 'ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as DatabaseRef[]).map(db => {
@@ -3083,14 +3083,14 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                 key={db}
                 type="button"
                 onClick={() => setActiveDatabase(db)}
-                className={`py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1.5 ${
+                className={`py-1.5 px-3 rounded-lg text-xs font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1.5 ${
                   activeDatabase === db
                     ? theme.activeClass
                     : 'bg-black/40 border-white/5 text-slate-500 hover:text-slate-300 hover:bg-black/60 hover:border-emerald-500/20'
                 }`}
               >
                 {db}
-                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-mono ${
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-mono ${
                   activeDatabase === db 
                     ? theme.badgeClass 
                     : 'bg-white/5 text-slate-500'
@@ -3104,7 +3104,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
         {/* Database context banner card */}
         <div className="mt-1 pb-1 animate-in fade-in slide-in-from-top-1">
-          <div className={`p-4 rounded-xl border text-[10px] leading-relaxed transition-all duration-300 shadow-inner flex items-start gap-4 ${
+          <div className={`p-4 rounded-xl border text-xs leading-relaxed transition-all duration-300 shadow-inner flex items-start gap-4 ${
             activeDatabase === 'All'
               ? 'bg-emerald-950/10 border-emerald-900/30 text-emerald-200/80'
               : activeDatabase === 'ICDD'
@@ -3145,8 +3145,8 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
         {filteredPresets.length === 0 ? (
           <div className="py-12 col-span-full text-center rounded-2xl bg-black/20 border border-white/5 text-slate-500 text-xs flex flex-col items-center gap-2">
             <SlidersHorizontal className="w-8 h-8 text-slate-600 stroke-1" />
-            <p className="uppercase font-mono tracking-widest text-[10px]">No material suites found matching terms</p>
-            <p className="text-[9px] text-slate-600 font-sans italic">Try resetting query filter parameters</p>
+            <p className="uppercase font-mono tracking-widest text-xs">No material suites found matching terms</p>
+            <p className="text-xs text-slate-600 font-sans italic">Try resetting query filter parameters</p>
           </div>
         ) : (
           filteredPresets.map((material, idx) => {
@@ -3230,7 +3230,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       <span className="text-base font-black text-white/90 group-hover:text-white transition-colors tracking-tight">
                         {material.name}
                       </span>
-                      <span className={`text-[10px] w-fit font-mono font-bold px-2 py-0.5 rounded-md leading-none border shadow-sm ${formulaBg}`}>
+                      <span className={`text-xs w-fit font-mono font-bold px-2 py-0.5 rounded-md leading-none border shadow-sm ${formulaBg}`}>
                         {material.formula}
                       </span>
                     </div>
@@ -3238,7 +3238,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
                   <div className="flex flex-col items-end gap-1.5 shrink-0">
                     {material.database && (
-                      <span className={`text-[8px] font-black px-2 py-0.5 rounded border leading-none transition-all shadow-sm ${
+                      <span className={`text-xs font-black px-2 py-0.5 rounded border leading-none transition-all shadow-sm ${
                         material.database === 'ICDD' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
                         material.database === 'COD' ? 'bg-[#10b98115] text-emerald-400 border-[#10b98130]' :
                         material.database === 'RRUFF' ? 'bg-[#06b6d415] text-cyan-400 border-[#06b6d430]' :
@@ -3248,7 +3248,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                         {material.database} {material.databaseId ? `#${material.databaseId}` : ''}
                       </span>
                     )}
-                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-md ${
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-md ${
                       material.category === 'Calibration & Standards' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' :
                       material.category === 'Minerals, Ores & Geology' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20' :
                       material.category === 'Metals & Alloys' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
@@ -3276,12 +3276,12 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                   </div>
                 </div>
 
-                <p className="text-[11px] text-slate-400/90 line-clamp-2 leading-relaxed mb-4 pr-1 font-sans">
+                <p className="text-sm text-slate-400/90 line-clamp-2 leading-relaxed mb-4 pr-1 font-sans">
                   {material.description}
                 </p>
 
                 {/* Micro metrics view in main state */}
-                <div className="flex items-center justify-between text-[10px] font-mono border-t border-white/5 pt-3 mt-auto">
+                <div className="flex items-center justify-between text-xs font-mono border-t border-white/5 pt-3 mt-auto">
                   <div className="flex items-center gap-4 text-slate-400">
                     <span className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-md border border-white/5">
                       <Zap className="w-3 h-3 text-amber-500" /> λ = {convertLength(material.wavelength, lengthUnit).toFixed(4)}{lengthUnit}
@@ -3290,7 +3290,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       <Database className="w-3 h-3 text-cyan-500" /> {material.peaks.length} Refl.
                     </span>
                     {material.crystalSystem && (
-                      <span className="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 bg-white/5 text-[9px] font-sans font-bold text-slate-300 rounded-md border border-white/5">
+                      <span className="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 bg-white/5 text-xs font-sans font-bold text-slate-300 rounded-md border border-white/5">
                         {material.crystalSystem}
                       </span>
                     )}
@@ -3313,22 +3313,22 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                   >
                     {/* Structure stats */}
                     {(material.crystalSystem || material.spaceGroup || material.latticeParams) && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-black/30 p-3 rounded-xl border border-white/5 text-[10px] leading-tight">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-black/30 p-3 rounded-xl border border-white/5 text-xs leading-tight">
                         {material.crystalSystem && (
                           <div>
-                            <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">System</span>
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">System</span>
                             <span className="font-sans text-slate-300 font-bold block mt-0.5">{material.crystalSystem}</span>
                           </div>
                         )}
                         {material.spaceGroup && (
                           <div>
-                            <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">Space Group</span>
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">Space Group</span>
                             <span className="font-mono text-emerald-300 font-bold block mt-0.5">{material.spaceGroup}</span>
                           </div>
                         )}
                         {material.latticeParams && (
                           <div className="col-span-2 sm:col-span-1">
-                            <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">Dimensions</span>
+                            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">Dimensions</span>
                             <span className="font-mono text-emerald-400 font-bold block mt-0.5">{material.latticeParams}</span>
                           </div>
                         )}
@@ -3337,11 +3337,11 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
                     {/* Reflection Table */}
                     <div className="bg-[#050B14] p-3 rounded-xl border border-white/5">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Bragg reflection calculations ({convertLength(material.wavelength, lengthUnit).toFixed(4)} {lengthUnit}):</span>
+                      <span className="text-xs font-black text-slate-500 uppercase tracking-widest block mb-1.5">Bragg reflection calculations ({convertLength(material.wavelength, lengthUnit).toFixed(4)} {lengthUnit}):</span>
                       <div className="overflow-x-auto max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800">
-                        <table className="w-full text-left font-mono text-[10px]">
+                        <table className="w-full text-left font-mono text-xs">
                           <thead>
-                            <tr className="border-b border-white/5 bg-white/5 text-[8px] text-slate-500 tracking-wider font-sans uppercase">
+                            <tr className="border-b border-white/5 bg-white/5 text-xs text-slate-500 tracking-wider font-sans uppercase">
                               <th className="px-3 py-1.5 text-emerald-400">Reflection (2θ)</th>
                               <th className="px-3 py-1.5">Miller (hkl)</th>
                               <th className="px-3 py-1.5 text-right font-sans font-black text-emerald-400">d-spacing (Å)</th>
@@ -3370,7 +3370,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                           e.stopPropagation();
                           onLoadMaterial(material.peaks, material.wavelength, material.hkls, material.name);
                         }}
-                        className="flex-1 py-2 px-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-sans font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-500/30 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                        className="flex-1 py-2 px-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-sans font-black text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-500/30 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
                       >
                         <ClipboardCheck className="w-3.5 h-3.5" /> Initialize Session
                       </button>
@@ -3378,7 +3378,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       <button
                         type="button"
                         onClick={(e) => handleCopyPeaksText(material, idx, e)}
-                        className="py-2 px-3 bg-black/40 border border-emerald-500/20 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/40 font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
+                        className="py-2 px-3 bg-black/40 border border-emerald-500/20 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/40 font-sans font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
                         title="Copy peaks list to clipboard"
                       >
                         {copiedIndex === idx ? (
@@ -3395,7 +3395,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       <button
                         type="button"
                         onClick={(e) => handleExportConfigText(material, computedD, e)}
-                        className="py-2 px-3 bg-black/40 border border-emerald-500/20 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/40 font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
+                        className="py-2 px-3 bg-black/40 border border-emerald-500/20 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/40 font-sans font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
                         title="Export suite data to text file"
                       >
                         <FileJson className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400" /> Export Data
@@ -3411,7 +3411,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
       <div className="mt-6 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 relative z-10 flex items-start gap-4">
         <Info className="w-5 h-5 text-emerald-400/80 mt-0.5 shrink-0" />
-        <div className="text-[10px] text-slate-400 leading-normal font-sans text-left">
+        <div className="text-xs text-slate-400 leading-normal font-sans text-left">
           <strong className="text-emerald-300">Reference Configuration:</strong> Database records are automatically normalized to Cu-Kα ({convertLength(1.5406, lengthUnit).toFixed(4)} {lengthUnit}) wavelengths for synthetic indexation. You can initialize these pristine models into your active sandbox to test phase simulation, calculate precise grain morphologies, or validate structure refinement algorithms.
         </div>
       </div>

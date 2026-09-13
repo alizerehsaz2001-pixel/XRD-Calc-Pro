@@ -2478,12 +2478,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           <div className="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Scan className="w-4 h-4 text-cyan-400" />
-              <span className="font-bold text-slate-300 font-mono tracking-wider uppercase text-[11px]">
+              <span className="font-bold text-slate-300 font-mono tracking-wider uppercase text-sm">
                 Bragg Position
               </span>
             </div>
             <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
-              <span className="text-[10px] text-cyan-400 font-mono font-bold">2θ =</span>
+              <span className="text-xs text-cyan-400 font-mono font-bold">2θ =</span>
               <span className="font-mono font-black text-cyan-200 text-xs">
                 {twoThetaVal.toFixed(2)}°
               </span>
@@ -2493,7 +2493,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           {/* Scientific Crystallographic Metrics */}
           <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
             <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 uppercase tracking-widest font-mono">
+              <span className="text-xs text-slate-400 uppercase tracking-widest font-mono">
                 d-spacing (d_hkl)
               </span>
               <span className="text-xs font-mono font-bold text-emerald-400">
@@ -2501,7 +2501,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[9px] text-slate-400 uppercase tracking-widest font-mono">
+              <span className="text-xs text-slate-400 uppercase tracking-widest font-mono">
                 Wavelength (Cu-Kα₁)
               </span>
               <span className="text-xs font-mono font-bold text-sky-400">
@@ -2512,7 +2512,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
           {refItem?.hkl && (
             <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-2.5 py-1.5 rounded-lg mb-3">
-              <span className="text-[10px] text-rose-300 font-mono font-bold uppercase tracking-wider">
+              <span className="text-xs text-rose-300 font-mono font-bold uppercase tracking-wider">
                 Miller Indices (hkl)
               </span>
               <span className="text-xs font-mono font-black text-rose-200 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/40">
@@ -2535,7 +2535,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       boxShadow: `0 0 6px ${p.color}`,
                     }}
                   />
-                  <span className="text-slate-300 font-mono text-[10px] truncate max-w-[130px]">
+                  <span className="text-slate-300 font-mono text-xs truncate max-w-[130px]">
                     {p.name}
                   </span>
                 </div>
@@ -2543,17 +2543,17 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   className="font-mono font-black text-xs"
                   style={{ color: p.color }}
                 >
-                  {typeof p.value === "number" ? p.value.toFixed(1) : p.value} <span className="text-[9px] font-normal text-slate-500">cps</span>
+                  {typeof p.value === "number" ? p.value.toFixed(1) : p.value} <span className="text-xs font-normal text-slate-500">cps</span>
                 </span>
               </div>
             ))}
           </div>
 
           <div className="mt-3 pt-2 border-t border-slate-800/80 flex justify-between items-center">
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+            <span className="text-xs text-slate-500 uppercase tracking-widest font-mono font-bold">
               Instrument Source
             </span>
-            <span className="text-[10px] text-cyan-400 font-mono font-bold">
+            <span className="text-xs text-cyan-400 font-mono font-bold">
               Bragg-Brentano θ-2θ
             </span>
           </div>
@@ -2578,7 +2578,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                   Deep Learning XRD Phase Identification
                 </h1>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-black text-emerald-400 uppercase tracking-widest">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono font-black text-emerald-400 uppercase tracking-widest">
                   AI Ready
                 </span>
               </div>
@@ -2648,28 +2648,28 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           >
             <div className="bg-[#050A14] p-4 rounded-2xl border border-indigo-500/20">
               <div className="flex items-center gap-2 mb-1.5 text-indigo-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-[10px]">1</div>
+                <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-xs">1</div>
                 Choose XRD Data
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-400 leading-relaxed">
                 Click any of the <strong className="text-white">Quick Presets</strong> below (like LiCoO₂, Silicon 640d, or TiO₂) or upload your own 2θ-Intensity XRD text file.
               </p>
             </div>
             <div className="bg-[#050A14] p-4 rounded-2xl border border-violet-500/20">
               <div className="flex items-center gap-2 mb-1.5 text-violet-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center text-[10px]">2</div>
+                <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center text-xs">2</div>
                 Click Initialize
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-400 leading-relaxed">
                 Hit <strong className="text-white">Initialize Deep Phase ID</strong>. The pre-trained ResNet-1D model extracts peak footprints in milliseconds.
               </p>
             </div>
             <div className="bg-[#050A14] p-4 rounded-2xl border border-emerald-500/20">
               <div className="flex items-center gap-2 mb-1.5 text-emerald-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">3</div>
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs">3</div>
                 Explore Results
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
+              <p className="text-sm text-slate-400 leading-relaxed">
                 Inspect matched phases, crystal symmetry, space groups, and quantitative weight fractions in the interactive visualizer.
               </p>
             </div>
@@ -2689,7 +2689,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-black text-white">Engine Hyperparameters & Calibration</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-[9px] font-mono font-bold text-indigo-300">
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs font-mono font-bold text-indigo-300">
                     Auto-Tuned (Optimized)
                   </span>
                 </div>
@@ -2736,7 +2736,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <h3 className="font-black text-white text-md tracking-tight">
                     Engine Hyperparameters
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
                     Neural Network Core
                   </p>
                 </div>
@@ -2745,7 +2745,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <button
                   onClick={runAutoTuner}
                   disabled={isAutoTuning}
-                  className="flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-[9px] tracking-widest px-3 py-1.5 rounded-full border border-violet-500/30 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 inline-flex align-middle"
+                  className="flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-xs tracking-widest px-3 py-1.5 rounded-full border border-violet-500/30 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 inline-flex align-middle"
                 >
                   <Sparkles className="w-3 h-3 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
                   <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
@@ -2754,7 +2754,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <div
                     className={`w-2 h-2 rounded-full ${isSimulating || isAutoTuning ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-500"}`}
                   />
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                  <span className="text-xs font-black text-slate-300 uppercase tracking-widest">
                     {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
                   </span>
                 </div>
@@ -2772,11 +2772,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           <div className="mb-6 bg-[#050A14]/80 backdrop-blur-md border border-slate-800/80 hover:border-slate-700 shadow-inner rounded-2xl relative z-10 p-5 overflow-hidden group">
             <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] pointer-events-none" />
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-[10px]">
+              <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-xs">
                 <Cpu className="w-4 h-4 text-indigo-400 animate-pulse" />
                 <span>Live Network Topology</span>
               </div>
-              <span className="text-[9px] font-mono text-slate-500 bg-[#03060C] px-2 py-0.5 rounded border border-slate-800/80 shadow-inner">
+              <span className="text-xs font-mono text-slate-500 bg-[#03060C] px-2 py-0.5 rounded border border-slate-800/80 shadow-inner">
                 {engineConfig.depth}-Layer ResNet
               </span>
             </div>
@@ -2787,7 +2787,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)]">
                   <Activity className="w-4 h-4 text-emerald-400" />
                 </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Input</span>
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">Input</span>
               </div>
               
               {/* Conv Layer */}
@@ -2803,9 +2803,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                        <div key={i} className="w-0.5 h-6 bg-indigo-400 rounded-full" />
                      ))}
                    </div>
-                   <span className="text-[10px] font-black text-indigo-300 relative z-10 bg-indigo-950/80 px-1 rounded">{engineConfig.kernelSize}</span>
+                   <span className="text-xs font-black text-indigo-300 relative z-10 bg-indigo-950/80 px-1 rounded">{engineConfig.kernelSize}</span>
                 </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Conv1D</span>
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">Conv1D</span>
               </div>
               
               {/* Filters */}
@@ -2820,10 +2820,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                      <div key={i} className="absolute top-0 left-0 w-full h-full rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/40 shadow-[0_0_10px_rgba(217,70,239,0.1)]" style={{ marginLeft: i * 4, marginTop: i * -4 }} />
                    ))}
                    <div className="absolute inset-0 flex items-center justify-center z-20 ml-2 -mt-2">
-                     <span className="text-[9px] font-black text-fuchsia-300 drop-shadow-md">{engineConfig.filters}</span>
+                     <span className="text-xs font-black text-fuchsia-300 drop-shadow-md">{engineConfig.filters}</span>
                    </div>
                 </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest ml-2">Features</span>
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest ml-2">Features</span>
               </div>
               
               <div className="flex-1 h-px bg-slate-700/50 relative">
@@ -2833,24 +2833,24 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               {/* Output */}
               <div className="flex flex-col items-center gap-2 z-10">
                 <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                  <span className="text-[8px] font-black text-cyan-300 uppercase">{engineConfig.pooling}</span>
+                  <span className="text-xs font-black text-cyan-300 uppercase">{engineConfig.pooling}</span>
                 </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Pool</span>
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">Pool</span>
               </div>
             </div>
             
             <div className="mt-5 grid grid-cols-3 gap-2 border-t border-slate-700/50 pt-3">
               <div className="flex flex-col">
                 <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Activation</span>
-                <span className="text-[10px] font-black text-indigo-300">{engineConfig.activation}</span>
+                <span className="text-xs font-black text-indigo-300">{engineConfig.activation}</span>
               </div>
               <div className="flex flex-col items-center border-x border-slate-700/50">
                 <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Profile</span>
-                <span className="text-[10px] font-black text-fuchsia-300">{engineConfig.kernelProfile}</span>
+                <span className="text-xs font-black text-fuchsia-300">{engineConfig.kernelProfile}</span>
               </div>
               <div className="flex flex-col items-end">
                 <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Optimization</span>
-                <span className="text-[10px] font-black text-emerald-300">{engineConfig.optimization}</span>
+                <span className="text-xs font-black text-emerald-300">{engineConfig.optimization}</span>
               </div>
             </div>
           </div>
@@ -2859,7 +2859,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           {isAutoTuning && (
             <div className="mb-6 p-4 bg-[#03060C]/80 rounded-2xl border border-violet-500/30 relative z-10 animate-in zoom-in duration-300">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] text-violet-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                <span className="text-xs text-violet-400 font-bold uppercase tracking-widest flex items-center gap-1">
                   <Cpu className="w-3.5 h-3.5 animate-bounce" /> Auto-tuning hyperparameter grid
                 </span>
                 <span className="text-xs text-indigo-400 font-mono font-bold">{autoTuneProgress}%</span>
@@ -2873,7 +2873,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
 
               {/* Terminal Logs */}
-              <div className="bg-[#03060C] p-3 rounded-lg border border-slate-855 h-28 overflow-y-auto space-y-1 font-mono text-[9px] text-emerald-400">
+              <div className="bg-[#03060C] p-3 rounded-lg border border-slate-855 h-28 overflow-y-auto space-y-1 font-mono text-xs text-emerald-400">
                 {autoTuneLogs.map((log, idx) => (
                   <div key={idx} className="leading-relaxed border-l-2 border-indigo-700 pl-2">
                     {log}
@@ -2886,7 +2886,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           {/* Preset Tabs Selector */}
           <div className="mb-6 relative z-10">
             <div className="flex justify-between items-center mb-2 px-1">
-              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+              <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">
                 Optimization Presets
               </span>
               <button 
@@ -2895,7 +2895,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   setConfigFeedback("Pruned to standard baseline configs");
                   setTimeout(() => setConfigFeedback(""), 2000);
                 }}
-                className="text-[9px] font-black text-slate-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors"
+                className="text-xs font-black text-slate-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors"
                 title="Reset to original crystalline defaults"
               >
                 <RefreshCw className="w-2.5 h-2.5" /> reset
@@ -2911,7 +2911,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     setConfigFeedback(`Applied '${pName}' config profile`);
                     setTimeout(() => setConfigFeedback(""), 2500);
                   }}
-                  className={`py-1.5 text-[9px] font-black rounded-lg transition-all text-center ${
+                  className={`py-1.5 text-xs font-black rounded-lg transition-all text-center ${
                     activePreset === pName 
                       ? "bg-indigo-600 text-white shadow-md border border-indigo-500" 
                       : "text-slate-400 hover:text-slate-300 hover:bg-slate-800 bg-transparent"
@@ -2931,13 +2931,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   setShowConfigImportExport(!showConfigImportExport);
                   setImportJsonText(JSON.stringify(engineConfig, null, 2));
                 }}
-                className="text-[9px] font-bold text-slate-400 hover:text-indigo-300 transition-colors uppercase tracking-wider flex items-center gap-1.5"
+                className="text-xs font-bold text-slate-400 hover:text-indigo-300 transition-colors uppercase tracking-wider flex items-center gap-1.5"
               >
                 <FileText className="w-3 h-3 text-slate-400" />
                 {showConfigImportExport ? "Hide JSON Backups" : "JSON Import / Export"}
               </button>
               {configFeedback && (
-                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
                   {configFeedback}
                 </span>
               )}
@@ -2948,13 +2948,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <textarea
                   value={importJsonText}
                   onChange={(e) => setImportJsonText(e.target.value)}
-                  className="w-full h-24 bg-[#050A14] border border-slate-700 rounded-lg p-2 font-mono text-[10px] text-slate-200 outline-none focus:border-indigo-500"
+                  className="w-full h-24 bg-[#050A14] border border-slate-700 rounded-lg p-2 font-mono text-xs text-slate-200 outline-none focus:border-indigo-500"
                   placeholder="Paste configuration JSON here..."
                 />
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleImportJson}
-                    className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black uppercase text-white rounded-lg transition-all"
+                    className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-black uppercase text-white rounded-lg transition-all"
                   >
                     Import Config
                   </button>
@@ -2964,7 +2964,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       setConfigFeedback("Copied config directly to clipboard!");
                       setTimeout(() => setConfigFeedback(""), 2000);
                     }}
-                    className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-black uppercase text-slate-300 rounded-lg transition-all"
+                    className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-black uppercase text-slate-300 rounded-lg transition-all"
                   >
                     Copy Output
                   </button>
@@ -2978,7 +2978,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             {/* Kernel Shift */}
             <div className="space-y-1.5">
               <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                 title="Wavelength footprint of the 1D Kernel. Standard width is recommended for most crystalline spectra."
               >
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel Shift
@@ -3002,13 +3002,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Receptive field width matching signal footprint.</p>
+              <p className="text-xs text-slate-500 leading-tight">Receptive field width matching signal footprint.</p>
             </div>
 
             {/* Feature Maps */}
             <div className="space-y-1.5">
               <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                 title="Number of independent convolved trace signals tracked per layer to decouple overlapping configurations."
               >
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Feature Maps
@@ -3032,13 +3032,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Simulated neuron depth for feature extracting.</p>
+              <p className="text-xs text-slate-500 leading-tight">Simulated neuron depth for feature extracting.</p>
             </div>
 
             {/* Neural Depth */}
             <div className="space-y-1.5">
               <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                 title="Hierarchical layering depth used in residual convolutional processing. Heavy depths match mixed systems."
               >
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Neural Depth
@@ -3063,13 +3063,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Complex modeling capacity of ResNet blocks.</p>
+              <p className="text-xs text-slate-500 leading-tight">Complex modeling capacity of ResNet blocks.</p>
             </div>
 
             {/* Pooling Operator */}
             <div className="space-y-1.5">
               <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                 title="How downsampling pooling consolidates features. Max limits peak bleed; Avg sifts nanocrystalline clusters."
               >
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Pooling Op
@@ -3083,19 +3083,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       setEngineConfig({ ...engineConfig, pooling: op });
                       setActivePreset("Custom");
                     }}
-                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.pooling === op ? "bg-indigo-600 text-white shadow-md uppercase border border-indigo-500" : "text-slate-400 hover:text-slate-300 uppercase bg-transparent"}`}
+                    className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all ${engineConfig.pooling === op ? "bg-indigo-600 text-white shadow-md uppercase border border-indigo-500" : "text-slate-400 hover:text-slate-300 uppercase bg-transparent"}`}
                   >
                     {op}
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Trace downsampling algorithm mode.</p>
+              <p className="text-xs text-slate-500 leading-tight">Trace downsampling algorithm mode.</p>
             </div>
 
             {/* Kernel Profile */}
             <div className="space-y-1.5 col-span-2">
               <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                 title="Dispersion model applied for standard convolution filters. Lorentzian shapes match defect-heavy structures."
               >
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel Profile
@@ -3109,19 +3109,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       setEngineConfig({ ...engineConfig, kernelProfile: profile });
                       setActivePreset("Custom");
                     }}
-                    className={`flex-1 min-w-[65px] py-1.5 text-[9px] font-black rounded-lg transition-all ${engineConfig.kernelProfile === profile ? "bg-indigo-600 text-white shadow-md border border-indigo-500 whitespace-nowrap" : "text-slate-400 hover:text-slate-300 bg-transparent whitespace-nowrap"}`}
+                    className={`flex-1 min-w-[65px] py-1.5 text-xs font-black rounded-lg transition-all ${engineConfig.kernelProfile === profile ? "bg-indigo-600 text-white shadow-md border border-indigo-500 whitespace-nowrap" : "text-slate-400 hover:text-slate-300 bg-transparent whitespace-nowrap"}`}
                   >
                     {profile}
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Crystallography filter line-shape approximation function.</p>
+              <p className="text-xs text-slate-500 leading-tight">Crystallography filter line-shape approximation function.</p>
 
               {/* Pearson-VII shape exponent config */}
               {engineConfig.kernelProfile === "Pearson-VII" && (
                 <div className="mt-2.5 p-3 bg-[#050A14]/40 rounded-xl border border-slate-700/50 animate-in slide-in-from-top-1 duration-200">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pearson-VII Shape Factor (m)</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pearson-VII Shape Factor (m)</span>
                     <span className="text-xs font-mono font-bold text-indigo-400">m = {engineConfig.shapeExponent?.toFixed(2) || "2.50"}</span>
                   </div>
                   <input
@@ -3136,7 +3136,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     }}
                     className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-full appearance-none cursor-pointer"
                   />
-                  <p className="text-[8px] text-slate-500 leading-normal mt-1">
+                  <p className="text-xs text-slate-500 leading-normal mt-1">
                     Defines sharpness exponent. m = 1.0 mimics a pure Lorentzian; as m &rarr; &infin;, it approaches a pure Gaussian.
                   </p>
                 </div>
@@ -3146,7 +3146,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             {/* Activation Function */}
             <div className="space-y-1.5 col-span-2">
               <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                 title="Non-linear mathematical activation. GELU ensures highly sensitive, smooth threshold gradients."
               >
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Activation Function
@@ -3160,19 +3160,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       setEngineConfig({ ...engineConfig, activation: fn });
                       setActivePreset("Custom");
                     }}
-                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.activation === fn ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
+                    className={`flex-1 py-1.5 text-xs font-black rounded-lg transition-all ${engineConfig.activation === fn ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
                   >
                     {fn}
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Controls neurons triggering threshold above the computed signal floor.</p>
+              <p className="text-xs text-slate-500 leading-tight">Controls neurons triggering threshold above the computed signal floor.</p>
             </div>
 
             {/* Optimization */}
             <div className="space-y-1.5 col-span-2">
               <label 
-                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                 title="Gradient descent optimization. AdamW ensures decoupled weight decays to regularize models properly."
               >
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Optimization Algorithm
@@ -3186,20 +3186,20 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       setEngineConfig({ ...engineConfig, optimization: opt });
                       setActivePreset("Custom");
                     }}
-                    className={`flex-1 min-w-[60px] py-1.5 text-[9px] font-black rounded-lg transition-all ${engineConfig.optimization === opt ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
+                    className={`flex-1 min-w-[60px] py-1.5 text-xs font-black rounded-lg transition-all ${engineConfig.optimization === opt ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
                   >
                     {opt}
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-slate-500 leading-tight">Selects the numerical optimization tracker backpropagating weight changes.</p>
+              <p className="text-xs text-slate-500 leading-tight">Selects the numerical optimization tracker backpropagating weight changes.</p>
             </div>
 
             {/* Dropout Probability */}
             <div className="space-y-3 col-span-2">
               <div className="flex justify-between items-end px-1">
                 <label 
-                  className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                  className="flex items-center gap-1 text-xs font-black text-slate-400 uppercase tracking-widest cursor-help"
                   title="Probability of random elements drop-out to improve model generalized robustness against instrument anomalies."
                 >
                   <ShieldAlert className="w-3.5 h-3.5 text-fuchsia-400" /> Dropout Prob
@@ -3224,7 +3224,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 }}
                 className="w-full accent-fuchsia-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
               />
-              <p className="text-[9px] text-slate-500 leading-tight">Regularization coefficient dropping temporary trace parameters to prevent noise-floor latching.</p>
+              <p className="text-xs text-slate-500 leading-tight">Regularization coefficient dropping temporary trace parameters to prevent noise-floor latching.</p>
             </div>
           </div>
 
@@ -3233,7 +3233,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             {/* Learning Rate */}
             <div className="space-y-3">
               <div className="flex justify-between items-end px-1">
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
                   <Zap className="w-3.5 h-3.5 text-indigo-400" /> Base Learning Rate
                 </label>
                 <span className="text-xs font-mono font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
@@ -3255,13 +3255,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 }}
                 className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
               />
-              <p className="text-[9px] text-slate-500 leading-tight">Backpropagation alpha step size used during training optimization sweeps.</p>
+              <p className="text-xs text-slate-500 leading-tight">Backpropagation alpha step size used during training optimization sweeps.</p>
             </div>
 
             {/* Min Confidence */}
             <div className="space-y-3">
               <div className="flex justify-between items-end px-1">
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
                   <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Min Confidence
                 </label>
                 <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
@@ -3283,7 +3283,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 }}
                 className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
               />
-              <p className="text-[9px] text-slate-500 leading-tight">Hard bounding filters for matching list elements in final database identifications.</p>
+              <p className="text-xs text-slate-500 leading-tight">Hard bounding filters for matching list elements in final database identifications.</p>
             </div>
 
             {/* Batch Normalization Toggle */}
@@ -3292,7 +3292,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Batch Normalization
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   Stabilize and variance scale intensity signals across input spectra
                 </span>
               </div>
@@ -3318,7 +3318,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Self-Attention Mechanism
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   Apply Scaled Dot-Product Attention to weight prominent peaks dynamically
                 </span>
               </div>
@@ -3344,7 +3344,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Dropout Regularization
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   Randomly zero connections to avoid dataset overfitting
                 </span>
               </div>
@@ -3364,7 +3364,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   }}
                   className="w-16 accent-fuchsia-500"
                 />
-                <span className="text-[10px] font-mono text-slate-400 w-6 text-right">
+                <span className="text-xs font-mono text-slate-400 w-6 text-right">
                   {((engineConfig as any).dropout || 0).toFixed(2)}
                 </span>
               </div>
@@ -3376,7 +3376,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Multi-Scale Convolutional Fusion
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   ResNet-style skip-connections pathing crude spectrum values forward
                 </span>
               </div>
@@ -3402,7 +3402,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Baseline Background Subtraction
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   Strip mathematical curvatures & low-frequency optical baselines automatically
                 </span>
               </div>
@@ -3428,7 +3428,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Caglioti Instrument Calibration
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   Scale convolution sigma dynamically across 2&theta; coordinates using Caglioti's FWHM equation
                 </span>
               </div>
@@ -3454,7 +3454,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Finger-Cox-Jephcoat Asymmetric Correction
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium">
                   Correct and skew peak broadening at low angles (2&theta; &lt; 42&deg;) due to instrument axial divergence aberrations
                 </span>
               </div>
@@ -3555,7 +3555,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </span>
             </h2>
             {isSimulating && (
-              <span className="text-[10px] uppercase tracking-widest font-black text-violet-300 animate-pulse bg-violet-500/20 px-3 py-1.5 rounded-full border border-violet-500/30 shadow-sm flex items-center gap-2">
+              <span className="text-xs uppercase tracking-widest font-black text-violet-300 animate-pulse bg-violet-500/20 px-3 py-1.5 rounded-full border border-violet-500/30 shadow-sm flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-violet-400 rounded-full"></div>
                 Running...
               </span>
@@ -3568,18 +3568,18 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               <div className="flex flex-col gap-2 mb-3">
                 <label className="block text-sm font-black text-slate-300 tracking-tight">
                   Unified DB Search Engine{" "}
-                  <span className="text-emerald-400 ml-2 font-mono text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">
+                  <span className="text-emerald-400 ml-2 font-mono text-xs bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">
                     COD + MP SYNCED
                   </span>
                 </label>
                 <div className="flex items-center gap-2 text-slate-400">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                  <span className="text-xs font-bold uppercase tracking-wider">
                     Global Verification:
                   </span>
                   <div className="w-8 h-4 bg-emerald-500 rounded-full relative cursor-help shadow-inner border border-emerald-600" title="All database materials are strictly cross-verified with Crystallography Open Database (COD) and Materials Project.">
                     <div className="absolute left-4 top-0.5 w-3 h-3 bg-white rounded-full shadow-sm"></div>
                   </div>
-                  <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.1)]">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.1)]">
                     COD/MP VERIFIED
                   </span>
                 </div>
@@ -3614,7 +3614,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
 
               <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/40">
-                <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1.5">
+                <span className="text-sm text-slate-400 font-medium flex items-center gap-1.5">
                   <Database className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Local database contains standard crystallographic references</span>
                 </span>
@@ -3648,18 +3648,18 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 {material.name}
                               </span>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                                <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">
                                   {material.type}
                                 </span>
                                 {material.elements && material.elements.length > 0 && (
                                   <div className="flex gap-1">
                                     {material.elements.slice(0, 5).map((el: string, elIdx: number) => (
-                                      <span key={elIdx} className="text-[9px] px-1.5 py-0.5 font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                      <span key={elIdx} className="text-xs px-1.5 py-0.5 font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                         {el}
                                       </span>
                                     ))}
                                     {material.elements.length > 5 && (
-                                      <span className="text-[9px] px-1 py-0.5 font-bold rounded bg-slate-800 text-slate-500 border border-slate-700">
+                                      <span className="text-xs px-1 py-0.5 font-bold rounded bg-slate-800 text-slate-500 border border-slate-700">
                                         +{material.elements.length - 5}
                                       </span>
                                     )}
@@ -3790,10 +3790,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 {activeInputTool === "presets" && (
                   <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
                     <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
-                      <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <span className="text-xs font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
                         <Sparkles className="w-4 h-4 text-violet-500" /> Fast Demo Presets
                       </span>
-                      <span className="text-[9px] font-mono font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Loads key material references</span>
+                      <span className="text-xs font-mono font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Loads key material references</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {[
@@ -3894,10 +3894,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           className="p-3 text-left bg-slate-800/80 border border-slate-700/50 rounded-xl hover:border-violet-500/50 hover:bg-slate-800 hover:shadow-lg transition-all focus:outline-none"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-black text-slate-200 tracking-tight">{preset.name}</span>
-                            <span className="text-[9px] font-mono bg-violet-500/20 text-violet-300 border border-violet-500/30 px-1.5 py-0.5 rounded font-bold">{preset.formula}</span>
+                            <span className="text-sm font-black text-slate-200 tracking-tight">{preset.name}</span>
+                            <span className="text-xs font-mono bg-violet-500/20 text-violet-300 border border-violet-500/30 px-1.5 py-0.5 rounded font-bold">{preset.formula}</span>
                           </div>
-                          <p className="text-[9px] text-slate-400 mt-1.5 leading-relaxed">{preset.desc}</p>
+                          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{preset.desc}</p>
                         </button>
                       ))}
                     </div>
@@ -3914,7 +3914,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <span className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
                           <Activity className="w-4 h-4 text-cyan-500 animate-pulse" /> Simulated Input Pattern
                         </span>
-                        <span className="text-[9px] text-slate-500 font-mono uppercase tracking-wider">Crystalline Phase Diffraction Signature</span>
+                        <span className="text-xs text-slate-500 font-mono uppercase tracking-wider">Crystalline Phase Diffraction Signature</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -3922,7 +3922,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             setShowGradCam(!showGradCam);
                             playSynthTone("tick");
                           }}
-                          className={`text-[9px] font-mono font-bold border px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                          className={`text-xs font-mono font-bold border px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                             showGradCam
                               ? "bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.3)]"
                               : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"
@@ -3939,12 +3939,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             setInputBgAmorphous(10);
                             playSynthTone("tick");
                           }}
-                          className="text-[9px] font-mono font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2 py-1 rounded transition-all"
+                          className="text-xs font-mono font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2 py-1 rounded transition-all"
                           title="Reset simulation parameters to default calibration"
                         >
                           Reset Params
                         </button>
-                        <span className="text-[10px] px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 font-black font-mono border border-cyan-500/30 shadow-sm flex items-center gap-1.5">
+                        <span className="text-xs px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 font-black font-mono border border-cyan-500/30 shadow-sm flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
                           {parsedPoints.length} Resolved Peaks
                         </span>
@@ -4026,7 +4026,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                     const rad = (theta / 2) * (Math.PI / 180);
                                     const d = 1.5406 / (2 * Math.sin(rad));
                                     return (
-                                      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3 rounded-xl shadow-xl text-[10px] font-mono text-slate-300">
+                                      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3 rounded-xl shadow-xl text-xs font-mono text-slate-300">
                                         <div className="font-bold text-cyan-400 mb-1">Position: {theta.toFixed(2)}° 2θ</div>
                                         <div>d-spacing: {isNaN(d) ? 'N/A' : d.toFixed(4)} Å</div>
                                         <div className="text-emerald-400 mt-1">Intensity: {val.toFixed(1)} a.u.</div>
@@ -4046,14 +4046,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="lg:col-span-5 space-y-4 bg-[#03060C]/65 border border-slate-800/80/80 p-5 rounded-2xl shadow-inner">
                             <div className="flex items-center gap-1.5 border-b border-slate-800/80 pb-2 mb-1">
                               <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
-                              <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-widest">
+                              <span className="text-xs font-mono font-black text-slate-300 uppercase tracking-widest">
                                 Live Simulation Engine
                               </span>
                             </div>
 
                             <div className="space-y-4">
                               <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                                   <span>Peak Broadening (FWHM)</span>
                                   <span className="text-cyan-400 font-black">{inputBroadening.toFixed(2)}°</span>
                                 </div>
@@ -4066,11 +4066,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
                                   className="w-full accent-cyan-500 mt-1"
                                 />
-                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Simulates crystallite size (Scherrer effect) & instrumental strain.</p>
+                                <p className="text-xs text-slate-500 font-mono leading-tight">Simulates crystallite size (Scherrer effect) & instrumental strain.</p>
                               </div>
 
                               <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                                   <span>Statistical Noise</span>
                                   <span className="text-cyan-400 font-black">{inputNoiseLevel}</span>
                                 </div>
@@ -4083,11 +4083,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
                                   className="w-full accent-cyan-500 mt-1"
                                 />
-                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Poisson noise mimicking detector efficiency and source intensity.</p>
+                                <p className="text-xs text-slate-500 font-mono leading-tight">Poisson noise mimicking detector efficiency and source intensity.</p>
                               </div>
 
                               <div className="space-y-2">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                                   <span>Amorphous Halo BG</span>
                                   <span className="text-cyan-400 font-black">{inputBgAmorphous}%</span>
                                 </div>
@@ -4100,22 +4100,22 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
                                   className="w-full accent-cyan-500 mt-1"
                                 />
-                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Generates non-crystalline glass state background signal around 28° 2θ.</p>
+                                <p className="text-xs text-slate-500 font-mono leading-tight">Generates non-crystalline glass state background signal around 28° 2θ.</p>
                               </div>
                             </div>
                           </div>
 
                           {/* Right Column: Resolved reflections table */}
                           <div className="lg:col-span-7 flex flex-col gap-2">
-                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black">
+                            <div className="flex items-center justify-between text-xs font-mono text-slate-500 uppercase tracking-widest font-black">
                               <span>Peak Indexing Registry</span>
                               <span>Scroll for all resolved reflections</span>
                             </div>
                             
-                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80/80 rounded-2xl bg-[#03060C]/80 p-4 text-[11px] font-mono shadow-inner">
+                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80/80 rounded-2xl bg-[#03060C]/80 p-4 text-sm font-mono shadow-inner">
                               <table className="w-full text-left border-collapse">
                                 <thead>
-                                  <tr className="border-b border-slate-800/80 text-slate-500 text-[9px] uppercase tracking-wider">
+                                  <tr className="border-b border-slate-800/80 text-slate-500 text-xs uppercase tracking-wider">
                                     <th className="p-2 font-black">Ref#</th>
                                     <th className="p-2 font-black">2θ Angle</th>
                                     <th className="p-2 font-black">d-spacing (Å)</th>
@@ -4175,14 +4175,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
-                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <span className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
                           <SlidersHorizontal className="w-4 h-4 text-emerald-500" /> Savitzky-Golay Filter Panel
                         </span>
                       </div>
                       <button
                         disabled={parsedPoints.length < 5}
                         onClick={handleCommitSmoothing}
-                        className="text-[10px] w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-xs w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Apply Smoothing In-Place
                       </button>
@@ -4190,7 +4190,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
                     <div className="grid grid-cols-2 gap-4 bg-[#050A14] p-4 rounded-xl border border-slate-700 shadow-inner">
                       <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                           <span>Window Size (Odd)</span>
                           <span className="text-emerald-400 font-black">{inputSgWindow} pts</span>
                         </div>
@@ -4205,7 +4205,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         />
                       </div>
                       <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                           <span>Polynomial Degree</span>
                           <span className="text-emerald-400 font-black">{inputSgDegree}</span>
                         </div>
@@ -4241,7 +4241,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       </div>
                     ) : (
                       <div className="py-4 border border-slate-700/50 border-dashed rounded-xl bg-slate-800/30">
-                        <p className="text-[10px] uppercase font-bold text-slate-500 text-center tracking-widest">Need at least 4 points to preview smoothing.</p>
+                        <p className="text-xs uppercase font-bold text-slate-500 text-center tracking-widest">Need at least 4 points to preview smoothing.</p>
                       </div>
                     )}
                   </div>
@@ -4251,14 +4251,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <div className="bg-[#050A14]/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center justify-between border-b border-slate-800/80/50 pb-2">
-                        <span className="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <span className="text-xs font-black text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
                           <Cpu className="w-4 h-4 text-fuchsia-500" /> Diffractogram Synthesizer
                         </span>
                       </div>
                       <button
                         disabled={parsedPoints.length === 0}
                         onClick={handleSynthesizeNoisyPattern}
-                        className="text-[10px] w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="text-xs w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Synthesize pattern
                       </button>
@@ -4266,7 +4266,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
                     <div className="space-y-4 bg-[#050A14] p-4 rounded-xl border border-slate-700 shadow-inner">
                       <div className="space-y-2">
-                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                           <span>Thermal Broadening (FWHM)</span>
                           <span className="text-fuchsia-400 font-black">{inputBroadening.toFixed(2)}°</span>
                         </div>
@@ -4283,7 +4283,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
                       <div className="grid grid-cols-2 gap-4 pb-1">
                         <div className="space-y-2">
-                          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                             <span>Statistical Noise</span>
                             <span className="text-fuchsia-400 font-black">{inputNoiseLevel}</span>
                           </div>
@@ -4298,7 +4298,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           />
                         </div>
                         <div className="space-y-2">
-                          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider">
                             <span>Amorphous Baseline</span>
                             <span className="text-fuchsia-400 font-black">{inputBgAmorphous}</span>
                           </div>
@@ -4320,7 +4320,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
               {/* Warning/Error validation banner */}
               {formatErrorLog && (
-                <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[10px] font-mono text-rose-400 flex items-start gap-2 animate-bounce">
+                <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs font-mono text-rose-400 flex items-start gap-2 animate-bounce">
                   <div className="w-2 h-2 bg-rose-500 rounded-full mt-1 shrink-0" />
                   <span>{formatErrorLog}</span>
                 </div>
@@ -4373,7 +4373,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     <p className="text-xs font-black tracking-wide text-slate-300">
                       Drag & drop raw XY pattern data
                     </p>
-                    <p className="text-[10px] text-slate-500 mt-1 font-semibold">
+                    <p className="text-xs text-slate-500 mt-1 font-semibold">
                       or paste table entries here
                     </p>
                   </div>
@@ -4392,7 +4392,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
 
               <div className="flex flex-col gap-3 mt-4 px-2 bg-[#050A14]/60 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10">
-                <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+                <div className="text-xs font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
                   <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
                   Expected Dataset Format:{" "}
                   <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded ml-1 font-black">
@@ -4409,7 +4409,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       setIsMixMode(!isMixMode);
                       if (!isMixMode) setMixtureList([]);
                     }}
-                    className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all border
+                    className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all border
                       ${isMixMode ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700/80"}
                     `}
                   >
@@ -4417,7 +4417,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     {isMixMode ? "Mix Mode ACTIVE" : "Enable Mix Mode"}
                   </button>
                   {inputData && (
-                    <div className="text-[10px] font-black uppercase tracking-widest text-violet-300 bg-violet-500/20 border border-violet-500/30 px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(139,92,246,0.15)] flex items-center gap-2">
+                    <div className="text-xs font-black uppercase tracking-widest text-violet-300 bg-violet-500/20 border border-violet-500/30 px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(139,92,246,0.15)] flex items-center gap-2">
                       <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
                       {inputData.split("\n").filter((l) => l.trim()).length}{" "}
                       Data Points Loaded
@@ -4429,12 +4429,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               {isMixMode && mixtureList.length > 0 && (
                 <div className="mt-4 p-4 bg-slate-800/80 border border-indigo-500/30 rounded-xl animate-in zoom-in-95 duration-300 shadow-inner relative z-10">
                   <div className="flex items-center justify-between mb-3 border-b border-slate-700/50 pb-2">
-                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+                    <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">
                       Mixture Components
                     </span>
                     <button
                       onClick={() => setMixtureList([])}
-                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors"
+                      className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors"
                     >
                       Reset
                     </button>
@@ -4457,41 +4457,42 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         </button>
                       </div>
                     ))}
-                    <div className="px-3 py-1.5 bg-indigo-500/10 border border-dashed border-indigo-500/30 rounded-lg text-[10px] text-indigo-400 font-bold flex items-center gap-1.5 hover:bg-indigo-500/20 transition-colors cursor-pointer">
+                    <div className="px-3 py-1.5 bg-indigo-500/10 border border-dashed border-indigo-500/30 rounded-lg text-xs text-indigo-400 font-bold flex items-center gap-1.5 hover:bg-indigo-500/20 transition-colors cursor-pointer">
                       <Plus className="w-3.5 h-3.5" /> Add from DB
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="mt-6 space-y-3 relative z-10">
-                <div className="flex flex-col gap-3">
+              <div className="mt-8 space-y-4 relative z-10">
+                <div className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <Database className="w-4 h-4 text-violet-400 animate-pulse" /> Standard Reference Registries
+                    <span className="text-sm font-semibold text-slate-300 flex items-center gap-2.5">
+                      <Database className="w-4 h-4 text-violet-400" /> 
+                      <span className="uppercase tracking-wide">Standard Reference Registries</span>
                     </span>
-                    <span className="text-[9px] font-mono bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-xs font-mono bg-violet-500/10 text-violet-300 border border-violet-500/20 px-2.5 py-1 rounded font-medium">
                       ICDD / COD / RRUFF / ICSD / CSD
                     </span>
                   </div>
 
                   {/* Interactive filter & search deck */}
-                  <div className="bg-[#050A14]/60 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Fast Filter Keys:</span>
-                      <div className="flex gap-1.5 flex-wrap">
+                  <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Fast Filter Keys</span>
+                      <div className="flex gap-2 flex-wrap">
                         {[
-                          { name: "ICDD", style: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400 font-bold" },
-                          { name: "COD", style: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 font-bold" },
-                          { name: "RRUFF", style: "bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-400 font-bold" },
-                          { name: "ICSD", style: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-400 font-bold" },
-                          { name: "CSD", style: "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-400 font-bold" }
+                          { name: "ICDD", style: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400 font-medium" },
+                          { name: "COD", style: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 font-medium" },
+                          { name: "RRUFF", style: "bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-400 font-medium" },
+                          { name: "ICSD", style: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-400 font-medium" },
+                          { name: "CSD", style: "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-400 font-medium" }
                         ].map(badge => (
                           <button
                             key={badge.name}
                             type="button"
                             onClick={() => setDbSearch(badge.name)}
-                            className={`px-2 py-1 text-[9px] rounded-lg border transition-all shadow-sm ${badge.style}`}
+                            className={`px-2.5 py-1 text-xs rounded border transition-colors shadow-sm cursor-pointer ${badge.style}`}
                           >
                             {badge.name}
                           </button>
@@ -4505,15 +4506,15 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         value={dbSearch}
                         onChange={(e) => setDbSearch(e.target.value)}
                         placeholder="Search formulas or indexing databases (e.g. NIST, Oxide, Fe)..."
-                        className="w-full bg-slate-800 text-slate-200 border border-slate-700 hover:border-violet-500/50 rounded-lg py-2 pl-9 pr-9 text-xs focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/80 outline-none transition-all shadow-inner placeholder:text-slate-500 font-medium"
+                        className="w-full bg-slate-900/50 text-slate-200 border border-slate-700 hover:border-violet-500/50 rounded-lg py-2.5 pl-10 pr-10 text-sm focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 outline-none transition-colors placeholder:text-slate-500 font-medium"
                       />
-                      <Search className="w-4 h-4 absolute left-3 top-[10px] text-slate-500" />
+                      <Search className="w-5 h-5 absolute left-3 top-[11px] text-slate-500" />
                       {dbSearch && (
                         <button
                           key="clear-db-search"
                           type="button"
                           onClick={() => setDbSearch("")}
-                          className="absolute right-3 top-2.5 p-0.5 hover:bg-slate-700 rounded text-slate-400 hover:text-violet-400 transition-all active:scale-95"
+                          className="absolute right-3 top-[9px] p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-violet-400 transition-colors cursor-pointer"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -4522,7 +4523,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   </div>
                 </div>
 
-                <div className="h-[320px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-[#050A14] border border-slate-700 rounded-xl shadow-inner relative space-y-4 pt-3">
+                <div className="h-[400px] overflow-y-auto pr-4 pl-2 pb-5 custom-scrollbar bg-slate-900/40 border border-slate-700 rounded-xl relative space-y-6 pt-4 shadow-inner">
                 {(() => {
                   const rawCategoriesList = [
                     {
@@ -5329,19 +5330,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     .filter(cat => cat.items.length > 0);
                   
                   return filteredCategories.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-500 gap-3">
-                      <SlidersHorizontal className="w-10 h-10 text-slate-600 stroke-1" />
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-400">No reference materials match filter</span>
-                      <span className="text-[10px] text-slate-500 font-semibold max-w-[200px]">Try searching for other formulas or database indexes</span>
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-500 gap-4">
+                      <SlidersHorizontal className="w-12 h-12 text-slate-600 stroke-1" />
+                      <span className="text-sm font-semibold uppercase tracking-wide text-slate-400">No reference materials match filter</span>
+                      <span className="text-xs text-slate-500 font-medium max-w-[250px]">Try searching for other formulas or database indexes</span>
                     </div>
                   ) : (
                     filteredCategories.map((categoryObj, idx) => (
-                      <div key={idx} className="mt-2">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-3 border-b border-slate-700/50 pb-2 sticky top-0 bg-[#050A14]/95 backdrop-blur-sm z-10 p-2 flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-violet-500"></div>
+                      <div key={idx} className="mt-2 space-y-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wide text-slate-300 mb-2 border-b border-slate-700/80 pb-3 sticky top-0 bg-[#050a14]/95 backdrop-blur-sm z-10 px-2 flex items-center gap-2.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"></div>
                           {categoryObj.category}
                         </h4>
-                        <div className="flex flex-wrap gap-2 px-2 py-1">
+                        <div className="flex flex-wrap gap-2.5 px-2 pb-2">
                           {categoryObj.items.map((ex) => {
                             const isSearchMatch = dbSearch.trim() !== "" && (
                               ex.label.toLowerCase().includes(dbSearch.toLowerCase()) ||
@@ -5351,10 +5352,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               <button
                                 key={ex.id}
                                 onClick={() => loadExample(ex.id as any)}
-                                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all shadow-sm active:scale-95 ${
+                                className={`text-xs font-semibold px-3 py-2 rounded-md border transition-colors shadow-sm cursor-pointer ${
                                   isSearchMatch 
-                                    ? "bg-violet-600/90 text-white border-violet-500/80 shadow-[0_0_15px_rgba(139,92,246,0.3)] ring-2 ring-violet-500/40"
-                                    : "bg-slate-800 text-slate-300 hover:text-white hover:bg-violet-600/80 border-slate-700 hover:border-violet-500/60"
+                                    ? "bg-violet-600 text-white border-violet-500 shadow-[0_0_12px_rgba(139,92,246,0.25)] ring-1 ring-violet-400"
+                                    : "bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 hover:border-slate-500 border-slate-700"
                                 }`}
                               >
                                 {ex.label}
@@ -5384,10 +5385,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       ) : (
                         <div className="w-2 h-2 rounded-full bg-slate-700" />
                       )}
-                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${usePythonRAG ? 'text-amber-500 drop-shadow-sm' : 'text-slate-500'}`}>
+                      <span className={`text-xs font-black uppercase tracking-[0.2em] ${usePythonRAG ? 'text-amber-500 drop-shadow-sm' : 'text-slate-500'}`}>
                         Scientific Python RAG Engine
                       </span>
-                      <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
+                      <span className="px-1.5 py-0.5 rounded text-xs font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -5400,7 +5401,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     <div className="w-9 h-5 bg-slate-800 border border-slate-700/50 rounded-full peer peer-checked:bg-amber-500 peer-checked:border-emerald-400 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-all peer-checked:after:translate-x-4"></div>
                   </label>
                 </div>
-                <p className={`text-[10px] leading-relaxed font-medium max-w-[90%] tracking-wide ${usePythonRAG ? 'text-amber-500/70' : 'text-slate-600'}`}>
+                <p className={`text-xs leading-relaxed font-medium max-w-[90%] tracking-wide ${usePythonRAG ? 'text-amber-500/70' : 'text-slate-600'}`}>
                   When enabled, fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression. Requires Gemini High-Thinking capability.
                 </p>
               </div>
@@ -5453,7 +5454,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-black text-white">Neural Network Architecture & Diagnostics</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-[9px] font-mono font-bold text-violet-300">
+                  <span className="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-xs font-mono font-bold text-violet-300">
                     ResNet-{engineConfig.depth} Active
                   </span>
                 </div>
@@ -5502,11 +5503,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     {t("Convolutional Engine", "Convolutional Engine")}
                   </h3>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <p className="text-[10px] text-violet-300/80 font-mono uppercase tracking-[0.3em] font-black">
+                    <p className="text-xs text-violet-300/80 font-mono uppercase tracking-[0.3em] font-black">
                       ARCH: XRD-{engineConfig.multiScale ? "Res" : "Conv"}Net-
                       {engineConfig.depth}
                     </p>
-                    <span className="text-[8px] font-black text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded uppercase tracking-widest border border-slate-700">
+                    <span className="text-xs font-black text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded uppercase tracking-widest border border-slate-700">
                       v4.2
                     </span>
                   </div>
@@ -5514,7 +5515,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
               <div className="hidden md:flex flex-row items-center gap-3">
                 <div className="flex flex-col items-end">
-                  <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5 flex items-center gap-1">
+                  <span className="text-xs font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5 flex items-center gap-1">
                     <Cpu className="w-3 h-3 text-violet-400/70" /> Compute Core
                   </span>
                   <div className="relative overflow-hidden group/status rounded-lg border border-violet-500/30 bg-violet-500/10 transition-all duration-300 hover:border-violet-400/50 hover:bg-violet-500/20">
@@ -5539,23 +5540,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
 
             <div className="flex gap-2.5 mb-2 relative z-10 md:ml-[76px] flex-wrap">
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-xs font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-cyan-400"></span>{" "}
                 {engineConfig.activation}
               </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-xs font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-fuchsia-400"></span>{" "}
                 {engineConfig.filters} Filters
               </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-xs font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span>{" "}
                 Conv1D [{engineConfig.kernelSize}]
               </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-rose-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-rose-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-xs font-mono font-black text-rose-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-rose-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-rose-400"></span>{" "}
                 {engineConfig.depth} Layers
               </span>
-              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-amber-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-amber-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+              <span className="px-3 py-1.5 bg-[#03060C]/60 border border-[#1e293b] rounded-lg text-xs font-mono font-black text-amber-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-amber-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full flex items-center justify-center bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] animate-pulse"></span>{" "}
                 ~{(engineConfig.filters * engineConfig.kernelSize * 1024 * engineConfig.depth / 1000000).toFixed(1)}M Params
               </span>
@@ -5613,7 +5614,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     {/* Activation Metrics */}
                     {isActive && (
                       <div className="flex items-center gap-3">
-                        <div className="text-[9px] font-mono bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md text-emerald-400 flex flex-col items-end font-black drop-shadow-sm">
+                        <div className="text-xs font-mono bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md text-emerald-400 flex flex-col items-end font-black drop-shadow-sm">
                           <span>
                             OPT: {engineConfig.optimization.toUpperCase()}
                           </span>
@@ -5634,23 +5635,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 font-black uppercase tracking-widest bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.1)] relative z-10 hover:border-violet-400/50 transition-all duration-300"
+                          className="text-xs text-slate-400 font-mono space-y-3 mb-2 font-black uppercase tracking-widest bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.1)] relative z-10 hover:border-violet-400/50 transition-all duration-300"
                         >
                           <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
                              <span className="text-violet-300 flex items-center gap-1.5">
                                <SlidersHorizontal className="w-3.5 h-3.5 text-violet-500" /> Input Standardization
                              </span>
-                             <span className="text-violet-400 animate-pulse text-[8px] bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">PRE-PROCESSING</span>
+                             <span className="text-violet-400 animate-pulse text-xs bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">PRE-PROCESSING</span>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 mt-2">
                             <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800/80 shadow-inner flex flex-col gap-1">
                                <span className="text-[7px] text-slate-500">TENSOR SHAPE</span>
-                               <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">[1, 2048, 1]</span>
+                               <span className="text-xs text-violet-300 drop-shadow-sm font-black">[1, 2048, 1]</span>
                             </div>
                             <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800/80 shadow-inner flex flex-col gap-1">
                                <span className="text-[7px] text-slate-500">NORMALIZATION</span>
-                               <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">MIN-MAX I/I0</span>
+                               <span className="text-xs text-violet-300 drop-shadow-sm font-black">MIN-MAX I/I0</span>
                             </div>
                           </div>
 
@@ -5680,7 +5681,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
                       {idx === 1 && isActive && (
                         <div className="mb-2 relative z-10 animate-in slide-in-from-top-1 duration-300">
-                          <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.15)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-all duration-300">
+                          <div className="text-xs text-slate-400 font-mono space-y-2 mb-3 bg-[#050A14]/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.15)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-all duration-300">
                             
                             <div className="flex items-center justify-between mb-3 border-b border-violet-500/20 pb-2">
                                <span className="text-violet-300 flex items-center gap-1.5">
@@ -5742,7 +5743,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   </span>
                                 </div>
                                 <div className="flex flex-col justify-center items-center bg-[#03060C]/60 p-2 rounded-lg border border-slate-800/80">
-                                  <div className="w-3.5 h-3.5 rounded bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center border border-fuchsia-500/50 text-[8px] mb-1">D</div>
+                                  <div className="w-3.5 h-3.5 rounded bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center border border-fuchsia-500/50 text-xs mb-1">D</div>
                                   <span className="text-[7px] text-slate-500 mb-0.5">DROPOUT</span>
                                   <span className="text-fuchsia-400 drop-shadow-sm font-black">
                                     {engineConfig.dropout.toFixed(2)}
@@ -5756,7 +5757,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                             
                             <div className="flex justify-between items-center border-b border-slate-800/80 pb-2">
-                              <span className="text-[8px] font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <span className="text-xs font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                 <Network className="w-3 h-3 text-violet-500" />
                                 Feature Maps Extraction
                               </span>
@@ -5775,7 +5776,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   key={`filter-map-${iIdx}`}
                                   className="flex items-center gap-3 bg-[#050A14]/40 p-1.5 rounded-lg border border-slate-800/80/50"
                                 >
-                                  <span className="text-[8px] text-violet-400/70 font-mono tracking-widest uppercase w-8 font-black text-right">
+                                  <span className="text-xs text-violet-400/70 font-mono tracking-widest uppercase w-8 font-black text-right">
                                     F{iIdx * 8 + 1}
                                   </span>
                                   <div className="flex-1 flex gap-[2px] h-4 rounded-sm bg-[#050810] p-[2px] overflow-hidden relative shadow-inner">
@@ -5818,7 +5819,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 </div>
                               ))}
                             </div>
-                            <div className="mt-2 pt-2 border-t border-slate-800/80 text-[9px] flex justify-between items-center tracking-[0.15em] uppercase font-black text-slate-500 font-mono">
+                            <div className="mt-2 pt-2 border-t border-slate-800/80 text-xs flex justify-between items-center tracking-[0.15em] uppercase font-black text-slate-500 font-mono">
                               <span className="flex items-center gap-1.5 bg-[#050A14] px-2 py-1 rounded-md border border-slate-800/80">
                                 <Maximize2 className="w-3 h-3 text-cyan-500" />
                                 Pool: {engineConfig.pooling}
@@ -5829,7 +5830,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             </div>
                           </div>
                           
-                          <p className="text-[10px] text-slate-500 font-mono mt-4 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-2">
+                          <p className="text-xs text-slate-500 font-mono mt-4 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-2">
                             <Activity className="w-3.5 h-3.5 text-violet-400 animate-pulse" />{" "}
                             Feature Extraction Live
                           </p>
@@ -5840,14 +5841,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(34,211,238,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-cyan-400/50 transition-all duration-300"
+                          className="text-xs text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(34,211,238,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-cyan-400/50 transition-all duration-300"
                         >
                           <div className="flex justify-between items-center bg-[#03060C] p-2.5 rounded-lg border border-slate-800/80 mb-1">
                             <span className="text-cyan-400 flex items-center gap-2">
                               <Database className="w-4 h-4 text-cyan-500" />{" "}
                               Vector Database Search
                             </span>
-                            <span className="text-slate-500 text-[8px] bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
+                            <span className="text-slate-500 text-xs bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
                               M-TREE COD/ICSD
                             </span>
                           </div>
@@ -5903,7 +5904,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             </div>
                             
                             <div className="relative z-10 bg-[#03060C]/80 px-2 py-1 rounded border border-slate-700/50 ml-1">
-                              <span className="text-slate-400 text-[8px]">SEARCH SPACE: <span className="text-cyan-400">{(100 + Math.random() * 50).toFixed(0)}K</span></span>
+                              <span className="text-slate-400 text-xs">SEARCH SPACE: <span className="text-cyan-400">{(100 + Math.random() * 50).toFixed(0)}K</span></span>
                             </div>
                           </div>
 
@@ -5920,7 +5921,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-emerald-400/50 transition-all duration-300"
+                          className="text-xs text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-[#050A14]/80 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-emerald-400/50 transition-all duration-300"
                         >
                           <div className="grid grid-cols-2 gap-3 mb-2">
                             <div className="bg-[#03060C]/80 p-3 rounded-lg border border-slate-800/80 shadow-inner flex flex-col justify-center">
@@ -5928,7 +5929,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 <Network className="w-3 h-3 text-violet-500" />
                                 INFERENCE
                               </span>
-                              <span className="text-violet-300 font-bold border-l-2 border-violet-500 pl-2 text-[9px]">
+                              <span className="text-violet-300 font-bold border-l-2 border-violet-500 pl-2 text-xs">
                                 Dense Classifier
                               </span>
                             </div>
@@ -5937,7 +5938,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 <Activity className="w-3 h-3 text-emerald-500" />
                                 DISTRIBUTION
                               </span>
-                              <span className="text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)] font-bold border-l-2 border-emerald-500 pl-2 text-[9px]">
+                              <span className="text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)] font-bold border-l-2 border-emerald-500 pl-2 text-xs">
                                 Softmax
                               </span>
                             </div>
@@ -5946,7 +5947,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl shadow-[inset_0_0_15px_rgba(16,185,129,0.15)] flex flex-col gap-3">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-emerald-500 rounded-sm shadow-[0_0_10px_rgba(16,185,129,1)] animate-ping" />
-                              <span className="text-emerald-400 text-[9px] animate-pulse">Computing Phase Probabilities...</span>
+                              <span className="text-emerald-400 text-xs animate-pulse">Computing Phase Probabilities...</span>
                             </div>
                             
                             <div className="flex flex-col gap-1.5">
@@ -5969,8 +5970,8 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </div>
 
                           <p className="flex justify-between items-center text-slate-500 mt-4 border-t border-slate-800/80 pt-3">
-                            <span className="text-[8px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">LOSS FUNC</span>{" "}
-                            <span className="text-[8px] text-emerald-400/70">
+                            <span className="text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">LOSS FUNC</span>{" "}
+                            <span className="text-xs text-emerald-400/70">
                               Categorical Cross-Entropy
                             </span>
                           </p>
@@ -5993,7 +5994,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <h3 className="font-black text-[12px] text-white uppercase tracking-[0.2em] leading-none drop-shadow-sm">
                     Neural Guide
                   </h3>
-                  <p className="text-[9px] text-slate-400 font-mono uppercase tracking-[0.2em] mt-1.5 flex items-center gap-1">
+                  <p className="text-xs text-slate-400 font-mono uppercase tracking-[0.2em] mt-1.5 flex items-center gap-1">
                     <span className="w-1 h-1 rounded-full bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.8)]"></span>{" "}
                     Constituent Logic & Features
                   </p>
@@ -6009,11 +6010,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
                     <Cpu className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
-                  <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">
+                  <span className="text-xs font-black text-slate-200 uppercase tracking-widest">
                     Network Focus
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
+                <p className="text-xs text-slate-400 leading-relaxed font-bold relative z-10">
                   The{" "}
                   <span className="text-white">
                     "1D Kernel Length: {engineConfig.kernelSize}"
@@ -6028,7 +6029,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     "Increase Feature Maps for complex multi-phase disambiguation."
                   )}
                 </p>
-                <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-800/80 hover:border-slate-700 pt-2 flex items-center justify-between">
+                <div className="mt-3 text-xs font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-800/80 hover:border-slate-700 pt-2 flex items-center justify-between">
                   <span>Optimization</span>
                   <span className="text-indigo-400">
                     {engineConfig.optimization}
@@ -6044,11 +6045,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
                     <Microscope className="w-3.5 h-3.5 text-cyan-400" />
                   </div>
-                  <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">
+                  <span className="text-xs font-black text-slate-200 uppercase tracking-widest">
                     Constituents
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
+                <p className="text-xs text-slate-400 leading-relaxed font-bold relative z-10">
                   Model prioritizes{" "}
                   <strong className="text-cyan-300 font-black tracking-wide bg-cyan-500/10 px-1 py-0.5 rounded border border-cyan-500/20">
                     2θ (deg) Mapping
@@ -6065,7 +6066,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     </span>
                   )}
                 </p>
-                <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-700/80 pt-2 flex items-center justify-between">
+                <div className="mt-3 text-xs font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-700/80 pt-2 flex items-center justify-between">
                   <span>Accuracy</span>
                   <span className="text-cyan-400">
                     {engineConfig.activation} +{" "}
@@ -6116,7 +6117,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <div className="absolute top-1 left-12 w-32 h-px bg-violet-400/50" />
 
                 {/* Warning Ribbon */}
-                <div className="absolute top-0 right-10 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-[10px] font-black px-5 py-2 uppercase tracking-[0.2em] rounded-b-lg flex items-center gap-2 shadow-[0_4px_20px_rgba(245,158,11,0.3)] z-20">
+                <div className="absolute top-0 right-10 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-xs font-black px-5 py-2 uppercase tracking-[0.2em] rounded-b-lg flex items-center gap-2 shadow-[0_4px_20px_rgba(245,158,11,0.3)] z-20">
                   <ShieldAlert className="w-4 h-4 animate-pulse opacity-80" />
                   Laboratory Verification Required
                 </div>
@@ -6129,11 +6130,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
                           <Layers className="w-3.5 h-3.5 text-indigo-300" />
                         </div>
-                        <span className="text-[11px] font-black text-slate-200 uppercase tracking-[0.15em]">
+                        <span className="text-sm font-black text-slate-200 uppercase tracking-[0.15em]">
                           Identified Mixture Components
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9px] font-black text-amber-400 uppercase tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.1)] backdrop-blur-md">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs font-black text-amber-400 uppercase tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.1)] backdrop-blur-md">
                         <ShieldAlert className="w-3 h-3" />
                         {t("Laboratory Verification Required", "Laboratory Verification Required")}
                       </div>
@@ -6143,10 +6144,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       <button
                         key={candidate.phase_name + idx}
                         onClick={() => setSelectedCandidate(candidate)}
-                        className={`px-4 py-2.5 rounded-xl border text-[11px] font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]" : "bg-[#03060C]/50 border-slate-800/80/80 text-slate-400 hover:bg-slate-800 hover:text-white"}`}
+                        className={`px-4 py-2.5 rounded-xl border text-sm font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]" : "bg-[#03060C]/50 border-slate-800/80/80 text-slate-400 hover:bg-slate-800 hover:text-white"}`}
                       >
                         {candidate.phase_name}
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-500/50 text-white" : "bg-slate-800 text-slate-500"}`}>
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-mono ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-500/50 text-white" : "bg-slate-800 text-slate-500"}`}>
                           {candidate.confidence_score.toFixed(0)}%
                         </span>
                       </button>
@@ -6170,11 +6171,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight flex flex-wrap items-center gap-3">
                         {t("Synthesis Intelligence", "Synthesis Intelligence")}
                         <div className="flex items-center gap-2">
-                          <span className="hidden lg:flex px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[9px] items-center gap-1.5 text-emerald-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(52,211,153,0.1)] uppercase font-bold">
+                          <span className="hidden lg:flex px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs items-center gap-1.5 text-emerald-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(52,211,153,0.1)] uppercase font-bold">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                             Network Active
                           </span>
-                          <span className="flex px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] items-center gap-1.5 text-amber-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(245,158,11,0.1)] uppercase font-bold">
+                          <span className="flex px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs items-center gap-1.5 text-amber-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(245,158,11,0.1)] uppercase font-bold">
                             <ShieldAlert className="w-3 h-3" />
                             Laboratory Verification Required
                           </span>
@@ -6190,7 +6191,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           ))}
                         </div>
                         <div className="h-4 w-px bg-slate-700/50" />
-                        <p className="text-[10px] sm:text-[11px] font-black text-indigo-300/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                        <p className="text-xs sm:text-sm font-black text-indigo-300/80 uppercase tracking-[0.2em] flex items-center gap-2">
                           {t("Algorithm C-Score:", "Algorithm C-Score:")}
                           <span className="text-white bg-indigo-500/20 px-2 py-0.5 rounded font-mono shadow-[0_0_10px_rgba(99,102,241,0.2)]">
                             {selectedCandidate.confidence_score.toFixed(1)}%
@@ -6209,7 +6210,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                       <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
                         <Calculator className="w-5 h-5 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.2em] whitespace-nowrap">
+                        <span className="text-xs font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.2em] whitespace-nowrap">
                           {t("Structural AI", "Structural AI")}
                         </span>
                       </div>
@@ -6222,7 +6223,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                       <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
                         <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">
+                        <span className="text-xs font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">
                           {t("Export Logic", "Export Logic")}
                         </span>
                       </div>
@@ -6236,7 +6237,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                         <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
                           <Cpu className="w-5 h-5 text-fuchsia-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]" />
-                          <span className="text-[10px] font-black text-slate-300 group-hover:text-fuchsia-50 uppercase tracking-[0.2em] whitespace-nowrap">
+                          <span className="text-xs font-black text-slate-300 group-hover:text-fuchsia-50 uppercase tracking-[0.2em] whitespace-nowrap">
                             {t("Export ML Script", "Export ML Script")}
                           </span>
                         </div>
@@ -6250,7 +6251,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
                       <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
                         <Brain className="w-5 h-5 text-cyan-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-300 group-hover:text-cyan-50 uppercase tracking-[0.2em] whitespace-nowrap">
+                        <span className="text-xs font-black text-slate-300 group-hover:text-cyan-50 uppercase tracking-[0.2em] whitespace-nowrap">
                           {t("AI Phase Analysis", "AI Phase Analysis")}
                         </span>
                       </div>
@@ -6281,7 +6282,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <span className="px-5 py-2.5 bg-gradient-to-br from-violet-500/20 to-violet-500/5 text-violet-300 text-sm md:text-base font-mono font-black rounded-xl border border-violet-500/40 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:border-violet-400 transition-colors">
                           {selectedCandidate.formula}
                         </span>
-                        <span className="px-5 py-2.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] text-emerald-400 text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] rounded-xl border border-slate-800/80 hover:border-slate-700 shadow-inner hover:border-emerald-500/40 transition-colors flex items-center justify-center">
+                        <span className="px-5 py-2.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] text-emerald-400 text-xs md:text-sm font-black uppercase tracking-[0.25em] rounded-xl border border-slate-800/80 hover:border-slate-700 shadow-inner hover:border-emerald-500/40 transition-colors flex items-center justify-center">
                           {selectedCandidate.materialType || "Standard Matrix"}
                         </span>
                       </div>
@@ -6339,7 +6340,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             >
                               <div className="flex items-center gap-2 mb-2">
                                 <item.icon className="w-3.5 h-3.5 text-slate-600 group-hover/item:text-violet-400 transition-colors" />
-                                <span className="text-[10px] text-slate-500 font-serif italic tracking-wider group-hover/item:text-slate-400 transition-colors">
+                                <span className="text-xs text-slate-500 font-serif italic tracking-wider group-hover/item:text-slate-400 transition-colors">
                                   {item.label}
                                 </span>
                               </div>
@@ -6349,7 +6350,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               >
                                 {item.val}{" "}
                                 {item.unit && (
-                                  <span className="text-indigo-400/60 text-[10px] md:text-xs ml-1 font-sans">
+                                  <span className="text-indigo-400/60 text-xs md:text-xs ml-1 font-sans">
                                     {item.unit}
                                   </span>
                                 )}
@@ -6372,7 +6373,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         </div>
                       </div>
                       <div>
-                        <span className="text-[10px] font-black uppercase text-emerald-400/90 tracking-[0.3em] block leading-none mb-1.5">
+                        <span className="text-xs font-black uppercase text-emerald-400/90 tracking-[0.3em] block leading-none mb-1.5">
                           Material Characteristics
                         </span>
                         <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
@@ -6472,7 +6473,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             {/* <div className="absolute top-0 left-0 w-1 h-full bg-slate-800 group-hover/bar:bg-slate-700 transition-colors" /> */}
                             
                             <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] max-w-[60%]">
+                              <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] max-w-[60%]">
                                 {prop.label}
                               </span>
                               <span
@@ -6489,7 +6490,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
-                              <span className="text-[8px] font-mono font-bold text-slate-500 min-w-[24px] text-right">
+                              <span className="text-xs font-mono font-bold text-slate-500 min-w-[24px] text-right">
                                 {pct.toFixed(0)}%
                               </span>
                             </div>
@@ -6509,12 +6510,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             </div>
                           </div>
                           <div>
-                            <span className="text-[10px] font-black uppercase text-rose-400/90 tracking-[0.3em] block leading-none mb-1">
+                            <span className="text-xs font-black uppercase text-rose-400/90 tracking-[0.3em] block leading-none mb-1">
                               State Analysis
                             </span>
                             <h5 className="text-sm font-black text-white uppercase tracking-widest drop-shadow-md flex items-center gap-2">
                               Thermodynamics & Stability
-                              <span className="px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/30 rounded text-rose-400 text-[8px] font-mono tracking-widest">
+                              <span className="px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/30 rounded text-rose-400 text-xs font-mono tracking-widest">
                                 COMPUTED
                               </span>
                             </h5>
@@ -6526,13 +6527,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-rose-500/40 hover:shadow-[0_8px_25px_rgba(244,63,94,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-rose-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-rose-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-rose-500 text-[11px] font-mono">
+                              <span className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="text-rose-500 text-sm font-mono">
                                   Δ
                                 </span>
                                 Hf
                               </span>
-                              <span className={`px-2 py-0.5 rounded border text-[9px] font-mono shadow-[inset_0_0_4px_rgba(16,185,129,0.3)] ${
+                              <span className={`px-2 py-0.5 rounded border text-xs font-mono shadow-[inset_0_0_4px_rgba(16,185,129,0.3)] ${
                                 (selectedCandidate.stabilityStatus || "Stable").toUpperCase() === "STABLE"
                                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                                   : "border-amber-500/30 bg-amber-500/10 text-amber-400"
@@ -6541,12 +6542,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               </span>
                             </div>
                             <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
+                              <span className="block text-xs text-slate-500 font-bold uppercase tracking-widest mb-1.5">
                                 Formation Enthalpy
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-rose-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
                                 {selectedCandidate.formationEnthalpy !== undefined ? selectedCandidate.formationEnthalpy.toFixed(1) : (-(selectedCandidate.density || 5) * 123.4).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
+                                <span className="text-xs text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   kJ/mol
                                 </span>
                               </span>
@@ -6558,23 +6559,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-amber-500/40 hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-amber-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-amber-500 text-[11px] font-mono">
+                              <span className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="text-amber-500 text-sm font-mono">
                                   S
                                 </span>
                                 °
                               </span>
-                              <span className="px-2 py-0.5 rounded border border-slate-700/80 text-[9px] bg-slate-800/80 text-slate-400 font-mono">
+                              <span className="px-2 py-0.5 rounded border border-slate-700/80 text-xs bg-slate-800/80 text-slate-400 font-mono">
                                 {selectedCandidate.standardState || "Solid"}
                               </span>
                             </div>
                             <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
+                              <span className="block text-xs text-slate-500 font-bold uppercase tracking-widest mb-1.5">
                                 Standard Entropy
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-amber-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
                                 {selectedCandidate.standardEntropy !== undefined ? selectedCandidate.standardEntropy.toFixed(1) : ((selectedCandidate.molecularWeight || 50) * 0.42).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
+                                <span className="text-xs text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   J/(mol·K)
                                 </span>
                               </span>
@@ -6586,23 +6587,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-cyan-500/40 hover:shadow-[0_8px_25px_rgba(34,211,238,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-cyan-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-cyan-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-cyan-500 text-[11px] font-mono">
+                              <span className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="text-cyan-500 text-sm font-mono">
                                   Δ
                                 </span>
                                 Gf
                               </span>
-                              <span className="px-2 py-0.5 rounded border border-cyan-500/30 text-[9px] bg-cyan-500/10 text-cyan-400 font-mono shadow-[inset_0_0_4px_rgba(34,211,238,0.3)]">
+                              <span className="px-2 py-0.5 rounded border border-cyan-500/30 text-xs bg-cyan-500/10 text-cyan-400 font-mono shadow-[inset_0_0_4px_rgba(34,211,238,0.3)]">
                                 SPON
                               </span>
                             </div>
                             <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
+                              <span className="block text-xs text-slate-500 font-bold uppercase tracking-widest mb-1.5">
                                 Gibbs Free Energy
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-cyan-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
                                 {selectedCandidate.formationEnergy !== undefined ? selectedCandidate.formationEnergy.toFixed(1) : (-(selectedCandidate.density || 5) * 115.2).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
+                                <span className="text-xs text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   kJ/mol
                                 </span>
                               </span>
@@ -6614,23 +6615,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-slate-800/80 hover:border-slate-700 shadow-inner transition-all hover:border-fuchsia-500/40 hover:shadow-[0_8px_25px_rgba(217,70,239,0.15)] flex flex-col justify-between h-[130px]">
                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-fuchsia-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-fuchsia-500/20 transition-colors" />
                             <div className="flex justify-between items-start relative z-10">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <span className="text-fuchsia-500 text-[11px] font-mono">
+                              <span className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="text-fuchsia-500 text-sm font-mono">
                                   C
                                 </span>
                                 p
                               </span>
-                              <span className="px-2 py-0.5 rounded border border-slate-700/80 text-[9px] bg-slate-800/80 text-slate-400 font-mono">
+                              <span className="px-2 py-0.5 rounded border border-slate-700/80 text-xs bg-slate-800/80 text-slate-400 font-mono">
                                 ISO
                               </span>
                             </div>
                             <div className="relative z-10 mt-auto">
-                              <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">
+                              <span className="block text-xs text-slate-500 font-bold uppercase tracking-widest mb-1.5">
                                 Heat Capacity
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-fuchsia-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
                                 {selectedCandidate.heatCapacity !== undefined ? selectedCandidate.heatCapacity.toFixed(1) : ((selectedCandidate.molecularWeight || 50) * 0.15).toFixed(1)}{" "}
-                                <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
+                                <span className="text-xs text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   J/(mol·K)
                                 </span>
                               </span>
@@ -6669,7 +6670,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </div>
                         </div>
                         <div>
-                          <span className="text-[10px] font-black uppercase text-fuchsia-400/90 tracking-[0.3em] block leading-none mb-1.5">
+                          <span className="text-xs font-black uppercase text-fuchsia-400/90 tracking-[0.3em] block leading-none mb-1.5">
                             Architectural Transparency
                           </span>
                           <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
@@ -6695,7 +6696,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </div>
                           <button
                             onClick={handleExportPythonML}
-                            className="self-start sm:self-center text-[10px] flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
+                            className="self-start sm:self-center text-xs flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
                           >
                             <Download className="w-3 h-3" />
                             Export Python Code
@@ -6706,7 +6707,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <div className="flex flex-wrap gap-1 px-4 py-2 bg-[#03060C] border-b border-white/5">
                           <button
                             onClick={() => setPythonArch('cnn')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
                               pythonArch === 'cnn'
                                 ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30'
                                 : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -6716,7 +6717,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </button>
                           <button
                             onClick={() => setPythonArch('transformer')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
                               pythonArch === 'transformer'
                                 ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
                                 : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -6726,7 +6727,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </button>
                           <button
                             onClick={() => setPythonArch('graph_gnn')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
                               pythonArch === 'graph_gnn'
                                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
                                 : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -6736,7 +6737,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </button>
                           <button
                             onClick={() => setPythonArch('rag_pipeline')}
-                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
                               pythonArch === 'rag_pipeline'
                                 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                                 : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -6746,11 +6747,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </button>
                         </div>
 
-                        <pre className="p-4 sm:p-6 overflow-x-auto text-[11px] sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[450px]">
+                        <pre className="p-4 sm:p-6 overflow-x-auto text-sm sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[450px]">
                           <code className="block flex flex-col gap-0.5">
                             {getPythonEngineCode(pythonArch, engineConfig).split('\n').map((line, idx) => (
                               <div key={idx} className="hover:bg-white/5 px-2 py-0.5 rounded transition-all flex items-start">
-                                <span className="text-[10px] text-slate-600 select-none w-8 text-right pr-3 font-mono pt-0.5">{idx + 1}</span>
+                                <span className="text-xs text-slate-600 select-none w-8 text-right pr-3 font-mono pt-0.5">{idx + 1}</span>
                                 <span className="whitespace-pre flex-1 font-mono">{colorizeLine(line)}</span>
                               </div>
                             ))}
@@ -6779,7 +6780,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             </div>
                           </div>
                           <div>
-                            <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-[0.35em] block mb-1">
+                            <span className="text-xs font-black text-amber-500/80 uppercase tracking-[0.35em] block mb-1">
                               Strategic Integration
                             </span>
                             <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
@@ -6787,7 +6788,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             </span>
                           </div>
                         </div>
-                        <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-400 hidden sm:block">
+                        <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-black uppercase tracking-widest text-amber-400 hidden sm:block">
                           Deployment
                         </div>
                       </div>
@@ -6801,7 +6802,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               className="group/app flex items-center gap-4 bg-[#050A14]/50 hover:bg-slate-800/80 px-5 py-4 rounded-[1.25rem] border border-white/5 hover:border-amber-500/30 transition-all duration-300 shadow-inner"
                             >
                               <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 group-hover/app:border-amber-500/40 group-hover/app:bg-amber-500/10 transition-colors shrink-0">
-                                <span className="text-[10px] font-mono text-slate-400 group-hover/app:text-amber-400 font-bold">0{i+1}</span>
+                                <span className="text-xs font-mono text-slate-400 group-hover/app:text-amber-400 font-bold">0{i+1}</span>
                               </div>
                               <span className="text-sm font-bold text-slate-200 group-hover/app:text-white transition-colors truncate">
                                 {app}
@@ -6813,7 +6814,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             <span className="text-sm font-black text-slate-600 font-mono italic block">
                               No primary applications recorded.
                             </span>
-                            <span className="text-[10px] uppercase tracking-widest text-slate-500 mt-2 block">Network Database Update Required</span>
+                            <span className="text-xs uppercase tracking-widest text-slate-500 mt-2 block">Network Database Update Required</span>
                           </div>
                         )}
                       </div>
@@ -6831,7 +6832,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             </div>
                           </div>
                           <div>
-                            <span className="text-[10px] font-black text-rose-500/80 uppercase tracking-[0.35em] block mb-1">
+                            <span className="text-xs font-black text-rose-500/80 uppercase tracking-[0.35em] block mb-1">
                               Safety Constraints
                             </span>
                             <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
@@ -6839,7 +6840,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             </span>
                           </div>
                         </div>
-                        <div className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[9px] font-black uppercase tracking-widest text-rose-400 hidden sm:block animate-pulse">
+                        <div className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs font-black uppercase tracking-widest text-rose-400 hidden sm:block animate-pulse">
                           Warning
                         </div>
                       </div>
@@ -6868,7 +6869,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             <span className="block text-sm font-black text-emerald-400 uppercase tracking-widest mb-1.5">
                               Non-Toxic Response
                             </span>
-                            <span className="text-[10px] font-medium text-emerald-500/70 font-mono tracking-widest max-w-[200px] leading-relaxed">
+                            <span className="text-xs font-medium text-emerald-500/70 font-mono tracking-widest max-w-[200px] leading-relaxed">
                               Material exhibits stable environmental limits.
                             </span>
                           </div>
@@ -6936,7 +6937,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <h4 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
                           Neural Attention Mapping
                         </h4>
-                        <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">
+                        <p className="text-xs sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">
                           Spatial feature activation for{" "}
                           <span className="text-violet-300 font-bold tracking-widest">
                             {selectedCandidate.phase_name}
@@ -6953,7 +6954,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           />
                         ))}
                       </div>
-                      <span className="px-4 py-2 bg-gradient-to-r from-violet-500/10 to-violet-500/5 rounded-xl border border-violet-500/30 text-[10px] font-black text-violet-300 uppercase tracking-[0.25em] shadow-inner font-mono">
+                      <span className="px-4 py-2 bg-gradient-to-r from-violet-500/10 to-violet-500/5 rounded-xl border border-violet-500/30 text-xs font-black text-violet-300 uppercase tracking-[0.25em] shadow-inner font-mono">
                         Softmax_v3
                       </span>
                     </div>
@@ -6993,12 +6994,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-[2.5rem] -m-5 pointer-events-none group-hover/layer:bg-white/[0.04] transition-colors duration-500" />
 
                         <div className="flex justify-between items-center px-3 relative z-10">
-                          <span className="text-[11px] sm:text-xs font-mono font-black text-slate-500 group-hover/layer:text-white transition-colors uppercase tracking-[0.2em]">
+                          <span className="text-sm sm:text-xs font-mono font-black text-slate-500 group-hover/layer:text-white transition-colors uppercase tracking-[0.2em]">
                             {layer.name}
                           </span>
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] hidden sm:inline">
+                            <span className="text-xs font-mono text-slate-500 uppercase tracking-[0.2em] hidden sm:inline">
                               Active
                             </span>
                           </div>
@@ -7107,7 +7108,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               <div className="absolute top-0 right-0 bottom-0 w-4 bg-white/30 blur-[2px]" />
                             </motion.div>
                           </div>
-                          <span className="text-[10px] font-mono font-black text-[#1e293b] group-hover/layer:text-slate-500 transition-colors uppercase tracking-[0.3em]">
+                          <span className="text-xs font-mono font-black text-[#1e293b] group-hover/layer:text-slate-500 transition-colors uppercase tracking-[0.3em]">
                             INF_00{lIdx + 1}
                           </span>
                         </div>
@@ -7167,7 +7168,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] group-hover/metric:text-slate-400 transition-colors">
+                          <span className="text-xs sm:text-xs text-slate-500 font-bold uppercase tracking-[0.2em] group-hover/metric:text-slate-400 transition-colors">
                             {metric.label}
                           </span>
                           <span className="text-sm sm:text-base text-white font-mono font-black tracking-wider drop-shadow-sm">
@@ -7183,17 +7184,17 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <div className="mt-14 pt-12 border-t border-slate-800/80 hover:border-slate-700">
                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
-                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1 flex items-center gap-2">
+                      <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.3em] mb-1 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-emerald-500/50" />
                         Verification Audit Protocol
                       </h4>
-                      <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">
+                      <p className="text-xs text-slate-400 font-mono uppercase tracking-widest">
                         Interactive Checklist for Spectral Integrity
                       </p>
                     </div>
                     {selectedCandidate && (
                       <div className="flex items-center gap-4 bg-[#03060C]/80 px-4 py-2 rounded-xl border border-slate-800/80 hover:border-slate-700">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest font-mono">
                           Protocol Integrity Grade:
                         </span>
                         <span
@@ -7223,7 +7224,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   <div className="flex flex-wrap items-center gap-2 mb-8 bg-[#040812] p-1.5 rounded-3xl border border-slate-800/80/80 max-w-4xl">
                     <button
                       onClick={() => setSelectedValidationTab('audit')}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
+                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-xs font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === 'audit'
                           ? 'bg-indigo-600/25 border border-indigo-500/50 text-white shadow-[inset_0_1px_10px_rgba(99,102,241,0.2)]'
                           : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
@@ -7234,7 +7235,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     </button>
                     <button
                       onClick={() => setSelectedValidationTab('robustness')}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
+                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-xs font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === 'robustness'
                           ? 'bg-fuchsia-600/25 border border-fuchsia-500/50 text-white shadow-[inset_0_1px_10px_rgba(217,70,239,0.2)]'
                           : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
@@ -7245,7 +7246,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     </button>
                     <button
                       onClick={() => setSelectedValidationTab('confusion')}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
+                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-xs font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === 'confusion'
                           ? 'bg-cyan-600/25 border border-cyan-500/50 text-white shadow-[inset_0_1px_10px_rgba(34,211,238,0.2)]'
                           : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
@@ -7256,7 +7257,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     </button>
                     <button
                       onClick={() => setSelectedValidationTab('training' as any)}
-                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
+                      className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-2xl text-xs font-black tracking-widest uppercase transition-all flex items-center justify-center gap-1.5 ${
                         selectedValidationTab === ('training' as any)
                           ? 'bg-emerald-600/25 border border-emerald-500/50 text-white shadow-[inset_0_1px_10px_rgba(16,185,129,0.2)]'
                           : 'text-slate-400 hover:text-white border border-transparent hover:bg-[#050A14]/40'
@@ -7308,18 +7309,18 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                   <span className="text-xs font-black text-slate-300 group-hover:text-white transition-colors uppercase tracking-wide">
                                     {item.label}
                                   </span>
-                                  <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-400">
+                                  <span className="text-xs font-mono text-slate-500 group-hover:text-slate-400">
                                     {item.desc}
                                   </span>
                                 </div>
                               </div>
 
                               <div className="text-right flex flex-col items-end gap-1 font-mono">
-                                <span className="text-[10px] font-black text-slate-300">
+                                <span className="text-xs font-black text-slate-300">
                                   {item.getMetric(selectedCandidate)}
                                 </span>
                                 <span
-                                  className={`text-[9px] font-black uppercase tracking-widest ${calculatedStatus.color}`}
+                                  className={`text-xs font-black uppercase tracking-widest ${calculatedStatus.color}`}
                                 >
                                   {calculatedStatus.text}
                                 </span>
@@ -7337,11 +7338,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
                             <div className="space-y-4">
                               <div className="flex items-center justify-between border-b border-slate-800/80 hover:border-slate-700 pb-4">
-                                <span className="text-[10px] font-black font-mono text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="text-xs font-black font-mono text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
                                   <Activity className="w-3.5 h-3.5" />
                                   Audit Ledger ID_{selectedAuditLog + 1}
                                 </span>
-                                <span className="text-[8px] font-black font-mono text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 rounded uppercase">
+                                <span className="text-xs font-black font-mono text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 rounded uppercase">
                                   Active
                                 </span>
                               </div>
@@ -7356,7 +7357,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               </div>
 
                               <div className="bg-[#03060C] p-4 rounded-xl border border-slate-800/80 hover:border-slate-700 font-mono text-center">
-                                <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">
+                                <span className="text-xs text-slate-500 block uppercase mb-1 tracking-widest font-mono">
                                   Calculated Scientific Equation
                                 </span>
                                 <span className="text-xs text-indigo-300 font-bold tracking-wide">
@@ -7365,7 +7366,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               </div>
 
                               <div className="space-y-2.5">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">
+                                <span className="text-xs font-black text-slate-500 uppercase tracking-widest block font-mono">
                                   Evaluation Parameters
                                 </span>
 
@@ -7375,7 +7376,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                       key={`step-${idx}`}
                                       className="flex justify-between items-center bg-[#03060C]/60 border border-slate-800/80 hover:border-slate-700/70 px-4 py-2.5 rounded-lg text-xs font-mono"
                                     >
-                                      <span className="text-slate-400 text-[10px] uppercase">
+                                      <span className="text-slate-400 text-xs uppercase">
                                         {step.name}
                                       </span>
                                       <span className="font-bold text-emerald-400">
@@ -7387,7 +7388,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               </div>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-800/80 hover:border-slate-700 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                            <div className="pt-4 border-t border-slate-800/80 hover:border-slate-700 flex justify-between items-center text-xs font-mono text-slate-500 uppercase tracking-widest">
                               <span>Cryptographic Signature: verified</span>
                               <span className="text-slate-400 font-bold">
                                 SHA-256_STABLE
@@ -7403,7 +7404,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">
                                 System Check Needed
                               </h5>
-                              <p className="text-[10px] text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
+                              <p className="text-xs text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
                                 Select any active Audit item to display analytical
                                 ledger equations and parameter updates
                               </p>
@@ -7417,7 +7418,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <div className="w-full mt-4 p-6 bg-[#050A14] rounded-2xl border border-slate-800/80 hover:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)]">
                           <div className="flex items-center gap-3">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
                               Validated components:{" "}
                               <span className="text-white font-bold">
                                 {checkedAudits.filter(Boolean).length} of 5 verified
@@ -7462,7 +7463,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               document.body.removeChild(a);
                               URL.revokeObjectURL(url);
                             }}
-                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] text-[10px] font-black text-white rounded-xl uppercase tracking-widest border border-indigo-500/30 transition-all active:scale-[0.98]"
+                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] text-xs font-black text-white rounded-xl uppercase tracking-widest border border-indigo-500/30 transition-all active:scale-[0.98]"
                           >
                             Export Certified Audit Report
                           </button>
@@ -7481,14 +7482,14 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       <div className="lg:col-span-5 bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 space-y-6 shadow-lg">
                         <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
                           <SlidersHorizontal className="w-5 h-5 text-fuchsia-400" />
-                          <span className="text-[11px] font-black font-mono text-fuchsia-400 uppercase tracking-widest">
+                          <span className="text-sm font-black font-mono text-fuchsia-400 uppercase tracking-widest">
                             Perturbation Settings
                           </span>
                         </div>
 
                         <div className="space-y-5">
                           <div className="space-y-2">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-wide">
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-400 tracking-wide">
                               <span>GAUSSIAN NOISE LEVEL (1σ)</span>
                               <span className="text-fuchsia-400 font-mono text-xs">{noiseLevel}%</span>
                             </div>
@@ -7509,7 +7510,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           </div>
 
                           <div className="space-y-2">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-wide">
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-400 tracking-wide">
                               <span>BACKGROUND DRIFT / SKEW</span>
                               <span className="text-fuchsia-400 font-mono text-xs">{backgroundDrift}%</span>
                             </div>
@@ -7567,11 +7568,11 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         <div className="space-y-6 flex-1 flex flex-col justify-between">
                           <div className="space-y-4">
                             <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
-                              <span className="text-[10px] font-black font-mono text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <span className="text-xs font-black font-mono text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
                                 <Activity className="w-3.5 h-3.5" />
                                 Stress Diagnostic Matrix
                               </span>
-                              <span className="text-[8px] font-black font-mono text-fuchsia-400 border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-0.5 rounded uppercase">
+                              <span className="text-xs font-black font-mono text-fuchsia-400 border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-0.5 rounded uppercase">
                                 Realtime Math Emulator
                               </span>
                             </div>
@@ -7582,7 +7583,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div className="p-4 rounded-2xl bg-[#03060C]/60 border border-slate-800/80/80 flex flex-col gap-1.5">
-                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Unperturbed Score</span>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Unperturbed Score</span>
                                 <div className="text-2xl font-black font-mono text-white tracking-tight">
                                   {selectedCandidate?.mlValidationScore || 0}%
                                 </div>
@@ -7590,7 +7591,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </div>
 
                               <div className="p-4 rounded-2xl bg-[#03060C]/60 border border-slate-800/80/80 flex flex-col gap-1.5 relative overflow-hidden">
-                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Perturbed Score</span>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Perturbed Score</span>
                                 <div className="text-2xl font-black font-mono text-fuchsia-400 tracking-tight">
                                   {perturbationScore !== null ? `${perturbationScore}%` : "---%"}
                                 </div>
@@ -7610,7 +7611,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                     perturbationScore > 50 ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]' :
                                     'bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'
                                   }`} />
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-200">
+                                  <span className="text-xs font-black uppercase tracking-widest text-slate-200">
                                     Resiliency Evaluation:{" "}
                                     <span className={`${
                                       perturbationScore > 85 ? 'text-emerald-400' :
@@ -7625,7 +7626,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                     </span>
                                   </span>
                                 </div>
-                                <p className="text-[10px] text-slate-400 leading-relaxed font-sans min-h-[50px]">
+                                <p className="text-xs text-slate-400 leading-relaxed font-sans min-h-[50px]">
                                   {perturbationScore > 85 ? 'The network displays absolute stability against high beam drift or fluctuating noise floors. Excellent for short exposure synchrotron test environments.' :
                                    perturbationScore > 70 ? 'General operating specs. d-spacings are extracted correct, although minor relative intensity shifts occur from asymmetric amorphous profile skews.' :
                                    perturbationScore > 50 ? 'The identified phase boundary might overlap with amorphous background humps under stress. Fine-tuning filters or utilizing a wider kernel profile is recommended.' :
@@ -7635,7 +7636,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                             )}
                           </div>
 
-                          <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                          <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-xs font-mono text-slate-500 uppercase tracking-widest">
                             <span>Noise-injection vector: active</span>
                             <span className="text-slate-400 font-bold">MONTE_CARLO_SIM</span>
                           </div>
@@ -7659,7 +7660,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         </div>
                         <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80 mb-6">
                           <Activity className="w-5 h-5 text-cyan-400" />
-                          <span className="text-[11px] font-black font-mono text-cyan-400 uppercase tracking-widest">
+                          <span className="text-sm font-black font-mono text-cyan-400 uppercase tracking-widest">
                             Crystal System Multi-Class Matrix
                           </span>
                         </div>
@@ -7667,18 +7668,18 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         <div className="overflow-x-auto">
                           <div className="min-w-[420px] space-y-2">
                             {/* X-axis title label */}
-                            <div className="text-center text-[9px] font-black font-mono text-cyan-400/80 uppercase tracking-widest mb-1">
+                            <div className="text-center text-xs font-black font-mono text-cyan-400/80 uppercase tracking-widest mb-1">
                               Predicted Crystal System Class (Output Vector)
                             </div>
 
                             {/* Actual Table */}
                             <div className="grid grid-cols-7 gap-1">
                               {/* Corner header cells */}
-                              <div className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-wider flex items-center justify-center p-1.5 text-center leading-tight">
+                              <div className="text-xs font-black font-mono text-slate-500 uppercase tracking-wider flex items-center justify-center p-1.5 text-center leading-tight">
                                 True \ Pred
                               </div>
                               {['Cubic', 'Tetra', 'Hexa', 'Ortho', 'Mono', 'Tric'].map(h => (
-                                <div key={h} className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider text-center p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
+                                <div key={h} className="text-xs font-black font-mono text-slate-400 uppercase tracking-wider text-center p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
                                   {h}
                                 </div>
                               ))}
@@ -7699,7 +7700,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 return rows.map((rowName) => (
                                   <React.Fragment key={rowName}>
                                     {/* Y-axis label column */}
-                                    <div className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider flex items-center justify-start p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
+                                    <div className="text-xs font-black font-mono text-slate-400 uppercase tracking-wider flex items-center justify-start p-2 bg-[#03060C]/40 rounded border border-slate-800/80/40">
                                       {rowName.slice(0, 5)}...
                                     </div>
                                     {/* 6 classification projection columns */}
@@ -7725,7 +7726,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                                 : 'border-slate-800/80/40'
                                           }`}
                                         >
-                                          <span className="text-[10px] font-black font-mono text-white tracking-tighter tabular-nums leading-none">
+                                          <span className="text-xs font-black font-mono text-white tracking-tighter tabular-nums leading-none">
                                             {val.toFixed(1)}%
                                           </span>
                                         </div>
@@ -7738,7 +7739,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           </div>
                         </div>
 
-                        <div className="mt-4 text-[9px] font-mono text-slate-500 uppercase tracking-wide flex justify-between">
+                        <div className="mt-4 text-xs font-mono text-slate-500 uppercase tracking-wide flex justify-between">
                           <span>* Diagonal represents TP (True-Positives Rate)</span>
                           <span>Click cell for projection details</span>
                         </div>
@@ -7752,17 +7753,17 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           <div className="space-y-6 flex-1 flex flex-col justify-between">
                             <div className="space-y-4">
                               <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
-                                <span className="text-[10px] font-black font-mono text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="text-xs font-black font-mono text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
                                   <Activity className="w-3.5 h-3.5" />
                                   Operator Projection Ledger
                                 </span>
-                                <span className="text-[8px] font-black font-mono text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 rounded uppercase">
+                                <span className="text-xs font-black font-mono text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 rounded uppercase">
                                   Inter-class Error
                                 </span>
                               </div>
 
                               <div>
-                                <span className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest block mb-1">Target Class Correlation</span>
+                                <span className="text-xs font-black font-mono text-slate-500 uppercase tracking-widest block mb-1">Target Class Correlation</span>
                                 <h5 className="text-sm font-black text-white uppercase tracking-wider mb-2">
                                   {activeMatrixCell.row} ⟶ {activeMatrixCell.col}
                                 </h5>
@@ -7779,8 +7780,8 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </div>
 
                               <div className="bg-[#03060C] p-4 rounded-xl border border-slate-900 font-mono text-left">
-                                <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">Structural Resolution Note</span>
-                                <span className="text-[10px] text-slate-300 font-medium">
+                                <span className="text-xs text-slate-500 block uppercase mb-1 tracking-widest font-mono">Structural Resolution Note</span>
+                                <span className="text-xs text-slate-300 font-medium">
                                   {activeMatrixCell.row === 'Cubic' && activeMatrixCell.col === 'Tetragonal' ? 'Cubic unit cells can shear into a Tetragonal crystal system under localized thermal gradient or epitaxial strain, mimicking identical base reflections.' :
                                    activeMatrixCell.row === 'Monoclinic' && activeMatrixCell.col === 'Triclinic' ? 'High non-axial crystal limits in triclinic configurations make distinguishing Monoclinic unit cell dimensions highly sensitive to instrument drift.' :
                                    'High overlapping ratios are highly correlated with similar interplanar d-spacing configurations or fractional volume mixtures in high signal background scanning.'}
@@ -7788,7 +7789,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </div>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                            <div className="pt-4 border-t border-slate-800/80 flex justify-between items-center text-xs font-mono text-slate-500 uppercase tracking-widest">
                               <span>Multi-class test size: N = 10,000</span>
                               <span className="text-slate-400 font-bold">F1_SCORE: 0.892</span>
                             </div>
@@ -7802,7 +7803,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">
                                 Matrix Select Needed
                               </h5>
-                              <p className="text-[10px] text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
+                              <p className="text-xs text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
                                 Click any percentage coordinate in the multi-class confusion grid to inspect specific neural prediction behaviors and structural limits.
                               </p>
                             </div>
@@ -7815,11 +7816,11 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         <div className="flex flex-wrap items-center justify-between border-b border-slate-800/80 pb-3 gap-3">
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-5 h-5 text-emerald-400" />
-                            <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
+                            <span className="text-sm font-black font-mono text-emerald-400 uppercase tracking-widest">
                               Per-Class Classification Metrics (Precision, Recall, F1, ROC-AUC)
                             </span>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
+                          <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
                             <span className="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
                               Macro F1: 89.2%
                             </span>
@@ -7835,7 +7836,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         <div className="overflow-x-auto">
                           <table className="w-full text-left font-mono text-xs text-slate-300">
                             <thead>
-                              <tr className="border-b border-slate-800 text-[10px] text-slate-500 uppercase tracking-wider">
+                              <tr className="border-b border-slate-800 text-xs text-slate-500 uppercase tracking-wider">
                                 <th className="p-2.5">Crystal System</th>
                                 <th className="p-2.5">Support (N)</th>
                                 <th className="p-2.5">Precision</th>
@@ -7890,7 +7891,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         </div>
                         <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
                           <Cpu className="w-5 h-5 text-emerald-400" />
-                          <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
+                          <span className="text-sm font-black font-mono text-emerald-400 uppercase tracking-widest">
                             Deep Learning Network Calibration
                           </span>
                         </div>
@@ -7899,7 +7900,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           {/* Architecture & Activation Dropdowns */}
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5 align-top">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Architecture</label>
+                              <label className="text-xs font-black tracking-wider text-slate-400 uppercase block">Architecture</label>
                               <select 
                                 value={trainArch} 
                                 onChange={(e) => setTrainArch(e.target.value)}
@@ -7911,7 +7912,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </select>
                             </div>
                             <div className="space-y-1.5 align-top">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Activation</label>
+                              <label className="text-xs font-black tracking-wider text-slate-400 uppercase block">Activation</label>
                               <select 
                                 value={trainActivation} 
                                 onChange={(e) => setTrainActivation(e.target.value)}
@@ -7930,7 +7931,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           {/* Optimizer & Batch size */}
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Optimizer</label>
+                              <label className="text-xs font-black tracking-wider text-slate-400 uppercase block">Optimizer</label>
                               <select 
                                 value={trainOptimizer} 
                                 onChange={(e) => setTrainOptimizer(e.target.value)}
@@ -7942,7 +7943,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </select>
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-[9px] font-black tracking-wider text-slate-400 uppercase block">Dropout Rate</label>
+                              <label className="text-xs font-black tracking-wider text-slate-400 uppercase block">Dropout Rate</label>
                               <select 
                                 value={trainDropout} 
                                 onChange={(e) => setTrainDropout(Number(e.target.value))}
@@ -7958,7 +7959,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           <div className="space-y-3 pt-2">
                             {/* Epochs Range Slider */}
                             <div className="space-y-1.5">
-                              <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold whitespace-nowrap">
+                              <div className="flex justify-between items-center text-xs text-slate-400 font-bold whitespace-nowrap">
                                 <span>TRAINING RUN LENGTH (EPOCHS)</span>
                                 <span className="text-emerald-400 font-mono text-xs">{trainEpochs} iterations</span>
                               </div>
@@ -7975,7 +7976,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                             {/* Learning Rate Slider */}
                             <div className="space-y-1.5">
-                              <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold whitespace-nowrap">
+                              <div className="flex justify-between items-center text-xs text-slate-400 font-bold whitespace-nowrap">
                                 <span>INITIAL LEARNING RATE (α)</span>
                                 <span className="text-emerald-400 font-mono text-xs">{trainLR}</span>
                               </div>
@@ -7992,13 +7993,13 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           </div>
 
                           <div className="pt-2 border-t border-slate-800/80 space-y-3">
-                            <span className="text-[10px] font-black font-mono text-slate-500 uppercase tracking-widest block">
+                            <span className="text-xs font-black font-mono text-slate-500 uppercase tracking-widest block">
                               Physics-Based Synthetic Augmenter
                             </span>
 
                             {/* Augment: Strain bounds */}
                             <div className="space-y-1">
-                              <div className="flex justify-between items-center text-[9px] font-semibold text-slate-400 whitespace-nowrap">
+                              <div className="flex justify-between items-center text-xs font-semibold text-slate-400 whitespace-nowrap">
                                 <span>LATTICE STRAIN BOUNDS (dL/L)</span>
                                 <span className="font-mono text-teal-400">-{trainStrainRange}% to +{trainStrainRange}%</span>
                               </div>
@@ -8015,7 +8016,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                             {/* Augment: Broadening scales */}
                             <div className="space-y-1">
-                              <div className="flex justify-between items-center text-[9px] font-semibold text-slate-400 whitespace-nowrap">
+                              <div className="flex justify-between items-center text-xs font-semibold text-slate-400 whitespace-nowrap">
                                 <span>CRYSTALLITE BROADENING (FWHM)</span>
                                 <span className="font-mono text-teal-400">0.15° to {(0.15 + trainBroadeningRange).toFixed(2)}°</span>
                               </div>
@@ -8068,7 +8069,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         <button
                           disabled={isTrainingNet}
                           onClick={handleRunTrainingNet}
-                          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl text-[11px] font-black uppercase tracking-widest font-mono shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
+                          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-2xl text-sm font-black uppercase tracking-widest font-mono shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
                         >
                           {isTrainingNet ? (
                             <>
@@ -8097,11 +8098,11 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
                             <div className="flex items-center gap-2">
                               <Network className="w-5 h-5 text-indigo-400" />
-                              <span className="text-[11px] font-black font-mono text-indigo-400 uppercase tracking-widest">
+                              <span className="text-sm font-black font-mono text-indigo-400 uppercase tracking-widest">
                                 Neural Architecture Flow & Receptive Field Topology
                               </span>
                             </div>
-                            <span className="text-[9px] font-mono font-bold text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
+                            <span className="text-xs font-mono font-bold text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700">
                               {trainArch} • {trainActivation}
                             </span>
                           </div>
@@ -8109,34 +8110,34 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-center text-center font-mono text-xs">
                             {/* Input Block */}
                             <div className="bg-[#03060C] p-3 rounded-2xl border border-indigo-500/30 flex flex-col items-center">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase">1. Input Vector</span>
+                              <span className="text-xs text-slate-500 font-bold uppercase">1. Input Vector</span>
                               <span className="text-xs font-black text-white mt-1">200 Points</span>
-                              <span className="text-[8px] text-indigo-400 mt-0.5">XRD 2θ Spectrum</span>
+                              <span className="text-xs text-indigo-400 mt-0.5">XRD 2θ Spectrum</span>
                             </div>
 
                             <div className="hidden sm:flex justify-center text-slate-600 font-black">➔</div>
 
                             {/* Hidden Conv/Dense Block */}
                             <div className="bg-[#03060C] p-3 rounded-2xl border border-violet-500/30 flex flex-col items-center">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase">2. Hidden Layer</span>
+                              <span className="text-xs text-slate-500 font-bold uppercase">2. Hidden Layer</span>
                               <span className="text-xs font-black text-violet-300 mt-1">
                                 {trainArch === 'Residual MLP' ? 'ResNet Blocks' : trainArch === 'Deep MLP' ? '128 ➔ 64 Units' : '128 Units'}
                               </span>
-                              <span className="text-[8px] text-violet-400 mt-0.5">{trainActivation} • Dropout {trainDropout}</span>
+                              <span className="text-xs text-violet-400 mt-0.5">{trainActivation} • Dropout {trainDropout}</span>
                             </div>
 
                             <div className="hidden sm:flex justify-center text-slate-600 font-black">➔</div>
 
                             {/* Output Softmax Block */}
                             <div className="bg-[#03060C] p-3 rounded-2xl border border-emerald-500/30 flex flex-col items-center">
-                              <span className="text-[9px] text-slate-500 font-bold uppercase">3. Softmax Output</span>
+                              <span className="text-xs text-slate-500 font-bold uppercase">3. Softmax Output</span>
                               <span className="text-xs font-black text-emerald-300 mt-1">6 Crystal Classes</span>
-                              <span className="text-[8px] text-emerald-400 mt-0.5">Phase Probabilities</span>
+                              <span className="text-xs text-emerald-400 mt-0.5">Phase Probabilities</span>
                             </div>
                           </div>
 
                           {/* Network Topology Statistics Bar */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800/80 font-mono text-[9px]">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800/80 font-mono text-xs">
                             <div className="bg-[#03060C] p-2.5 rounded-xl border border-slate-900">
                               <span className="text-slate-500 block uppercase font-bold">Total Parameters</span>
                               <span className="text-slate-200 font-black font-mono text-xs">
@@ -8170,12 +8171,12 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           <div className="flex items-center justify-between pb-4 border-b border-slate-800/80 mb-4 w-full">
                             <div className="flex items-center gap-2">
                               <Activity className="w-5 h-5 text-emerald-400" />
-                              <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest">
+                              <span className="text-sm font-black font-mono text-emerald-400 uppercase tracking-widest">
                                 Active Model Optimizer Monitor
                               </span>
                             </div>
                             {trainingHistory.length > 0 && (
-                              <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-[10px] font-bold font-mono">
+                              <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold font-mono">
                                 SUCCESS • val_acc: {trainMetrics?.final_val_acc}%
                               </div>
                             )}
@@ -8206,7 +8207,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </div>
                               <div className="max-w-sm">
                                 <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1.5 font-mono">Model Weights Uninitialized</h5>
-                                <p className="text-[10px] text-slate-500 font-mono tracking-wide leading-relaxed uppercase">
+                                <p className="text-xs text-slate-500 font-mono tracking-wide leading-relaxed uppercase">
                                   Launch the NumPy machine learning optimizer in the sidebar. This will construct dynamic physical sample patterns and train a live Neural network multi-class classifier.
                                 </p>
                               </div>
@@ -8216,7 +8217,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           {/* Training Complete: Render Recharts Loss Progression Chart & Heatmap */}
                           {trainingHistory.length > 0 && (
                             <div className="space-y-6 flex-grow">
-                              <div className="h-44 w-full text-[10px] font-mono">
+                              <div className="h-44 w-full text-xs font-mono">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <ComposedChart data={trainingHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#101827" />
@@ -8235,19 +8236,19 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               {trainMetrics && (
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                   <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Train Accuracy</span>
+                                    <span className="text-xs text-slate-500 tracking-widest uppercase font-black block font-mono">Train Accuracy</span>
                                     <span className="text-xs font-black font-mono text-emerald-400 tabular-nums">{trainMetrics.final_train_acc}%</span>
                                   </div>
                                   <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">CV Val Accuracy</span>
+                                    <span className="text-xs text-slate-500 tracking-widest uppercase font-black block font-mono">CV Val Accuracy</span>
                                     <span className="text-xs font-black font-mono text-indigo-400 tabular-nums">{trainMetrics.final_val_acc}%</span>
                                   </div>
                                   <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Validation Loss</span>
+                                    <span className="text-xs text-slate-500 tracking-widest uppercase font-black block font-mono">Validation Loss</span>
                                     <span className="text-xs font-black font-mono text-rose-400 tabular-nums">{trainMetrics.final_val_loss}</span>
                                   </div>
                                   <div className="bg-[#03060C] p-3 rounded-xl border border-slate-900 text-left">
-                                    <span className="text-[8px] text-slate-500 tracking-widest uppercase font-black block font-mono">Solve Duration</span>
+                                    <span className="text-xs text-slate-500 tracking-widest uppercase font-black block font-mono">Solve Duration</span>
                                     <span className="text-xs font-black font-mono text-teal-400 tabular-nums">{trainMetrics.training_time_sec}s</span>
                                   </div>
                                 </div>
@@ -8260,7 +8261,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         <div className="bg-[#050A14] border border-slate-800/80 hover:border-slate-700 rounded-3xl p-6 shadow-lg space-y-6">
                           <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
                             <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
-                            <span className="text-[11px] font-black font-mono text-amber-400 uppercase tracking-widest">
+                            <span className="text-sm font-black font-mono text-amber-400 uppercase tracking-widest">
                               Deep Learning Crystallography Classroom
                             </span>
                           </div>
@@ -8272,7 +8273,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 setSelectedTutorLesson("lesson1");
                                 setTutorOutputText("");
                               }}
-                              className={`py-2 px-1 text-center font-black uppercase text-[8px] tracking-widest rounded-xl transition-all ${
+                              className={`py-2 px-1 text-center font-black uppercase text-xs tracking-widest rounded-xl transition-all ${
                                 selectedTutorLesson === "lesson1"
                                   ? "bg-slate-800/80 text-amber-400 border border-slate-700"
                                   : "text-slate-500 hover:text-white"
@@ -8285,7 +8286,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 setSelectedTutorLesson("lesson2");
                                 setTutorOutputText("");
                               }}
-                              className={`py-2 px-1 text-center font-black uppercase text-[8px] tracking-widest rounded-xl transition-all ${
+                              className={`py-2 px-1 text-center font-black uppercase text-xs tracking-widest rounded-xl transition-all ${
                                 selectedTutorLesson === "lesson2"
                                   ? "bg-slate-800/80 text-amber-400 border border-slate-700"
                                   : "text-slate-500 hover:text-white"
@@ -8298,7 +8299,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 setSelectedTutorLesson("lesson3");
                                 setTutorOutputText("");
                               }}
-                              className={`py-2 px-1 text-center font-black uppercase text-[8px] tracking-widest rounded-xl transition-all ${
+                              className={`py-2 px-1 text-center font-black uppercase text-xs tracking-widest rounded-xl transition-all ${
                                 selectedTutorLesson === "lesson3"
                                   ? "bg-slate-800/80 text-amber-400 border border-slate-700"
                                   : "text-slate-500 hover:text-white"
@@ -8359,7 +8360,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                           {/* Chat with Advisor Tutor */}
                           <div className="space-y-3">
                             <div className="text-left w-full">
-                              <span className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest block mb-1">
+                              <span className="text-xs font-black font-mono text-slate-500 uppercase tracking-widest block mb-1">
                                 Ask the AI Advisor Tutor about your session
                               </span>
                               <div className="flex gap-2">
@@ -8378,7 +8379,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 <button
                                   disabled={isTutorLoading || !tutorUserQuery.trim()}
                                   onClick={handleQueryTutor}
-                                  className="px-5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black uppercase text-[10px] tracking-wider rounded-2xl transition-all disabled:bg-slate-800 disabled:text-slate-500 flex items-center justify-center whitespace-nowrap min-w-[70px]"
+                                  className="px-5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black uppercase text-xs tracking-wider rounded-2xl transition-all disabled:bg-slate-800 disabled:text-slate-500 flex items-center justify-center whitespace-nowrap min-w-[70px]"
                                 >
                                   {isTutorLoading ? "..." : "Ask"}
                                 </button>
@@ -8388,7 +8389,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                             {/* Tutor Answer Markdown renderer */}
                             {tutorOutputText && (
                               <div className="bg-[#03060C]/65 rounded-2xl border border-slate-900 p-5 mt-4 text-left leading-normal text-xs text-slate-200">
-                                <span className="text-[8px] font-black font-mono text-amber-400 uppercase tracking-widest block mb-2">
+                                <span className="text-xs font-black font-mono text-amber-400 uppercase tracking-widest block mb-2">
                                   Advisor Tutor Answer
                                 </span>
                                 <div className="markdown-body">
@@ -8468,24 +8469,24 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                       </h4>
                       <div className="flex flex-wrap items-center gap-3">
                         <span
-                          className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded bg-white/5 border ${selectedCandidate?.phase_name === candidate.phase_name ? "text-violet-200 border-violet-500/30" : "text-slate-400 border-white/10"}`}
+                          className={`px-2 py-0.5 text-xs font-black uppercase tracking-widest rounded bg-white/5 border ${selectedCandidate?.phase_name === candidate.phase_name ? "text-violet-200 border-violet-500/30" : "text-slate-400 border-white/10"}`}
                         >
                           {candidate.formula}
                         </span>
                         {candidate.elements && candidate.elements.length > 0 && (
-                          <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded bg-blue-500/10 border border-blue-500/30 text-blue-400">
+                          <span className="px-2 py-0.5 text-xs font-black uppercase tracking-widest rounded bg-blue-500/10 border border-blue-500/30 text-blue-400">
                             {candidate.elements.join(", ")}
                           </span>
                         )}
-                        <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1 uppercase tracking-widest">
+                        <span className="text-xs font-mono text-slate-500 flex items-center gap-1 uppercase tracking-widest">
                           <Database className="w-3 h-3" /> {candidate.card_id}
                         </span>
-                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
+                        <span className="text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
                           <CheckCircle className="w-2.5 h-2.5" /> COD / MP Verified
                         </span>
                         {candidate.match_quality && (
                           <span
-                            className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border shadow-inner
+                            className={`px-2 py-0.5 rounded text-xs font-black uppercase tracking-widest border shadow-inner
                            ${
                              candidate.match_quality === "Excellent"
                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
@@ -8527,38 +8528,38 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                   <div className="mt-8 pt-6 border-t border-slate-800/80 hover:border-slate-700 animate-in slide-in-from-top-4 relative z-10 space-y-6">
                     {/* Quantitative Residuals & Figure of Merit */}
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                         <Activity className="w-4 h-4 text-cyan-400" />{" "}
                         Phase Identification Residuals & Figure of Merit
                       </p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">Rwp Residual</span>
+                          <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-black">Rwp Residual</span>
                           <span className="text-sm font-mono font-black text-emerald-400 drop-shadow-sm">
                             {candidate.rwp !== undefined ? `${candidate.rwp.toFixed(2)}%` : "N/A"}
                           </span>
-                          <span className="text-[8px] text-slate-600">Weighted Pattern Error</span>
+                          <span className="text-xs text-slate-600">Weighted Pattern Error</span>
                         </div>
                         <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">Rp Residual</span>
+                          <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-black">Rp Residual</span>
                           <span className="text-sm font-mono font-black text-cyan-400 drop-shadow-sm">
                             {candidate.rp !== undefined ? `${candidate.rp.toFixed(2)}%` : "N/A"}
                           </span>
-                          <span className="text-[8px] text-slate-600">Pattern Profile Error</span>
+                          <span className="text-xs text-slate-600">Pattern Profile Error</span>
                         </div>
                         <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">GoF (χ²)</span>
+                          <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-black">GoF (χ²)</span>
                           <span className="text-sm font-mono font-black text-violet-400 drop-shadow-sm">
                             {candidate.gof !== undefined ? candidate.gof.toFixed(2) : "N/A"}
                           </span>
-                          <span className="text-[8px] text-slate-600">Goodness of Fit</span>
+                          <span className="text-xs text-slate-600">Goodness of Fit</span>
                         </div>
                         <div className="bg-[#03060C] p-3 rounded-xl border border-slate-800/80 shadow-inner flex flex-col gap-1">
-                          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black">RMS 2θ Shift</span>
+                          <span className="text-xs font-mono text-slate-500 uppercase tracking-widest font-black">RMS 2θ Shift</span>
                           <span className="text-sm font-mono font-black text-amber-400 drop-shadow-sm">
                             {candidate.rmsAngleShift !== undefined ? `${candidate.rmsAngleShift.toFixed(4)}°` : "N/A"}
                           </span>
-                          <span className="text-[8px] text-slate-600">Lattice Contraction/Strain</span>
+                          <span className="text-xs text-slate-600">Lattice Contraction/Strain</span>
                         </div>
                       </div>
                     </div>
@@ -8566,18 +8567,18 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                     {/* Biomedical & Pharmaceutical Intelligence Metrics Card */}
                     {(candidate.caPRatio || candidate.bioactivityIndex || candidate.polymorphType || candidate.excipientRole) && (
                       <div className="bg-gradient-to-r from-teal-950/30 via-emerald-950/20 to-slate-900/40 p-4 rounded-xl border border-teal-500/30 shadow-md">
-                        <p className="text-[10px] font-black text-teal-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                        <p className="text-xs font-black text-teal-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                           <FlaskConical className="w-4 h-4 text-emerald-400" />{" "}
                           Biomedical, Bioceramic & Pharmaceutical Intelligence
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                           {candidate.caPRatio !== undefined && (
                             <div className="bg-[#03060C]/80 p-3 rounded-lg border border-teal-500/20 flex flex-col gap-1">
-                              <span className="text-[9px] font-mono text-teal-400 uppercase tracking-widest font-black">Ca/P Atomic Ratio</span>
+                              <span className="text-xs font-mono text-teal-400 uppercase tracking-widest font-black">Ca/P Atomic Ratio</span>
                               <span className="text-sm font-mono font-black text-teal-300">
                                 {candidate.caPRatio.toFixed(2)}
                               </span>
-                              <span className="text-[8px] text-slate-400">
+                              <span className="text-xs text-slate-400">
                                 {candidate.caPRatio >= 1.66 ? "Stoichiometric Apatite Mineral" : candidate.caPRatio >= 1.49 ? "Tricalcium Phosphate (TCP) Resorbable" : "Acidic Calcium Phosphate Cement Phase"}
                               </span>
                             </div>
@@ -8585,12 +8586,12 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                           {candidate.bioactivityIndex && (
                             <div className="bg-[#03060C]/80 p-3 rounded-lg border border-emerald-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2">
-                              <span className="text-[9px] font-mono text-emerald-400 uppercase tracking-widest font-black">SBF Bioactivity & Tissue Integration</span>
+                              <span className="text-xs font-mono text-emerald-400 uppercase tracking-widest font-black">SBF Bioactivity & Tissue Integration</span>
                               <span className="text-xs font-mono font-bold text-emerald-200">
                                 {candidate.bioactivityIndex}
                               </span>
                               {candidate.resorbabilityClass && (
-                                <span className="text-[9px] text-slate-400 mt-0.5">
+                                <span className="text-xs text-slate-400 mt-0.5">
                                   In-Vivo Remodeling: <span className="text-emerald-300 font-bold">{candidate.resorbabilityClass}</span>
                                 </span>
                               )}
@@ -8599,7 +8600,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                           {candidate.polymorphType && (
                             <div className="bg-[#03060C]/80 p-3 rounded-lg border border-cyan-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2 md:col-span-3">
-                              <span className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest font-black">Pharmaceutical API Polymorphic Designation</span>
+                              <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-black">Pharmaceutical API Polymorphic Designation</span>
                               <span className="text-xs font-mono font-bold text-cyan-200">
                                 {candidate.polymorphType}
                               </span>
@@ -8608,7 +8609,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                           {candidate.excipientRole && (
                             <div className="bg-[#03060C]/80 p-3 rounded-lg border border-indigo-500/20 flex flex-col gap-1 col-span-1 sm:col-span-2 md:col-span-3">
-                              <span className="text-[9px] font-mono text-indigo-400 uppercase tracking-widest font-black">Solid Dosage Excipient Functionality</span>
+                              <span className="text-xs font-mono text-indigo-400 uppercase tracking-widest font-black">Solid Dosage Excipient Functionality</span>
                               <span className="text-xs font-mono font-bold text-indigo-200">
                                 {candidate.excipientRole}
                               </span>
@@ -8620,7 +8621,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                     {/* Matched Reflections Indexing */}
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />{" "}
                         Bragg Peak Alignment Verification ({candidate.matched_peaks?.length || 0} reflections)
                       </p>
@@ -8636,7 +8637,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               </span>
                               <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                             </div>
-                            <div className="flex items-center justify-between mt-1 text-[9px] font-mono">
+                            <div className="flex items-center justify-between mt-1 text-xs font-mono">
                               {mp.h !== undefined && mp.k !== undefined && mp.l !== undefined ? (
                                 <span className="text-teal-400 font-black">
                                   ({mp.h} {mp.k} {mp.l})
@@ -8662,7 +8663,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
               <p className="font-black text-xl text-slate-300 tracking-tight group-hover:text-white transition-colors">
                 Awaiting Inference Protocol
               </p>
-              <p className="text-[10px] mt-2 font-mono text-slate-500 uppercase tracking-[0.2em]">
+              <p className="text-xs mt-2 font-mono text-slate-500 uppercase tracking-[0.2em]">
                 Load input data to initialize neural core
               </p>
             </div>
@@ -8683,7 +8684,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                   <h3 className="font-bold text-lg leading-tight text-white font-black tracking-tighter">
                     Lattice Estimator
                   </h3>
-                  <p className="text-[10px] text-emerald-400 font-mono font-bold tracking-widest uppercase mt-0.5">
+                  <p className="text-xs text-emerald-400 font-mono font-bold tracking-widest uppercase mt-0.5">
                     Local Computation Engine 12.4
                   </p>
                 </div>
@@ -8702,14 +8703,14 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                   <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
                     Estimated Constant (a)
                   </span>
-                  <span className="text-[10px] font-mono text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded leading-none">
+                  <span className="text-xs font-mono text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded leading-none">
                     Ångströms
                   </span>
                 </div>
                 <div className="text-4xl font-mono font-black text-emerald-600 tracking-tighter">
                   {latticeResult?.a.toFixed(4) || "---"}
                 </div>
-                <div className="mt-2 text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest flex items-center gap-2">
+                <div className="mt-2 text-xs font-bold text-emerald-700/60 uppercase tracking-widest flex items-center gap-2">
                   <div className="flex-1 h-[1px] bg-emerald-200" />
                   Lattice Refinement Logic active
                   <div className="flex-1 h-[1px] bg-emerald-200" />
@@ -8718,7 +8719,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                     Lattice Symmetry Constraint
                   </label>
                   <select className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20">
@@ -8730,7 +8731,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                       Miller H
                     </label>
                     <input
@@ -8740,7 +8741,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                       Miller K
                     </label>
                     <input
@@ -8750,7 +8751,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">
                       Miller L
                     </label>
                     <input
@@ -8769,7 +8770,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                 >
                   Update Model
                 </button>
-                <p className="text-[10px] text-center text-slate-400 mt-3 italic font-semibold">
+                <p className="text-xs text-center text-slate-400 mt-3 italic font-semibold">
                   Note: Estimates are based on Cu K-alpha radiation (1.5406 Å)
                 </p>
               </div>
@@ -8802,7 +8803,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                     <h3 className="font-black text-lg leading-tight text-white tracking-tighter">
                       AI Phase ID Chat Assistant
                     </h3>
-                    <p className="text-[10px] text-cyan-100 font-mono font-bold tracking-widest uppercase mt-0.5">
+                    <p className="text-xs text-cyan-100 font-mono font-bold tracking-widest uppercase mt-0.5">
                       Interactive Crystallography Expert
                     </p>
                   </div>

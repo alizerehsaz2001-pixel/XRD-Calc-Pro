@@ -1,6 +1,6 @@
 {
   "name": "XRD-Calc Pro",
-  "description": "High-precision Bragg's Law calculator, Image Analysis Engine with native Client CV & OpenCV 5.x, Bragg Basis & Crystallographic Kinematics with Ewald sphere mapping, NIST isotope database, and powder diffractogram profiling.",
+  "description": "High-precision Bragg's Law calculator, native Levenberg-Marquardt Rietveld refinement suite with NIST SRM benchmarks & Hill-Howard QPA, Image Analysis Engine with OpenCV, Crystallographic Kinematics with Ewald sphere mapping, and powder diffractogram profiling.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

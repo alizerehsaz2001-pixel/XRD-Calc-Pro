@@ -20,6 +20,12 @@ import rietveldBg from '../src/assets/images/rietveld_bg_1785614322504.jpg';
 import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
+import { RietveldAdvancedControls } from './RietveldAdvancedControls';
+import { RietveldParameterSet } from './RietveldParameterSet';
+import { 
+  PhaseModel, RefinementFlags, SolverStepResult, 
+  runLevenbergMarquardtStep, calculateHillHowardQpa, NistStandard 
+} from '../utils/rietveldSolver';
 
 
 // --- Simulation Constants & Types ---
@@ -585,6 +591,28 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
   const [pythonRefineError, setPythonRefineError] = useState<string | null>(null);
   const [pythonHistory, setPythonHistory] = useState<any[]>([]);
 
+  // Analytical LM Solver & Experimental Data state
+  const [customObsIntensities, setCustomObsIntensities] = useState<Float32Array | null>(null);
+  const [customSampleName, setCustomSampleName] = useState<string | null>(null);
+  const [refinementFlags, setRefinementFlags] = useState<RefinementFlags>({
+    refineScale: true,
+    refineLattice: true,
+    refineFwhm: false,
+    refineEta: false,
+    refineZeroShift: true,
+    refineBkg: true,
+    refineMicrostrain: false,
+    refineCrystalliteSize: false
+  });
+  const [lastSolverResult, setLastSolverResult] = useState<SolverStepResult | null>(null);
+  const [isSolverRefining, setIsSolverRefining] = useState(false);
+  const [solverProgress, setSolverProgress] = useState<{ current: number; total: number; message: string } | null>(null);
+  const [solverLambda, setSolverLambda] = useState(0.01);
+
+  const qpaResults = useMemo(() => {
+    return calculateHillHowardQpa(simPhases);
+  }, [simPhases]);
+
   const runPythonRietveldRefinement = async () => {
     setIsPythonRefining(true);
     setPythonRefineError(null);
@@ -600,11 +628,12 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           two_theta_min: SIMULATION_RANGE.start,
           two_theta_max: SIMULATION_RANGE.end,
           step_size: SIMULATION_RANGE.step,
-          refine_scale: true,
-          refine_lattice: true,
-          refine_fwhm: true,
-          refine_eta: true,
-          refine_zero_shift: true
+          refine_scale: refinementFlags.refineScale,
+          refine_lattice: refinementFlags.refineLattice,
+          refine_fwhm: refinementFlags.refineFwhm,
+          refine_eta: refinementFlags.refineEta,
+          refine_zero_shift: refinementFlags.refineZeroShift,
+          observed_data: customObsIntensities ? Array.from(customObsIntensities) : undefined
         })
       });
 
@@ -709,6 +738,11 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
 
   const simPhase = currentPhaseObj.phaseType;
 
+  // Global simulation instrument and background state for live coupling
+  const [simZeroShift, setSimZeroShift] = useState<number>(0.0);
+  const [simSampleDisplacement, setSimSampleDisplacement] = useState<number>(0.0);
+  const [simBackground, setSimBackground] = useState<number>(50);
+
   // Reactively build userParams and targetParams simulated state objects that backwards-compatibility layers expect
   const userParams = useMemo(() => {
     return {
@@ -719,25 +753,26 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
       crystalliteSize: currentPhaseObj.crystalliteSize,
       microstrain: currentPhaseObj.microstrain,
       peaks: currentPhaseObj.peaks,
-      zeroShift: 0.0,
-      sampleDisplacement: 0.0,
-      background: 50,
+      zeroShift: simZeroShift,
+      sampleDisplacement: simSampleDisplacement,
+      background: simBackground,
       noise: 20
     };
-  }, [currentPhaseObj]);
+  }, [currentPhaseObj, simZeroShift, simSampleDisplacement, simBackground]);
 
   const targetParams = useMemo(() => {
+    const targetLookup: any = TARGET_PARAMS[currentPhaseObj.phaseType] || currentPhaseObj;
     return {
-      a: currentPhaseObj.targetA,
-      scale: currentPhaseObj.targetScale,
-      fwhm: currentPhaseObj.targetFwhm,
-      eta: currentPhaseObj.targetEta,
-      crystalliteSize: currentPhaseObj.targetCrystalliteSize,
-      microstrain: currentPhaseObj.targetMicrostrain,
+      a: currentPhaseObj.targetA ?? targetLookup.a,
+      scale: currentPhaseObj.targetScale ?? targetLookup.scale,
+      fwhm: currentPhaseObj.targetFwhm ?? targetLookup.fwhm,
+      eta: currentPhaseObj.targetEta ?? targetLookup.eta,
+      crystalliteSize: currentPhaseObj.targetCrystalliteSize ?? targetLookup.crystalliteSize,
+      microstrain: currentPhaseObj.targetMicrostrain ?? targetLookup.microstrain,
       peaks: currentPhaseObj.peaks,
       zeroShift: 0.0,
       sampleDisplacement: 0.0,
-      background: 50,
+      background: (targetLookup as any).background ?? 50,
       noise: 20
     };
   }, [currentPhaseObj]);
@@ -788,14 +823,26 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           crystalliteSize: current.crystalliteSize,
           microstrain: current.microstrain,
           peaks: current.peaks,
-          zeroShift: 0.0,
-          sampleDisplacement: 0.0,
-          background: 50,
+          zeroShift: simZeroShift,
+          sampleDisplacement: simSampleDisplacement,
+          background: simBackground,
           noise: 20
         };
         res = updater(currentParamObj);
       } else {
         res = updater;
+      }
+
+      if (res.zeroShift !== undefined) {
+        setSimZeroShift(res.zeroShift);
+        setSetupZeroShift(res.zeroShift);
+      }
+      if (res.sampleDisplacement !== undefined) {
+        setSimSampleDisplacement(res.sampleDisplacement);
+        setSampleDisplacement(res.sampleDisplacement);
+      }
+      if (res.background !== undefined) {
+        setSimBackground(res.background);
       }
 
       next[selectedSimPhaseIdx] = {
@@ -1092,9 +1139,9 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
         }
         const theta = (twoThetaBase / 2) * (Math.PI / 180);
         
-        const zeroShift = 0.0;
-        const sampleDisplacement = 0.0;
-        const displacementShift = -sampleDisplacement * Math.cos(theta);
+        const zeroShift = simZeroShift;
+        const displacement = simSampleDisplacement;
+        const displacementShift = -displacement * Math.cos(theta);
         const twoTheta = twoThetaBase + zeroShift + displacementShift;
 
         if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
@@ -1127,7 +1174,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           const sinTheta2 = wavelength2 / (2 * d);
           if (sinTheta2 < 1) {
             const theta2 = Math.asin(sinTheta2);
-            const displacementShift2 = -sampleDisplacement * Math.cos(theta2);
+            const displacementShift2 = -displacement * Math.cos(theta2);
             const twoTheta2 = 2 * theta2 * (180 / Math.PI) + zeroShift + displacementShift2;
             addPeak(twoTheta2, totalFwhm, baseAmplitude * 0.5);
           }
@@ -1145,13 +1192,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
     }
     
     const diffOffset = -maxObs * 0.15; 
-    const globalBkg = 60;
+    const globalBkg = simBackground;
 
     for (let i = 0; i < dataLen; i++) {
       const twoT = SIMULATION_RANGE.start + i * SIMULATION_RANGE.step;
       const trueBkg = globalBkg * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
       
-      const obs = obsIntensities[i];
+      const obs = customObsIntensities ? customObsIntensities[i] : obsIntensities[i];
       const calc = calcIntensities[i] + trueBkg;
       
       const dataPoint = {
@@ -1175,7 +1222,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
     const R = Math.sqrt(sumResSq / Math.max(0.0001, sumObsSq)) * 100;
     
     return { data, R };
-  }, [simPhases, obsIntensities]);
+  }, [simPhases, obsIntensities, customObsIntensities, simZeroShift, simSampleDisplacement, simBackground]);
 
   const rFactor = generatePatternData.R;
   const referenceRwp = useMemo(() => {
@@ -1832,77 +1879,671 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
   const [stepwiseStage, setStepwiseStage] = useState<number>(0);
   const [stepwiseMessage, setStepwiseMessage] = useState<string>('');
 
-  const runStepwiseRefinement = async () => {
-    if (stepwiseActive) {
-      setStepwiseActive(false);
-      setStepwiseStage(0);
-      setStepwiseMessage('');
-      return;
+  const handleResetCold = () => {
+    const target = TARGET_PARAMS[simPhase];
+    if (target) {
+      setUserParams({
+        ...target,
+        a: target.a * 1.05,
+        scale: target.scale * 0.8,
+        fwhm: target.fwhm * 1.5,
+        eta: Math.min(1, target.eta * 1.2),
+        zeroShift: 0.15,
+        background: target.background * 1.2,
+        crystalliteSize: target.crystalliteSize * 0.8,
+        microstrain: target.microstrain * 1.5,
+        sampleDisplacement: 0.1
+      });
+      setIsAutoRefining(false);
+      setShowMatrix(false);
+    }
+  };
+
+  const handleResetToNominal = () => {
+    const target = TARGET_PARAMS[simPhase];
+    if (target) {
+      setUserParams({
+        ...target,
+        a: target.a,
+        scale: target.scale,
+        fwhm: target.fwhm,
+        eta: target.eta,
+        zeroShift: 0.0,
+        sampleDisplacement: 0.0,
+        crystalliteSize: target.crystalliteSize,
+        microstrain: target.microstrain,
+        background: target.background,
+        noise: target.noise,
+        peaks: getPeaksForPhase(simPhase, target.a)
+      });
+      setIsAutoRefining(false);
+      setShowMatrix(false);
+    }
+  };
+
+  const handleRunLmStep = () => {
+    if (isSolverRefining) return;
+    setIsSolverRefining(true);
+
+    try {
+      const twoTheta = generatePatternData.data.map(d => d.twoTheta);
+      const yObs = generatePatternData.data.map(d => d.obs);
+
+      const solverPhases: PhaseModel[] = simPhases.map(p => ({
+        id: p.id,
+        name: p.name,
+        phaseType: p.phaseType,
+        enabled: p.enabled,
+        a: p.a,
+        scale: p.scale,
+        fwhm: p.fwhm,
+        eta: p.eta,
+        crystalliteSize: p.crystalliteSize,
+        microstrain: p.microstrain,
+        peaks: p.peaks
+      }));
+
+      const res = runLevenbergMarquardtStep(
+        twoTheta,
+        yObs,
+        solverPhases,
+        userParams.background,
+        setupZeroShift,
+        refinementFlags,
+        solverLambda,
+        wavelength || 1.5406
+      );
+
+      setLastSolverResult(res);
+      setSolverLambda(res.lambda);
+      setSetupZeroShift(res.zeroShift);
+      setUserParams(prev => ({
+        ...prev,
+        background: res.backgroundLevel,
+        zeroShift: res.zeroShift
+      }));
+
+      setSimPhases(prev => prev.map((p, idx) => {
+        const updated = res.phases[idx];
+        if (!updated) return p;
+        return {
+          ...p,
+          a: updated.a,
+          scale: updated.scale,
+          fwhm: updated.fwhm,
+          eta: updated.eta,
+          crystalliteSize: updated.crystalliteSize,
+          microstrain: updated.microstrain
+        };
+      }));
+
+      setRHistory(prev => [
+        ...prev,
+        {
+          iter: prev.length + 1,
+          rwp: res.rwp,
+          rexp: res.rexp,
+          gof: res.gof,
+          params: res.phases.map(p => ({
+            id: p.id,
+            name: p.name,
+            a: p.a,
+            scale: p.scale,
+            fwhm: p.fwhm,
+            eta: p.eta,
+            crystalliteSize: p.crystalliteSize,
+            microstrain: p.microstrain
+          }))
+        }
+      ]);
+
+      if (res.rwp < rFactor) {
+        playSynthTone('success');
+      } else {
+        playSynthTone('action');
+      }
+    } catch (e) {
+      console.error("Levenberg-Marquardt step error", e);
+    } finally {
+      setIsSolverRefining(false);
+    }
+  };
+
+  const handleRunMultiCycle = async (cycles: number) => {
+    if (isSolverRefining) return;
+    setIsSolverRefining(true);
+
+    let currentLambda = solverLambda;
+    let currentZero = setupZeroShift;
+    let currentBkg = userParams.background;
+    let currentPhases = [...simPhases];
+
+    for (let cycle = 1; cycle <= cycles; cycle++) {
+      setSolverProgress({
+        current: cycle,
+        total: cycles,
+        message: `Running LM optimization cycle ${cycle}/${cycles}...`
+      });
+
+      const twoTheta = generatePatternData.data.map(d => d.twoTheta);
+      const yObs = generatePatternData.data.map(d => d.obs);
+
+      const solverPhases: PhaseModel[] = currentPhases.map(p => ({
+        id: p.id,
+        name: p.name,
+        phaseType: p.phaseType,
+        enabled: p.enabled,
+        a: p.a,
+        scale: p.scale,
+        fwhm: p.fwhm,
+        eta: p.eta,
+        crystalliteSize: p.crystalliteSize,
+        microstrain: p.microstrain,
+        peaks: p.peaks
+      }));
+
+      const res = runLevenbergMarquardtStep(
+        twoTheta,
+        yObs,
+        solverPhases,
+        currentBkg,
+        currentZero,
+        refinementFlags,
+        currentLambda,
+        wavelength || 1.5406
+      );
+
+      currentLambda = res.lambda;
+      currentZero = res.zeroShift;
+      currentBkg = res.backgroundLevel;
+
+      setLastSolverResult(res);
+      setSolverLambda(res.lambda);
+      setSetupZeroShift(res.zeroShift);
+      setUserParams(prev => ({
+        ...prev,
+        background: res.backgroundLevel,
+        zeroShift: res.zeroShift
+      }));
+
+      currentPhases = currentPhases.map((p, idx) => {
+        const updated = res.phases[idx];
+        if (!updated) return p;
+        return {
+          ...p,
+          a: updated.a,
+          scale: updated.scale,
+          fwhm: updated.fwhm,
+          eta: updated.eta,
+          crystalliteSize: updated.crystalliteSize,
+          microstrain: updated.microstrain
+        };
+      });
+      setSimPhases(currentPhases);
+
+      setRHistory(prev => [
+        ...prev,
+        {
+          iter: prev.length + 1,
+          rwp: res.rwp,
+          rexp: res.rexp,
+          gof: res.gof,
+          params: res.phases.map(p => ({
+            id: p.id,
+            name: p.name,
+            a: p.a,
+            scale: p.scale,
+            fwhm: p.fwhm,
+            eta: p.eta,
+            crystalliteSize: p.crystalliteSize,
+            microstrain: p.microstrain
+          }))
+        }
+      ]);
+
+      await new Promise(r => setTimeout(r, 120));
     }
 
-    setStepwiseActive(true);
-    playSynthTone('action');
-
-    // Stage 1: Scale Factor & Background
-    setStepwiseStage(1);
-    setStepwiseMessage('Stage 1/5: Aligning specimen scale factor & background baseline...');
-    setUserParams((prev: any) => ({
-      ...prev,
-      scale: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].scale : 1000,
-      background: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].background : 50
-    }));
-    await new Promise(r => setTimeout(r, 750));
-    playSynthTone('switch');
-
-    // Stage 2: Zero Shift & Sample Displacement
-    setStepwiseStage(2);
-    setStepwiseMessage('Stage 2/5: Correcting zero-point angular shift & specimen displacement...');
-    setUserParams((prev: any) => ({
-      ...prev,
-      zeroShift: 0.0,
-      sampleDisplacement: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].sampleDisplacement : 0.0
-    }));
-    await new Promise(r => setTimeout(r, 750));
-    playSynthTone('switch');
-
-    // Stage 3: Lattice Parameter (a)
-    setStepwiseStage(3);
-    setStepwiseMessage('Stage 3/5: Optimizing unit cell lattice parameters (a, b, c)...');
-    setUserParams((prev: any) => ({
-      ...prev,
-      a: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].a : 4.0
-    }));
-    await new Promise(r => setTimeout(r, 800));
-    playSynthTone('switch');
-
-    // Stage 4: Profile Broadening & Pseudo-Voigt (η, FWHM)
-    setStepwiseStage(4);
-    setStepwiseMessage('Stage 4/5: Fitting Caglioti profile shape & pseudo-Voigt Lorentzian fraction (η)...');
-    setUserParams((prev: any) => ({
-      ...prev,
-      fwhm: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].fwhm : 0.2,
-      eta: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].eta : 0.5
-    }));
-    await new Promise(r => setTimeout(r, 800));
-    playSynthTone('switch');
-
-    // Stage 5: Crystallite Size & Microstrain
-    setStepwiseStage(5);
-    setStepwiseMessage('Stage 5/5: Fine-tuning Scherrer domain size and Stokes-Wilson microstrain...');
-    setUserParams((prev: any) => ({
-      ...prev,
-      crystalliteSize: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].crystalliteSize : 100,
-      microstrain: TARGET_PARAMS[simPhase] ? TARGET_PARAMS[simPhase].microstrain : 0.02
-    }));
-    await new Promise(r => setTimeout(r, 900));
     playSynthTone('success');
+    setSolverProgress(null);
+    setIsSolverRefining(false);
+  };
 
-    setStepwiseMessage('Refinement successfully completed! Residual R_wp minimized.');
+  const handleRunFiveStageProtocol = async () => {
+    if (isSolverRefining) return;
+    setIsSolverRefining(true);
+    setStepwiseActive(true);
+
+    const stages: Array<{ stage: number; title: string; flags: RefinementFlags; cycles: number }> = [
+      {
+        stage: 1,
+        title: 'Stage 1/5: Scale Factor & Incoherent Background Refinement',
+        flags: { refineScale: true, refineLattice: false, refineFwhm: false, refineEta: false, refineZeroShift: false, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 2
+      },
+      {
+        stage: 2,
+        title: 'Stage 2/5: Goniometer Zero-Point Shift (2θ₀) Calibration',
+        flags: { refineScale: true, refineLattice: false, refineFwhm: false, refineEta: false, refineZeroShift: true, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 2
+      },
+      {
+        stage: 3,
+        title: 'Stage 3/5: Unit Cell Lattice Parameter (a) Optimization',
+        flags: { refineScale: true, refineLattice: true, refineFwhm: false, refineEta: false, refineZeroShift: true, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 3
+      },
+      {
+        stage: 4,
+        title: 'Stage 4/5: Peak Width (FWHM) & Pseudo-Voigt Lorentzian (η) Fitting',
+        flags: { refineScale: true, refineLattice: true, refineFwhm: true, refineEta: true, refineZeroShift: true, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 3
+      },
+      {
+        stage: 5,
+        title: 'Stage 5/5: Simultaneous Multi-Parameter Convergence & Microstrain',
+        flags: { refineScale: true, refineLattice: true, refineFwhm: true, refineEta: true, refineZeroShift: true, refineBkg: true, refineMicrostrain: true, refineCrystalliteSize: true },
+        cycles: 3
+      }
+    ];
+
+    let currentLambda = solverLambda;
+    let currentZero = setupZeroShift;
+    let currentBkg = userParams.background;
+    let currentPhases = [...simPhases];
+
+    for (const st of stages) {
+      setStepwiseStage(st.stage);
+      setStepwiseMessage(st.title);
+      setRefinementFlags(st.flags);
+
+      for (let c = 1; c <= st.cycles; c++) {
+        setSolverProgress({
+          current: (st.stage - 1) * 3 + c,
+          total: 13,
+          message: `${st.title} (Cycle ${c}/${st.cycles})`
+        });
+
+        const twoTheta = generatePatternData.data.map(d => d.twoTheta);
+        const yObs = generatePatternData.data.map(d => d.obs);
+
+        const solverPhases: PhaseModel[] = currentPhases.map(p => ({
+          id: p.id,
+          name: p.name,
+          phaseType: p.phaseType,
+          enabled: p.enabled,
+          a: p.a,
+          scale: p.scale,
+          fwhm: p.fwhm,
+          eta: p.eta,
+          crystalliteSize: p.crystalliteSize,
+          microstrain: p.microstrain,
+          peaks: p.peaks
+        }));
+
+        const res = runLevenbergMarquardtStep(
+          twoTheta,
+          yObs,
+          solverPhases,
+          currentBkg,
+          currentZero,
+          st.flags,
+          currentLambda,
+          wavelength || 1.5406
+        );
+
+        currentLambda = res.lambda;
+        currentZero = res.zeroShift;
+        currentBkg = res.backgroundLevel;
+
+        setLastSolverResult(res);
+        setSolverLambda(res.lambda);
+        setSetupZeroShift(res.zeroShift);
+        setUserParams(prev => ({
+          ...prev,
+          background: res.backgroundLevel,
+          zeroShift: res.zeroShift
+        }));
+
+        currentPhases = currentPhases.map((p, idx) => {
+          const updated = res.phases[idx];
+          if (!updated) return p;
+          return {
+            ...p,
+            a: updated.a,
+            scale: updated.scale,
+            fwhm: updated.fwhm,
+            eta: updated.eta,
+            crystalliteSize: updated.crystalliteSize,
+            microstrain: updated.microstrain
+          };
+        });
+        setSimPhases(currentPhases);
+
+        setRHistory(prev => [
+          ...prev,
+          {
+            iter: prev.length + 1,
+            rwp: res.rwp,
+            rexp: res.rexp,
+            gof: res.gof,
+            params: res.phases.map(p => ({
+              id: p.id,
+              name: p.name,
+              a: p.a,
+              scale: p.scale,
+              fwhm: p.fwhm,
+              eta: p.eta,
+              crystalliteSize: p.crystalliteSize,
+              microstrain: p.microstrain
+            }))
+          }
+        ]);
+
+        await new Promise(r => setTimeout(r, 120));
+      }
+
+      playSynthTone('switch');
+    }
+
+    playSynthTone('success');
+    setStepwiseMessage('5-Stage Standard Protocol successfully completed! R_wp minimized.');
     setTimeout(() => {
       setStepwiseActive(false);
       setStepwiseStage(0);
       setStepwiseMessage('');
-    }, 2800);
+    }, 4500);
+
+    setSolverProgress(null);
+    setIsSolverRefining(false);
+  };
+
+  const runStepwiseRefinement = handleRunFiveStageProtocol;
+
+  const handleRunSingleStage = async (stageNumber: number) => {
+    if (isSolverRefining) return;
+    setIsSolverRefining(true);
+    setStepwiseActive(true);
+
+    const stagesConfig: Record<number, { stage: number; title: string; flags: RefinementFlags; cycles: number }> = {
+      1: {
+        stage: 1,
+        title: 'Stage 1: Scale & Background Refinement',
+        flags: { refineScale: true, refineLattice: false, refineFwhm: false, refineEta: false, refineZeroShift: false, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 3
+      },
+      2: {
+        stage: 2,
+        title: 'Stage 2: Goniometer Zero-Point Shift (2θ₀) Calibration',
+        flags: { refineScale: true, refineLattice: false, refineFwhm: false, refineEta: false, refineZeroShift: true, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 3
+      },
+      3: {
+        stage: 3,
+        title: 'Stage 3: Unit Cell Lattice Parameter (a) Optimization',
+        flags: { refineScale: true, refineLattice: true, refineFwhm: false, refineEta: false, refineZeroShift: true, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 3
+      },
+      4: {
+        stage: 4,
+        title: 'Stage 4: Peak Width (FWHM) & Pseudo-Voigt (η) Fitting',
+        flags: { refineScale: true, refineLattice: true, refineFwhm: true, refineEta: true, refineZeroShift: true, refineBkg: true, refineMicrostrain: false, refineCrystalliteSize: false },
+        cycles: 3
+      },
+      5: {
+        stage: 5,
+        title: 'Stage 5: Simultaneous Microstrain & Crystallite Size',
+        flags: { refineScale: true, refineLattice: true, refineFwhm: true, refineEta: true, refineZeroShift: true, refineBkg: true, refineMicrostrain: true, refineCrystalliteSize: true },
+        cycles: 3
+      }
+    };
+
+    const st = stagesConfig[stageNumber] || stagesConfig[1];
+    setStepwiseStage(st.stage);
+    setStepwiseMessage(st.title);
+    setRefinementFlags(st.flags);
+
+    let currentLambda = solverLambda;
+    let currentZero = simZeroShift;
+    let currentBkg = simBackground;
+    let currentPhases = [...simPhases];
+
+    for (let c = 1; c <= st.cycles; c++) {
+      setSolverProgress({
+        current: c,
+        total: st.cycles,
+        message: `${st.title} (Cycle ${c}/${st.cycles})`
+      });
+
+      const twoTheta = generatePatternData.data.map(d => d.twoTheta);
+      const yObs = generatePatternData.data.map(d => d.obs);
+
+      const solverPhases: PhaseModel[] = currentPhases.map(p => ({
+        id: p.id,
+        name: p.name,
+        phaseType: p.phaseType,
+        enabled: p.enabled,
+        a: p.a,
+        scale: p.scale,
+        fwhm: p.fwhm,
+        eta: p.eta,
+        crystalliteSize: p.crystalliteSize,
+        microstrain: p.microstrain,
+        peaks: p.peaks
+      }));
+
+      const res = runLevenbergMarquardtStep(
+        twoTheta,
+        yObs,
+        solverPhases,
+        currentBkg,
+        currentZero,
+        st.flags,
+        currentLambda,
+        wavelength || 1.5406
+      );
+
+      currentLambda = res.lambda;
+      currentZero = res.zeroShift;
+      currentBkg = res.backgroundLevel;
+
+      setLastSolverResult(res);
+      setSolverLambda(res.lambda);
+      setSetupZeroShift(res.zeroShift);
+      setSimZeroShift(res.zeroShift);
+      setSimBackground(res.backgroundLevel);
+      setUserParams(prev => ({
+        ...prev,
+        background: res.backgroundLevel,
+        zeroShift: res.zeroShift
+      }));
+
+      currentPhases = currentPhases.map((p, idx) => {
+        const updated = res.phases[idx];
+        if (!updated) return p;
+        return {
+          ...p,
+          a: updated.a,
+          scale: updated.scale,
+          fwhm: updated.fwhm,
+          eta: updated.eta,
+          crystalliteSize: updated.crystalliteSize,
+          microstrain: updated.microstrain
+        };
+      });
+      setSimPhases(currentPhases);
+
+      setRHistory(prev => [
+        ...prev,
+        {
+          iter: prev.length + 1,
+          rwp: res.rwp,
+          rexp: res.rexp,
+          gof: res.gof,
+          params: res.phases.map(p => ({
+            id: p.id,
+            name: p.name,
+            a: p.a,
+            scale: p.scale,
+            fwhm: p.fwhm,
+            eta: p.eta,
+            crystalliteSize: p.crystalliteSize,
+            microstrain: p.microstrain
+          }))
+        }
+      ]);
+
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    playSynthTone('success');
+    setStepwiseMessage(`${st.title} finished.`);
+    setTimeout(() => {
+      setStepwiseActive(false);
+      setStepwiseStage(0);
+      setStepwiseMessage('');
+    }, 3000);
+
+    setSolverProgress(null);
+    setIsSolverRefining(false);
+  };
+
+  const handleLoadNistStandard = (std: NistStandard) => {
+    playSynthTone('switch');
+    setCustomObsIntensities(null);
+    setCustomSampleName(std.name);
+
+    const stdPhaseType = std.crystalSystem.toLowerCase().includes('hexagonal') || std.crystalSystem.toLowerCase().includes('trigonal')
+      ? 'Alumina (Hexagonal)'
+      : 'Simple Cubic';
+    const stdFwhm = 0.10;
+
+    if (std.id === 'srm_mixture') {
+      // Dual-phase Anatase + Rutile
+      const anatasePhase: SimStructure = {
+        id: 'phase_anatase',
+        name: 'Anatase (TiO₂)',
+        phaseType: 'Simple Cubic',
+        enabled: true,
+        a: 3.82,
+        targetA: 3.784,
+        scale: 750,
+        targetScale: 900,
+        fwhm: 0.18,
+        targetFwhm: 0.12,
+        eta: 0.5,
+        targetEta: 0.5,
+        crystalliteSize: 120,
+        targetCrystalliteSize: 150,
+        microstrain: 0.02,
+        targetMicrostrain: 0.01,
+        peaks: getPeaksForPhase('Simple Cubic', 3.784)
+      };
+
+      const rutilePhase: SimStructure = {
+        id: 'phase_rutile',
+        name: 'Rutile (TiO₂)',
+        phaseType: 'Rutile',
+        enabled: true,
+        a: 4.65,
+        targetA: 4.594,
+        scale: 350,
+        targetScale: 400,
+        fwhm: 0.22,
+        targetFwhm: 0.15,
+        eta: 0.6,
+        targetEta: 0.6,
+        crystalliteSize: 100,
+        targetCrystalliteSize: 140,
+        microstrain: 0.03,
+        targetMicrostrain: 0.015,
+        peaks: getPeaksForPhase('Rutile', 4.594)
+      };
+
+      setSimPhases([anatasePhase, rutilePhase]);
+      setSelectedSimPhaseIdx(0);
+      setSimPhase('Simple Cubic');
+      setUserParams(prev => ({
+        ...prev,
+        a: 3.82,
+        scale: 750,
+        fwhm: 0.18,
+        eta: 0.5,
+        zeroShift: 0.05,
+        background: 40
+      }));
+      setSetupZeroShift(0.05);
+    } else {
+      const standardPhase: SimStructure = {
+        id: 'nist_' + std.id,
+        name: `${std.code} ${std.name}`,
+        phaseType: stdPhaseType,
+        enabled: true,
+        a: std.certifiedA * 1.008,
+        targetA: std.certifiedA,
+        scale: 900,
+        targetScale: 1000,
+        fwhm: stdFwhm * 1.4,
+        targetFwhm: stdFwhm,
+        eta: 0.4,
+        targetEta: 0.5,
+        crystalliteSize: 150,
+        targetCrystalliteSize: 180,
+        microstrain: 0.015,
+        targetMicrostrain: 0.008,
+        peaks: getPeaksForPhase(stdPhaseType, std.certifiedA)
+      };
+
+      setSimPhases([standardPhase]);
+      setSelectedSimPhaseIdx(0);
+      setSimPhase(stdPhaseType);
+      setUserParams(prev => ({
+        ...prev,
+        a: std.certifiedA * 1.008,
+        scale: 900,
+        fwhm: stdFwhm * 1.4,
+        eta: 0.4,
+        zeroShift: 0.08,
+        background: 45
+      }));
+      setSetupZeroShift(0.08);
+    }
+
+    setRHistory([]);
+    setIterCount(0);
+  };
+
+  const handleLoadCustomExperimentalData = (name: string, points: Array<{ twoTheta: number; obs: number }>) => {
+    playSynthTone('success');
+    const steps = Math.floor((SIMULATION_RANGE.end - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
+    const dataLen = steps + 1;
+    const interp = new Float32Array(dataLen);
+
+    const sorted = [...points].sort((a, b) => a.twoTheta - b.twoTheta);
+
+    for (let i = 0; i < dataLen; i++) {
+      const target2T = SIMULATION_RANGE.start + i * SIMULATION_RANGE.step;
+      if (target2T <= sorted[0].twoTheta) {
+        interp[i] = sorted[0].obs;
+      } else if (target2T >= sorted[sorted.length - 1].twoTheta) {
+        interp[i] = sorted[sorted.length - 1].obs;
+      } else {
+        let idx = 0;
+        while (idx < sorted.length - 1 && sorted[idx + 1].twoTheta < target2T) {
+          idx++;
+        }
+        const p1 = sorted[idx];
+        const p2 = sorted[idx + 1] || p1;
+        const span = Math.max(0.0001, p2.twoTheta - p1.twoTheta);
+        const frac = (target2T - p1.twoTheta) / span;
+        interp[i] = p1.obs + frac * (p2.obs - p1.obs);
+      }
+    }
+
+    setCustomObsIntensities(interp);
+    setCustomSampleName(name);
+    setRHistory([]);
+    setIterCount(0);
   };
 
   const rietveldWalkthroughSteps: WizardStep[] = [
@@ -2216,1645 +2857,79 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
 
       {/* Content */}
       {activeTab === 'simulation' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Controls */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className={`bg-[#050A14] p-6 rounded-2xl shadow-2xl border relative overflow-hidden group transition-all duration-500 ${isAutoRefining ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.15)]' : 'border-slate-800/80 hover:border-slate-700'}`}>
-              {/* Custom Background Graphic */}
-              <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
-                <img src={rietveldBg} alt="Physics Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
-              </div>
-              <div className={`absolute top-0 right-0 -mt-4 -mr-4 w-48 h-48 rounded-full blur-3xl transition-all duration-700 ${isAutoRefining ? 'bg-teal-500/30 animate-pulse' : 'bg-teal-500/10 group-hover:bg-teal-500/20'}`}></div>
-              
-              <div className="flex justify-between items-center mb-6 relative z-10 border-b border-slate-800/80 pb-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3.5 bg-gradient-to-br from-teal-500/20 to-teal-900/40 rounded-xl border border-teal-500/30 shadow-[0_0_20px_rgba(20,184,166,0.15)] flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
-                    <Settings className="w-5 h-5 text-teal-400 relative z-10" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black text-white tracking-wide">Physics Engine</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/30 rounded cursor-help group/matrix transition-colors hover:bg-indigo-500/20" title="Rietveld Covariance Inter-Parameter Matrix">
-                        <Grid className="w-2.5 h-2.5 text-indigo-400" />
-                        <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Interactive Simulation Matrix</p>
-                      </div>
-                      {isAutoRefining && (
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 rounded-md">
-                           <RefreshCw className="w-2 h-2 text-teal-400 animate-spin" />
-                           <span className="text-[8px] font-black text-teal-400 uppercase tracking-widest">Optimizing</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                   <button 
-                    onClick={runStepwiseRefinement}
-                    className={`px-3.5 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${
-                      stepwiseActive 
-                        ? 'text-emerald-300 bg-emerald-500/20 border-emerald-500/50 shadow-[0_0_15px_rgba(52,211,153,0.3)] animate-pulse' 
-                        : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 hover:bg-emerald-500/20 shadow-[0_0_15px_rgba(52,211,153,0.15)]'
-                    }`}
-                    title="Run Stepwise Crystallographic Auto-Refinement (Scale -> Zero -> Lattice -> Profile -> Microstrain)"
-                   >
-                     <Zap className="w-4 h-4 text-emerald-400" />
-                     {stepwiseActive ? 'Refining Recipe...' : 'Easy Refine'}
-                   </button>
-                   <button 
-                    onClick={() => {
-                       setUserParams({
-                        ...TARGET_PARAMS[simPhase],
-                        a: TARGET_PARAMS[simPhase].a * 1.05,
-                        scale: TARGET_PARAMS[simPhase].scale * 0.8,
-                        fwhm: TARGET_PARAMS[simPhase].fwhm * 1.5,
-                        eta: Math.min(1, TARGET_PARAMS[simPhase].eta * 1.2),
-                        zeroShift: 0.15,
-                        background: TARGET_PARAMS[simPhase].background * 1.2,
-                        crystalliteSize: TARGET_PARAMS[simPhase].crystalliteSize * 0.8,
-                        microstrain: TARGET_PARAMS[simPhase].microstrain * 1.5,
-                        sampleDisplacement: 0.1
-                      });
-                      setIsAutoRefining(false);
-                      setShowMatrix(false);
-                    }}
-                    className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-700 active:scale-95"
-                    title="Cold Reset"
-                   >
-                     <RotateCcw className="w-4 h-4" />
-                   </button>
-                   <button 
-                    onClick={() => setShowMatrix(!showMatrix)}
-                    className={`px-3 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${showMatrix ? 'text-indigo-400 bg-indigo-500/20 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'text-slate-400 border-slate-700 hover:bg-slate-800'}`}
-                    title="Covariance Matrix"
-                   >
-                     <Grid className="w-4 h-4" />
-                     Matrix
-                   </button>
-                   <button 
-                    onClick={() => setIsPythonActive(!isPythonActive)}
-                    className={`px-3 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isPythonActive ? 'text-amber-300 bg-amber-500/20 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'text-slate-400 border-slate-700 hover:bg-slate-800'}`}
-                    title="Toggle Python Features"
-                   >
-                     <Terminal className="w-4 h-4 text-amber-400" />
-                     Python Engine
-                   </button>
-                   {(pythonFeaturesEnabled || isPythonActive) && (
-                    <button 
-                     onClick={runPythonRietveldRefinement}
-                     disabled={isPythonRefining}
-                     className={`px-4 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isPythonRefining ? 'text-amber-500 bg-amber-500/20 border-amber-500/30 cursor-wait' : 'text-amber-400 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)] border-amber-500/50'}`}
-                     title="Python + Pandas Server Optimizer"
-                    >
-                      {isPythonRefining ? (
-                        <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
-                      ) : (
-                        <Cpu className="w-4 h-4 text-amber-400" />
-                      )}
-                      {isPythonRefining ? 'Refining...' : 'Python + Pandas Solver'}
-                    </button>
-                   )}
-                    <button 
-                     onClick={() => setIsAutoRefining(!isAutoRefining)}
-                     className={`px-4 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isAutoRefining ? 'text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 'text-teal-400 bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]'}`}
-                     title="Live Engine"
-                    >
-                      <PlayCircle className={`w-4 h-4 ${isAutoRefining ? 'animate-pulse' : ''}`} />
-                      {isAutoRefining ? 'Halt Engine' : 'Live Tuning'}
-                    </button>
-                </div>
-              </div>
+        <div className="space-y-6">
+          <RietveldAdvancedControls
+            phases={simPhases}
+            backgroundLevel={userParams.background}
+            zeroShift={setupZeroShift}
+            wavelength={wavelength}
+            refinementFlags={refinementFlags}
+            onUpdateFlags={setRefinementFlags}
+            onRunLmStep={handleRunLmStep}
+            onRunMultiCycle={handleRunMultiCycle}
+            onRunProtocol={handleRunFiveStageProtocol}
+            isRefining={isSolverRefining}
+            refineProgress={solverProgress || undefined}
+            lastSolverResult={lastSolverResult}
+            onLoadNistStandard={handleLoadNistStandard}
+            onLoadCustomExperimentalData={handleLoadCustomExperimentalData}
+            qpaResults={qpaResults}
+          />
 
-              {/* Stepwise Auto-Refinement Guided Recipe Tracker Banner */}
-              {(stepwiseActive || stepwiseMessage) && (
-                <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#071318] to-teal-950/40 border border-emerald-500/30 shadow-[0_0_20px_rgba(52,211,153,0.15)] animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
-                      <Zap className="w-3.5 h-3.5 animate-spin" />
-                      Stepwise Crystallographic Refinement Sequence
-                    </span>
-                    <span className="text-[9px] font-mono text-emerald-300 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                      Step {stepwiseStage} of 5
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-5 gap-1.5 mb-3">
-                    {[
-                      { step: 1, label: 'Scale & Bkg' },
-                      { step: 2, label: 'Zero Shift' },
-                      { step: 3, label: 'Lattice (a)' },
-                      { step: 4, label: 'Profile (η)' },
-                      { step: 5, label: 'Microstrain' }
-                    ].map(({ step, label }) => (
-                      <div
-                        key={step}
-                        className={`text-center py-1 rounded text-[8px] font-mono font-bold uppercase transition-all ${
-                          stepwiseStage === step
-                            ? 'bg-emerald-500 text-slate-950 shadow-[0_0_10px_rgba(52,211,153,0.8)] font-black scale-105'
-                            : stepwiseStage > step
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : 'bg-slate-900/60 text-slate-500 border border-slate-800'
-                        }`}
-                      >
-                        {label}
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-emerald-200/90 font-medium">
-                    {stepwiseMessage}
-                  </p>
-                </div>
-              )}
-
-              {/* Quick Preset Selector Pill Bar */}
-              <div className="mb-5 p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Layers className="w-3 h-3 text-teal-400" />
-                    Quick Standard Benchmarks
-                  </span>
-                  <span className="text-[8px] text-slate-500 font-mono">1-Click Load</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    { name: 'Silicon NIST', idx: 0 },
-                    { name: 'Quartz (SiO₂)', idx: 1 },
-                    { name: 'BCC Iron (α-Fe)', idx: 2 },
-                    { name: 'FCC Copper', idx: 3 },
-                    { name: 'Perovskite (CaTiO₃)', idx: 4 },
-                    { name: 'Rutile (TiO₂)', idx: 5 },
-                    { name: 'Alumina (Al₂O₃)', idx: 6 }
-                  ].map((p) => (
-                    <button
-                      key={p.idx}
-                      onClick={() => handleLoadPresetIndex(p.idx)}
-                      className="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-slate-900 hover:bg-teal-500/20 text-slate-300 hover:text-teal-300 border border-slate-800 hover:border-teal-500/30 transition-all active:scale-95"
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-6 relative z-10">
-                
-                {/* Advanced Simulation Matrix Panel */}
-                {showMatrix && (
-                  <div className="bg-[#050B14] p-4 rounded-xl border border-indigo-500/30 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)] mb-6 animate-fadeIn transition-all">
-                    <div className="flex items-center justify-between mb-3 border-b border-indigo-500/20 pb-2">
-                       <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-extrabold flex items-center gap-2"><Grid className="w-3.5 h-3.5" /> Parameter Covariance Matrix</span>
-                       <span className="text-[8px] uppercase tracking-widest text-slate-500 font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">Pearson R²</span>
-                    </div>
-                    <div className="overflow-x-auto custom-scrollbar">
-                      <div className="min-w-[300px]">
-                        <div className="grid grid-cols-6 gap-1 mb-1">
-                          <div className="text-[8px] font-black text-slate-600 text-center uppercase"></div>
-                          {['Lattice', 'Zero 2θ', 'Smp.Displ', 'Size', 'Strain'].map(l => (
-                            <div key={l} className="text-[8px] font-black text-slate-500 text-center uppercase truncate">{l}</div>
-                          ))}
-                        </div>
-                        {['Lattice (a)', 'Zero Shift', 'Smp. Displ.', 'Crys. Size', 'Microstrain'].map((rowLabel, i) => (
-                           <div key={rowLabel} className="grid grid-cols-6 gap-1 mb-1 items-center">
-                              <div className="text-[8px] font-black text-slate-400 uppercase truncate pr-1 text-right">{rowLabel}</div>
-                              {[0, 1, 2, 3, 4].map((col) => {
-                                // Deterministic fake correlation matrix for display
-                                const matrixVals = [
-                                  [1.00,  0.86, -0.92,  0.05,  0.12],
-                                  [0.86,  1.00, -0.98,  0.02,  0.08],
-                                  [-0.92,-0.98,  1.00, -0.01, -0.05],
-                                  [0.05,  0.02, -0.01,  1.00, -0.65],
-                                  [0.12,  0.08, -0.05, -0.65,  1.00]
-                                ];
-                                const val = matrixVals[i][col];
-                                const isActive = isAutoRefining;
-                                const wobble = isActive && i !== col ? (Math.random() * 0.04 - 0.02) : 0;
-                                const displayVal = val + wobble;
-                                const absVal = Math.abs(displayVal);
-                                
-                                let bgColor = 'bg-slate-900';
-                                if (displayVal > 0.8) bgColor = 'bg-rose-500/80';
-                                else if (displayVal > 0.5) bgColor = 'bg-rose-500/50';
-                                else if (displayVal > 0.2) bgColor = 'bg-rose-500/20';
-                                else if (displayVal < -0.8) bgColor = 'bg-indigo-500/80';
-                                else if (displayVal < -0.5) bgColor = 'bg-indigo-500/50';
-                                else if (displayVal < -0.2) bgColor = 'bg-indigo-500/20';
-                                else if (i === col) bgColor = 'bg-slate-700';
-
-                                return (
-                                  <div 
-                                    key={col} 
-                                    className={`h-6 rounded flex items-center justify-center text-[7px] font-mono font-black border border-white/5 transition-all duration-300 ${bgColor} ${Math.abs(val) > 0.5 ? 'text-white' : 'text-slate-400'} cursor-crosshair hover:ring-1 hover:ring-white/50`}
-                                    title={`Correlation: ${displayVal.toFixed(3)}`}
-                                  >
-                                    {displayVal.toFixed(2)}
-                                  </div>
-                                );
-                              })}
-                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-[8px] text-slate-500 mt-3 leading-relaxed border-t border-slate-800 pt-2">
-                       <span className="text-rose-400 font-bold">● High Positive / Over-correlated</span> &nbsp;|&nbsp; 
-                       <span className="text-indigo-400 font-bold">● High Negative / Anti-correlated</span> &nbsp;|&nbsp; 
-                       Watch out for strong correlations (e.g., {"|R| > 0.9"}) causing refinement divergence. Zero Shift & Sample Displacement are strongly coupled.
-                    </p>
-                  </div>
-                )}
-
-                <div className="space-y-6">
-                  {/* Multi-Phase Crystallographic Inventory Group */}
-                  {(() => {
-                    const activePhases = simPhases.filter(p => p.enabled);
-                    const totalScaleVal = activePhases.reduce((acc, p) => acc + p.scale, 0);
-
-                    return (
-                      <div className="space-y-4 bg-black/25 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
-                        <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
-                          <div className="flex items-center gap-2">
-                            <Database className="w-4 h-4 text-teal-400 animate-pulse" />
-                            <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Multi-Phase Inventory</div>
-                          </div>
-                          <span className="text-[8px] text-slate-400 uppercase tracking-widest bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700/50 font-black flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            {activePhases.length}/{simPhases.length} Active System{simPhases.length !== 1 ? 's' : ''}
-                          </span>
-                        </div>
-
-                        {/* Dynamic Abundance Proportional Bar */}
-                        {activePhases.length > 0 && (
-                          <div className="bg-slate-950/60 p-3 rounded-xl border border-white/[0.03] space-y-2">
-                            <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-wider text-slate-400">
-                              <span className="flex items-center gap-1.5 font-mono">
-                                <Layers className="w-3 h-3 text-teal-400" /> Relative Phase Weight Fraction (Wf)
-                              </span>
-                              <span className="text-teal-400 font-bold font-mono">Normalized Sum: 100%</span>
-                            </div>
-                            
-                            <div className="h-2 px-[1px] rounded-full overflow-hidden flex bg-slate-900 border border-slate-800/80 shadow-inner">
-                              {simPhases.map((p, idx) => {
-                                if (!p.enabled) return null;
-                                const pct = totalScaleVal > 0 ? (p.scale / totalScaleVal) * 100 : 0;
-                                const colorClass = [
-                                  'bg-gradient-to-r from-teal-500 to-emerald-400 hover:brightness-110',
-                                  'bg-gradient-to-r from-indigo-500 to-purple-400 hover:brightness-110',
-                                  'bg-gradient-to-r from-rose-500 to-pink-400 hover:brightness-110',
-                                  'bg-gradient-to-r from-amber-500 to-orange-400 hover:brightness-110',
-                                  'bg-gradient-to-r from-cyan-500 to-blue-400 hover:brightness-110',
-                                  'bg-gradient-to-r from-teal-400 to-indigo-400 hover:brightness-110'
-                                ][idx % 6];
-                                return (
-                                  <div 
-                                    key={p.id}
-                                    style={{ width: `${pct}%` }}
-                                    className={`h-full ${colorClass} transition-all duration-300 relative`}
-                                    title={`${p.name}: ${pct.toFixed(1)}%`}
-                                  />
-                                );
-                              })}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {simPhases.map((p, idx) => {
-                                if (!p.enabled) return null;
-                                const pct = totalScaleVal > 0 ? (p.scale / totalScaleVal) * 100 : 0;
-                                const borderColors = ['border-teal-500/10', 'border-indigo-500/10', 'border-rose-500/10', 'border-amber-500/10', 'border-cyan-500/10', 'border-teal-400/10'];
-                                const textColors = ['text-teal-400 font-bold', 'text-indigo-400 font-bold', 'text-rose-400 font-bold', 'text-amber-400 font-bold', 'text-cyan-400 font-bold', 'text-teal-300 font-bold'];
-                                const bulletColors = ['bg-teal-400', 'bg-indigo-400', 'bg-rose-400', 'bg-amber-400', 'bg-cyan-400', 'bg-teal-300'];
-                                return (
-                                  <div 
-                                    key={p.id} 
-                                    className={`flex items-center gap-2 p-1.5 rounded bg-black/40 border ${borderColors[idx % 6]} text-[10px]`}
-                                  >
-                                    <div className={`w-1.5 h-1.5 rounded-full ${bulletColors[idx % 6]}`} />
-                                    <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
-                                      <span className="text-slate-400 font-bold truncate text-[9px]">{p.name}</span>
-                                      <span className={`font-mono text-[9px] ${textColors[idx % 6]}`}>{pct.toFixed(1)}%</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="space-y-2 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
-                          {simPhases.map((phase, idx) => {
-                            const stats = computeCrystallographicVolumeAndDensity(phase.phaseType, phase.a);
-                            const targetStats = computeCrystallographicVolumeAndDensity(phase.phaseType, phase.targetA);
-                            const colorIndex = idx % 6;
-                            const badgeColors = [
-                              'text-teal-400 bg-teal-500/10 border-teal-500/20 shadow-[0_0_8px_rgba(20,184,166,0.2)]',
-                              'text-indigo-400 bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_8px_rgba(99,102,241,0.2)]',
-                              'text-rose-400 bg-rose-500/10 border-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.2)]',
-                              'text-amber-400 bg-amber-500/10 border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.2)]',
-                              'text-cyan-400 bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_8px_rgba(6,182,212,0.2)]',
-                              'text-teal-300 bg-teal-400/10 border-teal-400/20 shadow-[0_0_8px_rgba(45,212,191,0.2)]'
-                            ];
-
-                            return (
-                              <div 
-                                key={phase.id}
-                                onClick={() => setSelectedSimPhaseIdx(idx)}
-                                className={`p-4 rounded-xl border transition-all cursor-pointer relative group overflow-hidden ${
-                                  idx === selectedSimPhaseIdx 
-                                    ? 'bg-gradient-to-br from-[#070D18] to-[#0A1220] border-teal-500/40 shadow-[inset_0_1px_5px_rgba(20,184,166,0.1),0_4px_25px_rgba(0,0,0,0.5)]' 
-                                    : 'bg-[#0B1221]/50 border-[#1e293b] hover:border-slate-700/80 hover:bg-[#070D18]/80'
-                                }`}
-                              >
-                                {idx === selectedSimPhaseIdx && (
-                                  <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl" />
-                                )}
-                                
-                                <div className="flex items-start justify-between gap-3 relative z-10">
-                                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                                    <div className="shrink-0 flex items-center justify-center p-1.5 bg-black/40 rounded border border-slate-800">
-                                      <input 
-                                        type="checkbox"
-                                        checked={phase.enabled}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onChange={(e) => {
-                                          e.stopPropagation();
-                                          setSimPhases(prev => {
-                                            const next = [...prev];
-                                            next[idx] = { ...next[idx], enabled: e.target.checked };
-                                            return next;
-                                          });
-                                        }}
-                                        className="w-3.5 h-3.5 rounded bg-black/40 border-slate-700 text-teal-400 focus:ring-teal-500/20 cursor-pointer"
-                                      />
-                                    </div>
-                                    
-                                    {editingPhaseId === phase.id ? (
-                                      <div className="flex items-center gap-2 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                                        <input 
-                                          type="text"
-                                          value={editingPhaseName}
-                                          onChange={(e) => setEditingPhaseName(e.target.value)}
-                                          className="flex-1 px-2.5 py-1 max-h-8 bg-slate-950/80 border border-teal-500 text-teal-200 text-xs rounded focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-bold shadow-inner"
-                                          autoFocus
-                                          onKeyDown={(e) => {
-                                            if (e.key === 'Enter') {
-                                              setSimPhases(prev => {
-                                                const next = [...prev];
-                                                next[idx] = { ...next[idx], name: editingPhaseName };
-                                                return next;
-                                              });
-                                              setEditingPhaseId(null);
-                                            } else if (e.key === 'Escape') {
-                                              setEditingPhaseId(null);
-                                            }
-                                          }}
-                                        />
-                                        <button 
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSimPhases(prev => {
-                                              const next = [...prev];
-                                              next[idx] = { ...next[idx], name: editingPhaseName };
-                                              return next;
-                                            });
-                                            setEditingPhaseId(null);
-                                          }}
-                                          className="p-1.5 bg-teal-500/20 text-teal-400 hover:bg-teal-500/40 hover:text-teal-200 rounded border border-teal-500/30 transition-all cursor-pointer shrink-0"
-                                          title="Save Name"
-                                        >
-                                          <Check className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex flex-col min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className={`text-sm font-black truncate tracking-wide ${phase.enabled ? 'text-slate-100' : 'text-slate-600 line-through'}`}>
-                                            {phase.name}
-                                          </span>
-                                          {phase.enabled && (
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingPhaseId(phase.id);
-                                                setEditingPhaseName(phase.name);
-                                              }}
-                                              className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-teal-400 rounded transition-all ml-0.5 shrink-0"
-                                              title="Rename Phase"
-                                            >
-                                              <Edit2 className="w-3 h-3" />
-                                            </button>
-                                          )}
-                                        </div>
-                                        <span className={`text-[9px] font-black uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded border inline-block w-fit ${badgeColors[colorIndex]}`}>
-                                          {stats.unitCellFormula || phase.phaseType}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex items-start gap-1.5 shrink-0">
-                                    {simPhases.length > 1 && (
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRemoveSimStructure(idx);
-                                        }}
-                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all rounded shrink-0"
-                                        title="Delete Phase"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="mt-4 pt-3 border-t border-slate-800/60 grid grid-cols-2 gap-3 relative z-10">
-                                  {/* Weight Fraction & Scale */}
-                                  <div className="bg-black/30 rounded-lg p-2 border border-slate-800/40">
-                                    <div className="flex items-center justify-between mb-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
-                                      <span>Weight Frac (Wf)</span>
-                                      {phase.enabled && (
-                                        <div className="flex gap-0.5" onClick={e => e.stopPropagation()}>
-                                          <button 
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSimPhases(prev => {
-                                                const next = [...prev];
-                                                next[idx] = { ...next[idx], scale: Math.max(0, next[idx].scale - 50) };
-                                                return next;
-                                              });
-                                            }}
-                                            className="w-4 h-4 bg-slate-900 border border-slate-700 text-slate-400 hover:text-teal-400 hover:border-teal-400/50 rounded flex items-center justify-center transition-colors"
-                                          >
-                                            -
-                                          </button>
-                                          <button 
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSimPhases(prev => {
-                                                const next = [...prev];
-                                                next[idx] = { ...next[idx], scale: next[idx].scale + 50 };
-                                                return next;
-                                              });
-                                            }}
-                                            className="w-4 h-4 bg-slate-900 border border-slate-700 text-slate-400 hover:text-teal-400 hover:border-teal-400/50 rounded flex items-center justify-center transition-colors"
-                                          >
-                                            +
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="font-mono text-sm font-bold text-blue-400 tracking-tight">
-                                      {(phase.scale / 10).toFixed(1)}<span className="text-[10px] text-zinc-500 ml-0.5">%</span>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Lattice Paramenters */}
-                                  <div className="bg-black/30 rounded-lg p-2 border border-slate-800/40">
-                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Cell Axis (a)</div>
-                                    <div className="font-mono text-sm font-bold text-teal-400 tracking-tight flex items-baseline gap-1.5">
-                                      {phase.a.toFixed(4)}<span className="text-[10px] text-zinc-500">Å</span>
-                                      <span className="text-[9px] text-slate-600 line-through">({phase.targetA.toFixed(4)})</span>
-                                    </div>
-                                  </div>
-
-                                  {/* Structural Properties */}
-                                  <div className="col-span-2 grid grid-cols-3 gap-2">
-                                    <div className="flex flex-col">
-                                      <span className="text-[8px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">Cell Vol</span>
-                                      <span className="font-mono text-xs font-bold text-amber-400">{stats.volume.toFixed(2)}<span className="text-[8px] text-slate-600 ml-0.5">Å³</span></span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <span className="text-[8px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">Density</span>
-                                      <span className="font-mono text-xs font-bold text-indigo-400">{stats.density.toFixed(2)}<span className="text-[8px] text-slate-600 ml-0.5">g/cm³</span></span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <span className="text-[8px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">μ-Strain</span>
-                                      <span className="font-mono text-xs font-bold text-rose-400">{(phase.microstrain * 100).toFixed(2)}<span className="text-[8px] text-slate-600 ml-0.5">%</span></span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {idx === selectedSimPhaseIdx && (
-                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-teal-400 to-indigo-500 shadow-[0_0_10px_rgba(20,184,166,0.5)]" />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 pt-2 border-t border-slate-800/60">
-                          <button
-                            onClick={() => handleAddNewSimStructure('Simple Cubic')}
-                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
-                          >
-                            + Cubic
-                          </button>
-                          <button
-                            onClick={() => handleAddNewSimStructure('Quartz')}
-                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
-                          >
-                            + Quartz
-                          </button>
-                          <button
-                            onClick={() => handleAddNewSimStructure('FCC')}
-                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
-                          >
-                            + FCC
-                          </button>
-                          <button
-                            onClick={() => handleAddNewSimStructure('BCC')}
-                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
-                          >
-                            + BCC
-                          </button>
-                          <button
-                            onClick={() => handleAddNewSimStructure('Rutile')}
-                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5 whitespace-nowrap"
-                          >
-                            + Rutile
-                          </button>
-                          <button
-                            onClick={() => handleAddNewSimStructure('Perovskite')}
-                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5 whitespace-nowrap"
-                          >
-                            + Perovskite
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Active Selected Phase Properties */}
-                  <div className="space-y-4 bg-gradient-to-br from-[#070D18] to-[#0a1120] p-5 rounded-2xl border border-teal-500/30 shadow-[0_10px_40px_rgba(20,184,166,0.1)] relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(20,184,166,0.05),transparent_60%)] pointer-events-none" />
-                    
-                    <div className="flex items-start justify-between pb-4 border-b border-teal-500/10 relative z-10">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(20,184,166,0.2)]">
-                          <Beaker className="w-5 h-5 text-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.6)] animate-pulse" />
-                        </div>
-                        <div className="flex flex-col">
-                          <div className="text-xs uppercase text-teal-400 font-black tracking-widest leading-none drop-shadow-sm">Selected Phase Model</div>
-                          <div className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1.5 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> Live Parameter Tuning
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-teal-300 font-black uppercase tracking-widest bg-teal-950/80 px-3 py-1.5 rounded-lg border border-teal-500/40 shadow-inner max-w-[180px] truncate">
-                        {currentPhaseObj.name}
-                      </span>
-                    </div>
-
-                    {/* Sub Tab Buttons */}
-                    <div className="grid grid-cols-2 bg-[#050B14] p-1.5 rounded-xl border border-slate-800 gap-1.5 mt-2 relative z-10">
-                      <button
-                        onClick={() => setSelectedPhaseSubTab('params')}
-                        className={`py-2.5 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                          selectedPhaseSubTab === 'params'
-                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-[inset_0_1px_5px_rgba(20,184,166,0.2)]'
-                            : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-white/5'
-                        }`}
-                      >
-                        <Ruler className="w-4 h-4" />
-                        Lattice & State
-                      </button>
-                      <button
-                        onClick={() => setSelectedPhaseSubTab('symmetry')}
-                        className={`py-2.5 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                          selectedPhaseSubTab === 'symmetry'
-                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-[inset_0_1px_5px_rgba(20,184,166,0.2)]'
-                            : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-white/5'
-                        }`}
-                      >
-                        <Compass className="w-4 h-4" />
-                        Symmetry Projection
-                      </button>
-                    </div>
-
-                    {selectedPhaseSubTab === 'params' ? (
-                      <div className="space-y-4 relative z-10">
-                        {/* Space Group symmetry info block */}
-                        <div className="bg-[#050B14] p-4 rounded-xl border border-[#1e293b] shadow-inner">
-                          <div className="flex items-center justify-between mb-3">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                              <Layers className="w-3.5 h-3.5 text-slate-500" /> Symmetry System Selector
-                            </label>
-                            {(() => {
-                              const details = SPACE_GROUP_DETAILS[simPhase];
-                              return details ? (
-                                <span className="text-[9px] font-mono text-teal-400 font-black px-1.5 py-0.5 rounded bg-teal-500/5 border border-teal-500/10">
-                                  {details.hermannMauguin} (#{details.number})
-                                </span>
-                              ) : (
-                                <span className="text-[9px] font-mono text-teal-400 font-black">
-                                  {currentPhaseObj.phaseType === 'Simple Cubic' ? 'P m-3m (#221)' :
-                                   currentPhaseObj.phaseType === 'BCC' ? 'I m-3m (#229)' :
-                                   currentPhaseObj.phaseType === 'FCC' ? 'F m-3m (#225)' :
-                                   currentPhaseObj.phaseType === 'Rutile' ? 'P 4_2/mnm (#136)' :
-                                   currentPhaseObj.phaseType === 'Perovskite' ? 'P m-3m (#221)' :
-                                   'P 32 21 (#154)'}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                          
-                          <div className="relative">
-                            <select 
-                              value={simPhase}
-                              onChange={(e) => setSimPhase(e.target.value)}
-                              className="w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-850 rounded-lg text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 appearance-none cursor-pointer hover:bg-slate-900 transition-colors"
-                            >
-                              <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
-                              <option value="BCC">Body Centered Iron Type (I m-3m)</option>
-                              <option value="FCC">Face Centered Copper Type (F m-3m)</option>
-                              <option value="Silicon (Diamond Cubic)">Silicon Diamond Cubic (F d -3 m)</option>
-                              <option value="Perovskite">Perovskite CaTiO3 Type (P m-3m)</option>
-                              <option value="Rutile">Rutile TiO2 Type (P 4_2/m n m)</option>
-                              <option value="Quartz">Quartz Alpha-SiO2 Type (P 32 21)</option>
-                              <option value="Alumina (Hexagonal)">Alumina Alpha-Al2O3 (R -3 c)</option>
-                              <option value="Graphite (Hexagonal)">Graphite Standard (P 6_3/m m c)</option>
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                              <ChevronDown className="w-4 h-4 text-slate-500" />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Interactive Sliders for Lattice and Scale */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 group/lattice">
-                            <div className="flex justify-between items-center mb-1.5">
-                              <div className="flex items-center gap-1">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
-                                <WhatDoesThisMeanTooltip
-                                  term="Unit Cell Parameter"
-                                  symbol="a"
-                                  explanation="Length of the unit cell edges determining crystal volume and Bragg angle positions."
-                                  physicalInterpretation="Shifting lattice constant a compresses or expands the d-spacing (d = a/√(h²+k²+l²)), moving peak 2θ centers according to Bragg's law."
-                                  ruleOfThumb="Refine lattice parameters after setting scale and zero-shift."
-                                />
-                              </div>
-                              <span className="text-[10px] font-mono font-black text-teal-400">{userParams.a.toFixed(4)} Å</span>
-                            </div>
-                            <input 
-                              type="range" 
-                              min={TARGET_PARAMS[simPhase] ? Number((TARGET_PARAMS[simPhase].a * 0.8).toFixed(2)) : 2.5} 
-                              max={TARGET_PARAMS[simPhase] ? Number((TARGET_PARAMS[simPhase].a * 1.2).toFixed(2)) : 6.0} 
-                              step="0.001"
-                              value={String(userParams.a) === 'NaN' ? '' : userParams.a}
-                              onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
-                              className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
-                            />
-                            <div className="flex items-center justify-between text-[8px] text-slate-500 font-mono mt-1 select-none">
-                              <span>{TARGET_PARAMS[simPhase] ? (TARGET_PARAMS[simPhase].a * 0.8).toFixed(2) : '2.50'}</span>
-                              <span>{TARGET_PARAMS[simPhase] ? (TARGET_PARAMS[simPhase].a * 1.2).toFixed(2) : '6.00'}</span>
-                            </div>
-                          </div>
-
-                          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 group/scale">
-                            <div className="flex justify-between items-center mb-1.5">
-                              <div className="flex items-center gap-1">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
-                                <WhatDoesThisMeanTooltip
-                                  term="Phase Scale Factor"
-                                  symbol="S_p"
-                                  explanation="Multiplication constant tying calculated relative structure factors to experimental detector photon count levels."
-                                  physicalInterpretation="Proportional to phase volume fraction in multi-phase quantitative analysis."
-                                  ruleOfThumb="Refine scale factor first before unfreezing structural or profile parameters."
-                                />
-                              </div>
-                              <span className="text-[10px] font-mono font-black text-blue-400">{userParams.scale}</span>
-                            </div>
-                            <input 
-                              type="range" 
-                              min="100" 
-                              max="2000" 
-                              step="10" 
-                              value={String(userParams.scale) === 'NaN' ? '' : userParams.scale}
-                              onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
-                              className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-blue-500"
-                            />
-                            <div className="flex items-center justify-between text-[8px] text-slate-500 font-mono mt-1 select-none">
-                              <span>100</span>
-                              <span>2000</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Live Physics derived values */}
-                        {(() => {
-                          const stats = computeCrystallographicVolumeAndDensity(simPhase, userParams.a);
-                          const details = SPACE_GROUP_DETAILS[simPhase];
-                          return (
-                            <div className="grid grid-cols-3 gap-2 bg-slate-950/60 p-3 rounded-xl border border-white/5 text-[9px] font-mono text-slate-400 shadow-inner select-none">
-                              <div className="flex flex-col items-center justify-center p-1.5 border-r border-slate-800">
-                                <span className="text-[8px] text-slate-500 uppercase tracking-[0.1em] mb-1 font-sans">Formula Unit</span>
-                                <span className="text-[11px] text-slate-200 font-bold font-sans tracking-wide">{stats.unitCellFormula}</span>
-                              </div>
-                              <div className="flex flex-col items-center justify-center p-1.5 border-r border-slate-800">
-                                <span className="text-[8px] text-slate-500 uppercase tracking-[0.1em] mb-1 font-sans">Cell Volume</span>
-                                <span className="text-[11px] text-emerald-400 font-extrabold">{stats.volume.toFixed(2)} Å³</span>
-                              </div>
-                              <div className="flex flex-col items-center justify-center p-1.5">
-                                <span className="text-[8px] text-slate-500 uppercase tracking-[0.1em] mb-1 font-sans">Calc Density</span>
-                                <span className="text-[11px] text-rose-400 font-extrabold">{stats.density.toFixed(3)} V\u209c</span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {/* Space Group Symmetry Sub UI */}
-                        {(() => {
-                          const details = SPACE_GROUP_DETAILS[simPhase] || SPACE_GROUP_DETAILS['Simple Cubic'];
-                          const isTrigonal = details.crystalSystem.includes('Trigonal') || details.crystalSystem.includes('Hexagonal');
-                          const eqPts = getEquivalentPositions(simPhase, symmetryProbeX, symmetryProbeY);
-                          
-                          return (
-                            <div className="space-y-4">
-                              {/* Layout with SVG visualization on left/top and metrics on right/bottom */}
-                              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 animate-fadeIn">
-                                {/* SVG Interactive Canvas */}
-                                <div className="md:col-span-6 bg-slate-950 rounded-xl p-3 border border-slate-850 flex flex-col items-center relative overflow-hidden group">
-                                  <div className="absolute top-2 left-2 z-10 flex gap-1 items-center bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800 text-[8px] uppercase tracking-wider text-teal-400 font-black">
-                                    <Grid className="w-2.5 h-2.5" /> Projection (ab plane)
-                                  </div>
-                                  
-                                  <div className="absolute top-2 right-2 z-10 text-[8px] font-mono text-slate-500 select-none">
-                                    Total Nodes: {eqPts.length}
-                                  </div>
-
-                                  <div className="w-full aspect-square mt-6 mb-2 relative flex items-center justify-center">
-                                    <svg
-                                      ref={svgRef}
-                                      onMouseDown={handleMouseDown}
-                                      onMouseMove={handleMouseMove}
-                                      onMouseUp={handleMouseUpOrLeave}
-                                      onMouseLeave={handleMouseUpOrLeave}
-                                      onTouchStart={handleSvgInteraction}
-                                      onTouchMove={handleSvgInteraction}
-                                      onTouchEnd={handleMouseUpOrLeave}
-                                      className="w-full max-w-[190px] aspect-square bg-[#030712] border border-slate-800/80 rounded-lg cursor-crosshair relative shadow-inner select-none overflow-visible"
-                                    >
-                                      {/* Grid lines inside unit cell */}
-                                      {!isTrigonal ? (
-                                        <>
-                                          <line x1="0%" y1="25%" x2="100%" y2="25%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
-                                          <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="#334155" strokeWidth="0.5" />
-                                          <line x1="0%" y1="75%" x2="100%" y2="75%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
-                                          
-                                          <line x1="25%" y1="0%" x2="25%" y2="100%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
-                                          <line x1="50%" y1="0%" x2="50%" y2="100%" stroke="#334155" strokeWidth="0.5" />
-                                          <line x1="75%" y1="0%" x2="75%" y2="100%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
-                                        </>
-                                      ) : (
-                                        <>
-                                          {/* Draw hexagonal boundary guidelines */}
-                                          <polygon points="95,190 190,95 142,10 47,10 5,95" fill="none" stroke="#1e293b" strokeWidth="0.75" strokeDasharray="3,3" />
-                                          {/* Main translation axes */}
-                                          <line x1="10" y1="180" x2="180" y2="180" stroke="#334155" strokeWidth="0.5" />
-                                          <line x1="10" y1="180" x2="85" y2="20" stroke="#334155" strokeWidth="0.5" />
-                                        </>
-                                      )}
-
-                                      {/* Draw generated equivalent positions */}
-                                      {eqPts.map((pt, pidx) => {
-                                        const isOriginal = Math.abs(pt.x - symmetryProbeX) < 1e-3 && Math.abs(pt.y - symmetryProbeY) < 1e-3;
-                                        const xy = toSymmetryScreenCoords(pt.x, pt.y, 190, 190, isTrigonal);
-                                        return (
-                                          <g key={pidx}>
-                                            {/* Glow halo */}
-                                            <circle
-                                              cx={xy.x}
-                                              cy={xy.y}
-                                              r={isOriginal ? 9 : 6}
-                                              fill={isOriginal ? 'rgba(20,184,166,0.22)' : 'rgba(59,130,246,0.14)'}
-                                              className={isOriginal ? 'animate-ping' : ''}
-                                              style={{ animationDuration: '3s' }}
-                                            />
-                                            {/* Solid atom core */}
-                                            <circle
-                                              cx={xy.x}
-                                              cy={xy.y}
-                                              r={isOriginal ? 4 : 3}
-                                              fill={isOriginal ? '#14b8a6' : '#3b82f6'}
-                                              stroke="#ffffff"
-                                              strokeWidth="0.5"
-                                              className="transition-all"
-                                            />
-                                            {/* Label coordinate tooltip on hover */}
-                                            <title>{`(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}, z)`}</title>
-                                          </g>
-                                        );
-                                      })}
-                                    </svg>
-                                  </div>
-
-                                  <div className="text-[8px] text-slate-500 font-sans text-center mt-1 leading-normal max-w-full truncate px-3">
-                                    <span className="text-teal-400 font-black">● Primary Probe</span> (drag or touch) • <span className="text-blue-500 font-black">● Symmop Nodes</span>
-                                  </div>
-                                </div>
-
-                                {/* Coordinate Sliders and Symmetry stats */}
-                                <div className="md:col-span-6 flex flex-col justify-between space-y-3.5">
-                                  {/* Coordination probe inputs */}
-                                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 space-y-3">
-                                    <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest flex items-center justify-between pb-1.5 border-b border-white/5">
-                                      <span>Probe Position</span>
-                                      <span className="text-[8px] font-mono text-teal-400/80 font-black font-sans uppercase">Asymmetric Unit</span>
-                                    </div>
-
-                                    {/* Slider X */}
-                                    <div className="space-y-1">
-                                      <div className="flex items-center justify-between font-mono text-[9px]">
-                                        <span className="text-slate-400 uppercase font-sans">Fractional X</span>
-                                        <span className="text-teal-400 font-black font-mono">{symmetryProbeX.toFixed(3)}</span>
-                                      </div>
-                                      <input
-                                        type="range"
-                                        min="0.0"
-                                        max="1.0"
-                                        step="0.01"
-                                        value={String(symmetryProbeX) === 'NaN' ? '' : symmetryProbeX}
-                                        onChange={(e) => setSymmetryProbeX(parseFloat(e.target.value))}
-                                        className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
-                                      />
-                                    </div>
-
-                                    {/* Slider Y */}
-                                    <div className="space-y-1">
-                                      <div className="flex items-center justify-between font-mono text-[9px]">
-                                        <span className="text-slate-400 uppercase font-sans">Fractional Y</span>
-                                        <span className="text-teal-400 font-black font-mono">{symmetryProbeY.toFixed(3)}</span>
-                                      </div>
-                                      <input
-                                        type="range"
-                                        min="0.0"
-                                        max="1.0"
-                                        step="0.01"
-                                        value={String(symmetryProbeY) === 'NaN' ? '' : symmetryProbeY}
-                                        onChange={(e) => setSymmetryProbeY(parseFloat(e.target.value))}
-                                        className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* Details Table */}
-                                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-850 space-y-2 select-none">
-                                    <div className="grid grid-cols-2 gap-2 text-[9px] font-sans">
-                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
-                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Schoenflies</span>
-                                        <span className="font-mono text-slate-300 font-black">{details.schoenflies}</span>
-                                      </div>
-                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
-                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Point Group</span>
-                                        <span className="font-mono text-slate-300 font-black">{details.pointGroup}</span>
-                                      </div>
-                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
-                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Laue Class</span>
-                                        <span className="font-mono text-slate-300 font-black">{details.laueClass}</span>
-                                      </div>
-                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
-                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Lattice Type</span>
-                                        <span className="font-mono text-slate-300 font-black truncate">{details.latticeType}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Symmetry Flags (Centrosymm, Chiral, Symmorphic) */}
-                              <div className="grid grid-cols-3 gap-2 text-[8px] uppercase tracking-wider font-extrabold select-none">
-                                <div className={`px-2 py-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 ${details.centrosymmetric ? 'bg-indigo-950/20 border-indigo-500/20 text-indigo-400' : 'bg-amber-950/20 border-amber-500/20 text-amber-500'}`}>
-                                  <span className="text-[7px] text-slate-500 block font-normal tracking-wide lowercase">Centrosymmetry</span>
-                                  <span>{details.centrosymmetric ? 'Centrosymmetric' : 'Non-Centrosymm.'}</span>
-                                </div>
-                                <div className={`px-2 py-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 ${details.chiral ? 'bg-violet-950/20 border-violet-500/20 text-violet-400' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}>
-                                  <span className="text-[7px] text-slate-500 block font-normal tracking-wide lowercase">Enantiomorphism</span>
-                                  <span>{details.chiral ? 'Chiral / Enantio' : 'Achiral'}</span>
-                                </div>
-                                <div className={`px-2 py-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 ${details.symmorphic ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-400' : 'bg-yellow-950/20 border-yellow-500/20 text-yellow-500'}`}>
-                                  <span className="text-[7px] text-slate-500 block font-normal tracking-wide lowercase">Symmorphism</span>
-                                  <span>{details.symmorphic ? 'Symmorphic GP' : 'Non-Symmorphic'}</span>
-                                </div>
-                              </div>
-
-                              {/* Symmetry Elements Description */}
-                              <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 text-[9px] text-slate-400 select-none">
-                                <span className="block text-[8px] text-teal-400 uppercase tracking-widest font-extrabold mb-1.5">Symmetry Operators & Elements</span>
-                                <ul className="space-y-1 list-disc list-inside h-[56px] overflow-y-auto custom-scrollbar">
-                                  {details.symmetryElements.map((el, index) => (
-                                    <li key={index} className="text-slate-300 font-sans tracking-wide leading-relaxed">{el}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Peak Management Group */}
-                  <div className="space-y-4 bg-gradient-to-br from-[#070D18] to-[#0a1120] p-5 rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-                    
-                    <div className="flex items-center justify-between pb-4 border-b border-indigo-500/10 relative z-10">
-                       <div className="flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(99,102,241,0.2)]">
-                           <Layers className="w-5 h-5 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                         </div>
-                         <div className="flex flex-col">
-                           <div className="text-xs uppercase text-indigo-400 font-black tracking-widest leading-none drop-shadow-sm">
-                             Diffraction Peaks <span className="text-indigo-200/50 lowercase px-1 font-medium">for</span> <span className="text-indigo-300">{currentPhaseObj.name}</span>
-                           </div>
-                           <div className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1.5 flex items-center gap-1.5">
-                             <Activity className="w-3 h-3 text-indigo-500" /> Reflection Inventory
-                           </div>
-                         </div>
-                       </div>
-                       <div className="text-[10px] text-indigo-300 font-black bg-indigo-950/80 px-3 py-1.5 rounded-lg border border-indigo-500/40 shadow-inner flex items-center gap-2">
-                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                         {userParams.peaks.filter(p => p.enabled).length} Active Index
-                       </div>
-                    </div>
-
-                    <div className="bg-[#050B14] rounded-xl border border-indigo-500/20 overflow-hidden shadow-inner relative z-10">
-                       <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar">
-                         <table className="w-full text-left border-collapse">
-                           <thead className="sticky top-0 bg-[#070D18] z-10 shadow-md">
-                             <tr className="border-b border-indigo-500/20">
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest">HKL Index</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center" title="Interplanar Spacing">d-spacing (Å)</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center" title="Bragg Angle">Pos 2θ(°)</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center" title="Lorentz-Polarization & Multiplicity">LP / j</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">FWHM(°)</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">Intensity</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-right">Action</th>
-                             </tr>
-                           </thead>
-                           <tbody className="divide-y divide-indigo-500/10">
-                             {userParams.peaks.map((peak, pIdx) => {
-                                let display2Theta = 0;
-                                let rawTheta = 0;
-                                if (['Quartz', 'Rutile', 'Perovskite', 'Alumina (Hexagonal)', 'Graphite (Hexagonal)'].includes(simPhase)) {
-                                  const origPeak = simPhase === 'Quartz' ? QUARTZ_PEAKS[pIdx] : simPhase === 'Rutile' ? RUTILE_PEAKS[pIdx] : simPhase === 'Perovskite' ? PEROVSKITE_PEAKS[pIdx] : simPhase === 'Alumina (Hexagonal)' ? ALUMINA_PEAKS[pIdx] : GRAPHITE_PEAKS[pIdx];
-                                  if (origPeak) {
-                                    const shift = (userParams.a - TARGET_PARAMS[simPhase].a) * 2; 
-                                    display2Theta = origPeak.t - shift;
-                                    rawTheta = display2Theta / 2;
-                                  }
-                                } else {
-                                  if (peak.h !== 0 || peak.k !== 0 || peak.l !== 0) {
-                                    const d = userParams.a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
-                                    const sinTheta = 1.5406 / (2 * d);
-                                    if (sinTheta <= 1 && sinTheta > 0) {
-                                      rawTheta = Math.asin(sinTheta) * (180 / Math.PI);
-                                      display2Theta = 2 * rawTheta;
-                                    }
-                                  }
-                                }
-                                
-                                let dSpacing = 0;
-                                 let lpFactor = 0;
-                                 let mult = 0;
-
-                                 if (display2Theta > 0) {
-                                   const thetaRad = rawTheta * (Math.PI / 180);
-                                   const displacementShift = -userParams.sampleDisplacement * Math.cos(thetaRad);
-                                   display2Theta += userParams.zeroShift + displacementShift;
-                                   
-                                   // Calculate d-spacing
-                                   dSpacing = 1.5406 / (2 * Math.sin(thetaRad));
-                                   
-                                   // Calculate Lorentz-Polarization (LP) factor
-                                   lpFactor = (1 + Math.pow(Math.cos(2 * thetaRad), 2)) / (Math.pow(Math.sin(thetaRad), 2) * Math.cos(thetaRad));
-                                   
-                                   // Multiplicity approximation based on HKL symmetry
-                                   const { h, k, l } = peak;
-                                   if (h === k && k === l) mult = 8;
-                                   else if (h === k || k === l || h === l) mult = 24;
-                                   else mult = 48;
-                                   if (h === 0 || k === 0 || l === 0) mult /= 2;
-                                 }
-
-                                let displayFWHM = 0;
-                                if (display2Theta > 0) {
-                                   const thetaRad = (display2Theta/2) * (Math.PI / 180);
-                                   const bSizeRad = (0.9 * 1.5406) / ((userParams.crystalliteSize * 10) * Math.cos(thetaRad));
-                                   const bSizeDeg = bSizeRad * (180 / Math.PI);
-                                   const bStrainRad = 4 * userParams.microstrain * Math.tan(thetaRad);
-                                   const bStrainDeg = bStrainRad * (180 / Math.PI);
-                                   displayFWHM = userParams.fwhm + bSizeDeg + bStrainDeg;
-                                }
-                                return (
-                               <tr key={pIdx} className={`group hover:bg-indigo-500/5 transition-colors ${!peak.enabled ? 'opacity-30 grayscale' : ''}`}>
-                                 <td className="p-3">
-                                   <div className="flex gap-1 items-center bg-black/40 px-1.5 py-1 rounded inline-flex border border-slate-800/80 shadow-inner">
-                                     <input 
-                                       type="number"
-                                       value={String(peak.h) === 'NaN' ? '' : peak.h}
-                                       min="0"
-                                       max="9"
-                                       onChange={(e) => {
-                                         const newPeaks = [...userParams.peaks];
-                                         newPeaks[pIdx].h = parseInt(e.target.value) || 0;
-                                         setUserParams({...userParams, peaks: newPeaks});
-                                       }}
-                                       className="w-5 bg-transparent border-none text-[10px] font-mono font-black text-indigo-300 text-center focus:ring-0 focus:outline-none p-0"
-                                     />
-                                     <span className="text-slate-600 text-[8px] font-black">:</span>
-                                     <input 
-                                       type="number"
-                                       value={String(peak.k) === 'NaN' ? '' : peak.k}
-                                       min="0"
-                                       max="9"
-                                       onChange={(e) => {
-                                         const newPeaks = [...userParams.peaks];
-                                         newPeaks[pIdx].k = parseInt(e.target.value) || 0;
-                                         setUserParams({...userParams, peaks: newPeaks});
-                                       }}
-                                       className="w-5 bg-transparent border-none text-[10px] font-mono font-black text-indigo-300 text-center focus:ring-0 focus:outline-none p-0"
-                                     />
-                                     <span className="text-slate-600 text-[8px] font-black">:</span>
-                                     <input 
-                                       type="number"
-                                       value={String(peak.l) === 'NaN' ? '' : peak.l}
-                                       min="0"
-                                       max="9"
-                                       onChange={(e) => {
-                                         const newPeaks = [...userParams.peaks];
-                                         newPeaks[pIdx].l = parseInt(e.target.value) || 0;
-                                         setUserParams({...userParams, peaks: newPeaks});
-                                       }}
-                                       className="w-5 bg-transparent border-none text-[10px] font-mono font-black text-indigo-300 text-center focus:ring-0 focus:outline-none p-0"
-                                     />
-                                   </div>
-                                 </td>
-                                 <td className="p-3 text-center text-[11px] font-mono font-bold text-blue-300 tracking-tight">
-                                    {dSpacing > 0 ? dSpacing.toFixed(4) : <span className="text-slate-600">-</span>}
-                                 </td>
-                                 <td className="p-3 text-center text-xs font-mono font-bold text-teal-200 tracking-tight">
-                                    {display2Theta > 0 ? display2Theta.toFixed(2) : <span className="text-slate-600">-</span>}
-                                 </td>
-                                 <td className="p-3 text-center">
-                                    <div className="flex flex-col items-center justify-center">
-                                      <span className="text-[10px] font-mono font-bold text-purple-300">{lpFactor > 0 ? lpFactor.toFixed(1) : '-'}</span>
-                                      <span className="text-[8px] font-mono text-slate-400">j={mult || '-'}</span>
-                                    </div>
-                                 </td>
-                                 <td className="p-3 text-center text-xs font-mono font-bold text-amber-200/90 tracking-tight">
-                                    {displayFWHM > 0 ? displayFWHM.toFixed(3) : <span className="text-slate-600">-</span>}
-                                 </td>
-                                 <td className="p-3 text-center">
-                                   <div className="flex items-center justify-center gap-3">
-                                     <div className="relative flex items-center">
-                                       <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest absolute -left-6">I:</span>
-                                       <input 
-                                         type="number"
-                                         value={String(peak.intensity) === 'NaN' ? '' : peak.intensity}
-                                         step="50"
-                                         onChange={(e) => {
-                                           const newPeaks = [...userParams.peaks];
-                                           newPeaks[pIdx].intensity = parseInt(e.target.value) || 0;
-                                           setUserParams({...userParams, peaks: newPeaks});
-                                         }}
-                                         className="w-14 bg-black/60 border border-slate-700/50 rounded px-2 py-1 text-[11px] font-mono font-bold text-indigo-200 text-right focus:border-indigo-500/50 focus:ring-indigo-500/20"
-                                       />
-                                     </div>
-                                     <button 
-                                       onClick={() => {
-                                         const newPeaks = [...userParams.peaks];
-                                         newPeaks[pIdx].enabled = !newPeaks[pIdx].enabled;
-                                         setUserParams({...userParams, peaks: newPeaks});
-                                       }}
-                                       className={`p-1.5 rounded transition-all ${peak.enabled ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]' : 'text-slate-500 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50'}`}
-                                     >
-                                        {peak.enabled ? <CheckCircle2 className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                                     </button>
-                                   </div>
-                                 </td>
-                                 <td className="p-3 text-right">
-                                   <button 
-                                     onClick={() => {
-                                       const newPeaks = userParams.peaks.filter((_, i) => i !== pIdx);
-                                       setUserParams({...userParams, peaks: newPeaks});
-                                     }}
-                                     className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 rounded transition-all inline-flex"
-                                   >
-                                     <Trash2 className="w-3.5 h-3.5" />
-                                   </button>
-                                 </td>
-                               </tr>
-                             )})}
-                           </tbody>
-                         </table>
-                       </div>
-                       
-                       <div className="p-2 bg-slate-900/30 border-t border-slate-800 flex gap-2">
-                         <button 
-                            onClick={() => {
-                              // generate next HKL or just add a placeholder
-                              const newPeak: SimulationPeak = { h: 1, k: 1, l: 1, intensity: 1000, enabled: true };
-                              setUserParams({...userParams, peaks: [...userParams.peaks, newPeak]});
-                            }}
-                            className="flex-1 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[9px] font-black text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2"
-                         >
-                           <Layers className="w-3 h-3" /> Add Peak
-                         </button>
-                         <button 
-                            onClick={() => {
-                              const initial = getPeaksForPhase(simPhase, userParams.a);
-                              setUserParams({...userParams, peaks: initial});
-                            }}
-                            className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
-                            title="Reset Peaks"
-                         >
-                           <RotateCcw className="w-3.5 h-3.5" />
-                         </button>
-                       </div>
-                    </div>
-                  </div>
-
-                  {/* Microstructure & Profile Group */}
-                  <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
-                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-rose-400" />
-                        <div className="text-[10px] uppercase text-rose-400 font-black tracking-widest">Peak Profile & Microstructure</div>
-                      </div>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Broadening Physics</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/fwhm">
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base FWHM</label>
-                              <WhatDoesThisMeanTooltip
-                                term="Full Width at Half Maximum"
-                                symbol="H_k"
-                                explanation="Width of the Bragg diffraction peak at 50% of its maximum intensity."
-                                physicalInterpretation="Derived from instrumental optics (Caglioti parameters U, V, W) and crystallite broadening."
-                                ruleOfThumb="Typically 0.05° to 0.25° in high-resolution powder diffractometers."
-                              />
-                            </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/fwhm:text-rose-400/80 transition-colors">Instrumental Eq.</span>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={String(userParams.fwhm) === 'NaN' ? '' : userParams.fwhm}
-                              onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value) || userParams.fwhm})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-rose-500/50 outline-none"
-                            />
-                          </div>
-                        </div>
-                        <input type="range" min="0.05" max="1.0" step="0.01" value={String(userParams.fwhm) === 'NaN' ? '' : userParams.fwhm} onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
-                      </div>
-
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/mix">
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix (η)</label>
-                              <WhatDoesThisMeanTooltip
-                                term="Pseudo-Voigt Lorentzian Fraction"
-                                symbol="η"
-                                explanation="Mixing fraction between Gaussian (η=0) and Lorentzian/Cauchy (η=1) peak profile functions."
-                                physicalInterpretation="Higher η indicates sample domain-size broadening; lower η indicates Gaussian strain or instrument optics."
-                                ruleOfThumb="Pure size broadening produces Lorentzian tails (η > 0.6)."
-                              />
-                            </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/mix:text-rose-400/80 transition-colors">Lorentzian Frac</span>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={String(userParams.eta) === 'NaN' ? '' : userParams.eta}
-                              onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value) || userParams.eta})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-rose-500/50 outline-none"
-                            />
-                          </div>
-                        </div>
-                        <input type="range" min="0.0" max="1.0" step="0.01" value={String(userParams.eta) === 'NaN' ? '' : userParams.eta} onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
-                      </div>
-
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/size">
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size (nm)</label>
-                              <WhatDoesThisMeanTooltip
-                                term="Apparent Crystallite Domain Size"
-                                symbol="D"
-                                explanation="Mean coherently diffracting domain dimension calculated from Scherrer's equation β = Kλ / (D cosθ)."
-                                physicalInterpretation="Nanoscale particles (<100 nm) cause significant peak broadening."
-                                ruleOfThumb="Large single-crystals (>500 nm) show no detectable size broadening."
-                              />
-                            </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/size:text-indigo-400/80 transition-colors">Scherrer Broadening</span>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              step="1"
-                              value={String(userParams.crystalliteSize) === 'NaN' ? '' : userParams.crystalliteSize}
-                              onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value) || userParams.crystalliteSize})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-indigo-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-indigo-500/50 outline-none"
-                            />
-                          </div>
-                        </div>
-                        <input type="range" min="1" max="2000" step="1" value={String(userParams.crystalliteSize) === 'NaN' ? '' : userParams.crystalliteSize} onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all" />
-                      </div>
-
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/strain">
-                        <div className="flex justify-between items-center mb-3">
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Strain %</label>
-                              <WhatDoesThisMeanTooltip
-                                term="Root-Mean-Square Lattice Microstrain"
-                                symbol="ε"
-                                explanation="Non-uniform lattice distortions (Δd/d) caused by dislocations, grain boundaries, and defects."
-                                physicalInterpretation="Broadens peaks proportional to tan(θ) via Stokes-Wilson relation β = 4ε tanθ."
-                                ruleOfThumb="Annealed powder standards have negligible strain (<0.02%)."
-                              />
-                            </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/strain:text-amber-400/80 transition-colors">Stokes-Wilson Gauss</span>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={String(userParams.microstrain) === 'NaN' ? '' : userParams.microstrain}
-                              onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value) || userParams.microstrain})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-amber-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-amber-500/50 outline-none"
-                            />
-                          </div>
-                        </div>
-                        <input type="range" min="0" max="2" step="0.01" value={String(userParams.microstrain) === 'NaN' ? '' : userParams.microstrain} onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Instrumental Group */}
-                  <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
-                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
-                      <div className="flex items-center gap-2">
-                        <Gauge className="w-4 h-4 text-amber-400" />
-                        <div className="text-[10px] uppercase text-amber-400 font-black tracking-widest">Instrument & Background</div>
-                      </div>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Systematic Errors</span>
-                    </div>
-
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/sdispl">
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-2">
-                          <Ruler className="w-3.5 h-3.5 text-zinc-400" />
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sample Displ. (mm)</label>
-                              <WhatDoesThisMeanTooltip
-                                term="Specimen Height Displacement"
-                                symbol="s"
-                                explanation="Physical displacement of the flat specimen surface above or below the diffractometer focusing circle."
-                                physicalInterpretation="Induces angular shifts Δ2θ = -2s·cosθ / R, shifting low-angle peaks more severely than high-angle peaks."
-                                ruleOfThumb="Refine before refining unconstrained lattice parameters to prevent severe parameter correlation."
-                              />
-                            </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/sdispl:text-zinc-400/80 transition-colors">cos(θ) Peak Shift Error</span>
-                          </div>
-                        </div>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={String(userParams.sampleDisplacement) === 'NaN' ? '' : userParams.sampleDisplacement}
-                          onChange={(e) => setUserParams({...userParams, sampleDisplacement: parseFloat(e.target.value) || 0})}
-                          className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
-                        />
-                      </div>
-                      <input 
-                        type="range" 
-                        min="-2.0" 
-                        max="2.0" 
-                        step="0.01" 
-                        value={String(userParams.sampleDisplacement) === 'NaN' ? '' : userParams.sampleDisplacement}
-                        onChange={(e) => setUserParams({...userParams, sampleDisplacement: parseFloat(e.target.value)})}
-                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
-                      />
-                    </div>
-
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/zshift">
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-2">
-                          <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift (°)</label>
-                              <WhatDoesThisMeanTooltip
-                                term="Diffractometer Zero-Point Error"
-                                symbol="2θ₀"
-                                explanation="Constant instrumental mechanical alignment offset on the 2θ detector arm."
-                                physicalInterpretation="Shifts all peak positions uniformly across the entire scan range."
-                                ruleOfThumb="Target ±0.02° after rigorous standard calibration with NIST SRM 640."
-                              />
-                            </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/zshift:text-zinc-400/80 transition-colors">Constant 2θ Offset</span>
-                          </div>
-                        </div>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={String(userParams.zeroShift) === 'NaN' ? '' : userParams.zeroShift}
-                          onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value) || 0})}
-                          className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
-                        />
-                      </div>
-                      <input 
-                        type="range" 
-                        min="-1.0" 
-                        max="1.0" 
-                        step="0.01" 
-                        value={String(userParams.zeroShift) === 'NaN' ? '' : userParams.zeroShift}
-                        onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value)})}
-                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
-                      />
-                    </div>
-
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/bkg">
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-2">
-                          <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
-                              <WhatDoesThisMeanTooltip
-                                term="Diffraction Background Baseline"
-                                symbol="B(2θ)"
-                                explanation="Continuous scattering background from sample holder, air scatter, fluorescence, and amorphous content."
-                                physicalInterpretation="Modeled by Chebyshev polynomial or linear baseline to isolate pure Bragg reflection intensities."
-                                ruleOfThumb="Overestimating background falsely suppresses weak reflections."
-                              />
-                            </div>
-                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/bkg:text-zinc-400/80 transition-colors">Incoherent Scattering</span>
-                          </div>
-                        </div>
-                        <input
-                          type="number"
-                          step="1"
-                          value={String(userParams.background) === 'NaN' ? '' : userParams.background}
-                          onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value) || userParams.background})}
-                          className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
-                        />
-                      </div>
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="200" 
-                        step="1"
-                        value={String(userParams.background) === 'NaN' ? '' : userParams.background}
-                        onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value)})}
-                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Parameter Covariance / Correlation Matrix */}
-                <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
-                  <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
-                    <div className="flex items-center gap-2">
-                      <Grid className="w-4 h-4 text-purple-400" />
-                      <div className="text-[10px] uppercase text-purple-400 font-black tracking-widest">Covariance Matrix</div>
-                    </div>
-                    <span className="text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Parameter Entanglement</span>
-                  </div>
-                  
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
-                    <div className="min-w-[280px]">
-                      <div className="grid grid-cols-6 gap-1 mb-1 text-[8px] font-mono text-slate-500 font-bold text-center">
-                        <div className="text-left font-sans">Var</div>
-                        <div>Scale</div>
-                        <div>Latt_a</div>
-                        <div>Zero</div>
-                        <div>Bkg</div>
-                        <div>Strain</div>
-                      </div>
-                      
-                      {[
-                        { name: 'Scale', corr: [1.0, -0.42, 0.15, 0.88, -0.05] },
-                        { name: 'Latt_a', corr: [-0.42, 1.0, 0.95, -0.12, 0.35] },
-                        { name: 'Zero', corr: [0.15, 0.95, 1.0, 0.05, 0.28] },
-                        { name: 'Bkg', corr: [0.88, -0.12, 0.05, 1.0, -0.18] },
-                        { name: 'Strain', corr: [-0.05, 0.35, 0.28, -0.18, 1.0] }
-                      ].map((row, i) => (
-                        <div key={i} className="grid grid-cols-6 gap-1 mb-1 items-center">
-                          <div className="text-[8px] font-mono font-bold text-slate-400">{row.name}</div>
-                          {row.corr.map((val, j) => {
-                            const absVal = Math.abs(val);
-                            const isHigh = absVal > 0.8 && i !== j;
-                            const isMed = absVal > 0.4 && absVal <= 0.8 && i !== j;
-                            let bgColor = 'bg-slate-800/50';
-                            let textColor = 'text-slate-500';
-                            if (i === j) { bgColor = 'bg-purple-500/20'; textColor = 'text-purple-400'; }
-                            else if (isHigh) { bgColor = val > 0 ? 'bg-rose-500/30' : 'bg-blue-500/30'; textColor = val > 0 ? 'text-rose-400' : 'text-blue-400'; }
-                            else if (isMed) { bgColor = val > 0 ? 'bg-amber-500/20' : 'bg-cyan-500/20'; textColor = val > 0 ? 'text-amber-400' : 'text-cyan-400'; }
-
-                            // Make the matrix interactive during live refinement
-                            const displayVal = (isAutoRefining && i !== j) 
-                              ? (val + (Math.random() * 0.1 - 0.05)).toFixed(2) 
-                              : val.toFixed(2);
-                            
-                            return (
-                              <div key={j} className={`text-[9px] font-mono text-center p-1 rounded ${bgColor} ${textColor} transition-colors duration-500`}>
-                                {displayVal}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-[9px] font-sans text-slate-400 leading-relaxed pt-1">
-                    <strong className="text-purple-400">Interaction Alerts:</strong> Strong <em>Zero-Shift</em> and <em>Lattice</em> correlation (<span className="text-rose-400 font-mono">0.95</span>). Refine these sequentially to avoid matrix singularity and false minima.
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <div className="bg-[#050B14] p-5 rounded-2xl border border-slate-700/80 shadow-[0_5px_15px_rgba(0,0,0,0.5)] relative overflow-hidden group/fit">
-                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-transparent opacity-0 group-hover/fit:opacity-100 transition-opacity duration-700" />
-                    <div className="absolute top-0 right-0 p-4 opacity-10 blur-sm mix-blend-screen overflow-hidden">
-                       <LineChart className="w-20 h-20 text-teal-400 rotate-12 scale-150" />
-                    </div>
-                    <div className="flex items-center justify-between relative z-10 border-b border-slate-800 pb-3 mb-3">
-                      <div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Diagnostic Metric</span>
-                          <WhatDoesThisMeanTooltip
-                            term="Weighted Profile R-Factor"
-                            symbol="R_{wp}"
-                            explanation="Standard figure of merit in powder diffraction least-squares refinement quantifying total discrepancy between observed and calculated step intensities."
-                            physicalInterpretation="Values below 10% indicate high quality fits; below 5% represents supreme synchrotron/NIST precision."
-                            ruleOfThumb="Refinement is complete when R_wp approaches the expected statistical noise limit R_exp."
-                          />
-                        </div>
-                        <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Rwp_index_matrix</span>
-                      </div>
-                      <div className="text-right flex flex-col items-end">
-                        <span className={`text-4xl font-black font-mono tracking-tighter ${rFactor < 15 ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)]' : rFactor < 30 ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]' : 'text-rose-500 drop-shadow-[0_0_15px_rgba(244,63,94,0.4)]'}`}>
-                          {rFactor.toFixed(2)}<span className="text-xl">%</span>
-                        </span>
-                        <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${rFactor < 15 ? 'text-emerald-500/80' : rFactor < 30 ? 'text-amber-500/80' : 'text-rose-500/80'}`}>
-                          {rFactor < 15 ? 'High Quality Fit' : rFactor < 30 ? 'Moderate Variations' : 'Significant Mismatch'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <ScientificMathControl
-                        title="Rietveld Alignment & R-factor Verification"
-                        formula="R_{wp} = \left[ \frac{\sum w_i (y_{i,\text{obs}} - y_{i,\text{calc}})^2}{\sum w_i y_{i,\text{obs}}^2} \right]^{1/2}"
-                        description="Weighted Profile R-factor mathematical estimation. Validates observed vs calculated raw point intensity vectors."
-                        variables={[
-                          { symbol: 'R_wp', name: 'Weighted Profile Residual', value: rFactor, unit: '%' },
-                          { symbol: 'R_exp', name: 'Expected Statistical Minimum', value: referenceRwp, unit: '%' },
-                          { symbol: 'χ²', name: 'Goodness of Fit (GoF / Chi²)', value: Math.pow(rFactor / referenceRwp, 2), unit: '' }
-                        ]}
-                        result={rFactor}
-                        resultUnit="%"
-                        resultName="Observed Quality Index (Rwp)"
-                      />
-                    </div>
-                    
-                    <div className="flex flex-col gap-2.5 relative z-10 pt-2 mb-4 border-t border-slate-800/60 mt-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Structural Health</span>
-                            <WhatDoesThisMeanTooltip
-                              term="Crystallographic Stability Index"
-                              symbol="S_{\text{index}}"
-                              explanation="Relative metric evaluating convergence distance against canonical crystal chemistry benchmarks and coordination geometry."
-                              physicalInterpretation="Scores above 85% reflect physically realistic atomic bond lengths, thermal vibration factors, and space group symmetry."
-                              ruleOfThumb="If stability drops below 50%, check for false minima or strong parameter correlations."
-                            />
-                          </div>
-                          <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Stability Index</span>
-                        </div>
-                        <div className="text-right flex flex-col items-end flex-1 max-w-[65%]">
-                          <div className="w-full flex items-center gap-2">
-                            <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 relative">
-                               <div 
-                                  className={`absolute top-0 left-0 h-full transition-all duration-700 ${stabilityPercentage > 85 ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : stabilityPercentage > 50 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
-                                  style={{ width: `${stabilityPercentage}%` }}
-                               />
-                            </div>
-                            <span className={`text-lg font-black font-mono tracking-tighter ${stabilityPercentage > 85 ? 'text-emerald-400' : stabilityPercentage > 50 ? 'text-amber-400' : 'text-rose-500'}`}>
-                              {stabilityPercentage.toFixed(1)}<span className="text-[10px]">%</span>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Stability Report Card */}
-                      <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-[10px] space-y-1 text-slate-400 leading-normal">
-                        <div className="flex justify-between items-center text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-800/40 pb-1 mb-1">
-                          <span>Reference Stability Core</span>
-                          <span className="text-indigo-400 max-w-[120px] truncate">{currentPhaseObj.name}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Target Reference R-wp:</span>
-                          <span className="font-mono text-slate-300 font-bold">{referenceRwp.toFixed(2)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Calculated Match Ratio:</span>
-                          <span className="font-mono text-slate-300 font-bold">{(rFactor / referenceRwp).toFixed(2)}x</span>
-                        </div>
-                        <div className="text-[9px] italic text-slate-500 pt-1 leading-normal border-t border-slate-800/40 mt-1">
-                          {stabilityPercentage > 85 ? (
-                            <span className="text-emerald-400/90 font-sans font-bold flex items-center gap-1">✓ Atomic positions highly consistent with local crystal space constraints.</span>
-                          ) : stabilityPercentage > 50 ? (
-                            <span className="text-amber-400/90 font-sans font-bold flex items-center gap-1">⚠ Acceptable refinement matching. Try adjusting background terms or scale parameters.</span>
-                          ) : (
-                            <span className="text-rose-400/90 font-sans font-bold flex items-center gap-1">✗ Mismatch detected. Reset lattice parameters or reload clean CIF structure.</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  
-                  {rHistory.length > 2 ? (
-                    <div className="mt-2 h-16 w-full animate-in fade-in zoom-in duration-500">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Convergence Trend</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-bold text-teal-400/50 uppercase">Iter</span>
-                          <span className="text-[9px] font-mono font-black text-teal-400">{iterCount}</span>
-                        </div>
-                      </div>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={rHistory}>
-                          <defs>
-                            <linearGradient id="rGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.4}/>
-                              <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <Area 
-                            type="monotone" 
-                            dataKey="rwp" 
-                            stroke="#14b8a6" 
-                            fill="url(#rGradient)" 
-                            strokeWidth={2}
-                            isAnimationActive={false}
-                          />
-                          <YAxis hide domain={['dataMin', 'dataMax']} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <div className="mt-2 h-16 w-full flex items-center justify-center bg-slate-800/20 rounded-xl border border-slate-700/50 border-dashed">
-                       <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest opacity-50">Trend Data Unavialable</span>
-                    </div>
-                  )}
-                  </div>
-
-                  {isAutoRefining && (
-                    <div className="mt-4 flex items-center gap-3 bg-teal-500/10 p-3 rounded-xl border border-teal-500/30 backdrop-blur-md shadow-[0_0_20px_rgba(20,184,166,0.1)] relative overflow-hidden">
-                      <div className="absolute inset-0 bg-teal-400/10 w-full animate-[pulse_2s_ease-in-out_infinite]" />
-                      <div className="w-2 h-2 rounded-full bg-teal-400 animate-ping shadow-[0_0_8px_rgba(45,212,191,0.8)] shrink-0 relative z-10" />
-                      <p className="text-[9px] text-teal-300 font-black uppercase tracking-widest relative z-10">
-                         Engine running... Minimizing {rFactor > 20 ? 'Structural Mismatch' : 'Residual Noise'}
-                      </p>
-                    </div>
-                  )}
-
-                  {!isAutoRefining && rHistory.length > 0 && rFactor < 15 && (
-                    <div className="mt-4 flex items-center gap-3 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/30 backdrop-blur-md relative overflow-hidden">
-                      <div className="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-emerald-500/20 to-transparent" />
-                      <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0 relative z-10" />
-                      <p className="text-[9px] text-emerald-400/90 font-black uppercase tracking-widest relative z-10">
-                         Refinement Target Converged
-                      </p>
-                    </div>
-                  )}
-                  
-                  {!isAutoRefining && rHistory.length === 0 && (
-                    <div className="mt-4 flex items-center gap-3 bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 backdrop-blur-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
-                      <p className="text-[9px] text-slate-400 leading-relaxed font-bold uppercase tracking-wider">
-                        Optimization Strategy: Target Residual Reduction below 15%
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Controls & Rietveld Parameter Set */}
+          <div className="lg:col-span-5 space-y-6">
+            <RietveldParameterSet
+              simPhases={simPhases}
+              setSimPhases={setSimPhases}
+              selectedSimPhaseIdx={selectedSimPhaseIdx}
+              setSelectedSimPhaseIdx={setSelectedSimPhaseIdx}
+              userParams={userParams}
+              setUserParams={setUserParams}
+              targetParams={targetParams}
+              simPhase={simPhase}
+              setSimPhase={setSimPhase}
+              rFactor={rFactor}
+              referenceRwp={referenceRwp}
+              stabilityPercentage={stabilityPercentage}
+              isAutoRefining={isAutoRefining}
+              setIsAutoRefining={setIsAutoRefining}
+              stepwiseActive={stepwiseActive}
+              stepwiseStage={stepwiseStage}
+              stepwiseMessage={stepwiseMessage}
+              runStepwiseRefinement={runStepwiseRefinement}
+              onRunLmStep={handleRunLmStep}
+              onResetCold={handleResetCold}
+              onResetToNominal={handleResetToNominal}
+              onAddNewSimStructure={handleAddNewSimStructure}
+              handleRemoveSimStructure={handleRemoveSimStructure}
+              TARGET_PARAMS={TARGET_PARAMS}
+              SPACE_GROUP_DETAILS={SPACE_GROUP_DETAILS}
+              isPythonActive={isPythonActive}
+              setIsPythonActive={setIsPythonActive}
+              pythonFeaturesEnabled={pythonFeaturesEnabled}
+              isPythonRefining={isPythonRefining}
+              runPythonRietveldRefinement={runPythonRietveldRefinement}
+              rHistory={rHistory}
+              iterCount={iterCount}
+              playSynthTone={playSynthTone}
+              computeCrystallographicVolumeAndDensity={computeCrystallographicVolumeAndDensity}
+              getPeaksForPhase={getPeaksForPhase}
+              getEquivalentPositions={getEquivalentPositions}
+              toSymmetryScreenCoords={toSymmetryScreenCoords}
+              QUARTZ_PEAKS={QUARTZ_PEAKS}
+              RUTILE_PEAKS={RUTILE_PEAKS}
+              PEROVSKITE_PEAKS={PEROVSKITE_PEAKS}
+              ALUMINA_PEAKS={ALUMINA_PEAKS}
+              GRAPHITE_PEAKS={GRAPHITE_PEAKS}
+              refinementFlags={refinementFlags}
+              onUpdateRefinementFlags={setRefinementFlags}
+              qpaResults={qpaResults}
+              onRunSingleStage={handleRunSingleStage}
+            />
           </div>
 
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-7">
             <div className="bg-[#050A14] p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-800/80 h-[650px] flex flex-col relative overflow-hidden group/pattern ring-1 ring-white/5 ring-inset backdrop-blur-2xl">
               {/* Custom Background Graphic */}
               <div className="absolute inset-0 z-0 pointer-events-none opacity-5 group-hover/pattern:opacity-10 transition-opacity duration-1000 mix-blend-screen">
@@ -4253,6 +3328,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
             </div>
           )}
         </div>
+      </div>
       )}
       
       {activeTab === 'setup' && (
