@@ -2152,7 +2152,11 @@ CRITICAL RULES:
       strainRange, 
       broadeningRange,
       dropout,
-      activation
+      activation,
+      lrScheduler,
+      labelSmoothing,
+      weightDecay,
+      lossFunction
     } = req.body;
     
     try {
@@ -2161,7 +2165,7 @@ CRITICAL RULES:
       const epochsVal = Number(epochs) || 40;
       const lrVal = Number(learningRate) || 0.005;
       const bsVal = Number(batchSize) || 32;
-      const optVal = String(optimizer) || "Adam";
+      const optVal = String(optimizer) || "AdamW";
       const archVal = String(architecture) || "Deep MLP";
       const noiseVal = (Number(noiseLevel) || 10) / 100.0;
       const bgVal = Number(backgroundDrift) || 5.0;
@@ -2169,12 +2173,16 @@ CRITICAL RULES:
       const broadVal = Number(broadeningRange) || 0.25;
       const dropVal = Number(dropout) || 0.0;
       const actVal = String(activation) || "GELU";
+      const schedVal = String(lrScheduler || "CosineAnnealing");
+      const smoothVal = labelSmoothing !== undefined ? Number(labelSmoothing) : 0.1;
+      const decayVal = weightDecay !== undefined ? Number(weightDecay) : 0.0001;
+      const lossVal = String(lossFunction || "LabelSmoothedCE");
 
-      const cmd = `python3 "${scriptPath}" --epochs=${epochsVal} --lr=${lrVal} --batch_size=${bsVal} --optimizer="${optVal}" --architecture="${archVal}" --noise_level=${noiseVal} --background_drift=${bgVal} --strain_range=${strainVal} --broadening_range=${broadVal} --dropout=${dropVal} --activation="${actVal}"`;
+      const cmd = `python3 "${scriptPath}" --epochs=${epochsVal} --lr=${lrVal} --batch_size=${bsVal} --optimizer="${optVal}" --architecture="${archVal}" --noise_level=${noiseVal} --background_drift=${bgVal} --strain_range=${strainVal} --broadening_range=${broadVal} --dropout=${dropVal} --activation="${actVal}" --lr_scheduler="${schedVal}" --label_smoothing=${smoothVal} --weight_decay=${decayVal} --loss_function="${lossVal}"`;
 
       const { exec } = await import("child_process");
       
-      exec(cmd, (error, stdout, stderr) => {
+      exec(cmd, { timeout: 120000 }, (error, stdout, stderr) => {
         if (error) {
           console.error("Python Training Execution Error:", error, stderr);
           res.status(500).json({ success: false, error: "Error executing Python Neural Net Training: " + stderr });
@@ -2192,6 +2200,39 @@ CRITICAL RULES:
       
     } catch (error: any) {
       console.error("Neural Net Training Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Machine Learning Python Neural Network Direct Prediction Endpoint
+  app.post("/api/gemini/predict-neural-net", async (req, res) => {
+    const { peaks } = req.body;
+    try {
+      if (!peaks || !Array.isArray(peaks)) {
+        res.status(400).json({ success: false, error: "Peak array is required for inference" });
+        return;
+      }
+      const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
+      const normalizedPeaks = peaks.map((p: any) => ({
+        two_theta: Number(p.twoTheta !== undefined ? p.twoTheta : p.two_theta),
+        intensity: Number(p.intensity)
+      })).filter(p => !isNaN(p.two_theta) && !isNaN(p.intensity));
+
+      const { execFile } = await import("child_process");
+      execFile("python3", [scriptPath, "--mode=predict", `--predict_peaks=${JSON.stringify(normalizedPeaks)}`], (error, stdout, stderr) => {
+        if (error) {
+          console.error("Python Neural Net Inference Error:", error, stderr);
+          res.status(500).json({ success: false, error: "Error executing Neural Net Inference: " + stderr });
+          return;
+        }
+        try {
+          const results = JSON.parse(stdout.trim());
+          res.json(results);
+        } catch (parseError) {
+          res.status(500).json({ success: false, error: "Failed to parse inference output: " + stdout });
+        }
+      });
+    } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
   });

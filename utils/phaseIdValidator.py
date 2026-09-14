@@ -379,54 +379,20 @@ class CrystallineVectorDatabase:
         mlp_acc = 0.0
         try:
             import os
-            weights_path = "/tmp/trained_xrd_mlp_weights.json"
-            if os.path.exists(weights_path):
-                with open(weights_path, "r") as fp:
-                    model_data = json.load(fp)
-                
-                # Transform experimental peaks to continuous 1D spectrum vector matching MLP input dimensions (120 pts)
-                two_theta_grid = np.linspace(10.0, 90.0, 120)
-                spectrum = np.zeros(120, dtype=np.float32)
-                for p in experimental_peaks:
-                    pos = p['two_theta']
-                    val = p['intensity']
-                    kernel = np.exp(-0.5 * ((two_theta_grid - pos) / 0.4) ** 2)
-                    spectrum += val * kernel
-                norm = np.linalg.norm(spectrum)
-                if norm > 0:
-                    spectrum /= norm
-                
-                # Retrieve architecture matrices
-                weights = [np.array(w) for w in model_data["weights"]]
-                biases = [np.array(b) for b in model_data["biases"]]
-                act_name = model_data.get("activation_name", "GELU")
-                classes = model_data.get("classes", [])
-                mlp_arch = model_data.get("architecture", "Deep MLP")
-                mlp_acc = model_data.get("accuracy", 85.0)
-                
-                # Execute forward propagation pass
-                current = spectrum.reshape(1, -1)
-                for i in range(len(weights) - 1):
-                    z = np.dot(current, weights[i]) + biases[i]
-                    if act_name == "ReLU":
-                        current = np.maximum(0, z)
-                    elif act_name == "LeakyReLU":
-                        current = np.where(z > 0, z, z * 0.1)
-                    elif act_name == "GELU":
-                        current = 0.5 * z * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (z + 0.044715 * (z ** 3))))
-                    else:
-                        current = 1.0 / (1.0 + np.exp(-np.clip(z, -20, 20)))
-                
-                # Softmax layer output
-                z_out = np.dot(current, weights[-1]) + biases[-1]
-                exp_vals = np.exp(z_out - np.max(z_out, axis=1, keepdims=True))
-                probs = (exp_vals / np.sum(exp_vals, axis=1, keepdims=True))[0]
-                
-                for cls_name, prob in zip(classes, probs):
-                    mlp_probs[cls_name] = float(prob)
+            sys_path_dir = os.path.dirname(os.path.abspath(__file__))
+            if sys_path_dir not in sys.path:
+                sys.path.append(sys_path_dir)
+            from trainNeuralNet import predict_pattern
+            
+            pred_res = predict_pattern(experimental_peaks)
+            if pred_res.get("success"):
+                for cand in pred_res.get("candidates", []):
+                    mlp_probs[cand["class_name"]] = float(cand["score"])
                 has_mlp = True
+                mlp_arch = pred_res.get("model_info", {}).get("architecture", "Deep MLP")
+                mlp_acc = pred_res.get("model_info", {}).get("trained_accuracy", 98.5)
         except Exception as mlp_err:
-            print("MLP forward solver warning:", mlp_err, file=sys.stderr)
+            print("Neural aligner forward solver warning:", mlp_err, file=sys.stderr)
 
         results = []
         for row in rows:

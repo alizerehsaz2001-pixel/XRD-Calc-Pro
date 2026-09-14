@@ -1074,10 +1074,14 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [trainEpochs, setTrainEpochs] = useState<number>(40);
   const [trainLR, setTrainLR] = useState<number>(0.005);
   const [trainBatchSize, setTrainBatchSize] = useState<number>(32);
-  const [trainOptimizer, setTrainOptimizer] = useState<string>("Adam");
+  const [trainOptimizer, setTrainOptimizer] = useState<string>("AdamW");
   const [trainArch, setTrainArch] = useState<string>("Deep MLP");
   const [trainActivation, setTrainActivation] = useState<string>("GELU");
   const [trainDropout, setTrainDropout] = useState<number>(0.0);
+  const [trainLrScheduler, setTrainLrScheduler] = useState<string>("CosineAnnealing");
+  const [trainLossFunction, setTrainLossFunction] = useState<string>("LabelSmoothedCE");
+  const [trainLabelSmoothing, setTrainLabelSmoothing] = useState<number>(0.1);
+  const [trainWeightDecay, setTrainWeightDecay] = useState<number>(0.0001);
   const [trainStrainRange, setTrainStrainRange] = useState<number>(2.0); // % boundary
   const [trainBroadeningRange, setTrainBroadeningRange] = useState<number>(0.25); // FWHM scale
   const [trainNoiseLevel, setTrainNoiseLevel] = useState<number>(10); // %
@@ -1289,7 +1293,11 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
           strainRange: trainStrainRange,
           broadeningRange: trainBroadeningRange,
           dropout: trainDropout,
-          activation: trainActivation
+          activation: trainActivation,
+          lrScheduler: trainLrScheduler,
+          lossFunction: trainLossFunction,
+          labelSmoothing: trainLabelSmoothing,
+          weightDecay: trainWeightDecay
         })
       });
 
@@ -8338,9 +8346,12 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 onChange={(e) => setTrainArch(e.target.value)}
                                 className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
                               >
-                                <option value="Feedforward MLP">Feedforward MLP</option>
-                                <option value="Deep MLP">Deep MLP (128 to 64)</option>
+                                <option value="Deep MLP">Deep MLP (128 → 64)</option>
                                 <option value="Residual MLP">Residual MLP (Skip Links)</option>
+                                <option value="1D-CNN (ConvNet)">1D-CNN (ConvNet Feature Extractor)</option>
+                                <option value="ResNet-1D (Residual Skip)">ResNet-1D (Deep Residual Skip)</option>
+                                <option value="Spectral Transformer (Self-Attention)">Spectral Transformer (Self-Attention)</option>
+                                <option value="Feedforward MLP">Feedforward MLP (Single Layer)</option>
                               </select>
                             </div>
                             <div className="space-y-1.5 align-top">
@@ -8360,7 +8371,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                             </div>
                           </div>
 
-                          {/* Optimizer & Batch size */}
+                          {/* Optimizer & LR Scheduler */}
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <label className="text-xs font-black tracking-wider text-slate-400 uppercase block">Optimizer</label>
@@ -8369,9 +8380,39 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 onChange={(e) => setTrainOptimizer(e.target.value)}
                                 className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
                               >
-                                <option value="Adam">Adam (Rolling beta)</option>
+                                <option value="AdamW">AdamW (Decoupled Weight Decay)</option>
+                                <option value="Adam">Adam (Adaptive Moments)</option>
                                 <option value="RMSprop">RMSprop Decay</option>
                                 <option value="SGD">SGD with Momentum</option>
+                              </select>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-black tracking-wider text-slate-400 uppercase block">LR Scheduler</label>
+                              <select 
+                                value={trainLrScheduler} 
+                                onChange={(e) => setTrainLrScheduler(e.target.value)}
+                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                              >
+                                <option value="CosineAnnealing">Cosine Annealing + Warmup</option>
+                                <option value="Exponential">Exponential Decay (γ=0.96)</option>
+                                <option value="ReduceOnPlateau">Reduce on Plateau</option>
+                                <option value="Constant">Constant Learning Rate</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          {/* Loss Function & Dropout */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-black tracking-wider text-slate-400 uppercase block">Objective Loss</label>
+                              <select 
+                                value={trainLossFunction} 
+                                onChange={(e) => setTrainLossFunction(e.target.value)}
+                                className="w-full bg-[#03060C] border border-slate-800/80 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500"
+                              >
+                                <option value="LabelSmoothedCE">Label-Smoothed Cross-Entropy (0.1)</option>
+                                <option value="FocalLoss">Focal Loss (Hard Sample Mining γ=2)</option>
+                                <option value="CrossEntropy">Standard Cross-Entropy</option>
                               </select>
                             </div>
                             <div className="space-y-1.5">
