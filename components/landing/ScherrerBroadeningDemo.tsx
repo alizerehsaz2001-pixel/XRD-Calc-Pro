@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Microscope, Sliders, ArrowRight, Zap, RefreshCw, Sparkles, HelpCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ScherrerBroadeningDemoProps {
   onLaunchModule: (moduleId: string) => void;
@@ -11,6 +12,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
   onLaunchModule,
   isRTL = false
 }) => {
+  const { t } = useTranslation();
   const [sizeNm, setSizeNm] = useState<number>(20);
   const [strainPercent, setStrainPercent] = useState<number>(0.15);
   const [twoThetaCenter, setTwoThetaCenter] = useState<number>(38.4); // Typical (111) reflection of Si / Al / Au
@@ -82,16 +84,14 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 mb-2">
             <Microscope className="w-3.5 h-3.5 text-violet-400" />
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-violet-300">
-              {isRTL ? "شبیه‌ساز زنده اثر اندازه بلورک" : "Interactive Physics Sandbox"}
+              {t("Interactive Physics Sandbox", "Interactive Physics Sandbox")}
             </span>
           </div>
           <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
-            {isRTL ? "پهن‌شدگی پیک براساس معادله شرر" : "Scherrer Domain Sizing & Peak Broadening"}
+            {t("Scherrer Domain Sizing & Peak Broadening", "Scherrer Domain Sizing & Peak Broadening")}
           </h3>
           <p className="text-xs md:text-sm text-slate-400 mt-1 max-w-xl font-medium">
-            {isRTL 
-              ? "اسلایدر اندازه بلورک را تغییر دهید تا پهن‌شدگی فیزیکی پیک پراش ناشی از محدودیت بلورک‌ها و کرنش را در زمان واقعی مشاهده کنید."
-              : "Adjust crystallite domain size and lattice strain to observe physical line broadening in real time."}
+            {t("Adjust crystallite domain size and lattice strain to observe physical line broadening in real time.", "Adjust crystallite domain size and lattice strain to observe physical line broadening in real time.")}
           </p>
         </div>
 
@@ -99,7 +99,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
           onClick={() => onLaunchModule('scherrer')}
           className="px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 shadow-lg shadow-violet-600/30 cursor-pointer"
         >
-          <span>Open Full Sizing Lab</span>
+          <span>{t("Open Full Sizing Lab", "Open Full Sizing Lab")}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -111,7 +111,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
           <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold text-slate-200">
-                {isRTL ? "اندازه بلورک (D)" : "Crystallite Domain Size (D)"}
+                {t("Crystallite Domain Size (D)", "Crystallite Domain Size (D)")}
               </label>
               <span className="font-mono text-sm font-black text-violet-400">
                 {sizeNm} <span className="text-[10px] text-slate-400 font-normal">nm</span>
@@ -127,9 +127,9 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
               className="w-full accent-violet-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
             />
             <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1.5">
-              <span>3 nm (Ultrafine Nano)</span>
+              <span>{t("3 nm (Ultrafine Nano)", "3 nm (Ultrafine Nano)")}</span>
               <span>50 nm</span>
-              <span>120 nm (Bulk-like)</span>
+              <span>{t("120 nm (Bulk-like)", "120 nm (Bulk-like)")}</span>
             </div>
           </div>
 
@@ -137,7 +137,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
           <div className="bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold text-slate-200">
-                {isRTL ? "کرنش شبکه بلور (ε)" : "Lattice Microstrain (ε)"}
+                {t("Lattice Microstrain (ε)", "Lattice Microstrain (ε)")}
               </label>
               <span className="font-mono text-sm font-black text-cyan-400">
                 {strainPercent.toFixed(2)}%
@@ -153,32 +153,32 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
               className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
             />
             <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1.5">
-              <span>0% (Strain-Free)</span>
+              <span>{t("0% (Strain-Free)", "0% (Strain-Free)")}</span>
               <span>0.4%</span>
-              <span>0.8% (Severe Deformation)</span>
+              <span>{t("0.8% (Severe Deformation)", "0.8% (Severe Deformation)")}</span>
             </div>
           </div>
 
           {/* Quick Presets */}
           <div className="flex items-center gap-2 pt-1">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Presets:</span>
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{t("Presets:", "Presets:")}</span>
             <button
               onClick={() => { setSizeNm(8); setStrainPercent(0.35); }}
               className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-bold border border-white/5 transition-colors cursor-pointer"
             >
-              Quantum Dot (8 nm)
+              {t("Quantum Dot (8 nm)", "Quantum Dot (8 nm)")}
             </button>
             <button
               onClick={() => { setSizeNm(35); setStrainPercent(0.08); }}
               className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-bold border border-white/5 transition-colors cursor-pointer"
             >
-              Nanopowder (35 nm)
+              {t("Nanopowder (35 nm)", "Nanopowder (35 nm)")}
             </button>
             <button
               onClick={() => { setSizeNm(100); setStrainPercent(0.02); }}
               className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] font-bold border border-white/5 transition-colors cursor-pointer"
             >
-              Coarse Grain (100 nm)
+              {t("Coarse Grain (100 nm)", "Coarse Grain (100 nm)")}
             </button>
           </div>
         </div>
@@ -189,12 +189,12 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
               <span className="text-xs font-mono font-bold text-slate-300">
-                Simulated 2θ Reflection (Cu Kα₁ = 1.5406 Å)
+                {t("Simulated 2θ Reflection (Cu Kα₁ = 1.5406 Å)", "Simulated 2θ Reflection (Cu Kα₁ = 1.5406 Å)")}
               </span>
             </div>
             <div className="text-right">
               <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block">
-                Calculated FWHM (β)
+                {t("Calculated FWHM (β)", "Calculated FWHM (β)")}
               </span>
               <span className="text-xs font-mono font-black text-cyan-300">
                 {stats.betaTotalDeg.toFixed(3)}° 2θ
@@ -254,7 +254,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
 
             {/* Center Peak Label */}
             <div className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-slate-900/90 border border-cyan-500/30 text-[9px] font-mono text-cyan-300">
-              Peak Center: {twoThetaCenter}° (111)
+              {t("Peak Center:", "Peak Center:")} {twoThetaCenter}° (111)
             </div>
           </div>
 
@@ -262,7 +262,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
           <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800/80 text-center">
             <div className="p-2 rounded-xl bg-white/[0.02]">
               <span className="text-[9px] font-mono text-slate-500 block uppercase tracking-widest">
-                Size Broadening
+                {t("Size Broadening", "Size Broadening")}
               </span>
               <span className="text-xs font-mono font-bold text-violet-300">
                 {(stats.betaSizeRad * (180 / Math.PI)).toFixed(3)}°
@@ -270,7 +270,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
             </div>
             <div className="p-2 rounded-xl bg-white/[0.02]">
               <span className="text-[9px] font-mono text-slate-500 block uppercase tracking-widest">
-                Strain Broadening
+                {t("Strain Broadening", "Strain Broadening")}
               </span>
               <span className="text-xs font-mono font-bold text-cyan-300">
                 {(stats.betaStrainRad * (180 / Math.PI)).toFixed(3)}°
@@ -278,7 +278,7 @@ export const ScherrerBroadeningDemo: React.FC<ScherrerBroadeningDemoProps> = ({
             </div>
             <div className="p-2 rounded-xl bg-white/[0.02]">
               <span className="text-[9px] font-mono text-slate-500 block uppercase tracking-widest">
-                Scherrer Formula
+                {t("Scherrer Formula", "Scherrer Formula")}
               </span>
               <span className="text-xs font-mono font-bold text-emerald-300">
                 β = Kλ / (D cosθ)

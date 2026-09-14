@@ -221,7 +221,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Unit Cells & Crystal Systems', 'Unit Cells & Crystal Systems'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-amber-400" />,
-        subtitle: isRTL ? 'مبانی سلول واحد، پارامترهای شبکه، ۷ دستگاه بلوری و ۱۴ شبکه براوه' : 'Unit cell geometry, axial vectors (a,b,c), 7 crystal systems & 14 Bravais lattices',
+        subtitle: t('Unit cell geometry, axial vectors (a,b,c), 7 crystal systems & 14 Bravais lattices', 'Unit cell geometry, axial vectors (a,b,c), 7 crystal systems & 14 Bravais lattices'),
         formula: 'a, b, c, α, β, γ',
         tags: ['Unit Cell', 'Crystal Systems', 'Bravais Lattices', 'Lattice Parameters', 'Cubic', 'Tetragonal', 'Hexagonal', 'Theory'],
         icon: <Box className={`${defaultIconClass} text-amber-400`} />,
@@ -239,7 +239,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Bragg Basics & Optics', 'Bragg Basics & Optics'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
-        subtitle: isRTL ? 'محاسبه زاویه 2θ، فاصله صفحات d و بردار پراکندگی Q' : 'Calculate d-spacing, 2θ angles & Q-scattering vector',
+        subtitle: t('Calculate d-spacing, 2θ angles & Q-scattering vector', 'Calculate d-spacing, 2θ angles & Q-scattering vector'),
         formula: 'λ = 2d·sin(θ)',
         tags: ['d-spacing', '2Theta', 'Q-vector', 'Wavelength', 'Bragg', 'Optics'],
         icon: <Activity className={`${defaultIconClass} text-cyan-400`} />,
@@ -257,7 +257,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('FWHM Profile Fitting', 'FWHM Profile Fitting'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
-        subtitle: isRTL ? 'تحلیل پهنای نیمه ارتفاع، توابع گوسی، لورنتسی و سودو-وویت' : 'Full Width at Half Maximum profile & line shape analysis',
+        subtitle: t('Full Width at Half Maximum profile & line shape analysis', 'Full Width at Half Maximum profile & line shape analysis'),
         formula: 'FWHM (β)',
         tags: ['FWHM', 'Line Shape', 'Gaussian', 'Lorentzian', 'Pseudo-Voigt', 'Broadening'],
         icon: <Sliders className={`${defaultIconClass} text-blue-400`} />,
@@ -275,7 +275,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Selection & Extinction Rules', 'Selection & Extinction Rules'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
-        subtitle: isRTL ? 'قوانین خاموشی، کره اولد سه‌بعدی و تانسور فضای معکوس' : 'Systematic absences, 3D Ewald sphere probe & reciprocal lattice',
+        subtitle: t('Systematic absences, 3D Ewald sphere probe & reciprocal lattice', 'Systematic absences, 3D Ewald sphere probe & reciprocal lattice'),
         formula: 'h + k + l = 2n',
         tags: ['HKL', 'Extinction', 'BCC', 'FCC', 'Symmetry', 'Ewald', 'Reciprocal Space'],
         icon: <Hash className={`${defaultIconClass} text-indigo-400`} />,
@@ -292,7 +292,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Diffraction Compare Engine', 'Diffraction Compare Engine'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
-        subtitle: isRTL ? 'مقایسه همزمان الگوی پراکندگی چند ماده و انطباق پیک‌ها' : 'Multi-pattern spectral overlay & peak matching workbench',
+        subtitle: t('Multi-pattern spectral overlay & peak matching workbench', 'Multi-pattern spectral overlay & peak matching workbench'),
         formula: 'I_rel vs 2θ',
         tags: ['Overlay', 'Comparative', 'Multi-Phase', 'Matching', 'Spectral'],
         icon: <Layers className={`${defaultIconClass} text-sky-400`} />,
@@ -309,7 +309,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Preferred Orientation (March-Dollase)', 'Preferred Orientation'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
-        subtitle: isRTL ? 'تصحیح بافت و جهت‌گیری ترجیحی بلورک‌ها' : 'Texture correction & pole density coefficient calculation',
+        subtitle: t('Texture correction & pole density coefficient calculation', 'Texture correction & pole density coefficient calculation'),
         formula: 'P_k = (r²cos²α + r⁻¹sin²α)⁻³/²',
         tags: ['Texture', 'March-Dollase', 'Pole Density', 'Orientation', 'Preferred'],
         icon: <Compass className={`${defaultIconClass} text-teal-400`} />,
@@ -326,7 +326,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('X-Ray Reflectometry (XRR)', 'X-Ray Reflectometry (XRR)'),
         category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
         categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-400" />,
-        subtitle: isRTL ? 'تحلیل بازتاب‌سنجی پرتو ایکس، ضخامت لایه‌ها، زبری سطوح و چگالی' : 'Thin film thickness, roughness & density modeling with Parratt recursion',
+        subtitle: t('Thin film thickness, roughness & density modeling with Parratt recursion', 'Thin film thickness, roughness & density modeling with Parratt recursion'),
         formula: 'R = |R_0|², d = 2π / Δq_z',
         tags: ['XRR', 'Reflectometry', 'Thin Films', 'Thickness', 'Roughness', 'Density', 'Parratt', 'Kiessig'],
         icon: <Activity className={`${defaultIconClass} text-cyan-400`} />,
@@ -346,7 +346,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Scherrer Crystallite Size', 'Scherrer Method'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'محاسبه میانگین ابعاد بلورک‌ها با ضریب شکل K' : 'Classical grain domain size analysis with shape factor K',
+        subtitle: t('Classical grain domain size analysis with shape factor K', 'Classical grain domain size analysis with shape factor K'),
         formula: 'D = Kλ / (β·cosθ)',
         tags: ['Grain Size', 'Nanocrystals', 'Shape Factor K', 'Scherrer', 'Nanoparticles'],
         icon: <Microscope className={`${defaultIconClass} text-emerald-400`} />,
@@ -364,7 +364,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Williamson-Hall Method', 'Williamson-Hall (W-H)'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'تفکیک کرنش میکروسکوپی شبکه از پهن‌شدگی اندازه بلورک' : 'Linear separation of microstrain (ε) from grain size broadening',
+        subtitle: t('Linear separation of microstrain (ε) from grain size broadening', 'Linear separation of microstrain (ε) from grain size broadening'),
         formula: 'β·cosθ = Kλ/D + 4ε·sinθ',
         tags: ['Microstrain', 'Size-Strain', 'W-H Plot', 'Linear Fit', 'Dislocations', 'UDM', 'USDM', 'UDEDM'],
         icon: <TrendingUp className={`${defaultIconClass} text-emerald-400`} />,
@@ -382,7 +382,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Monshi-Scherrer Scheme', 'Monshi-Scherrer Scheme'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'برونیابی لگاریتمی دقیق اصلاح‌شده برای نانوذرات' : 'Modified logarithmic extrapolation model for ultra-small crystallites',
+        subtitle: t('Modified logarithmic extrapolation model for ultra-small crystallites', 'Modified logarithmic extrapolation model for ultra-small crystallites'),
         formula: 'ln(β) = ln(Kλ/D) + ln(1/cosθ)',
         tags: ['Monshi', 'Modified Scherrer', 'Logarithmic Fit', 'Nanomaterials'],
         icon: <Activity className={`${defaultIconClass} text-green-400`} />,
@@ -399,7 +399,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Double-Voigt Method', 'Double-Voigt Method'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'توزیع ابعاد حواشی و کرنش بر اساس کانولوشن وویت' : 'Voigt profile convolution for volume-weighted vs number-weighted size',
+        subtitle: t('Voigt profile convolution for volume-weighted vs number-weighted size', 'Voigt profile convolution for volume-weighted vs number-weighted size'),
         formula: 'β_L(s) & β_G(s)',
         tags: ['Double-Voigt', 'Convolution', 'Volume-Weighted', 'Distribution', 'Lorentzian', 'Gaussian'],
         icon: <Layers className={`${defaultIconClass} text-teal-400`} />,
@@ -416,7 +416,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Integral Breadth Analysis', 'Integral Breadth (IB)'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'تحلیل پهنای انتگرالی نسبت مساحت کل به ارتفاع پیک' : 'Integrated intensity area over peak height parameter',
+        subtitle: t('Integrated intensity area over peak height parameter', 'Integrated intensity area over peak height parameter'),
         formula: 'β_I = A / I_max',
         tags: ['Integral Breadth', 'Peak Area', 'Profiles', 'Line Width'],
         icon: <InfinityIcon className={`${defaultIconClass} text-lime-400`} />,
@@ -433,7 +433,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('IB Advanced (W-H)', 'IB Advanced (W-H)'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'روش پیشرفته پهنای انتگرالی ترکیبی گوسی و لورنتسی' : 'Advanced Gaussian-Lorentzian IB plot for size/strain',
+        subtitle: t('Advanced Gaussian-Lorentzian IB plot for size/strain', 'Advanced Gaussian-Lorentzian IB plot for size/strain'),
         formula: 'β* = 1/D + 2e s*',
         tags: ['IB Advanced', 'Lorentzian', 'Gaussian', 'Size-Strain', 'Parabolic Fit'],
         icon: <Sliders className={`${defaultIconClass} text-emerald-300`} />,
@@ -450,7 +450,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Warren-Averbach Fourier', 'Warren-Averbach'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'تحلیل سری فوریه برای توابع توزیع واقعی طول ستون' : 'True column length distribution & RMS microstrain <ε_L²>¹/²',
+        subtitle: t('True column length distribution & RMS microstrain <ε_L²>¹/²', 'True column length distribution & RMS microstrain <ε_L²>¹/²'),
         formula: 'A_L(s) = A_L^S · A_L^D',
         tags: ['Fourier', 'Warren-Averbach', 'RMS Strain', 'Column Length', 'Dislocation Density'],
         icon: <Network className={`${defaultIconClass} text-green-300`} />,
@@ -468,7 +468,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Method of Moments (Variance)', 'Method of Moments'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'تحلیل گشتاورهای آماری و واریانس خطوط پراکندگی' : 'Statistical moment analysis of profile variance vs integration range',
+        subtitle: t('Statistical moment analysis of profile variance vs integration range', 'Statistical moment analysis of profile variance vs integration range'),
         formula: 'W(2θ) = ⟨(2θ - 2θ₀)²⟩',
         tags: ['Variance', 'Moments', 'Asymmetry', 'Statistical', 'Skewness'],
         icon: <BarChart3 className={`${defaultIconClass} text-emerald-500`} />,
@@ -485,7 +485,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Residual Stress (sin²ψ)', 'Residual Stress (sin²ψ)'),
         category: t('Size, Strain & Dynamics', 'Size, Strain & Dynamics'),
         categoryIcon: <Microscope className="w-4 h-4 text-emerald-400" />,
-        subtitle: isRTL ? 'ارزیابی تنش‌های پسماند ماکروسکوپی و تانسور الاستیک' : 'Macroscopic residual stress & elastic lattice strain tensor evaluation',
+        subtitle: t('Macroscopic residual stress & elastic lattice strain tensor evaluation', 'Macroscopic residual stress & elastic lattice strain tensor evaluation'),
         formula: 'ε_ψ = ((1+ν)/E)σ·sin²ψ - (ν/E)(σ₁+σ₂)',
         tags: ['Sin2Psi', 'Residual Stress', 'Macro-stress', 'Elasticity', 'Young Modulus', 'Poisson'],
         icon: <Zap className={`${defaultIconClass} text-amber-400`} />,
@@ -504,7 +504,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t("Cohen's Matrix Refinement", "Cohen's Matrix Refinement"),
         category: t('Structure & Refinement', 'Structure & Refinement'),
         categoryIcon: <Atom className="w-4 h-4 text-purple-400" />,
-        subtitle: isRTL ? 'پالایش ماتریسی کمترین مربعات ثابت‌های شبکه و خطای زاویه' : 'Least-squares matrix correction for unit cell parameters & zero-shift',
+        subtitle: t('Least-squares matrix correction for unit cell parameters & zero-shift', 'Least-squares matrix correction for unit cell parameters & zero-shift'),
         formula: 'sin²θ = A·h² + B·k² + C·l² + D·cos²θ',
         tags: ['Cohen', 'Lattice Refinement', 'Least Squares', 'Zero Offset', 'Unit Cell'],
         icon: <Grid className={`${defaultIconClass} text-purple-400`} />,
@@ -522,7 +522,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Metric Tensor Algebra', 'Metric Tensor Algebra'),
         category: t('Structure & Refinement', 'Structure & Refinement'),
         categoryIcon: <Atom className="w-4 h-4 text-purple-400" />,
-        subtitle: isRTL ? 'تانسورهای فضای معکوس g_ij و محاسبه زوایای بین صفحات' : 'Reciprocal space metric tensor g^ij & interplanar angle calculations',
+        subtitle: t('Reciprocal space metric tensor g^ij & interplanar angle calculations', 'Reciprocal space metric tensor g^ij & interplanar angle calculations'),
         formula: 'g_ij = a_i · a_j',
         tags: ['Metric Tensor', 'Reciprocal Space', 'Interplanar Angle', 'Geometry', 'Cross Product'],
         icon: <Sparkles className={`${defaultIconClass} text-indigo-400`} />,
@@ -539,7 +539,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Supercell & Matrix Engine', 'Supercell & Matrix Engine'),
         category: t('Structure & Refinement', 'Structure & Refinement'),
         categoryIcon: <Atom className="w-4 h-4 text-purple-400" />,
-        subtitle: isRTL ? 'ماتریس‌های تبدیل سلول واحد و ابرسلول‌های بلوری' : 'Real space unit cell transformation & Bravais lattice conversions',
+        subtitle: t('Real space unit cell transformation & Bravais lattice conversions', 'Real space unit cell transformation & Bravais lattice conversions'),
         formula: "[a' b' c'] = [a b c]·M",
         tags: ['Supercell', 'Transformation', 'Matrix', 'Lattice Vectors', 'DFT', 'Bravais'],
         icon: <Grid className={`${defaultIconClass} text-violet-400`} />,
@@ -556,7 +556,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Pawley & Le Bail Fitting', 'Pawley & Le Bail Fitting'),
         category: t('Structure & Refinement', 'Structure & Refinement'),
         categoryIcon: <Atom className="w-4 h-4 text-purple-400" />,
-        subtitle: isRTL ? 'تجزیه کامل الگوی پراکندگی بدون نیاز به مدل ساختاری' : 'Whole powder pattern decomposition without structural model',
+        subtitle: t('Whole powder pattern decomposition without structural model', 'Whole powder pattern decomposition without structural model'),
         formula: 'I_hkl extraction',
         tags: ['Pawley', 'Le Bail', 'Decomposition', 'Intensity Fitting', 'Profile Matching'],
         icon: <Activity className={`${defaultIconClass} text-fuchsia-400`} />,
@@ -573,7 +573,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Reference Intensity Ratio (RIR)', 'Reference Intensity Ratio (RIR)'),
         category: t('Structure & Refinement', 'Structure & Refinement'),
         categoryIcon: <Atom className="w-4 h-4 text-purple-400" />,
-        subtitle: isRTL ? 'تحلیل نیمه‌کمی فراوانی فازها با استاندارد کوندوم (I/I_c)' : 'Semi-quantitative phase abundance relative to corundum standard',
+        subtitle: t('Semi-quantitative phase abundance relative to corundum standard', 'Semi-quantitative phase abundance relative to corundum standard'),
         formula: 'X_A = (I_A / RIR_A) / Σ(I_i / RIR_i)',
         tags: ['RIR', 'Quantitative', 'Corundum', 'Phase Abundance', 'Multi-Phase', 'Weight Fraction'],
         icon: <Layers className={`${defaultIconClass} text-pink-400`} />,
@@ -593,7 +593,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Rietveld Full Profile Setup', 'Rietveld Setup'),
         category: t('Rietveld & Quantum Sim', 'Rietveld & Quantum Sim'),
         categoryIcon: <Orbit className="w-4 h-4 text-amber-400" />,
-        subtitle: isRTL ? 'پالایش ساختار بلوری، مختصات اتمی و شاخص‌های R_wp، χ²' : 'Crystal structure refinement, atomic positions & fit quality R_wp',
+        subtitle: t('Crystal structure refinement, atomic positions & fit quality R_wp', 'Crystal structure refinement, atomic positions & fit quality R_wp'),
         formula: 'S(y) = Σ w_i (y_o - y_c)²',
         tags: ['Rietveld', 'Refinement', 'Atomic Coordinates', 'Rwp', 'Chi2', 'Background', 'Occupancy'],
         icon: <Sliders className={`${defaultIconClass} text-amber-400`} />,
@@ -611,7 +611,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Neutron Diffraction Physics', 'Neutron Diffraction'),
         category: t('Rietveld & Quantum Sim', 'Rietveld & Quantum Sim'),
         categoryIcon: <Orbit className="w-4 h-4 text-amber-400" />,
-        subtitle: isRTL ? 'طول پراکندگی هسته‌ای b_i و ردیابی عناصر سبک (H, Li, O)' : 'Nuclear scattering length b_i & light element localization',
+        subtitle: t('Nuclear scattering length b_i & light element localization', 'Nuclear scattering length b_i & light element localization'),
         formula: 'b_coherent & b_incoherent',
         tags: ['Neutron', 'Nuclear Scattering', 'Light Elements', 'Isotopes', 'Hydrogen', 'Lithium'],
         icon: <Orbit className={`${defaultIconClass} text-orange-400`} />,
@@ -628,7 +628,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Magnetic Neutron Scattering', 'Magnetic Neutron Scattering'),
         category: t('Rietveld & Quantum Sim', 'Rietveld & Quantum Sim'),
         categoryIcon: <Orbit className="w-4 h-4 text-amber-400" />,
-        subtitle: isRTL ? 'فاکتور فرم مغناطیسی، آرایش اسپین‌ها و تقارن سلول مغناطیسی' : 'Magnetic form factor f(Q), spin structure & magnetic space groups',
+        subtitle: t('Magnetic form factor f(Q), spin structure & magnetic space groups', 'Magnetic form factor f(Q), spin structure & magnetic space groups'),
         formula: 'F_mag(Q) = (r₀γ/2) μ_f f_m(Q)',
         tags: ['Magnetic', 'Spin Structure', 'Form Factor', 'Antiferromagnetic', 'Superlattice', 'Magnetic Moment'],
         icon: <Magnet className={`${defaultIconClass} text-red-400`} />,
@@ -645,7 +645,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Python Script Generator', 'Python Generator'),
         category: t('Rietveld & Quantum Sim', 'Rietveld & Quantum Sim'),
         categoryIcon: <Orbit className="w-4 h-4 text-amber-400" />,
-        subtitle: isRTL ? 'تولید خودکار کدهای پایتون SciPy و DiffPy برای محاسبات پیشرفته' : 'Automated SciPy / DiffPy script generation for custom analysis',
+        subtitle: t('Automated SciPy / DiffPy script generation for custom analysis', 'Automated SciPy / DiffPy script generation for custom analysis'),
         formula: 'import scipy.optimize',
         tags: ['Python', 'Automation', 'SciPy', 'Scripting', 'DiffPy', 'Jupyter', 'Export'],
         icon: <Terminal className={`${defaultIconClass} text-emerald-400`} />,
@@ -664,7 +664,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('PhaseID Neural Classifier', 'PhaseID Neural Net'),
         category: t('AI & Neural Intelligence', 'AI & Neural Intelligence'),
         categoryIcon: <Brain className="w-4 h-4 text-violet-400" />,
-        subtitle: isRTL ? 'تشخیص فازهای بلوری با هوش مصنوعی و یادگیری عمیق' : 'AI deep learning for rapid multiphase pattern identification',
+        subtitle: t('AI deep learning for rapid multiphase pattern identification', 'AI deep learning for rapid multiphase pattern identification'),
         formula: 'CNN Peak Classifier',
         tags: ['AI', 'Neural Net', 'PhaseID', 'Pattern Recognition', 'Deep Learning', 'Computer Vision'],
         icon: <Brain className={`${defaultIconClass} text-violet-400`} />,
@@ -682,7 +682,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('2D Detector & Ring Integrator', 'Image Analysis'),
         category: t('AI & Neural Intelligence', 'AI & Neural Intelligence'),
         categoryIcon: <Brain className="w-4 h-4 text-violet-400" />,
-        subtitle: isRTL ? 'انتگرال‌گیری از حلقه‌های دبی-شرر در دتکتورهای دو بعدی' : 'Debye-Scherrer ring azimuth integration & 2D detector processing',
+        subtitle: t('Debye-Scherrer ring azimuth integration & 2D detector processing', 'Debye-Scherrer ring azimuth integration & 2D detector processing'),
         formula: 'I(2θ, χ) Azimuthal Integration',
         tags: ['2D Detector', 'Debye-Scherrer', 'Texture', 'Ring Integration', 'Azimuthal', 'Diffraction Rings'],
         icon: <ImageIcon className={`${defaultIconClass} text-pink-400`} />,
@@ -699,7 +699,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Scientific Illustrator AI', 'Scientific Illustrator'),
         category: t('AI & Neural Intelligence', 'AI & Neural Intelligence'),
         categoryIcon: <Brain className="w-4 h-4 text-violet-400" />,
-        subtitle: isRTL ? 'تصویرسازی سه‌بعدی علمی برای مقالات و ارائه‌ها' : 'AI crystallographic 3D crystal schematic & diagram generator',
+        subtitle: t('AI crystallographic 3D crystal schematic & diagram generator', 'AI crystallographic 3D crystal schematic & diagram generator'),
         formula: 'Diffusion Visualizer',
         tags: ['Illustrator', '3D Crystal', 'Diagrams', 'Publications', 'Figures', 'Nanomaterials'],
         icon: <Sparkles className={`${defaultIconClass} text-purple-300`} />,
@@ -716,7 +716,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('XRD Nano Banana 2 AI Studio', 'XRD Nano Banana 2'),
         category: t('AI & Neural Intelligence', 'AI & Neural Intelligence'),
         categoryIcon: <Brain className="w-4 h-4 text-violet-400" />,
-        subtitle: isRTL ? 'استودیوی تصویرسازی و ویرایش چندحالته XRD و نانومواد با جمینای ۳.۱ فلش' : 'Next-gen text-to-image synthesis & multimodal image editing with Gemini 3.1 Flash Image',
+        subtitle: t('Next-gen text-to-image synthesis & multimodal image editing with Gemini 3.1 Flash Image', 'Next-gen text-to-image synthesis & multimodal image editing with Gemini 3.1 Flash Image'),
         formula: 'gemini-3.1-flash-image (Nano Banana 2)',
         tags: ['XRD', 'Nano Banana 2', 'Gemini 3.1 Flash Image', 'Text-to-Image', 'Image Editing', 'Multimodal', 'HRTEM', 'Debye-Scherrer', 'Nanocrystals'],
         icon: <Wand2 className={`${defaultIconClass} text-fuchsia-400`} />,
@@ -736,7 +736,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Interactive Periodic Table', 'Periodic Table'),
         category: t('Databases & Reference', 'Databases & Reference'),
         categoryIcon: <Database className="w-4 h-4 text-slate-400" />,
-        subtitle: isRTL ? 'لبه‌های جذب اشعه ایکس (K_α, K_β) و فاکتور پراکندگی اتمی f(Q)' : 'X-ray absorption edges (K_α, K_β) & atomic scattering factors f(Q)',
+        subtitle: t('X-ray absorption edges (K_α, K_β) & atomic scattering factors f(Q)', 'X-ray absorption edges (K_α, K_β) & atomic scattering factors f(Q)'),
         formula: 'Z, f₀(s), μ/ρ',
         tags: ['Periodic Table', 'X-ray Edges', 'Scattering Factors', 'Elements', 'Cromer-Mann', 'Attenuation'],
         icon: <Grid className={`${defaultIconClass} text-cyan-300`} />,
@@ -753,7 +753,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Crystallographic Material Registry', 'Material Registry'),
         category: t('Databases & Reference', 'Databases & Reference'),
         categoryIcon: <Database className="w-4 h-4 text-slate-400" />,
-        subtitle: isRTL ? 'پایگاه داده فازهای معدنی، فایل‌های CIF و استانداردهای آزمایشگاهی' : 'Searchable CIF standards, inorganic phases & Bragg database',
+        subtitle: t('Searchable CIF standards, inorganic phases & Bragg database', 'Searchable CIF standards, inorganic phases & Bragg database'),
         formula: 'ICSD / CIF Database',
         tags: ['CIF', 'Standards', 'Materials', 'ICSD', 'Silicon', 'Gold', 'Perovskites', 'Metals'],
         icon: <Database className={`${defaultIconClass} text-indigo-300`} />,
@@ -771,7 +771,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Protocol & Theory Manual', 'Protocol Guide'),
         category: t('Databases & Reference', 'Databases & Reference'),
         categoryIcon: <Database className="w-4 h-4 text-slate-400" />,
-        subtitle: isRTL ? 'کتاب راهنمای ریاضی و تئوری پراکندگی اشعه ایکس' : 'Interactive crystallographic textbook, derivations & lab protocols',
+        subtitle: t('Interactive crystallographic textbook, derivations & lab protocols', 'Interactive crystallographic textbook, derivations & lab protocols'),
         formula: 'Book of Crystallography',
         tags: ['Theory', 'Textbook', 'Protocols', 'Derivations', 'Formulas', 'Tutorials'],
         icon: <BookOpen className={`${defaultIconClass} text-amber-300`} />,
@@ -788,7 +788,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('Laboratory Director Profile', 'Laboratory Director'),
         category: t('Databases & Reference', 'Databases & Reference'),
         categoryIcon: <Database className="w-4 h-4 text-slate-400" />,
-        subtitle: isRTL ? 'رزومه پژوهشی، پرونده علمی و مجوزهای گره ابری' : 'Investigator credentials, publications & cloud node identity',
+        subtitle: t('Investigator credentials, publications & cloud node identity', 'Investigator credentials, publications & cloud node identity'),
         formula: 'L-5 Director Node',
         tags: ['Profile', 'Researcher', 'Credentials', 'Node', 'Lab', 'Auth'],
         icon: <User className={`${defaultIconClass} text-emerald-400`} />,
@@ -805,7 +805,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         label: t('System & Calibration Settings', 'Settings'),
         category: t('Databases & Reference', 'Databases & Reference'),
         categoryIcon: <Database className="w-4 h-4 text-slate-400" />,
-        subtitle: isRTL ? 'کالیبراسیون زاویه صفر، شعاع گونیومتر و تنظیمات واحدها' : 'Wavelength calibration, zero offsets, unit preferences & theme',
+        subtitle: t('Wavelength calibration, zero offsets, unit preferences & theme', 'Wavelength calibration, zero offsets, unit preferences & theme'),
         formula: 'Zero Shift & Calibration',
         tags: ['Settings', 'Calibration', 'Units', 'Theme', 'Instrument', 'Zero Offset'],
         icon: <Settings2 className={`${defaultIconClass} text-slate-300`} />,
@@ -891,14 +891,14 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
 
   // Quick Preset Search Tags
   const quickSearchTags = useMemo(() => [
-    { label: isRTL ? 'اندازه و کرنش' : 'Size & Strain', tag: 'Microstrain' },
-    { label: isRTL ? 'ریتولد' : 'Rietveld', tag: 'Rietveld' },
-    { label: isRTL ? 'لایه‌های نازک و XRR' : 'Thin Films & XRR', tag: 'XRR' },
-    { label: isRTL ? 'هوش مصنوعی' : 'AI & Vision', tag: 'AI' },
-    { label: isRTL ? 'ثابت‌های شبکه' : 'Lattice Parameters', tag: 'Cohen' },
-    { label: isRTL ? 'تعیین کمی RIR' : 'Quantitative RIR', tag: 'RIR' },
-    { label: isRTL ? 'نوترون و اسپین' : 'Neutron & Magnetism', tag: 'Neutron' },
-    { label: isRTL ? 'پایگاه داده CIF' : 'CIF Standards', tag: 'CIF' },
+    { label: t('Size & Strain', 'Size & Strain'), tag: 'Microstrain' },
+    { label: t('Rietveld', 'Rietveld'), tag: 'Rietveld' },
+    { label: t('Thin Films & XRR', 'Thin Films & XRR'), tag: 'XRR' },
+    { label: t('AI & Vision', 'AI & Vision'), tag: 'AI' },
+    { label: t('Lattice Parameters', 'Lattice Parameters'), tag: 'Cohen' },
+    { label: t('Quantitative RIR', 'Quantitative RIR'), tag: 'RIR' },
+    { label: t('Neutron & Magnetism', 'Neutron & Magnetism'), tag: 'Neutron' },
+    { label: t('CIF Standards', 'CIF Standards'), tag: 'CIF' },
   ], [isRTL]);
 
   // Category List
@@ -1136,7 +1136,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                 <h3 className={`text-lg sm:text-xl font-black tracking-tight flex items-center gap-2 ${
                   theme === 'cyberpunk' ? 'text-cyber-accent' : theme === 'dark' ? 'text-white' : 'text-slate-900'
                 }`}>
-                  <span>{isRTL ? 'ناوبری جامع ماژول‌های علمی' : 'Scientific Suite Navigator'}</span>
+                  <span>{t('Scientific Suite Navigator', 'Scientific Suite Navigator')}</span>
                   <span className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider border ${
                     theme === 'cyberpunk' ? 'bg-cyber-accent/20 border-cyber-accent text-cyber-accent' : 'bg-indigo-500/10 border-indigo-400/30 text-indigo-400 dark:text-indigo-300'
                   }`}>
@@ -1162,9 +1162,9 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                         : 'bg-white border-slate-200 text-slate-700 shadow-sm'
                   }`}
                 >
-                  <option value="default">{isRTL ? 'ترتیب پیش‌فرض' : 'Default Order'}</option>
-                  <option value="alpha">{isRTL ? 'الفبایی (A-Z)' : 'Alphabetical (A-Z)'}</option>
-                  <option value="complexity">{isRTL ? 'بر اساس سطح سختی' : 'By Complexity'}</option>
+                  <option value="default">{t('Default Order', 'Default Order')}</option>
+                  <option value="alpha">{t('Alphabetical (A-Z)', 'Alphabetical (A-Z)')}</option>
+                  <option value="complexity">{t('By Complexity', 'By Complexity')}</option>
                 </select>
               </div>
 
@@ -1179,7 +1179,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                       ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm font-bold')
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title={isRTL ? 'نمای کارت‌های بزرگ (کلید ۱)' : 'Grid View (Key 1)'}
+                  title={t('Grid View (Key 1)', 'Grid View (Key 1)')}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
                   <span className="hidden md:inline text-[10px]">Grid</span>
@@ -1191,7 +1191,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                       ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm font-bold')
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title={isRTL ? 'نمای فشرده و متراکم (کلید ۲)' : 'Compact List (Key 2)'}
+                  title={t('Compact List (Key 2)', 'Compact List (Key 2)')}
                 >
                   <List className="w-3.5 h-3.5" />
                   <span className="hidden md:inline text-[10px]">List</span>
@@ -1203,7 +1203,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                       ? (theme === 'cyberpunk' ? 'bg-cyber-accent text-black font-bold' : 'bg-indigo-600 text-white shadow-sm font-bold')
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title={isRTL ? 'نمای تفکیکی با پیش‌نمایش (کلید ۳)' : 'Split Inspector (Key 3)'}
+                  title={t('Split Inspector (Key 3)', 'Split Inspector (Key 3)')}
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span className="hidden md:inline text-[10px]">Inspector</span>
@@ -1215,7 +1215,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                 theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent/70' : theme === 'dark' ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500 shadow-sm'
               }`}>
                 <Command className={`w-3.5 h-3.5 ${theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-400'}`} />
-                <span>Esc {isRTL ? 'خروج' : 'exit'}</span>
+                <span>Esc {t('exit', 'exit')}</span>
               </div>
 
               {/* Close Button */}
@@ -1287,7 +1287,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar scrollbar-none text-xs">
               <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1 shrink-0 px-1">
                 <Flame className="w-3 h-3 text-amber-400" />
-                <span>{isRTL ? 'کلیدواژه‌های پرتکرار:' : 'Fast Filters:'}</span>
+                <span>{t('Fast Filters:', 'Fast Filters:')}</span>
               </span>
               {quickSearchTags.map((item) => {
                 const isSelected = selectedTag === item.tag;
@@ -1327,7 +1327,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                   className="px-2 py-1 rounded-lg text-[11px] font-bold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 shrink-0 flex items-center gap-1"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>{isRTL ? 'بازنشانی' : 'Reset'}</span>
+                  <span>{t('Reset', 'Reset')}</span>
                 </button>
               )}
             </div>
@@ -1367,7 +1367,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     {cat === '⭐ Favorites' && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
                     {cat === '🕒 Recent' && <History className="w-3.5 h-3.5 text-cyan-400" />}
                     {cat === '🎯 Pathways' && <Target className="w-3.5 h-3.5 text-purple-400" />}
-                    <span>{cat === 'All' ? (isRTL ? 'همه ماژول‌ها' : 'All Modules') : cat}</span>
+                    <span>{cat === 'All' ? t('All Modules', 'All Modules') : t(cat, cat)}</span>
                     <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono ${
                       isSelected 
                         ? (theme === 'cyberpunk' ? 'bg-black/30 text-black' : 'bg-white/20 text-white')
@@ -1385,7 +1385,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
               <div className="pt-2 border-t border-slate-700/30">
                 <div className="text-[11px] font-bold text-slate-400 mb-2 flex items-center gap-1.5">
                   <Target className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{isRTL ? 'مسیرهای پژوهشی هدف‌محور:' : 'Goal-Oriented Research Pathways:'}</span>
+                  <span>{t('Goal-Oriented Research Pathways:', 'Goal-Oriented Research Pathways:')}</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {researchPathways.map((pw) => {
@@ -1458,7 +1458,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                   className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
                 >
                   <Play className="w-3 h-3 fill-white" />
-                  <span>{isRTL ? 'شروع از گام اول' : 'Start from Step 1'}</span>
+                  <span>{t('Start from Step 1', 'Start from Step 1')}</span>
                 </button>
                 <button
                   onClick={() => setSelectedPathway(null)}
@@ -1486,7 +1486,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     <Search className="w-8 h-8" />
                   </div>
                   <h4 className={`text-base font-bold ${theme === 'cyberpunk' ? 'text-cyber-accent' : theme === 'dark' ? 'text-slate-300' : 'text-slate-900'}`}>
-                    {isRTL ? 'هیچ ماژولی با این مشخصات یافت نشد' : 'No matching scientific modules found'}
+                    {t('No matching scientific modules found', 'No matching scientific modules found')}
                   </h4>
                   <p className="text-xs max-w-sm mx-auto text-slate-400">
                     {isRTL ? 'عبارت جستجو را تغییر دهید یا فیلتر دسته‌بندی را پاک کنید.' : 'Try searching for generic terms like "Strain", "Size", "Profile", or clear category filters.'}
@@ -1500,7 +1500,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     }}
                     className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-all cursor-pointer"
                   >
-                    {isRTL ? 'پاکسازی فیلترها' : 'Reset All Filters'}
+                    {t('Reset All Filters', 'Reset All Filters')}
                   </button>
                 </div>
               ) : (
@@ -1677,7 +1677,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     }}
                     className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-gradient-to-r from-indigo-600 via-violet-600 to-cyan-600 text-white shadow-lg shadow-indigo-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{isRTL ? 'ورود به این ماژول' : 'Launch Workspace'}</span>
+                    <span>{t('Launch Workspace', 'Launch Workspace')}</span>
                     <ArrowUpRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -1692,19 +1692,19 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">↑↓←→</kbd>
-                <span className="text-[11px]">{isRTL ? 'جابجایی' : 'Navigate'}</span>
+                <span className="text-[11px]">{t('Navigate', 'Navigate')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">Enter</kbd>
-                <span className="text-[11px]">{isRTL ? 'انتخاب' : 'Select'}</span>
+                <span className="text-[11px]">{t('Select', 'Select')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">F</kbd>
-                <span className="text-[11px]">{isRTL ? 'علاقه‌مندی' : 'Star Favorite'}</span>
+                <span className="text-[11px]">{t('Star Favorite', 'Star Favorite')}</span>
               </div>
               <div className="flex items-center gap-1.5 hidden sm:flex">
                 <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-black/30 border border-white/15 text-slate-300">1/2/3</kbd>
-                <span className="text-[11px]">{isRTL ? 'تغییر نما' : 'Views'}</span>
+                <span className="text-[11px]">{t('Views', 'Views')}</span>
               </div>
             </div>
 

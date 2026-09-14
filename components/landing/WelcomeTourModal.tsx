@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { 
   X, 
   Sparkles, 
@@ -80,6 +81,7 @@ export const WelcomeTourModal: React.FC<Props> = ({
   onLaunch,
   isRTL = false
 }) => {
+  const { t } = useTranslation();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   if (!isOpen) return null;
@@ -119,10 +121,10 @@ export const WelcomeTourModal: React.FC<Props> = ({
               </div>
               <div>
                 <h3 className="text-base font-bold text-white leading-tight">
-                  {isRTL ? "راهنمای سریع شروع با XRD CalcPro" : "XRD CalcPro Quick-Start Guide"}
+                  {t("XRD CalcPro Quick-Start Guide", "XRD CalcPro Quick-Start Guide")}
                 </h3>
                 <p className="text-[11px] font-mono text-slate-400">
-                  {isRTL ? "گردش کار ۴ مرحله‌ای تحلیل علمی بلورشناسی" : "4-Stage Academic Crystallography Workflow"}
+                  {t("4-Stage Academic Crystallography Workflow", "4-Stage Academic Crystallography Workflow")}
                 </p>
               </div>
             </div>
@@ -181,10 +183,10 @@ export const WelcomeTourModal: React.FC<Props> = ({
 
                 <div>
                   <h4 className="text-xl font-black text-white tracking-tight mb-2">
-                    {isRTL ? currentStep.titleFa : currentStep.titleEn}
+                    {t(currentStep.titleEn, currentStep.titleEn)}
                   </h4>
                   <p className="text-sm text-slate-300 leading-relaxed">
-                    {isRTL ? currentStep.descFa : currentStep.descEn}
+                    {t(currentStep.descEn, currentStep.descEn)}
                   </p>
                 </div>
               </div>

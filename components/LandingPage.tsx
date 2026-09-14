@@ -1075,6 +1075,7 @@ const TERMS_OF_USE_DATA = {
 
 // --- Legal Modal Component ---
 const LegalModal = ({ isOpen, onClose, content, isRTL }: { isOpen: boolean, onClose: () => void, content: any, isRTL: boolean }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
   
   return (
@@ -1135,7 +1136,7 @@ const LegalModal = ({ isOpen, onClose, content, isRTL }: { isOpen: boolean, onCl
              onClick={onClose}
              className="px-8 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95 text-sm uppercase tracking-widest"
            >
-             {isRTL ? "متوجه شدم" : "I Understand"}
+             {t("I Understand", "I Understand")}
            </button>
         </div>
       </motion.div>
@@ -1145,6 +1146,7 @@ const LegalModal = ({ isOpen, onClose, content, isRTL }: { isOpen: boolean, onCl
 
 // --- Cookie Consent Banner ---
 const CookieBanner = ({ isRTL, onAccept }: { isRTL: boolean, onAccept: () => void }) => {
+  const { t } = useTranslation();
   return (
     <motion.div 
       initial={{ y: 100, opacity: 0 }}
@@ -1158,12 +1160,10 @@ const CookieBanner = ({ isRTL, onAccept }: { isRTL: boolean, onAccept: () => voi
         
         <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
           <h4 className="text-lg font-black text-white tracking-tight mb-1">
-            {isRTL ? "پیکربندی کوکی‌های سیستمی" : "System Cookie Configuration"}
+            {t("System Cookie Configuration", "System Cookie Configuration")}
           </h4>
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
-            {isRTL 
-              ? "ما از کوکی‌های فنی برای بهینه‌سازی محاسبات پراش و ذخیره ترجیحات آزمایشگاهی شما استفاده می‌کنیم. با ادامه استفاده، شما این پروتکل را تایید می‌کنید."
-              : "We utilize technical cookies to optimize diffraction computations and persist your laboratory workbench preferences. By continuing, you authorize this metadata protocol."}
+            {t("We utilize technical cookies to optimize diffraction computations and persist your laboratory workbench preferences. By continuing, you authorize this metadata protocol.", "We utilize technical cookies to optimize diffraction computations and persist your laboratory workbench preferences. By continuing, you authorize this metadata protocol.")}
           </p>
         </div>
         
@@ -1172,13 +1172,13 @@ const CookieBanner = ({ isRTL, onAccept }: { isRTL: boolean, onAccept: () => voi
             onClick={onAccept}
             className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 text-xs font-bold uppercase tracking-widest transition-all"
           >
-            {isRTL ? "تنظیمات" : "Settings"}
+            {t("Settings", "Settings")}
           </button>
           <button 
             onClick={onAccept}
             className="px-8 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95"
           >
-            {isRTL ? "تایید و ادامه" : "Authorize & Sync"}
+            {t("Authorize & Sync", "Authorize & Sync")}
           </button>
         </div>
       </div>
@@ -1218,16 +1218,10 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
 
   const timeOfDayGreeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (isRTL) {
-      if (hour < 12) return 'صبح بخیر';
-      if (hour < 17) return 'عصر بخیر';
-      return 'شب بخیر';
-    } else {
-      if (hour < 12) return 'Good morning';
-      if (hour < 17) return 'Good afternoon';
-      return 'Good evening';
-    }
-  }, [isRTL]);
+    if (hour < 12) return t('Good morning', 'Good morning');
+    if (hour < 17) return t('Good afternoon', 'Good afternoon');
+    return t('Good evening', 'Good evening');
+  }, [t, i18n.language]);
 
   const handleEnterApp = (mode: 'login' | 'register' = 'login', targetModule?: any) => {
     setPendingLaunchMode(mode);
@@ -1680,7 +1674,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                 <Database className="w-4 h-4 text-violet-400" />
                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-300 font-mono">
-                  {isRTL ? "انطباق فاز و نمایه سازی ساختاری" : "Phase Match & Structural Indexing"}
+                  {t("Phase Match & Structural Indexing", "Phase Match & Structural Indexing")}
                 </span>
               </div>
 
@@ -1696,7 +1690,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
                   <span className="text-white font-black">{timeOfDayGreeting}</span>
                   <span className="text-slate-400">•</span>
-                  <span>{isRegistered && userName ? `${t('Welcome')}, ${userName}` : (isRTL ? "به سامانه XRD CalcPro خوش آمدید" : "Welcome to XRD CalcPro")}</span>
+                  <span>{isRegistered && userName ? `${t('Welcome')}, ${userName}` : t("Welcome to XRD CalcPro", "Welcome to XRD CalcPro")}</span>
                 </div>
 
                 {/* 3-Step Guided Tour Quick Action */}
@@ -1705,7 +1699,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-900/80 hover:bg-violet-950/80 border border-violet-500/40 hover:border-cyan-400/60 text-slate-200 hover:text-white font-mono text-xs font-bold transition-all shadow-lg cursor-pointer group/tour active:scale-95 ${isRTL ? "flex-row-reverse" : ""}`}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-cyan-300 group-hover/tour:rotate-12 transition-transform" />
-                  <span>{isRTL ? "تور سریع ۴ مرحله‌ای" : "3-Step Guided Tour"}</span>
+                  <span>{t("3-Step Guided Tour", "3-Step Guided Tour")}</span>
                   <ArrowRight className="w-3 h-3 text-cyan-400 group-hover/tour:translate-x-0.5 transition-transform" />
                 </button>
               </motion.div>
@@ -1714,13 +1708,13 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               <h1 className="text-4xl sm:text-5xl lg:text-[4.8rem] font-black tracking-tight mb-6 text-white leading-[1.1] drop-shadow-2xl relative select-none">
                 <span className="absolute -inset-10 bg-violet-600/5 blur-[120px] rounded-full -z-10" />
                 <span className="block text-slate-400 text-sm sm:text-base font-bold uppercase tracking-[0.3em] mb-4 font-mono">
-                  {isRTL ? "مجموعه محاسباتی پیشرفته پراش پرتو ایکس" : "Advanced Computational Crystallography Suite"}
+                  {t("Advanced Computational Crystallography Suite", "Advanced Computational Crystallography Suite")}
                 </span>
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400 block mb-2 leading-none">
-                  {isRTL ? "آنالیز و شبیه‌سازی دقیق" : "Automate Your"}
+                  {t("Automate Your", "Automate Your")}
                 </span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-cyan-300 to-indigo-200 drop-shadow-[0_0_35px_rgba(34,211,238,0.25)] block">
-                  {isRTL ? "پراش پرتو ایکس (XRD)" : "Diffraction Analysis"}
+                  {t("Diffraction Analysis", "Diffraction Analysis")}
                 </span>
               </h1>
               
@@ -1772,7 +1766,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                       setShowHeroSuggestions(true);
                     }}
                     onFocus={() => setShowHeroSuggestions(true)}
-                    placeholder={isRTL ? "جستجوی ابزارهای تحلیلی و ساختارهای بلوری... مانند 'Scherrer', 'Williamson', 'NaCl'" : "Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'"} 
+                    placeholder={t("Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'", "Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'")} 
                     className={`flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-base sm:text-lg px-2 w-full ${isRTL ? "text-right font-sans" : "text-left font-sans"}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleEnterApp(isRegistered ? 'login' : 'register');
@@ -1788,14 +1782,14 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   <div className={`flex gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
                     <AnimatedGoToAppButton
                       onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                      text={isRegistered ? t('Go to App') : (isRTL ? "کاوش فوری" : "Guest Explorer")}
+                      text={isRegistered ? t('Go to App') : t("Guest Explorer", "Guest Explorer")}
                       variant="secondary"
                       isRTL={isRTL}
                       className="hidden sm:flex py-3.5 h-12"
                     />
                     <AnimatedGoToAppButton
                       onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                      text={isRegistered ? (isRTL ? "ورود به سیستم" : "Launch Core") : (isRTL ? "شروع به کار" : "Launch Workbench")}
+                      text={isRegistered ? t("Launch Core", "Launch Core") : t("Launch Workbench", "Launch Workbench")}
                       variant="primary"
                       isRTL={isRTL}
                       className="py-3.5 h-12"
@@ -1807,8 +1801,8 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 {showHeroSuggestions && filteredHeroSuggestions.length > 0 && (
                   <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300 border border-white/5">
                     <div className={`text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mb-3 px-2 flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span>{isRTL ? "تطبیق بلورشناسی و ابزارهای تحلیلی" : `Matches in ${searchCategory === 'all' ? 'All Categories' : searchCategory}`}</span>
-                      <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">{isRTL ? "جستجوی هوشمند محلی" : "Local rapid index"}</span>
+                      <span>{t("Matches in", "Matches in")} {searchCategory === 'all' ? t('All Categories', 'All Categories') : searchCategory}</span>
+                      <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">{t("Local rapid index", "Local rapid index")}</span>
                     </div>
                     <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                       {filteredHeroSuggestions.map((item) => (
@@ -1859,7 +1853,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               {/* Quick Launch Direct Tool Access */}
               <div className={`flex flex-wrap items-center gap-2 max-w-2xl mb-4 select-none ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mr-1 font-mono">
-                  {isRTL ? "ابزارهای پرکاربرد:" : "Quick Tools:"}
+                  {t("Quick Tools:", "Quick Tools:")}
                 </span>
                 {[
                   { name: 'Bragg Solver', icon: '⚡', mod: 'bragg' },
@@ -1882,15 +1876,15 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               {/* Popular Lattice Quick Keys */}
               <div className={`flex flex-wrap gap-2 max-w-2xl mb-12 select-none animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mt-1.5 mr-1 font-mono">
-                  {isRTL ? "شبکه‌های کالیبره شده:" : "Tuned Lattices:"}
+                  {t("Tuned Lattices:", "Tuned Lattices:")}
                 </span>
                 {[
-                  { name: isRTL ? 'سیلیسیم' : 'Silicon', formula: 'Si' },
-                  { name: isRTL ? 'هالیت' : 'Halite', formula: 'NaCl' },
-                  { name: isRTL ? 'آناتاز' : 'Anatase', formula: 'TiO2' },
-                  { name: isRTL ? 'کوراندوم' : 'Corundum', formula: 'Al2O3' },
-                  { name: isRTL ? 'کوارتز' : 'Quartz', formula: 'SiO2' },
-                  { name: isRTL ? 'آهن خالص' : 'Pure Iron', formula: 'Fe' }
+                  { name: t('Silicon', 'Silicon'), formula: 'Si' },
+                  { name: t('Halite', 'Halite'), formula: 'NaCl' },
+                  { name: t('Anatase', 'Anatase'), formula: 'TiO2' },
+                  { name: t('Corundum', 'Corundum'), formula: 'Al2O3' },
+                  { name: t('Quartz', 'Quartz'), formula: 'SiO2' },
+                  { name: t('Pure Iron', 'Pure Iron'), formula: 'Fe' }
                 ].map((mat, idx) => (
                   <button
                     key={idx}
@@ -1909,19 +1903,19 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 <div className="space-y-1">
                   <p className="text-3xl font-black text-white leading-none tracking-tight">1.2M+</p>
                   <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
-                    {isRTL ? "پروفایل‌های علمی" : "COD Profiles"}
+                    {t("COD Profiles", "COD Profiles")}
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-3xl font-black text-white leading-none tracking-tight">&lt;0.2s</p>
                   <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
-                    {isRTL ? "تاخیر جستجو" : "Search Latency"}
+                    {t("Search Latency", "Search Latency")}
                   </p>
                 </div>
                 <div className="space-y-1 hidden sm:block">
                   <p className="text-3xl font-black text-white leading-none tracking-tight">AI</p>
                   <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
-                    {isRTL ? "تطبیق هوشمند پیک" : "Peak Fitting"}
+                    {t("Peak Fitting", "Peak Fitting")}
                   </p>
                 </div>
                 <div className="space-y-1 hidden md:block">
@@ -1929,7 +1923,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                     {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />)}
                   </div>
                   <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
-                    {isRTL ? "دقت شبیه‌سازی بالا" : "High Precision"}
+                    {t("High Precision", "High Precision")}
                   </p>
                 </div>
               </div>
@@ -2091,7 +2085,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               </ul>
               <AnimatedGoToAppButton
                 onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                text={isRTL ? "امتحان مشاور هوشمند" : "Try AI Advisor"}
+                text={t("Try AI Advisor", "Try AI Advisor")}
                 variant="primary"
                 isRTL={isRTL}
                 className="py-3 px-6"
@@ -2402,7 +2396,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                        <AnimatedGoToAppButton 
                           onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                          text={isRegistered ? (isRTL ? "ورود به محیط سفارشی" : "Enter Custom Workspace") : (isRTL ? "راه‌اندازی دسترسی عمومی" : "Initialize General Access")}
+                          text={isRegistered ? t("Enter Custom Workspace", "Enter Custom Workspace") : t("Initialize General Access", "Initialize General Access")}
                           variant="primary"
                           isRTL={isRTL}
                        />
@@ -2559,9 +2553,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   onClick={() => setFooterModal('about-creator')}
                   className="text-[9px] font-bold text-slate-600 hover:text-slate-400 transition-colors uppercase tracking-[0.15em] max-w-sm leading-relaxed cursor-pointer"
                 >
-                  {isRTL 
-                    ? "طراحی و توسعه توسط علی زره‌ساز. این یک پروژه مستقل علمی است و توسط یک تیم بزرگ ساخته نشده است."
-                    : "Designed and Engineered by Ali Zerehsaz. This is an independent scientific project, not built by a large corporate team."}
+                  {t("Designed and Engineered by Ali Zerehsaz. This is an independent scientific project, not built by a large corporate team.", "Designed and Engineered by Ali Zerehsaz. This is an independent scientific project, not built by a large corporate team.")}
                 </p>
                 <div 
                   onClick={() => setFooterModal('powered-by-google')}
@@ -2574,24 +2566,24 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   onClick={() => setFooterModal('tech-stack')}
                   className="flex flex-col gap-3 mt-3 px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors rounded-2xl border border-white/5 w-fit group cursor-pointer"
                 >
-                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{isRTL ? "تکنولوژی‌ها:" : "Tech Stack:"}</span>
+                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{t("Tech Stack:", "Tech Stack:")}</span>
                    <div className="flex gap-4">
                       <div className="flex flex-col gap-1 group/ts">
                         <span className="text-[10px] font-mono text-blue-400 font-bold">TypeScript</span>
                         <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
-                          {isRTL ? "برای نوع‌دهی قوی و ساختار امن سمت کلاینت" : "For strong typing and secure client-side architecture"}
+                          {t("For strong typing and secure client-side architecture", "For strong typing and secure client-side architecture")}
                         </span>
                       </div>
                       <div className="flex flex-col gap-1 group/js">
                         <span className="text-[10px] font-mono text-amber-400 font-bold">JavaScript</span>
                         <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
-                          {isRTL ? "برای پویایی و تعاملات سریع رابط کاربری" : "For UI dynamism and fast interactive components"}
+                          {t("For UI dynamism and fast interactive components", "For UI dynamism and fast interactive components")}
                         </span>
                       </div>
                       <div className="flex flex-col gap-1 group/py">
                         <span className="text-[10px] font-mono text-emerald-400 font-bold">Python</span>
                         <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
-                          {isRTL ? "برای تولید اسکریپت‌های تحلیلی و پراسس داده‌ها" : "For generating analytical scripts and data processing"}
+                          {t("For generating analytical scripts and data processing", "For generating analytical scripts and data processing")}
                         </span>
                       </div>
                    </div>

@@ -19,7 +19,7 @@ const defaultLangObj = languagesList.find(l => l.code === 'en') || languagesList
 const I18nContext = createContext<I18nContextType>({
   i18n,
   t: (key: string, options?: any) => i18n.t(key, options) as string,
-  language: i18n.language || 'en',
+  language: 'en',
   isRTL: false,
   currentLanguageObj: defaultLangObj,
   changeLanguage: (lang: string) => i18n.changeLanguage(lang),
@@ -31,24 +31,22 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [language, setLanguage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('i18nextLng');
-      if (stored) return stored;
+      if (stored && stored !== 'undefined') return stored;
     }
-    return i18n.language || 'en';
+    return 'en';
   });
 
   const isRTL = useMemo(() => RTL_LANGUAGES.includes(language), [language]);
 
   const currentLanguageObj = useMemo(() => {
-    return languagesList.find(l => l.code === language) || {
-      code: language,
-      name: language.toUpperCase(),
-      nativeName: language.toUpperCase(),
-      flag: '🌐',
-      region: 'Global',
-    };
+    return languagesList.find(l => l.code === language) || defaultLangObj;
   }, [language]);
 
   useEffect(() => {
+    // Make sure i18n active language matches state
+    if (i18n.language !== language) {
+      i18n.changeLanguage(language);
+    }
     // Synchronize HTML attributes for accessibility and CSS layout
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
@@ -59,6 +57,10 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLanguage(lng);
       if (typeof window !== 'undefined') {
         localStorage.setItem('i18nextLng', lng);
+      }
+      if (typeof document !== 'undefined') {
+        document.documentElement.setAttribute('dir', RTL_LANGUAGES.includes(lng) ? 'rtl' : 'ltr');
+        document.documentElement.setAttribute('lang', lng);
       }
     };
 
@@ -71,6 +73,11 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const changeLanguage = async (langCode: string) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('i18nextLng', langCode);
+    }
+    setLanguage(langCode);
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('dir', RTL_LANGUAGES.includes(langCode) ? 'rtl' : 'ltr');
+      document.documentElement.setAttribute('lang', langCode);
     }
     return i18n.changeLanguage(langCode);
   };
@@ -92,4 +99,5 @@ export const I18nProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     </I18nextProvider>
   );
 };
+
 

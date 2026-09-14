@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useI18n } from './I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Globe, Check, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, Globe, Check, ChevronDown, Sparkles, BadgeCheck, Zap } from 'lucide-react';
 
 export interface Language {
   code: string;
@@ -10,6 +11,8 @@ export interface Language {
   flag: string;
   region: string;
 }
+
+export const nativeLanguageCodes = ['en', 'it', 'zh', 'ja', 'tr', 'de', 'fr', 'pt', 'es', 'ru', 'fa', 'ar'];
 
 export const languagesList: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English (US)', flag: '🇺🇸', region: 'Americas/Global' },
@@ -138,6 +141,7 @@ interface LanguageSelectorProps {
 
 export default function LanguageSelector({ onLanguageChange, panelPosition = 'down', compact = false }: LanguageSelectorProps) {
   const { i18n } = useTranslation();
+  const { changeLanguage, language } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'Popular' | 'All' | 'Europe' | 'Asia' | 'Middle East' | 'Americas'>('Popular');
@@ -159,7 +163,8 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
     };
   }, []);
 
-  const currentLang = languagesList.find((l) => l.code === i18n.language) || languagesList[0];
+  const activeLangCode = language || i18n.language || 'en';
+  const currentLang = languagesList.find((l) => l.code === activeLangCode) || languagesList[0];
 
   const filteredLanguages = languagesList.filter((l) => {
     // 1. Search Query filter
@@ -181,7 +186,11 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
   });
 
   const selectLanguage = (code: string) => {
-    i18n.changeLanguage(code);
+    if (changeLanguage) {
+      changeLanguage(code);
+    } else {
+      i18n.changeLanguage(code);
+    }
     if (onLanguageChange) {
       onLanguageChange(code);
     }
@@ -269,7 +278,7 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
             {/* List */}
             <div
               id="language-options-list"
-              className="max-h-[260px] overflow-y-auto space-y-1 pr-1 custom-scrollbar"
+              className="max-h-[300px] overflow-y-auto space-y-1 pr-1 custom-scrollbar"
               style={{
                 scrollbarWidth: 'thin',
               }}
@@ -277,35 +286,50 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
               {filteredLanguages.length > 0 ? (
                 filteredLanguages.map((language) => {
                   const isSelected = language.code === i18n.language;
+                  const isNative = nativeLanguageCodes.includes(language.code);
                   return (
                     <button
                       key={language.code}
                       id={`lang-option-${language.code}`}
                       onClick={() => selectLanguage(language.code)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all duration-200 group ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all duration-200 group relative overflow-hidden ${
                         isSelected
-                          ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-extrabold border border-indigo-500/20'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 border border-transparent'
+                          ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-extrabold border border-indigo-500/20 shadow-sm'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <span className="text-lg leading-none filter drop-shadow-sm select-none">
+                      {/* Subdued background gradient for AI languages on hover */}
+                      {!isNative && !isSelected && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/0 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                      
+                      <div className="flex items-center gap-3 truncate relative z-10">
+                        <span className="text-xl leading-none filter drop-shadow-sm select-none">
                           {language.flag}
                         </span>
                         <div className="flex flex-col truncate">
-                          <span className="font-extrabold tracking-tight truncate">
+                          <span className="font-extrabold tracking-tight truncate flex items-center gap-1.5">
                             {language.nativeName}
                           </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate flex items-center gap-1.5">
                             {language.name}
+                            {isNative ? (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded">
+                                <BadgeCheck className="w-2.5 h-2.5" /> Verified
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-1 py-0.5 rounded">
+                                <Zap className="w-2.5 h-2.5" /> AI Translated
+                              </span>
+                            )}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 relative z-10">
                         {isSelected ? (
-                          <Check className="w-3.5 h-3.5 text-indigo-500" />
+                          <Check className="w-4 h-4 text-indigo-500 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                         ) : (
-                          <span className="text-[9px] font-mono uppercase tracking-widest text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[9px] font-mono uppercase tracking-widest text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded shadow-sm">
                             {language.code}
                           </span>
                         )}
@@ -323,10 +347,17 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
 
             {/* Sub-Info footer */}
             <div className="mt-3.5 pt-2.5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-slate-400 select-none">
-              <span className="flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-500" /> Locales: {languagesList.length}
+              <div className="flex items-center gap-2.5">
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400" title="Native Translations">
+                  <BadgeCheck className="w-3 h-3" /> {nativeLanguageCodes.length}
+                </span>
+                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400" title="Real-time AI Translations">
+                  <Zap className="w-3 h-3" /> {languagesList.length - nativeLanguageCodes.length}
+                </span>
+              </div>
+              <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400">
+                ACTIVE: {currentLang.code.toUpperCase()}
               </span>
-              <span>Active: {currentLang.code.toUpperCase()}</span>
             </div>
           </motion.div>
         )}

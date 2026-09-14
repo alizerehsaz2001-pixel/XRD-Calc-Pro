@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import {
   Activity,
   Box,
@@ -377,17 +378,18 @@ export const ModulesDirectory: React.FC<ModulesDirectoryProps> = ({
   onLaunchModule,
   isRTL = false
 }) => {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<ModuleCategory>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const categories: { id: ModuleCategory; label: string; count: number }[] = useMemo(() => [
-    { id: 'all', label: isRTL ? 'همه ابزارها' : 'All Instruments', count: SCIENTIFIC_MODULES.length },
-    { id: 'fundamentals', label: isRTL ? 'پایه‌ها و بلورشناسی' : 'Fundamentals & Lattices', count: SCIENTIFIC_MODULES.filter(m => m.category === 'fundamentals').length },
-    { id: 'strain', label: isRTL ? 'اندازه بلورک و کرنش' : 'Crystallite Size & Strain', count: SCIENTIFIC_MODULES.filter(m => m.category === 'strain').length },
-    { id: 'refinement', label: isRTL ? 'پالایش و تفکیک فاز' : 'Refinement & Deconvolution', count: SCIENTIFIC_MODULES.filter(m => m.category === 'refinement').length },
-    { id: 'thin_films', label: isRTL ? 'لایه‌های نازک و پراکنش' : 'Thin Films & Scattering', count: SCIENTIFIC_MODULES.filter(m => m.category === 'thin_films').length },
-    { id: 'ai_data', label: isRTL ? 'هوش مصنوعی و پایگاه‌داده' : 'AI & Scientific Databases', count: SCIENTIFIC_MODULES.filter(m => m.category === 'ai_data').length }
-  ], [isRTL]);
+    { id: 'all', label: t('All Instruments', 'All Instruments'), count: SCIENTIFIC_MODULES.length },
+    { id: 'fundamentals', label: t('Fundamentals & Lattices', 'Fundamentals & Lattices'), count: SCIENTIFIC_MODULES.filter(m => m.category === 'fundamentals').length },
+    { id: 'strain', label: t('Crystallite Size & Strain', 'Crystallite Size & Strain'), count: SCIENTIFIC_MODULES.filter(m => m.category === 'strain').length },
+    { id: 'refinement', label: t('Refinement & Deconvolution', 'Refinement & Deconvolution'), count: SCIENTIFIC_MODULES.filter(m => m.category === 'refinement').length },
+    { id: 'thin_films', label: t('Thin Films & Scattering', 'Thin Films & Scattering'), count: SCIENTIFIC_MODULES.filter(m => m.category === 'thin_films').length },
+    { id: 'ai_data', label: t('AI & Scientific Databases', 'AI & Scientific Databases'), count: SCIENTIFIC_MODULES.filter(m => m.category === 'ai_data').length }
+  ], [t]);
 
   const filteredModules = useMemo(() => {
     return SCIENTIFIC_MODULES.filter(item => {
@@ -413,16 +415,14 @@ export const ModulesDirectory: React.FC<ModulesDirectoryProps> = ({
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 mb-4">
             <Sparkles className="w-3.5 h-3.5 text-violet-400" />
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-violet-300">
-              {isRTL ? "مجموعه جامع ۳۰+ ابزار آزمایشگاهی" : "Institutional 30+ Instrument Suite"}
+              {t("Institutional 30+ Instrument Suite", "Institutional 30+ Instrument Suite")}
             </span>
           </div>
           <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
-            {isRTL ? "ابزارها و ماژول‌های محاسباتی تخصصی" : "Specialized Analytical Instruments"}
+            {t("Specialized Analytical Instruments", "Specialized Analytical Instruments")}
           </h2>
           <p className="text-slate-400 text-sm md:text-base font-medium leading-relaxed">
-            {isRTL 
-              ? "هر ماژول به صورت مستقل برای حل مسائل بلورشناسی، پالایش ریتولد، اندازه بلورک‌ها، بازتاب‌سنجی پرتو ایکس و هوش مصنوعی توسعه یافته است."
-              : "Every instrument is engineered to institutional rigor. Click any module below to launch directly into the computational environment."}
+            {t("Every instrument is engineered to institutional rigor. Click any module below to launch directly into the computational environment.", "Every instrument is engineered to institutional rigor. Click any module below to launch directly into the computational environment.")}
           </p>
         </div>
 
@@ -457,7 +457,7 @@ export const ModulesDirectory: React.FC<ModulesDirectoryProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isRTL ? "فیلتر ابزارها..." : "Filter instruments..."}
+              placeholder={t("Filter instruments...", "Filter instruments...")}
               className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 transition-colors"
             />
             {searchQuery && (
@@ -522,7 +522,7 @@ export const ModulesDirectory: React.FC<ModulesDirectoryProps> = ({
                     </span>
                   )}
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-violet-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all">
-                    <span>Launch</span>
+                    <span>{t("Launch", "Launch")}</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
@@ -535,10 +535,10 @@ export const ModulesDirectory: React.FC<ModulesDirectoryProps> = ({
         {filteredModules.length === 0 && (
           <div className="text-center py-16 bg-slate-950/60 border border-slate-800/60 rounded-3xl p-8">
             <p className="text-sm font-bold text-slate-300 mb-1">
-              {isRTL ? "هیچ ابزاری با این عنوان یافت نشد" : "No instruments match your search criteria"}
+              {t("No instruments match your search criteria", "No instruments match your search criteria")}
             </p>
             <p className="text-xs text-slate-500 mb-4">
-              {isRTL ? "عبارت دیگری مانند 'Rietveld' یا 'Scherrer' را امتحان کنید." : "Try searching for 'Rietveld', 'Scherrer', 'XRR', or clear the filter."}
+              {t("Try searching for 'Rietveld', 'Scherrer', 'XRR', or clear the filter.", "Try searching for 'Rietveld', 'Scherrer', 'XRR', or clear the filter.")}
             </p>
             <button
               onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}

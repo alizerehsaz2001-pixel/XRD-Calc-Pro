@@ -350,7 +350,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-1 text-[10px] font-mono text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-400/30 shrink-0">
-            <span>{isRTL ? 'تغییر ماژول' : 'Modules'}</span>
+            <span>{t('Modules', 'Modules')}</span>
             <ChevronDown className="w-3 h-3" />
           </div>
         </button>
@@ -427,7 +427,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 ? 'bg-black border-cyber-accent/60 hover:border-cyber-accent hover:bg-cyber-accent/10 text-cyber-accent'
                 : 'bg-indigo-50/90 dark:bg-indigo-950/40 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/60 border-indigo-200/90 dark:border-indigo-500/30 text-indigo-950 dark:text-indigo-100'
             }`}
-            title={isRTL ? 'کلیک کنید یا Ctrl+K فشار دهید تا تمام ۲۸+ ماژول نمایش داده شوند' : 'Click or press Ctrl+K to browse all 28+ scientific modules'}
+            title={t('Click or press Ctrl+K to browse all 28+ scientific modules', 'Click or press Ctrl+K to browse all 28+ scientific modules')}
           >
             <div className="p-1 rounded-lg bg-indigo-600 text-white shadow-sm shrink-0 group-hover:scale-105 transition-transform">
               {getModuleIcon(activeModule, true)}

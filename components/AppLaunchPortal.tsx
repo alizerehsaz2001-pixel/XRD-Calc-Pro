@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Atom, 
@@ -46,6 +47,7 @@ export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
   isRTL = false,
   onComplete
 }) => {
+  const { t } = useTranslation();
   const [progress, setProgress] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -171,7 +173,7 @@ export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
               className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-mono font-bold uppercase tracking-widest"
             >
               <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>{isRTL ? "در حال انتقال به برنامه..." : "INITIALIZING APALET ENVIRONMENT"}</span>
+              <span>{t("INITIALIZING APALET ENVIRONMENT", "INITIALIZING APALET ENVIRONMENT")}</span>
             </motion.div>
 
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight font-mono">
@@ -245,7 +247,8 @@ export const AnimatedGoToAppButton: React.FC<AnimatedGoToAppButtonProps> = ({
   isRTL = false,
   className = ''
 }) => {
-  const defaultText = isRTL ? "ورود به برنامه" : "Go to App";
+  const { t } = useTranslation();
+  const defaultText = t("Go to App", "Go to App");
 
   if (variant === 'navbar') {
     return (

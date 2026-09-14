@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useI18n } from './components/I18nProvider';
-import { FullAppTranslator } from './components/FullAppTranslator';
 import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
@@ -1336,7 +1335,7 @@ const App: React.FC = () => {
       return allModules.filter(m => m.id !== 'python_export');
     }
     return allModules;
-  }, [t, pythonFeaturesEnabled]);
+  }, [t, i18n.language, pythonFeaturesEnabled]);
 
   const stateRef = useRef({
     activeModule,
@@ -1493,7 +1492,6 @@ const App: React.FC = () => {
       lengthUnit,
       setLengthUnit
     }}>
-      <FullAppTranslator />
       <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
@@ -1869,7 +1867,7 @@ const App: React.FC = () => {
             isOpen={!!appFooterModal}
             modalType={appFooterModal}
             onClose={() => setAppFooterModal(null)}
-            isRTL={i18n.language === 'fa'}
+            isRTL={isRTL}
             onActionNavigate={(modKey) => {
               setAppFooterModal(null);
               if (modKey) {

@@ -5,7 +5,8 @@ import {
   Info, Sparkles, Activity, Layers, Compass, Play, Pause, Search, 
   HelpCircle, Orbit, RotateCw, Settings, ShieldAlert, Zap, Cpu,
   Droplets, Cloud, DownloadCloud, Eye, EyeOff, Maximize2, Sliders,
-  Atom, Grid, ChevronDown, ChevronUp, RefreshCw, Copy, Check, FlaskConical
+  Atom, Grid, ChevronDown, ChevronUp, RefreshCw, Copy, Check, FlaskConical,
+  Fingerprint, ArrowRight
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
@@ -18,39 +19,14 @@ import { FormFactorChart } from './FormFactorChart';
 import { ElementalDiffractionPredictor } from './ElementalDiffractionPredictor';
 import { CompoundAttenuationCalculator } from './CompoundAttenuationCalculator';
 import { MolarMassStpCalculator } from './MolarMassStpCalculator';
+import { XRFFingerprintInspector } from './periodic/XRFFingerprintInspector';
+import { COMPLETE_PERIODIC_TABLE } from './periodic/elementsData';
+import { PeriodicFilterToolbar } from './periodic/PeriodicFilterToolbar';
+import { PeriodicHeatmapLegend } from './periodic/PeriodicHeatmapLegend';
+import { PeriodicTableGrid } from './periodic/PeriodicTableGrid';
+import { HeatmapMode, ColorMode, QuickPreset, CrystalElement, FamousCompound } from './periodic/types';
 
-export interface FamousCompound {
-  formula: string;
-  name: string;
-  crystalSystem: string;
-  spaceGroup: string;
-  latticeParams: { a: number; b?: number; c?: number; alpha?: number; beta?: number; gamma?: number };
-  typicalPeaks: { twoTheta: number; intensity: number }[];
-  relevance: string;
-  shortDesc: string;
-}
-
-export interface CrystalElement extends ScientificProperties {
-  number: number;
-  symbol: string;
-  name: string;
-  weight: number;
-  category: 'alkali' | 'alkaline_earth' | 'transition_metal' | 'post_transition' | 'metalloid' | 'nonmetal' | 'noble_gas' | 'lanthanoid' | 'actinoid';
-  gridX: number;
-  gridY: number;
-  crystalStructure: 'BCC' | 'FCC' | 'HCP' | 'Diamond' | 'Cubic' | 'Hexagonal' | 'Orthorhombic' | 'Rhombohedral' | 'Tetragonal' | 'Monoclinic' | 'Amorphous';
-  spaceGroup: string;
-  a: number; // Å
-  b?: number;
-  c?: number;
-  alpha?: number;
-  beta?: number;
-  gamma?: number;
-  density: number; // g/cm³
-  meltingPoint: number; // °C
-  electronConfig: string;
-  famousCompounds: FamousCompound[];
-}
+export type { FamousCompound, CrystalElement };
 
 interface PeriodicTableModuleProps {
   onLoadPeaks?: (peaksStr: string, hklStr: string, matName: string) => void;
@@ -2273,474 +2249,15 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [activeTab, setActiveTab] = useState<'grid' | 'compare'>('grid');
   const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
   const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
-  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'xray' | 'attenuation' | 'chemical' | 'physical' | 'stp'>('lattice');
+  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'xray' | 'xrf' | 'attenuation' | 'chemical' | 'physical' | 'stp'>('lattice');
   const [temperature, setTemperature] = useState<number>(25); // °C
 
-  // Deep scientific properties of crystallographic elements
-
-  const elementsDb = useMemo<Record<number, Partial<CrystalElement>>>(() => ({
-    1: { // Hydrogen
-      weight: 1.008,
-      category: 'nonmetal',
-      crystalStructure: 'Hexagonal',
-      spaceGroup: 'P6_3/mmc',
-      a: 4.70, c: 7.79,
-      density: 0.08,
-      meltingPoint: -259.16,
-      electronConfig: '1s¹',
-      famousCompounds: [
-        {
-          formula: 'H2O (Ice Ih)',
-          name: 'Hexagonal Ice Crystal',
-          crystalSystem: 'Hexagonal',
-          spaceGroup: 'P6_3/mmc',
-          latticeParams: { a: 4.51, c: 7.36 },
-          typicalPeaks: [
-            { twoTheta: 22.8, intensity: 100 },
-            { twoTheta: 24.3, intensity: 80 },
-            { twoTheta: 25.8, intensity: 70 },
-            { twoTheta: 33.5, intensity: 35 }
-          ],
-          relevance: 'Environmental physics and glaciology calibrations.',
-          shortDesc: 'The primary hexagonal crystal phase of water solidifying at atmospheric pressure.'
-        }
-      ]
-    },
-    6: { // Carbon
-      weight: 12.011,
-      category: 'nonmetal',
-      crystalStructure: 'Diamond',
-      spaceGroup: 'Fd-3m',
-      a: 3.567,
-      density: 3.51,
-      meltingPoint: 3550,
-      electronConfig: '[He] 2s² 2p²',
-      famousCompounds: [
-        {
-          formula: 'C (Graphite)',
-          name: 'Hexagonal Carbon',
-          crystalSystem: 'Hexagonal',
-          spaceGroup: 'P6_3/mmc',
-          latticeParams: { a: 2.46, c: 6.70 },
-          typicalPeaks: [
-            { twoTheta: 26.54, intensity: 100 },
-            { twoTheta: 42.41, intensity: 6 },
-            { twoTheta: 44.57, intensity: 9 },
-            { twoTheta: 54.69, intensity: 21 }
-          ],
-          relevance: 'Anodes in Lithium-ion batteries; high-temp lubricants.',
-          shortDesc: 'The most stable natural allotrope of Carbon arranged in nested graphene sheets.'
-        },
-        {
-          formula: 'WC',
-          name: 'Tungsten Carbide',
-          crystalSystem: 'Hexagonal',
-          spaceGroup: 'P-6m2',
-          latticeParams: { a: 2.91, c: 2.84 },
-          typicalPeaks: [
-            { twoTheta: 31.51, intensity: 65 },
-            { twoTheta: 35.64, intensity: 100 },
-            { twoTheta: 48.30, intensity: 85 },
-            { twoTheta: 64.09, intensity: 20 }
-          ],
-          relevance: 'Ultra-hard cutting tools and shielding materials.',
-          shortDesc: 'Extremely dense composite phase featuring interpenetrating carbide lattices.'
-        }
-      ]
-    },
-    11: { // Sodium
-      weight: 22.990,
-      category: 'alkali',
-      crystalStructure: 'BCC',
-      spaceGroup: 'Im-3m',
-      a: 4.29,
-      density: 0.97,
-      meltingPoint: 97.79,
-      electronConfig: '[Ne] 3s¹',
-      famousCompounds: [
-        {
-          formula: 'NaCl',
-          name: 'Halite (Rock Salt)',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Fm-3m',
-          latticeParams: { a: 5.64 },
-          typicalPeaks: [
-            { twoTheta: 27.35, intensity: 12 },
-            { twoTheta: 31.72, intensity: 100 },
-            { twoTheta: 45.45, intensity: 55 },
-            { twoTheta: 56.48, intensity: 15 },
-            { twoTheta: 66.23, intensity: 22 }
-          ],
-          relevance: 'The supreme international pattern calibration standard.',
-          shortDesc: 'Classic face-centered interpenetrating arrangement of sodium/chlorine ion complexes.'
-        }
-      ]
-    },
-    12: { // Magnesium
-      weight: 24.305,
-      category: 'alkaline_earth',
-      crystalStructure: 'HCP',
-      spaceGroup: 'P6_3/mmc',
-      a: 3.21, c: 5.21,
-      density: 1.74,
-      meltingPoint: 650,
-      electronConfig: '[Ne] 3s²',
-      famousCompounds: [
-        {
-          formula: 'MgO',
-          name: 'Periclase (Magnesia)',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Fm-3m',
-          latticeParams: { a: 4.212 },
-          typicalPeaks: [
-            { twoTheta: 36.93, intensity: 10 },
-            { twoTheta: 42.91, intensity: 100 },
-            { twoTheta: 62.31, intensity: 52 },
-            { twoTheta: 74.69, intensity: 12 },
-            { twoTheta: 78.63, intensity: 15 }
-          ],
-          relevance: 'High-temperature crucibles and thermal barriers.',
-          shortDesc: 'Refractory magnesium oxide material crystallizing in rock-salt ionic geometry.'
-        }
-      ]
-    },
-    13: { // Aluminum
-      weight: 26.982,
-      category: 'post_transition',
-      crystalStructure: 'FCC',
-      spaceGroup: 'Fm-3m',
-      a: 4.049,
-      density: 2.70,
-      meltingPoint: 660.32,
-      electronConfig: '[Ne] 3s² 3p¹',
-      famousCompounds: [
-        {
-          formula: 'Al2O3 (Corundum)',
-          name: 'Alpha Alumina / Sapphire',
-          crystalSystem: 'Rhombohedral',
-          spaceGroup: 'R-3c',
-          latticeParams: { a: 4.758, c: 12.991 },
-          typicalPeaks: [
-            { twoTheta: 25.58, intensity: 75 },
-            { twoTheta: 35.15, intensity: 90 },
-            { twoTheta: 43.35, intensity: 100 },
-            { twoTheta: 52.55, intensity: 45 },
-            { twoTheta: 57.50, intensity: 85 },
-            { twoTheta: 68.21, intensity: 95 }
-          ],
-          relevance: 'Laser gain bases (Ruby/Sapphire), premium abrasive materials.',
-          shortDesc: 'A dense, trigonal close-packed oxide layout which is chemically and mechanically passive.'
-        }
-      ]
-    },
-    14: { // Silicon
-      weight: 28.085,
-      category: 'metalloid',
-      crystalStructure: 'Diamond',
-      spaceGroup: 'Fd-3m',
-      a: 5.431,
-      density: 2.329,
-      meltingPoint: 1414,
-      electronConfig: '[Ne] 3s² 3p²',
-      famousCompounds: [
-        {
-          formula: 'SiO2 (Quartz)',
-          name: 'Alpha-Quartz',
-          crystalSystem: 'Hexagonal',
-          spaceGroup: 'P3_121',
-          latticeParams: { a: 4.913, c: 5.405 },
-          typicalPeaks: [
-            { twoTheta: 20.85, intensity: 35 },
-            { twoTheta: 26.64, intensity: 100 },
-            { twoTheta: 36.54, intensity: 12 },
-            { twoTheta: 50.14, intensity: 17 },
-            { twoTheta: 59.96, intensity: 10 },
-            { twoTheta: 68.15, intensity: 9 }
-          ],
-          relevance: 'Piezoelectric resonators, glass manufacturing, standard silicates.',
-          shortDesc: 'Highly ordered helical silica chains forming a rigid chiral hexagonal framework.'
-        },
-        {
-          formula: 'SiC',
-          name: 'Moissanite / Silicon Carbide',
-          crystalSystem: 'Hexagonal',
-          spaceGroup: 'P6_3mc',
-          latticeParams: { a: 3.081, c: 15.12 },
-          typicalPeaks: [
-            { twoTheta: 33.60, intensity: 40 },
-            { twoTheta: 35.60, intensity: 100 },
-            { twoTheta: 38.20, intensity: 30 },
-            { twoTheta: 60.00, intensity: 80 },
-            { twoTheta: 71.80, intensity: 60 }
-          ],
-          relevance: 'High-power semiconductors, extreme-friction clutches.',
-          shortDesc: 'Highly stable material exhibiting polytypism (3C, 4H, 6H) under different synthesis controls.'
-        }
-      ]
-    },
-    16: { // Sulfur
-      weight: 32.06,
-      category: 'nonmetal',
-      crystalStructure: 'Orthorhombic',
-      spaceGroup: 'Fddd',
-      a: 10.43, b: 12.84, c: 24.36,
-      density: 2.07,
-      meltingPoint: 115.21,
-      electronConfig: '[Ne] 3s² 3p⁴',
-      famousCompounds: [
-        {
-          formula: 'FeS2 (Pyrite)',
-          name: 'Fool’s Gold',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Pa-3',
-          latticeParams: { a: 5.418 },
-          typicalPeaks: [
-            { twoTheta: 28.53, intensity: 35 },
-            { twoTheta: 33.04, intensity: 100 },
-            { twoTheta: 37.11, intensity: 50 },
-            { twoTheta: 40.78, intensity: 40 },
-            { twoTheta: 56.35, intensity: 65 }
-          ],
-          relevance: 'Earth abundant energy systems, precursor to sulfuric acid.',
-          shortDesc: 'Distinctive isometric pyrite crystal phase featuring discrete disulfide anions.'
-        }
-      ]
-    },
-    20: { // Calcium
-      weight: 40.078,
-      category: 'alkaline_earth',
-      crystalStructure: 'FCC',
-      spaceGroup: 'Fm-3m',
-      a: 5.58,
-      density: 1.54,
-      meltingPoint: 842,
-      electronConfig: '[Ar] 4s²',
-      famousCompounds: [
-        {
-          formula: 'CaCO3 (Calcite)',
-          name: 'Calcite (Calcium Carbonate)',
-          crystalSystem: 'Trigonal',
-          spaceGroup: 'R-3c',
-          latticeParams: { a: 4.989, c: 17.062 },
-          typicalPeaks: [
-            { twoTheta: 23.01, intensity: 15 },
-            { twoTheta: 29.40, intensity: 100 },
-            { twoTheta: 35.97, intensity: 18 },
-            { twoTheta: 39.41, intensity: 20 },
-            { twoTheta: 43.16, intensity: 22 },
-            { twoTheta: 47.50, intensity: 25 }
-          ],
-          relevance: 'Geological carbon sinking, concrete material matrices, seashell biomineralization.',
-          shortDesc: 'Primary calcium carbonate polymorph with triangular carbonate units sandwiching calcium sheets.'
-        },
-        {
-          formula: 'CaF2 (Fluorite)',
-          name: 'Fluorite',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Fm-3m',
-          latticeParams: { a: 5.463 },
-          typicalPeaks: [
-            { twoTheta: 28.27, intensity: 100 },
-            { twoTheta: 47.01, intensity: 85 },
-            { twoTheta: 55.79, intensity: 45 },
-            { twoTheta: 68.80, intensity: 15 },
-            { twoTheta: 75.83, intensity: 20 }
-          ],
-          relevance: 'High-purity UV visual lenses, metallurgical flux additives.',
-          shortDesc: 'Fluorite lattice type with Calcium forming FCC nodes and Fluoride occupying all tetrahedral holes.'
-        }
-      ]
-    },
-    22: { // Titanium
-      weight: 47.867,
-      category: 'transition_metal',
-      crystalStructure: 'HCP',
-      spaceGroup: 'P6_3/mmc',
-      a: 2.95, c: 4.68,
-      density: 4.506,
-      meltingPoint: 1668,
-      electronConfig: '[Ar] 3d² 4s²',
-      famousCompounds: [
-        {
-          formula: 'TiO2 (Rutile)',
-          name: 'Rutile',
-          crystalSystem: 'Tetragonal',
-          spaceGroup: 'P4_2/mnm',
-          latticeParams: { a: 4.593, c: 2.959 },
-          typicalPeaks: [
-            { twoTheta: 27.44, intensity: 100 },
-            { twoTheta: 36.08, intensity: 50 },
-            { twoTheta: 41.22, intensity: 25 },
-            { twoTheta: 54.32, intensity: 60 },
-            { twoTheta: 56.64, intensity: 20 },
-            { twoTheta: 69.01, intensity: 20 }
-          ],
-          relevance: 'Superb UV scattering pigment, photocatalyst foundations.',
-          shortDesc: 'The thermodynamically stable polymorph of TiO2 featuring distorted Ti-O octahedra.'
-        },
-        {
-          formula: 'BaTiO3',
-          name: 'Barium Titanate',
-          crystalSystem: 'Tetragonal',
-          spaceGroup: 'P4mm',
-          latticeParams: { a: 3.992, c: 4.036 },
-          typicalPeaks: [
-            { twoTheta: 22.20, intensity: 35 },
-            { twoTheta: 31.50, intensity: 100 },
-            { twoTheta: 38.90, intensity: 28 },
-            { twoTheta: 45.20, intensity: 70 },
-            { twoTheta: 56.10, intensity: 55 }
-          ],
-          relevance: 'High energy dielectric capacitors and sonar transducer elements.',
-          shortDesc: 'Quintessential perovskite material exhibiting spontaneous electric polarization below 120°C.'
-        }
-      ]
-    },
-    26: { // Iron
-      weight: 55.845,
-      category: 'transition_metal',
-      crystalStructure: 'BCC',
-      spaceGroup: 'Im-3m',
-      a: 2.866,
-      density: 7.874,
-      meltingPoint: 1538,
-      electronConfig: '[Ar] 3d⁶ 4s²',
-      famousCompounds: [
-        {
-          formula: 'Fe2O3 (Hematite)',
-          name: 'Hematite (Alpha ferric oxide)',
-          crystalSystem: 'Rhombohedral',
-          spaceGroup: 'R-3c',
-          latticeParams: { a: 5.035, c: 13.74 },
-          typicalPeaks: [
-            { twoTheta: 24.15, intensity: 40 },
-            { twoTheta: 33.15, intensity: 100 },
-            { twoTheta: 35.61, intensity: 70 },
-            { twoTheta: 40.85, intensity: 22 },
-            { twoTheta: 49.48, intensity: 45 },
-            { twoTheta: 54.08, intensity: 50 }
-          ],
-          relevance: 'Rust analysis, heavy industry pigments, catalytic substrates.',
-          shortDesc: 'Corundum-type closely-packed oxygen framework embedded with octahedrally arranged Fe3+.'
-        },
-        {
-          formula: 'Fe3O4 (Magnetite)',
-          name: 'Magnetite (Magnetic Spinel)',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Fd-3m',
-          latticeParams: { a: 8.397 },
-          typicalPeaks: [
-            { twoTheta: 30.12, intensity: 30 },
-            { twoTheta: 35.45, intensity: 100 },
-            { twoTheta: 43.08, intensity: 20 },
-            { twoTheta: 53.48, intensity: 10 },
-            { twoTheta: 57.02, intensity: 30 },
-            { twoTheta: 62.56, intensity: 40 }
-          ],
-          relevance: 'Bio-magnetic targeting, ferrofluid solutions, planetary science marker.',
-          shortDesc: 'Classic inverse spinel structure packing Fe2+ and Fe3+ ions across distinct tetrahedral/octahedral nodes.'
-        }
-      ]
-    },
-    29: { // Copper
-      weight: 63.546,
-      category: 'transition_metal',
-      crystalStructure: 'FCC',
-      spaceGroup: 'Fm-3m',
-      a: 3.615,
-      density: 8.96,
-      meltingPoint: 1084.62,
-      electronConfig: '[Ar] 3d¹⁰ 4s¹',
-      famousCompounds: [
-        {
-          formula: 'Cu2O (Cuprite)',
-          name: 'Cuprite (Cuprous oxide)',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Pn-3m',
-          latticeParams: { a: 4.27 },
-          typicalPeaks: [
-            { twoTheta: 29.55, intensity: 35 },
-            { twoTheta: 36.42, intensity: 100 },
-            { twoTheta: 42.30, intensity: 45 },
-            { twoTheta: 61.34, intensity: 25 },
-            { twoTheta: 73.53, intensity: 20 }
-          ],
-          relevance: 'Solar-cell oxides, p-type micro-electronic transistors.',
-          shortDesc: 'Remarkable shared framework of two interpenetrating and fully unlinked crystal networks.'
-        },
-        {
-          formula: 'CuFeS2',
-          name: 'Chalcopyrite',
-          crystalSystem: 'Tetragonal',
-          spaceGroup: 'I-42d',
-          latticeParams: { a: 5.289, c: 10.423 },
-          typicalPeaks: [
-            { twoTheta: 29.35, intensity: 100 },
-            { twoTheta: 49.12, intensity: 40 },
-            { twoTheta: 57.85, intensity: 30 }
-          ],
-          relevance: 'Principal mineral ore of Copper element worldwide.',
-          shortDesc: 'Sulfide minerals packing where both Copper and Iron swap coordinate centers symmetrically.'
-        }
-      ]
-    },
-    79: { // Gold
-      weight: 196.967,
-      category: 'transition_metal',
-      crystalStructure: 'FCC',
-      spaceGroup: 'Fm-3m',
-      a: 4.078,
-      density: 19.3,
-      meltingPoint: 1064.18,
-      electronConfig: '[Xe] 4f¹⁴ 5d¹⁰ 6s¹',
-      famousCompounds: [
-        {
-          formula: 'Au (Gold Film)',
-          name: 'Direct Metallic FCC Gold',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Fm-3m',
-          latticeParams: { a: 4.078 },
-          typicalPeaks: [
-            { twoTheta: 38.18, intensity: 100 },
-            { twoTheta: 44.39, intensity: 52 },
-            { twoTheta: 64.58, intensity: 32 },
-            { twoTheta: 77.55, intensity: 36 },
-            { twoTheta: 81.72, intensity: 12 }
-          ],
-          relevance: 'Sputtered conductive coatings, optical plasmonics.',
-          shortDesc: 'Super-stable face-centered metallic lattices ideal for X-ray sample alignment and microanalysis.'
-        }
-      ]
-    },
-    92: { // Uranium
-      weight: 238.029,
-      category: 'actinoid',
-      crystalStructure: 'Orthorhombic',
-      spaceGroup: 'Cmca',
-      a: 2.854, b: 5.87, c: 4.955,
-      density: 19.1,
-      meltingPoint: 1132.2,
-      electronConfig: '[Rn] 5f³ 6d¹ 7s²',
-      famousCompounds: [
-        {
-          formula: 'UO2 (Uraninite)',
-          name: 'Nuclear Fluorite Phase',
-          crystalSystem: 'Cubic',
-          spaceGroup: 'Fm-3m',
-          latticeParams: { a: 5.468 },
-          typicalPeaks: [
-            { twoTheta: 28.23, intensity: 100 },
-            { twoTheta: 32.75, intensity: 45 },
-            { twoTheta: 46.95, intensity: 80 },
-            { twoTheta: 55.72, intensity: 65 },
-            { twoTheta: 58.55, intensity: 15 }
-          ],
-          relevance: 'Primary combustible mass of commercial nuclear fuel cycles.',
-          shortDesc: 'Extremely dense isotropic fuel block possessing extreme melting security.'
-        }
-      ]
-    }
-  }), []);
+  // Modern Periodic Table visual & metrology states
+  const [colorMode, setColorMode] = useState<ColorMode>('category');
+  const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('none');
+  const [blockFilter, setBlockFilter] = useState<string>('all');
+  const [activePreset, setActivePreset] = useState<QuickPreset | null>(null);
+  const [layoutMode, setLayoutMode] = useState<'split' | 'expanded'>('split');
 
   // Overrides for editing element/material properties
   const [customOverrides, setCustomOverrides] = useState<Record<number, Partial<CrystalElement>>>(() => {
@@ -2792,153 +2309,14 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     setIsEditingElement(false);
   }, [selectedElement]);
 
-  // Standard elements coordinates for standard 18-col Periodic Table
-  const fullElementsGrid = useMemo(() => {
-    const baseList: { num: number; sym: string; name: string; x: number; y: number; s: string }[] = [
-      // Row 1
-      { num: 1, sym: 'H', name: 'Hydrogen', x: 1, y: 1, s: 'Hexagonal' },
-      { num: 2, sym: 'He', name: 'Helium', x: 18, y: 1, s: 'HCP' },
-      // Row 2
-      { num: 3, sym: 'Li', name: 'Lithium', x: 1, y: 2, s: 'BCC' },
-      { num: 4, sym: 'Be', name: 'Beryllium', x: 2, y: 2, s: 'HCP' },
-      { num: 5, sym: 'B', name: 'Boron', x: 13, y: 2, s: 'Rhombohedral' },
-      { num: 6, sym: 'C', name: 'Carbon', x: 14, y: 2, s: 'Diamond' },
-      { num: 7, sym: 'N', name: 'Nitrogen', x: 15, y: 2, s: 'Hexagonal' },
-      { num: 8, sym: 'O', name: 'Oxygen', x: 16, y: 2, s: 'Monoclinic' },
-      { num: 9, sym: 'F', name: 'Fluorine', x: 17, y: 2, s: 'Monoclinic' },
-      { num: 10, sym: 'Ne', name: 'Neon', x: 18, y: 2, s: 'FCC' },
-      // Row 3
-      { num: 11, sym: 'Na', name: 'Sodium', x: 1, y: 3, s: 'BCC' },
-      { num: 12, sym: 'Mg', name: 'Magnesium', x: 2, y: 3, s: 'HCP' },
-      { num: 13, sym: 'Al', name: 'Aluminum', x: 13, y: 3, s: 'FCC' },
-      { num: 14, sym: 'Si', name: 'Silicon', x: 14, y: 3, s: 'Diamond' },
-      { num: 15, sym: 'P', name: 'Phosphorus', x: 15, y: 3, s: 'Orthorhombic' },
-      { num: 16, sym: 'S', name: 'Sulfur', x: 16, y: 3, s: 'Orthorhombic' },
-      { num: 17, sym: 'Cl', name: 'Chlorine', x: 17, y: 3, s: 'Orthorhombic' },
-      { num: 18, sym: 'Ar', name: 'Argon', x: 18, y: 3, s: 'FCC' },
-      // Row 4
-      { num: 19, sym: 'K', name: 'Potassium', x: 1, y: 4, s: 'BCC' },
-      { num: 20, sym: 'Ca', name: 'Calcium', x: 2, y: 4, s: 'FCC' },
-      { num: 21, sym: 'Sc', name: 'Scandium', x: 3, y: 4, s: 'HCP' },
-      { num: 22, sym: 'Ti', name: 'Titanium', x: 4, y: 4, s: 'HCP' },
-      { num: 23, sym: 'V', name: 'Vanadium', x: 5, y: 4, s: 'BCC' },
-      { num: 24, sym: 'Cr', name: 'Chromium', x: 6, y: 4, s: 'BCC' },
-      { num: 25, sym: 'Mn', name: 'Manganese', x: 7, y: 4, s: 'Cubic' },
-      { num: 26, sym: 'Fe', name: 'Iron', x: 8, y: 4, s: 'BCC' },
-      { num: 27, sym: 'Co', name: 'Cobalt', x: 9, y: 4, s: 'HCP' },
-      { num: 28, sym: 'Ni', name: 'Nickel', x: 10, y: 4, s: 'FCC' },
-      { num: 29, sym: 'Cu', name: 'Copper', x: 11, y: 4, s: 'FCC' },
-      { num: 30, sym: 'Zn', name: 'Zinc', x: 12, y: 4, s: 'HCP' },
-      { num: 31, sym: 'Ga', name: 'Gallium', x: 13, y: 4, s: 'Orthorhombic' },
-      { num: 32, sym: 'Ge', name: 'Germanium', x: 14, y: 4, s: 'Diamond' },
-      { num: 33, sym: 'As', name: 'Arsenic', x: 15, y: 4, s: 'Rhombohedral' },
-      { num: 34, sym: 'Se', name: 'Selenium', x: 16, y: 4, s: 'Hexagonal' },
-      { num: 35, sym: 'Br', name: 'Bromine', x: 17, y: 4, s: 'Orthorhombic' },
-      { num: 36, sym: 'Kr', name: 'Krypton', x: 18, y: 4, s: 'FCC' },
-      // Row 5
-      { num: 37, sym: 'Rb', name: 'Rubidium', x: 1, y: 5, s: 'BCC' },
-      { num: 38, sym: 'Sr', name: 'Strontium', x: 2, y: 5, s: 'FCC' },
-      { num: 39, sym: 'Y', name: 'Yttrium', x: 3, y: 5, s: 'HCP' },
-      { num: 40, sym: 'Zr', name: 'Zirconium', x: 4, y: 5, s: 'HCP' },
-      { num: 41, sym: 'Nb', name: 'Niobium', x: 5, y: 5, s: 'BCC' },
-      { num: 42, sym: 'Mo', name: 'Molybdenum', x: 6, y: 5, s: 'BCC' },
-      { num: 43, sym: 'Tc', name: 'Technetium', x: 7, y: 5, s: 'HCP' },
-      { num: 44, sym: 'Ru', name: 'Ruthenium', x: 8, y: 5, s: 'HCP' },
-      { num: 45, sym: 'Rh', name: 'Rhodium', x: 9, y: 5, s: 'FCC' },
-      { num: 46, sym: 'Pd', name: 'Palladium', x: 10, y: 5, s: 'FCC' },
-      { num: 47, sym: 'Ag', name: 'Silver', x: 11, y: 5, s: 'FCC' },
-      { num: 48, sym: 'Cd', name: 'Cadmium', x: 12, y: 5, s: 'HCP' },
-      { num: 49, sym: 'In', name: 'Indium', x: 13, y: 5, s: 'Tetragonal' },
-      { num: 50, sym: 'Sn', name: 'Tin', x: 14, y: 5, s: 'Tetragonal' },
-      { num: 51, sym: 'Sb', name: 'Antimony', x: 15, y: 5, s: 'Rhombohedral' },
-      { num: 52, sym: 'Te', name: 'Tellurium', x: 16, y: 5, s: 'Hexagonal' },
-      { num: 53, sym: 'I', name: 'Iodine', x: 17, y: 5, s: 'Orthorhombic' },
-      { num: 54, sym: 'Xe', name: 'Xenon', x: 18, y: 5, s: 'FCC' },
-      // Row 6
-      { num: 55, sym: 'Cs', name: 'Cesium', x: 1, y: 6, s: 'BCC' },
-      { num: 56, sym: 'Ba', name: 'Barium', x: 2, y: 6, s: 'BCC' },
-      { num: 57, sym: 'La', name: 'Lanthanum', x: 3, y: 6, s: 'HCP' },
-      { num: 72, sym: 'Hf', name: 'Hafnium', x: 4, y: 6, s: 'HCP' },
-      { num: 73, sym: 'Ta', name: 'Tantalum', x: 5, y: 6, s: 'BCC' },
-      { num: 74, sym: 'W', name: 'Tungsten', x: 6, y: 6, s: 'BCC' },
-      { num: 75, sym: 'Re', name: 'Rhenium', x: 7, y: 6, s: 'HCP' },
-      { num: 76, sym: 'Os', name: 'Osmium', x: 8, y: 6, s: 'HCP' },
-      { num: 77, sym: 'Ir', name: 'Iridium', x: 9, y: 6, s: 'FCC' },
-      { num: 78, sym: 'Pt', name: 'Platinum', x: 10, y: 6, s: 'FCC' },
-      { num: 79, sym: 'Au', name: 'Gold', x: 11, y: 6, s: 'FCC' },
-      { num: 80, sym: 'Hg', name: 'Mercury', x: 12, y: 6, s: 'Rhombohedral' },
-      { num: 81, sym: 'Tl', name: 'Thallium', x: 13, y: 6, s: 'HCP' },
-      { num: 82, sym: 'Pb', name: 'Lead', x: 14, y: 6, s: 'FCC' },
-      { num: 83, sym: 'Bi', name: 'Bismuth', x: 15, y: 6, s: 'Rhombohedral' },
-      // Heavy elements
-      { num: 90, sym: 'Th', name: 'Thorium', x: 5, y: 7, s: 'FCC' },
-      { num: 92, sym: 'U', name: 'Uranium', x: 7, y: 7, s: 'Orthorhombic' },
-      { num: 94, sym: 'Pu', name: 'Plutonium', x: 9, y: 7, s: 'Monoclinic' }
-    ];
-
-    return baseList.map(item => {
-      const dbInfo = elementsDb[item.num] || {};
-      const overrideInfo = customOverrides[item.num] || {};
-      const detailed = { ...dbInfo, ...overrideInfo };
-      
-      let category: CrystalElement['category'] = detailed.category || 'transition_metal';
-      if (item.num === 1 || item.num === 6 || item.num === 7 || item.num === 8 || item.num === 15 || item.num === 16 || item.num === 34) category = 'nonmetal';
-      else if (item.num === 3 || item.num === 11 || item.num === 19 || item.num === 37 || item.num === 55) category = 'alkali';
-      else if (item.num === 4 || item.num === 12 || item.num === 20 || item.num === 38 || item.num === 56) category = 'alkaline_earth';
-      else if (item.num === 5 || item.num === 14 || item.num === 32 || item.num === 33 || item.num === 51 || item.num === 52) category = 'metalloid';
-      else if (item.num === 2 || item.num === 10 || item.num === 18 || item.num === 36 || item.num === 54) category = 'noble_gas';
-      else if (item.num === 57) category = 'lanthanoid';
-      else if (item.num >= 89) category = 'actinoid';
-      else if (item.num === 13 || item.num === 31 || item.num === 49 || item.num === 50 || item.num === 81 || item.num === 82 || item.num === 83) category = 'post_transition';
-
-      const factualProps = getFactualProperties(item.num);
-      const weight = detailed.weight !== undefined ? detailed.weight : (item.num * 2.05 + 1.8);
-      const density = detailed.density !== undefined ? detailed.density : (item.num * 0.17 + 0.95);
-      const meltingPoint = detailed.meltingPoint !== undefined ? detailed.meltingPoint : (item.num * 22);
-      const electronConfig = detailed.electronConfig || factualProps.electronConfig || `[Inert] Config ${item.num}`;
-
-      return {
-        number: item.num,
-        symbol: detailed.symbol || item.sym,
-        name: detailed.name || item.name,
-        weight,
-        category,
-        gridX: item.x,
-        gridY: item.y,
-        crystalStructure: (detailed.crystalStructure || item.s) as any,
-        spaceGroup: detailed.spaceGroup || 'Unknown',
-        a: detailed.a || 3.42,
-        b: detailed.b,
-        c: detailed.c,
-        alpha: detailed.alpha || 90,
-        beta: detailed.beta || 90,
-        gamma: detailed.gamma || 90,
-        density,
-        meltingPoint,
-        electronConfig,
-        famousCompounds: detailed.famousCompounds || [],
-
-        // Scientific properties mapping
-        valenceElectrons: detailed.valenceElectrons !== undefined ? detailed.valenceElectrons : factualProps.valenceElectrons,
-        electronegativity: detailed.electronegativity !== undefined ? detailed.electronegativity : factualProps.electronegativity,
-        ionizationEnergy: detailed.ionizationEnergy !== undefined ? detailed.ionizationEnergy : factualProps.ionizationEnergy,
-        electronAffinity: detailed.electronAffinity !== undefined ? detailed.electronAffinity : factualProps.electronAffinity,
-        metallicCharacter: detailed.metallicCharacter !== undefined ? detailed.metallicCharacter : factualProps.metallicCharacter,
-        nonMetallicCharacter: detailed.nonMetallicCharacter !== undefined ? detailed.nonMetallicCharacter : factualProps.nonMetallicCharacter,
-        atomicRadius: detailed.atomicRadius !== undefined ? detailed.atomicRadius : factualProps.atomicRadius,
-        ionicRadius: detailed.ionicRadius !== undefined ? detailed.ionicRadius : factualProps.ionicRadius,
-        boilingPoint: detailed.boilingPoint !== undefined ? detailed.boilingPoint : factualProps.boilingPoint,
-        electricalConductivity: detailed.electricalConductivity !== undefined ? detailed.electricalConductivity : factualProps.electricalConductivity,
-        thermalConductivity: detailed.thermalConductivity !== undefined ? detailed.thermalConductivity : factualProps.thermalConductivity,
-        mohsHardness: detailed.mohsHardness !== undefined ? detailed.mohsHardness : factualProps.mohsHardness,
-        speedOfSound: detailed.speedOfSound !== undefined ? detailed.speedOfSound : factualProps.speedOfSound,
-        thermalExpansion: detailed.thermalExpansion !== undefined ? detailed.thermalExpansion : factualProps.thermalExpansion,
-        specificHeat: detailed.specificHeat !== undefined ? detailed.specificHeat : factualProps.specificHeat,
-        factEn: detailed.factEn !== undefined ? detailed.factEn : factualProps.factEn,
-        factFa: detailed.factFa !== undefined ? detailed.factFa : factualProps.factFa
-      } as CrystalElement;
+  // High-fidelity complete 118-element periodic grid merged with custom overrides
+  const fullElementsGrid = useMemo<CrystalElement[]>(() => {
+    return COMPLETE_PERIODIC_TABLE.map(base => {
+      const override = customOverrides[base.number];
+      if (!override) return base as CrystalElement;
+      return { ...base, ...override } as CrystalElement;
     });
-  }, [elementsDb, customOverrides]);
+  }, [customOverrides]);
 
   // Handle single compounds simulation loading
   const handleLoadPeaks = (compound: FamousCompound) => {
@@ -2956,14 +2334,38 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
   const filteredElements = useMemo(() => {
     return fullElementsGrid.filter(el => {
-      const matchQuery = el.symbol.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          el.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          el.crystalStructure.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      if (categoryFilter === 'all' || categoryFilter === 'entire') return matchQuery;
-      return el.category === categoryFilter && matchQuery;
+      // 1. Search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchSym = el.symbol.toLowerCase().includes(q);
+        const matchName = el.name.toLowerCase().includes(q);
+        const matchNum = el.number.toString() === q;
+        const matchStruct = (el.crystalStructure || '').toLowerCase().includes(q);
+        if (!matchSym && !matchName && !matchNum && !matchStruct) return false;
+      }
+
+      // 2. Quick Preset filter
+      if (activePreset) {
+        if (!activePreset.elementNumbers.includes(el.number)) return false;
+      }
+
+      // 3. Category filter
+      if (categoryFilter !== 'all' && categoryFilter !== 'entire') {
+        if (el.category !== categoryFilter) return false;
+      }
+
+      // 4. Block filter
+      if (blockFilter !== 'all') {
+        if (el.block !== blockFilter) return false;
+      }
+
+      return true;
     });
-  }, [fullElementsGrid, searchQuery, categoryFilter]);
+  }, [fullElementsGrid, searchQuery, activePreset, categoryFilter, blockFilter]);
+
+  const matchedElementNumbers = useMemo(() => {
+    return new Set(filteredElements.map(e => e.number));
+  }, [filteredElements]);
 
   const elementWeightsMap = useMemo(() => {
     return fullElementsGrid.reduce((acc, el) => {
@@ -3349,346 +2751,91 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
       {activeTab === 'grid' ? (
         <>
-          {/* Grid Controller, Filters and Inputs bar */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl backdrop-blur-md mb-2">
-            <div className="relative col-span-1 md:col-span-2 group">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search elements by symbol, name, or crystal system structure (FCC, HCP)..."
-                className="w-full bg-slate-950 text-slate-100 border border-slate-800/80 hover:border-slate-700/80 focus:border-indigo-500 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium outline-none transition-all placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/10"
-              />
-              <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500 group-hover:text-slate-400 focus-within:text-indigo-400 transition-colors" />
-            </div>
+          {/* Modern Filter & Analysis Toolbar */}
+          <PeriodicFilterToolbar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            colorMode={colorMode}
+            onColorModeChange={setColorMode}
+            heatmapMode={heatmapMode}
+            onHeatmapModeChange={setHeatmapMode}
+            categoryFilter={categoryFilter}
+            onCategoryFilterChange={setCategoryFilter}
+            blockFilter={blockFilter}
+            onBlockFilterChange={setBlockFilter}
+            temperature={temperature}
+            onTemperatureChange={setTemperature}
+            activePreset={activePreset}
+            onSelectPreset={setActivePreset}
+          />
 
-            <div className="col-span-1 md:col-span-2 relative group">
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full bg-slate-950 text-slate-200 border border-slate-800/80 hover:border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium outline-none transition-all cursor-pointer focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none"
-              >
-                <option value="entire">{isFa ? 'نمایش همه عناصر (Entire / All Elements)' : 'Entire / All Elements'}</option>
-                <option value="all">{isFa ? 'همه سری‌های بلورشناسی (All Series)' : 'Filter: All Crystallographic Series'}</option>
-                <option value="alkali">{isFa ? 'فلزات قلیایی (Alkali Metals)' : 'Alkali Metals (BCC structures)'}</option>
-                <option value="alkaline_earth">{isFa ? 'فلزات قلیایی خاکی (Alkaline Earth)' : 'Alkaline Earth (HCP/FCC types)'}</option>
-                <option value="transition_metal">{isFa ? 'فلزات واسطه (Transition Metals)' : 'Transition Metals (Refractory lattices)'}</option>
-                <option value="post_transition">{isFa ? 'فلزات پس‌واسطه (Post-Transition)' : 'Post-Transition Metals'}</option>
-                <option value="metalloid">{isFa ? 'شبه‌فلزات (Metalloids)' : 'Metalloids / Chalcogen Phase'}</option>
-                <option value="nonmetal">{isFa ? 'نافلیزات (Reactive Nonmetals)' : 'Reactive Nonmetals'}</option>
-                <option value="noble_gas">{isFa ? 'گازهای نجیب (Noble Gases)' : 'Noble Gases (Cryo FCC lattices)'}</option>
-                <option value="lanthanoid">{isFa ? 'لانتانیدها (Lanthanoids)' : 'Lanthanoids Series'}</option>
-                <option value="actinoid">{isFa ? 'اکتینیدها (Actinoids)' : 'Actinoids Series'}</option>
-              </select>
-              <Layers className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500 group-hover:text-slate-400 transition-colors pointer-events-none" />
-              <div className="absolute right-4 top-4 pointer-events-none border-l border-slate-800 pl-2">
-                <svg className="w-3 h-3 text-slate-500 group-hover:text-slate-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-              </div>
-            </div>
-            
-            {/* Added: State of Matter Temperature Slider */}
-            <div className="col-span-1 md:col-span-4 bg-slate-950/50 rounded-xl px-4 py-3 border border-slate-800 flex flex-col sm:flex-row items-center gap-4">
-              <div className="flex-shrink-0 min-w-[200px]">
-                <div className="flex justify-between items-center text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
-                  <span>Temperature / State</span>
-                  <span className="text-white bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
-                    {Math.round(temperature)} °C <span className="text-slate-500 ml-1">({Math.round(temperature + 273.15)} K)</span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="-273.15"
-                  max="6000"
-                  step="1"
-                  value={String(temperature) === 'NaN' ? '' : temperature}
-                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                  className="w-full accent-emerald-500 h-1.5 bg-slate-900 rounded-lg cursor-pointer appearance-none"
-                />
-                <div className="flex gap-2 mt-1.5 justify-start">
-                  <button
-                    type="button"
-                    onClick={() => { setTemperature(0); playSynthTone('tick'); }}
-                    className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded border transition-colors cursor-pointer ${
-                      temperature === 0
-                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400 font-extrabold'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    STP (0°C)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setTemperature(25); playSynthTone('tick'); }}
-                    className={`px-2 py-0.5 text-[9px] font-mono font-bold rounded border transition-colors cursor-pointer ${
-                      temperature === 25
-                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400 font-extrabold'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    SATP (25°C)
-                  </button>
-                </div>
-              </div>
-              
-              <div className="flex-1 flex justify-evenly sm:justify-start gap-4 text-[10px] uppercase font-bold tracking-widest text-slate-500 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-slate-400"></div>
-                  <span>Solid</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                  <span className="text-blue-400">Liquid</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>
-                  <span className="text-rose-400">Gas</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-                  <span className="text-purple-400">Unknown / Presumed</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Dynamic Property Heatmap Legend */}
+          <PeriodicHeatmapLegend
+            mode={heatmapMode}
+            onSelectMode={setHeatmapMode}
+            elements={fullElementsGrid}
+          />
 
-      {/* Principal Splitted Workspace Grid Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Left Column (Span 8): Interactive Periodic Table Layout with Glowing Frames */}
-        <div className="col-span-1 lg:col-span-8 space-y-5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
-          <div 
-            className="grid gap-1.5 p-6 bg-[#0B0F19] border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-[24px] relative min-w-[780px] select-none"
-            style={{ gridTemplateColumns: 'repeat(18, minmax(0, 1fr))' }}
-          >
-            {/* Ambient Background Glow for the Table Container */}
-            <div className="absolute inset-x-0 -top-40 h-80 bg-indigo-500/10 blur-[100px] pointer-events-none" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
-
-            <div className="relative z-10 grid gap-1.5 w-full" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(18, minmax(0, 1fr))' }}>
-              {/* Grid Coordinates Generator Loops */}
-            {Array.from({ length: 7 }, (_, rowIndex) => rowIndex + 1).map(row => (
-              <React.Fragment key={`row-${row}`}>
-                {Array.from({ length: 18 }, (_, colIndex) => colIndex + 1).map(col => {
-                  const el = fullElementsGrid.find(e => e.gridX === col && e.gridY === row);
-                  const isMatch = el ? filteredElements.some(f => f.number === el.number) : false;
-
-                  if (!el) {
-                    // Empty visual cells
-                    return <div key={`empty-${row}-${col}`} className="aspect-square opacity-0 pointer-events-none" />;
-                  }
-
-                  const isActive = selectedElement === el.number;
-                  const isXtal = isCrystalMaterial(el.number);
-                  const isSelectable = isXtal || categoryFilter === 'entire';
-                  const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
-                  
-                  let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
-                  if (isActive) stateStatus = 'active';
-                  else if (isMatch && (isXtal || categoryFilter === 'entire')) stateStatus = 'match';
-                  else if (isMatch && !isXtal) stateStatus = 'disabled';
-                  else stateStatus = 'normal';
-
-                  const borderClasses = getElementColorClasses(el.category, stateStatus);
-
-                  // Temperature state styling
-                  let stateDotClasses = 'bg-slate-500';
-                  if (stateAtTemp === 'solid') stateDotClasses = 'bg-slate-400';
-                  if (stateAtTemp === 'liquid') stateDotClasses = 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]';
-                  if (stateAtTemp === 'gas') stateDotClasses = 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]';
-                  if (stateAtTemp === 'unknown') stateDotClasses = 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.6)]';
-
-                  return (
-                    <button
-                      key={`el-${el.number}`}
-                      onClick={isSelectable ? () => {
-                        setSelectedElement(el.number);
-                        playSynthTone('switch');
-                      } : undefined}
-                      disabled={!isSelectable}
-                      className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
-                    >
-                      <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
-                      
-                      <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
-                      
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-[7.5px] font-mono text-slate-500 font-black">{el.number}</span>
-                        {isXtal && el.famousCompounds && el.famousCompounds.length > 0 && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 opacity-80" title="Has famous XRD library components" />
-                        )}
-                      </div>
-                      
-                      <span className="text-sm font-black tracking-tight leading-none text-center block my-0.5">{el.symbol}</span>
-                      
-                      <div className="flex justify-between items-center w-full mt-auto">
-                        <span className="text-[6.5px] truncate max-w-[70%] text-slate-400 leading-none">{el.name}</span>
-                        <span className={`text-[5.5px] font-mono font-black scale-90 tracking-tighter px-0.5 rounded bg-slate-950/60 ${isXtal ? 'text-indigo-300' : 'text-slate-500'}`}>
-                          {isXtal ? el.crystalStructure.substring(0, 3) : stateAtTemp === 'solid' ? 'SOL' : stateAtTemp === 'liquid' ? 'LIQ' : stateAtTemp === 'gas' ? 'GAS' : getPhysicalStateLabel(el.number)}
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-
-            {/* In-Between Periodic Table Series Gap separator */}
-            <div className="col-span-18 h-3 border-b border-dashed border-slate-800/60 my-1" />
-
-            {/* Lanthanide series projection array */}
-            <div className="col-span-2 aspect-square flex items-center justify-center text-[8px] uppercase font-black tracking-widest text-slate-500 font-mono">
-              Lanthanide
-            </div>
-            <div className="col-span-1 aspect-square opacity-0 pointer-events-none" />
-            {fullElementsGrid.filter(e => e.category === 'lanthanoid').map(el => {
-              const isMatch = filteredElements.some(f => f.number === el.number);
-              const isActive = selectedElement === el.number;
-              const isXtal = isCrystalMaterial(el.number);
-              const isSelectable = isXtal || categoryFilter === 'entire';
-              const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
-              
-              let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
-              if (isActive) stateStatus = 'active';
-              else if (isMatch && (isXtal || categoryFilter === 'entire')) stateStatus = 'match';
-              else if (isMatch && !isXtal) stateStatus = 'disabled';
-              else stateStatus = 'normal';
-
-              const borderClasses = getElementColorClasses(el.category, stateStatus);
-
-              let stateDotClasses = 'bg-slate-500';
-              if (stateAtTemp === 'solid') stateDotClasses = 'bg-slate-400';
-              if (stateAtTemp === 'liquid') stateDotClasses = 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]';
-              if (stateAtTemp === 'gas') stateDotClasses = 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]';
-              if (stateAtTemp === 'unknown') stateDotClasses = 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.6)]';
-
-              return (
-                <button
-                  key={`el-${el.number}`}
-                  onClick={isSelectable ? () => {
-                    setSelectedElement(el.number);
-                    playSynthTone('switch');
-                  } : undefined}
-                  disabled={!isSelectable}
-                  className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
-                >
-                  <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
-                  
-                  <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
-                  
-                  <span className="text-[7px] font-mono text-slate-500 font-bold text-left">{el.number}</span>
-                  <span className="text-sm font-black tracking-tight text-center block my-0.5">{el.symbol}</span>
-                  
-                  <div className="flex justify-between items-center w-full mt-auto">
-                    <span className="text-[6px] truncate max-w-[70%] text-slate-400 leading-none">{el.name}</span>
-                    <span className={`text-[5.5px] font-mono font-black scale-90 tracking-tighter px-0.5 rounded bg-slate-950/60 ${isXtal ? 'text-indigo-300' : 'text-slate-500'}`}>
-                      {isXtal ? el.crystalStructure.substring(0, 3) : stateAtTemp === 'solid' ? 'SOL' : stateAtTemp === 'liquid' ? 'LIQ' : stateAtTemp === 'gas' ? 'GAS' : getPhysicalStateLabel(el.number)}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-
-            {/* Actinide series projection array */}
-            <div className="col-span-2 aspect-square flex items-center justify-center text-[8px] uppercase font-black tracking-widest text-slate-500 font-mono">
-              Actinide
-            </div>
-            <div className="col-span-1 aspect-square opacity-0 pointer-events-none" />
-            {fullElementsGrid.filter(e => e.category === 'actinoid').map(el => {
-              const isMatch = filteredElements.some(f => f.number === el.number);
-              const isActive = selectedElement === el.number;
-              const isXtal = isCrystalMaterial(el.number);
-              const isSelectable = isXtal || categoryFilter === 'entire';
-              const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
-              
-              let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
-              if (isActive) stateStatus = 'active';
-              else if (isMatch && (isXtal || categoryFilter === 'entire')) stateStatus = 'match';
-              else if (isMatch && !isXtal) stateStatus = 'disabled';
-              else stateStatus = 'normal';
-
-              const borderClasses = getElementColorClasses(el.category, stateStatus);
-
-              let stateDotClasses = 'bg-slate-500';
-              if (stateAtTemp === 'solid') stateDotClasses = 'bg-slate-400';
-              if (stateAtTemp === 'liquid') stateDotClasses = 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]';
-              if (stateAtTemp === 'gas') stateDotClasses = 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]';
-              if (stateAtTemp === 'unknown') stateDotClasses = 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.6)]';
-
-              return (
-                <button
-                  key={`el-${el.number}`}
-                  onClick={isSelectable ? () => {
-                    setSelectedElement(el.number);
-                    playSynthTone('switch');
-                  } : undefined}
-                  disabled={!isSelectable}
-                  className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
-                >
-                  <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
-                  
-                  <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
-                  
-                  <span className="text-[7px] font-mono text-slate-500 font-bold text-left">{el.number}</span>
-                  <span className="text-sm font-black tracking-tight text-center block my-0.5">{el.symbol}</span>
-                  
-                  <div className="flex justify-between items-center w-full mt-auto">
-                    <span className="text-[6px] truncate max-w-[75%] text-slate-400 leading-none">{el.name}</span>
-                    <span className={`text-[5.5px] font-mono font-black scale-90 tracking-tighter px-0.5 rounded bg-slate-950/60 ${isXtal ? 'text-rose-300' : 'text-slate-500'}`}>
-                      {isXtal ? el.crystalStructure.substring(0, 3) : stateAtTemp === 'solid' ? 'SOL' : stateAtTemp === 'liquid' ? 'LIQ' : stateAtTemp === 'gas' ? 'GAS' : getPhysicalStateLabel(el.number)}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-            </div>
-          </div>
-
-          {/* Color Key block legends mapping */}
-          <div className="flex flex-wrap items-center gap-1.5 p-3.5 bg-slate-900/40 border border-slate-800 rounded-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setCategoryFilter('entire');
-                playSynthTone('tick');
-              }}
-              className={`text-[8px] text-center px-2 py-1.5 rounded-md border font-black uppercase tracking-wider transition-all cursor-pointer ${
-                categoryFilter === 'entire' || categoryFilter === 'all'
-                  ? 'bg-indigo-500/20 border-indigo-500/80 text-indigo-300 ring-1 ring-indigo-500/50 shadow-sm'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {isFa ? 'همه عناصر (Entire)' : 'Entire / All'}
-            </button>
-            {[
-              { label: isFa ? 'نافلیزات' : 'Nonmetals', cat: 'nonmetal' },
-              { label: isFa ? 'فلزات قلیایی' : 'Alkali Metals', cat: 'alkali' },
-              { label: isFa ? 'قلیایی خاکی' : 'Alkaline Earth', cat: 'alkaline_earth' },
-              { label: isFa ? 'فلزات واسطه' : 'Trans-Metals', cat: 'transition_metal' },
-              { label: isFa ? 'پس‌واسطه' : 'Post-Trans', cat: 'post_transition' },
-              { label: isFa ? 'شبه‌فلزات' : 'Metalloids', cat: 'metalloid' },
-              { label: isFa ? 'لانتانیدها' : 'Lanthanides', cat: 'lanthanoid' },
-              { label: isFa ? 'اکتینیدها' : 'Actinides', cat: 'actinoid' },
-              { label: isFa ? 'گازهای نجیب' : 'Noble Gases', cat: 'noble_gas' }
-            ].map(k => (
-              <button 
-                key={k.cat} 
+          {/* View Mode & Workspace Layout Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 px-4 py-2.5 rounded-xl text-xs shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-medium">Layout View:</span>
+              <button
                 type="button"
-                onClick={() => {
-                  setCategoryFilter(prev => prev === k.cat ? 'entire' : k.cat);
-                  playSynthTone('tick');
-                }}
-                className={`text-[8px] text-center px-2 py-1.5 rounded-md border font-black uppercase tracking-wider transition-all cursor-pointer ${categoryColor(k.cat)} ${
-                  categoryFilter === k.cat ? 'ring-2 ring-white/90 scale-105 z-10 shadow-md' : 'opacity-80 hover:opacity-100'
+                onClick={() => { setLayoutMode('split'); playSynthTone('tick'); }}
+                className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  layoutMode === 'split'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {k.label}
+                Split Layout (Table + Profiler)
               </button>
-            ))}
-          </div>
-        </div>
+              <button
+                type="button"
+                onClick={() => { setLayoutMode('expanded'); playSynthTone('tick'); }}
+                className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  layoutMode === 'expanded'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Expanded Table (Full Width)
+              </button>
+            </div>
 
-        {/* Right Column (Span 4): Crystallographic Deep-Dive Profiler with interactive Lattice Rotation */}
-        <div className="col-span-1 lg:col-span-4">
+            <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+              <span>Showing <strong className="text-white">{filteredElements.length}</strong> of 118 elements</span>
+              {activeElementInfo && (
+                <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
+                  Selected: <strong>{activeElementInfo.symbol}</strong> ({activeElementInfo.name}, #{activeElementInfo.number})
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Principal Workspace Grid Area */}
+          <div className={`grid grid-cols-1 ${layoutMode === 'split' ? 'lg:grid-cols-12' : 'grid-cols-1'} gap-6 items-start`}>
+            {/* Table Column */}
+            <div className={`${layoutMode === 'split' ? 'col-span-1 lg:col-span-8' : 'col-span-1'} space-y-4`}>
+              <div className="p-4 sm:p-5 bg-[#0B0F19] border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-[24px] relative">
+                <PeriodicTableGrid
+                  elements={fullElementsGrid}
+                  selectedElement={selectedElement || 14}
+                  onSelectElement={(num) => {
+                    setSelectedElement(num);
+                    playSynthTone('switch');
+                  }}
+                  colorMode={colorMode}
+                  heatmapMode={heatmapMode}
+                  temperature={temperature}
+                  matchedElementNumbers={matchedElementNumbers}
+                />
+              </div>
+            </div>
+
+            {/* Profiler Column */}
+            <div className={`${layoutMode === 'split' ? 'col-span-1 lg:col-span-4' : 'col-span-1'}`}>
           <AnimatePresence mode="wait">
             {activeElementInfo ? (
               <motion.div
@@ -3917,6 +3064,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                       {([
                         { id: 'lattice', label: 'Lattice', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/10 border-rose-500/20' },
                         { id: 'xray', label: 'X-Ray & XRD', icon: Zap, color: 'text-amber-400', activeBg: 'bg-amber-500/10 border-amber-500/20' },
+                        { id: 'xrf', label: 'XRF Fingerprint', icon: Fingerprint, color: 'text-cyan-400', activeBg: 'bg-cyan-500/10 border-cyan-500/20' },
                         { id: 'attenuation', label: 'Attenuation & Alloy', icon: ShieldAlert, color: 'text-purple-400', activeBg: 'bg-purple-500/10 border-purple-500/20' },
                         { id: 'chemical', label: 'Chemical', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/10 border-indigo-500/20' },
                         { id: 'physical', label: 'Physical', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/10 border-emerald-500/20' },
@@ -4115,6 +3263,37 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
                     {detailSubTab === 'xray' && (
                       <div className="space-y-6 animate-fadeIn">
+                        {/* Quick Jump to XRF Fingerprint */}
+                        <div className="bg-gradient-to-r from-cyan-950/40 via-slate-900 to-blue-950/40 border border-cyan-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-lg shadow-cyan-950/10">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300">
+                              <Fingerprint className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-bold text-white flex items-center gap-2">
+                                Unique XRF Spectral Fingerprint
+                                <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+                                  Z={activeElementInfo.number} {activeElementInfo.symbol}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-400">
+                                Characteristic K & L emission peaks, 24-channel spectral barcode & qualitative identifier
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDetailSubTab('xrf');
+                              playSynthTone('tick');
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold flex items-center gap-1.5 transition-all flex-shrink-0 cursor-pointer"
+                          >
+                            Open XRF Engine
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
                         <FormFactorChart 
                           atomicNumber={activeElementInfo.number} 
                           symbol={activeElementInfo.symbol} 
@@ -4122,6 +3301,16 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                         />
                         <ElementalDiffractionPredictor 
                           element={activeElementInfo} 
+                        />
+                      </div>
+                    )}
+
+                    {detailSubTab === 'xrf' && (
+                      <div className="space-y-6 animate-fadeIn">
+                        <XRFFingerprintInspector
+                          element={activeElementInfo}
+                          onSelectElement={(atomicNum) => setSelectedElement(atomicNum)}
+                          isFa={isFa}
                         />
                       </div>
                     )}

@@ -8293,11 +8293,20 @@ const resources = {
 };
 
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources,
+    lng: 'en',
     fallbackLng: 'en',
+    keySeparator: false,
+    nsSeparator: false,
+    returnObjects: false,
+    returnedObjectHandler: (key: string, value: any, options: any) => {
+      if (options && typeof options === 'object' && typeof options.defaultValue === 'string') {
+        return options.defaultValue;
+      }
+      return typeof key === 'string' ? key : '';
+    },
     interpolation: {
       escapeValue: false
     }
@@ -8312,7 +8321,12 @@ function preloadCachedTranslations(lang: string) {
       if (storageKey && storageKey.startsWith(`trans_${lang}_`)) {
         const key = storageKey.slice(`trans_${lang}_`.length);
         const val = localStorage.getItem(storageKey);
-        if (val) {
+        if (val && typeof val === 'string') {
+          // Clean up any corrupt cached entries containing error strings or objects
+          if (val.startsWith('{') || val.includes('returned an object instead of string')) {
+            localStorage.removeItem(storageKey);
+            continue;
+          }
           i18n.addResource(lang, 'translation', key, val);
         }
       }
@@ -8428,6 +8442,17 @@ i18n.on('languageChanged', (lng) => {
   preloadCachedTranslations(lng);
 
   if (typeof window === 'undefined') return;
+
+  // Set standard HTML document attributes
+  document.documentElement.lang = lng;
+  const rtlLanguages = ['ar', 'fa', 'he', 'ur', 'ps', 'sd', 'ug', 'yi', 'ku'];
+  document.documentElement.dir = rtlLanguages.includes(lng) ? 'rtl' : 'ltr';
+
+  // Translate document title
+  if (typeof i18n.t === 'function') {
+    document.title = `${i18n.t('XRD-Calc Pro')} | ${i18n.t('Diffraction Analytics')}`;
+  }
+
   const customLanguages = ['pirate', 'tlh', 'sjn', 'sco', 'alc', 'min'];
   let googleLang = lng;
   if (lng === 'zh') googleLang = 'zh-CN';
@@ -8463,6 +8488,15 @@ if (typeof window !== 'undefined') {
   setTimeout(() => {
     if (i18n.language) {
       preloadCachedTranslations(i18n.language);
+      
+      // Set standard HTML document attributes on initial load
+      document.documentElement.lang = i18n.language;
+      const rtlLanguages = ['ar', 'fa', 'he', 'ur', 'ps', 'sd', 'ug', 'yi', 'ku'];
+      document.documentElement.dir = rtlLanguages.includes(i18n.language) ? 'rtl' : 'ltr';
+
+      if (typeof i18n.t === 'function') {
+        document.title = `${i18n.t('XRD-Calc Pro')} | ${i18n.t('Diffraction Analytics')}`;
+      }
     }
   }, 100);
 }
@@ -8471,26 +8505,37 @@ const originalT = i18n.t.bind(i18n);
 
 // Monkey patch i18n.t to support fallback real-time AI translations
 i18n.t = ((key: any, ...args: any[]) => {
-  const currentLang = i18n.language;
+  if (typeof key !== 'string' || !key) {
+    return key;
+  }
   
-  if (!currentLang || currentLang === 'en') {
-    return originalT(key, ...args);
+  const currentLang = i18n.language;
+  const options = args[0];
+  const defaultValue = (options && typeof options === 'object' && 'defaultValue' in options) 
+    ? (options as any).defaultValue 
+    : (typeof options === 'string' ? options : key);
+  
+  if (!currentLang || currentLang === 'en' || currentLang === 'en-US') {
+    const rawRes = originalT(key, ...args);
+    if (typeof rawRes !== 'string' || rawRes.includes('returned an object instead of string')) {
+      return defaultValue || key;
+    }
+    return rawRes;
   }
   
   const result = originalT(key, ...args);
   
+  if (typeof result !== 'string' || result.includes('returned an object instead of string')) {
+    return defaultValue || key;
+  }
+  
   if (result === key) {
     const cached = typeof window !== 'undefined' ? localStorage.getItem(`trans_${currentLang}_${key}`) : null;
-    if (cached) {
+    if (cached && typeof cached === 'string' && !cached.includes('returned an object instead of string')) {
       i18n.addResource(currentLang, 'translation', key, cached);
       return cached;
     }
     
-    const options = args[0];
-    const defaultValue = (options && typeof options === 'object' && 'defaultValue' in options) 
-      ? (options as any).defaultValue 
-      : (typeof options === 'string' ? options : key);
-      
     queueTranslation(key, currentLang);
     return defaultValue || key;
   }
