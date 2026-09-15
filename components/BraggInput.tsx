@@ -25,9 +25,29 @@ import {
   ClipboardPaste,
   X,
   Search,
-  ArrowRight
+  ArrowRight,
+  Bookmark,
+  BookmarkPlus,
+  Trash2,
+  RotateCcw,
+  Save
 } from 'lucide-react';
 import { MATERIAL_DB } from '../utils/materialDB';
+
+export interface BraggSavedConfig {
+  id: string;
+  name: string;
+  sampleId?: string;
+  wavelength: number;
+  zeroShift: number;
+  sampleDisplacement: number;
+  goniometerRadius: number;
+  crystalSystem?: string;
+  peaks?: string;
+  hkls?: string;
+  createdAt: number;
+  isUserSaved?: boolean;
+}
 
 interface BraggInputProps {
   sampleId?: string;
@@ -140,6 +160,71 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   const [showAlignment, setShowAlignment] = useState(false);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchPasteText, setBatchPasteText] = useState('');
+
+  // Saved Presets Management (LocalStorage persistence)
+  const [userPresets, setUserPresets] = useState<BraggSavedConfig[]>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_bragg_saved_configs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+  const [showPresetManagerModal, setShowPresetManagerModal] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
+  const [presetIncludePeaks, setPresetIncludePeaks] = useState(false);
+  const [presetSavedFeedback, setPresetSavedFeedback] = useState<string | null>(null);
+
+  // Sync userPresets to LocalStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('xrd_bragg_saved_configs', JSON.stringify(userPresets));
+    } catch (e) {
+      console.error('Failed to save bragg configs to localStorage', e);
+    }
+  }, [userPresets]);
+
+  const handleSaveCurrentConfiguration = (name: string, includePeaks: boolean = false) => {
+    if (!name.trim()) return;
+    const newConfig: BraggSavedConfig = {
+      id: `preset-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: name.trim(),
+      sampleId: sampleId || undefined,
+      wavelength,
+      zeroShift: zeroShift || 0,
+      sampleDisplacement: sampleDisplacement || 0,
+      goniometerRadius: goniometerRadius || 240,
+      crystalSystem: crystalSystem || 'SC',
+      peaks: includePeaks ? rawPeaks : undefined,
+      hkls: includePeaks ? rawHKL : undefined,
+      createdAt: Date.now(),
+      isUserSaved: true
+    };
+    setUserPresets(prev => [newConfig, ...prev.filter(p => p.name.toLowerCase() !== name.trim().toLowerCase())]);
+    setShowSavePresetModal(false);
+    setNewPresetName('');
+    setPresetSavedFeedback(`Configuration "${newConfig.name}" saved!`);
+    setTimeout(() => setPresetSavedFeedback(null), 3000);
+  };
+
+  const handleLoadPreset = (config: BraggSavedConfig) => {
+    setWavelength(config.wavelength);
+    if (setZeroShift) setZeroShift(config.zeroShift ?? 0);
+    if (setSampleDisplacement) setSampleDisplacement(config.sampleDisplacement ?? 0);
+    if (setGoniometerRadius) setGoniometerRadius(config.goniometerRadius ?? 240);
+    if (config.sampleId && setSampleId) setSampleId(config.sampleId);
+    if (config.crystalSystem && setCrystalSystem) setCrystalSystem(config.crystalSystem);
+    if (config.peaks !== undefined) setRawPeaks(config.peaks);
+    if (config.hkls !== undefined) setRawHKL(config.hkls);
+
+    setPresetSavedFeedback(`Loaded "${config.name}"`);
+    setTimeout(() => setPresetSavedFeedback(null), 3000);
+  };
+
+  const handleDeletePreset = (id: string) => {
+    setUserPresets(prev => prev.filter(p => p.id !== id));
+  };
 
   // Real-time parsing of peaks & hkl
   const parsedPeaks = useMemo(() => {
@@ -616,15 +701,32 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           </div>
           {/* Autosave status indicator hidden as requested */}
         </div>
-        <button 
-          onClick={handleSync}
-          disabled={isSyncing}
-          className="text-[10px] uppercase font-black tracking-wider text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-all disabled:opacity-50 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 shadow-sm cursor-pointer"
-          title="Fetch latest IUPAC/NIST standard values"
-        >
-          <SyncIcon className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-          {isSyncing ? t('Syncing') : t('Sync Standards')}
-        </button>
+        <div className="flex items-center gap-2">
+          {presetSavedFeedback && (
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-xl flex items-center gap-1.5 animate-in fade-in duration-200">
+              <Check className="w-3 h-3 text-emerald-500" />
+              {presetSavedFeedback}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowSavePresetModal(true)}
+            className="text-[10px] uppercase font-black tracking-wider text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-xl shadow-sm hover:shadow-indigo-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Save current wavelength & geometry as a named preset"
+          >
+            <BookmarkPlus className="h-3.5 w-3.5" />
+            <span>Save Config</span>
+          </button>
+          <button 
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="text-[10px] uppercase font-black tracking-wider text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1.5 transition-all disabled:opacity-50 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl border border-indigo-500/20 shadow-sm cursor-pointer"
+            title="Fetch latest IUPAC/NIST standard values"
+          >
+            <SyncIcon className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? t('Syncing') : t('Sync Standards')}
+          </button>
+        </div>
       </div>
       
       <div className="space-y-6">
@@ -660,13 +762,33 @@ export const BraggInput: React.FC<BraggInputProps> = ({
 
           {/* Calibration Reference Standard Dropdown */}
           <div className="bg-slate-50/80 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-            <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-              <span>Calibration Reference Standard</span>
-            </label>
+            <div className="flex justify-between items-center mb-1.5">
+              <label className="text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span>Reference Standard & Presets</span>
+              </label>
+              {userPresets.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowPresetManagerModal(true)}
+                  className="text-[9px] uppercase font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Bookmark className="w-2.5 h-2.5" />
+                  Manage ({userPresets.length})
+                </button>
+              )}
+            </div>
             <select
               onChange={(e) => {
                 const selectedId = e.target.value;
+                if (selectedId.startsWith('user:')) {
+                  const userPresetId = selectedId.replace('user:', '');
+                  const config = userPresets.find(p => p.id === userPresetId);
+                  if (config) {
+                    handleLoadPreset(config);
+                  }
+                  return;
+                }
                 const preset = CALIBRATION_PRESETS.find(p => p.id === selectedId);
                 if (preset) {
                   if (preset.sampleId && setSampleId) setSampleId(preset.sampleId);
@@ -688,13 +810,30 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 }
               }}
               className="w-full px-3 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold text-xs cursor-pointer shadow-xs"
-              value={CALIBRATION_PRESETS.some(p => p.sampleId === sampleId) ? CALIBRATION_PRESETS.find(p => p.sampleId === sampleId)?.id : "custom"}
+              value={
+                CALIBRATION_PRESETS.some(p => p.sampleId === sampleId) 
+                  ? CALIBRATION_PRESETS.find(p => p.sampleId === sampleId)?.id 
+                  : userPresets.some(p => p.sampleId === sampleId)
+                    ? `user:${userPresets.find(p => p.sampleId === sampleId)?.id}`
+                    : "custom"
+              }
             >
-              {CALIBRATION_PRESETS.map((p) => (
-                <option key={p.id} value={p.id} className="font-bold text-xs">
-                  {p.name}
-                </option>
-              ))}
+              {userPresets.length > 0 && (
+                <optgroup label="Saved Presets (User Configs)">
+                  {userPresets.map((p) => (
+                    <option key={p.id} value={`user:${p.id}`} className="font-bold text-xs text-indigo-600 dark:text-indigo-400">
+                      ★ {p.name} (λ={p.wavelength}Å, R={p.goniometerRadius}mm)
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label="NIST & Standard Reference Materials">
+                {CALIBRATION_PRESETS.map((p) => (
+                  <option key={p.id} value={p.id} className="font-bold text-xs">
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
         </div>
@@ -1351,9 +1490,17 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       ))}
                     </div>
                   </div>
-                  <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-normal mt-1.5">
-                    Modulates the magnitude of the displacement correction angular shifts.
-                  </p>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                    <span className="text-[9px] text-slate-400 font-mono">Save geometry & wavelength combo:</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSavePresetModal(true)}
+                      className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800/60 flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <BookmarkPlus className="w-3 h-3" />
+                      Save as Named Preset
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -2030,6 +2177,259 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                     Apply Refinement
                   </button>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* SAVE CONFIGURATION AS PRESET MODAL */}
+      <AnimatePresence>
+        {showSavePresetModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-500/20">
+                    <BookmarkPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-sans font-black text-sm uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                      Save Configuration Preset
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      Store current wavelength & instrument geometry settings
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowSavePresetModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-4 overflow-y-auto">
+                {/* Preset Name */}
+                <div>
+                  <label className="block text-[10px] uppercase tracking-widest font-black text-slate-600 dark:text-slate-400 mb-1.5">
+                    Preset Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newPresetName}
+                    onChange={(e) => setNewPresetName(e.target.value)}
+                    placeholder="e.g., Cu-Ka1 Synchrotron 285mm or Lab Rig 1"
+                    maxLength={60}
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newPresetName.trim()) {
+                        handleSaveCurrentConfiguration(newPresetName, presetIncludePeaks);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none text-xs font-bold font-mono shadow-xs"
+                  />
+                </div>
+
+                {/* Configuration Summary Preview */}
+                <div className="bg-slate-50 dark:bg-slate-950/70 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-2">
+                  <span className="text-[9px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500 block">
+                    Parameters to be captured:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-400 text-[9px] block">Wavelength (λ)</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400">{wavelength} Å</span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-400 text-[9px] block">Goniometer Radius</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">{goniometerRadius} mm</span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-400 text-[9px] block">Zero-Shift (Δ2θ)</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">{zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°</span>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-400 text-[9px] block">Sample Displ. (s)</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-300">{sampleDisplacement > 0 ? `+${sampleDisplacement.toFixed(3)}` : sampleDisplacement.toFixed(3)} mm</span>
+                    </div>
+                    {sampleId && (
+                      <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 col-span-2">
+                        <span className="text-slate-400 text-[9px] block">Sample Reference</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300 truncate block">{sampleId}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Include Current Peaks Option */}
+                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={presetIncludePeaks}
+                    onChange={(e) => setPresetIncludePeaks(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Also include current 2θ peaks & Miller (hkl) indices
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      If checked, loading this preset will also restore the current diffraction peaks.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-end items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSavePresetModal(false)}
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-wider border border-slate-200 hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!newPresetName.trim()}
+                  onClick={() => handleSaveCurrentConfiguration(newPresetName, presetIncludePeaks)}
+                  className="px-5 py-2 text-xs font-black uppercase tracking-widest bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-md hover:shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Preset
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* PRESET MANAGER MODAL */}
+      <AnimatePresence>
+        {showPresetManagerModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-500/20">
+                    <Bookmark className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-sans font-black text-sm uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                      Saved Presets Manager
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-mono">
+                      {userPresets.length} saved configuration{userPresets.length === 1 ? '' : 's'} available
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPresetManagerModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-3 overflow-y-auto max-h-[60vh]">
+                {userPresets.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <Bookmark className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-xs font-bold">No user-defined presets saved yet.</p>
+                    <p className="text-[10px] mt-1">Click "Save Config" to store your favorite wavelength and geometry settings.</p>
+                  </div>
+                ) : (
+                  userPresets.map((preset) => (
+                    <div
+                      key={preset.id}
+                      className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:border-indigo-500/40 transition-colors"
+                    >
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                            {preset.name}
+                          </span>
+                          {preset.sampleId && (
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded">
+                              {preset.sampleId}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                          <span>λ: <strong className="text-indigo-500">{preset.wavelength} Å</strong></span>
+                          <span>R: <strong>{preset.goniometerRadius} mm</strong></span>
+                          <span>Zero: <strong>{preset.zeroShift > 0 ? `+${preset.zeroShift}` : preset.zeroShift}°</strong></span>
+                          <span>Displ: <strong>{preset.sampleDisplacement} mm</strong></span>
+                          {preset.peaks && (
+                            <span className="text-emerald-500 font-bold">● includes peaks</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleLoadPreset(preset);
+                            setShowPresetManagerModal(false);
+                          }}
+                          className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Load
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePreset(preset.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                          title="Delete Preset"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPresetManagerModal(false);
+                    setShowSavePresetModal(true);
+                  }}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1.5 cursor-pointer"
+                >
+                  <BookmarkPlus className="w-3.5 h-3.5" />
+                  Save New Current Config
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPresetManagerModal(false)}
+                  className="px-4 py-2 text-xs font-bold uppercase tracking-wider border border-slate-200 hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </motion.div>
           </div>
