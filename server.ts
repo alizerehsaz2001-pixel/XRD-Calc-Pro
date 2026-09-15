@@ -1495,6 +1495,407 @@ Format your response with clear academic markdown headings, bulleted lists, and 
     }
   });
 
+  app.post("/api/gemini/integral-breadth-advisor", async (req, res) => {
+    const { results, advancedResult, materialName, wavelength, decouplingMethod, separationMethod, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-ib-advisor',
+          }
+        }
+      });
+      
+      const prompt = `Please provide an expert crystallographic Integral Breadth (IB) and line profile microstructural report:
+Material Analyzed: ${materialName || 'Unknown Sample'}
+Radiation Wavelength: ${wavelength} Å
+Decoupling Method: ${decouplingMethod}
+Multi-Reflection Method: ${separationMethod || 'UDM'}
+Single Peak IB Results: ${JSON.stringify(results?.slice(0, 8), null, 2)}
+Advanced Size-Strain Regression: ${JSON.stringify(advancedResult, null, 2)}
+
+Provide a rigorous scientific analysis covering:
+1. Shape Factor (φ = FWHM/IB) & Voigt Profile Diagnostics: Classify peak profiles (Cauchy vs Gaussian vs Pseudo-Voigt) and interpret Lorentzian vs Gaussian broadening mechanisms.
+2. Volume-Weighted (Dv) vs Area-Weighted (Da) Domain Size: Contrast the physical significance of volume-weighted domain size vs standard Scherrer apparent size.
+3. Microstrain & Energy Density Evaluation: Discuss lattice microstrain, anisotropic stress, and stored elastic energy density.
+4. Dislocation Density & Crystallographic Defect Structure: Interpret the dislocation line density (δ) and specific surface area (SSA) in relation to grain boundary energy.
+Format your response with clean academic markdown headings, concise takeaways, and LaTeX crystallographic notation.`;
+
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Senior Crystallographer and Integral Breadth (IB) Line Profile Specialist. " +
+            "Your mission is to provide rigorous, peer-reviewed evaluations of XRD peak integral breadths, de Keijser single-line Voigt deconvolution, size-strain separation models (UDM, Halder-Wagner, SSP, UDEDM), and microstructural defect dynamics.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+      
+      res.json({ success: true, text: result.text, report: result.text, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini IB Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Alias for IB advisor
+  app.post("/api/gemini/ib-advisor", async (req, res) => {
+    const { results, advancedResult, materialName, wavelength, decouplingMethod, separationMethod, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-ib-advisor',
+          }
+        }
+      });
+      
+      const prompt = `Please provide an expert crystallographic Integral Breadth (IB) and line profile microstructural report:
+Material Analyzed: ${materialName || 'Unknown Sample'}
+Radiation Wavelength: ${wavelength} Å
+Decoupling Method: ${decouplingMethod}
+Multi-Reflection Method: ${separationMethod || 'UDM'}
+Results Summary: ${JSON.stringify(results, null, 2)}
+Advanced Size-Strain Regression: ${JSON.stringify(advancedResult, null, 2)}
+
+Provide a rigorous scientific analysis covering:
+1. Deconvolution & Voigt Profile Diagnostics: Classify peak profiles and evaluate the decoupling approach (${decouplingMethod}).
+2. Size-Strain Separation (${separationMethod ? separationMethod.toUpperCase() : 'UDM'}): Interpret the resulting crystallite domain size D and lattice microstrain ε.
+3. Microstrain & Energy Density Evaluation: Discuss lattice microstrain, anisotropic stress, and stored elastic energy density.
+4. Dislocation Density & Crystallographic Defect Structure: Interpret the dislocation line density (ρ_d) and specific surface area (SSA).
+Format your response with clean academic markdown headings, concise takeaways, and LaTeX crystallographic notation.`;
+
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Senior Crystallographer and Integral Breadth (IB) Line Profile Specialist. " +
+            "Your mission is to provide rigorous, peer-reviewed evaluations of XRD peak integral breadths, de Keijser single-line Voigt deconvolution, size-strain separation models (UDM, USDM, Halder-Wagner, SSP, UDEDM, mWH), and microstructural defect dynamics.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+      
+      res.json({ success: true, text: result.text, report: result.text, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini IB Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post("/api/gemini/generate-ib-data", async (req, res) => {
+    const { query, wavelength, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-ib-smart-load',
+          }
+        }
+      });
+      
+      const prompt = `Generate realistic X-ray diffraction peak data for "${query || 'Silicon'}" using radiation wavelength ${wavelength || 1.5406} Å.
+Provide 4 to 7 major reflections. For each reflection, provide:
+- twoTheta: Bragg angle 2θ in degrees (between 10° and 110°)
+- fwhm: Full Width at Half Maximum in degrees (between 0.12° and 0.85°)
+- area: Integrated peak area under curve in counts*deg (between 150 and 900)
+- iMax: Maximum peak height in counts (between 500 and 1500)
+- hkl: Miller indices [h, k, l] matching the crystal structure
+
+Ensure Area / Imax yields a physically consistent Integral Breadth (β) such that Shape Factor φ = FWHM / β lies in the realistic physical range of 0.63 to 0.94.
+Return a valid JSON array of objects with the keys: twoTheta, fwhm, area, iMax, hkl.`;
+
+      const models = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-2.5-pro"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are a crystallographic database and powder diffraction simulation engine. Return ONLY valid JSON array with twoTheta, fwhm, area, iMax, hkl.",
+          responseMimeType: "application/json"
+        }
+      });
+
+      let parsedData: any = [];
+      try {
+        parsedData = JSON.parse(result.text || "[]");
+      } catch (e) {
+        const match = (result.text || "").match(/\[[\s\S]*\]/);
+        if (match) parsedData = JSON.parse(match[0]);
+      }
+
+      res.json({ success: true, data: parsedData, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini Generate IB Data Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // --- Warren-Averbach AI Data Generator ---
+  app.post("/api/gemini/generate-wa-data", async (req, res) => {
+    const { query, customKey, numOrders = 3 } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: { 'User-Agent': 'aistudio-build-wa-generator' }
+        }
+      });
+
+      const prompt = `Generate realistic, physically authentic Fourier cosine coefficients and crystallographic constants for Warren-Averbach XRD peak deconvolution of: "${query || 'Cold-worked FCC Copper'}".
+Requirements:
+1. Provide fundamental reflection d-spacing d1 (in Å) and its exact higher harmonics: d2 = d1/2, d3 = d1/3 (if 3+ orders), d4 = d1/4 (if 4 orders).
+2. Material properties: Burgers vector magnitude b (in nm, e.g. 0.25 - 0.35 nm), Young's modulus E (in GPa), average dislocation contrast factor C (typically 0.20 - 0.35).
+3. Generate 11 Fourier points at column lengths L = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20] nm.
+4. For each L, provide A1, A2, and A3 (and A4 if 4 orders) satisfying physical Fourier behavior:
+   - Must be monotonically decaying with L.
+   - Higher harmonic orders (A2, A3) decay faster than A1 due to the quadratic reciprocal strain term: ln A(L, s) = ln A_S(L) - 2π² L² <ε²> s².
+   - A1(1nm) should be ~0.98 - 0.99.
+
+Return strictly valid JSON with structure:
+{
+  "materialName": string,
+  "description": string,
+  "d1": number,
+  "d2": number,
+  "d3": number,
+  "d4": number or null,
+  "burgersVector": number,
+  "youngsModulus": number,
+  "contrastFactorC": number,
+  "points": [
+    { "L": 1, "A1": 0.985, "A2": 0.940, "A3": 0.880, "A4": 0.810 }
+  ]
+}`;
+
+      const models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are a world-class crystallographer specializing in Warren-Averbach Fourier line-profile analysis and dislocation microstructures.",
+          responseMimeType: "application/json"
+        }
+      });
+
+      let parsedData: any = {};
+      try {
+        parsedData = JSON.parse(result.text || "{}");
+      } catch (e) {
+        const match = (result.text || "").match(/\{[\s\S]*\}/);
+        if (match) parsedData = JSON.parse(match[0]);
+      }
+
+      res.json({ success: true, data: parsedData, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini Generate WA Data Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // --- Warren-Averbach AI Crystallographic Advisor ---
+  app.post("/api/gemini/wa-advisor", async (req, res) => {
+    const { 
+      materialName, 
+      d1, 
+      d2, 
+      d3, 
+      d4, 
+      metrics, 
+      strainModel, 
+      hookCorrectionMode, 
+      contrastFactorC,
+      burgersVector,
+      youngsModulus,
+      customKey 
+    } = req.body;
+
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: { 'User-Agent': 'aistudio-build-wa-advisor' }
+        }
+      });
+
+      const prompt = `Please provide an expert crystallographic Warren-Averbach Fourier Line Profile & Dislocation Microstructure Report for:
+Material: ${materialName || 'Unknown Sample'}
+Harmonic Orders: d₁ = ${d1} Å, d₂ = ${d2} Å ${d3 ? `, d₃ = ${d3} Å` : ''} ${d4 ? `, d₄ = ${d4} Å` : ''}
+Burgers vector b: ${burgersVector} nm
+Young's Modulus E: ${youngsModulus} GPa
+Average Contrast Factor C: ${contrastFactorC || 0.285}
+Strain Model: ${strainModel || 'Dislocation (Wilkens)'}
+Hook Effect Correction: ${hookCorrectionMode || 'linear_tangent'}
+
+Quantitative Results:
+- Area-Weighted Column Length <D>_A: ${metrics?.areaWeightedColumnLengthNm?.toFixed(2)} nm
+- Volume-Weighted Column Length <D>_V: ${metrics?.volumeWeightedColumnLengthNm?.toFixed(2)} nm
+- Number-Weighted Column Length <D>_N: ${metrics?.numberWeightedColumnLengthNm?.toFixed(2)} nm
+- Distribution Mode: ${metrics?.crystalliteSizeDistributionModeNm?.toFixed(2)} nm (FWHM: ${metrics?.crystalliteSizeDistributionFWHMNm?.toFixed(2)} nm)
+- Log-Normal Median D₀: ${metrics?.logNormalMedianNm?.toFixed(2)} nm, Dispersion σ: ${metrics?.logNormalSigma?.toFixed(3)}
+- Dislocation Density ρ: ${metrics?.dislocationDensity10_14?.toFixed(3)} × 10¹⁴ m⁻² (${metrics?.dislocationDensityM2?.toExponential(3)} m⁻²)
+- Wilkens Cutoff Radius R_e: ${metrics?.wilkensCutoffRadiusNm?.toFixed(2)} nm
+- Wilkens Arrangement Parameter M = R_e √ρ: ${metrics?.wilkensArrangementParameterM?.toFixed(2)} (${metrics?.wilkensDislocationCharacter} character)
+- Wilkens Fit R²: ${metrics?.wilkensR2?.toFixed(4)}
+- Apparent Elastic Strain Energy W_H: ${metrics?.apparentStrainEnergyKJm3?.toFixed(2)} kJ/m³
+- Hook Effect Detected: ${metrics?.hookEffectDetected ? `Yes (Extrapolated Intercept A₀* = ${metrics?.hookEffectExtrapolatedIntercept?.toFixed(4)})` : 'No (Coherent downward decay)'}
+- Average Harmonic Regression R²: ${metrics?.r2_average?.toFixed(4)}
+
+Write a publication-ready crystallographic analysis addressing:
+1. **Harmonic Order Deconvolution & Stokes Quality**: Assess separation of pure size A_S(L) from lattice distortion across diffraction orders s² = 1/d².
+2. **Column Length & Grain Size Statistics**: Contrast <D>_A, <D>_V, and <D>_N, and evaluate the log-normal distribution dispersion σ.
+3. **Krivoglaz-Wilkens Dislocation Substructure**: Interpret dislocation density ρ, the effective outer cutoff radius R_e, and the arrangement parameter M (is there dipole screening or cell formation?).
+4. **Elastic Strain Energy & Dislocation Character**: Discuss the stored energy density W_H and the dominance of edge vs. screw dislocations relative to the contrast factor C.
+5. **Experimental Takeaways & Synthesis Correlation**: Provide concrete metallurgical or crystallographic conclusions.
+Format with clean academic markdown headers, bullet points, and LaTeX crystallographic notation.`;
+
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Chief Crystallographer and expert on the Warren-Averbach method, Fourier peak profile analysis, Stokes deconvolution, and Wilkens dislocation microstructures.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+
+      res.json({ success: true, text: result.text, report: result.text, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini WA Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // --- Scherrer Studio & Physics Sizing AI Crystallographic Advisor ---
+  app.post("/api/gemini/scherrer-advisor", async (req, res) => {
+    const {
+      materialName,
+      wavelength,
+      shapeFactorK,
+      kLabel,
+      broadeningModel,
+      breadthType,
+      meanSizeNm,
+      stats,
+      anisotropicFacets,
+      whStrainTriage,
+      modelComparisonSummary,
+      peaks,
+      customKey
+    } = req.body;
+
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: { 'User-Agent': 'aistudio-build-scherrer-advisor' }
+        }
+      });
+
+      const facetsText = (anisotropicFacets || [])
+        .map((f: any) => `  - (${f.hkl || '?'}) @ 2θ=${f.twoTheta}°: D=${f.sizeNm} nm`)
+        .join("\n");
+
+      const prompt = `Please provide an expert crystallographic Nanocrystal Sizing & Line Broadening Diagnostic Report for the following XRD experimental dataset:
+Material / Phase: ${materialName || 'Unknown Sample'}
+X-ray Wavelength λ: ${wavelength} Å
+Scherrer Shape Factor K: ${shapeFactorK} (${kLabel || 'Standard'})
+Broadening Deconvolution Model: ${broadeningModel}
+Breadth Metric: ${breadthType === 'integral_breadth' ? 'Integral Breadth (β)' : 'FWHM (2w)'}
+
+Calculated Microstructural Outcomes:
+- Mean Crystallite Domain Size D: ${meanSizeNm?.toFixed(2)} nm (Dispersion: ±${stats?.stdDev?.toFixed(2)} nm, PDI/RelDisp: ${stats?.relDispersion?.toFixed(1)}%)
+- Statistical Moments:
+  * Number-Weighted Mean D_N: ${stats?.exactArithmetic?.toFixed(2)} nm
+  * Intensity-Weighted Mean D_W: ${stats?.exactWeighted?.toFixed(2)} nm
+  * Volume-Weighted Mean D_V: ${stats?.volumeWeighted?.toFixed(2)} nm
+  * Area-Weighted Mean D_A: ${stats?.areaWeighted?.toFixed(2)} nm
+  * Log-Normal Geometric Mean D_g: ${stats?.geometricMean?.toFixed(2)} nm (σ_g: ${stats?.geometricStdDev?.toFixed(3)})
+- Dislocation Density δ: ${stats?.avgDislocation10_14?.toFixed(3)} × 10¹⁴ m⁻²
+- Specific Surface Area (SSA): ${stats?.avgSSA?.toFixed(1)} m²/g
+- Anisotropy Ratio (D_max / D_min): ${stats?.anisotropyIndex?.toFixed(2)}:1
+- Williamson-Hall Microstrain Triage: Slope = ${whStrainTriage?.slope?.toFixed(6)} (R² = ${whStrainTriage?.rSquared?.toFixed(4)}) -> ${whStrainTriage?.slope > 0.0002 ? 'Microstrain Detected' : 'Negligible Strain'}
+- Multi-Model Sizing Comparison:
+  * Gaussian Model: ${modelComparisonSummary?.gaussian?.toFixed(2)} nm
+  * Lorentzian Model: ${modelComparisonSummary?.lorentzian?.toFixed(2)} nm
+  * Pseudo-Voigt Model: ${modelComparisonSummary?.pseudoVoigt?.toFixed(2)} nm
+  * de Keijser Voigt Model: ${modelComparisonSummary?.deKeijser?.toFixed(2)} nm
+  * Halder-Wagner Model: ${modelComparisonSummary?.halderWagner?.toFixed(2)} nm
+
+Directional Lattice Sizing (hkl):
+${facetsText || '  - None specified'}
+
+Please compose a publication-grade crystallographic diagnostic addressing:
+1. **Physical Validity & Scherrer Regime Check**: Confirm whether the calculated mean size is safely within the sub-micrometer diffraction limit (1 - 150 nm) or approaching instrumental resolution blurring.
+2. **Deconvolution Model Sensitivity & Voigt Decoupling**: Compare the spread between Gaussian, Lorentzian, and de Keijser results. Discuss whether size or strain broadening dominates.
+3. **Lattice Microstrain & Defect Assessment**: Evaluate the Williamson-Hall triage and dislocation density. Highlight if microstrain invalidates simple Scherrer assumptions.
+4. **Anisotropic Morphology & Facet Growth**: Analyze directional differences across (hkl) planes (e.g. aspect ratio, rod vs platelet elongation, preferential growth axes).
+5. **Practical Recommendations**: Concrete experimental next steps (e.g., Williamson-Hall plot, Warren-Averbach, Rietveld profile refinement, or TEM correlation).
+
+Format with crisp academic markdown headings, bold crystallographic metrics, and LaTeX notation where appropriate.`;
+
+      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const result = await callGeminiWithResilientFallback({
+        ai,
+        models,
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Chief Crystallographer, expert in XRD line broadening, Scherrer domain sizing, Voigt profile deconvolution, Williamson-Hall analysis, and nanomaterial defect microstructure.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+
+      res.json({ success: true, text: result.text, report: result.text, modelUsed: result.modelUsed });
+    } catch (error: any) {
+      console.error("Gemini Scherrer Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/texture-advisor", async (req, res) => {
     const { model, primaryAxis, secondaryAxis, rValue, r2Value, fraction, crystalSystem, lattice, metrics, fitQuality, reflections, customKey } = req.body;
     try {
@@ -2689,6 +3090,100 @@ CRITICAL RULES:
     } catch (error: any) {
       console.error("Method Analysis Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message || "Failed to analyze method data." });
+    }
+  });
+
+  // Williamson-Hall Synthetic & Research Data Generator Endpoint
+  app.post("/api/gemini/generate-wh-data", async (req, res) => {
+    try {
+      const { query: userQuery, wavelength = 1.5406, customKey } = req.body;
+      if (!userQuery) {
+        return res.status(400).json({ success: false, error: "Search query or material description is required." });
+      }
+
+      const ai = getOrCreateGeminiClient(customKey);
+      const prompt = `You are an expert X-ray diffraction crystallographer. Synthesize or retrieve authentic XRD peak parameters for Williamson-Hall size-strain analysis based on this query:
+"${userQuery}".
+Target radiation wavelength: ${wavelength} Å.
+
+Requirements:
+1. Provide 5 to 8 realistic diffraction peaks sorted by 2Theta ascending.
+2. For each peak, give:
+   - twoTheta: diffraction angle in degrees (e.g. 20 to 110)
+   - fwhm: observed FWHM in degrees (e.g. 0.15 to 0.95), showing physical broadening progression
+   - h, k, l: integer Miller indices
+3. Suggest the appropriate Young's Modulus E (GPa), material density (g/cm^3), and the most physically appropriate strain model (UDM, USDM, UDEDM, SSP, Halder-Wagner, or mWH).
+4. Provide a brief crystallographic rationale.
+
+Respond strictly in JSON matching:
+{
+  "materialName": "string",
+  "wavelength": number,
+  "youngsModulusGPa": number,
+  "densityGcm3": number,
+  "strainModel": "UDM" | "USDM" | "UDEDM" | "SSP" | "Halder-Wagner" | "mWH",
+  "peaks": [
+    { "twoTheta": number, "fwhm": number, "h": number, "k": number, "l": number }
+  ],
+  "rationale": "string"
+}`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      let raw = response.text?.trim() || "";
+      raw = raw.replace(/```json\n?/gi, "").replace(/\n?```/g, "").trim();
+      const parsed = JSON.parse(raw);
+      return res.json({ success: true, data: parsed });
+    } catch (error: any) {
+      console.error("WH Data Generation Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to generate Williamson-Hall data." });
+    }
+  });
+
+  // Williamson-Hall Expert Line-Profile Advisor Report Endpoint
+  app.post("/api/gemini/williamson-hall-advisor", async (req, res) => {
+    try {
+      const { payload, customKey } = req.body;
+      if (!payload) {
+        return res.status(400).json({ success: false, error: "Missing payload data for Williamson-Hall analysis." });
+      }
+
+      const ai = getOrCreateGeminiClient(customKey);
+      const prompt = `You are a world-leading materials scientist and X-ray diffraction crystallographer specializing in line-profile analysis, Williamson-Hall methodologies, and dislocation mechanics.
+Analyze the following Williamson-Hall XRD results:
+
+${JSON.stringify(payload, null, 2)}
+
+Provide a rigorous, comprehensive, publication-grade analytical report formatted in pristine Markdown. Include:
+1. **Executive Microstructural Summary**: Primary findings on coherent domain size (D), lattice microstrain (ε), internal stress (σ), strain energy density (u), and dislocation density (ρ).
+2. **Model Evaluation & Physical Validity**: Compare the applied model against alternative frameworks (UDM vs USDM vs UDEDM vs SSP vs Halder-Wagner vs mWH). Evaluate regression statistics ($R^2$, adjusted $R^2$, Durbin-Watson autocorrelation).
+3. **Anisotropy & Dislocation Characterization**: Discuss whether the reflection breadths exhibit anisotropic scatter (hkl dependency), contrast factor ($C_{hkl}$) behavior, and whether dislocations are predominantly edge, screw, or mixed.
+4. **Physical Implications & Defect Dynamics**: Explain what the internal stress and stored energy density indicate regarding plastic deformation, grain boundary confinement, or lattice defects.
+5. **Practical Recommendations for Refinement**: Specific suggestions for instrument resolution calibration, Rietveld WPPM refinement, or complementary TEM/AFM verification.
+
+Use clear Markdown headers, bullet points, and clean mathematical formulations.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: {
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.HIGH
+          },
+          temperature: 0.2
+        }
+      });
+
+      return res.json({ success: true, text: response.text });
+    } catch (error: any) {
+      console.error("Williamson-Hall Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to generate Williamson-Hall advisor report." });
     }
   });
 

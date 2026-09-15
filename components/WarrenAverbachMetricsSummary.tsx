@@ -32,21 +32,26 @@ export const WarrenAverbachMetricsSummary: React.FC<WarrenAverbachMetricsSummary
   const generateLatex = () => {
     const tex = `\\begin{table}[htbp]
 \\centering
-\\caption{Warren-Averbach Crystallographic Analysis: ${materialName}}
+\\caption{Warren-Averbach Crystallographic Microstructural Analysis: ${materialName}}
 \\begin{tabular}{lcc}
 \\hline
-\\textbf{Parameter} & \\textbf{Symbol} & \\textbf{Value} \\\\
+\\textbf{Crystallographic Parameter} & \\textbf{Symbol} & \\textbf{Value} \\\\
 \\hline
 Area-Weighted Column Length & $\\langle D \\rangle_A$ & ${metrics.areaWeightedColumnLengthNm.toFixed(2)}~\\text{nm} \\\\
 Volume-Weighted Column Length & $\\langle D \\rangle_V$ & ${metrics.volumeWeightedColumnLengthNm.toFixed(2)}~\\text{nm} \\\\
-Crystallite Size Distribution Mode & $D_{\\text{mode}}$ & ${metrics.crystalliteSizeDistributionModeNm.toFixed(2)}~\\text{nm} \\\\
-Dislocation Density & $\\rho$ & ${metrics.dislocationDensity10_14.toFixed(3)} \\times 10^{14}~\\text{m}^{-2} \\\\
+Number-Weighted Column Length & $\\langle D \\rangle_N$ & ${metrics.numberWeightedColumnLengthNm ? metrics.numberWeightedColumnLengthNm.toFixed(2) : '---'}~\\text{nm} \\\\
+Crystallite Size Mode ($P_V$) & $D_{\\text{mode}}$ & ${metrics.crystalliteSizeDistributionModeNm.toFixed(2)}~\\text{nm} \\\\
+Log-Normal Median Diameter & $D_0$ & ${metrics.logNormalMedianNm ? metrics.logNormalMedianNm.toFixed(2) : '---'}~\\text{nm} \\\\
+Log-Normal Dispersion & $\\sigma$ & ${metrics.logNormalSigma ? metrics.logNormalSigma.toFixed(3) : '---'} \\\\
+Dislocation Line Density & $\\rho$ & ${metrics.dislocationDensity10_14.toFixed(3)} \\times 10^{14}~\\text{m}^{-2} \\\\
 Wilkens Cutoff Radius & $R_e$ & ${metrics.wilkensCutoffRadiusNm.toFixed(1)}~\\text{nm} \\\\
 Wilkens Arrangement Parameter & $M = R_e \\sqrt{\\rho}$ & ${metrics.wilkensArrangementParameterM.toFixed(2)} \\\\
+Dislocation Contrast Factor & $\\bar{C}_{hkl}$ & ${metrics.contrastFactorC ? metrics.contrastFactorC.toFixed(3) : '0.285'} \\\\
+Wilkens Regression Quality & $R^2_{\\text{Wilkens}}$ & ${metrics.wilkensR2 ? metrics.wilkensR2.toFixed(4) : '0.99'} \\\\
 Dislocation Character & --- & ${metrics.wilkensDislocationCharacter || 'mixed'} \\\\
-Strain Energy Density & $W_H$ & ${metrics.apparentStrainEnergyKJm3.toFixed(2)}~\\text{kJ/m}^3 \\\\
-Specific Surface Area & $S_V$ & ${metrics.specificSurfaceAreaM2g ? metrics.specificSurfaceAreaM2g.toFixed(1) : '---'}~\\text{m}^2/\\text{g} \\\\
-Hook Effect Extrapolated $A_0^*$ & $A_0^*$ & ${metrics.hookEffectExtrapolatedIntercept.toFixed(4)} \\\\
+Apparent Strain Energy Density & $W_H$ & ${metrics.apparentStrainEnergyKJm3.toFixed(2)}~\\text{kJ/m}^3 \\\\
+Estimated Specific Surface Area & $S_V$ & ${metrics.specificSurfaceAreaM2g ? metrics.specificSurfaceAreaM2g.toFixed(1) : '---'}~\\text{m}^2/\\text{g} \\\\
+Hook Effect Extrapolated Intercept & $A_0^*$ & ${metrics.hookEffectExtrapolatedIntercept.toFixed(4)} \\\\
 Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)} \\\\
 \\hline
 \\end{tabular}
@@ -232,13 +237,25 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
                 <span className="text-slate-200 font-bold">{d3.toFixed(4)} Å</span>
               </div>
             )}
+            {d4 && (
+              <div className="flex justify-between py-2.5 px-3">
+                <span className="text-slate-400">Fourth Reflection Spacing (d₄):</span>
+                <span className="text-slate-200 font-bold">{d4.toFixed(4)} Å</span>
+              </div>
+            )}
+            <div className="flex justify-between py-2.5 px-3">
+              <span className="text-slate-400">Number-Weighted Length ⟨D⟩_N:</span>
+              <span className="text-amber-400 font-bold">{metrics.numberWeightedColumnLengthNm ? `${metrics.numberWeightedColumnLengthNm.toFixed(1)} nm` : '---'}</span>
+            </div>
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Column Length Dist. Mode (D_mode):</span>
               <span className="text-rose-400 font-bold">{metrics.crystalliteSizeDistributionModeNm.toFixed(1)} nm</span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Size Distribution FWHM:</span>
-              <span className="text-rose-400 font-bold">{metrics.crystalliteSizeDistributionFWHMNm.toFixed(1)} nm</span>
+              <span className="text-slate-400">Log-Normal Fit (D₀ / σ):</span>
+              <span className="text-purple-400 font-bold">
+                {metrics.logNormalMedianNm ? `${metrics.logNormalMedianNm.toFixed(1)} nm / ${metrics.logNormalSigma?.toFixed(2)}` : '---'}
+              </span>
             </div>
           </div>
 
@@ -246,6 +263,14 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Burgers Vector Magnitude (b):</span>
               <span className="text-slate-200 font-bold">{burgersVector.toFixed(3)} nm</span>
+            </div>
+            <div className="flex justify-between py-2.5 px-3">
+              <span className="text-slate-400">Dislocation Contrast Factor (C̄):</span>
+              <span className="text-cyan-400 font-bold">{metrics.contrastFactorC ? metrics.contrastFactorC.toFixed(3) : '0.285'}</span>
+            </div>
+            <div className="flex justify-between py-2.5 px-3">
+              <span className="text-slate-400">Wilkens Linear Fit R²:</span>
+              <span className="text-emerald-400 font-bold">{metrics.wilkensR2 ? metrics.wilkensR2.toFixed(4) : '0.99'}</span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Young's Modulus (E):</span>

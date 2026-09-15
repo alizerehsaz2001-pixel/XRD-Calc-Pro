@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Markdown from 'react-markdown';
 import { parseScherrerInput, calculateWilliamsonHall, XRAY_WAVELENGTHS } from '../utils/physics';
 import { WHResult, WHPoint, WHModelComparisonItem } from '../types';
 import {
@@ -39,11 +40,14 @@ import {
   Eye, 
   EyeOff,
   Info,
-  BookOpen
+  BookOpen,
+  BrainCircuit,
+  FileText,
+  HelpCircle,
+  Maximize2
 } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
-import { GoogleGenAI, Type } from '@google/genai';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -53,7 +57,7 @@ const WH_PRESETS = [
     data: "28.44, 0.12, 1, 1, 1\n47.30, 0.15, 2, 2, 0\n56.12, 0.18, 3, 1, 1\n69.13, 0.22, 4, 0, 0\n76.38, 0.25, 3, 3, 1\n88.03, 0.28, 4, 2, 2", 
     wavelength: 1.5406, 
     k: 0.9, 
-    desc: 'Nearly zero-strain strain-free reference standard',
+    desc: 'Nearly strain-free reference standard',
     icon: '💎',
     youngsModulus: 130,
     density: 2.33,
@@ -64,7 +68,7 @@ const WH_PRESETS = [
     data: "31.77, 0.38, 1, 0, 0\n34.42, 0.41, 0, 0, 2\n36.25, 0.44, 1, 0, 1\n47.54, 0.52, 1, 0, 2\n56.60, 0.60, 1, 1, 0\n62.86, 0.68, 1, 0, 3\n67.96, 0.74, 1, 1, 2", 
     wavelength: 1.5406, 
     k: 0.94, 
-    desc: 'Semiconductor nanoparticles with shape and microstrain broadening',
+    desc: 'Semiconductor nanoparticles with shape & microstrain',
     icon: '⚡',
     youngsModulus: 140,
     density: 5.61,
@@ -75,7 +79,7 @@ const WH_PRESETS = [
     data: "43.60, 0.48, 1, 1, 1\n50.79, 0.65, 2, 0, 0\n74.69, 0.88, 2, 2, 0\n90.69, 1.12, 3, 1, 1\n95.96, 1.25, 2, 2, 2", 
     wavelength: 1.5406, 
     k: 0.9, 
-    desc: 'Austenitic fcc alloy with high dislocation density and lattice strain',
+    desc: 'Austenitic fcc alloy with high dislocation density',
     icon: '⚙️',
     youngsModulus: 193,
     density: 7.98,
@@ -86,7 +90,7 @@ const WH_PRESETS = [
     data: "25.28, 0.45, 1, 0, 1\n37.80, 0.52, 0, 0, 4\n48.05, 0.62, 2, 0, 0\n53.89, 0.68, 1, 0, 5\n55.06, 0.70, 2, 1, 1\n62.69, 0.81, 2, 0, 4", 
     wavelength: 1.5406, 
     k: 0.94, 
-    desc: 'Tetragonal photocatalyst with anisotropic crystallite domains',
+    desc: 'Tetragonal photocatalyst with anisotropic domains',
     icon: '⚪',
     youngsModulus: 230,
     density: 3.89,
@@ -142,6 +146,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [dislocationQParam, setDislocationQParam] = useState<number>(2.0);
   const [showDensityExplanation, setShowDensityExplanation] = useState<boolean>(false);
   const [showDecouplingExplanation, setShowDecouplingExplanation] = useState<boolean>(false);
+  const [showMathModal, setShowMathModal] = useState<boolean>(false);
   
   // Excluded peak indices for outlier filtration
   const [excludedIndices, setExcludedIndices] = useState<number[]>([]);
@@ -152,7 +157,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [strainModel, setStrainModel] = useState<'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens' | 'Monshi-Scherrer'>('UDM');
   
   // Diagnostic Visualizer Tab
-  const [activeTab, setActiveTab] = useState<'fit' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison'>('fit');
+  const [activeTab, setActiveTab] = useState<'fit' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison' | 'advisor'>('fit');
 
   const [result, setResult] = useState<WHResult | null>(() => {
     try {
@@ -164,10 +169,13 @@ export const WilliamsonHallModule: React.FC = () => {
 
   const isFirstRender = useRef(true);
 
-  // AI Smart Assistant
+  // AI Smart Assistant & Advisor Report
   const [aiPrompt, setAiPrompt] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiSuccessMessage, setAiSuccessMessage] = useState('');
+  const [isAdvisorLoading, setIsAdvisorLoading] = useState(false);
+  const [advisorReport, setAdvisorReport] = useState<string | null>(null);
+  const [advisorError, setAdvisorError] = useState<string | null>(null);
   const [copiedNotice, setCopiedNotice] = useState(false);
 
   const handleReset = () => {
@@ -187,11 +195,13 @@ export const WilliamsonHallModule: React.FC = () => {
     setInputData("28.44, 0.25, 4, 0, 0\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 2, 2, 2\n69.13, 0.38, 4, 4, 0\n76.38, 0.42, 6, 2, 0");
     setStrainModel('UDM');
     setBroadeningModel('Gaussian');
+    setAdvisorReport(null);
   };
 
   const handleClear = () => {
     setInputData("");
     setExcludedIndices([]);
+    setAdvisorReport(null);
   };
 
   const [isSimulationRunning, setIsSimulationRunning] = useState(false);
@@ -228,15 +238,15 @@ export const WilliamsonHallModule: React.FC = () => {
     setIsSimulationRunning(true);
     setSimulationStep(1);
     
-    setTimeout(() => setSimulationStep(2), 300);
-    setTimeout(() => setSimulationStep(3), 600);
-    setTimeout(() => setSimulationStep(4), 900);
-    setTimeout(() => setSimulationStep(5), 1200);
+    setTimeout(() => setSimulationStep(2), 250);
+    setTimeout(() => setSimulationStep(3), 500);
+    setTimeout(() => setSimulationStep(4), 750);
+    setTimeout(() => setSimulationStep(5), 1000);
     
     setTimeout(() => {
       setIsSimulationRunning(false);
       executeCalculation();
-    }, 1500);
+    }, 1250);
   };
 
   // Instant recalculation on parameter changes
@@ -279,7 +289,7 @@ export const WilliamsonHallModule: React.FC = () => {
     });
   };
 
-  // AI Smart Generation / Paper extraction
+  // Server-Side AI Smart Generation / Synthetic Data Retrieval
   const handleAiSmartGenerate = async (promptOverride?: string) => {
     const textToRun = promptOverride || aiPrompt;
     if (!textToRun.trim()) return;
@@ -287,62 +297,15 @@ export const WilliamsonHallModule: React.FC = () => {
     setIsAiLoading(true);
     setAiSuccessMessage('');
     try {
-      const ai = new GoogleGenAI({});
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: `You are an expert X-ray diffraction crystallographer. Extract or synthesize XRD peak parameters for Williamson-Hall size-strain analysis based on this description:
-"${textToRun}".
-
-Requirements:
-1. Provide 4 to 8 realistic diffraction peaks.
-2. For each peak, give 2Theta (deg), FWHM (deg), and Miller indices (h, k, l).
-3. Suggest the appropriate X-ray wavelength (usually 1.5406 for Cu Kalpha), Young's Modulus E (GPa), material density (g/cm^3), and appropriate physical strain model (UDM, USDM, UDEDM, SSP, Halder-Wagner, or mWH).
-
-Respond strictly with a JSON object matching this schema:
-{
-  "materialName": "string",
-  "wavelength": number,
-  "youngsModulusGPa": number,
-  "densityGcm3": number,
-  "strainModel": "UDM" | "USDM" | "UDEDM" | "SSP" | "Halder-Wagner" | "mWH",
-  "peaks": [
-    { "twoTheta": number, "fwhm": number, "h": number, "k": number, "l": number }
-  ],
-  "rationale": "string"
-}`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              materialName: { type: Type.STRING },
-              wavelength: { type: Type.NUMBER },
-              youngsModulusGPa: { type: Type.NUMBER },
-              densityGcm3: { type: Type.NUMBER },
-              strainModel: { type: Type.STRING },
-              peaks: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    twoTheta: { type: Type.NUMBER },
-                    fwhm: { type: Type.NUMBER },
-                    h: { type: Type.NUMBER },
-                    k: { type: Type.NUMBER },
-                    l: { type: Type.NUMBER }
-                  },
-                  required: ['twoTheta', 'fwhm', 'h', 'k', 'l']
-                }
-              },
-              rationale: { type: Type.STRING }
-            },
-            required: ['materialName', 'wavelength', 'peaks']
-          }
-        }
+      const res = await fetch('/api/gemini/generate-wh-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: textToRun, wavelength })
       });
 
-      if (response.text) {
-        const parsed = JSON.parse(response.text);
+      const json = await res.json();
+      if (json.success && json.data) {
+        const parsed = json.data;
         if (parsed.peaks && parsed.peaks.length > 0) {
           const lines = parsed.peaks.map((p: any) => `${p.twoTheta.toFixed(3)}, ${p.fwhm.toFixed(4)}, ${p.h}, ${p.k}, ${p.l}`).join('\n');
           setInputData(lines);
@@ -355,12 +318,58 @@ Respond strictly with a JSON object matching this schema:
           if (parsed.strainModel) setStrainModel(parsed.strainModel);
           setExcludedIndices([]);
           setAiSuccessMessage(`Loaded ${parsed.materialName || 'dataset'}: ${parsed.rationale || 'Data successfully structured.'}`);
+          setAdvisorReport(null);
         }
+      } else {
+        setAiSuccessMessage(json.error || 'Failed to generate peak parameters.');
       }
     } catch (err: any) {
-      setAiSuccessMessage('Error invoking AI Assistant. Please verify data format.');
+      setAiSuccessMessage('Error invoking AI Assistant: ' + err.message);
     } finally {
       setIsAiLoading(false);
+    }
+  };
+
+  // Server-Side AI Crystallographic Line-Profile Advisor
+  const handleGenerateAdvisorReport = async () => {
+    if (!result) return;
+    setIsAdvisorLoading(true);
+    setAdvisorError(null);
+    setActiveTab('advisor');
+
+    try {
+      const payload = {
+        modelApplied: strainModel,
+        broadeningCorrection: broadeningModel,
+        radiationWavelengthA: wavelength,
+        shapeFactorK: constantK,
+        crystalliteSizeNm: result.sizeInterceptNm,
+        latticeMicrostrainPercent: result.strainPercent,
+        internalStressMPa: result.stressMPa,
+        strainEnergyDensityKjM3: result.energyDensityKjM3,
+        dislocationDensity10_14_m2: result.dislocationDensity10_14,
+        specificSurfaceAreaM2g: result.specificSurfaceAreaM2g,
+        regression: result.regression,
+        modelComparisons: result.modelComparisons,
+        peaks: result.pointsExtended
+      };
+
+      const res = await fetch('/api/gemini/williamson-hall-advisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payload })
+      });
+
+      const json = await res.json();
+      if (json.success && json.text) {
+        setAdvisorReport(json.text);
+      } else {
+        setAdvisorError(json.error || 'Failed to generate advisory report.');
+      }
+    } catch (err: any) {
+      setAdvisorError(err.message || 'Network error communicating with AI Advisor.');
+    } finally {
+      setIsAdvisorLoading(false);
     }
   };
 
@@ -423,7 +432,6 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
   const chartData = useMemo(() => {
     if (!result || !result.pointsExtended) return [];
     
-    // Sort all points by X
     return result.pointsExtended.map(p => {
       const fitY = result.regression.slope * p.x + result.regression.intercept;
       const stdDev = result.regression.rmse || 0.001;
@@ -485,20 +493,20 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
           <div className="space-y-1.5 text-[10px]">
             <p className="flex justify-between gap-6">
               <span className="text-slate-400">X ({(getXAxisLabel().split('(')[0] || '').trim()}):</span> 
-              <span className="text-cyan-300 font-bold">{d.x.toFixed(5)}</span>
+              <span className="text-cyan-300 font-bold">{d.x?.toFixed(5)}</span>
             </p>
             <p className="flex justify-between gap-6">
               <span className="text-slate-400">Y ({(getYAxisLabel().split('(')[0] || '').trim()}):</span> 
-              <span className="text-cyan-300 font-bold">{d.y.toFixed(5)}</span>
+              <span className="text-cyan-300 font-bold">{d.y?.toFixed(5)}</span>
             </p>
             <p className="flex justify-between gap-6">
               <span className="text-slate-400">Linear Fit Y:</span> 
-              <span className="text-rose-400 font-bold">{d.fit.toFixed(5)}</span>
+              <span className="text-rose-400 font-bold">{d.fit?.toFixed(5)}</span>
             </p>
             <p className="flex justify-between gap-6">
               <span className="text-slate-400">Residual (Y - Ŷ):</span> 
               <span className={`font-bold ${Math.abs(d.residual) < 0.001 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {d.residual >= 0 ? '+' : ''}{d.residual.toFixed(5)}
+                {d.residual >= 0 ? '+' : ''}{d.residual?.toFixed(5)}
               </span>
             </p>
             <p className="flex justify-between gap-6 pt-1 border-t border-white/5">
@@ -832,7 +840,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               )}
             </div>
 
-            {/* Elastic Stress, Burgers Vector & Optional Material Density */}
+            {/* Elastic Stress, Burgers Vector & Material Density */}
             <div className="bg-[#070D18] p-4 rounded-2xl border border-purple-500/30">
               <div className="flex items-center justify-between mb-2.5">
                 <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
@@ -1011,6 +1019,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                       }
                       if (p.density) setMaterialDensityGcm3(p.density);
                       setExcludedIndices([]);
+                      setAdvisorReport(null);
                     }}
                     className="px-2 py-1 bg-black/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 rounded-lg text-[8px] font-mono text-slate-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
                   >
@@ -1045,22 +1054,33 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               />
             </div>
 
-            {/* Action Button */}
-            {!isSimulationRunning ? (
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              {!isSimulationRunning ? (
+                <button
+                  onClick={handleCalculateWithSimulation}
+                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-rose-500 to-amber-500 hover:from-cyan-400 hover:via-rose-400 hover:to-amber-400 text-black font-extrabold uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Run Full W-H Refinement</span>
+                </button>
+              ) : (
+                <div className="bg-[#070D18] p-4 rounded-2xl border border-cyan-500/40 text-center">
+                  <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Step {simulationStep}/5: Refining Size-Strain State...
+                  </p>
+                </div>
+              )}
+
               <button
-                onClick={handleCalculateWithSimulation}
-                className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-rose-500 to-amber-500 hover:from-cyan-400 hover:via-rose-400 hover:to-amber-400 text-black font-extrabold uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                onClick={handleGenerateAdvisorReport}
+                disabled={isAdvisorLoading || !result}
+                className="w-full py-3 bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/40 text-cyan-300 font-extrabold uppercase tracking-wider rounded-2xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs"
               >
-                <TrendingUp className="w-4 h-4" />
-                <span>Run Full W-H Refinement</span>
+                {isAdvisorLoading ? <Loader2 className="w-4 h-4 animate-spin text-cyan-400" /> : <BrainCircuit className="w-4 h-4 text-cyan-400" />}
+                <span>{isAdvisorLoading ? 'Analyzing Line Profiles with AI...' : 'AI Crystallographic Advisor Report'}</span>
               </button>
-            ) : (
-              <div className="bg-[#070D18] p-4 rounded-2xl border border-cyan-500/40 text-center">
-                <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center justify-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Step {simulationStep}/5: Refining Size-Strain State...
-                </p>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -1076,6 +1096,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               strainModel === 'UDEDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\sin(\\theta) \\sqrt{\\frac{2u}{E_{hkl}}}' :
               strainModel === 'SSP' ? '(d\\beta^*)^2 = \\frac{K}{D}(d^2 \\beta^*) + \\left(\\frac{\\varepsilon}{2}\\right)^2' :
               strainModel === 'Halder-Wagner' ? '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{1}{D} \\frac{\\beta^*}{(d^*)^2} + \\left(\\frac{\\varepsilon}{2}\\right)^2' :
+              strainModel === 'mWH' ? '\\Delta K = \\frac{0.9}{D} + \\alpha K \\bar{C}^{1/2}' :
               '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)'
             }
             description={`Decoupled regression result for ${strainModel}. Slope directly encodes strain while Y-intercept yields pure grain dimension.`}
@@ -1175,13 +1196,14 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         {/* Diagnostic Visualizer Tab Navigation */}
         <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10">
-            <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5">
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5">
               {[
                 { id: 'fit', label: 'W-H Regression Plot', icon: TrendingUp },
                 { id: 'residuals', label: 'Residuals Diagnostic', icon: Activity },
                 { id: 'apparentSizes', label: 'Apparent Size D_hkl', icon: BarChart2 },
                 { id: 'dislocationTensor', label: 'Dislocations & Stress', icon: Atom },
-                { id: 'comparison', label: 'Multi-Model Studio', icon: Layers }
+                { id: 'comparison', label: 'Multi-Model Studio', icon: Layers },
+                { id: 'advisor', label: 'AI Advisor Report', icon: BrainCircuit }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -1422,6 +1444,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                       <th className="py-2.5 px-2">Stress σ (MPa)</th>
                       <th className="py-2.5 px-2">Energy u (kJ/m³)</th>
                       <th className="py-2.5 px-2">Fit R²</th>
+                      <th className="py-2.5 px-2">Adj-R²</th>
                       <th className="py-2.5 px-3 text-right">Action</th>
                     </tr>
                   </thead>
@@ -1434,6 +1457,11 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                         <td className="py-2.5 px-3 font-bold text-cyan-400 flex items-center gap-1.5">
                           {strainModel === m.modelName && <Check className="w-3 h-3 text-emerald-400" />}
                           <span>{m.label}</span>
+                          {m.isBestFit && (
+                            <span className="px-1.5 py-0.2 rounded text-[7px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Best Fit
+                            </span>
+                          )}
                         </td>
                         <td className="py-2.5 px-2 text-emerald-300 font-bold">
                           {m.sizeNm > 0 ? `${m.sizeNm.toFixed(2)} nm` : '∞ (Bulk)'}
@@ -1449,6 +1477,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                         </td>
                         <td className="py-2.5 px-2 font-bold text-amber-300">
                           {m.rSquared.toFixed(4)}
+                        </td>
+                        <td className="py-2.5 px-2 text-slate-400">
+                          {m.adjustedRSquared !== undefined ? m.adjustedRSquared.toFixed(4) : '-'}
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           <button
@@ -1471,6 +1502,61 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               <p className="text-[8px] text-slate-500 mt-2 font-mono leading-relaxed">
                 * Note: Models differ in their handling of anisotropic elastic constants (USDM/UDEDM), high-angle reflection weighting (SSP), or dislocation contrast factors (mWH).
               </p>
+            </div>
+          )}
+
+          {/* TAB 6: AI CRYSTALLOGRAPHIC ADVISOR */}
+          {activeTab === 'advisor' && (
+            <div className="h-[420px] w-full overflow-y-auto custom-scrollbar p-3">
+              {isAdvisorLoading ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-3 text-cyan-400 font-mono text-xs">
+                  <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+                  <p className="text-center font-bold uppercase tracking-widest text-xs">
+                    Gemini 3.1 Pro Thinking: Performing Line-Profile Microstructural Evaluation...
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    Evaluating anisotropic broadening, dislocation contrast factors, and strain energy density.
+                  </p>
+                </div>
+              ) : advisorError ? (
+                <div className="p-4 bg-rose-950/30 rounded-2xl border border-rose-500/30 text-rose-300 text-xs font-mono">
+                  <p className="font-bold mb-1">Advisory Generation Error</p>
+                  <p className="text-[10px] text-rose-400">{advisorError}</p>
+                </div>
+              ) : advisorReport ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <BrainCircuit className="w-4 h-4 text-cyan-400" />
+                      <span className="text-xs font-black uppercase text-cyan-400 tracking-wider">
+                        AI Line-Profile Expert Analysis
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded">
+                      Model: Gemini 3.1 Pro Preview (High Thinking)
+                    </span>
+                  </div>
+                  <div className="prose prose-invert prose-xs max-w-none text-slate-300 text-[11px] leading-relaxed font-sans space-y-3">
+                    <Markdown>{advisorReport}</Markdown>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-3 font-mono text-xs">
+                  <BrainCircuit className="w-10 h-10 text-cyan-500/40" />
+                  <div>
+                    <h4 className="font-black text-white uppercase text-sm mb-1">AI Line-Profile Advisor</h4>
+                    <p className="text-[10px] text-slate-400 max-w-md">
+                      Generate an in-depth crystallographic and dislocation report comparing all Williamson-Hall models, identifying anisotropic strain scatter, and providing publication-ready microstructural insights.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleGenerateAdvisorReport}
+                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-wider text-xs rounded-xl transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.3)]"
+                  >
+                    Generate Report Now
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -51,18 +51,23 @@ import {
   GitBranch,
   ShieldCheck,
   Flame,
-  FileText
+  FileText,
+  Copy,
+  Check,
+  Code,
+  BrainCircuit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Type } from '@google/genai';
 
 interface MaterialPreset {
   label: string;
   d1: number;
   d2: number;
   d3?: number;
+  d4?: number;
   burgersVector: number; // nm
   youngsModulus: number; // GPa
+  contrastFactor?: number;
   desc: string;
   data: string;
 }
@@ -73,42 +78,67 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
     d1: 2.3551, 
     d2: 1.1776,
     d3: 0.7850,
+    d4: 0.5888,
     burgersVector: 0.288,
     youngsModulus: 78,
-    desc: 'FCC (111), (222), and (333) reflections',
-    data: `# L[nm], A(d1), A(d2), A(d3)
-1, 0.985, 0.952, 0.910
-2, 0.960, 0.895, 0.820
-3, 0.932, 0.835, 0.730
-4, 0.901, 0.774, 0.640
-5, 0.868, 0.712, 0.555
-6, 0.832, 0.650, 0.475
-8, 0.755, 0.530, 0.335
-10, 0.680, 0.425, 0.225
-12, 0.605, 0.330, 0.145
-15, 0.500, 0.215, 0.070
-20, 0.360, 0.095, 0.015
-25, 0.240, 0.035, 0.002`
+    contrastFactor: 0.304,
+    desc: 'FCC (111), (222), (333), and (444) harmonics',
+    data: `# L[nm], A(d1), A(d2), A(d3), A(d4)
+1, 0.985, 0.952, 0.910, 0.865
+2, 0.960, 0.895, 0.820, 0.742
+3, 0.932, 0.835, 0.730, 0.628
+4, 0.901, 0.774, 0.640, 0.525
+5, 0.868, 0.712, 0.555, 0.435
+6, 0.832, 0.650, 0.475, 0.355
+8, 0.755, 0.530, 0.335, 0.220
+10, 0.680, 0.425, 0.225, 0.125
+12, 0.605, 0.330, 0.145, 0.065
+15, 0.500, 0.215, 0.070, 0.020
+20, 0.360, 0.095, 0.015, 0.002
+25, 0.240, 0.035, 0.002, 0.000`
   },
   { 
     label: 'Copper (Cu) ECAP Deformed', 
     d1: 2.0871, 
     d2: 1.0435,
+    d3: 0.6957,
     burgersVector: 0.256,
     youngsModulus: 128,
-    desc: 'High dislocation density FCC (111)/(222)',
-    data: `# L[nm], A(d1), A(d2)
-1, 0.970, 0.885
-2, 0.925, 0.770
-3, 0.875, 0.665
-4, 0.820, 0.570
-5, 0.765, 0.485
-6, 0.710, 0.410
-8, 0.605, 0.285
-10, 0.510, 0.190
-15, 0.330, 0.065
-20, 0.200, 0.015
-25, 0.110, 0.002`
+    contrastFactor: 0.304,
+    desc: 'High dislocation density FCC (111)/(222)/(333)',
+    data: `# L[nm], A(d1), A(d2), A(d3)
+1, 0.970, 0.885, 0.810
+2, 0.925, 0.770, 0.655
+3, 0.875, 0.665, 0.520
+4, 0.820, 0.570, 0.405
+5, 0.765, 0.485, 0.315
+6, 0.710, 0.410, 0.240
+8, 0.605, 0.285, 0.135
+10, 0.510, 0.190, 0.070
+15, 0.330, 0.065, 0.012
+20, 0.200, 0.015, 0.001
+25, 0.110, 0.002, 0.000`
+  },
+  { 
+    label: 'Titanium (Ti) Grade 2 (HCP)', 
+    d1: 2.5570, 
+    d2: 1.2785, 
+    d3: 0.8523,
+    burgersVector: 0.295,
+    youngsModulus: 105,
+    contrastFactor: 0.250,
+    desc: 'HCP prismatic (100), (200), (300) harmonics',
+    data: `# L[nm], A(d1), A(d2), A(d3)
+1, 0.982, 0.930, 0.875
+2, 0.950, 0.860, 0.760
+3, 0.915, 0.790, 0.650
+4, 0.878, 0.720, 0.550
+5, 0.835, 0.655, 0.460
+6, 0.790, 0.590, 0.380
+8, 0.700, 0.470, 0.250
+10, 0.615, 0.365, 0.155
+15, 0.430, 0.170, 0.035
+20, 0.285, 0.065, 0.005`
   },
   { 
     label: 'Silicon (Si) SRM 640', 
@@ -241,19 +271,35 @@ export const WarrenAverbachModule: React.FC = () => {
   const [instrumentalCorrection, setInstrumentalCorrection] = useState<string>('Stokes');
   const [backgroundModel, setBackgroundModel] = useState<string>('Linear');
   const [strainModel, setStrainModel] = useState<string>('Dislocation (Wilkens)');
-  const [hookCorrectionMode, setHookCorrectionMode] = useState<'linear_tangent' | 'polynomial' | 'none'>('linear_tangent');
+  const [hookCorrectionMode, setHookCorrectionMode] = useState<'linear_tangent' | 'polynomial' | 'spline_regularization' | 'none'>('linear_tangent');
+  const [contrastFactorC, setContrastFactorC] = useState<number>(0.304);
+  const [contrastPreset, setContrastPreset] = useState<string>('fcc_111_edge');
   
   // Advanced Refinement Parameters
   const [instrumentalFactor, setInstrumentalFactor] = useState<number>(0.005);
   const [backgroundOffset, setBackgroundOffset] = useState<number>(0.02);
   const [cutoffRadiusValue, setCutoffRadiusValue] = useState<number>(50.0); // nm
 
+  // Visualization toggles
+  const [showHookComparison, setShowHookComparison] = useState<boolean>(false);
+  const [showNumberWeighted, setShowNumberWeighted] = useState<boolean>(true);
+  const [showLogNormalFit, setShowLogNormalFit] = useState<boolean>(true);
+  const [wilkensPlotMode, setWilkensPlotMode] = useState<'linearized' | 'rms_decay'>('linearized');
+
+  // AI Crystallographic Advisor State
+  const [aiReport, setAiReport] = useState<string | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+
+  // Python Code Export State
+  const [copiedPython, setCopiedPython] = useState<boolean>(false);
+
   const [selectedDomainIndex, setSelectedDomainIndex] = useState<number>(0);
   const [selectedOrderPlotL, setSelectedOrderPlotL] = useState<number>(5);
   const [burgersVector, setBurgersVector] = useState<number>(MATERIAL_PRESETS[0].burgersVector);
   const [youngsModulus, setYoungsModulus] = useState<number>(MATERIAL_PRESETS[0].youngsModulus);
 
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'size_pv' | 'strain_wilkens' | 'order_plots' | 'defect_topography' | 'metrics_report'>('size_pv');
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'size_pv' | 'strain_wilkens' | 'order_plots' | 'defect_topography' | 'metrics_report' | 'ai_advisor' | 'python_export'>('size_pv');
   const [isConverterOpen, setIsConverterOpen] = useState(false);
   const [isDEstimatorOpen, setIsDEstimatorOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -270,13 +316,15 @@ export const WarrenAverbachModule: React.FC = () => {
     setD1(defaultPreset.d1);
     setD2(defaultPreset.d2);
     setD3(defaultPreset.d3);
-    setD4(undefined);
+    setD4(defaultPreset.d4);
     setShowOrder3(true);
-    setShowOrder4(false);
+    setShowOrder4(true);
     setSelectedMaterial(defaultPreset.label);
     setInputData(defaultPreset.data);
     setBurgersVector(defaultPreset.burgersVector);
     setYoungsModulus(defaultPreset.youngsModulus);
+    setContrastFactorC(defaultPreset.contrastFactor || 0.304);
+    setContrastPreset('fcc_111_edge');
     setShapeFactor(1.0);
     setStrainModel('Dislocation (Wilkens)');
     setInstrumentalCorrection('Stokes');
@@ -293,11 +341,11 @@ export const WarrenAverbachModule: React.FC = () => {
 
   const handleDownloadCSV = () => {
     if (!result) return;
-    const header = "L_nm,A_size,P_V_L,RMS_Strain,MS_Strain\n";
+    const header = "L_nm,A_size,P_V_L,P_N_L,RMS_Strain,MS_Strain\n";
     const rows = result.sizeDistribution.map((row, i) => {
       const strain = result.strainDistribution[i]?.rms_strain || 0;
       const msStrain = result.strainDistribution[i]?.ms_strain || 0;
-      return `${row.L_nm.toFixed(2)},${row.A_size.toFixed(6)},${(row.Pv_L || 0).toFixed(6)},${strain.toExponential(6)},${msStrain.toExponential(6)}`;
+      return `${row.L_nm.toFixed(2)},${row.A_size.toFixed(6)},${(row.Pv_L || 0).toFixed(6)},${(row.Pn_L || 0).toFixed(6)},${strain.toExponential(6)},${msStrain.toExponential(6)}`;
     }).join("\n");
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -337,7 +385,8 @@ export const WarrenAverbachModule: React.FC = () => {
         showOrder3 ? d3 : undefined,
         showOrder4 ? d4 : undefined,
         burgersVector,
-        youngsModulus
+        youngsModulus,
+        contrastFactorC
       );
       setResult(computed);
       setIsAnalyzing(false);
@@ -363,55 +412,141 @@ export const WarrenAverbachModule: React.FC = () => {
     if (!searchQuery.trim()) return;
     setIsThinking(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: `Generate realistic Fourier coefficients for Warren-Averbach XRD analysis of ${searchQuery}.
-        Provide 10 data points sorted by L (column length in nm: 1, 2, 3, 4, 5, 6, 8, 10, 15, 20).
-        For each point, provide:
-        - L (column length in nm)
-        - A1 (Fourier coefficient for the first reflection order d1, starting around 0.98 and decaying)
-        - A2 (Fourier coefficient for the second order reflection d2, decaying faster due to microstrain)
-        - A3 (Fourier coefficient for third order d3, decaying fastest)
-        Make sure the decay is strictly monotonic and physically authentic.
-        Return ONLY a JSON array of objects.`,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                L: { type: Type.NUMBER },
-                A1: { type: Type.NUMBER },
-                A2: { type: Type.NUMBER },
-                A3: { type: Type.NUMBER }
-              },
-              required: ["L", "A1", "A2"]
-            }
-          }
-        }
+      const res = await fetch('/api/gemini/generate-wa-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchQuery })
       });
 
-      if (response.text) {
-        let rawText = response.text;
-        rawText = rawText.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
-        const data = JSON.parse(rawText);
-        const header = "# L[nm], A(d1), A(d2), A(d3)\n";
-        const formattedData = data.map((p: any) => {
-          if (p.A3 !== undefined) {
-            return `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}, ${p.A3.toFixed(3)}`;
-          }
-          return `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}`;
-        }).join('\n');
-        setInputData(header + formattedData);
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data.dataString) {
+        setInputData(data.dataString);
+        if (data.d1) setD1(data.d1);
+        if (data.d2) setD2(data.d2);
+        if (data.d3) {
+          setD3(data.d3);
+          setShowOrder3(true);
+        }
+        if (data.burgersVector) setBurgersVector(data.burgersVector);
+        if (data.youngsModulus) setYoungsModulus(data.youngsModulus);
+        if (data.contrastFactor) setContrastFactorC(data.contrastFactor);
         setSelectedMaterial(`AI: ${searchQuery}`);
       }
     } catch (error) {
-      console.error("Error generating data:", error);
+      console.error("Error generating data via server API:", error);
     } finally {
       setIsThinking(false);
     }
+  };
+
+  const handleGenerateAiReport = async () => {
+    if (!result || !result.metrics) return;
+    setIsGeneratingReport(true);
+    setReportError(null);
+    try {
+      const res = await fetch('/api/gemini/wa-advisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metrics: result.metrics,
+          materialName: selectedMaterial,
+          d1,
+          d2,
+          d3: showOrder3 ? d3 : undefined,
+          d4: showOrder4 ? d4 : undefined,
+          burgersVector,
+          youngsModulus,
+          contrastFactorC
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`Advisor service returned status ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data.report) {
+        setAiReport(data.report);
+      } else {
+        setReportError(data.error || 'Failed to generate crystallographic advisory report.');
+      }
+    } catch (err: any) {
+      setReportError(err.message || 'Error communicating with AI crystallographic advisor.');
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const generatePythonScript = (): string => {
+    if (!result) return '# Please execute Warren-Averbach analysis first.';
+    return `"""
+Warren-Averbach XRD Microstructural Analysis Script
+Generated by XRD-Calc Pro (Warren-Averbach Suite)
+Material: ${selectedMaterial}
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+# Input reflection lattice parameters
+d1 = ${d1.toFixed(4)}   # Primary reflection [Angstroms]
+d2 = ${d2.toFixed(4)}   # Secondary reflection [Angstroms]
+${showOrder3 && d3 ? `d3 = ${d3.toFixed(4)}   # Third reflection [Angstroms]\n` : ''}${showOrder4 && d4 ? `d4 = ${d4.toFixed(4)}   # Fourth reflection [Angstroms]\n` : ''}b = ${burgersVector.toFixed(4)} * 1e-9 # Burgers vector [meters]
+E = ${youngsModulus} * 1e9             # Young's modulus [Pa]
+C_bar = ${contrastFactorC.toFixed(3)}          # Dislocation contrast factor
+
+# Experimental Fourier coefficients
+# Format: [L_nm, A(d1), A(d2), ...]
+data = np.array([
+${result.sizeDistribution.map(r => `    [${r.L_nm.toFixed(1)}, ${r.A_size.toFixed(5)}]`).join(',\n')}
+])
+
+L = data[:, 0]
+A_size = data[:, 1]
+
+# 1. Calculate Area-Weighted Column Length <D>_A
+dL = np.gradient(L)
+dA_dL = np.gradient(A_size, L)
+initial_slope = np.abs(dA_dL[0])
+D_A = 1.0 / initial_slope if initial_slope > 0 else np.nan
+
+# 2. Calculate Volume-Weighted Column Length Distribution P_V(L)
+d2A_dL2 = np.gradient(dA_dL, L)
+Pv_L = np.maximum(0, L * d2A_dL2)
+if np.max(Pv_L) > 0:
+    Pv_L /= np.max(Pv_L)
+
+print(f"=== Warren-Averbach Crystallographic Results ===")
+print(f"Area-weighted column length <D>_A: {D_A:.2f} nm")
+print(f"Dislocation density rho: ${result.metrics.dislocationDensity10_14.toFixed(3)}e14 m^-2")
+print(f"Wilkens arrangement parameter M: ${result.metrics.wilkensArrangementParameterM.toFixed(2)}")
+
+# 3. Plot Size Fourier Coefficients and Column Distribution
+fig, ax1 = plt.subplots(figsize=(8, 5))
+
+color = 'tab:red'
+ax1.set_xlabel('Column Length L [nm]')
+ax1.set_ylabel('Size Fourier Coefficient A_S(L)', color=color)
+ax1.plot(L, A_size, 'o-', color=color, label='A_S(L)')
+ax1.tick_params(axis='y', labelcolor=color)
+ax1.grid(True, alpha=0.3)
+
+ax2 = ax1.twinx()
+color = 'tab:blue'
+ax2.set_ylabel('Normalized P_V(L) [arb. units]', color=color)
+ax2.fill_between(L, Pv_L, alpha=0.3, color=color)
+ax2.plot(L, Pv_L, '-', color=color, label='P_V(L)')
+ax2.tick_params(axis='y', labelcolor=color)
+
+plt.title('Warren-Averbach Size Deconvolution: ${selectedMaterial}')
+fig.tight_layout()
+plt.show()
+`;
   };
 
   const parsedPointsForMath = useMemo(() => {
@@ -649,6 +784,12 @@ export const WarrenAverbachModule: React.FC = () => {
                   >
                     Order 3 (d₃)
                   </button>
+                  <button
+                    onClick={() => setShowOrder4(!showOrder4)}
+                    className={`px-2 py-0.5 rounded border transition-colors ${showOrder4 ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-black/40 border-white/10 text-slate-500'}`}
+                  >
+                    Order 4 (d₄)
+                  </button>
                 </div>
               </div>
 
@@ -682,7 +823,7 @@ export const WarrenAverbachModule: React.FC = () => {
                 </div>
 
                 {showOrder3 && (
-                  <div className="space-y-1 col-span-2 sm:col-span-1">
+                  <div className="space-y-1">
                     <label className="text-[9px] text-slate-500 font-mono">d₃ (Order 3, Å)</label>
                     <input
                       type="number"
@@ -697,27 +838,88 @@ export const WarrenAverbachModule: React.FC = () => {
                     />
                   </div>
                 )}
+
+                {showOrder4 && (
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-slate-500 font-mono">d₄ (Order 4, Å)</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={d4 || ''}
+                      placeholder="e.g. 0.5888"
+                      onChange={(e) => {
+                        setD4(parseFloat(e.target.value) || undefined);
+                        setSelectedMaterial('Custom');
+                      }}
+                      className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-xl text-xs font-mono font-bold outline-none"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Hook Effect & Advanced Physics Controls */}
+            {/* Dislocation Contrast Factor & Physics Controls */}
             <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-white/5">
-                <Sliders className="w-3.5 h-3.5 text-rose-400" />
-                <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">
-                  Physics & Hook Effect Controls
-                </label>
+              <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Sliders className="w-3.5 h-3.5 text-rose-400" />
+                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">
+                    Contrast & Dislocation Model
+                  </label>
+                </div>
+                <span className="text-[9px] font-mono text-rose-400/80 font-semibold">Wilkens Dislocation</span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono uppercase">Contrast Preset (C̄)</label>
+                  <select
+                    value={contrastPreset}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setContrastPreset(val);
+                      if (val === 'fcc_111_edge') setContrastFactorC(0.304);
+                      else if (val === 'fcc_111_screw') setContrastFactorC(0.165);
+                      else if (val === 'bcc_110_edge') setContrastFactorC(0.285);
+                      else if (val === 'bcc_110_screw') setContrastFactorC(0.145);
+                      else if (val === 'hcp_ti') setContrastFactorC(0.250);
+                    }}
+                    className="w-full px-2 py-1.5 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-[11px] font-mono outline-none"
+                  >
+                    <option value="fcc_111_edge">FCC (111) Edge (0.304)</option>
+                    <option value="fcc_111_screw">FCC (111) Screw (0.165)</option>
+                    <option value="bcc_110_edge">BCC (110) Edge (0.285)</option>
+                    <option value="bcc_110_screw">BCC (110) Screw (0.145)</option>
+                    <option value="hcp_ti">HCP (100) Ti (0.250)</option>
+                    <option value="custom">Custom C̄</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-500 font-mono uppercase">Avg Contrast Factor C̄</label>
+                  <input
+                    type="number"
+                    step="0.005"
+                    min="0.05"
+                    max="1.0"
+                    value={contrastFactorC}
+                    onChange={(e) => {
+                      setContrastFactorC(parseFloat(e.target.value) || 0.304);
+                      setContrastPreset('custom');
+                    }}
+                    className="w-full px-3 py-1.5 bg-black/60 text-rose-400 border border-white/10 rounded-xl text-xs font-mono font-bold outline-none"
+                  />
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-[9px] text-slate-500 font-mono uppercase">Hook Correction</label>
                   <select
                     value={hookCorrectionMode}
                     onChange={(e) => setHookCorrectionMode(e.target.value as any)}
-                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
+                    className="w-full px-2 py-1.5 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-[11px] font-mono outline-none"
                   >
                     <option value="linear_tangent">Tangent Linearization</option>
+                    <option value="spline_regularization">Spline Regularization (Curvature-safe)</option>
                     <option value="polynomial">Monotonic Regularization</option>
                     <option value="none">Raw (No Hook Corr.)</option>
                   </select>
@@ -728,7 +930,7 @@ export const WarrenAverbachModule: React.FC = () => {
                   <select
                     value={strainModel}
                     onChange={(e) => setStrainModel(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
+                    className="w-full px-2 py-1.5 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-[11px] font-mono outline-none"
                   >
                     <option value="Dislocation (Wilkens)">Wilkens Dislocation</option>
                     <option value="Gaussian">Gaussian Model</option>
@@ -741,7 +943,7 @@ export const WarrenAverbachModule: React.FC = () => {
                   <select
                     value={instrumentalCorrection}
                     onChange={(e) => setInstrumentalCorrection(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
+                    className="w-full px-2 py-1.5 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-[11px] font-mono outline-none"
                   >
                     <option value="Stokes">Stokes Deconvolution</option>
                     <option value="Voigt">Voigt Broadening</option>
@@ -754,7 +956,7 @@ export const WarrenAverbachModule: React.FC = () => {
                   <select
                     value={backgroundModel}
                     onChange={(e) => setBackgroundModel(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-xs font-mono outline-none"
+                    className="w-full px-2 py-1.5 bg-black/60 text-slate-200 border border-white/10 rounded-xl text-[11px] font-mono outline-none"
                   >
                     <option value="Linear">Linear Baseline</option>
                     <option value="Spline">Exponential Decay</option>
@@ -865,11 +1067,13 @@ export const WarrenAverbachModule: React.FC = () => {
         {/* Analysis Navigation Tabs */}
         <div className="bg-slate-950/80 p-2 rounded-2xl border border-white/5 flex flex-wrap gap-2 ring-1 ring-white/10 ring-inset">
           {[
-            { id: 'size_pv', label: '1. Size & Column Length P_V(L)', icon: TrendingDown },
+            { id: 'size_pv', label: '1. Size & Column Length Distributions', icon: TrendingDown },
             { id: 'strain_wilkens', label: '2. Microstrain & Wilkens Model', icon: Activity },
             { id: 'order_plots', label: '3. Harmonic Order Plots ln A vs 1/d²', icon: BarChart3 },
             { id: 'defect_topography', label: '4. Dislocation Topography', icon: Layers },
-            { id: 'metrics_report', label: '5. Quantitative Report', icon: FileText }
+            { id: 'metrics_report', label: '5. Quantitative Report & LaTeX', icon: FileText },
+            { id: 'ai_advisor', label: '6. AI Crystallographic Advisor', icon: BrainCircuit },
+            { id: 'python_export', label: '7. Python / SciPy Script Exporter', icon: Code }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeAnalysisTab === tab.id;
@@ -877,7 +1081,7 @@ export const WarrenAverbachModule: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveAnalysisTab(tab.id as any)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${
+                className={`px-3.5 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${
                   isActive
                     ? 'bg-rose-500 text-white shadow-lg shadow-rose-900/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -890,21 +1094,66 @@ export const WarrenAverbachModule: React.FC = () => {
           })}
         </div>
 
-        {/* Tab 1: Size Fourier Decay A_S(L) & Volume Distribution P_V(L) */}
+        {/* Tab 1: Size Fourier Decay A_S(L) & Column Distributions (P_V, P_N, Log-Normal) */}
         {activeAnalysisTab === 'size_pv' && (
           <div className="space-y-6">
             <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 relative z-10">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 relative z-10">
                 <div>
                   <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
                     <TrendingDown className="w-5 h-5 text-rose-400" />
-                    Size Fourier Coefficients A_S(L) & Volume Distribution P_V(L)
+                    Size Deconvolution & Column Length Distributions
                   </h3>
                   <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
-                    Initial tangent yields ⟨D⟩_A = {result?.metrics?.areaWeightedColumnLengthNm.toFixed(1)} nm · Mode crystallite diameter = {result?.metrics?.crystalliteSizeDistributionModeNm.toFixed(1)} nm
+                    Area-weighted ⟨D⟩_A = {result?.metrics?.areaWeightedColumnLengthNm.toFixed(1)} nm · Number-weighted ⟨D⟩_N = {result?.metrics?.numberWeightedColumnLengthNm ? result.metrics.numberWeightedColumnLengthNm.toFixed(1) : '—'} nm
                   </p>
                 </div>
+
+                {/* Display Toggles */}
+                <div className="flex flex-wrap items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-white/10 text-[10px] font-mono">
+                  <button
+                    onClick={() => setShowNumberWeighted(!showNumberWeighted)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 ${
+                      showNumberWeighted ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    P_N(L) Number-Weighted
+                  </button>
+
+                  <button
+                    onClick={() => setShowLogNormalFit(!showLogNormalFit)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 ${
+                      showLogNormalFit ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                    Log-Normal Fit
+                  </button>
+                </div>
               </div>
+
+              {/* Metrics Highlights Row */}
+              {result?.metrics && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 p-3 bg-black/30 rounded-xl border border-white/5 font-mono text-[11px] relative z-10">
+                  <div>
+                    <span className="text-slate-500 block text-[9px] uppercase">Area-Weighted ⟨D⟩_A:</span>
+                    <span className="text-rose-400 font-bold">{result.metrics.areaWeightedColumnLengthNm.toFixed(2)} nm</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px] uppercase">Number-Weighted ⟨D⟩_N:</span>
+                    <span className="text-amber-400 font-bold">{result.metrics.numberWeightedColumnLengthNm ? `${result.metrics.numberWeightedColumnLengthNm.toFixed(2)} nm` : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px] uppercase">Log-Normal Median D₀:</span>
+                    <span className="text-purple-400 font-bold">{result.metrics.logNormalMedianNm ? `${result.metrics.logNormalMedianNm.toFixed(2)} nm` : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px] uppercase">Log-Normal Variance σ:</span>
+                    <span className="text-emerald-400 font-bold">{result.metrics.logNormalSigma ? result.metrics.logNormalSigma.toFixed(3) : '—'}</span>
+                  </div>
+                </div>
+              )}
 
               {!result ? (
                 <div className="py-20 flex flex-col items-center justify-center text-slate-500 text-sm gap-2">
@@ -921,7 +1170,7 @@ export const WarrenAverbachModule: React.FC = () => {
                           <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.5} />
+                          <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.4} />
                           <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
                         </linearGradient>
                       </defs>
@@ -934,14 +1183,14 @@ export const WarrenAverbachModule: React.FC = () => {
                       <YAxis 
                         yAxisId="left"
                         domain={[0, 1.05]}
-                        label={{ value: 'Size Coefficient A_S(L)', angle: -90, position: 'insideLeft', fill: '#f43f5e', fontSize: 10, fontFamily: 'monospace' }}
+                        label={{ value: 'Fourier Size Coeff A_S(L)', angle: -90, position: 'insideLeft', fill: '#f43f5e', fontSize: 10, fontFamily: 'monospace' }}
                         tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                       />
                       <YAxis 
                         yAxisId="right"
                         orientation="right"
                         domain={[0, 1.05]}
-                        label={{ value: 'Normalized P_V(L) = L · d²A_S/dL²', angle: 90, position: 'insideRight', fill: '#38bdf8', fontSize: 10, fontFamily: 'monospace' }}
+                        label={{ value: 'Normalized Distributions P(L)', angle: 90, position: 'insideRight', fill: '#38bdf8', fontSize: 10, fontFamily: 'monospace' }}
                         tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                       />
                       <Tooltip
@@ -958,7 +1207,7 @@ export const WarrenAverbachModule: React.FC = () => {
                         stroke="#f43f5e"
                         strokeWidth={3}
                         fill="url(#sizeGrad)"
-                        name="A_size(L)"
+                        name="A_S(L) (Fourier Size Coeff)"
                         activeDot={{ r: 6, fill: '#fff', stroke: '#f43f5e', strokeWidth: 2 }}
                       />
 
@@ -969,9 +1218,34 @@ export const WarrenAverbachModule: React.FC = () => {
                         stroke="#38bdf8"
                         strokeWidth={2.5}
                         fill="url(#pvGrad)"
-                        name="P_V(L) Column Distribution"
+                        name="P_V(L) Volume Distribution"
                         activeDot={{ r: 5, fill: '#fff', stroke: '#38bdf8', strokeWidth: 2 }}
                       />
+
+                      {showNumberWeighted && (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="Pn_L"
+                          stroke="#f59e0b"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={false}
+                          name="P_N(L) Number-Weighted"
+                        />
+                      )}
+
+                      {showLogNormalFit && (
+                        <Line
+                          yAxisId="right"
+                          type="monotone"
+                          dataKey="logNormalFit"
+                          stroke="#c084fc"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Analytical Log-Normal Fit"
+                        />
+                      )}
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -980,7 +1254,7 @@ export const WarrenAverbachModule: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 2: RMS Microstrain & Wilkens Model */}
+        {/* Tab 2: RMS Microstrain & Wilkens Dislocation Model */}
         {activeAnalysisTab === 'strain_wilkens' && (
           <div className="space-y-6">
             <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
@@ -988,11 +1262,55 @@ export const WarrenAverbachModule: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
                     <Activity className="w-5 h-5 text-cyan-400" />
-                    RMS Microstrain ⟨ε²⟩_L¹/² vs Fourier Column Length L
+                    Microstrain Field & Wilkens Dislocation Model
                   </h3>
                   <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
-                    Wilkens Dislocation Density ρ = {result?.metrics?.dislocationDensity10_14.toFixed(2)} × 10¹⁴ m⁻² · Cutoff radius R_e = {result?.metrics?.wilkensCutoffRadiusNm.toFixed(1)} nm
+                    Dislocation density ρ = {result?.metrics?.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻² · Wilkens R² = {result?.metrics?.wilkensR2 !== undefined ? result.metrics.wilkensR2.toFixed(4) : '—'}
                   </p>
+                </div>
+
+                {/* Plot Mode Switcher */}
+                <div className="flex bg-black/50 p-1 rounded-xl border border-white/10 text-xs font-mono">
+                  <button
+                    onClick={() => setWilkensPlotMode('linearized')}
+                    className={`px-3 py-1.5 rounded-lg transition-colors ${
+                      wilkensPlotMode === 'linearized'
+                        ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Wilkens Linear Plot (⟨ε²⟩ vs ln 1/L)
+                  </button>
+                  <button
+                    onClick={() => setWilkensPlotMode('rms_decay')}
+                    className={`px-3 py-1.5 rounded-lg transition-colors ${
+                      wilkensPlotMode === 'rms_decay'
+                        ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    RMS Strain Decay ⟨ε²⟩¹/² vs L
+                  </button>
+                </div>
+              </div>
+
+              {/* Wilkens Formalism Box */}
+              <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-[11px] mb-4 relative z-10">
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Dislocation Density ρ:</span>
+                  <span className="text-cyan-400 font-bold">{result?.metrics?.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Wilkens Parameter M:</span>
+                  <span className="text-emerald-400 font-bold">{result?.metrics?.wilkensArrangementParameterM.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Cutoff Radius R_e:</span>
+                  <span className="text-rose-400 font-bold">{result?.metrics?.wilkensCutoffRadiusNm.toFixed(1)} nm</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Dislocation Contrast C̄:</span>
+                  <span className="text-amber-400 font-bold">{result?.metrics?.contrastFactorC ? result.metrics.contrastFactorC.toFixed(3) : contrastFactorC.toFixed(3)}</span>
                 </div>
               </div>
 
@@ -1001,8 +1319,51 @@ export const WarrenAverbachModule: React.FC = () => {
                   <Loader2 className="w-6 h-6 animate-spin" />
                   <span className="font-mono text-xs">Computing strain field...</span>
                 </div>
+              ) : wilkensPlotMode === 'linearized' ? (
+                <div className="h-[400px] w-full relative z-10">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart
+                      data={result.strainDistribution
+                        .filter(d => d.L_nm > 0 && d.ms_strain > 0)
+                        .map(d => ({
+                          ...d,
+                          ln_inv_L: Math.log(1 / d.L_nm),
+                          fit_ms_strain: Math.max(0, (result.metrics?.dislocationDensity10_14 || 1) * 1e14 * (contrastFactorC || 0.3) * (burgersVector * 1e-9) ** 2 / (4 * Math.PI) * Math.log(result.metrics?.wilkensCutoffRadiusNm || 50 / d.L_nm))
+                        }))}
+                      margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                      <XAxis 
+                        dataKey="ln_inv_L" 
+                        type="number"
+                        domain={['dataMin - 0.2', 'dataMax + 0.2']}
+                        label={{ value: 'ln(1 / L) [ln(nm⁻¹)]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <YAxis 
+                        tickFormatter={(val) => Number(val).toExponential(1)}
+                        label={{ value: 'Mean Square Microstrain ⟨ε_L²⟩', angle: -90, position: 'insideLeft', fill: '#06b6d4', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0b1120', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px' }}
+                        formatter={(val: any) => Number(val).toExponential(4)}
+                      />
+                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                      <Scatter dataKey="ms_strain" fill="#06b6d4" name="Observed ⟨ε_L²⟩" />
+                      <Line
+                        type="linear"
+                        dataKey="fit_ms_strain"
+                        stroke="#f43f5e"
+                        strokeWidth={2.5}
+                        dot={false}
+                        name="Wilkens Linear Regression Fit"
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
               ) : (
-                <div className="h-[420px] w-full relative z-10">
+                <div className="h-[400px] w-full relative z-10">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={result.strainDistribution} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                       <defs>
@@ -1218,7 +1579,7 @@ export const WarrenAverbachModule: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 5: Quantitative Report */}
+        {/* Tab 5: Quantitative Report & LaTeX */}
         {activeAnalysisTab === 'metrics_report' && result?.metrics && (
           <WarrenAverbachMetricsSummary
             metrics={result.metrics}
@@ -1234,6 +1595,141 @@ export const WarrenAverbachModule: React.FC = () => {
           />
         )}
 
+        {/* Tab 6: AI Crystallographic Advisor */}
+        {activeAnalysisTab === 'ai_advisor' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 relative z-10">
+                <div>
+                  <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
+                    <BrainCircuit className="w-5 h-5 text-rose-400" />
+                    AI Crystallographic Diagnostician & Advisor
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                    Automated domain size-strain decoupling validation, Wilkens parameter interpretation, and beamline tips
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleGenerateAiReport}
+                  disabled={isGeneratingReport || !result}
+                  className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-purple-600 hover:from-rose-400 hover:to-purple-500 disabled:opacity-40 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center gap-2"
+                >
+                  {isGeneratingReport ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Diagnosing Spectrum...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Generate Crystallographic Diagnosis</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Material & Analysis Summary Badges */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-black/40 rounded-2xl border border-white/5 font-mono text-xs mb-6 relative z-10">
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Analyzed Material:</span>
+                  <span className="text-rose-400 font-bold">{selectedMaterial}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Harmonics Evaluated:</span>
+                  <span className="text-slate-200 font-bold">{showOrder4 ? '4 Orders' : showOrder3 ? '3 Orders' : '2 Orders'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Avg Contrast Factor C̄:</span>
+                  <span className="text-cyan-400 font-bold">{contrastFactorC.toFixed(3)}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Hook Correction:</span>
+                  <span className="text-emerald-400 font-bold">{hookCorrectionMode}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">Wilkens R²:</span>
+                  <span className="text-purple-400 font-bold">{result?.metrics?.wilkensR2 !== undefined ? result.metrics.wilkensR2.toFixed(4) : '—'}</span>
+                </div>
+              </div>
+
+              {reportError && (
+                <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400 text-xs font-mono mb-4">
+                  {reportError}
+                </div>
+              )}
+
+              {aiReport ? (
+                <div className="space-y-4 relative z-10">
+                  <div className="p-6 bg-black/60 rounded-2xl border border-white/10 font-sans text-sm text-slate-300 leading-relaxed space-y-4 whitespace-pre-wrap selection:bg-rose-500/30 selection:text-white">
+                    {aiReport}
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(aiReport);
+                        alert('Crystallographic report copied to clipboard!');
+                      }}
+                      className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono font-bold rounded-xl border border-white/10 flex items-center gap-2 transition-all"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Copy Full Report</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-16 text-center text-slate-500 font-mono text-xs space-y-3 relative z-10">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/20 mx-auto flex items-center justify-center text-rose-400">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <p className="text-slate-400 font-medium">Click "Generate Crystallographic Diagnosis" to produce an AI-assisted physical appraisal.</p>
+                  <p className="text-[11px] text-slate-600 max-w-md mx-auto">
+                    The engine reviews your Fourier size coefficients, Wilkens dislocation screening factor M, strain decay, and contrast factor parameters to deliver rigorous crystallographic insights.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 7: Python / SciPy Script Exporter */}
+        {activeAnalysisTab === 'python_export' && (
+          <div className="space-y-6">
+            <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4 relative z-10">
+                <div>
+                  <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
+                    <Code className="w-5 h-5 text-emerald-400" />
+                    Python & SciPy Warren-Averbach Reproducibility Script
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                    Standalone executable script using NumPy, SciPy, and Matplotlib
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatePythonScript());
+                    setCopiedPython(true);
+                    setTimeout(() => setCopiedPython(false), 2500);
+                  }}
+                  className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center gap-2"
+                >
+                  {copiedPython ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedPython ? 'Copied to Clipboard' : 'Copy Python Code'}</span>
+                </button>
+              </div>
+
+              <div className="relative z-10">
+                <pre className="p-5 bg-black/70 rounded-2xl border border-white/10 font-mono text-xs text-emerald-300 leading-relaxed overflow-x-auto max-h-[500px] custom-scrollbar selection:bg-emerald-500/30 selection:text-white">
+                  <code>{generatePythonScript()}</code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Tabular Data Indices Card */}
         <div className="bg-slate-950/80 backdrop-blur-2xl rounded-[2.5rem] ring-1 ring-white/10 ring-inset border border-emerald-500/20 overflow-hidden relative shadow-2xl">
           <div className="p-6 border-b border-white/5 bg-black/40 flex justify-between items-center relative z-10">
@@ -1246,7 +1742,7 @@ export const WarrenAverbachModule: React.FC = () => {
                   Harmonic Coefficients & Microstrain Indices
                 </h3>
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono mt-0.5">
-                  Tabulated Fourier Spectrum
+                  Tabulated Fourier Spectrum with Number & Volume Weighted Distributions
                 </p>
               </div>
             </div>
@@ -1268,7 +1764,8 @@ export const WarrenAverbachModule: React.FC = () => {
                 <tr>
                   <th className="px-6 py-4 font-bold">L [nm]</th>
                   <th className="px-6 py-4 font-bold">A_size (Fourier)</th>
-                  <th className="px-6 py-4 font-bold">P_V(L) Dist.</th>
+                  <th className="px-6 py-4 font-bold">P_V(L) Volume Dist.</th>
+                  <th className="px-6 py-4 font-bold">P_N(L) Number Dist.</th>
                   <th className="px-6 py-4 font-bold">RMS Strain ⟨ε²⟩¹/²</th>
                 </tr>
               </thead>
@@ -1283,6 +1780,9 @@ export const WarrenAverbachModule: React.FC = () => {
                     </td>
                     <td className="px-6 py-3.5 text-cyan-400 font-medium">
                       {(row.Pv_L || 0).toFixed(4)}
+                    </td>
+                    <td className="px-6 py-3.5 text-amber-400 font-medium">
+                      {(row.Pn_L || 0).toFixed(4)}
                     </td>
                     <td className="px-6 py-3.5 font-bold text-emerald-400">
                       {result.strainDistribution[i]?.rms_strain ? result.strainDistribution[i].rms_strain.toExponential(4) : '0.0000e+0'}

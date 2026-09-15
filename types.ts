@@ -105,12 +105,22 @@ export interface ScherrerResult {
   qVector?: number; // Angstrom^-1
   dislocationDensityM2?: number; // lines/m^2 (delta = 1/D^2)
   dislocationDensity10_14?: number; // 10^14 m^-2
+  dislocationDensityWilliamsonSmallman?: number; // 10^14 m^-2 with Burgers vector & microstrain
   specificSurfaceAreaM2g?: number; // m^2 / g
   coherencePlanesN?: number; // N = D / d_hkl
   coherenceVolumeNm3?: number; // nm^3
   microstrainDeKeijser?: number; // microstrain extracted via Voigt method
   lorentzianSizeNm?: number;
   gaussianStrainRms?: number;
+  apparentStrainPercent?: number;
+  integralBreadthObs?: number;
+  modelComparison?: {
+    gaussian: number;
+    lorentzian: number;
+    pseudoVoigt: number;
+    deKeijser: number;
+    halderWagner: number;
+  };
   error?: string;
 }
 
@@ -249,16 +259,20 @@ export interface WHPoint {
 }
 
 export interface WHModelComparisonItem {
-  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens';
+  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens' | 'Monshi-Scherrer';
   label: string;
   sizeNm: number;
   strainPercent: number;
   stressMPa?: number;
   energyDensityKjM3?: number;
   rSquared: number;
+  adjustedRSquared?: number;
+  rmse?: number;
+  durbinWatson?: number;
   slope: number;
   intercept: number;
   description: string;
+  isBestFit?: boolean;
 }
 
 export interface WHResult {
@@ -313,6 +327,7 @@ export interface IntegralBreadthInput {
   fwhm: number;
   area: number;
   iMax: number;
+  hkl?: [number, number, number];
 }
 
 export interface IntegralBreadthResult {
@@ -325,6 +340,11 @@ export interface IntegralBreadthResult {
   betaSampleDeg?: number;
   fwhmObs?: number;
   pseudoVoigtEta?: number;
+  cauchyBetaL_deg?: number;
+  gaussianBetaG_deg?: number;
+  volumeWeightedSizeDvNm?: number;
+  areaWeightedSizeDaNm?: number;
+  apparentRmsStrain?: number;
   lorentzianSizeNm?: number;
   gaussianStrainRms?: number;
   dislocationDensityM2?: number;
@@ -334,6 +354,24 @@ export interface IntegralBreadthResult {
   coherenceVolumeNm3?: number;
   dSpacing?: number;
   qVector?: number;
+  hkl?: [number, number, number];
+  hklString?: string;
+  profileType?: 'Lorentzian' | 'Gaussian' | 'Pseudo-Voigt';
+}
+
+export interface IBModelComparisonItem {
+  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH';
+  label: string;
+  sizeNm: number;
+  strainPercent: number;
+  stressMPa?: number;
+  energyDensityKjM3?: number;
+  rSquared: number;
+  rmse: number;
+  slope: number;
+  intercept: number;
+  description: string;
+  isBestFit?: boolean;
 }
 
 export interface IBAdvancedInput {
@@ -355,12 +393,17 @@ export interface IBAdvancedResult {
     pearsonR?: number;
     stdErrorSlope?: number;
     stdErrorIntercept?: number;
+    rmse?: number;
+    durbinWatson?: number;
   };
-  points: { x: number; y: number; twoTheta: number; betaSample: number; residual?: number }[];
+  points: { x: number; y: number; twoTheta: number; betaSample: number; residual?: number; isExcluded?: boolean }[];
   stressMPa?: number;
   energyDensityKjM3?: number;
+  dislocationDensity10_14?: number;
+  specificSurfaceAreaM2g?: number;
   separationMethodUsed?: string;
   decouplingMethodUsed?: string;
+  modelComparisons?: IBModelComparisonItem[];
   pointsExtended?: {
     twoTheta: number;
     betaObsDeg: number;
@@ -372,8 +415,12 @@ export interface IBAdvancedResult {
     dSpacing?: number;
     residual?: number;
     hkl?: [number, number, number];
+    isExcluded?: boolean;
     dislocationDensity10_14?: number;
     specificSurfaceAreaM2g?: number;
+    volumeWeightedSizeDvNm?: number;
+    areaWeightedSizeDaNm?: number;
+    apparentRmsStrain?: number;
   }[];
 }
 
@@ -391,6 +438,9 @@ export interface WAColumnDistributionPoint {
   Pv_L: number; // P_V(L) = L * d²A_S/dL² (Volume-weighted column length distribution)
   dAs_dL?: number; // First derivative
   A_size_raw?: number; // Pre-hook correction value
+  Pn_L?: number; // P_N(L) = d²A_S/dL² (Number-weighted column length distribution)
+  logNormal_fit?: number; // Analytical log-normal distribution fit
+  cumulative_Pv?: number; // Cumulative volume fraction
 }
 
 export interface WAOrderPlotLine {
@@ -406,19 +456,27 @@ export interface WAOrderPlotLine {
 export interface WAMetrics {
   areaWeightedColumnLengthNm: number; // <D>_A = -1 / (dA_S/dL)|_{L->0}
   volumeWeightedColumnLengthNm: number; // <D>_V = 2 ∫ A_S(L) dL
+  numberWeightedColumnLengthNm?: number; // <D>_N = ∫ L P_N(L) dL / ∫ P_N(L) dL
   crystalliteSizeDistributionModeNm: number; // Peak of P_V(L)
   crystalliteSizeDistributionFWHMNm: number;
+  logNormalMedianNm?: number; // D_0 = exp(mu)
+  logNormalSigma?: number; // sigma parameter
   initialSlope: number; // dA_S/dL at L=0
   dislocationDensityM2: number; // ρ (m^-2)
   dislocationDensity10_14: number; // ρ (10^14 m^-2)
   wilkensCutoffRadiusNm: number; // Re (nm)
   wilkensArrangementParameterM: number; // M = Re * sqrt(rho)
   wilkensDislocationCharacter?: 'edge' | 'screw' | 'mixed';
+  wilkensSlope?: number;
+  wilkensIntercept?: number;
+  wilkensR2?: number;
+  contrastFactorC?: number; // Average dislocation contrast factor C_hkl
   apparentStrainEnergyKJm3: number; // W_H
   specificSurfaceAreaM2g?: number; // S_V
   hookEffectDetected: boolean;
   hookEffectExtrapolatedIntercept: number;
   r2_average: number;
+  activeOrdersCount?: number;
 }
 
 export interface WAResult {

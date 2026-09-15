@@ -6,7 +6,7 @@ import { computeFourierCoefficientsFromPeakProfile } from '../utils/physics';
 interface WarrenAverbachPeakConverterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onApplyData: (dataString: string, d1: number, d2: number) => void;
+  onApplyData: (dataString: string, d1: number, d2: number, d3?: number) => void;
   wavelength: number;
 }
 
@@ -20,6 +20,9 @@ export const WarrenAverbachPeakConverterModal: React.FC<WarrenAverbachPeakConver
   const [peak1FWHM, setPeak1FWHM] = useState<number>(0.35);
   const [peak2Center, setPeak2Center] = useState<number>(81.72); // Gold (222)
   const [peak2FWHM, setPeak2FWHM] = useState<number>(0.65);
+  const [includeThirdOrder, setIncludeThirdOrder] = useState<boolean>(true);
+  const [peak3Center, setPeak3Center] = useState<number>(135.5); // Gold (333)
+  const [peak3FWHM, setPeak3FWHM] = useState<number>(1.05);
   const [microstrainLevel, setMicrostrainLevel] = useState<number>(0.0025);
   const [crystalliteSizeNm, setCrystalliteSizeNm] = useState<number>(25);
   const [instrumentalFWHM, setInstrumentalFWHM] = useState<number>(0.08);
@@ -30,6 +33,12 @@ export const WarrenAverbachPeakConverterModal: React.FC<WarrenAverbachPeakConver
     const rad2 = (peak2Center / 2) * (Math.PI / 180);
     const d1 = wavelength / (2 * Math.sin(rad1));
     const d2 = wavelength / (2 * Math.sin(rad2));
+
+    let d3: number | undefined = undefined;
+    if (includeThirdOrder && peak3Center > 0 && peak3Center < 180) {
+      const rad3 = (peak3Center / 2) * (Math.PI / 180);
+      d3 = wavelength / (2 * Math.sin(rad3));
+    }
 
     // Synthesize peak 1 profile (e.g. 101 points around peak center)
     const span1 = Math.max(1.5, peak1FWHM * 5);
@@ -74,7 +83,8 @@ export const WarrenAverbachPeakConverterModal: React.FC<WarrenAverbachPeakConver
     const fourier2 = computeFourierCoefficientsFromPeakProfile(twoTheta2, intensity2, peak2Center, wavelength, 30, 2);
 
     // Combine into WA table string
-    const lines: string[] = ["# L[nm], A(d1), A(d2) [Converted from 2Theta Peak Profiles]"];
+    const header = d3 ? "# L[nm], A(d1), A(d2), A(d3)" : "# L[nm], A(d1), A(d2)";
+    const lines: string[] = [header];
     const len = Math.min(fourier1.length, fourier2.length);
 
     for (let i = 0; i < len; i++) {
@@ -89,10 +99,17 @@ export const WarrenAverbachPeakConverterModal: React.FC<WarrenAverbachPeakConver
       const a1 = Math.max(0.01, Math.min(1.0, sizeCoeff * decay1));
       const a2 = Math.max(0.01, Math.min(1.0, sizeCoeff * decay2));
 
-      lines.push(`${L}, ${a1.toFixed(4)}, ${a2.toFixed(4)}`);
+      if (d3) {
+        const s3 = 1 / d3;
+        const decay3 = Math.exp(-2 * Math.PI * Math.PI * (L ** 2) * (microstrainLevel ** 2) * (s3 ** 2));
+        const a3 = Math.max(0.005, Math.min(1.0, sizeCoeff * decay3));
+        lines.push(`${L}, ${a1.toFixed(4)}, ${a2.toFixed(4)}, ${a3.toFixed(4)}`);
+      } else {
+        lines.push(`${L}, ${a1.toFixed(4)}, ${a2.toFixed(4)}`);
+      }
     }
 
-    onApplyData(lines.join('\n'), parseFloat(d1.toFixed(4)), parseFloat(d2.toFixed(4)));
+    onApplyData(lines.join('\n'), parseFloat(d1.toFixed(4)), parseFloat(d2.toFixed(4)), d3 ? parseFloat(d3.toFixed(4)) : undefined);
     onClose();
   };
 
@@ -181,6 +198,48 @@ export const WarrenAverbachPeakConverterModal: React.FC<WarrenAverbachPeakConver
                 />
               </div>
             </div>
+          </div>
+
+          {/* Optional Third Harmonic Reflection Order */}
+          <div className="p-3.5 bg-black/40 rounded-2xl border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold font-mono text-purple-400 uppercase tracking-wider">
+                Third Harmonic Order (e.g., 333)
+              </span>
+              <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-mono text-slate-400">
+                <input
+                  type="checkbox"
+                  checked={includeThirdOrder}
+                  onChange={(e) => setIncludeThirdOrder(e.target.checked)}
+                  className="rounded border-white/20 bg-black/60 text-rose-500 focus:ring-0"
+                />
+                <span>Include</span>
+              </label>
+            </div>
+            {includeThirdOrder && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="text-[9px] text-slate-400 font-mono block mb-1">Peak Center (2θ °)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={peak3Center}
+                    onChange={(e) => setPeak3Center(parseFloat(e.target.value) || 135.5)}
+                    className="w-full px-3 py-1.5 bg-black/60 text-slate-200 border border-white/10 rounded-lg text-xs font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] text-slate-400 font-mono block mb-1">Observed FWHM (°)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={peak3FWHM}
+                    onChange={(e) => setPeak3FWHM(parseFloat(e.target.value) || 1.05)}
+                    className="w-full px-3 py-1.5 bg-black/60 text-slate-200 border border-white/10 rounded-lg text-xs font-mono"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Microstructural Simulation Sliders */}

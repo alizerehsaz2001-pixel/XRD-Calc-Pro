@@ -5,7 +5,7 @@ import {
   Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, 
   Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, 
   BarChart2, X, Copy, CheckCircle2, Sparkles, TrendingUp, Compass, Sliders, Layers, 
-  Share2, RefreshCw, FileText
+  Share2, RefreshCw, FileText, ArrowRightLeft, Table
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
@@ -16,6 +16,12 @@ import {
 import { MorphologyVisualizer } from './MorphologyVisualizer';
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
+import { SCHERRER_PRESETS, BURGERS_VECTOR_PRESETS } from './scherrer/ScherrerPresets';
+import { ScherrerDeconvolutionVisualizer } from './scherrer/ScherrerDeconvolutionVisualizer';
+import { ScherrerModelComparison } from './scherrer/ScherrerModelComparison';
+import { MonshiScherrerLinearView } from './scherrer/MonshiScherrerLinearView';
+import { ScherrerPeakTableEditor } from './scherrer/ScherrerPeakTableEditor';
+import { ScherrerAdvisorView } from './scherrer/ScherrerAdvisorView';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import scherrerBg from '../src/assets/images/scherrer_bg_1785502401694.jpg';
@@ -53,53 +59,6 @@ const MATERIAL_DENSITIES = [
   { label: 'Custom Density', density: 2.33, crystal: 'User-defined' }
 ];
 
-const SCHERRER_PRESETS = [
-  { 
-    name: 'Silicon (NIST 640d)', 
-    data: "28.442, 0.125, 100, 1, 1, 1\n47.302, 0.152, 55, 2, 2, 0\n56.123, 0.180, 32, 3, 1, 1\n69.130, 0.210, 18, 4, 0, 0\n76.377, 0.235, 12, 3, 3, 1", 
-    wavelength: 1.5406, 
-    k: 0.94, 
-    kLabel: 'Spherical',
-    density: 2.33,
-    materialLabel: 'Silicon (Si)',
-    desc: 'High-crystallinity standard with indexed (hkl) planes.',
-    icon: '💎'
-  },
-  { 
-    name: 'Zinc Oxide (Nano)', 
-    data: "31.77, 0.38, 57, 1, 0, 0\n34.42, 0.32, 44, 0, 0, 2\n36.25, 0.42, 100, 1, 0, 1\n47.54, 0.48, 23, 1, 0, 2\n56.60, 0.52, 32, 1, 1, 0\n62.86, 0.55, 28, 1, 0, 3", 
-    wavelength: 1.5406, 
-    k: 0.94, 
-    kLabel: 'Spherical',
-    density: 5.61,
-    materialLabel: 'Zinc Oxide (ZnO)',
-    desc: 'Hexagonal wurtzite nanoparticles with (hkl) anisotropic growth.',
-    icon: '⚪'
-  },
-  { 
-    name: 'TiO₂ Anatase Nano', 
-    data: "25.28, 0.48, 100, 1, 0, 1\n37.80, 0.54, 20, 0, 0, 4\n48.05, 0.58, 35, 2, 0, 0\n53.89, 0.62, 20, 1, 0, 5\n55.06, 0.63, 20, 2, 1, 1", 
-    wavelength: 1.5406, 
-    k: 0.943, 
-    kLabel: 'Cubic {100}',
-    density: 3.89,
-    materialLabel: 'TiO₂ Anatase',
-    desc: 'Photocatalytic titania with facet-dependent broadening.',
-    icon: '✨'
-  },
-  { 
-    name: 'Au Nanorods', 
-    data: "38.19, 0.35, 100, 1, 1, 1\n44.39, 0.68, 52, 2, 0, 0\n64.58, 0.42, 31, 2, 2, 0\n77.55, 0.74, 36, 3, 1, 1", 
-    wavelength: 1.5406, 
-    k: 1.1, 
-    kLabel: 'Nanowires/Rods',
-    density: 19.30,
-    materialLabel: 'Gold (Au)',
-    desc: 'High aspect ratio 1D gold nanorods with anisotropic axial growth.',
-    icon: '┃'
-  }
-];
-
 export const ScherrerModule: React.FC = () => {
   const { precision, lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
@@ -112,6 +71,10 @@ export const ScherrerModule: React.FC = () => {
   );
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'de Keijser' | 'Halder-Wagner'>('Gaussian');
+  const [breadthType, setBreadthType] = useState<'fwhm' | 'integral_breadth'>('fwhm');
+  const [pseudoVoigtEta, setPseudoVoigtEta] = useState<number>(0.5);
+  const [burgersVectorNm, setBurgersVectorNm] = useState<number>(0.256);
+  const [inputMode, setInputMode] = useState<'table' | 'csv'>('table');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   
   // Material density state for Specific Surface Area (SSA) calculation
@@ -119,7 +82,9 @@ export const ScherrerModule: React.FC = () => {
   const [materialDensity, setMaterialDensity] = useState<number>(2.33);
 
   // Active visualization tab for right panel charts
-  const [chartViewMode, setChartViewMode] = useState<'histogram' | 'trend' | 'microstructure' | 'anisotropy'>('histogram');
+  const [chartViewMode, setChartViewMode] = useState<
+    'histogram' | 'trend' | 'microstructure' | 'anisotropy' | 'models' | 'monshi' | 'simulator' | 'advisor'
+  >('histogram');
 
   // Derivation interactive simulator parameters
   const [simPlaneCount, setSimPlaneCount] = useState<number>(25);
@@ -318,6 +283,45 @@ export const ScherrerModule: React.FC = () => {
     return { slope: Math.max(0, slope), rSquared };
   }, [validResults]);
 
+  // Model comparison summary (averages across all valid peaks)
+  const modelComparisonSummary = useMemo(() => {
+    if (validResults.length === 0) {
+      return { gaussian: 0, lorentzian: 0, pseudoVoigt: 0, deKeijser: 0, halderWagner: 0 };
+    }
+    const avgFor = (key: 'gaussian' | 'lorentzian' | 'pseudoVoigt' | 'deKeijser' | 'halderWagner') => {
+      const vals = validResults.map(r => r.modelComparison ? r.modelComparison[key] : r.sizeNm);
+      return vals.reduce((a, b) => a + b, 0) / vals.length;
+    };
+    return {
+      gaussian: avgFor('gaussian'),
+      lorentzian: avgFor('lorentzian'),
+      pseudoVoigt: avgFor('pseudoVoigt'),
+      deKeijser: avgFor('deKeijser'),
+      halderWagner: avgFor('halderWagner')
+    };
+  }, [validResults]);
+
+  // Helper to parse input data into structured peak objects for the interactive editor
+  const parsedPeaksList = useMemo(() => {
+    return parseScherrerInput(inputData);
+  }, [inputData]);
+
+  // Helper to serialize peaks back to inputData string
+  const handlePeaksTableChange = (newPeaks: ScherrerInput[]) => {
+    const text = newPeaks.map(p => {
+      const parts: (string | number)[] = [
+        p.twoTheta.toFixed(3),
+        p.fwhmObs.toFixed(3),
+        p.intensity !== undefined ? p.intensity : 100
+      ];
+      if (p.hkl && p.hkl.length === 3) {
+        parts.push(p.hkl[0], p.hkl[1], p.hkl[2]);
+      }
+      return parts.join(', ');
+    }).join('\n');
+    setInputData(text);
+  };
+
   // Histogram data with Log-Normal fitting curve overlay
   const histogramData = useMemo(() => {
     if (validResults.length === 0) return [];
@@ -505,7 +509,17 @@ export const ScherrerModule: React.FC = () => {
           const currentInstFwhm = useCaglioti 
             ? Math.sqrt(Math.max(0.000001, caglioti.u * Math.pow(Math.tan(thetaRad), 2) + caglioti.v * Math.tan(thetaRad) + caglioti.w))
             : instFwhm;
-          return calculateScherrer(wavelength, constantK, currentInstFwhm, p, broadeningModel, materialDensity);
+          return calculateScherrer(
+            wavelength, 
+            constantK, 
+            currentInstFwhm, 
+            p, 
+            broadeningModel, 
+            materialDensity,
+            pseudoVoigtEta,
+            breadthType,
+            burgersVectorNm
+          );
         })
         .filter((r): r is ScherrerResult => r !== null); 
       
@@ -542,6 +556,9 @@ export const ScherrerModule: React.FC = () => {
         constantK,
         instFwhm,
         broadeningModel,
+        breadthType,
+        pseudoVoigtEta,
+        burgersVectorNm,
         peaksCount: peaks.length,
         selectedMaterial
       }, {
@@ -556,6 +573,9 @@ export const ScherrerModule: React.FC = () => {
         useCaglioti,
         caglioti,
         broadeningModel,
+        breadthType,
+        pseudoVoigtEta,
+        burgersVectorNm,
         results: computed,
         avgSize: calculatedAvg,
         averageType,
@@ -632,26 +652,26 @@ export const ScherrerModule: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-5 relative z-10">
+          <div className="space-y-4 relative z-10">
             {/* Source Wavelength */}
-            <div className="bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex items-center gap-2 mb-3 justify-between">
+            <div className="bg-slate-900/60 p-5 sm:p-6 rounded-2xl border border-slate-800 transition-colors">
+              <div className="flex items-center gap-2 mb-4 justify-between">
                 <div className="flex items-center gap-2">
-                  <Ruler className="w-3.5 h-3.5 text-amber-400" />
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <Ruler className="w-4 h-4 text-amber-400" />
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
                     Source Wavelength [{lengthUnit}]
                   </label>
                 </div>
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                   <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Source</span>
+                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Source</span>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col pointer-events-none z-10">
-                    <span className="text-[8px] font-black text-slate-500 uppercase leading-none mb-1">Energy</span>
-                    <span className="text-xs font-black text-emerald-400 font-mono tracking-tighter">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase leading-none mb-1">Energy</span>
+                    <span className="text-[11px] font-bold text-emerald-400 font-mono tracking-tighter">
                       {(12.398 / (wavelength || 1.5406)).toFixed(2)} keV
                     </span>
                   </div>
@@ -660,28 +680,28 @@ export const ScherrerModule: React.FC = () => {
                     step="0.0001"
                     value={String(wavelength) === 'NaN' ? '' : convertLength(wavelength, lengthUnit)}
                     onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
-                    className="w-full pl-24 pr-4 py-3.5 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-2xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-base font-black transition-all shadow-inner"
+                    className="w-full pl-24 pr-4 py-3 bg-slate-950/80 text-amber-400 border border-slate-700/60 focus:border-amber-500/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-base font-bold transition-all shadow-inner"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
-                    <div className="h-4 w-[1px] bg-slate-800 mr-2" />
-                    <span className="text-[10px] font-black text-slate-600 uppercase">Lambda</span>
+                    <div className="h-4 w-[1px] bg-slate-700 mr-2" />
+                    <span className="text-[11px] font-bold text-slate-500 uppercase">Lambda</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-4 gap-2">
                   {Object.entries(XRAY_WAVELENGTHS).map(([name, val]) => (
                     <button
                       key={name}
                       onClick={() => setWavelength(val)}
-                      className={`py-2 px-1 rounded-xl border text-[8px] font-black uppercase tracking-tight transition-all active:scale-95 flex flex-col items-center justify-center gap-0.5 cursor-pointer
+                      className={`py-2 px-1.5 rounded-xl border text-[9px] sm:text-[10px] font-bold uppercase tracking-tight transition-all active:scale-95 flex flex-col items-center justify-center gap-0.5 cursor-pointer
                         ${Math.abs(wavelength - val) < 0.0001 
-                          ? 'bg-amber-500/20 border-amber-500/50 text-amber-400 font-bold' 
-                          : 'bg-black/20 border-slate-700/50 text-slate-500 hover:border-slate-600 hover:text-slate-300'
+                          ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 shadow-sm' 
+                          : 'bg-slate-950/40 border-slate-800 text-slate-500 hover:border-slate-700 hover:bg-slate-900 hover:text-slate-300'
                         }
                       `}
                     >
                       <span className="truncate w-full text-center">{name.replace(' Kα', '').replace(' (avg)', '')}</span>
-                      <span className="opacity-60 text-[7px] font-mono">{convertLength(val, lengthUnit).toFixed(lengthUnit === 'nm' ? 4 : 2)} {lengthUnit}</span>
+                      <span className="opacity-60 text-[9px] font-mono">{convertLength(val, lengthUnit).toFixed(lengthUnit === 'nm' ? 4 : 2)}</span>
                     </button>
                   ))}
                 </div>
@@ -689,23 +709,23 @@ export const ScherrerModule: React.FC = () => {
             </div>
 
             {/* Shape Factor K Dropdown */}
-            <div className="bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex items-center gap-2 mb-3">
-                <Atom className="w-3.5 h-3.5 text-amber-400" />
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <div className="bg-slate-900/60 p-5 sm:p-6 rounded-2xl border border-slate-800 transition-colors">
+              <div className="flex items-center gap-2 mb-4">
+                <Atom className="w-4 h-4 text-amber-400" />
+                <label className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
                   Shape Factor [K]
                 </label>
               </div>
-              <div className="space-y-3 relative" ref={kMenuRef}>
+              <div className="space-y-4 relative" ref={kMenuRef}>
                 <button
                   onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
-                  className="w-full px-4 py-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner cursor-pointer"
+                  className="w-full px-4 py-3 bg-slate-950/80 hover:bg-slate-900 border border-slate-700/60 hover:border-amber-500/40 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">
                       {K_FACTORS.find(k => k.label === selectedKType)?.icon || '✎'}
                     </span>
-                    <div className="flex flex-col items-start gap-0.5">
+                    <div className="flex flex-col items-start gap-1">
                       <span className="text-sm font-bold text-white leading-none">
                         {selectedKType}
                       </span>
@@ -721,7 +741,7 @@ export const ScherrerModule: React.FC = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-12 left-0 right-0 mt-2 bg-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden z-50 py-1 max-h-72 overflow-y-auto custom-scrollbar"
+                      className="absolute top-14 left-0 right-0 mt-2 bg-slate-900 rounded-xl border border-slate-700 shadow-2xl overflow-hidden z-50 py-1 max-h-72 overflow-y-auto custom-scrollbar"
                     >
                       {K_FACTORS.map((k) => (
                         <button
@@ -731,19 +751,19 @@ export const ScherrerModule: React.FC = () => {
                             if (k.value !== 0) setConstantK(k.value);
                             setIsKTypeMenuOpen(false);
                           }}
-                          className={`w-full px-4 py-2.5 flex items-center justify-between hover:bg-slate-800 transition-colors group/item cursor-pointer text-left
+                          className={`w-full px-4 py-3 flex items-center justify-between hover:bg-slate-800 transition-colors group/item cursor-pointer text-left
                             ${selectedKType === k.label ? 'bg-amber-500/10' : ''}
                           `}
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <span className="text-xl bg-slate-950 w-9 h-9 flex items-center justify-center rounded-lg border border-slate-800 group-hover/item:border-amber-500/30 shrink-0">
+                            <span className="text-xl bg-slate-950 w-10 h-10 flex items-center justify-center rounded-xl border border-slate-800 group-hover/item:border-amber-500/30 shrink-0">
                               {k.icon}
                             </span>
                             <div className="flex flex-col min-w-0">
-                              <span className={`text-xs font-bold transition-colors ${selectedKType === k.label ? 'text-amber-400' : 'text-slate-200'}`}>
+                              <span className={`text-sm font-bold transition-colors ${selectedKType === k.label ? 'text-amber-400' : 'text-slate-200'}`}>
                                 {k.label} {k.value !== 0 && `(K = ${k.value})`}
                               </span>
-                              <span className="text-[10px] text-slate-400 truncate mt-0.5">
+                              <span className="text-[11px] text-slate-400 truncate mt-0.5">
                                 {k.desc}
                               </span>
                             </div>
@@ -755,8 +775,8 @@ export const ScherrerModule: React.FC = () => {
                   )}
                 </AnimatePresence>
                 
-                <div className="flex items-center gap-3">
-                  <div className="relative w-24">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative w-full sm:w-28">
                     <input
                       type="number"
                       step="0.01"
@@ -765,12 +785,12 @@ export const ScherrerModule: React.FC = () => {
                         setConstantK(parseFloat(e.target.value));
                         setSelectedKType('Custom');
                       }}
-                      className="w-full px-3 py-2.5 bg-black/60 text-amber-400 border border-slate-700/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 outline-none font-mono text-xs font-black transition-all text-center"
+                      className="w-full px-3 py-3 bg-slate-950/80 text-amber-400 border border-slate-700/60 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 outline-none font-mono text-sm font-bold transition-all text-center shadow-inner"
                     />
                   </div>
-                  <div className="flex-1 flex items-start gap-2 text-[9px] font-bold text-slate-400 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/50 min-h-[44px]">
-                    <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                    <span className="leading-tight uppercase tracking-wider">
+                  <div className="flex-1 flex items-start gap-2 text-[11px] font-medium text-slate-400 bg-slate-950/40 p-3 rounded-xl border border-slate-800/80">
+                    <Info className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span className="leading-relaxed">
                        {K_FACTORS.find(k => k.label.includes(selectedKType) || k.label === selectedKType)?.desc || 'Dimensionless shape factor.'}
                     </span>
                   </div>
@@ -779,19 +799,21 @@ export const ScherrerModule: React.FC = () => {
             </div>
 
             {/* Decoupling & Broadening Kernel Models */}
-            <div className="bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex items-center gap-2 mb-3 justify-between">
+            <div className="bg-slate-900/60 p-5 sm:p-6 rounded-2xl border border-slate-800 transition-colors space-y-5">
+              <div className="flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
-                   <Settings className="w-3.5 h-3.5 text-amber-400" />
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                   <Settings className="w-4 h-4 text-amber-400" />
+                   <label className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
                      Convolution Kernel
                    </label>
                 </div>
-                <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-amber-400">
+                <span className="text-[10px] font-mono font-bold px-2 py-1 rounded bg-slate-950 border border-slate-800 text-amber-400">
                   {broadeningModel}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
+
+              {/* Broadening Model Selector */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                  {[
                    { id: 'Gaussian', label: 'Gaussian', tag: 'β²_s = β²_o - β²_i' },
                    { id: 'Lorentzian', label: 'Lorentzian', tag: 'β_s = β_o - β_i' },
@@ -802,15 +824,102 @@ export const ScherrerModule: React.FC = () => {
                    <button
                      key={model.id}
                      onClick={() => setBroadeningModel(model.id as any)}
-                     className={`py-2 px-1.5 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5
-                       ${broadeningModel === model.id ? 'bg-amber-500/20 border-amber-500/50 text-amber-400 font-bold' : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300'}
+                     className={`py-2.5 px-2 rounded-xl border text-[10px] font-bold uppercase tracking-tight transition-all cursor-pointer flex flex-col items-center justify-center gap-1
+                       ${broadeningModel === model.id ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 shadow-sm' : 'bg-slate-950/40 border-slate-800 text-slate-500 hover:text-slate-300 hover:bg-slate-900 hover:border-slate-700'}
                      `}
                    >
                      <span>{model.label}</span>
                    </button>
                  ))}
               </div>
-              <div className="mt-3 p-3 bg-black/40 rounded-xl border border-slate-800/50 text-[9px] font-mono text-slate-400 leading-relaxed">
+
+              {/* Breadth Definition Type: FWHM vs Integral Breadth */}
+              <div className="pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Breadth Type (β):
+                </span>
+                <div className="flex p-1 bg-slate-950/60 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setBreadthType('fwhm')}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all cursor-pointer ${
+                      breadthType === 'fwhm' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    FWHM (2w)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBreadthType('integral_breadth')}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all cursor-pointer ${
+                      breadthType === 'integral_breadth' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    Integral Breadth (β)
+                  </button>
+                </div>
+              </div>
+
+              {/* Pseudo-Voigt η (Eta) profile shape parameter */}
+              {(broadeningModel === 'Pseudo-Voigt' || breadthType === 'integral_breadth') && (
+                <div className="p-4 bg-slate-950/40 rounded-xl border border-slate-800/80 space-y-3">
+                  <div className="flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-slate-400 font-bold">Voigt Shape Factor (η):</span>
+                    <span className="text-amber-400 font-bold">{pseudoVoigtEta.toFixed(2)} ({Math.round(pseudoVoigtEta * 100)}% Lorentz)</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.02"
+                    value={pseudoVoigtEta}
+                    onChange={(e) => setPseudoVoigtEta(parseFloat(e.target.value))}
+                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  />
+                  <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                    <span>Pure Gaussian (η=0)</span>
+                    <span>Cauchy/Lorentz (η=1)</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Burgers Vector b for Williamson-Smallman Microstrain Dislocation Coupling */}
+              <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Burgers Vector [b] (for δ_WS):
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-amber-400">{burgersVectorNm.toFixed(3)} nm</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {BURGERS_VECTOR_PRESETS.slice(0, 4).map(bp => (
+                    <button
+                      key={bp.label}
+                      type="button"
+                      onClick={() => setBurgersVectorNm(bp.value)}
+                      className={`px-2 py-2 rounded-lg text-[10px] font-mono transition-all cursor-pointer truncate ${
+                        burgersVectorNm === bp.value
+                          ? 'bg-amber-500/10 text-amber-300 border border-amber-500/40 shadow-sm'
+                          : 'bg-slate-950/40 text-slate-500 border border-slate-800 hover:bg-slate-900 hover:text-slate-300 hover:border-slate-700'
+                      }`}
+                    >
+                      {bp.label.split(' ')[0]}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.001"
+                    value={burgersVectorNm}
+                    onChange={(e) => setBurgersVectorNm(parseFloat(e.target.value) || 0.256)}
+                    className="w-full px-4 py-3 bg-slate-950/80 text-amber-400 border border-slate-700/60 rounded-xl outline-none font-mono text-sm font-bold shadow-inner focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">nm (lattice b)</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-800/80 text-[11px] font-mono text-slate-400 leading-relaxed">
                 {broadeningModel === 'Gaussian' && 'Quadratic subtraction (β²_s = β²_o - β²_i). Best for strain dominance.'}
                 {broadeningModel === 'Lorentzian' && 'Linear subtraction (β_s = β_o - β_i). Best for small crystallite size dominance.'}
                 {broadeningModel === 'Pseudo-Voigt' && 'Mixed Voigt decoupling: β_s = β_o (1 - (β_i/β_o)²). Optimal for general XRD.'}
@@ -820,24 +929,24 @@ export const ScherrerModule: React.FC = () => {
             </div>
 
             {/* Resolution Profile (Instrument Broadening / Caglioti) */}
-            <div className="bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex items-center gap-2 mb-3 justify-between">
+            <div className="bg-slate-900/60 p-5 sm:p-6 rounded-2xl border border-slate-800 transition-colors space-y-4">
+              <div className="flex items-center gap-2 mb-4 justify-between">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-3.5 h-3.5 text-amber-400" />
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <Activity className="w-4 h-4 text-amber-400" />
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
                     Instrument Broadening (β_inst)
                   </label>
                 </div>
-                <div className="flex p-0.5 bg-black/40 rounded-lg border border-slate-700/50">
+                <div className="flex p-1 bg-slate-950/60 rounded-xl border border-slate-800">
                    <button 
                      onClick={() => setUseCaglioti(false)}
-                     className={`px-2 py-1 text-[8px] font-black uppercase tracking-widest rounded-md transition-all cursor-pointer ${!useCaglioti ? 'bg-amber-500 text-black font-extrabold' : 'text-slate-500 hover:text-slate-300'}`}
+                     className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all cursor-pointer ${!useCaglioti ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                    >
                      Fixed
                    </button>
                    <button 
                      onClick={() => setUseCaglioti(true)}
-                     className={`px-2 py-1 text-[8px] font-black uppercase tracking-widest rounded-md transition-all cursor-pointer ${useCaglioti ? 'bg-amber-500 text-black font-extrabold' : 'text-slate-500 hover:text-slate-300'}`}
+                     className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all cursor-pointer ${useCaglioti ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                    >
                      Caglioti
                    </button>
@@ -845,23 +954,23 @@ export const ScherrerModule: React.FC = () => {
               </div>
 
               {!useCaglioti ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="relative">
                     <input
                       type="number"
                       step="0.001"
                       value={String(instFwhm) === 'NaN' ? '' : instFwhm}
                       onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
-                      className="w-full px-4 py-2.5 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm font-black transition-all"
+                      className="w-full px-4 py-3 bg-slate-950/80 text-amber-400 border border-slate-700/60 focus:border-amber-500/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm font-bold transition-all shadow-inner"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-600 uppercase tracking-widest pointer-events-none">deg (β_inst)</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-600 uppercase tracking-widest pointer-events-none">deg (β_inst)</span>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                      {[0, 0.05, 0.08, 0.12].map(val => (
                        <button 
                          key={val}
                          onClick={() => setInstFwhm(val)}
-                         className={`flex-1 py-1 rounded-lg border text-[9px] font-mono font-black transition-all cursor-pointer ${instFwhm === val ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-black/20 border-slate-800 text-slate-600 hover:text-slate-400'}`}
+                         className={`flex-1 py-2 rounded-xl border text-[10px] font-mono font-bold transition-all cursor-pointer ${instFwhm === val ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 shadow-sm' : 'bg-slate-950/40 border-slate-800 text-slate-600 hover:text-slate-400 hover:border-slate-700'}`}
                        >
                          {val === 0 ? '0 (Raw)' : `${val}°`}
                        </button>
@@ -869,43 +978,43 @@ export const ScherrerModule: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-1.5 mb-2">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-2">
                     {CAGLIOTI_PRESETS.map(p => (
                       <button
                         key={p.label}
                         onClick={() => setCaglioti({ u: p.u, v: p.v, w: p.w })}
-                        className={`px-2 py-1.5 rounded-xl border text-[8px] font-black uppercase tracking-tight text-center leading-tight transition-all cursor-pointer
-                          ${caglioti.u === p.u ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-black/20 border-slate-800 text-slate-600 hover:text-slate-400'}
+                        className={`px-2 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-tight text-center leading-tight transition-all cursor-pointer
+                          ${caglioti.u === p.u ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 shadow-sm' : 'bg-slate-950/40 border-slate-800 text-slate-600 hover:text-slate-400 hover:border-slate-700 hover:bg-slate-900'}
                         `}
                       >
                         {p.label.split(' ')[0]}
                       </button>
                     ))}
                   </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">U (tan²θ)</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">U (tan²θ)</label>
                       <input 
                         type="number" step="0.001" value={String(caglioti.u) === 'NaN' ? '' : caglioti.u} 
                         onChange={(e) => setCaglioti({...caglioti, u: parseFloat(e.target.value)})}
-                        className="w-full px-2 py-1.5 bg-black/40 text-amber-400 border border-slate-800 rounded-lg outline-none font-mono text-[10px] font-black focus:border-amber-500/30" 
+                        className="w-full px-3 py-2 bg-slate-950/80 text-amber-400 border border-slate-700/60 rounded-xl outline-none font-mono text-xs font-bold focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 shadow-inner" 
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">V (tanθ)</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">V (tanθ)</label>
                       <input 
                         type="number" step="0.001" value={String(caglioti.v) === 'NaN' ? '' : caglioti.v} 
                         onChange={(e) => setCaglioti({...caglioti, v: parseFloat(e.target.value)})}
-                        className="w-full px-2 py-1.5 bg-black/40 text-amber-400 border border-slate-800 rounded-lg outline-none font-mono text-[10px] font-black focus:border-amber-500/30" 
+                        className="w-full px-3 py-2 bg-slate-950/80 text-amber-400 border border-slate-700/60 rounded-xl outline-none font-mono text-xs font-bold focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 shadow-inner" 
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">W (const)</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">W (const)</label>
                       <input 
                         type="number" step="0.001" value={String(caglioti.w) === 'NaN' ? '' : caglioti.w} 
                         onChange={(e) => setCaglioti({...caglioti, w: parseFloat(e.target.value)})}
-                        className="w-full px-2 py-1.5 bg-black/40 text-amber-400 border border-slate-800 rounded-lg outline-none font-mono text-[10px] font-black focus:border-amber-500/30" 
+                        className="w-full px-3 py-2 bg-slate-950/80 text-amber-400 border border-slate-700/60 rounded-xl outline-none font-mono text-xs font-bold focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 shadow-inner" 
                       />
                     </div>
                   </div>
@@ -914,17 +1023,17 @@ export const ScherrerModule: React.FC = () => {
             </div>
 
             {/* Material Density Preset for SSA Calculation */}
-            <div className="bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex items-center gap-2 mb-3 justify-between">
+            <div className="bg-slate-900/60 p-5 sm:p-6 rounded-2xl border border-slate-800 transition-colors">
+              <div className="flex items-center gap-2 mb-4 justify-between">
                 <div className="flex items-center gap-2">
-                  <Layers className="w-3.5 h-3.5 text-amber-400" />
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <Layers className="w-4 h-4 text-amber-400" />
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
                     Material Density (ρ for SSA)
                   </label>
                 </div>
-                <span className="text-[9px] font-mono font-bold text-amber-400">{materialDensity.toFixed(2)} g/cm³</span>
+                <span className="text-[11px] font-mono font-bold text-amber-400">{materialDensity.toFixed(2)} g/cm³</span>
               </div>
-              <div className="grid grid-cols-3 gap-1.5 mb-2">
+              <div className="grid grid-cols-3 gap-2 mb-3">
                 {MATERIAL_DENSITIES.slice(0, 6).map(mat => (
                   <button
                     key={mat.label}
@@ -932,8 +1041,8 @@ export const ScherrerModule: React.FC = () => {
                       setSelectedMaterial(mat.label);
                       setMaterialDensity(mat.density);
                     }}
-                    className={`px-1.5 py-1.5 rounded-lg border text-[8px] font-black uppercase tracking-tight text-center transition-all cursor-pointer truncate
-                      ${selectedMaterial === mat.label ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300'}
+                    className={`px-2 py-2 rounded-xl border text-[10px] font-bold uppercase tracking-tight text-center transition-all cursor-pointer truncate
+                      ${selectedMaterial === mat.label ? 'bg-amber-500/10 border-amber-500/40 text-amber-400 shadow-sm' : 'bg-slate-950/40 border-slate-800 text-slate-500 hover:bg-slate-900 hover:text-slate-300 hover:border-slate-700'}
                     `}
                   >
                     {mat.label.split(' ')[0]}
@@ -949,31 +1058,53 @@ export const ScherrerModule: React.FC = () => {
                     setMaterialDensity(parseFloat(e.target.value) || 2.33);
                     setSelectedMaterial('Custom Density');
                   }}
-                  className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-xl outline-none font-mono text-xs font-black"
+                  className="w-full px-4 py-3 bg-slate-950/80 text-amber-400 border border-slate-700/60 focus:border-amber-500/50 rounded-xl outline-none font-mono text-sm font-bold shadow-inner focus:ring-2 focus:ring-amber-500/20"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-500">g/cm³</span>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500 pointer-events-none">g/cm³</span>
               </div>
             </div>
 
             {/* Peak Data Input & Presets */}
-            <div className="bg-slate-800/40 p-4 sm:p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex justify-between items-center mb-3">
+            <div className="bg-slate-900/60 p-5 sm:p-6 rounded-2xl border border-slate-800 transition-colors space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                    <Database className="w-4 h-4 text-amber-400" />
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                     Diffraction Peaks
+                   <label className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">
+                     Diffraction Reflections
                    </label>
                 </div>
-                <span className="text-[8px] font-mono font-bold text-slate-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700/50">
-                  2θ, FWHM, Int, h, k, l
-                </span>
+                
+                {/* Input Mode Toggle: Table vs CSV */}
+                <div className="flex p-1 bg-slate-950/60 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('table')}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      inputMode === 'table' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <Table className="w-3.5 h-3.5" />
+                    Interactive Table
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputMode('csv')}
+                    className={`px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                      inputMode === 'csv' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Raw CSV
+                  </button>
+                </div>
               </div>
 
               {/* Presets Grid */}
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {SCHERRER_PRESETS.map(p => (
                   <button
                     key={p.name}
+                    type="button"
                     onClick={() => {
                       setInputData(p.data);
                       setWavelength(p.wavelength);
@@ -981,27 +1112,46 @@ export const ScherrerModule: React.FC = () => {
                       setSelectedKType(p.kLabel);
                       setMaterialDensity(p.density);
                       setSelectedMaterial(p.materialLabel);
+                      if ((p as any).burgersVectorNm) setBurgersVectorNm((p as any).burgersVectorNm);
+                      if ((p as any).broadeningModel) setBroadeningModel((p as any).broadeningModel);
                     }}
-                    className="flex items-center gap-2 p-2 rounded-xl bg-black/40 border border-slate-800 hover:border-amber-500/30 hover:bg-black/60 transition-all text-left group/btn cursor-pointer"
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-950/40 border border-slate-800 hover:border-amber-500/30 hover:bg-slate-900 transition-all text-left group/btn cursor-pointer"
                   >
-                    <span className="text-base bg-slate-900 w-7 h-7 flex items-center justify-center rounded-lg border border-slate-800 group-hover/btn:border-amber-500/20 shrink-0">
+                    <span className="text-xl bg-slate-950 w-10 h-10 flex items-center justify-center rounded-xl border border-slate-800 group-hover/btn:border-amber-500/20 shrink-0">
                       {p.icon}
                     </span>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-black text-slate-200 truncate">{p.name}</span>
-                      <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wider truncate">{p.desc}</span>
+                      <span className="text-xs font-bold text-slate-200 truncate">{p.name}</span>
+                      <span className="text-[9px] font-medium text-slate-500 uppercase tracking-wider truncate mt-0.5">{p.desc}</span>
                     </div>
                   </button>
                 ))}
               </div>
 
-              <textarea
-                value={inputData}
-                onChange={(e) => setInputData(e.target.value)}
-                placeholder="28.44, 0.25, 100, 1, 1, 1&#10;47.30, 0.28, 45, 2, 2, 0"
-                className="w-full h-28 px-4 py-3 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/40 rounded-2xl focus:ring-2 focus:ring-amber-500/10 outline-none font-mono text-xs leading-relaxed resize-none transition-all shadow-inner custom-scrollbar"
-                spellCheck={false}
-              />
+              {/* Peak Editor or Textarea based on Input Mode */}
+              {inputMode === 'table' ? (
+                <div className="pt-2">
+                  <ScherrerPeakTableEditor
+                    peaks={parsedPeaksList}
+                    onChange={handlePeaksTableChange}
+                    wavelength={wavelength}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
+                    <span>Format: 2θ, FWHM_obs, Int, h, k, l</span>
+                    <span>{parsedPeaksList.length} reflections parsed</span>
+                  </div>
+                  <textarea
+                    value={inputData}
+                    onChange={(e) => setInputData(e.target.value)}
+                    placeholder="28.44, 0.25, 100, 1, 1, 1&#10;47.30, 0.28, 45, 2, 2, 0"
+                    className="w-full h-36 px-5 py-4 bg-slate-950/80 text-amber-400 border border-slate-700/60 focus:border-amber-500/50 rounded-2xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm leading-relaxed resize-none transition-all shadow-inner custom-scrollbar"
+                    spellCheck={false}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Execute Analysis Action */}
@@ -1203,66 +1353,66 @@ export const ScherrerModule: React.FC = () => {
 
             {/* 4 Microstructural Property Cards */}
             <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-0.5">Dislocation Density (δ)</span>
-                <span className="text-sm font-mono font-bold text-amber-300">{stats.avgDislocation10_14.toFixed(2)}</span>
-                <span className="text-[9px] text-slate-500 block font-mono">×10¹⁴ m⁻²</span>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 transition-all hover:bg-slate-900">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Dislocation Density (δ)</span>
+                <span className="text-lg font-mono font-bold text-amber-300">{stats.avgDislocation10_14.toFixed(2)}</span>
+                <span className="text-[10px] text-slate-500 block font-mono">×10¹⁴ m⁻²</span>
               </div>
 
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-0.5">Specific Surface (SSA)</span>
-                <span className="text-sm font-mono font-bold text-emerald-300">{stats.avgSSA.toFixed(1)}</span>
-                <span className="text-[9px] text-slate-500 block font-mono">m² / g</span>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 transition-all hover:bg-slate-900">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Specific Surface (SSA)</span>
+                <span className="text-lg font-mono font-bold text-emerald-300">{stats.avgSSA.toFixed(1)}</span>
+                <span className="text-[10px] text-slate-500 block font-mono">m² / g</span>
               </div>
 
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-0.5">Coherent Planes (N)</span>
-                <span className="text-sm font-mono font-bold text-indigo-300">~{stats.avgCoherentPlanes}</span>
-                <span className="text-[9px] text-slate-500 block font-mono">lattice layers</span>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 transition-all hover:bg-slate-900">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Coherent Planes (N)</span>
+                <span className="text-lg font-mono font-bold text-indigo-300">~{stats.avgCoherentPlanes}</span>
+                <span className="text-[10px] text-slate-500 block font-mono">lattice layers</span>
               </div>
 
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block mb-0.5">Anisotropy Ratio</span>
-                <span className="text-sm font-mono font-bold text-purple-300">{stats.anisotropyIndex.toFixed(2)}:1</span>
-                <span className="text-[9px] text-slate-500 block font-mono">D_max / D_min</span>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 transition-all hover:bg-slate-900">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Anisotropy Ratio</span>
+                <span className="text-lg font-mono font-bold text-purple-300">{stats.anisotropyIndex.toFixed(2)}:1</span>
+                <span className="text-[10px] text-slate-500 block font-mono">D_max / D_min</span>
               </div>
             </div>
           </div>
 
           {/* Statistical Averages Bar & Method Selector */}
-          <div className="mt-5 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 relative z-10">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Averaging Method:</span>
-              <div className="flex bg-black/60 p-1 rounded-xl border border-slate-800 gap-1">
+          <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Averaging Method:</span>
+              <div className="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800 gap-1.5">
                 <button
                   onClick={() => setAverageType('weighted')}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
                     averageType === 'weighted'
-                      ? 'bg-amber-500 text-black font-extrabold shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
                   }`}
                 >
                   <span>Intensity Weighted</span>
-                  <span className="font-mono text-[9px]">({exactWeighted.toFixed(1)} nm)</span>
+                  <span className="font-mono text-[10px]">({exactWeighted.toFixed(1)} nm)</span>
                 </button>
                 <button
                   onClick={() => setAverageType('arithmetic')}
-                  className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
                     averageType === 'arithmetic'
-                      ? 'bg-amber-500 text-black font-extrabold shadow-sm'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
                   }`}
                 >
                   <span>Arithmetic Mean</span>
-                  <span className="font-mono text-[9px]">({exactArithmetic.toFixed(1)} nm)</span>
+                  <span className="font-mono text-[10px]">({exactArithmetic.toFixed(1)} nm)</span>
                 </button>
               </div>
             </div>
 
             {/* Volume-Weighted & Area-Weighted Display */}
-            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+            <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/80">
               <span>D_V: <strong className="text-amber-300">{volumeWeighted.toFixed(1)} nm</strong></span>
-              <span className="text-slate-600">•</span>
+              <span className="text-slate-600">/</span>
               <span>D_A: <strong className="text-indigo-300">{areaWeighted.toFixed(1)} nm</strong></span>
             </div>
           </div>
@@ -1270,26 +1420,30 @@ export const ScherrerModule: React.FC = () => {
 
         {/* Multi-Tab Visualization Panels (Histogram, Trend vs 2θ, Microstructure, Anisotropy) */}
         {results.length > 0 && validResults.length > 0 && (
-          <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-4">
+          <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 lg:p-8 shadow-2xl relative overflow-hidden space-y-6">
             {/* View Selector Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                  <BarChart2 className="h-4 w-4 text-indigo-400" />
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 border-b border-slate-800/80 pb-5">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                  <BarChart2 className="h-5 w-5 text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-white uppercase tracking-wider">Crystallite Visualizer & Diagnostics</h3>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Multi-Peak Distribution & Facet Profiles</p>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Crystallite Visualizer & Diagnostics</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Multi-Peak Distribution & Facet Profiles</p>
                 </div>
               </div>
 
               {/* Tab Selector Buttons */}
-              <div className="flex bg-slate-900/90 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
+              <div className="flex flex-wrap items-center bg-slate-950/60 p-1.5 rounded-2xl border border-slate-800 gap-1.5 text-xs">
                 {[
-                  { id: 'histogram', label: 'Size Distribution & PDF', icon: BarChart2 },
-                  { id: 'trend', label: 'Size vs 2θ & Inst. Limit', icon: TrendingUp },
+                  { id: 'histogram', label: 'Distribution & PDF', icon: BarChart2 },
+                  { id: 'trend', label: 'Size vs 2θ & Limit', icon: TrendingUp },
                   { id: 'microstructure', label: 'Dislocation & SSA', icon: Zap },
-                  { id: 'anisotropy', label: 'Anisotropic (hkl) Facets', icon: Compass }
+                  { id: 'anisotropy', label: 'Anisotropic (hkl)', icon: Compass },
+                  { id: 'models', label: 'Model Sensitivity', icon: ArrowRightLeft },
+                  { id: 'monshi', label: 'Monshi-Scherrer', icon: Activity },
+                  { id: 'simulator', label: 'Profile Simulator', icon: Sliders },
+                  { id: 'advisor', label: 'AI Advisor', icon: Sparkles }
                 ].map(tab => {
                   const Icon = tab.icon;
                   const isActive = chartViewMode === tab.id;
@@ -1297,13 +1451,13 @@ export const ScherrerModule: React.FC = () => {
                     <button
                       key={tab.id}
                       onClick={() => setChartViewMode(tab.id as any)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                      className={`flex-1 min-w-[140px] px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         isActive
-                          ? 'bg-indigo-600 text-white font-bold shadow-md'
-                          : 'text-slate-400 hover:text-slate-200'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/80'
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5" />
+                      <Icon className="w-4 h-4" />
                       <span>{tab.label}</span>
                     </button>
                   );
@@ -1512,6 +1666,67 @@ export const ScherrerModule: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* TAB 5: Cross-Model Sensitivity Comparison */}
+            {chartViewMode === 'models' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ScherrerModelComparison results={results} activeModel={broadeningModel} />
+              </motion.div>
+            )}
+
+            {/* TAB 6: Monshi-Scherrer Linearization */}
+            {chartViewMode === 'monshi' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <MonshiScherrerLinearView results={results} wavelength={wavelength} kFactor={constantK} />
+              </motion.div>
+            )}
+
+            {/* TAB 7: Interactive Peak Deconvolution Visualizer Simulator */}
+            {chartViewMode === 'simulator' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ScherrerDeconvolutionVisualizer 
+                  wavelength={wavelength} 
+                  kFactor={constantK} 
+                  currentInstFwhm={instFwhm} 
+                />
+              </motion.div>
+            )}
+
+            {/* TAB 8: AI Crystallographic Sizing Advisor */}
+            {chartViewMode === 'advisor' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ScherrerAdvisorView
+                  materialName={selectedMaterial}
+                  wavelength={wavelength}
+                  shapeFactorK={constantK}
+                  kLabel={selectedKType}
+                  broadeningModel={broadeningModel}
+                  breadthType={breadthType}
+                  meanSizeNm={avgSize}
+                  stats={stats}
+                  anisotropicFacets={anisotropyData.map(d => ({ hkl: d.name, twoTheta: d.twoTheta, sizeNm: d.size }))}
+                  whStrainTriage={whStrainTriage}
+                  modelComparisonSummary={modelComparisonSummary}
+                  results={results}
+                />
+              </motion.div>
+            )}
           </div>
         )}
 
@@ -1622,35 +1837,42 @@ export const ScherrerModule: React.FC = () => {
               <table className="w-full text-left text-slate-300 border-collapse text-xs">
                 <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-950/90 sticky top-0 backdrop-blur-xl z-20 border-b border-slate-800">
                   <tr>
-                    <th scope="col" className="px-5 py-4 font-black">2θ [deg]</th>
-                    <th scope="col" className="px-5 py-4 font-black">(hkl)</th>
-                    <th scope="col" className="px-5 py-4 font-black">d-Spacing [Å]</th>
-                    <th scope="col" className="px-5 py-4 font-black">FWHM Obs [°]</th>
-                    <th scope="col" className="px-5 py-4 font-black">β_corr [°]</th>
-                    <th scope="col" className="px-5 py-4 font-black">Dislocation (δ)</th>
-                    <th scope="col" className="px-5 py-4 font-black">SSA [m²/g]</th>
-                    <th scope="col" className="px-5 py-4 font-black text-right"><span className="text-amber-400 font-extrabold">Size D [nm]</span></th>
+                    <th scope="col" className="px-4 py-4 font-black">2θ [deg]</th>
+                    <th scope="col" className="px-4 py-4 font-black">(hkl)</th>
+                    <th scope="col" className="px-4 py-4 font-black">d-Spacing</th>
+                    <th scope="col" className="px-4 py-4 font-black">β_obs [°]</th>
+                    <th scope="col" className="px-4 py-4 font-black">β_phys [°]</th>
+                    <th scope="col" className="px-4 py-4 font-black">Dislocation (δ)</th>
+                    <th scope="col" className="px-4 py-4 font-black">App. Strain (ε)</th>
+                    <th scope="col" className="px-4 py-4 font-black">SSA [m²/g]</th>
+                    <th scope="col" className="px-4 py-4 font-black text-right"><span className="text-amber-400 font-extrabold">Size D [nm]</span></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                   {results.map((row, index) => (
                     <tr key={`${row.twoTheta}-${index}`} className="bg-slate-900/10 hover:bg-slate-800/30 transition-all">
-                      <td className="px-5 py-3.5 font-mono text-sm font-bold text-white">{row.twoTheta.toFixed(precision)}°</td>
-                      <td className="px-5 py-3.5 font-mono font-bold text-indigo-400">
+                      <td className="px-4 py-3.5 font-mono text-sm font-bold text-white">{row.twoTheta.toFixed(precision)}°</td>
+                      <td className="px-4 py-3.5 font-mono font-bold text-indigo-400">
                         {row.hkl ? `(${row.hkl.join('')})` : <span className="text-slate-600">-</span>}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-slate-300">
+                      <td className="px-4 py-3.5 font-mono text-slate-300">
                         {row.dSpacing ? `${row.dSpacing.toFixed(3)} Å` : <span className="text-slate-600">-</span>}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-slate-400">{row.fwhmObs.toFixed(precision)}°</td>
-                      <td className="px-5 py-3.5 font-mono text-slate-400">{row.betaCorrected.toFixed(precision)}°</td>
-                      <td className="px-5 py-3.5 font-mono text-amber-300">
-                        {row.dislocationDensity10_14 ? `${row.dislocationDensity10_14.toFixed(2)} ×10¹⁴` : <span className="text-slate-600">-</span>}
+                      <td className="px-4 py-3.5 font-mono text-slate-400">{row.fwhmObs.toFixed(precision)}°</td>
+                      <td className="px-4 py-3.5 font-mono text-slate-300 font-semibold">{row.betaCorrected.toFixed(precision)}°</td>
+                      <td className="px-4 py-3.5 font-mono text-amber-300">
+                        <div>{row.dislocationDensity10_14 ? `${row.dislocationDensity10_14.toFixed(2)} ×10¹⁴` : '-'}</div>
+                        {row.dislocationDensityWilliamsonSmallman && (
+                          <div className="text-[9px] text-slate-500 font-normal">WS: {row.dislocationDensityWilliamsonSmallman.toFixed(2)}</div>
+                        )}
                       </td>
-                      <td className="px-5 py-3.5 font-mono text-cyan-300">
+                      <td className="px-4 py-3.5 font-mono text-rose-300">
+                        {row.apparentStrainPercent !== undefined ? `${row.apparentStrainPercent.toFixed(3)}%` : '-'}
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-cyan-300">
                         {row.specificSurfaceAreaM2g ? `${row.specificSurfaceAreaM2g.toFixed(1)}` : <span className="text-slate-600">-</span>}
                       </td>
-                      <td className="px-5 py-3.5 text-right">
+                      <td className="px-4 py-3.5 text-right">
                         {row.error ? (
                           <span className="text-rose-400 text-[10px] font-black bg-rose-500/10 px-2.5 py-1 rounded-md uppercase tracking-widest inline-block whitespace-nowrap border border-rose-500/20">
                             Limit Exceeded
