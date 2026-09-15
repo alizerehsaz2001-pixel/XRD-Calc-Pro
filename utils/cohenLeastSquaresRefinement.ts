@@ -71,6 +71,32 @@ export interface RefinementReflectionOutput {
   relativeResidualPct: number;
 }
 
+export interface NelsonRileyPoint {
+  fTheta: number;
+  aExtrap: number;
+  cExtrap?: number;
+  vExtrap?: number;
+  hkl: string;
+  h: number;
+  k: number;
+  l: number;
+  twoTheta: number;
+  dObs: number;
+  weight: number;
+  fitLineA?: number;
+  fitLineC?: number;
+}
+
+export interface NelsonRileyFitMetrics {
+  slopeA: number;
+  interceptA: number; // extrapolated a at F=0
+  r2A: number;
+  slopeC?: number;
+  interceptC?: number; // extrapolated c at F=0
+  r2C?: number;
+  systematicModel: SystematicErrorFunction;
+}
+
 export interface CohenRefinementResult {
   converged: boolean;
   errorMessage?: string;
@@ -99,12 +125,8 @@ export interface CohenRefinementResult {
   correlationMatrix: number[][];
   parameterNames: string[];
   reflections: RefinementReflectionOutput[];
-  nelsonRileyPlotData: {
-    fTheta: number;
-    aExtrap: number;
-    hkl: string;
-    twoTheta: number;
-  }[];
+  nelsonRileyPlotData: NelsonRileyPoint[];
+  nelsonRileyFitMetrics?: NelsonRileyFitMetrics;
 }
 
 // --------------------------------------------------------------------------
@@ -539,9 +561,44 @@ export function runCohenLeastSquaresRefinement(
     sumDObs += dObs;
 
     const fTheta = evaluateDriftFunction(twoThetaObs, systematicError);
+    
+    // Calculate uncorrected apparent lattice parameter a_apparent and c_apparent for each reflection
+    // For Cubic: a_app = d_obs * sqrt(h^2 + k^2 + l^2)
+    // For Tetragonal: 1/d^2 = (h^2+k^2)/a^2 + l^2/c^2
+    // If l=0 (hk0 reflection): a_app = d_obs * sqrt(h^2 + k^2)
+    // If h=k=0 (00l reflection): c_app = d_obs * l
+    // In general, using current refined aspect ratio c/a:
     let aExtrap = a;
+    let cExtrap: number | undefined = undefined;
+    let vExtrap: number | undefined = undefined;
+
     if (crystalSystem === 'Cubic') {
-      aExtrap = dObs * Math.sqrt(h * h + k * k + l * l);
+      const sHkl = Math.sqrt(h * h + k * k + l * l);
+      aExtrap = dObs * sHkl;
+      vExtrap = Math.pow(aExtrap, 3);
+    } else if (crystalSystem === 'Tetragonal') {
+      const cOverA = c / (a || 1.0);
+      const sHkl = Math.sqrt((h * h + k * k) + (l * l) / (cOverA * cOverA));
+      aExtrap = dObs * sHkl;
+      cExtrap = aExtrap * cOverA;
+      vExtrap = aExtrap * aExtrap * cExtrap;
+    } else if (crystalSystem === 'Hexagonal' || crystalSystem === 'Trigonal') {
+      const cOverA = c / (a || 1.0);
+      const sHkl = Math.sqrt((4 / 3) * (h * h + h * k + k * k) + (l * l) / (cOverA * cOverA));
+      aExtrap = dObs * sHkl;
+      cExtrap = aExtrap * cOverA;
+      vExtrap = (Math.sqrt(3) / 2) * aExtrap * aExtrap * cExtrap;
+    } else if (crystalSystem === 'Orthorhombic') {
+      const bOverA = b / (a || 1.0);
+      const cOverA = c / (a || 1.0);
+      const sHkl = Math.sqrt((h * h) + (k * k) / (bOverA * bOverA) + (l * l) / (cOverA * cOverA));
+      aExtrap = dObs * sHkl;
+      vExtrap = aExtrap * (aExtrap * bOverA) * (aExtrap * cOverA);
+    } else {
+      // General proportional cell scaling factor
+      const scaleFactor = dObs / (dCalc || dObs || 1.0);
+      aExtrap = a * scaleFactor;
+      vExtrap = vol * Math.pow(scaleFactor, 3);
     }
 
     reflectionOutputs.push({
@@ -564,10 +621,72 @@ export function runCohenLeastSquaresRefinement(
     nelsonRileyPlots.push({
       fTheta,
       aExtrap,
+      cExtrap,
+      vExtrap,
       hkl: `(${h} ${k} ${l})`,
-      twoTheta: twoThetaObs
+      h,
+      k,
+      l,
+      twoTheta: twoThetaObs,
+      dObs,
+      weight: w
     });
   }
+
+  // Calculate Linear Extrapolation Fit for Nelson-Riley Plot: a_app = a_true + m * F(theta)
+  let sumW = 0;
+  let sumWF = 0;
+  let sumWA = 0;
+  let sumWF2 = 0;
+  let sumWFA = 0;
+  let sumWA2 = 0;
+
+  for (const pt of nelsonRileyPlots) {
+    const w = pt.weight > 0 ? pt.weight : 1.0;
+    const f = pt.fTheta;
+    const aVal = pt.aExtrap;
+
+    sumW += w;
+    sumWF += w * f;
+    sumWA += w * aVal;
+    sumWF2 += w * f * f;
+    sumWFA += w * f * aVal;
+    sumWA2 += w * aVal * aVal;
+  }
+
+  const deltaFit = sumW * sumWF2 - sumWF * sumWF;
+  let slopeA = 0;
+  let interceptA = a;
+  let r2A = 1.0;
+
+  if (Math.abs(deltaFit) > 1e-12 && nelsonRileyPlots.length >= 2) {
+    slopeA = (sumW * sumWFA - sumWF * sumWA) / deltaFit;
+    interceptA = (sumWF2 * sumWA - sumWF * sumWFA) / deltaFit;
+
+    // R^2 calculation
+    const meanA = sumWA / sumW;
+    const ssTot = sumWA2 - sumW * meanA * meanA;
+    let ssRes = 0;
+    for (const pt of nelsonRileyPlots) {
+      const pred = interceptA + slopeA * pt.fTheta;
+      const res = pt.aExtrap - pred;
+      const w = pt.weight > 0 ? pt.weight : 1.0;
+      ssRes += w * res * res;
+      pt.fitLineA = pred;
+    }
+    r2A = ssTot > 1e-12 ? Math.max(0, Math.min(1.0, 1 - ssRes / ssTot)) : 1.0;
+  } else {
+    for (const pt of nelsonRileyPlots) {
+      pt.fitLineA = a;
+    }
+  }
+
+  const nrFitMetrics: NelsonRileyFitMetrics = {
+    slopeA,
+    interceptA,
+    r2A,
+    systematicModel: systematicError
+  };
 
   const s2 = sumWeightRes / DOF; // Reduced chi-squared
   const gof = Math.sqrt(s2);
@@ -641,6 +760,7 @@ export function runCohenLeastSquaresRefinement(
     correlationMatrix: corrMatrix,
     parameterNames: paramNames,
     reflections: reflectionOutputs,
-    nelsonRileyPlotData: nelsonRileyPlots
+    nelsonRileyPlotData: nelsonRileyPlots,
+    nelsonRileyFitMetrics: nrFitMetrics
   };
 }

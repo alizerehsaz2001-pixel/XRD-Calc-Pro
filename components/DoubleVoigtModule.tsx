@@ -4,6 +4,7 @@ import { useSettings, convertLength, convertToAngstrom } from './SettingsContext
 import { parseDoubleVoigtInput, calculateDoubleVoigt } from '../utils/physics';
 import { DoubleVoigtResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
+import { playSynthTone } from '../utils/sound';
 import {
   ComposedChart,
   LineChart,
@@ -18,7 +19,9 @@ import {
   ReferenceLine,
   BarChart,
   Bar,
-  Cell
+  Cell,
+  Area,
+  AreaChart
 } from 'recharts';
 import {
   Activity,
@@ -31,6 +34,7 @@ import {
   Trash2,
   TrendingUp,
   CheckCircle,
+  CheckCircle2,
   HelpCircle,
   Download,
   Info,
@@ -45,7 +49,11 @@ import {
   ArrowRight,
   GitBranch,
   Compass,
-  BookOpen
+  BookOpen,
+  Loader2,
+  Play,
+  PieChart,
+  RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
@@ -120,6 +128,19 @@ export const DoubleVoigtModule: React.FC = () => {
   const [interactiveEta, setInteractiveEta] = useState<number>(0.60);
   const [activeStepHover, setActiveStepHover] = useState<number | null>(null);
 
+  // Deconvolution execution states
+  const [isDeconvolving, setIsDeconvolving] = useState<boolean>(false);
+  const [deconvStage, setDeconvStage] = useState<number>(0);
+  const [summaryViewMode, setSummaryViewMode] = useState<'distribution' | 'bars'>('distribution');
+
+  const DECONV_STAGES = [
+    { step: 1, title: 'Reflection Profile Parsing', desc: 'Parsing Bragg centroids (2θ), observed FWHM breadths, and pseudo-Voigt mixing fractions (η)' },
+    { step: 2, title: 'Instrumental Deconvolution', desc: 'Stripping g(2θ) instrumental response kernel using Caglioti parameters & slit corrections' },
+    { step: 3, title: 'Balzar-Popa Voigt Inversion', desc: 'Separating true specimen broadening into Cauchy (β_fC) and Gaussian (β_fG) integral breadths' },
+    { step: 4, title: 'Dual Reciprocal Regressions', desc: 'Performing linear least-squares regressions: β_C* vs. s and (β_G*)^2 vs. s^2' },
+    { step: 5, title: 'Microstructural Synthesis', desc: 'Extracting volume size ⟨D_V⟩, area size ⟨D_A⟩, Gaussian microstrain, and polydispersity distribution' }
+  ];
+
   const [result, setResult] = useState<DoubleVoigtResult | null>(() => {
     try {
       const saved = localStorage.getItem('xrd_double_voigt_current');
@@ -132,8 +153,11 @@ export const DoubleVoigtModule: React.FC = () => {
   const [copiedNotification, setCopiedNotification] = useState(false);
   const isFirstRender = useRef(true);
 
+  const parsedPeaks = React.useMemo(() => {
+    return parseDoubleVoigtInput(inputData);
+  }, [inputData]);
+
   useEffect(() => {
-    const parsedPeaks = parseDoubleVoigtInput(inputData);
     if (parsedPeaks.length >= 2) {
       const computed = calculateDoubleVoigt(
         wavelength,
@@ -161,7 +185,7 @@ export const DoubleVoigtModule: React.FC = () => {
   }, [
     wavelength,
     instFwhm,
-    inputData,
+    parsedPeaks,
     instrumentalMode,
     cagliotiU,
     cagliotiV,
@@ -175,14 +199,43 @@ export const DoubleVoigtModule: React.FC = () => {
   ]);
 
   const handleApplyPreset = (preset: typeof DV_PRESETS[0]) => {
+    playSynthTone('switch');
     setWavelength(preset.wavelength);
     setInstFwhm(preset.instFwhm);
     setInputData(preset.data);
     setSelectedPeakIdx(0);
   };
 
+  const handleRunFullDeconvolution = () => {
+    playSynthTone('action');
+    setIsDeconvolving(true);
+    setDeconvStage(1);
+
+    setTimeout(() => {
+      setDeconvStage(2);
+      playSynthTone('tick');
+    }, 220);
+    setTimeout(() => {
+      setDeconvStage(3);
+      playSynthTone('tick');
+    }, 440);
+    setTimeout(() => {
+      setDeconvStage(4);
+      playSynthTone('tick');
+    }, 660);
+    setTimeout(() => {
+      setDeconvStage(5);
+      playSynthTone('tick');
+    }, 880);
+    setTimeout(() => {
+      setIsDeconvolving(false);
+      playSynthTone('success');
+    }, 1100);
+  };
+
   const handleCopyLaTeX = () => {
     if (!result) return;
+    playSynthTone('chime');
     const latex = `\\begin{align*}
 \\text{Cauchy Line: } \\beta_C^*(s) &= \\frac{1}{D_V} + 2 e_C \\cdot s \\quad (m_C = ${result.cauchyFit.slope.toFixed(4)}, C_C = ${result.cauchyFit.intercept.toFixed(4)}, R^2 = ${result.cauchyFit.rSquared.toFixed(4)}) \\\\
 \\text{Gaussian Line: } (\\beta_G^*(s))^2 &= \\left(\\frac{1}{\\pi D_G}\\right)^2 + 8\\pi e_G^2 \\cdot s^2 \\quad (m_G = ${result.gaussianFit.slope.toFixed(4)}, C_G = ${result.gaussianFit.intercept.toFixed(4)}, R^2 = ${result.gaussianFit.rSquared.toFixed(4)}) \\\\
@@ -193,6 +246,37 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
     setCopiedNotification(true);
     setTimeout(() => setCopiedNotification(false), 2500);
   };
+
+  // Column-length distribution P(L) based on log-normal crystallite model
+  const columnLengthData = React.useMemo(() => {
+    if (!result || !result.volumeSizeDvNm || !result.areaSizeDaNm) return null;
+    const Dv = result.volumeSizeDvNm;
+    const Da = result.areaSizeDaNm;
+    const ratio = Math.max(1.005, Dv / Math.max(0.1, Da));
+
+    const sigmaSq = Math.max(0.01, Math.min(1.8, Math.log(ratio)));
+    const sigma = Math.sqrt(sigmaSq);
+    const mu = Math.log(Da) - 0.5 * sigmaSq;
+    const modeL = Math.exp(mu - sigmaSq);
+    const medianL = Math.exp(mu);
+
+    const maxL = Math.max(Dv * 2.8, 50);
+    const numPoints = 65;
+    const points = [];
+
+    for (let i = 1; i <= numPoints; i++) {
+      const L = (i / numPoints) * maxL;
+      if (L <= 0) continue;
+      const logDiff = Math.log(L) - mu;
+      const P = (1 / (L * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-(logDiff * logDiff) / (2 * sigmaSq));
+      points.push({
+        L: parseFloat(L.toFixed(2)),
+        density: parseFloat((P * 100).toFixed(3))
+      });
+    }
+
+    return { points, modeL, medianL, sigma, Dv, Da, ratio };
+  }, [result]);
 
   const handleDownloadCSV = () => {
     if (!result || !result.points) return;
@@ -438,16 +522,28 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
           <span>Curated Experimental Presets</span>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {DV_PRESETS.map((p) => (
-            <button
-              key={p.name}
-              onClick={() => handleApplyPreset(p)}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-black/50 hover:bg-indigo-500/10 text-indigo-400 text-xs font-mono font-bold rounded-xl border border-white/5 hover:border-indigo-500/30 transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 group/btn"
-            >
-              <Zap className="w-3.5 h-3.5 text-indigo-400 group-hover/btn:text-indigo-300 group-hover/btn:animate-pulse" />
-              <span>{p.name}</span>
-            </button>
-          ))}
+          {DV_PRESETS.map((p) => {
+            const isActive = inputData === p.data;
+            return (
+              <motion.button
+                key={p.name}
+                whileHover={{ scale: 1.03, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => handleApplyPreset(p)}
+                className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-mono font-bold rounded-xl border transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 cursor-pointer relative overflow-hidden ${
+                  isActive
+                    ? 'bg-indigo-500/25 text-indigo-200 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                    : 'bg-black/50 hover:bg-indigo-500/10 text-indigo-400 border-white/5 hover:border-indigo-500/30'
+                }`}
+              >
+                <Zap className={`w-3.5 h-3.5 transition-transform ${isActive ? 'text-indigo-300 animate-pulse' : 'text-indigo-400'}`} />
+                <span>{p.name}</span>
+                {isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping ml-0.5" />
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
@@ -476,9 +572,14 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
             {/* Sub-tab Navigation */}
             <div className="flex p-1 bg-black/50 rounded-xl border border-white/10 gap-1 relative z-10">
-              <button
-                onClick={() => setExpSubTab('wavelength')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  playSynthTone('switch');
+                  setExpSubTab('wavelength');
+                }}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   expSubTab === 'wavelength'
                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -486,11 +587,16 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               >
                 <Sliders className="w-3 h-3" />
                 Radiation & K
-              </button>
+              </motion.button>
 
-              <button
-                onClick={() => setExpSubTab('instrument')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  playSynthTone('switch');
+                  setExpSubTab('instrument');
+                }}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   expSubTab === 'instrument'
                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -498,11 +604,16 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               >
                 <Activity className="w-3 h-3" />
                 Instrumental
-              </button>
+              </motion.button>
 
-              <button
-                onClick={() => setExpSubTab('corrections')}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  playSynthTone('switch');
+                  setExpSubTab('corrections');
+                }}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   expSubTab === 'corrections'
                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
                     : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -510,7 +621,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               >
                 <Zap className="w-3 h-3" />
                 Corrections
-              </button>
+              </motion.button>
             </div>
 
             {/* Tab 1: Wavelength, Shape K, and Zero Shift */}
@@ -876,18 +987,94 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               />
             </div>
 
-            {/* Input Peak Counter */}
-            <div className="flex items-center justify-between text-[11px] font-mono pt-1">
-              <span className="text-slate-400">Parsed reflections: <strong className="text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{result?.points?.length || 0}</strong></span>
-              {result && result.points.length >= 2 ? (
-                <span className="text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
-                  <CheckCircle className="w-3.5 h-3.5" /> Ready for deconvolution
-                </span>
-              ) : (
-                <span className="text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Minimum 2 reflections
-                </span>
+            {/* Input Peak Counter & Diagnostic Chips */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-[11px] font-mono">
+                <span className="text-slate-400">Parsed reflections: <strong className="text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{parsedPeaks.length}</strong></span>
+                {parsedPeaks.length >= 2 ? (
+                  <span className="text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                    <CheckCircle className="w-3.5 h-3.5" /> Ready for deconvolution
+                  </span>
+                ) : (
+                  <span className="text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Minimum 2 reflections required
+                  </span>
+                )}
+              </div>
+
+              {/* Reflection Chips Live Inspector */}
+              {parsedPeaks.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {parsedPeaks.map((pk, idx) => (
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.04 }}
+                      onClick={() => {
+                        setSelectedPeakIdx(idx);
+                        setActivePlotTab('profile');
+                        playSynthTone('switch');
+                      }}
+                      className={`text-[10px] font-mono px-2 py-1 rounded-lg border flex items-center gap-1.5 cursor-pointer transition-all ${
+                        selectedPeakIdx === idx
+                          ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.3)]'
+                          : 'bg-black/40 text-slate-400 border-white/5 hover:border-indigo-500/30 hover:text-slate-300'
+                      }`}
+                      title="Click to inspect this peak's Voigt deconvolution profile"
+                    >
+                      <span className="font-bold text-indigo-400">#{idx + 1}</span>
+                      <span>{pk.twoTheta.toFixed(1)}°</span>
+                      <span className="text-slate-500">|</span>
+                      <span className="text-slate-300">η={pk.eta.toFixed(2)}</span>
+                      {pk.hkl && (
+                        <span className="text-indigo-300 bg-indigo-500/20 px-1 rounded text-[9px]">
+                          ({pk.hkl.join('')})
+                        </span>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
               )}
+            </div>
+
+            {/* Execute Double-Voigt Deconvolution Primary Action */}
+            <div className="pt-2">
+              <motion.button
+                onClick={handleRunFullDeconvolution}
+                disabled={parsedPeaks.length < 2 || isDeconvolving}
+                whileHover={parsedPeaks.length >= 2 && !isDeconvolving ? { scale: 1.02, y: -2 } : {}}
+                whileTap={parsedPeaks.length >= 2 && !isDeconvolving ? { scale: 0.98 } : {}}
+                className={`w-full py-4 rounded-2xl font-black uppercase tracking-wider text-xs sm:text-sm flex items-center justify-center gap-3 relative overflow-hidden transition-all duration-300 cursor-pointer ${
+                  parsedPeaks.length >= 2
+                    ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-[0_10px_25px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_35px_rgba(99,102,241,0.5)] border border-indigo-400/40'
+                    : 'bg-slate-800/60 text-slate-500 border border-white/5 cursor-not-allowed'
+                }`}
+              >
+                {/* Continuous Shimmer Effect */}
+                {parsedPeaks.length >= 2 && !isDeconvolving && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '200%' }}
+                    transition={{ repeat: Infinity, duration: 2.2, ease: 'linear' }}
+                  />
+                )}
+
+                {isDeconvolving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin text-white" />
+                    <span className="relative z-10 font-sans">
+                      Deconvolving Stage {deconvStage} / 5...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-5 h-5 text-indigo-200 relative z-10 group-hover:scale-110 transition-transform" />
+                    <span className="relative z-10 font-sans tracking-wide">
+                      Execute Double-Voigt Deconvolution
+                    </span>
+                  </>
+                )}
+              </motion.button>
             </div>
           </div>
 
@@ -931,9 +1118,86 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
         {/* Right Column: Key Results & Interactive Visualizers */}
         <div className="lg:col-span-7 space-y-6">
+
+          {/* Active Deconvolution Computing Sequence */}
+          <AnimatePresence>
+            {isDeconvolving && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                className="bg-gradient-to-br from-[#0A1026] via-[#050C1B] to-[#0D0826] p-8 rounded-3xl border border-indigo-500/40 shadow-[0_0_50px_rgba(99,102,241,0.25)] relative overflow-hidden text-center space-y-6"
+              >
+                {/* Ambient radial glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/15 rounded-full blur-[70px] pointer-events-none" />
+
+                {/* Concentric spinning rings */}
+                <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
+                    className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/40"
+                  />
+                  <motion.div
+                    animate={{ rotate: -360 }}
+                    transition={{ repeat: Infinity, duration: 4.5, ease: 'linear' }}
+                    className="absolute inset-2 rounded-full border border-purple-400/50 border-t-transparent"
+                  />
+                  <motion.div
+                    animate={{ scale: [1, 1.15, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+                    className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.6)]"
+                  >
+                    <Zap className="w-7 h-7 text-white animate-pulse" />
+                  </motion.div>
+                </div>
+
+                {/* Stage Progress & Details */}
+                <div className="space-y-2 relative z-10 max-w-md mx-auto">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-indigo-300 font-bold uppercase tracking-wider">
+                      Stage {deconvStage} of 5: {DECONV_STAGES[Math.max(0, deconvStage - 1)]?.title || 'Deconvolution'}
+                    </span>
+                    <span className="text-purple-300 font-bold">{deconvStage * 20}%</span>
+                  </div>
+
+                  <div className="w-full bg-black/60 rounded-full h-2.5 overflow-hidden border border-white/10 p-0.5 shadow-inner">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)]"
+                      initial={{ width: '0%' }}
+                      animate={{ width: `${deconvStage * 20}%` }}
+                      transition={{ duration: 0.25 }}
+                    />
+                  </div>
+
+                  <p className="text-xs text-slate-300 min-h-[36px] flex items-center justify-center pt-1 font-sans">
+                    {DECONV_STAGES[Math.max(0, deconvStage - 1)]?.desc}
+                  </p>
+                </div>
+
+                {/* Stage Step Indicators */}
+                <div className="flex flex-wrap justify-center gap-2 relative z-10 pt-1">
+                  {DECONV_STAGES.map((st) => (
+                    <div
+                      key={st.step}
+                      className={`text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all ${
+                        deconvStage === st.step
+                          ? 'bg-indigo-500 text-white border-indigo-400 font-bold shadow-[0_0_10px_rgba(99,102,241,0.5)]'
+                          : deconvStage > st.step
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                          : 'bg-black/40 text-slate-500 border-white/5'
+                      }`}
+                    >
+                      {st.step}. {st.title.split(' ')[0]}
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           {/* Key Microstructural Results */}
-          {result ? (
+          {result && !isDeconvolving ? (
             <>
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
                 <ScientificMathControl
@@ -951,92 +1215,130 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   resultName="D_V (Volume-Weighted Size)"
                 />
               </motion.div>
+
+              {/* 4-Column Microstructural Metric Cards */}
               <motion.div 
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
               >
               
-              {/* Volume-Weighted Size D_V */}
-              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-500">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-indigo-400">
-                    <Ruler className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Volume Size (D_V)</span>
+                {/* 1. Volume-Weighted Size D_V */}
+                <motion.div 
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-300 cursor-default"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-indigo-400">
+                      <Ruler className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Volume Size ⟨D_V⟩</span>
+                    </div>
+                    <WhatDoesThisMeanTooltip
+                      term="Volume-Weighted Size ⟨D_V⟩"
+                      symbol="⟨D_V⟩"
+                      explanation="Crystallite diameter weighted by crystal volume (D⁴/D³). Larger crystallites scatter more photons and dominate this metric."
+                      physicalInterpretation="⟨D_V⟩ represents the average crystallite size seen by X-ray scattering power. It is always larger than or equal to area-weighted size ⟨D_A⟩."
+                      ruleOfThumb="Ratio ⟨D_V⟩ / ⟨D_A⟩ ≈ 1.0 for monodisperse crystals; > 1.4 indicates polydispersity or anisotropic morphology."
+                    />
                   </div>
-                  <WhatDoesThisMeanTooltip
-                    term="Volume-Weighted Size ⟨D_V⟩"
-                    symbol="⟨D_V⟩"
-                    explanation="Crystallite diameter weighted by crystal volume (D⁴/D³). Larger crystallites scatter more photons and dominate this metric."
-                    physicalInterpretation="⟨D_V⟩ represents the average crystallite size seen by X-ray scattering power. It is always larger than or equal to area-weighted size ⟨D_A⟩."
-                    ruleOfThumb="Ratio ⟨D_V⟩ / ⟨D_A⟩ ≈ 1.0 for monodisperse crystals; > 1.4 indicates polydispersity or anisotropic morphology."
-                  />
-                </div>
-                <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-                    {convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(2)}
-                  </span>
-                  <span className="text-indigo-300 text-sm font-mono font-semibold">{lengthUnit}</span>
-                </div>
-                <div className="mt-4 pt-3 border-t border-indigo-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                  <div className="flex justify-between"><span>Area Size D_A:</span> <span className="text-slate-200 font-bold">{convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
-                  <div className="flex justify-between"><span>Gaussian Size D_G:</span> <span className="text-slate-200 font-bold">{convertLength(result.gaussianSizeDgNm * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
-                </div>
-              </div>
+                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                      {convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(2)}
+                    </span>
+                    <span className="text-indigo-300 text-sm font-mono font-semibold">{lengthUnit}</span>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-indigo-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                    <div className="flex justify-between"><span>Gaussian D_G:</span> <span className="text-slate-200 font-bold">{convertLength(result.gaussianSizeDgNm * 10, lengthUnit).toFixed(1)} {lengthUnit}</span></div>
+                    <div className="flex justify-between"><span>Apparent Mode:</span> <span className="text-indigo-300 font-bold">{columnLengthData?.modeL ? `${convertLength(columnLengthData.modeL * 10, lengthUnit).toFixed(1)} ${lengthUnit}` : 'N/A'}</span></div>
+                  </div>
+                </motion.div>
 
-              {/* Cauchy Strain e_C */}
-              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-purple-500/30 shadow-[0_8px_30px_rgba(168,85,247,0.1)] relative overflow-hidden group hover:border-purple-400/60 transition-colors duration-500">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-colors" />
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-purple-400">
-                    <TrendingUp className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Cauchy Strain (e_C)</span>
+                {/* 2. Area-Weighted Size D_A & Polydispersity */}
+                <motion.div 
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.1)] relative overflow-hidden group hover:border-emerald-400/60 transition-colors duration-300 cursor-default"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors" />
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-emerald-400">
+                      <Award className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Area Size ⟨D_A⟩</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {(result.volumeSizeDvNm / Math.max(0.1, result.areaSizeDaNm)).toFixed(2)}x
+                    </span>
                   </div>
-                  <Layers className="w-4 h-4 text-purple-400/50" />
-                </div>
-                <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-purple-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                    {(result.cauchyStrainEc * 100).toFixed(4)}
-                  </span>
-                  <span className="text-purple-300 text-sm font-mono font-semibold">%</span>
-                </div>
-                <div className="mt-4 pt-3 border-t border-purple-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                  <div className="flex justify-between"><span>Gaussian Strain e_G:</span> <span className="text-slate-200 font-bold">{(result.gaussianStrainEg * 100).toFixed(4)}%</span></div>
-                  <div className="flex justify-between"><span>Cauchy Slope m_C:</span> <span className="text-slate-200 font-bold">{result.cauchyFit.slope.toFixed(4)}</span></div>
-                </div>
-              </div>
+                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-emerald-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                      {convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(2)}
+                    </span>
+                    <span className="text-emerald-300 text-sm font-mono font-semibold">{lengthUnit}</span>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-emerald-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                    <div className="flex justify-between"><span>Polydispersity:</span> <span className="text-emerald-300 font-bold">{(result.volumeSizeDvNm / Math.max(0.1, result.areaSizeDaNm)).toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Uniformity:</span> <span className="text-slate-200 font-bold">{result.volumeSizeDvNm / Math.max(0.1, result.areaSizeDaNm) > 1.35 ? 'Disperse' : 'Uniform'}</span></div>
+                  </div>
+                </motion.div>
 
-              {/* Root-Mean-Square Strain */}
-              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-cyan-500/30 shadow-[0_8px_30px_rgba(6,182,212,0.1)] relative overflow-hidden group hover:border-cyan-400/60 transition-colors duration-500">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-cyan-400">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">RMS Strain ⟨e²⟩¹/²</span>
+                {/* 3. Cauchy Strain e_C */}
+                <motion.div 
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-purple-500/30 shadow-[0_8px_30px_rgba(168,85,247,0.1)] relative overflow-hidden group hover:border-purple-400/60 transition-colors duration-300 cursor-default"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-colors" />
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-purple-400">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Cauchy Strain (e_C)</span>
+                    </div>
+                    <Layers className="w-4 h-4 text-purple-400/50" />
                   </div>
-                  <Activity className="w-4 h-4 text-cyan-400/50" />
-                </div>
-                <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                    {(result.rmsStrain * 100).toFixed(4)}
-                  </span>
-                  <span className="text-cyan-300 text-sm font-mono font-semibold">%</span>
-                </div>
-                <div className="mt-4 pt-3 border-t border-cyan-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                  <div className="flex justify-between"><span>Cauchy R²:</span> <span className="text-indigo-300 font-bold">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span></div>
-                  <div className="flex justify-between"><span>Gaussian R²:</span> <span className="text-purple-300 font-bold">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span></div>
-                </div>
-              </div>
-            </motion.div>
+                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-purple-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                      {(result.cauchyStrainEc * 100).toFixed(4)}
+                    </span>
+                    <span className="text-purple-300 text-sm font-mono font-semibold">%</span>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-purple-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                    <div className="flex justify-between"><span>Gaussian e_G:</span> <span className="text-slate-200 font-bold">{(result.gaussianStrainEg * 100).toFixed(4)}%</span></div>
+                    <div className="flex justify-between"><span>Cauchy Slope:</span> <span className="text-purple-300 font-bold">{result.cauchyFit.slope.toFixed(4)}</span></div>
+                  </div>
+                </motion.div>
+
+                {/* 4. Root-Mean-Square Strain */}
+                <motion.div 
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-cyan-500/30 shadow-[0_8px_30px_rgba(6,182,212,0.1)] relative overflow-hidden group hover:border-cyan-400/60 transition-colors duration-300 cursor-default"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 text-cyan-400">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">RMS Strain ⟨e²⟩¹/²</span>
+                    </div>
+                    <Activity className="w-4 h-4 text-cyan-400/50" />
+                  </div>
+                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                      {(result.rmsStrain * 100).toFixed(4)}
+                    </span>
+                    <span className="text-cyan-300 text-sm font-mono font-semibold">%</span>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-cyan-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                    <div className="flex justify-between"><span>Cauchy R²:</span> <span className="text-indigo-300 font-bold">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span></div>
+                    <div className="flex justify-between"><span>Gaussian R²:</span> <span className="text-purple-300 font-bold">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span></div>
+                  </div>
+                </motion.div>
+              </motion.div>
             </>
-          ) : (
+          ) : !result && !isDeconvolving ? (
             <div className="bg-[#080E1A]/90 p-8 rounded-3xl border border-dashed border-white/20 text-center text-slate-400 space-y-2">
               <HelpCircle className="w-8 h-8 text-indigo-400 mx-auto animate-bounce" />
               <p className="text-sm font-semibold text-slate-200">Insufficient Peak Data</p>
               <p className="text-xs text-slate-400">Enter at least 2 valid peak profiles to execute Double-Voigt convolution analysis.</p>
             </div>
-          )}
+          ) : null}
 
           {result && (
             <div className="space-y-4">
@@ -1073,8 +1375,13 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                  <button
-                    onClick={() => setActivePlotTab('profile')}
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('profile');
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       activePlotTab === 'profile'
                         ? 'bg-cyan-500/10 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]'
@@ -1089,10 +1396,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     </div>
                     <h5 className="text-xs font-bold text-white mb-0.5">1. Profile Deconvolution</h5>
                     <p className="text-[10px] text-slate-400 leading-tight">Strip instrumental broadening g(2θ)</p>
-                  </button>
+                  </motion.button>
 
-                  <button
-                    onClick={() => setActivePlotTab('concept')}
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('concept');
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       activePlotTab === 'concept'
                         ? 'bg-indigo-500/10 border-indigo-400 text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]'
@@ -1107,10 +1419,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     </div>
                     <h5 className="text-xs font-bold text-white mb-0.5">2. Voigt Split (L vs G)</h5>
                     <p className="text-[10px] text-slate-400 leading-tight">Separate Cauchy & Gaussian parts</p>
-                  </button>
+                  </motion.button>
 
-                  <button
-                    onClick={() => setActivePlotTab('cauchy')}
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('cauchy');
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       activePlotTab === 'cauchy' || activePlotTab === 'gaussian'
                         ? 'bg-purple-500/10 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]'
@@ -1125,10 +1442,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     </div>
                     <h5 className="text-xs font-bold text-white mb-0.5">3. Dual Regressions</h5>
                     <p className="text-[10px] text-slate-400 leading-tight">Extract D_V from s and e_G from s²</p>
-                  </button>
+                  </motion.button>
 
-                  <button
-                    onClick={() => setActivePlotTab('summary')}
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('summary');
+                    }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       activePlotTab === 'summary'
                         ? 'bg-emerald-500/10 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)]'
@@ -1143,15 +1465,20 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     </div>
                     <h5 className="text-xs font-bold text-white mb-0.5">4. Microstructure</h5>
                     <p className="text-[10px] text-slate-400 leading-tight">Synthesize D_V, D_A, and strain e_G</p>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
               
               {/* Tab Selector Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/5 pb-4">
                 <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10 w-full sm:w-auto">
-                  <button
-                    onClick={() => setActivePlotTab('concept')}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('concept');
+                    }}
                     className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center flex items-center justify-center gap-1.5 cursor-pointer ${
                       activePlotTab === 'concept'
                         ? 'bg-indigo-500 text-black shadow-lg shadow-indigo-500/30'
@@ -1160,10 +1487,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   >
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>Concept Simulation</span>
-                  </button>
+                  </motion.button>
 
-                  <button
-                    onClick={() => setActivePlotTab('cauchy')}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('cauchy');
+                    }}
                     className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'cauchy'
                         ? 'bg-indigo-500 text-black shadow-lg shadow-indigo-500/30'
@@ -1171,10 +1503,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     }`}
                   >
                     Cauchy Plot (β_C* vs s)
-                  </button>
+                  </motion.button>
 
-                  <button
-                    onClick={() => setActivePlotTab('gaussian')}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('gaussian');
+                    }}
                     className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'gaussian'
                         ? 'bg-purple-500 text-black shadow-lg shadow-purple-500/30'
@@ -1182,10 +1519,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     }`}
                   >
                     Gaussian Plot ((β_G*)^2 vs s^2)
-                  </button>
+                  </motion.button>
 
-                  <button
-                    onClick={() => setActivePlotTab('profile')}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('profile');
+                    }}
                     className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'profile'
                         ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30'
@@ -1193,10 +1535,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     }`}
                   >
                     Profile Deconvolution
-                  </button>
+                  </motion.button>
 
-                  <button
-                    onClick={() => setActivePlotTab('summary')}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      playSynthTone('switch');
+                      setActivePlotTab('summary');
+                    }}
                     className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
                       activePlotTab === 'summary'
                         ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30'
@@ -1204,20 +1551,24 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     }`}
                   >
                     Size Spectrum
-                  </button>
+                  </motion.button>
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -1 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleDownloadCSV}
                     className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono flex items-center gap-2 transition-all border border-white/10 hover:border-white/20"
                     title="Export CSV"
                   >
                     <Download className="w-4 h-4" />
                     <span>Export CSV</span>
-                  </button>
+                  </motion.button>
 
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -1 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleCopyLaTeX}
                     className={`px-4 py-2 rounded-xl text-xs font-mono flex items-center gap-2 transition-all border ${
                       copiedNotification 
@@ -1227,7 +1578,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   >
                     {copiedNotification ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     <span>{copiedNotification ? 'Copied LaTeX!' : 'Copy LaTeX'}</span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 

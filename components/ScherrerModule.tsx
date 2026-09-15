@@ -1156,14 +1156,21 @@ export const ScherrerModule: React.FC = () => {
 
             {/* Execute Analysis Action */}
             {!isSimulationRunning ? (
-              <button
+              <motion.button
                 onClick={handleCalculate}
-                className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-[0_15px_30px_rgba(245,158,11,0.2)] transition-all active:scale-[0.98] flex items-center justify-center gap-3 group relative overflow-hidden cursor-pointer"
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-[0_10px_25px_rgba(245,158,11,0.25)] hover:shadow-[0_15px_35px_rgba(245,158,11,0.4)] transition-all flex items-center justify-center gap-3 group relative overflow-hidden cursor-pointer"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/20 to-amber-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                <FlaskConical className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                <span className="uppercase tracking-[0.2em] text-sm">Calculate Sizing & Microstructure</span>
-              </button>
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/25 to-amber-400/0"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '200%' }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                />
+                <FlaskConical className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300 relative z-10" />
+                <span className="uppercase tracking-[0.2em] text-sm relative z-10 text-shadow-sm">Calculate Sizing & Microstructure</span>
+              </motion.button>
             ) : (
               <div className="bg-[#070D18] p-5 rounded-2xl border border-amber-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-2xl rounded-full" />

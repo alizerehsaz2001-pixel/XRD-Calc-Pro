@@ -55,7 +55,8 @@ import {
   Sigma,
   Crosshair,
   Maximize,
-  Grid
+  Grid,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
@@ -380,6 +381,70 @@ export const MethodOfMomentsModule: React.FC = () => {
     });
   }, [synthCentroid, synthFwhm, synthMixingEta, synthMicrostrain]);
 
+  // Synthetic peak profile curve for real-time visualization in simulator
+  const syntheticProfileCurve = useMemo(() => {
+    const x0 = synthCentroid;
+    const fwhm = Math.max(0.05, synthFwhm);
+    const eta = synthMixingEta;
+    const step = fwhm / 25;
+    const span = Math.max(0.8, fwhm * 3.5);
+    const points: { twoTheta: number; profile: number; gaussian: number; lorentzian: number }[] = [];
+    const sigmaG = fwhm / (2 * Math.sqrt(2 * Math.log(2)));
+    const gammaL = fwhm / 2;
+
+    for (let x = x0 - span; x <= x0 + span + 0.0001; x += step) {
+      const dx = x - x0;
+      const g = Math.exp(-(dx * dx) / (2 * sigmaG * sigmaG));
+      const l = 1 / (1 + (dx * dx) / (gammaL * gammaL));
+      const pv = eta * l + (1 - eta) * g;
+      points.push({
+        twoTheta: parseFloat(x.toFixed(3)),
+        profile: parseFloat((pv * 100).toFixed(1)),
+        gaussian: parseFloat(((1 - eta) * g * 100).toFixed(1)),
+        lorentzian: parseFloat((eta * l * 100).toFixed(1))
+      });
+    }
+    return points;
+  }, [synthCentroid, synthFwhm, synthMixingEta]);
+
+  // Dynamic window inspection profile curve for Tab 4 visualization
+  const inspectorProfileCurve = useMemo(() => {
+    const x0 = twoTheta0 || 28.55;
+    const span = 1.6;
+    const step = 0.02;
+    const fwhm = 0.35;
+    const sigmaG = fwhm / (2 * Math.sqrt(2 * Math.log(2)));
+    const gammaL = fwhm / 2;
+    const eta = 0.45;
+
+    const pts: { twoTheta: number; totalIntensity: number; windowIntensity: number | null; outsideIntensity: number }[] = [];
+    let totalArea = 0;
+    let windowArea = 0;
+
+    for (let x = x0 - span; x <= x0 + span + 0.001; x += step) {
+      const dx = x - x0;
+      const g = Math.exp(-(dx * dx) / (2 * sigmaG * sigmaG));
+      const l = 1 / (1 + (dx * dx) / (gammaL * gammaL));
+      const val = parseFloat(((eta * l + (1 - eta) * g) * 100).toFixed(2));
+      totalArea += val * step;
+
+      const inWindow = Math.abs(dx) <= inspectSigma + 1e-4;
+      if (inWindow) {
+        windowArea += val * step;
+      }
+
+      pts.push({
+        twoTheta: parseFloat(x.toFixed(3)),
+        totalIntensity: val,
+        windowIntensity: inWindow ? val : null,
+        outsideIntensity: inWindow ? 0 : val
+      });
+    }
+
+    const capturedPct = totalArea > 0 ? (windowArea / totalArea) * 100 : 100;
+    return { pts, capturedPct: Math.min(100, Math.max(0, capturedPct)) };
+  }, [twoTheta0, inspectSigma]);
+
   const handleLoadSyntheticToInput = () => {
     let text = "# Synthetic Moment Profile\n";
     syntheticMomentsData.forEach(p => {
@@ -555,15 +620,17 @@ export const MethodOfMomentsModule: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {MOMENT_PRESETS.map((p) => (
-            <button
+            <motion.button
               key={p.name}
               onClick={() => handleApplyPreset(p)}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-black/50 hover:bg-indigo-500/10 text-indigo-400 text-xs font-mono font-bold rounded-xl border border-white/5 hover:border-indigo-500/30 transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 group/btn"
+              whileHover={{ scale: 1.04, y: -1 }}
+              whileTap={{ scale: 0.96 }}
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-black/50 hover:bg-indigo-500/10 text-indigo-400 text-xs font-mono font-bold rounded-xl border border-white/5 hover:border-indigo-500/40 transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 group/btn cursor-pointer"
               title={p.desc}
             >
-              <Zap className="w-3.5 h-3.5 text-indigo-400 group-hover/btn:text-indigo-300 group-hover/btn:animate-pulse" />
+              <Zap className="w-3.5 h-3.5 text-indigo-400 group-hover/btn:text-indigo-300 group-hover/btn:scale-110 transition-transform" />
               <span>{p.name.split(' (')[0]}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
@@ -573,9 +640,11 @@ export const MethodOfMomentsModule: React.FC = () => {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Mode Switcher Tabs */}
           <div className="flex p-1 bg-[#050C17]/90 rounded-2xl border border-white/10 gap-2">
-            <button
+            <motion.button
               onClick={() => setInputMode('table')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 ${
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 inputMode === 'table'
                   ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-indigo-200 border border-indigo-500/50 shadow-inner'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -583,10 +652,12 @@ export const MethodOfMomentsModule: React.FC = () => {
             >
               <Database className="w-4 h-4 text-indigo-400" />
               <span>Variance-Range Table (σ, W, μ₄)</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setInputMode('rawProfile')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 ${
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 inputMode === 'rawProfile'
                   ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-indigo-200 border border-indigo-500/50 shadow-inner'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -594,10 +665,12 @@ export const MethodOfMomentsModule: React.FC = () => {
             >
               <Activity className="w-4 h-4 text-purple-400" />
               <span>Raw 2θ vs Intensity Profile Integrator</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setInputMode('synthetic')}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 ${
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 inputMode === 'synthetic'
                   ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-indigo-200 border border-indigo-500/50 shadow-inner'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
@@ -605,7 +678,7 @@ export const MethodOfMomentsModule: React.FC = () => {
             >
               <Sliders className="w-4 h-4 text-emerald-400" />
               <span>Synthetic Peak & Moment Simulator</span>
-            </button>
+            </motion.button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -919,13 +992,21 @@ export const MethodOfMomentsModule: React.FC = () => {
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Raw Peak Profile Scan & Integrator</h3>
                     </div>
                     {rawIntegrationResult && (
-                      <button
+                      <motion.button
                         onClick={handleTransferRawMoments}
-                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-mono font-bold shadow-md transition-all flex items-center gap-1"
+                        whileHover={{ scale: 1.03, y: -1 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-mono font-bold shadow-md shadow-indigo-500/20 transition-all flex items-center gap-1.5 cursor-pointer relative overflow-hidden group/btn"
                       >
-                        <span>Transfer {rawIntegrationResult.momentPoints.length} Moments to Analysis</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+                          initial={{ x: '-100%' }}
+                          animate={{ x: '200%' }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                        />
+                        <span className="relative z-10">Transfer {rawIntegrationResult.momentPoints.length} Moments to Analysis</span>
+                        <ArrowRight className="w-3.5 h-3.5 relative z-10 group-hover/btn:translate-x-1 transition-transform" />
+                      </motion.button>
                     )}
                   </div>
 
@@ -940,14 +1021,37 @@ export const MethodOfMomentsModule: React.FC = () => {
                       />
                     </div>
 
-                    {rawIntegrationResult && (
-                      <div className="bg-black/40 p-3 rounded-xl border border-white/5 space-y-2 text-xs font-mono">
-                        <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">Profile Characterization:</div>
-                        <div className="flex justify-between"><span>Auto Centroid 2θ₀:</span> <span className="text-white font-bold">{rawIntegrationResult.twoThetaCentroid.toFixed(3)}°</span></div>
-                        <div className="flex justify-between"><span>Observed FWHM:</span> <span className="text-indigo-300 font-bold">{rawIntegrationResult.fwhm.toFixed(3)}°</span></div>
-                        <div className="flex justify-between"><span>Integral Breadth β_I:</span> <span className="text-purple-300 font-bold">{rawIntegrationResult.integralBreadthDeg.toFixed(3)}°</span></div>
-                        <div className="flex justify-between"><span>Shape Factor 2FWHM/β_I:</span> <span className="text-emerald-300 font-bold">{rawIntegrationResult.shapeFactorPhi.toFixed(3)}</span></div>
-                        <div className="flex justify-between"><span>Lorentzian Fraction η:</span> <span className="text-amber-300 font-bold">{(rawIntegrationResult.lorentzianFractionEta * 100).toFixed(1)}%</span></div>
+                    {rawIntegrationResult ? (
+                      <div className="space-y-3">
+                        <div className="bg-black/40 p-3 rounded-xl border border-white/5 space-y-1.5 text-xs font-mono">
+                          <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider mb-1">Profile Characterization:</div>
+                          <div className="flex justify-between"><span>Auto Centroid 2θ₀:</span> <span className="text-white font-bold">{rawIntegrationResult.twoThetaCentroid.toFixed(3)}°</span></div>
+                          <div className="flex justify-between"><span>Observed FWHM:</span> <span className="text-indigo-300 font-bold">{rawIntegrationResult.fwhm.toFixed(3)}°</span></div>
+                          <div className="flex justify-between"><span>Integral Breadth β_I:</span> <span className="text-purple-300 font-bold">{rawIntegrationResult.integralBreadthDeg.toFixed(3)}°</span></div>
+                          <div className="flex justify-between"><span>Shape Factor 2FWHM/β_I:</span> <span className="text-emerald-300 font-bold">{rawIntegrationResult.shapeFactorPhi.toFixed(3)}</span></div>
+                          <div className="flex justify-between"><span>Lorentzian Fraction η:</span> <span className="text-amber-300 font-bold">{(rawIntegrationResult.lorentzianFractionEta * 100).toFixed(1)}%</span></div>
+                        </div>
+
+                        {/* Visual Profile Preview */}
+                        <div className="h-28 w-full bg-black/50 p-2 rounded-xl border border-white/5">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={rawIntegrationResult.integratedProfile} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                              <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.05)" />
+                              <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 9 }} />
+                              <YAxis stroke="#64748b" tick={{ fontSize: 9 }} />
+                              <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(168,85,247,0.3)', borderRadius: '8px', fontSize: '10px' }} />
+                              <ReferenceLine x={rawIntegrationResult.twoThetaCentroid} stroke="#f59e0b" strokeDasharray="3 3" />
+                              <Line type="monotone" name="Raw Counts" dataKey="rawIntensity" stroke="#a855f7" strokeWidth={1.5} dot={false} />
+                              <Line type="monotone" name="Background" dataKey="background" stroke="#64748b" strokeDasharray="2 2" strokeWidth={1} dot={false} />
+                              <Line type="monotone" name="Net Peak" dataKey="netIntensity" stroke="#38bdf8" strokeWidth={1.5} dot={false} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-black/30 rounded-xl border border-white/5 flex flex-col items-center justify-center p-6 text-center text-slate-500 text-xs">
+                        <Activity className="w-8 h-8 text-slate-600 mb-2 animate-pulse" />
+                        <span>Enter 2θ and Intensity columns to calculate peak centroid and progressive truncation moments.</span>
                       </div>
                     )}
                   </div>
@@ -961,18 +1065,58 @@ export const MethodOfMomentsModule: React.FC = () => {
                       <Sliders className="w-4 h-4 text-emerald-400" />
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Synthetic Profile & Moment Simulator</h3>
                     </div>
-                    <button
+                    <motion.button
                       onClick={handleLoadSyntheticToInput}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-mono font-bold shadow-md transition-all flex items-center gap-1"
+                      whileHover={{ scale: 1.03, y: -1 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-mono font-bold shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer relative overflow-hidden group/btn"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Use in Method of Moments</span>
-                    </button>
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+                        initial={{ x: '-100%' }}
+                        animate={{ x: '200%' }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                      />
+                      <Sparkles className="w-3.5 h-3.5 relative z-10 group-hover/btn:rotate-12 transition-transform" />
+                      <span className="relative z-10">Use in Method of Moments</span>
+                    </motion.button>
+                  </div>
+
+                  {/* Real-Time Live Synthetic Peak Profile Preview */}
+                  <div className="bg-black/50 p-3 rounded-2xl border border-white/5">
+                    <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
+                      <span className="text-emerald-300 font-bold flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                        Simulated Pseudo-Voigt Diffraction Peak
+                      </span>
+                      <div className="flex items-center gap-3 text-[10px]">
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Total</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-400" /> Gaussian Core</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400" /> Lorentzian Tails</span>
+                      </div>
+                    </div>
+                    <div className="h-32 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={syntheticProfileCurve} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.05)" />
+                          <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 9 }} />
+                          <YAxis stroke="#64748b" tick={{ fontSize: 9 }} domain={[0, 'auto']} />
+                          <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(16,185,129,0.3)', borderRadius: '8px', fontSize: '10px' }} />
+                          <ReferenceLine x={synthCentroid} stroke="#f59e0b" strokeDasharray="3 3" />
+                          <Line type="monotone" name="Synthetic Profile" dataKey="profile" stroke="#10b981" strokeWidth={2} dot={false} />
+                          <Line type="monotone" name="Gaussian Part" dataKey="gaussian" stroke="#38bdf8" strokeDasharray="3 3" strokeWidth={1} dot={false} />
+                          <Line type="monotone" name="Lorentzian Part" dataKey="lorentzian" stroke="#c084fc" strokeDasharray="3 3" strokeWidth={1} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">Centroid 2θ₀ ({synthCentroid}°)</label>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-300">Centroid 2θ₀:</span>
+                        <span className="text-indigo-400 font-mono font-bold">{synthCentroid.toFixed(2)}°</span>
+                      </div>
                       <input
                         type="range"
                         min="20"
@@ -980,11 +1124,14 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.1"
                         value={synthCentroid}
                         onChange={(e) => setSynthCentroid(parseFloat(e.target.value))}
-                        className="w-full accent-indigo-400"
+                        className="w-full accent-indigo-400 cursor-pointer"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">FWHM (Size Broadening: {synthFwhm}°)</label>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-300">FWHM (Size Broadening):</span>
+                        <span className="text-purple-400 font-mono font-bold">{synthFwhm.toFixed(2)}°</span>
+                      </div>
                       <input
                         type="range"
                         min="0.1"
@@ -992,11 +1139,14 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.01"
                         value={synthFwhm}
                         onChange={(e) => setSynthFwhm(parseFloat(e.target.value))}
-                        className="w-full accent-purple-400"
+                        className="w-full accent-purple-400 cursor-pointer"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">Voigt Mixing η ({synthMixingEta.toFixed(2)} - {synthMixingEta > 0.6 ? 'Lorentzian' : 'Gaussian'})</label>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-300">Voigt Mixing η:</span>
+                        <span className="text-emerald-400 font-mono font-bold">{synthMixingEta.toFixed(2)} ({synthMixingEta > 0.6 ? 'Lorentzian' : 'Gaussian'})</span>
+                      </div>
                       <input
                         type="range"
                         min="0"
@@ -1004,11 +1154,14 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.05"
                         value={synthMixingEta}
                         onChange={(e) => setSynthMixingEta(parseFloat(e.target.value))}
-                        className="w-full accent-emerald-400"
+                        className="w-full accent-emerald-400 cursor-pointer"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-slate-300 block mb-1">Lattice Microstrain ({(synthMicrostrain * 100).toFixed(3)}%)</label>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-300">Lattice Microstrain:</span>
+                        <span className="text-amber-400 font-mono font-bold">{(synthMicrostrain * 100).toFixed(3)}%</span>
+                      </div>
                       <input
                         type="range"
                         min="0"
@@ -1016,7 +1169,7 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.0005"
                         value={synthMicrostrain}
                         onChange={(e) => setSynthMicrostrain(parseFloat(e.target.value))}
-                        className="w-full accent-amber-400"
+                        className="w-full accent-amber-400 cursor-pointer"
                       />
                     </div>
                   </div>
@@ -1059,58 +1212,122 @@ export const MethodOfMomentsModule: React.FC = () => {
               </div>
             </div>
 
-            <button
+            <motion.button
               onClick={startComputation}
               disabled={!result || result.points.length < 3}
-              className="px-8 py-4 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-bold rounded-2xl transition-all shadow-xl shadow-indigo-500/30 flex items-center gap-2.5 active:scale-95 disabled:opacity-50 cursor-pointer"
+              whileHover={result && result.points.length >= 3 ? { scale: 1.02, y: -2 } : {}}
+              whileTap={result && result.points.length >= 3 ? { scale: 0.98 } : {}}
+              className={`w-full sm:w-auto px-8 py-4 font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 relative overflow-hidden group text-sm ${
+                result && result.points.length >= 3
+                  ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-[0_10px_25px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_35px_rgba(168,85,247,0.45)] cursor-pointer'
+                  : 'bg-[#070D18] text-slate-600 cursor-not-allowed border border-white/5 shadow-inner'
+              }`}
             >
-              <Calculator className="w-5 h-5" />
-              <span>Execute Wilson-Langford Moments Analysis</span>
-            </button>
+              {result && result.points.length >= 3 && (
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '200%' }}
+                  transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
+                />
+              )}
+              <Calculator className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+              <span className="relative z-10 text-shadow-sm">Execute Wilson-Langford Moments Analysis</span>
+            </motion.button>
           </div>
         </div>
       )}
 
       {/* 2. COMPUTING STATE VIEW */}
       {appState === 'computing' && (
-        <div className="bg-[#050C17]/95 rounded-3xl p-12 border border-indigo-500/30 shadow-2xl flex flex-col items-center justify-center space-y-10 animate-in fade-in duration-300 min-h-[400px]">
-          <div className="relative w-28 h-28 flex items-center justify-center">
-            <div className="absolute inset-0 border-4 border-indigo-950 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div>
-            <Sparkles className="w-10 h-10 text-indigo-400 animate-pulse" />
+        <div className="bg-[#050C17]/95 rounded-3xl p-12 border border-indigo-500/30 shadow-2xl flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-300 min-h-[440px] relative overflow-hidden">
+          {/* Ambient Glows */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/10 rounded-full blur-[70px] pointer-events-none" />
+          
+          <div className="relative w-32 h-32 flex items-center justify-center">
+            {/* Outer Pulsing Ring */}
+            <div className="absolute inset-0 border-2 border-indigo-500/20 rounded-full animate-ping opacity-30" />
+            {/* Base Ring */}
+            <div className="absolute inset-2 border-4 border-indigo-950/80 rounded-full" />
+            {/* Spinning Indicator */}
+            <div className="absolute inset-2 border-4 border-indigo-500 rounded-full border-t-transparent border-r-indigo-400 animate-spin" />
+            {/* Secondary Counter-rotating Ring */}
+            <div className="absolute inset-5 border-2 border-purple-500/50 rounded-full border-b-transparent border-l-purple-300 animate-[spin_3s_linear_infinite_reverse]" />
+            <Sparkles className="w-10 h-10 text-indigo-300 animate-pulse relative z-10 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]" />
+          </div>
+
+          <div className="text-center space-y-1">
+            <h3 className="text-base font-bold text-white uppercase tracking-wider">
+              Deconvolving Wilson-Langford Moments
+            </h3>
+            <p className="text-xs font-mono text-slate-400">
+              Polynomial least-squares regression & asymptotic tail analysis...
+            </p>
+          </div>
+
+          {/* Dynamic Progress Bar */}
+          <div className="w-full max-w-lg space-y-1.5">
+            <div className="flex justify-between text-[11px] font-mono">
+              <span className="text-slate-400">Computation Progress:</span>
+              <span className="text-indigo-400 font-bold">{Math.min(100, Math.round(((computingStep + 1) / 4) * 100))}%</span>
+            </div>
+            <div className="w-full h-2 bg-black/60 rounded-full border border-white/10 overflow-hidden relative">
+              <motion.div
+                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-400 rounded-full"
+                initial={{ width: '0%' }}
+                animate={{ width: `${Math.min(100, Math.round(((computingStep + 1) / 4) * 100))}%` }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+              />
+            </div>
           </div>
           
-          <div className="space-y-4 w-full max-w-lg">
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 0 ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300 shadow-md' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-sm font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-xs text-indigo-400 border border-indigo-500/30">1</span>
+          <div className="space-y-3 w-full max-w-lg">
+            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 0 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
+              <span className="font-mono text-xs font-bold flex items-center gap-3">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 0 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>1</span>
                 Subtracting instrumental resolution & Caglioti broadening...
               </span>
-              {computingStep > 0 && <Check className="w-5 h-5 text-emerald-400 animate-in zoom-in" />}
+              {computingStep > 0 ? (
+                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
+              ) : (
+                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+              )}
             </div>
             
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 1 ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300 shadow-md' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-sm font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-xs text-indigo-400 border border-indigo-500/30">2</span>
+            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 1 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
+              <span className="font-mono text-xs font-bold flex items-center gap-3">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 1 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>2</span>
                 Performing Wilson Variance-Range regression W(σ) = W₀ + K₁σ + K₂σ²...
               </span>
-              {computingStep > 1 && <Check className="w-5 h-5 text-emerald-400 animate-in zoom-in" />}
+              {computingStep > 1 ? (
+                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
+              ) : computingStep === 1 ? (
+                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+              ) : null}
             </div>
             
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 2 ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300 shadow-md' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-sm font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-xs text-indigo-400 border border-indigo-500/30">3</span>
+            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 2 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
+              <span className="font-mono text-xs font-bold flex items-center gap-3">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 2 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>3</span>
                 Deconvolving volume size D_V, area size ⟨L⟩_A & RMS microstrain ⟨ε²⟩½...
               </span>
-              {computingStep > 2 && <Check className="w-5 h-5 text-emerald-400 animate-in zoom-in" />}
+              {computingStep > 2 ? (
+                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
+              ) : computingStep === 2 ? (
+                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+              ) : null}
             </div>
             
-            <div className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300 ${computingStep >= 3 ? 'bg-indigo-950/40 border-indigo-500/50 text-indigo-300 shadow-md' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-sm font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-xs text-indigo-400 border border-indigo-500/30">4</span>
+            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 3 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
+              <span className="font-mono text-xs font-bold flex items-center gap-3">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 3 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>4</span>
                 Evaluating Dislocation Density ρ & statistical moment kurtosis...
               </span>
-              {computingStep > 3 && <Check className="w-5 h-5 text-emerald-400 animate-in zoom-in" />}
+              {computingStep > 3 ? (
+                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
+              ) : computingStep === 3 ? (
+                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+              ) : null}
             </div>
           </div>
         </div>
@@ -1144,7 +1361,10 @@ export const MethodOfMomentsModule: React.FC = () => {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
           >
             {/* 1. Volume-Weighted Crystallite Size D_V */}
-            <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-500">
+            <motion.div 
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-500"
+            >
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-indigo-400">
@@ -1164,10 +1384,13 @@ export const MethodOfMomentsModule: React.FC = () => {
                 <div className="flex justify-between"><span>Area Size ⟨L⟩_A:</span> <span className="text-indigo-300 font-bold">{result.areaWeightedSizeNm?.toFixed(2)} nm</span></div>
                 <div className="flex justify-between"><span>Linear Slope K₁:</span> <span className="text-slate-300 font-bold">{result.slopeK1.toExponential(3)} rad</span></div>
               </div>
-            </div>
+            </motion.div>
 
             {/* 2. RMS Microstrain */}
-            <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-purple-500/30 shadow-[0_8px_30px_rgba(168,85,247,0.1)] relative overflow-hidden group hover:border-purple-400/60 transition-colors duration-500">
+            <motion.div 
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="bg-[#050C17]/90 p-5 rounded-3xl border border-purple-500/30 shadow-[0_8px_30px_rgba(168,85,247,0.1)] relative overflow-hidden group hover:border-purple-400/60 transition-colors duration-500"
+            >
               <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-colors" />
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-purple-400">
@@ -1187,10 +1410,13 @@ export const MethodOfMomentsModule: React.FC = () => {
                 <div className="flex justify-between"><span>Curvature K₂:</span> <span className="text-purple-300 font-bold">{result.quadraticK2.toExponential(3)}</span></div>
                 <div className="flex justify-between"><span>Intercept W₀:</span> <span className="text-slate-300 font-bold">{result.interceptW0.toExponential(3)} rad²</span></div>
               </div>
-            </div>
+            </motion.div>
 
             {/* 3. Dislocation Density */}
-            <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-amber-500/30 shadow-[0_8px_30px_rgba(245,158,11,0.1)] relative overflow-hidden group hover:border-amber-400/60 transition-colors duration-500">
+            <motion.div 
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="bg-[#050C17]/90 p-5 rounded-3xl border border-amber-500/30 shadow-[0_8px_30px_rgba(245,158,11,0.1)] relative overflow-hidden group hover:border-amber-400/60 transition-colors duration-500"
+            >
               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-amber-500/20 transition-colors" />
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-amber-400">
@@ -1210,10 +1436,13 @@ export const MethodOfMomentsModule: React.FC = () => {
                 <div className="flex justify-between"><span>Burgers vector b:</span> <span className="text-amber-300 font-bold">{result.burgersVectorNm || 0.25} nm</span></div>
                 <div className="flex justify-between"><span>Kurtosis β₂:</span> <span className="text-slate-300 font-bold">{result.meanKurtosis.toFixed(2)}</span></div>
               </div>
-            </div>
+            </motion.div>
 
             {/* 4. Fit Quality & Regression Score */}
-            <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.1)] relative overflow-hidden group hover:border-emerald-400/60 transition-colors duration-500">
+            <motion.div 
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="bg-[#050C17]/90 p-5 rounded-3xl border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.1)] relative overflow-hidden group hover:border-emerald-400/60 transition-colors duration-500"
+            >
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors" />
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 text-emerald-400">
@@ -1233,56 +1462,66 @@ export const MethodOfMomentsModule: React.FC = () => {
                 <div className="flex justify-between"><span>Points:</span> <span className="text-emerald-300 font-bold">{result.points.length} ranges</span></div>
                 <div className="flex justify-between"><span>Profile Shape:</span> <span className="text-slate-300 font-bold">{result.meanKurtosis > 3.5 ? 'Leptokurtic' : 'Gaussian'}</span></div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* Interactive Visualizer Navigation Tabs */}
           <div className="bg-[#050C17]/90 p-2 rounded-2xl border border-white/10 flex flex-wrap gap-2">
-            <button
+            <motion.button
               onClick={() => setActiveResultTab('variancePlot')}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeResultTab === 'variancePlot' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
               }`}
             >
               <TrendingUp className="w-3.5 h-3.5" />
               <span>Variance-Range Parabola W(σ)</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setActiveResultTab('reducedPlot')}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeResultTab === 'reducedPlot' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>Reduced Plot W/σ vs σ</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setActiveResultTab('momentsKurtosis')}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeResultTab === 'momentsKurtosis' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
               <span>Moments & Kurtosis Hierarchy</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setActiveResultTab('rawInspector')}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeResultTab === 'rawInspector' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Crosshair className="w-3.5 h-3.5" />
               <span>Integration Range Window Inspector</span>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               onClick={() => setActiveResultTab('tableDetails')}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeResultTab === 'tableDetails' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Database className="w-3.5 h-3.5" />
               <span>Data Matrix & Residuals</span>
-            </button>
+            </motion.button>
           </div>
 
           {/* Tab 1: Variance Parabola W(sigma) vs sigma */}
@@ -1406,6 +1645,43 @@ export const MethodOfMomentsModule: React.FC = () => {
                 </div>
               </div>
 
+              {/* Live Truncation Profile Chart */}
+              <div className="bg-black/50 p-4 rounded-2xl border border-white/5 space-y-2">
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <div className="flex items-center gap-2 text-sky-300 font-bold">
+                    <Activity className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Truncated Profile Intensity & Tail Capture</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-[10px]">
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-cyan-500/50 border border-cyan-400" /> Integrated Window</span>
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-0.5 bg-slate-500" /> Full Peak Tails</span>
+                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-0.5 bg-amber-400" /> 2θ₀ Centroid</span>
+                  </div>
+                </div>
+
+                <div className="h-60 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={inspectorProfileCurve.pts} margin={{ top: 10, right: 15, left: -10, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="windowAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.6}/>
+                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.05}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: '2θ (°)', position: 'insideBottom', offset: -4, fill: '#64748b', fontSize: 10 }} />
+                      <YAxis stroke="#64748b" tick={{ fontSize: 10 }} />
+                      <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(6,182,212,0.3)', borderRadius: '12px', fontSize: '11px' }} />
+                      <ReferenceLine x={twoTheta0} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.5} label={{ value: '2θ₀', fill: '#f59e0b', fontSize: 10, position: 'top' }} />
+                      <ReferenceLine x={parseFloat((twoTheta0 - inspectSigma).toFixed(2))} stroke="#22d3ee" strokeDasharray="2 2" />
+                      <ReferenceLine x={parseFloat((twoTheta0 + inspectSigma).toFixed(2))} stroke="#22d3ee" strokeDasharray="2 2" />
+                      <Area type="monotone" dataKey="windowIntensity" stroke="#06b6d4" strokeWidth={2} fill="url(#windowAreaGrad)" name="Window Intensity" />
+                      <Line type="monotone" dataKey="totalIntensity" stroke="#64748b" strokeDasharray="3 3" strokeWidth={1.5} dot={false} name="Full Peak Profile" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <input
                   type="range"
@@ -1423,10 +1699,14 @@ export const MethodOfMomentsModule: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-black/50 rounded-2xl border border-white/5 text-xs font-mono">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-black/50 rounded-2xl border border-white/5 text-xs font-mono">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Integration Bounds:</span>
                   <span className="text-sky-300 font-bold">{(twoTheta0 - inspectSigma).toFixed(2)}° → {(twoTheta0 + inspectSigma).toFixed(2)}°</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Captured Area Fraction:</span>
+                  <span className="text-emerald-300 font-bold">{inspectorProfileCurve.capturedPct.toFixed(1)}% of total peak</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Estimated Variance W(σ):</span>
@@ -1435,8 +1715,10 @@ export const MethodOfMomentsModule: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Asymptotic Tail Law:</span>
-                  <span className="text-emerald-300 font-bold">~ 1 / (Δ2θ)² decay</span>
+                  <span className="text-slate-400 block text-[10px]">Size vs Strain Ratio:</span>
+                  <span className="text-amber-300 font-bold">
+                    {((result.slopeK1 * (inspectSigma * Math.PI / 180)) / Math.max(1e-12, result.quadraticK2 * Math.pow(inspectSigma * Math.PI / 180, 2))).toFixed(2)} (K₁σ / K₂σ²)
+                  </span>
                 </div>
               </div>
             </div>

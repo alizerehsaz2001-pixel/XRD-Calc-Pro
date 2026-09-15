@@ -36,8 +36,15 @@ import {
   AlertTriangle,
   ArrowUpDown,
   Filter,
-  Copy
+  Copy,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Crosshair,
+  CheckCircle2
 } from 'lucide-react';
+import { playSynthTone } from '../utils/sound';
 import { 
   ResponsiveContainer, 
   ComposedChart, 
@@ -172,6 +179,10 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
   const [projection, setProjection] = useState<ProjectionPlane>('XY');
   const [showAtoms, setShowAtoms] = useState<boolean>(true);
   const [showGridLines, setShowGridLines] = useState<boolean>(true);
+
+  // Nelson-Riley Plot Display Settings
+  const [nrPlotAxis, setNrPlotAxis] = useState<'a' | 'c' | 'volume'>('a');
+  const [showNrConfidenceInterval, setShowNrConfidenceInterval] = useState<boolean>(true);
 
   // Extract reflections with valid, non-zero parsed HKL values
   const validReflections = useMemo(() => {
@@ -688,36 +699,146 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                 </div>
               </div>
 
-              {/* Nelson-Riley Extrapolation Plot */}
-              <div className="bg-slate-950/50 border border-slate-800/80 rounded-3xl p-4 relative overflow-hidden">
-                <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <LineChartIcon className="w-4 h-4 text-indigo-400" />
-                    <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">
-                      Nelson-Riley / Taylor-Sinclair Error Extrapolation Function F(θ)
-                    </h3>
+              {/* Nelson-Riley / Taylor-Sinclair Extrapolation Studio */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-5 relative overflow-hidden shadow-xl">
+                {/* Header & Controls */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between pb-3 mb-4 border-b border-slate-800/80 gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <LineChartIcon className="w-4 h-4 text-cyan-400" />
+                      <h3 className="text-xs font-black text-slate-100 uppercase tracking-wider">
+                        Nelson-Riley / Taylor-Sinclair Error Extrapolation Function F(θ)
+                      </h3>
+                      <span className="px-2 py-0.5 rounded text-[9px] font-bold font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {systematicError === 'nelson_riley' ? '½(cos²θ/sinθ + cos²θ/θ)' : systematicError}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                      Systematic error scales to zero at <strong className="text-emerald-400">θ = 90° (F(θ) → 0)</strong>, yielding the true unbiased lattice constant at the vertical intercept.
+                    </p>
                   </div>
-                  <div className="text-[10px] font-mono text-slate-400 flex items-center gap-2">
-                    <span>Extrapolated a (F=0): <strong className="text-emerald-400">{refinementResult.parameters.a.value.toFixed(5)} Å</strong></span>
-                    {refinementResult.parameters.driftParam && (
-                      <>
-                        <span className="text-slate-600">|</span>
-                        <span>Drift Coeff K: {refinementResult.parameters.driftParam.value.toExponential(3)}</span>
-                      </>
-                    )}
+
+                  {/* Right: Axis Toggle & Quick Stats */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Axis selector (a vs c vs V) */}
+                    <div className="flex items-center bg-black/60 p-1 rounded-xl border border-white/10 text-[10px] font-mono font-bold">
+                      <span className="text-slate-500 px-1.5 uppercase">Plot:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playSynthTone('switch');
+                          setNrPlotAxis('a');
+                        }}
+                        className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                          nrPlotAxis === 'a' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        a (Å)
+                      </button>
+
+                      {(crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' || crystalSystem === 'Trigonal') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playSynthTone('switch');
+                            setNrPlotAxis('c');
+                          }}
+                          className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                            nrPlotAxis === 'c' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          c (Å)
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playSynthTone('switch');
+                          setNrPlotAxis('volume');
+                        }}
+                        className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                          nrPlotAxis === 'volume' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        Vol (Å³)
+                      </button>
+                    </div>
+
+                    {/* Trendline toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setShowNrConfidenceInterval(!showNrConfidenceInterval)}
+                      className={`px-2 py-1 rounded-xl text-[10px] font-mono font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                        showNrConfidenceInterval
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                          : 'bg-black/40 text-slate-500 border-white/5'
+                      }`}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Fit Line
+                    </button>
                   </div>
                 </div>
 
-                <div className="h-48 w-full">
+                {/* Key Metrics Banner */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4 font-mono text-xs">
+                  <div className="bg-slate-900/60 p-2.5 rounded-2xl border border-white/5">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">True Extrapolated a₀ (F=0)</span>
+                    <span className="text-sm font-black text-emerald-400">
+                      {refinementResult.parameters.a.value.toFixed(5)} Å
+                    </span>
+                    <span className="text-[9px] text-slate-400 block">± {refinementResult.parameters.a.stdError.toFixed(5)} Å</span>
+                  </div>
+
+                  <div className="bg-slate-900/60 p-2.5 rounded-2xl border border-white/5">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Linear Fit Slope (m = Δa/ΔF)</span>
+                    <span className="text-sm font-black text-indigo-300">
+                      {refinementResult.nelsonRileyFitMetrics?.slopeA.toExponential(3) || '0.000e+0'}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block">Drift Gradient</span>
+                  </div>
+
+                  <div className="bg-slate-900/60 p-2.5 rounded-2xl border border-white/5">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Extrapolation Fit R²</span>
+                    <span className="text-sm font-black text-amber-300">
+                      {(refinementResult.nelsonRileyFitMetrics?.r2A ?? 0.999).toFixed(4)}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block">Regression Quality</span>
+                  </div>
+
+                  <div className="bg-slate-900/60 p-2.5 rounded-2xl border border-white/5">
+                    <span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Cohen Drift Parameter K</span>
+                    <span className="text-sm font-black text-purple-300">
+                      {refinementResult.parameters.driftParam ? refinementResult.parameters.driftParam.value.toExponential(3) : 'Disabled'}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block">Matrix Co-refined</span>
+                  </div>
+                </div>
+
+                {/* Main Interactive Chart */}
+                <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart
                       data={refinementResult.nelsonRileyPlotData.map(r => ({
                         F: Number(r.fTheta.toFixed(4)),
-                        aExtrap: Number(r.aExtrap.toFixed(5)),
+                        yVal: nrPlotAxis === 'a' 
+                          ? Number(r.aExtrap.toFixed(5)) 
+                          : nrPlotAxis === 'c' 
+                            ? Number((r.cExtrap || refinementResult.parameters.c.value).toFixed(5))
+                            : Number((r.vExtrap || refinementResult.parameters.volume.value).toFixed(4)),
+                        fitVal: showNrConfidenceInterval
+                          ? (nrPlotAxis === 'a' 
+                              ? Number((r.fitLineA ?? refinementResult.parameters.a.value).toFixed(5))
+                              : nrPlotAxis === 'c'
+                                ? Number(((r.fitLineA ?? refinementResult.parameters.a.value) * (refinementResult.parameters.c.value / refinementResult.parameters.a.value)).toFixed(5))
+                                : Number((refinementResult.parameters.volume.value).toFixed(4)))
+                          : undefined,
                         hkl: r.hkl,
-                        twoTheta: r.twoTheta
-                      }))}
-                      margin={{ top: 10, right: 20, bottom: 20, left: 10 }}
+                        twoTheta: r.twoTheta,
+                        dObs: r.dObs
+                      })).sort((a, b) => a.F - b.F)}
+                      margin={{ top: 10, right: 25, bottom: 25, left: 10 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                       <XAxis 
@@ -726,24 +847,64 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                         domain={[0, 'auto']} 
                         stroke="#64748b" 
                         fontSize={10} 
-                        label={{ value: 'F(θ) = ½(cos²θ/sinθ + cos²θ/θ)', position: 'insideBottom', offset: -12, fill: '#94a3b8', fontSize: 9 }}
+                        label={{ 
+                          value: `Nelson-Riley Error Function F(θ) → [θ=90° at F=0]`, 
+                          position: 'insideBottom', 
+                          offset: -14, 
+                          fill: '#94a3b8', 
+                          fontSize: 10,
+                          fontWeight: 'bold'
+                        }}
                       />
                       <YAxis 
-                        dataKey="aExtrap" 
+                        dataKey="yVal" 
                         type="number" 
                         domain={['auto', 'auto']} 
                         stroke="#64748b" 
                         fontSize={10}
-                        unit=" Å"
+                        unit={nrPlotAxis === 'volume' ? ' Å³' : ' Å'}
                       />
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#f8fafc' }}
-                        formatter={(val: any) => [`${val} Å`, 'Extrapolated Parameter a']}
+                        formatter={(val: any, name: string) => [
+                          `${val} ${nrPlotAxis === 'volume' ? 'Å³' : 'Å'}`, 
+                          name === 'fitVal' ? 'Linear Extrapolation Fit' : `Apparent ${nrPlotAxis.toUpperCase()}`
+                        ]}
                         labelFormatter={(label) => `F(θ) = ${label}`}
                       />
-                      <Scatter name="Observed Reflections" dataKey="aExtrap" fill="#6366f1" />
+
+                      {showNrConfidenceInterval && (
+                        <Line
+                          type="linear"
+                          dataKey="fitVal"
+                          stroke="#38bdf8"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={false}
+                          name="Extrapolation Fit Line"
+                        />
+                      )}
+
+                      <Scatter 
+                        name="Observed Bragg Reflections" 
+                        dataKey="yVal" 
+                        fill="#818cf8" 
+                        stroke="#ffffff"
+                        strokeWidth={1}
+                      />
                     </ComposedChart>
                   </ResponsiveContainer>
+                </div>
+
+                {/* Bottom Theoretical Insight Note */}
+                <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Analytical Formula: <code>Δd / d = -K · [cos²θ/sinθ + cos²θ/θ]</code></span>
+                  </div>
+                  <div className="text-slate-500">
+                    Accounts for specimen absorption, beam divergence, and flat-specimen displacement.
+                  </div>
                 </div>
               </div>
 
@@ -1402,49 +1563,34 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
             </div>
           )}
 
-          {/* 2D Unit Cell Projection Visualizer */}
-          <div className="bg-slate-950/50 border border-slate-800 rounded-3xl p-5">
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Grid className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">
-                  Real-Space Unit Cell 2D Projection & Lattice Planes
-                </h3>
-              </div>
+          {/* Advanced Real-Space Unit Cell 2D Projection & Lattice Planes Studio */}
+          <div className="bg-[#030712] border border-indigo-500/20 rounded-3xl p-5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] relative overflow-hidden">
+            {/* Ambient Background Glow */}
+            <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
 
-              {/* Viewplane Projection Toggles */}
-              <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-lg">
-                {(['XY', 'XZ', 'YZ'] as ProjectionPlane[]).map(plane => (
-                  <button
-                    key={plane}
-                    type="button"
-                    onClick={() => setProjection(plane)}
-                    className={`px-2.5 py-1 text-[9px] font-black uppercase rounded transition-all ${
-                      projection === plane
-                        ? 'bg-indigo-600 text-white'
-                        : 'text-slate-400 hover:text-slate-200 bg-transparent'
-                    }`}
-                  >
-                    {plane} Plane
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center p-4 max-h-[260px] w-full bg-slate-950/80 rounded-2xl border border-slate-800">
-              <LatticeVisualizer
-                system={crystalSystem}
-                a={refinementResult.parameters.a.value}
-                b={refinementResult.parameters.b.value}
-                c={refinementResult.parameters.c.value}
-                projection={projection}
-                hkl={activeReflection?.hkl || [1, 1, 1]}
-                dSpacing={activeReflection?.dObs || 0}
-                showAtoms={showAtoms}
-                showGrid={showGridLines}
-                bravais={currentSpaceGroup.bravais}
-              />
-            </div>
+            <LatticeVisualizer
+              system={crystalSystem}
+              a={refinementResult.parameters.a.value}
+              b={refinementResult.parameters.b.value}
+              c={refinementResult.parameters.c.value}
+              alpha={refinementResult.parameters.alpha.value}
+              beta={refinementResult.parameters.beta.value}
+              gamma={refinementResult.parameters.gamma.value}
+              projection={projection}
+              onProjectionChange={setProjection}
+              hkl={activeReflection?.hkl || [1, 1, 1]}
+              dSpacing={activeReflection?.dObs || (refinementPeaks[0]?.dObs ?? 0)}
+              plane1={plane1}
+              plane2={plane2}
+              interplanarAngle={interplanarAngle}
+              bravais={currentSpaceGroup.bravais}
+              spaceGroupSymbol={currentSpaceGroup.symbol}
+              spaceGroupNumber={currentSpaceGroup.number}
+              reflections={validReflections.map(r => ({ id: r.id, hkl: r.hkl, dObs: r.original.dSpacing }))}
+              onSelectReflection={setSelectedReflectionIndex}
+              selectedIndex={selectedReflectionIndex}
+            />
           </div>
 
         </div>
@@ -1454,19 +1600,29 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
 };
 
 // =========================================================================
-// SVG Dynamic 2D Real-Space Lattice & Miller Plane Visualizer
+// Enhanced SVG Dynamic 2D Real-Space Lattice & Miller Plane Visualizer
 // =========================================================================
-interface LatticeVisualizerProps {
+export interface LatticeVisualizerProps {
   system: CrystalSystem;
   a: number;
   b: number;
   c: number;
+  alpha?: number;
+  beta?: number;
+  gamma?: number;
   projection: ProjectionPlane;
+  onProjectionChange?: (p: ProjectionPlane) => void;
   hkl: [number, number, number];
   dSpacing: number;
-  showAtoms: boolean;
-  showGrid: boolean;
+  plane1?: [number, number, number];
+  plane2?: [number, number, number];
+  interplanarAngle?: { angleDeg: number; cosPhi: number; zoneAxis: number[] | [number, number, number]; d1: number; d2: number } | null;
   bravais: BravaisLatticeType;
+  spaceGroupSymbol?: string;
+  spaceGroupNumber?: number;
+  reflections?: Array<{ id: string; hkl: [number, number, number]; dObs?: number }>;
+  onSelectReflection?: (index: number) => void;
+  selectedIndex?: number;
 }
 
 export const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
@@ -1474,168 +1630,1424 @@ export const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
   a,
   b,
   c,
+  alpha = 90,
+  beta = 90,
+  gamma = 90,
   projection,
+  onProjectionChange,
   hkl,
   dSpacing,
-  showAtoms,
-  showGrid,
-  bravais
+  plane1 = [1, 1, 1],
+  plane2 = [2, 0, 0],
+  interplanarAngle,
+  bravais,
+  spaceGroupSymbol,
+  spaceGroupNumber,
+  reflections,
+  onSelectReflection,
+  selectedIndex = 0
 }) => {
-  const width = 280;
-  const height = 240;
-  const origin: [number, number] = [width / 2 - 20, height / 2 + 10];
+  // Supercell & Display Modes
+  const [supercell, setSupercell] = useState<1 | 2 | 3>(2);
+  const [planeMode, setPlaneMode] = useState<'active' | 'plane1' | 'plane2' | 'both' | 'custom'>('active');
+  const [customHkl, setCustomHkl] = useState<[number, number, number]>([1, 1, 0]);
 
-  let dim1 = a;
-  let dim2 = a;
-  let axisLabel1 = 'a';
-  let axisLabel2 = 'b';
-  let h_proj = hkl[0];
-  let k_proj = hkl[1];
+  // Display Layers
+  const [showPlanes, setShowPlanes] = useState<boolean>(true);
+  const [showDSpacing, setShowDSpacing] = useState<boolean>(true);
+  const [showNormal, setShowNormal] = useState<boolean>(true);
+  const [showAtoms, setShowAtoms] = useState<boolean>(true);
+  const [showGrid, setShowGrid] = useState<boolean>(true);
+  const [showSubGrid, setShowSubGrid] = useState<boolean>(false);
+  const [showAtomCoords, setShowAtomCoords] = useState<boolean>(false);
 
-  if (projection === 'XY') {
-    dim1 = a;
-    dim2 = b;
-    axisLabel1 = 'a';
-    axisLabel2 = 'b';
-    h_proj = hkl[0];
-    k_proj = hkl[1];
-  } else if (projection === 'XZ') {
-    dim1 = a;
-    dim2 = c;
-    axisLabel1 = 'a';
-    axisLabel2 = 'c';
-    h_proj = hkl[0];
-    k_proj = hkl[2];
-  } else if (projection === 'YZ') {
-    dim1 = b;
-    dim2 = c;
-    axisLabel1 = 'b';
-    axisLabel2 = 'c';
-    h_proj = hkl[1];
-    k_proj = hkl[2];
-  }
+  // Zoom & Pan
+  const [zoom, setZoom] = useState<number>(1.0);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const maxDim = Math.max(dim1, dim2, 3.0);
-  const scale = 80 / maxDim;
+  // Hovered Atom State for tooltip
+  const [hoveredAtom, setHoveredAtom] = useState<{
+    u: number;
+    v: number;
+    screenX: number;
+    screenY: number;
+    realX: number;
+    realY: number;
+    type: string;
+  } | null>(null);
 
-  const basisVectors = useMemo(() => {
-    let angle = Math.PI / 2;
+  // Copy SVG notification
+  const [copiedSvg, setCopiedSvg] = useState<boolean>(false);
+
+  const svgRef = React.useRef<SVGSVGElement | null>(null);
+
+  // Effective Miller indices based on planeMode
+  const activeHkl = useMemo<[number, number, number]>(() => {
+    if (planeMode === 'plane1') return plane1;
+    if (planeMode === 'plane2') return plane2;
+    if (planeMode === 'custom') return customHkl;
+    return hkl;
+  }, [planeMode, plane1, plane2, customHkl, hkl]);
+
+  // Viewport Dimensions
+  const viewWidth = 640;
+  const viewHeight = 440;
+
+  // Real-space 2D Projection Dimensions and Angles
+  const { dim1, dim2, axis1Name, axis2Name, inPlaneAngleDeg, h_proj1, k_proj1, h_proj2, k_proj2, zoneAxisName } = useMemo(() => {
+    let d1 = a;
+    let d2 = b;
+    let ax1 = 'a';
+    let ax2 = 'b';
+    let angDeg = gamma;
+    let zAxis = '[0 0 1]';
+
     if (system === 'Hexagonal' || system === 'Trigonal') {
-      if (projection === 'XY') {
-        angle = (120 * Math.PI) / 180;
+      angDeg = 120;
+    } else if (system === 'Monoclinic') {
+      angDeg = 90;
+    }
+
+    let hp1 = activeHkl[0];
+    let kp1 = activeHkl[1];
+    let hp2 = plane2[0];
+    let kp2 = plane2[1];
+
+    if (projection === 'XY') {
+      d1 = a;
+      d2 = b;
+      ax1 = 'a';
+      ax2 = 'b';
+      angDeg = (system === 'Hexagonal' || system === 'Trigonal') ? 120 : (gamma || 90);
+      hp1 = activeHkl[0];
+      kp1 = activeHkl[1];
+      hp2 = plane2[0];
+      kp2 = plane2[1];
+      zAxis = '[0 0 1] (c-axis)';
+    } else if (projection === 'XZ') {
+      d1 = a;
+      d2 = c;
+      ax1 = 'a';
+      ax2 = 'c';
+      angDeg = (system === 'Monoclinic') ? (beta || 99.2) : (beta || 90);
+      hp1 = activeHkl[0];
+      kp1 = activeHkl[2];
+      hp2 = plane2[0];
+      kp2 = plane2[2];
+      zAxis = '[0 1 0] (b-axis)';
+    } else if (projection === 'YZ') {
+      d1 = b;
+      d2 = c;
+      ax1 = 'b';
+      ax2 = 'c';
+      angDeg = alpha || 90;
+      hp1 = activeHkl[1];
+      kp1 = activeHkl[2];
+      hp2 = plane2[1];
+      kp2 = plane2[2];
+      zAxis = '[1 0 0] (a-axis)';
+    }
+
+    return {
+      dim1: d1 || 5.0,
+      dim2: d2 || 5.0,
+      axis1Name: ax1,
+      axis2Name: ax2,
+      inPlaneAngleDeg: angDeg,
+      h_proj1: hp1,
+      k_proj1: kp1,
+      h_proj2: hp2,
+      k_proj2: kp2,
+      zoneAxisName: zAxis
+    };
+  }, [projection, system, a, b, c, alpha, beta, gamma, activeHkl, plane2]);
+
+  // In-plane angle in radians
+  const inPlaneAngleRad = (inPlaneAngleDeg * Math.PI) / 180;
+
+  // Screen scale calculation to fit the supercell neatly
+  const { basisVec1, basisVec2, origin, autoScale } = useMemo(() => {
+    // 2D basis vectors in unscaled physical units (Å)
+    const v1_phys = [dim1, 0];
+    const v2_phys = [dim2 * Math.cos(inPlaneAngleRad), -dim2 * Math.sin(inPlaneAngleRad)];
+
+    // Bounding box of supercell in physical Å units
+    const corners = [
+      [0, 0],
+      [supercell * v1_phys[0], 0],
+      [supercell * v2_phys[0], supercell * v2_phys[1]],
+      [supercell * (v1_phys[0] + v2_phys[0]), supercell * v2_phys[1]]
+    ];
+
+    const xs = corners.map(c => c[0]);
+    const ys = corners.map(c => c[1]);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+
+    const physWidth = Math.max(1.0, maxX - minX);
+    const physHeight = Math.max(1.0, maxY - minY);
+
+    // Fit within inner canvas target (approx 440px wide, 280px high)
+    const targetW = 420;
+    const targetH = 260;
+    const s = Math.min(targetW / physWidth, targetH / physHeight) * zoom;
+
+    const bVec1: [number, number] = [v1_phys[0] * s, 0];
+    const bVec2: [number, number] = [v2_phys[0] * s, v2_phys[1] * s];
+
+    // Center of the bounding box on screen
+    const physCenterX = (minX + maxX) / 2;
+    const physCenterY = (minY + maxY) / 2;
+
+    const origX = viewWidth / 2 - physCenterX * s + pan.x;
+    const origY = viewHeight / 2 - physCenterY * s + pan.y;
+
+    return {
+      basisVec1: bVec1,
+      basisVec2: bVec2,
+      origin: [origX, origY] as [number, number],
+      autoScale: s
+    };
+  }, [dim1, dim2, inPlaneAngleRad, supercell, zoom, pan, viewWidth, viewHeight]);
+
+  // Coordinate Conversion: Fractional (u, v) -> Screen (x, y)
+  const toScreen = (u: number, v: number): [number, number] => {
+    const x = origin[0] + u * basisVec1[0] + v * basisVec2[0];
+    const y = origin[1] + u * basisVec1[1] + v * basisVec2[1];
+    return [x, y];
+  };
+
+  // Helper to generate Miller plane traces for any (h_p, k_p) across the [0, supercell] region
+  const generatePlaneTraces = (h_p: number, k_p: number, strokeColor: string, isPrimary: boolean) => {
+    if (h_p === 0 && k_p === 0) {
+      // Parallel to projection plane
+      return { lines: [], isParallel: true };
+    }
+
+    const nValues: number[] = [];
+    const cornerVals = [
+      0,
+      h_p * supercell,
+      k_p * supercell,
+      (h_p + k_p) * supercell
+    ];
+    const nMin = Math.min(...cornerVals) - 1;
+    const nMax = Math.max(...cornerVals) + 1;
+
+    for (let n = nMin; n <= nMax; n++) {
+      nValues.push(n);
+    }
+
+    const lines: Array<{
+      n: number;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      midX: number;
+      midY: number;
+      isOrigin: boolean;
+      isBraggFirst: boolean;
+    }> = [];
+
+    nValues.forEach(n => {
+      const intersections: [number, number][] = [];
+      const eps = 1e-5;
+
+      // 1. Line u = 0 -> k_p * v = n -> v = n / k_p
+      if (Math.abs(k_p) > 0) {
+        const v = n / k_p;
+        if (v >= -eps && v <= supercell + eps) intersections.push([0, Math.max(0, Math.min(supercell, v))]);
+      }
+      // 2. Line u = supercell -> k_p * v = n - h_p * supercell
+      if (Math.abs(k_p) > 0) {
+        const v = (n - h_p * supercell) / k_p;
+        if (v >= -eps && v <= supercell + eps) intersections.push([supercell, Math.max(0, Math.min(supercell, v))]);
+      }
+      // 3. Line v = 0 -> h_p * u = n -> u = n / h_p
+      if (Math.abs(h_p) > 0) {
+        const u = n / h_p;
+        if (u >= -eps && u <= supercell + eps) intersections.push([Math.max(0, Math.min(supercell, u)), 0]);
+      }
+      // 4. Line v = supercell -> h_p * u = n - k_p * supercell
+      if (Math.abs(h_p) > 0) {
+        const u = (n - k_p * supercell) / h_p;
+        if (u >= -eps && u <= supercell + eps) intersections.push([Math.max(0, Math.min(supercell, u)), supercell]);
+      }
+
+      // Filter distinct intersections
+      const uniquePts: [number, number][] = [];
+      for (const pt of intersections) {
+        if (!uniquePts.some(p => Math.hypot(p[0] - pt[0], p[1] - pt[1]) < 1e-4)) {
+          uniquePts.push(pt);
+        }
+      }
+
+      if (uniquePts.length >= 2) {
+        const [p1, p2] = [uniquePts[0], uniquePts[1]];
+        const [sx1, sy1] = toScreen(p1[0], p1[1]);
+        const [sx2, sy2] = toScreen(p2[0], p2[1]);
+
+        lines.push({
+          n,
+          x1: sx1,
+          y1: sy1,
+          x2: sx2,
+          y2: sy2,
+          midX: (sx1 + sx2) / 2,
+          midY: (sy1 + sy2) / 2,
+          isOrigin: n === 0,
+          isBraggFirst: n === 1
+        });
+      }
+    });
+
+    return { lines, isParallel: false };
+  };
+
+  const primaryTraces = useMemo(() => {
+    return generatePlaneTraces(h_proj1, k_proj1, '#06b6d4', true);
+  }, [h_proj1, k_proj1, supercell, basisVec1, basisVec2, origin]);
+
+  const secondaryTraces = useMemo(() => {
+    if (planeMode !== 'both') return { lines: [], isParallel: false };
+    return generatePlaneTraces(h_proj2, k_proj2, '#f43f5e', false);
+  }, [planeMode, h_proj2, k_proj2, supercell, basisVec1, basisVec2, origin]);
+
+  // Reciprocal Normal Vector direction g* (perpendicular to plane trace)
+  const normalVectorData = useMemo(() => {
+    if (primaryTraces.isParallel || primaryTraces.lines.length === 0) return null;
+
+    // Normal vector direction in Cartesian screen coordinates
+    // Line direction vector is (dx, dy)
+    const line0 = primaryTraces.lines.find(l => l.isOrigin) || primaryTraces.lines[0];
+    const dx = line0.x2 - line0.x1;
+    const dy = line0.y2 - line0.y1;
+    const len = Math.hypot(dx, dy);
+    if (len <= 1e-4) return null;
+
+    // Perpendicular vector (-dy, dx) or (dy, -dx) pointing towards n > 0
+    let nx = -dy / len;
+    let ny = dx / len;
+
+    const line1 = primaryTraces.lines.find(l => l.n === 1);
+    if (line1) {
+      const vdx = line1.midX - line0.midX;
+      const vdy = line1.midY - line0.midY;
+      if (nx * vdx + ny * vdy < 0) {
+        nx = -nx;
+        ny = -ny;
       }
     }
 
-    const vec1: [number, number] = [dim1 * scale, 0];
-    const vec2: [number, number] = [
-      dim2 * scale * Math.cos(angle - Math.PI / 2),
-      -dim2 * scale * Math.sin(angle - Math.PI / 2)
-    ];
+    const startX = origin[0];
+    const startY = origin[1];
+    const vecLen = 70;
+    const endX = startX + nx * vecLen;
+    const endY = startY + ny * vecLen;
 
-    return { vec1, vec2 };
-  }, [dim1, dim2, scale, system, projection]);
+    return {
+      startX,
+      startY,
+      endX,
+      endY,
+      nx,
+      ny
+    };
+  }, [primaryTraces, origin]);
 
-  const latticePoints = useMemo(() => {
-    const pts: [number, number][] = [
-      [0, 0], [1, 0], [0, 1], [1, 1]
+  // Interplanar d-spacing bracket calculation
+  const dSpacingBracket = useMemo(() => {
+    const l0 = primaryTraces.lines.find(l => l.n === 0);
+    const l1 = primaryTraces.lines.find(l => l.n === 1);
+    if (!l0 || !l1 || !normalVectorData) return null;
+
+    const px0 = origin[0];
+    const py0 = origin[1];
+    const px1 = origin[0] + normalVectorData.nx * (dSpacing * autoScale);
+    const py1 = origin[1] + normalVectorData.ny * (dSpacing * autoScale);
+
+    return {
+      x0: px0,
+      y0: py0,
+      x1: px1,
+      y1: py1,
+      midX: (px0 + px1) / 2 + normalVectorData.ny * 12,
+      midY: (py0 + py1) / 2 - normalVectorData.nx * 12
+    };
+  }, [primaryTraces, normalVectorData, origin, dSpacing, autoScale]);
+
+  // Atomic Sites Generation across the Supercell
+  const atomsList = useMemo(() => {
+    const baseSites: Array<{ u: number; v: number; type: 'corner' | 'body' | 'face' | 'basis' }> = [
+      { u: 0, v: 0, type: 'corner' },
+      { u: 1, v: 0, type: 'corner' },
+      { u: 0, v: 1, type: 'corner' },
+      { u: 1, v: 1, type: 'corner' }
     ];
 
     if (bravais === 'I') {
-      pts.push([0.5, 0.5]);
+      baseSites.push({ u: 0.5, v: 0.5, type: 'body' });
     } else if (bravais === 'F') {
-      pts.push([0.5, 0.5], [0.5, 0], [0, 0.5], [1, 0.5], [0.5, 1]);
+      baseSites.push(
+        { u: 0.5, v: 0.5, type: 'face' },
+        { u: 0.5, v: 0, type: 'face' },
+        { u: 0, v: 0.5, type: 'face' },
+        { u: 1, v: 0.5, type: 'face' },
+        { u: 0.5, v: 1, type: 'face' }
+      );
     } else if (bravais === 'C' && projection === 'XY') {
-      pts.push([0.5, 0.5]);
+      baseSites.push({ u: 0.5, v: 0.5, type: 'face' });
     }
 
-    return pts;
-  }, [bravais, projection]);
+    if (system === 'Hexagonal' || system === 'Trigonal') {
+      baseSites.push(
+        { u: 1 / 3, v: 2 / 3, type: 'basis' },
+        { u: 2 / 3, v: 1 / 3, type: 'basis' }
+      );
+    }
+
+    const allAtoms: Array<{
+      u: number;
+      v: number;
+      screenX: number;
+      screenY: number;
+      type: 'corner' | 'body' | 'face' | 'basis';
+      id: string;
+    }> = [];
+
+    for (let cx = 0; cx < supercell; cx++) {
+      for (let cy = 0; cy < supercell; cy++) {
+        for (const site of baseSites) {
+          const uGlobal = site.u + cx;
+          const vGlobal = site.v + cy;
+          const [sx, sy] = toScreen(uGlobal, vGlobal);
+
+          // Avoid duplicate atoms at shared unit cell boundaries
+          if (!allAtoms.some(a => Math.hypot(a.screenX - sx, a.screenY - sy) < 1.0)) {
+            allAtoms.push({
+              u: uGlobal,
+              v: vGlobal,
+              screenX: sx,
+              screenY: sy,
+              type: site.type,
+              id: `atom-${cx}-${cy}-${site.u.toFixed(2)}-${site.v.toFixed(2)}`
+            });
+          }
+        }
+      }
+    }
+
+    return allAtoms;
+  }, [bravais, system, projection, supercell, basisVec1, basisVec2, origin]);
+
+  // Handlers for Pan & Drag
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPan({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleResetView = () => {
+    playSynthTone('switch');
+    setZoom(1.0);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleDownloadSvg = () => {
+    if (!svgRef.current) return;
+    playSynthTone('success');
+    const svgData = new XMLSerializer().serializeToString(svgRef.current);
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `unit_cell_2d_${projection}_plane_hkl_${activeHkl.join('_')}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopySvg = () => {
+    if (!svgRef.current) return;
+    playSynthTone('switch');
+    const svgData = new XMLSerializer().serializeToString(svgRef.current);
+    navigator.clipboard.writeText(svgData);
+    setCopiedSvg(true);
+    setTimeout(() => setCopiedSvg(false), 2500);
+  };
+
+  // Projected 2D cell area
+  const projectedArea = dim1 * dim2 * Math.sin(inPlaneAngleRad);
 
   return (
-    <svg width={width} height={height} className="overflow-visible select-none">
-      <defs>
-        <filter id="atomGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.5" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-      </defs>
+    <div className="space-y-4">
+      {/* Top Header & Interactive Mode Toolbar */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+            <Grid className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-black text-white tracking-wide">
+                Real-Space Unit Cell 2D Projection & Lattice Planes
+              </h3>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
+                {system} • {spaceGroupSymbol || 'P1'} (#{spaceGroupNumber || 1})
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Interactive crystallographic direct-space plane traces $hu + kv + lw = n$ with atomic sites and metric projection.
+            </p>
+          </div>
+        </div>
 
-      {/* Grid Mesh */}
-      {showGrid && (
-        <g stroke="#334155" strokeWidth="0.5" opacity="0.4">
-          <line x1={origin[0]} y1={origin[1]} x2={origin[0] + basisVectors.vec1[0]} y2={origin[1] + basisVectors.vec1[1]} />
-          <line x1={origin[0]} y1={origin[1]} x2={origin[0] + basisVectors.vec2[0]} y2={origin[1] + basisVectors.vec2[1]} />
-          <line x1={origin[0] + basisVectors.vec1[0]} y1={origin[0] + basisVectors.vec1[1]} x2={origin[0] + basisVectors.vec1[0] + basisVectors.vec2[0]} y2={origin[1] + basisVectors.vec1[1] + basisVectors.vec2[1]} />
-          <line x1={origin[0] + basisVectors.vec2[0]} y1={origin[0] + basisVectors.vec2[1]} x2={origin[0] + basisVectors.vec1[0] + basisVectors.vec2[0]} y2={origin[1] + basisVectors.vec2[1] + basisVectors.vec2[1]} />
-        </g>
+        {/* Viewplane Selection Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-black/60 rounded-2xl border border-white/10 shadow-inner self-stretch sm:self-auto justify-between sm:justify-start">
+          {(['XY', 'XZ', 'YZ'] as ProjectionPlane[]).map(plane => (
+            <motion.button
+              key={plane}
+              type="button"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                playSynthTone('switch');
+                onProjectionChange?.(plane);
+              }}
+              className={`px-3.5 py-1.5 text-xs font-mono font-black uppercase rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                projection === plane
+                  ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)] border border-indigo-400/40'
+                  : 'text-slate-400 hover:text-slate-200 bg-transparent hover:bg-white/5'
+              }`}
+            >
+              <span>{plane} Plane</span>
+              <span className="text-[9px] opacity-70 font-normal">
+                ({plane === 'XY' ? 'ab' : plane === 'XZ' ? 'ac' : 'bc'})
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      {/* Control Strip: Plane Source + Supercell + Toggles + Actions */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
+        {/* Left: Plane Selector Sub-panel */}
+        <div className="xl:col-span-8 flex flex-wrap items-center gap-2 bg-slate-900/60 p-2.5 rounded-2xl border border-white/5">
+          <span className="text-[10px] font-mono uppercase font-bold text-slate-400 pl-1">
+            Plane Source:
+          </span>
+
+          {/* Active Peak Selector */}
+          <button
+            type="button"
+            onClick={() => {
+              playSynthTone('switch');
+              setPlaneMode('active');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+              planeMode === 'active'
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Active Peak ({hkl.join(' ')})</span>
+          </button>
+
+          {/* Plane 1 */}
+          <button
+            type="button"
+            onClick={() => {
+              playSynthTone('switch');
+              setPlaneMode('plane1');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+              planeMode === 'plane1'
+                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/60 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
+                : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+            }`}
+          >
+            <span>Plane 1 ({plane1.join(' ')})</span>
+          </button>
+
+          {/* Plane 2 */}
+          <button
+            type="button"
+            onClick={() => {
+              playSynthTone('switch');
+              setPlaneMode('plane2');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+              planeMode === 'plane2'
+                ? 'bg-rose-500/20 text-rose-300 border-rose-400/60 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
+                : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+            }`}
+          >
+            <span>Plane 2 ({plane2.join(' ')})</span>
+          </button>
+
+          {/* Compare Dual Overlay */}
+          <button
+            type="button"
+            onClick={() => {
+              playSynthTone('switch');
+              setPlaneMode('both');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+              planeMode === 'both'
+                ? 'bg-gradient-to-r from-indigo-500/30 to-rose-500/30 text-white border-purple-400/60 shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                : 'bg-white/5 text-slate-400 border-white/5 hover:bg-white/10'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5 text-purple-300" />
+            <span>Dual Overlay (1 & 2)</span>
+          </button>
+
+          {/* Custom HKL */}
+          <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10">
+            <button
+              type="button"
+              onClick={() => {
+                playSynthTone('switch');
+                setPlaneMode('custom');
+              }}
+              className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                planeMode === 'custom'
+                  ? 'bg-amber-500 text-black font-black'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Custom
+            </button>
+            <div className="flex items-center gap-1">
+              {[0, 1, 2].map((idx) => (
+                <input
+                  key={idx}
+                  type="number"
+                  value={customHkl[idx]}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10) || 0;
+                    const next: [number, number, number] = [...customHkl];
+                    next[idx] = val;
+                    setCustomHkl(next);
+                    setPlaneMode('custom');
+                  }}
+                  className="w-8 h-6 bg-slate-800 text-white font-mono text-center font-bold text-xs rounded border border-white/10 focus:border-amber-400 focus:outline-none"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Supercell & View Action Controls */}
+        <div className="xl:col-span-4 flex items-center justify-between xl:justify-end gap-2 bg-slate-900/60 p-2.5 rounded-2xl border border-white/5">
+          {/* Supercell selector */}
+          <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10">
+            <span className="text-[10px] font-mono text-slate-400 px-1.5 uppercase font-bold">Cell:</span>
+            {([1, 2, 3] as const).map(sc => (
+              <button
+                key={sc}
+                type="button"
+                onClick={() => {
+                  playSynthTone('switch');
+                  setSupercell(sc);
+                }}
+                className={`px-2 py-0.5 rounded-lg text-xs font-mono font-black transition-all cursor-pointer ${
+                  supercell === sc
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {sc}×{sc}
+              </button>
+            ))}
+          </div>
+
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setZoom(z => Math.min(2.5, z + 0.15))}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all cursor-pointer"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-3.5 h-3.5" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setZoom(z => Math.max(0.5, z - 0.15))}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all cursor-pointer"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-3.5 h-3.5" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleResetView}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all cursor-pointer"
+              title="Reset Zoom & Pan"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </motion.button>
+          </div>
+
+          {/* SVG Export / Copy */}
+          <div className="flex items-center gap-1">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleDownloadSvg}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all cursor-pointer"
+              title="Download SVG"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleCopySvg}
+              className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                copiedSvg ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+              }`}
+              title="Copy SVG to Clipboard"
+            >
+              {copiedSvg ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            </motion.button>
+          </div>
+        </div>
+      </div>
+
+      {/* Layer Visibility Toggles & Fast Feature Switches */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <span className="text-[10px] text-slate-500 uppercase font-bold pr-1">Layers:</span>
+          <button
+            type="button"
+            onClick={() => setShowPlanes(!showPlanes)}
+            className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              showPlanes ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-black/40 text-slate-500 border-white/5'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${showPlanes ? 'bg-cyan-400 animate-pulse' : 'bg-slate-600'}`} />
+            <span>(hkl) Plane Traces</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowDSpacing(!showDSpacing)}
+            className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              showDSpacing ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-black/40 text-slate-500 border-white/5'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${showDSpacing ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+            <span>d_hkl Spacing Callout</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowNormal(!showNormal)}
+            className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              showNormal ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-black/40 text-slate-500 border-white/5'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${showNormal ? 'bg-purple-400' : 'bg-slate-600'}`} />
+            <span>g* Reciprocal Normal</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAtoms(!showAtoms)}
+            className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              showAtoms ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' : 'bg-black/40 text-slate-500 border-white/5'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${showAtoms ? 'bg-indigo-400' : 'bg-slate-600'}`} />
+            <span>Lattice Atoms</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAtomCoords(!showAtomCoords)}
+            className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              showAtomCoords ? 'bg-blue-500/20 text-blue-300 border-blue-500/40' : 'bg-black/40 text-slate-500 border-white/5'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${showAtomCoords ? 'bg-blue-400' : 'bg-slate-600'}`} />
+            <span>(u,v) Coordinates</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowGrid(!showGrid)}
+            className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              showGrid ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-black/40 text-slate-500 border-white/5'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${showGrid ? 'bg-amber-400' : 'bg-slate-600'}`} />
+            <span>Unit Cell Outlines</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSubGrid(!showSubGrid)}
+            className={`px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+              showSubGrid ? 'bg-pink-500/20 text-pink-300 border-pink-500/40' : 'bg-black/40 text-slate-500 border-white/5'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full ${showSubGrid ? 'bg-pink-400' : 'bg-slate-600'}`} />
+            <span>Fractional Subgrid</span>
+          </button>
+        </div>
+
+        <div className="text-[10px] text-slate-500 font-mono hidden md:block">
+          💡 Drag canvas to Pan • Scroll to Zoom
+        </div>
+      </div>
+
+      {/* Quick Reflection Selector Strip (if reflections available) */}
+      {reflections && reflections.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 scrollbar-thin scrollbar-thumb-indigo-500/30">
+          <span className="text-[10px] uppercase font-bold text-slate-400 font-mono whitespace-nowrap flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-cyan-400" />
+            Peaks:
+          </span>
+          <div className="flex items-center gap-1.5">
+            {reflections.slice(0, 10).map((ref, idx) => {
+              const isSelected = selectedIndex === idx && planeMode === 'active';
+              return (
+                <button
+                  key={ref.id || idx}
+                  type="button"
+                  onClick={() => {
+                    playSynthTone('switch');
+                    onSelectReflection?.(idx);
+                    setPlaneMode('active');
+                  }}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold whitespace-nowrap transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-cyan-500 text-slate-950 border-cyan-300 font-black shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                      : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20 hover:text-slate-200'
+                  }`}
+                >
+                  ({ref.hkl.join(' ')})
+                  {ref.dObs ? <span className="opacity-70 text-[8.5px] ml-1 font-normal">{ref.dObs.toFixed(3)}Å</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {/* Basis Vectors */}
-      <g strokeWidth="2">
-        <line
-          x1={origin[0]}
-          y1={origin[1]}
-          x2={origin[0] + basisVectors.vec1[0] * 0.8}
-          y2={origin[1] + basisVectors.vec1[1] * 0.8}
-          stroke="#f59e0b"
-        />
-        <line
-          x1={origin[0]}
-          y1={origin[1]}
-          x2={origin[0] + basisVectors.vec2[0] * 0.8}
-          y2={origin[1] + basisVectors.vec2[1] * 0.8}
-          stroke="#10b981"
-        />
-      </g>
-
-      <text x={origin[0] + basisVectors.vec1[0] * 0.85} y={origin[1] + 12} fill="#f59e0b" fontSize="9" fontWeight="bold">
-        {axisLabel1} ({dim1.toFixed(3)}Å)
-      </text>
-      <text x={origin[0] + basisVectors.vec2[0] * 0.85 - 10} y={origin[1] + basisVectors.vec2[1] * 0.85} fill="#10b981" fontSize="9" fontWeight="bold">
-        {axisLabel2} ({dim2.toFixed(3)}Å)
-      </text>
-
-      {/* Atoms */}
-      {showAtoms && latticePoints.map((pt, idx) => {
-        const cx = origin[0] + pt[0] * basisVectors.vec1[0] + pt[1] * basisVectors.vec2[0];
-        const cy = origin[1] + pt[0] * basisVectors.vec1[1] + pt[1] * basisVectors.vec2[1];
-        const isCorner = pt[0] % 1 === 0 && pt[1] % 1 === 0;
-
-        return (
-          <circle
-            key={`atom-${idx}`}
-            cx={cx}
-            cy={cy}
-            r={isCorner ? 5.5 : 4}
-            fill={isCorner ? "#38bdf8" : "#f472b6"}
-            stroke="#ffffff"
-            strokeWidth="1.2"
-            filter="url(#atomGlow)"
-          />
-        );
-      })}
-
-      {/* Label Badge */}
-      <rect
-        x="10"
-        y={height - 24}
-        width={width - 20}
-        height="18"
-        rx="4"
-        fill="#0f172a"
-        stroke="#1e293b"
-      />
-      <text
-        x={width / 2}
-        y={height - 12}
-        textAnchor="middle"
-        fill="#a5b4fc"
-        fontSize="8"
-        fontWeight="black"
-        fontFamily="monospace"
+      {/* Main Interactive Canvas Area */}
+      <div
+        className={`relative w-full h-[390px] sm:h-[450px] bg-[#020617] rounded-3xl border border-indigo-500/30 overflow-hidden shadow-2xl flex items-center justify-center select-none ${
+          isDragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={(e) => {
+          e.preventDefault();
+          const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+          setZoom(z => Math.max(0.4, Math.min(3.0, z * zoomFactor)));
+        }}
       >
-        Projection: {projection} | hkl: ({hkl.join(' ')}) | d = {dSpacing.toFixed(4)} Å
-      </text>
-    </svg>
+        {/* Subtle grid background pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)',
+            backgroundSize: '24px 24px'
+          }}
+        />
+
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${viewWidth} ${viewHeight}`}
+          className="w-full h-full overflow-visible"
+        >
+          <defs>
+            {/* Atom Shading Gradients */}
+            <radialGradient id="cornerAtomGrad" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#a5f3fc" />
+              <stop offset="40%" stopColor="#06b6d4" />
+              <stop offset="100%" stopColor="#083344" />
+            </radialGradient>
+            <radialGradient id="bodyAtomGrad" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#fde68a" />
+              <stop offset="40%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#451a03" />
+            </radialGradient>
+            <radialGradient id="faceAtomGrad" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#f5d0fe" />
+              <stop offset="40%" stopColor="#d946ef" />
+              <stop offset="100%" stopColor="#4a044e" />
+            </radialGradient>
+            <radialGradient id="basisAtomGrad" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#a7f3d0" />
+              <stop offset="40%" stopColor="#10b981" />
+              <stop offset="100%" stopColor="#064e3b" />
+            </radialGradient>
+
+            {/* Glowing filter */}
+            <filter id="planeGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            <filter id="originGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="4.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+
+            {/* Arrow Markers */}
+            <marker id="arrowPrimary" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M 0 0 L 8 4 L 0 8 Z" fill="#06b6d4" />
+            </marker>
+            <marker id="arrowSecondary" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M 0 0 L 8 4 L 0 8 Z" fill="#f43f5e" />
+            </marker>
+            <marker id="arrowNormal" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M 0 0 L 8 4 L 0 8 Z" fill="#a855f7" />
+            </marker>
+            <marker id="arrowDSpacing" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+              <path d="M 0 0 L 6 3 L 0 6 Z" fill="#10b981" />
+            </marker>
+          </defs>
+
+          {/* Fractional Subgrid (0.25, 0.5, 0.75) */}
+          {showSubGrid && (
+            <g stroke="#334155" strokeWidth="0.5" strokeDasharray="2,2" opacity="0.25">
+              {Array.from({ length: supercell * 4 + 1 }).map((_, i) => {
+                const u = i * 0.25;
+                const [p1x, p1y] = toScreen(u, 0);
+                const [p2x, p2y] = toScreen(u, supercell);
+                return <line key={`sub-u-${i}`} x1={p1x} y1={p1y} x2={p2x} y2={p2y} />;
+              })}
+              {Array.from({ length: supercell * 4 + 1 }).map((_, i) => {
+                const v = i * 0.25;
+                const [p1x, p1y] = toScreen(0, v);
+                const [p2x, p2y] = toScreen(supercell, v);
+                return <line key={`sub-v-${i}`} x1={p1x} y1={p1y} x2={p2x} y2={p2y} />;
+              })}
+            </g>
+          )}
+
+          {/* Unit Cell & Supercell Grid Boundaries */}
+          {showGrid && (
+            <g>
+              {/* Internal cell dividers */}
+              {Array.from({ length: supercell }).map((_, cx) =>
+                Array.from({ length: supercell }).map((_, cy) => {
+                  const [p00x, p00y] = toScreen(cx, cy);
+                  const [p10x, p10y] = toScreen(cx + 1, cy);
+                  const [p11x, p11y] = toScreen(cx + 1, cy + 1);
+                  const [p01x, p01y] = toScreen(cx, cy + 1);
+
+                  const isPrimaryCell = cx === 0 && cy === 0;
+
+                  return (
+                    <polygon
+                      key={`cell-${cx}-${cy}`}
+                      points={`${p00x},${p00y} ${p10x},${p10y} ${p11x},${p11y} ${p01x},${p01y}`}
+                      fill={isPrimaryCell ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255, 255, 255, 0.01)'}
+                      stroke={isPrimaryCell ? '#818cf8' : '#334155'}
+                      strokeWidth={isPrimaryCell ? 1.8 : 0.9}
+                      strokeDasharray={isPrimaryCell ? 'none' : '4,3'}
+                    />
+                  );
+                })
+              )}
+            </g>
+          )}
+
+          {/* In-Plane Axis Vectors (a1 & a2) */}
+          <g strokeWidth="2.5">
+            {/* Axis 1 (dim1) */}
+            <line
+              x1={origin[0]}
+              y1={origin[1]}
+              x2={origin[0] + basisVec1[0]}
+              y2={origin[1] + basisVec1[1]}
+              stroke="#f59e0b"
+              markerEnd="url(#arrowPrimary)"
+            />
+            {/* Axis 2 (dim2) */}
+            <line
+              x1={origin[0]}
+              y1={origin[1]}
+              x2={origin[0] + basisVec2[0]}
+              y2={origin[1] + basisVec2[1]}
+              stroke="#10b981"
+              markerEnd="url(#arrowPrimary)"
+            />
+
+            {/* Axis Labels */}
+            <text
+              x={origin[0] + basisVec1[0] + 12}
+              y={origin[1] + basisVec1[1] + 4}
+              fill="#fbbf24"
+              fontSize="11"
+              fontFamily="monospace"
+              fontWeight="900"
+            >
+              {axis1Name} ({dim1.toFixed(3)} Å)
+            </text>
+            <text
+              x={origin[0] + basisVec2[0] - 12}
+              y={origin[1] + basisVec2[1] - 8}
+              fill="#34d399"
+              fontSize="11"
+              fontFamily="monospace"
+              fontWeight="900"
+            >
+              {axis2Name} ({dim2.toFixed(3)} Å)
+            </text>
+
+            {/* Angle Indicator Arc */}
+            <path
+              d={`M ${origin[0] + 25} ${origin[1]} A 25 25 0 0 0 ${origin[0] + 25 * Math.cos(inPlaneAngleRad)} ${origin[1] - 25 * Math.sin(inPlaneAngleRad)}`}
+              fill="none"
+              stroke="#cbd5e1"
+              strokeWidth="1"
+              strokeDasharray="2,2"
+            />
+            <text
+              x={origin[0] + 32 * Math.cos(inPlaneAngleRad / 2)}
+              y={origin[1] - 32 * Math.sin(inPlaneAngleRad / 2)}
+              fill="#94a3b8"
+              fontSize="9"
+              fontFamily="monospace"
+              fontWeight="bold"
+            >
+              {inPlaneAngleDeg.toFixed(1)}°
+            </text>
+          </g>
+
+          {/* Secondary Plane Traces (in Dual Compare Mode) */}
+          {showPlanes && planeMode === 'both' && !secondaryTraces.isParallel && (
+            <g>
+              {secondaryTraces.lines.map((l) => (
+                <g key={`plane2-line-${l.n}`}>
+                  <line
+                    x1={l.x1}
+                    y1={l.y1}
+                    x2={l.x2}
+                    y2={l.y2}
+                    stroke="#f43f5e"
+                    strokeWidth={l.isOrigin ? 2.5 : 1.5}
+                    strokeDasharray={l.isOrigin ? 'none' : '4,3'}
+                    opacity={l.isOrigin ? 0.9 : 0.6}
+                  />
+                  <rect
+                    x={l.midX - 10}
+                    y={l.midY - 7}
+                    width="20"
+                    height="14"
+                    rx="3"
+                    fill="#1e1124"
+                    stroke="#f43f5e"
+                    strokeWidth="0.8"
+                  />
+                  <text
+                    x={l.midX}
+                    y={l.midY + 3.5}
+                    textAnchor="middle"
+                    fill="#fecdd3"
+                    fontSize="8"
+                    fontWeight="black"
+                    fontFamily="monospace"
+                  >
+                    n={l.n}
+                  </text>
+                </g>
+              ))}
+            </g>
+          )}
+
+          {/* Primary Miller Plane Traces */}
+          {showPlanes && !primaryTraces.isParallel && (
+            <g>
+              {primaryTraces.lines.map((l) => (
+                <g key={`plane1-line-${l.n}`}>
+                  {/* Outer Glow */}
+                  {l.isOrigin && (
+                    <line
+                      x1={l.x1}
+                      y1={l.y1}
+                      x2={l.x2}
+                      y2={l.y2}
+                      stroke="#06b6d4"
+                      strokeWidth="6"
+                      opacity="0.25"
+                      filter="url(#originGlow)"
+                    />
+                  )}
+
+                  {/* Main Line */}
+                  <line
+                    x1={l.x1}
+                    y1={l.y1}
+                    x2={l.x2}
+                    y2={l.y2}
+                    stroke={l.isOrigin ? '#22d3ee' : l.isBraggFirst ? '#38bdf8' : '#0284c7'}
+                    strokeWidth={l.isOrigin ? 2.8 : l.isBraggFirst ? 2.0 : 1.4}
+                    strokeDasharray={l.isOrigin ? 'none' : '6,3'}
+                    opacity={l.isOrigin ? 1.0 : l.isBraggFirst ? 0.85 : 0.6}
+                  />
+
+                  {/* Plane Order Badge */}
+                  <rect
+                    x={l.midX - 11}
+                    y={l.midY - 7.5}
+                    width="22"
+                    height="15"
+                    rx="3.5"
+                    fill="#082f49"
+                    stroke={l.isOrigin ? '#22d3ee' : '#0284c7'}
+                    strokeWidth={l.isOrigin ? 1.2 : 0.8}
+                  />
+                  <text
+                    x={l.midX}
+                    y={l.midY + 3.5}
+                    textAnchor="middle"
+                    fill={l.isOrigin ? '#a5f3fc' : '#bae6fd'}
+                    fontSize="8"
+                    fontWeight="black"
+                    fontFamily="monospace"
+                  >
+                    n={l.n}
+                  </text>
+                </g>
+              ))}
+            </g>
+          )}
+
+          {/* Parallel Plane Banner (when plane is parallel to viewing plane) */}
+          {showPlanes && primaryTraces.isParallel && (
+            <g>
+              <rect
+                x={origin[0] + 10}
+                y={origin[1] - 80}
+                width="340"
+                height="50"
+                rx="12"
+                fill="rgba(15, 23, 42, 0.85)"
+                stroke="#38bdf8"
+                strokeWidth="1.5"
+                strokeDasharray="4,3"
+              />
+              <text
+                x={origin[0] + 180}
+                y={origin[1] - 58}
+                textAnchor="middle"
+                fill="#38bdf8"
+                fontSize="11"
+                fontWeight="black"
+                fontFamily="monospace"
+              >
+                Plane ({activeHkl.join(' ')}) is Parallel to {projection} Viewplane
+              </text>
+              <text
+                x={origin[0] + 180}
+                y={origin[1] - 42}
+                textAnchor="middle"
+                fill="#94a3b8"
+                fontSize="9"
+                fontFamily="sans-serif"
+              >
+                Lattice planes form depth sheets along the perpendicular {zoneAxisName}
+              </text>
+            </g>
+          )}
+
+          {/* Interplanar d-Spacing Dimension Callout */}
+          {showDSpacing && dSpacingBracket && (
+            <g>
+              <line
+                x1={dSpacingBracket.x0}
+                y1={dSpacingBracket.y0}
+                x2={dSpacingBracket.x1}
+                y2={dSpacingBracket.y1}
+                stroke="#10b981"
+                strokeWidth="1.8"
+                markerStart="url(#arrowDSpacing)"
+                markerEnd="url(#arrowDSpacing)"
+              />
+              {/* Bracket background badge */}
+              <rect
+                x={dSpacingBracket.midX - 35}
+                y={dSpacingBracket.midY - 9}
+                width="70"
+                height="18"
+                rx="4"
+                fill="#022c22"
+                stroke="#10b981"
+                strokeWidth="1"
+              />
+              <text
+                x={dSpacingBracket.midX}
+                y={dSpacingBracket.midY + 3.5}
+                textAnchor="middle"
+                fill="#a7f3d0"
+                fontSize="9"
+                fontWeight="black"
+                fontFamily="monospace"
+              >
+                d = {dSpacing.toFixed(4)} Å
+              </text>
+            </g>
+          )}
+
+          {/* Reciprocal Lattice Normal Vector g* */}
+          {showNormal && normalVectorData && (
+            <g>
+              <line
+                x1={normalVectorData.startX}
+                y1={normalVectorData.startY}
+                x2={normalVectorData.endX}
+                y2={normalVectorData.endY}
+                stroke="#c084fc"
+                strokeWidth="2.5"
+                markerEnd="url(#arrowNormal)"
+              />
+              <text
+                x={normalVectorData.endX + normalVectorData.nx * 14}
+                y={normalVectorData.endY + normalVectorData.ny * 14}
+                fill="#e9d5ff"
+                fontSize="10"
+                fontWeight="black"
+                fontFamily="monospace"
+              >
+                g*({activeHkl.join(' ')})
+              </text>
+            </g>
+          )}
+
+          {/* Dual Overlay Angle Arc between g1* and g2* */}
+          {planeMode === 'both' && interplanarAngle && (
+            <g>
+              <rect
+                x="15"
+                y="15"
+                width="200"
+                height="45"
+                rx="8"
+                fill="rgba(15, 23, 42, 0.9)"
+                stroke="#c084fc"
+                strokeWidth="1"
+              />
+              <text x="25" y="32" fill="#c084fc" fontSize="10" fontWeight="bold" fontFamily="monospace">
+                Interplanar Angle (ϕ):
+              </text>
+              <text x="25" y="48" fill="#ffffff" fontSize="12" fontWeight="black" fontFamily="monospace">
+                {interplanarAngle.angleDeg.toFixed(3)}°
+              </text>
+            </g>
+          )}
+
+          {/* Lattice Atoms */}
+          {showAtoms && (
+            <g>
+              {atomsList.map((atom) => {
+                const isHovered = hoveredAtom?.u === atom.u && hoveredAtom?.v === atom.v;
+                let gradId = 'cornerAtomGrad';
+                let radius = 6.5;
+
+                if (atom.type === 'body') {
+                  gradId = 'bodyAtomGrad';
+                  radius = 5.5;
+                } else if (atom.type === 'face') {
+                  gradId = 'faceAtomGrad';
+                  radius = 5.5;
+                } else if (atom.type === 'basis') {
+                  gradId = 'basisAtomGrad';
+                  radius = 5.0;
+                }
+
+                return (
+                  <g
+                    key={atom.id}
+                    onMouseEnter={() => {
+                      setHoveredAtom({
+                        u: atom.u,
+                        v: atom.v,
+                        screenX: atom.screenX,
+                        screenY: atom.screenY,
+                        realX: atom.u * dim1,
+                        realY: atom.v * dim2,
+                        type: atom.type
+                      });
+                    }}
+                    onMouseLeave={() => setHoveredAtom(null)}
+                    className="cursor-pointer"
+                  >
+                    {/* Shadow */}
+                    <circle
+                      cx={atom.screenX + 1.5}
+                      cy={atom.screenY + 1.5}
+                      r={radius}
+                      fill="rgba(0,0,0,0.5)"
+                    />
+                    {/* Sphere */}
+                    <circle
+                      cx={atom.screenX}
+                      cy={atom.screenY}
+                      r={isHovered ? radius + 2.5 : radius}
+                      fill={`url(#${gradId})`}
+                      stroke={isHovered ? '#ffffff' : '#ffffff88'}
+                      strokeWidth={isHovered ? 2 : 1}
+                      className="transition-all duration-150"
+                    />
+
+                    {/* Coordinate Label */}
+                    {showAtomCoords && (
+                      <text
+                        x={atom.screenX}
+                        y={atom.screenY - radius - 3}
+                        textAnchor="middle"
+                        fill="#cbd5e1"
+                        fontSize="7"
+                        fontFamily="monospace"
+                        fontWeight="bold"
+                      >
+                        ({atom.u.toFixed(2)}, {atom.v.toFixed(2)})
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          )}
+
+          {/* Hover Tooltip inside SVG */}
+          {hoveredAtom && (
+            <g transform={`translate(${hoveredAtom.screenX + 10}, ${hoveredAtom.screenY - 35})`}>
+              <rect
+                x="0"
+                y="0"
+                width="145"
+                height="45"
+                rx="6"
+                fill="#0f172a"
+                stroke="#38bdf8"
+                strokeWidth="1.2"
+                filter="url(#planeGlow)"
+              />
+              <text x="8" y="14" fill="#38bdf8" fontSize="9" fontWeight="bold" fontFamily="monospace">
+                Site: {hoveredAtom.type.toUpperCase()}
+              </text>
+              <text x="8" y="27" fill="#ffffff" fontSize="8" fontFamily="monospace">
+                [u, v] = [{hoveredAtom.u.toFixed(3)}, {hoveredAtom.v.toFixed(3)}]
+              </text>
+              <text x="8" y="38" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                r = ({hoveredAtom.realX.toFixed(2)} Å, {hoveredAtom.realY.toFixed(2)} Å)
+              </text>
+            </g>
+          )}
+
+          {/* Projection Info Badge Bottom Left */}
+          <g transform={`translate(15, ${viewHeight - 30})`}>
+            <rect
+              x="0"
+              y="0"
+              width="280"
+              height="20"
+              rx="5"
+              fill="rgba(2, 6, 23, 0.85)"
+              stroke="#1e293b"
+            />
+            <text
+              x="140"
+              y="13.5"
+              textAnchor="middle"
+              fill="#94a3b8"
+              fontSize="8.5"
+              fontWeight="bold"
+              fontFamily="monospace"
+            >
+              Projection: {projection} ({axis1Name} ⊥ {axis2Name}) | Supercell: {supercell}×{supercell}
+            </text>
+          </g>
+        </svg>
+      </div>
+
+      {/* Real-Space Metrics HUD Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 text-xs font-mono">
+        {/* 1. Projected Cell Area */}
+        <div className="bg-[#050C17]/90 p-3 rounded-2xl border border-white/5 space-y-1">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Projected 2D Area</span>
+          <div className="text-base font-black text-indigo-300">
+            {projectedArea.toFixed(3)} <span className="text-[10px] font-normal text-slate-400">Å²</span>
+          </div>
+          <span className="text-[9px] text-slate-500">|{axis1Name} × {axis2Name}|</span>
+        </div>
+
+        {/* 2. In-Plane Axis Angle */}
+        <div className="bg-[#050C17]/90 p-3 rounded-2xl border border-white/5 space-y-1">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">In-Plane Angle</span>
+          <div className="text-base font-black text-emerald-300">
+            {inPlaneAngleDeg.toFixed(2)}°
+          </div>
+          <span className="text-[9px] text-slate-500">∠({axis1Name}, {axis2Name})</span>
+        </div>
+
+        {/* 3. Interplanar Spacing d_hkl */}
+        <div className="bg-[#050C17]/90 p-3 rounded-2xl border border-white/5 space-y-1">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">d_hkl Spacing</span>
+          <div className="text-base font-black text-cyan-300">
+            {dSpacing.toFixed(4)} <span className="text-[10px] font-normal text-slate-400">Å</span>
+          </div>
+          <span className="text-[9px] text-slate-500">({activeHkl.join(' ')}) reflection</span>
+        </div>
+
+        {/* 4. In-Plane Trace Slope */}
+        <div className="bg-[#050C17]/90 p-3 rounded-2xl border border-white/5 space-y-1">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Trace Slope m</span>
+          <div className="text-base font-black text-amber-300">
+            {k_proj1 !== 0 ? (-h_proj1 / k_proj1).toFixed(3) : '∞ (Vertical)'}
+          </div>
+          <span className="text-[9px] text-slate-500">m = -h/k</span>
+        </div>
+
+        {/* 5. Projected Zone Axis */}
+        <div className="bg-[#050C17]/90 p-3 rounded-2xl border border-white/5 space-y-1">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Viewing Axis [uvw]</span>
+          <div className="text-base font-black text-purple-300">
+            {zoneAxisName.split(' ')[0]}
+          </div>
+          <span className="text-[9px] text-slate-500">⊥ to screen</span>
+        </div>
+
+        {/* 6. Lattice Points Count */}
+        <div className="bg-[#050C17]/90 p-3 rounded-2xl border border-white/5 space-y-1">
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Atoms in Supercell</span>
+          <div className="text-base font-black text-pink-300">
+            {atomsList.length} <span className="text-[10px] font-normal text-slate-400">sites</span>
+          </div>
+          <span className="text-[9px] text-slate-500">{bravais}-centering</span>
+        </div>
+      </div>
+    </div>
   );
 };

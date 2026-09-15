@@ -1057,13 +1057,21 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             {/* Action Buttons */}
             <div className="space-y-2">
               {!isSimulationRunning ? (
-                <button
+                <motion.button
                   onClick={handleCalculateWithSimulation}
-                  className="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-rose-500 to-amber-500 hover:from-cyan-400 hover:via-rose-400 hover:to-amber-400 text-black font-extrabold uppercase tracking-widest rounded-2xl transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-4 bg-gradient-to-r from-cyan-600 via-rose-600 to-amber-600 hover:from-cyan-500 hover:via-rose-500 hover:to-amber-500 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-[0_10px_25px_rgba(34,211,238,0.25)] hover:shadow-[0_15px_35px_rgba(244,114,182,0.4)] flex items-center justify-center gap-3 cursor-pointer overflow-hidden relative group"
                 >
-                  <TrendingUp className="w-4 h-4" />
-                  <span>Run Full W-H Refinement</span>
-                </button>
+                  <motion.div 
+                    className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '200%' }}
+                    transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                  />
+                  <TrendingUp className="w-5 h-5 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+                  <span className="relative z-10 text-shadow-sm text-sm">Run Full W-H Refinement</span>
+                </motion.button>
               ) : (
                 <div className="bg-[#070D18] p-4 rounded-2xl border border-cyan-500/40 text-center">
                   <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center justify-center gap-2">

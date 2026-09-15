@@ -995,23 +995,29 @@ plt.show()
             </div>
 
             {/* Analyze Action Button */}
-            <button
-              onClick={handleCalculate}
-              disabled={isAnalyzing}
-              className="w-full py-4 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-white font-bold text-xs uppercase tracking-[0.2em] font-mono rounded-2xl shadow-xl shadow-rose-950/40 transition-all flex items-center justify-center gap-2.5 active:scale-[0.98]"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Computing Harmonics...</span>
-                </>
-              ) : (
-                <>
-                  <FlaskConical className="w-4 h-4" />
-                  <span>Execute Warren-Averbach Analysis</span>
-                </>
-              )}
-            </button>
+            {!isAnalyzing ? (
+              <motion.button
+                onClick={handleCalculate}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-4 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-[0_10px_25px_rgba(244,63,94,0.25)] hover:shadow-[0_15px_35px_rgba(244,63,94,0.4)] transition-all flex items-center justify-center gap-3 relative overflow-hidden group cursor-pointer"
+              >
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '200%' }}
+                  transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
+                />
+                <FlaskConical className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="relative z-10 text-shadow-sm">Execute Warren-Averbach Analysis</span>
+              </motion.button>
+            ) : (
+              <div className="bg-[#070D18] p-4 rounded-2xl border border-rose-500/40 text-center">
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Computing Harmonics...
+                </p>
+              </div>
+            )}
 
           </div>
         </div>

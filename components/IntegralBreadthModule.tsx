@@ -790,23 +790,29 @@ plt.show()
             </div>
 
             {/* Run Analysis Action Button */}
-            <button
-              onClick={handleRunFullAnalysis}
-              disabled={isSimulationRunning}
-              className="w-full py-3.5 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-500 hover:to-pink-500 text-white font-black rounded-2xl shadow-xl hover:shadow-purple-500/25 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2"
-            >
-              {isSimulationRunning ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Deconvolving (Step {simulationStep}/5)...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  Execute Full IB Deconvolution
-                </>
-              )}
-            </button>
+            {!isSimulationRunning ? (
+              <motion.button
+                onClick={handleRunFullAnalysis}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 hover:from-purple-500 hover:via-pink-500 hover:to-purple-500 text-white font-black rounded-2xl shadow-[0_10px_25px_rgba(168,85,247,0.25)] hover:shadow-[0_15px_35px_rgba(168,85,247,0.4)] transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-3 relative overflow-hidden group cursor-pointer"
+              >
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '200%' }}
+                  transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
+                />
+                <Zap className="w-5 h-5 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+                <span className="relative z-10 text-shadow-sm">Execute Full IB Deconvolution</span>
+              </motion.button>
+            ) : (
+              <div className="bg-[#070D18] p-4 rounded-2xl border border-purple-500/40 text-center">
+                <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Deconvolving (Step {simulationStep}/5)...
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1110,18 +1110,28 @@ plt.show()
 
             {/* Calculate Button */}
             {!isSimulationRunning ? (
-              <button
+              <motion.button
                 onClick={handleCalculateWithSimulation}
                 disabled={parseIBAdvancedInput(inputData).length < 2}
-                className={`w-full py-4 font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${
+                whileHover={parseIBAdvancedInput(inputData).length >= 2 ? { scale: 1.02, y: -2 } : {}}
+                whileTap={parseIBAdvancedInput(inputData).length >= 2 ? { scale: 0.98 } : {}}
+                className={`w-full py-4 font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-3 relative overflow-hidden group text-sm ${
                   parseIBAdvancedInput(inputData).length >= 2
-                     ? 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 text-white shadow-[0_0_20px_rgba(244,114,182,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]' 
+                     ? 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white shadow-[0_10px_25px_rgba(244,114,182,0.25)] hover:shadow-[0_15px_35px_rgba(168,85,247,0.4)] cursor-pointer' 
                      : 'bg-[#070D18] text-slate-600 cursor-not-allowed border border-white/5 shadow-inner'
                 }`}
               >
-                <TrendingUp className="w-5 h-5" />
-                Analyze Model
-              </button>
+                {parseIBAdvancedInput(inputData).length >= 2 && (
+                  <motion.div 
+                    className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '200%' }}
+                    transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
+                  />
+                )}
+                <TrendingUp className="w-5 h-5 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+                <span className="relative z-10 text-shadow-sm">Analyze Model</span>
+              </motion.button>
             ) : (
               <div className="bg-[#070D18] p-5 rounded-2xl border border-pink-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(244,114,182,0.05)]">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
