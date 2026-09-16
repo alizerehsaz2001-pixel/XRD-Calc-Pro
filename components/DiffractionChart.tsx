@@ -39,7 +39,17 @@ import {
   TrendingDown,
   Gauge,
   BarChart3,
-  Microscope
+  Microscope,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  CheckSquare,
+  Square,
+  ListFilter,
+  Search,
+  Bookmark
 } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings, convertLength } from './SettingsContext';
@@ -56,11 +66,22 @@ import {
 import { ProfileTuningPanel } from './ProfileTuningPanel';
 import { ReflectionInspector } from './ReflectionInspector';
 
+export interface AdditionalDiffractionDataset {
+  id: string;
+  name: string;
+  color?: string;
+  strokeDasharray?: string;
+  results?: BraggResult[];
+  points?: Array<{ twoTheta: number; intensity: number; [key: string]: any }>;
+  visible?: boolean;
+}
+
 interface DiffractionChartProps {
   results: BraggResult[];
   materialName?: string | null;
   wavelength?: number;
   onResultsChange?: (newResults: BraggResult[]) => void;
+  additionalDatasets?: AdditionalDiffractionDataset[];
 }
 
 const SUBPEAK_PALETTE = [
@@ -76,7 +97,139 @@ const SUBPEAK_PALETTE = [
   '#8b5cf6', // violet
 ];
 
-export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, materialName, wavelength, onResultsChange }) => {
+export interface ReferencePreset {
+  id: string;
+  name: string;
+  formula: string;
+  color: string;
+  peaks: { theta: number; label: string }[];
+}
+
+export const REFERENCE_MATERIALS_PRESETS: Record<string, ReferencePreset> = {
+  Silicon: {
+    id: 'Silicon',
+    name: 'Silicon Standard (Si)',
+    formula: 'Si',
+    color: '#06b6d4', // Cyan
+    peaks: [
+      { theta: 28.442, label: 'Si (111)' },
+      { theta: 47.302, label: 'Si (220)' },
+      { theta: 56.122, label: 'Si (311)' },
+      { theta: 69.130, label: 'Si (400)' },
+      { theta: 88.030, label: 'Si (422)' }
+    ]
+  },
+  Gold: {
+    id: 'Gold',
+    name: 'Gold Foil (Au)',
+    formula: 'Au',
+    color: '#eab308', // Yellow / Amber
+    peaks: [
+      { theta: 38.184, label: 'Au (111)' },
+      { theta: 44.392, label: 'Au (200)' },
+      { theta: 64.576, label: 'Au (220)' },
+      { theta: 77.547, label: 'Au (311)' },
+      { theta: 81.721, label: 'Au (222)' }
+    ]
+  },
+  NaCl: {
+    id: 'NaCl',
+    name: 'Halite Salt (NaCl)',
+    formula: 'NaCl',
+    color: '#14b8a6', // Teal
+    peaks: [
+      { theta: 27.351, label: 'NaCl (111)' },
+      { theta: 31.693, label: 'NaCl (200)' },
+      { theta: 45.412, label: 'NaCl (220)' },
+      { theta: 53.864, label: 'NaCl (311)' },
+      { theta: 56.431, label: 'NaCl (222)' }
+    ]
+  },
+  Quartz: {
+    id: 'Quartz',
+    name: 'α-Quartz (SiO2)',
+    formula: 'SiO2',
+    color: '#a855f7', // Purple
+    peaks: [
+      { theta: 20.855, label: 'SiO2 (100)' },
+      { theta: 26.643, label: 'SiO2 (101)' },
+      { theta: 36.542, label: 'SiO2 (110)' },
+      { theta: 50.138, label: 'SiO2 (112)' },
+      { theta: 59.954, label: 'SiO2 (211)' }
+    ]
+  },
+  Aluminum: {
+    id: 'Aluminum',
+    name: 'Aluminum Metal (Al)',
+    formula: 'Al',
+    color: '#10b981', // Emerald
+    peaks: [
+      { theta: 38.472, label: 'Al (111)' },
+      { theta: 44.724, label: 'Al (200)' },
+      { theta: 65.096, label: 'Al (220)' },
+      { theta: 78.228, label: 'Al (311)' },
+      { theta: 82.435, label: 'Al (222)' }
+    ]
+  },
+  Copper: {
+    id: 'Copper',
+    name: 'Copper Metal (Cu)',
+    formula: 'Cu',
+    color: '#f43f5e', // Rose
+    peaks: [
+      { theta: 43.297, label: 'Cu (111)' },
+      { theta: 50.433, label: 'Cu (200)' },
+      { theta: 74.130, label: 'Cu (220)' },
+      { theta: 89.931, label: 'Cu (311)' },
+      { theta: 95.142, label: 'Cu (222)' }
+    ]
+  },
+  Pyrite: {
+    id: 'Pyrite',
+    name: 'Pyrite (FeS2)',
+    formula: 'FeS2',
+    color: '#f97316', // Orange
+    peaks: [
+      { theta: 28.532, label: 'FeS2 (111)' },
+      { theta: 33.041, label: 'FeS2 (200)' },
+      { theta: 37.083, label: 'FeS2 (210)' },
+      { theta: 40.781, label: 'FeS2 (211)' },
+      { theta: 56.324, label: 'FeS2 (311)' }
+    ]
+  },
+  Platinum: {
+    id: 'Platinum',
+    name: 'Platinum Standard (Pt)',
+    formula: 'Pt',
+    color: '#3b82f6', // Blue
+    peaks: [
+      { theta: 39.761, label: 'Pt (111)' },
+      { theta: 46.244, label: 'Pt (200)' },
+      { theta: 67.452, label: 'Pt (220)' },
+      { theta: 81.285, label: 'Pt (311)' },
+      { theta: 85.710, label: 'Pt (222)' }
+    ]
+  },
+  Diamond: {
+    id: 'Diamond',
+    name: 'Diamond (C)',
+    formula: 'C',
+    color: '#8b5cf6', // Violet
+    peaks: [
+      { theta: 43.915, label: 'C (111)' },
+      { theta: 75.302, label: 'C (220)' },
+      { theta: 91.495, label: 'C (311)' }
+    ]
+  }
+};
+
+export const DiffractionChart: React.FC<DiffractionChartProps> = ({ 
+  results, 
+  materialName, 
+  wavelength, 
+  onResultsChange,
+  additionalDatasets = []
+}) => {
   const { t } = useTranslation();
   const { precision, lengthUnit = 'Å' } = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,20 +262,32 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   const [selectedPeakIndex, setSelectedPeakIndex] = useState<number | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
+  // Interactive Legend & Visibility Management States
+  const [showLegendPanel, setShowLegendPanel] = useState(true);
+  const [isLegendCollapsed, setIsLegendCollapsed] = useState(false);
+  const [legendTab, setLegendTab] = useState<'all' | 'peaks' | 'references' | 'datasets'>('all');
+  const [legendSearch, setLegendSearch] = useState('');
+  
+  // Multi-Series Visibility Sets
+  const [hiddenPeakIndices, setHiddenPeakIndices] = useState<Set<number>>(new Set());
+  const [hiddenSubPeakIndices, setHiddenSubPeakIndices] = useState<Set<number>>(new Set());
+  const [hiddenDatasetIds, setHiddenDatasetIds] = useState<Set<string>>(new Set());
+  const [hoveredLegendKey, setHoveredLegendKey] = useState<string | null>(null);
+
   useEffect(() => {
     if (wavelength) {
       setProfileParams(prev => ({ ...prev, wavelength }));
     }
   }, [wavelength]);
 
-  // Reference peaks overlay states
+  // Reference peaks overlay states (Support Multiple Simultaneous Reference Standards)
   const [showRefPeaks, setShowRefPeaks] = useState(false);
-  const [refMaterial, setRefMaterial] = useState('Silicon');
+  const [activeRefMaterials, setActiveRefMaterials] = useState<string[]>(['Silicon']);
+  const [hoveredRefMaterial, setHoveredRefMaterial] = useState<string | null>(null);
 
-  const parsedRefPeaks = useMemo(() => {
-    if (!showRefPeaks) return [];
+  const parsedMultiRefPeaks = useMemo(() => {
+    if (!showRefPeaks || activeRefMaterials.length === 0) return {};
     const lambdaCu = 0.154059; // Cu Kα in nm
-    // wavelength is in Angstroms, so convert to nm (or default to 1.54059 Å -> 0.154059 nm)
     const targetWavelength = wavelength ? wavelength / 10 : 0.154059;
 
     const shiftPeak = (thetaCu: number): { theta: number; dSpacing: number; isSuppressed: boolean } => {
@@ -138,82 +303,116 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       return { theta: twoThetaNew, dSpacing: d * 10, isSuppressed: false };
     };
 
-    const PRESETS: Record<string, { theta: number; label: string }[]> = {
-      'Silicon': [
-        { theta: 28.442, label: 'Si (111)' },
-        { theta: 47.302, label: 'Si (220)' },
-        { theta: 56.122, label: 'Si (311)' },
-        { theta: 69.130, label: 'Si (400)' },
-        { theta: 88.030, label: 'Si (422)' }
-      ],
-      'Gold': [
-        { theta: 38.184, label: 'Au (111)' },
-        { theta: 44.392, label: 'Au (200)' },
-        { theta: 64.576, label: 'Au (220)' },
-        { theta: 77.547, label: 'Au (311)' },
-        { theta: 81.721, label: 'Au (222)' }
-      ],
-      'NaCl': [
-        { theta: 27.351, label: 'NaCl (111)' },
-        { theta: 31.693, label: 'NaCl (200)' },
-        { theta: 45.412, label: 'NaCl (220)' },
-        { theta: 53.864, label: 'NaCl (311)' },
-        { theta: 56.431, label: 'NaCl (222)' }
-      ],
-      'Pyrite': [
-        { theta: 28.532, label: 'FeS2 (111)' },
-        { theta: 33.041, label: 'FeS2 (200)' },
-        { theta: 37.083, label: 'FeS2 (210)' },
-        { theta: 40.781, label: 'FeS2 (211)' },
-        { theta: 56.324, label: 'FeS2 (311)' }
-      ],
-      'Quartz': [
-        { theta: 20.855, label: 'SiO2 (100)' },
-        { theta: 26.643, label: 'SiO2 (101)' },
-        { theta: 36.542, label: 'SiO2 (110)' },
-        { theta: 50.138, label: 'SiO2 (112)' },
-        { theta: 59.954, label: 'SiO2 (211)' }
-      ],
-      'Aluminum': [
-        { theta: 38.472, label: 'Al (111)' },
-        { theta: 44.724, label: 'Al (200)' },
-        { theta: 65.096, label: 'Al (220)' },
-        { theta: 78.228, label: 'Al (311)' },
-        { theta: 82.435, label: 'Al (222)' }
-      ],
-      'Copper': [
-        { theta: 43.297, label: 'Cu (111)' },
-        { theta: 50.433, label: 'Cu (200)' },
-        { theta: 74.130, label: 'Cu (220)' },
-        { theta: 89.931, label: 'Cu (311)' },
-        { theta: 95.142, label: 'Cu (222)' }
-      ],
-      'Platinum': [
-        { theta: 39.761, label: 'Pt (111)' },
-        { theta: 46.244, label: 'Pt (200)' },
-        { theta: 67.452, label: 'Pt (220)' },
-        { theta: 81.285, label: 'Pt (311)' },
-        { theta: 85.710, label: 'Pt (222)' }
-      ],
-      'Diamond': [
-        { theta: 43.915, label: 'C (111)' },
-        { theta: 75.302, label: 'C (220)' },
-        { theta: 91.495, label: 'C (311)' }
-      ]
-    };
+    const result: Record<string, Array<{ theta: number; label: string; dSpacing: number; isSuppressed: boolean; originalTheta: number }>> = {};
 
-    const originalPeaks = PRESETS[refMaterial] || [];
-    return originalPeaks.map(p => {
-      const shifted = shiftPeak(p.theta);
-      return {
-        theta: shifted.theta,
-        label: p.label,
-        dSpacing: shifted.dSpacing,
-        isSuppressed: shifted.isSuppressed,
-        originalTheta: p.theta
-      };
-    }).filter(p => !p.isSuppressed);
-  }, [showRefPeaks, refMaterial, wavelength]);
+    activeRefMaterials.forEach(matId => {
+      const preset = REFERENCE_MATERIALS_PRESETS[matId];
+      if (!preset) return;
+      const originalPeaks = preset.peaks || [];
+      result[matId] = originalPeaks.map(p => {
+        const shifted = shiftPeak(p.theta);
+        return {
+          theta: shifted.theta,
+          label: p.label,
+          dSpacing: shifted.dSpacing,
+          isSuppressed: shifted.isSuppressed,
+          originalTheta: p.theta
+        };
+      }).filter(p => !p.isSuppressed);
+    });
+
+    return result;
+  }, [showRefPeaks, activeRefMaterials, wavelength]);
+
+  // Backward compatibility alias for single ref peak list
+  const parsedRefPeaks = useMemo(() => {
+    return Object.values(parsedMultiRefPeaks).flat();
+  }, [parsedMultiRefPeaks]);
+
+  // Toggle Visibility Handlers
+  const togglePeakVisibility = (index: number) => {
+    setHiddenPeakIndices(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  const showAllPeaks = () => {
+    setHiddenPeakIndices(new Set());
+  };
+
+  const hideAllPeaks = () => {
+    setHiddenPeakIndices(new Set(results.map((_, i) => i)));
+  };
+
+  const invertPeakVisibility = () => {
+    setHiddenPeakIndices(prev => {
+      const next = new Set<number>();
+      results.forEach((_, i) => {
+        if (!prev.has(i)) next.add(i);
+      });
+      return next;
+    });
+  };
+
+  const toggleRefMaterial = (matId: string) => {
+    setActiveRefMaterials(prev => {
+      if (prev.includes(matId)) {
+        const updated = prev.filter(m => m !== matId);
+        if (updated.length === 0) {
+          setShowRefPeaks(false);
+        }
+        return updated;
+      } else {
+        setShowRefPeaks(true);
+        return [...prev, matId];
+      }
+    });
+  };
+
+  const toggleAllRefMaterials = (enable: boolean) => {
+    if (enable) {
+      setShowRefPeaks(true);
+      setActiveRefMaterials(Object.keys(REFERENCE_MATERIALS_PRESETS));
+    } else {
+      setShowRefPeaks(false);
+      setActiveRefMaterials([]);
+    }
+  };
+
+  const toggleDataset = (datasetId: string) => {
+    setHiddenDatasetIds(prev => {
+      const next = new Set(prev);
+      if (next.has(datasetId)) {
+        next.delete(datasetId);
+      } else {
+        next.add(datasetId);
+      }
+      return next;
+    });
+  };
+
+  const soloPrimaryPeak = () => {
+    if (results.length === 0) return;
+    let maxIdx = 0;
+    let maxI = -Infinity;
+    results.forEach((r, i) => {
+      if (r.intensity > maxI) {
+        maxI = r.intensity;
+        maxIdx = i;
+      }
+    });
+    const nextHidden = new Set<number>();
+    results.forEach((_, i) => {
+      if (i !== maxIdx) nextHidden.add(i);
+    });
+    setHiddenPeakIndices(nextHidden);
+  };
 
   // Hovered peak highlight states
   const [hoveredPeakTheta, setHoveredPeakTheta] = useState<number | null>(null);
@@ -244,8 +443,29 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   };
 
   const handleLegendClick = (e: any) => {
-    if (e.dataKey === 'intensity') setShowObserved(!showObserved);
-    if (e.dataKey === 'theoreticalIntensity') setShowTheoretical(!showTheoretical);
+    if (!e) return;
+    const key = e.dataKey || e.value;
+    if (key === 'intensity' || key === t('Observed Pattern', 'Observed Pattern')) {
+      setShowObserved(prev => !prev);
+    } else if (key === 'theoreticalIntensity' || key === 'theoreticalIntensityDisplay' || key === materialName) {
+      setShowTheoretical(prev => !prev);
+    } else if (key === 'residualDisplay' || key?.includes('Residual')) {
+      setShowResidual(prev => !prev);
+    } else if (key?.includes('Bragg Positions') || key?.includes('Ticks')) {
+      setShowBraggTicks(prev => !prev);
+    } else if (typeof key === 'string' && (key.startsWith('subPeak_') || key.startsWith('subPeakDisplay_'))) {
+      const idxStr = key.replace(/subPeak(Display)?_/, '');
+      const idx = parseInt(idxStr, 10);
+      if (!isNaN(idx)) {
+        togglePeakVisibility(idx);
+      }
+    } else if (typeof key === 'string' && key.startsWith('ref_')) {
+      const mat = key.replace('ref_', '');
+      toggleRefMaterial(mat);
+    } else if (typeof key === 'string' && key.startsWith('dataset_')) {
+      const dsId = key.replace('dataset_', '');
+      toggleDataset(dsId);
+    }
   };
 
   const takeSnapshot = () => {
@@ -633,6 +853,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       intensity: 6, // small tick height near baseline
       hkl: p.hkl,
       isMatch: p.isMatch,
+      originalIdx: p.originalIdx,
     }));
 
     return { 
@@ -643,6 +864,28 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       agreementMetrics: synthesis.agreementMetrics
     };
   }, [results, materialName, activeWavelengthVal, profileParams, showSubPeaks, showBraggTicks, smoothChart, subtractBaseline]);
+
+  const filteredPeaks = useMemo(() => {
+    if (!legendSearch.trim()) return chartData.peakData;
+    const query = legendSearch.toLowerCase().trim();
+    return chartData.peakData.filter(p => {
+      const matchHkl = p.hkl && p.hkl.toLowerCase().includes(query);
+      const matchAngle = p.twoTheta.toFixed(2).includes(query);
+      const matchIdx = `#${p.originalIdx + 1}`.includes(query);
+      return matchHkl || matchAngle || matchIdx;
+    });
+  }, [chartData.peakData, legendSearch]);
+
+  const filteredRefMaterials = useMemo(() => {
+    const allPresets = Object.values(REFERENCE_MATERIALS_PRESETS);
+    if (!legendSearch.trim()) return allPresets;
+    const query = legendSearch.toLowerCase().trim();
+    return allPresets.filter(m => 
+      m.name.toLowerCase().includes(query) || 
+      m.formula.toLowerCase().includes(query) ||
+      m.id.toLowerCase().includes(query)
+    );
+  }, [legendSearch]);
 
   const currentHoverPoint = useMemo(() => {
     if (hoveredTwoThetaVal === null || chartData.points.length === 0) return null;
@@ -910,34 +1153,46 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             </button>
 
             <button 
-              onClick={() => setShowRefPeaks(!showRefPeaks)}
+              onClick={() => {
+                if (!showRefPeaks) {
+                  setShowRefPeaks(true);
+                  if (activeRefMaterials.length === 0) setActiveRefMaterials(['Silicon']);
+                } else {
+                  setShowRefPeaks(false);
+                }
+              }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
                 showRefPeaks 
                   ? 'bg-cyan-600 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] border border-cyan-400/30' 
                   : 'text-slate-500 hover:text-slate-300'
               }`}
-              title={t('Toggle Reference Peaks overlay', 'Toggle Reference Peaks overlay')}
+              title={t('Toggle Reference Standards overlay', 'Toggle Reference Standards overlay')}
             >
               <Layers className="w-3 h-3" />
               {t('Reference', 'Reference')}
+              {showRefPeaks && (
+                <span className="ml-0.5 px-1 py-0.2 bg-cyan-950/60 rounded text-[8px] font-mono">
+                  {activeRefMaterials.length}
+                </span>
+              )}
             </button>
-            {showRefPeaks && (
-              <select
-                value={refMaterial}
-                onChange={(e) => setRefMaterial(e.target.value)}
-                className="bg-slate-900 border border-white/10 rounded-xl px-2 py-1 text-[9px] font-black text-slate-300 focus:outline-none focus:ring-1 focus:ring-cyan-500 max-w-[110px] transition-all cursor-pointer uppercase tracking-wider font-mono"
-              >
-                <option value="Silicon">Si (Silicon)</option>
-                <option value="Gold">Au (Gold)</option>
-                <option value="NaCl">Halite (NaCl)</option>
-                <option value="Pyrite">FeS2 (Pyrite)</option>
-                <option value="Quartz">SiO2 (Quartz)</option>
-                <option value="Aluminum">Al (Aluminum)</option>
-                <option value="Copper">Cu (Copper)</option>
-                <option value="Platinum">Pt (Platinum)</option>
-                <option value="Diamond">C (Diamond)</option>
-              </select>
-            )}
+
+            {/* Interactive Legend Toggle Button */}
+            <button 
+              onClick={() => setShowLegendPanel(!showLegendPanel)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                showLegendPanel 
+                  ? 'bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] border border-purple-400/30' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title={t('Toggle Interactive Multi-Series & Peak Legend', 'Toggle Interactive Multi-Series & Peak Legend')}
+            >
+              <ListFilter className="w-3 h-3" />
+              <span>{t('Legend', 'Legend')}</span>
+              {hiddenPeakIndices.size > 0 && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              )}
+            </button>
 
             {/* Intensity Scale Segmented Control */}
             <div className="flex items-center bg-slate-900/80 border border-white/10 rounded-xl p-0.5 ml-1 shadow-inner">
@@ -1270,110 +1525,465 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           )}
         </div>
 
-        {/* Floating Interactive Peak Legend */}
-        {chartData.peakData.length > 0 && (
-          <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5 max-w-[60%] sm:max-w-[45%] lg:max-w-[35%] pointer-events-auto">
-            <div className="flex items-center gap-1.5 bg-[#0b1329]/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg shadow-black/50">
-              <Tag className="w-3 h-3 text-indigo-400 animate-pulse" />
-              <span className="text-[9px] font-black text-slate-300 uppercase tracking-wider select-none">
-                {t('Reflections Legend', 'Reflections Legend')}
-              </span>
-              <span className="text-[8px] px-1.5 py-0.5 bg-indigo-500/20 text-indigo-400 rounded-md font-mono font-bold border border-indigo-500/10">
-                {chartData.peakData.length} {t('Peaks', 'Peaks')}
-              </span>
-            </div>
+        {/* Floating Comprehensive Interactive Legend & Layer Filter Panel */}
+        {showLegendPanel && (
+          <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-1.5 max-w-[92%] sm:max-w-[420px] pointer-events-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-full bg-[#0b1329]/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl shadow-black/80 overflow-hidden text-left">
+              {/* Panel Header */}
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-white/[0.03] border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                    <ListFilter className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-100 uppercase tracking-wider">
+                        {t('Interactive Legend', 'Interactive Legend')}
+                      </span>
+                      <span className="text-[8px] px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 rounded font-mono font-bold border border-indigo-500/30">
+                        {chartData.peakData.length - hiddenPeakIndices.size}/{chartData.peakData.length} Visible
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Scrollable list of peak badges */}
-            <div className="flex flex-wrap gap-1 justify-end max-h-[140px] overflow-y-auto pr-1 custom-scrollbar">
-              {chartData.peakData.map((peak, idx) => {
-                const isHovered = hoveredPeakTheta === peak.twoTheta;
-                const markerColor = peak.isMatch 
-                  ? "border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/15 text-amber-300" 
-                  : "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/15 text-emerald-300";
-                
-                return (
-                  <div
-                    key={`legend-peak-${idx}`}
-                    className="relative group"
-                    onMouseEnter={() => {
-                      setHoveredPeakTheta(peak.twoTheta);
-                      setHoveredPeakData(peak);
-                    }}
-                    onMouseLeave={() => {
-                      setHoveredPeakTheta(null);
-                      setHoveredPeakData(null);
-                    }}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setIsLegendCollapsed(!isLegendCollapsed)}
+                    className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-all"
+                    title={isLegendCollapsed ? "Expand Legend" : "Collapse Legend"}
                   >
+                    {isLegendCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    onClick={() => setShowLegendPanel(false)}
+                    className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-white/5 transition-all text-xs font-mono font-bold"
+                    title="Close Panel"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {!isLegendCollapsed && (
+                <div className="p-3 space-y-3">
+                  {/* Category Filter Tabs */}
+                  <div className="flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-white/5 text-[9px] font-black uppercase tracking-wider">
                     <button
-                      onClick={() => {
-                        // Focus/Zoom into this peak
-                        setLeft(Number(Math.max(0, peak.twoTheta - 4).toFixed(2)));
-                        setRight(Number(Math.min(180, peak.twoTheta + 4).toFixed(2)));
-                      }}
-                      className={`px-2 py-1 rounded-lg border text-[9px] font-mono font-bold transition-all duration-300 flex items-center gap-1 shadow-sm ${
-                        isHovered 
-                          ? 'border-indigo-500 bg-indigo-500/20 text-white scale-105 shadow-md shadow-indigo-500/10 z-30' 
-                          : markerColor
+                      onClick={() => setLegendTab('all')}
+                      className={`flex-1 py-1 text-center rounded-lg transition-all ${
+                        legendTab === 'all'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${peak.isMatch ? 'bg-amber-400' : 'bg-emerald-400'} ${isHovered ? 'animate-ping' : ''}`} />
-                      <span>
-                        {peak.hkl ? `(${peak.hkl})` : `${peak.twoTheta.toFixed(2)}°`}
-                      </span>
+                      {t('All', 'All')}
                     </button>
+                    <button
+                      onClick={() => setLegendTab('peaks')}
+                      className={`flex-1 py-1 text-center rounded-lg transition-all ${
+                        legendTab === 'peaks'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {t('Peaks', 'Peaks')} ({chartData.peakData.length})
+                    </button>
+                    <button
+                      onClick={() => setLegendTab('references')}
+                      className={`flex-1 py-1 text-center rounded-lg transition-all ${
+                        legendTab === 'references'
+                          ? 'bg-cyan-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {t('Standards', 'Standards')} ({activeRefMaterials.length})
+                    </button>
+                    <button
+                      onClick={() => setLegendTab('datasets')}
+                      className={`flex-1 py-1 text-center rounded-lg transition-all ${
+                        legendTab === 'datasets'
+                          ? 'bg-purple-600 text-white shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {t('Traces', 'Traces')}
+                    </button>
+                  </div>
 
-                    {/* Interactive legend tooltip popover/card displayed on hover */}
-                    {isHovered && (
-                      <div className="absolute right-0 top-full mt-2 z-[999] bg-[#0c1326]/95 backdrop-blur-xl text-white p-4 rounded-xl shadow-2xl border border-white/10 w-[240px] pointer-events-none animate-in fade-in slide-in-from-top-2 duration-200 text-left">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                            {peak.isMatch ? t('Database Confirmed', 'Database Confirmed') : t('Detected Reflection', 'Detected Reflection')}
+                  {/* Search / Filter Input */}
+                  {(legendTab === 'all' || legendTab === 'peaks' || legendTab === 'references') && (
+                    <div className="relative">
+                      <Search className="w-3 h-3 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={legendSearch}
+                        onChange={(e) => setLegendSearch(e.target.value)}
+                        placeholder={t('Filter by (hkl), 2θ, or material name...', 'Filter by (hkl), 2θ, or material name...')}
+                        className="w-full bg-slate-900/90 border border-white/10 rounded-xl pl-7 pr-7 py-1 text-[10px] text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                      />
+                      {legendSearch && (
+                        <button
+                          onClick={() => setLegendSearch('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 hover:text-slate-300"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Batch Action Toolbar */}
+                  {(legendTab === 'all' || legendTab === 'peaks') && chartData.peakData.length > 0 && (
+                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-white/5">
+                      <span className="text-[8px] font-mono text-slate-400 uppercase tracking-widest">
+                        Quick Actions:
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={showAllPeaks}
+                          className="px-2 py-0.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded text-[8px] font-mono font-bold transition-all"
+                          title="Show all reflections"
+                        >
+                          Show All
+                        </button>
+                        <button
+                          onClick={hideAllPeaks}
+                          className="px-2 py-0.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded text-[8px] font-mono font-bold transition-all"
+                          title="Hide all reflections"
+                        >
+                          Hide All
+                        </button>
+                        <button
+                          onClick={invertPeakVisibility}
+                          className="px-2 py-0.5 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded text-[8px] font-mono font-bold transition-all"
+                          title="Invert reflection visibility"
+                        >
+                          Invert
+                        </button>
+                        <button
+                          onClick={soloPrimaryPeak}
+                          className="px-2 py-0.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded text-[8px] font-mono font-bold border border-amber-500/20 transition-all"
+                          title="Solo primary most intense reflection"
+                        >
+                          Solo Primary
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Scrollable Content Container */}
+                  <div className="max-h-[220px] overflow-y-auto pr-1 space-y-2.5 custom-scrollbar">
+                    {/* SECTION: Continuous Traces & Curves */}
+                    {(legendTab === 'all' || legendTab === 'datasets') && (
+                      <div className="space-y-1.5">
+                        <div className="text-[8px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                          <span>Diffractogram Traces & Models</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 font-mono text-[9px]">
+                          {/* Observed Profile */}
+                          <div
+                            onClick={() => setShowObserved(!showObserved)}
+                            className={`flex items-center justify-between p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              showObserved
+                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-200'
+                                : 'bg-slate-900/40 border-white/5 text-slate-500 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+                              <span className="truncate font-bold">Observed</span>
+                            </div>
+                            {showObserved ? <Eye className="w-3 h-3 text-indigo-400 shrink-0" /> : <EyeOff className="w-3 h-3 text-slate-500 shrink-0" />}
+                          </div>
+
+                          {/* Theoretical Reference */}
+                          {materialName && (
+                            <div
+                              onClick={() => setShowTheoretical(!showTheoretical)}
+                              className={`flex items-center justify-between p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                showTheoretical
+                                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                                  : 'bg-slate-900/40 border-white/5 text-slate-500 opacity-60'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                                <span className="truncate font-bold">{materialName}</span>
+                              </div>
+                              {showTheoretical ? <Eye className="w-3 h-3 text-amber-400 shrink-0" /> : <EyeOff className="w-3 h-3 text-slate-500 shrink-0" />}
+                            </div>
+                          )}
+
+                          {/* Residual Difference Curve */}
+                          <div
+                            onClick={() => setShowResidual(!showResidual)}
+                            className={`flex items-center justify-between p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              showResidual
+                                ? 'bg-pink-500/10 border-pink-500/30 text-pink-200'
+                                : 'bg-slate-900/40 border-white/5 text-slate-500 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="w-2 h-2 rounded-full bg-pink-500 shrink-0" />
+                              <span className="truncate font-bold">Residual (ΔY)</span>
+                            </div>
+                            {showResidual ? <Eye className="w-3 h-3 text-pink-400 shrink-0" /> : <EyeOff className="w-3 h-3 text-slate-500 shrink-0" />}
+                          </div>
+
+                          {/* Bragg Positions Ticks */}
+                          <div
+                            onClick={() => setShowBraggTicks(!showBraggTicks)}
+                            className={`flex items-center justify-between p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              showBraggTicks
+                                ? 'bg-sky-500/10 border-sky-500/30 text-sky-200'
+                                : 'bg-slate-900/40 border-white/5 text-slate-500 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+                              <span className="truncate font-bold">Bragg Ticks</span>
+                            </div>
+                            {showBraggTicks ? <Eye className="w-3 h-3 text-sky-400 shrink-0" /> : <EyeOff className="w-3 h-3 text-slate-500 shrink-0" />}
+                          </div>
+
+                          {/* Sub-Peaks Deconvolution */}
+                          <div
+                            onClick={() => setShowSubPeaks(!showSubPeaks)}
+                            className={`flex items-center justify-between p-1.5 rounded-lg border transition-all cursor-pointer ${
+                              showSubPeaks
+                                ? 'bg-purple-500/10 border-purple-500/30 text-purple-200'
+                                : 'bg-slate-900/40 border-white/5 text-slate-500 opacity-60'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 truncate">
+                              <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0" />
+                              <span className="truncate font-bold">Sub-Peaks</span>
+                            </div>
+                            {showSubPeaks ? <Eye className="w-3 h-3 text-purple-400 shrink-0" /> : <EyeOff className="w-3 h-3 text-slate-500 shrink-0" />}
+                          </div>
+
+                          {/* Additional Comparative Datasets */}
+                          {additionalDatasets.map((dataset) => {
+                            const isHidden = hiddenDatasetIds.has(dataset.id);
+                            return (
+                              <div
+                                key={`legend-ds-${dataset.id}`}
+                                onClick={() => toggleDataset(dataset.id)}
+                                className={`flex items-center justify-between p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                  !isHidden
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                                    : 'bg-slate-900/40 border-white/5 text-slate-500 opacity-60'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dataset.color || '#10b981' }} />
+                                  <span className="truncate font-bold">{dataset.name}</span>
+                                </div>
+                                {!isHidden ? <Eye className="w-3 h-3 text-emerald-400 shrink-0" /> : <EyeOff className="w-3 h-3 text-slate-500 shrink-0" />}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SECTION: Reference Materials & Standards */}
+                    {(legendTab === 'all' || legendTab === 'references') && (
+                      <div className="space-y-1.5">
+                        <div className="text-[8px] font-black text-cyan-400 uppercase tracking-wider flex items-center justify-between">
+                          <span>Reference Standards & NIST Calibrants</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setShowRefPeaks(true);
+                                setActiveRefMaterials(Object.keys(REFERENCE_MATERIALS_PRESETS));
+                              }}
+                              className="text-[7px] text-cyan-300 hover:underline"
+                            >
+                              Select All
+                            </button>
+                            <span className="text-slate-600">•</span>
+                            <button
+                              onClick={() => setActiveRefMaterials([])}
+                              className="text-[7px] text-slate-400 hover:underline"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 font-mono text-[9px]">
+                          {filteredRefMaterials.map((mat) => {
+                            const isActive = showRefPeaks && activeRefMaterials.includes(mat.id);
+                            const isHovered = hoveredRefMaterial === mat.id;
+                            return (
+                              <div
+                                key={`ref-mat-${mat.id}`}
+                                onClick={() => {
+                                  if (!showRefPeaks) setShowRefPeaks(true);
+                                  toggleRefMaterial(mat.id);
+                                }}
+                                onMouseEnter={() => setHoveredRefMaterial(mat.id)}
+                                onMouseLeave={() => setHoveredRefMaterial(null)}
+                                className={`flex items-center justify-between px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                                  isActive
+                                    ? 'bg-slate-900/90 border-cyan-500/40 shadow-sm text-slate-200'
+                                    : 'bg-slate-950/40 border-white/5 text-slate-500 hover:text-slate-300'
+                                } ${isHovered ? 'ring-1 ring-cyan-400' : ''}`}
+                              >
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: mat.color }} />
+                                  <span className="font-bold truncate">{mat.formula}</span>
+                                  <span className="text-[8px] text-slate-400 truncate">({mat.name})</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <span className="text-[8px] px-1 bg-white/5 rounded text-slate-400">
+                                    {mat.peaks.length}pk
+                                  </span>
+                                  {isActive ? (
+                                    <Eye className="w-3 h-3 text-cyan-400" />
+                                  ) : (
+                                    <EyeOff className="w-3 h-3 text-slate-600" />
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SECTION: Peak Reflections Series */}
+                    {(legendTab === 'all' || legendTab === 'peaks') && (
+                      <div className="space-y-1.5">
+                        <div className="text-[8px] font-black text-indigo-400 uppercase tracking-wider flex items-center justify-between">
+                          <span>Identified Diffraction Reflections</span>
+                          <span className="text-[8px] text-slate-500 font-mono">
+                            {filteredPeaks.length} matches
                           </span>
-                          <span className={`w-2 h-2 rounded-full ${peak.isMatch ? 'bg-amber-400' : 'bg-emerald-400'}`} />
                         </div>
 
-                        <div className="space-y-2.5 font-mono text-[11px]">
-                          {peak.hkl && (
-                            <div className="flex justify-between items-center py-1 border-b border-white/5">
-                              <span className="text-slate-400 text-[9px] uppercase tracking-wider">Miller Indices</span>
-                              <span className="font-extrabold text-indigo-400">({peak.hkl})</span>
-                            </div>
-                          )}
+                        <div className="space-y-1">
+                          {filteredPeaks.map((peak) => {
+                            const isHidden = hiddenPeakIndices.has(peak.originalIdx);
+                            const isSelected = selectedPeakIndex === peak.originalIdx;
+                            const isHovered = hoveredPeakTheta === peak.twoTheta;
+                            const markerColor = peak.isMatch ? '#f59e0b' : '#10b981';
 
-                          <div className="flex justify-between items-center py-1 border-b border-white/5">
-                            <span className="text-slate-400 text-[9px] uppercase tracking-wider">Angle (2θ)</span>
-                            <span className="font-bold text-white">{peak.twoTheta.toFixed(3)}°</span>
-                          </div>
+                            return (
+                              <div
+                                key={`legend-peak-row-${peak.originalIdx}`}
+                                onMouseEnter={() => {
+                                  setHoveredPeakTheta(peak.twoTheta);
+                                  setHoveredPeakData(peak);
+                                }}
+                                onMouseLeave={() => {
+                                  setHoveredPeakTheta(null);
+                                  setHoveredPeakData(null);
+                                }}
+                                className={`flex items-center justify-between px-2 py-1.5 rounded-xl border transition-all ${
+                                  isSelected
+                                    ? 'bg-indigo-600/20 border-indigo-500 shadow-sm text-white'
+                                    : isHidden
+                                    ? 'bg-slate-950/40 border-white/5 text-slate-600 opacity-60'
+                                    : isHovered
+                                    ? 'bg-white/10 border-white/20 text-slate-100'
+                                    : 'bg-slate-900/60 border-white/5 text-slate-300 hover:bg-slate-900'
+                                }`}
+                              >
+                                <div
+                                  onClick={() => {
+                                    setSelectedPeakIndex(peak.originalIdx);
+                                    setLeft(Number(Math.max(0, peak.twoTheta - 4).toFixed(2)));
+                                    setRight(Number(Math.min(180, peak.twoTheta + 4).toFixed(2)));
+                                  }}
+                                  className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                                  title="Click to zoom & inspect reflection"
+                                >
+                                  <span
+                                    className={`w-2 h-2 rounded-full shrink-0 ${
+                                      isHidden ? 'bg-slate-600' : ''
+                                    }`}
+                                    style={!isHidden ? { backgroundColor: markerColor } : {}}
+                                  />
+                                  <div className="flex items-center gap-1.5 font-mono text-[10px] truncate">
+                                    <span className={`font-black ${isHidden ? 'line-through text-slate-600' : 'text-slate-100'}`}>
+                                      {peak.hkl ? `(${peak.hkl})` : `#${peak.originalIdx + 1}`}
+                                    </span>
+                                    <span className="text-slate-400 text-[9px]">
+                                      {peak.twoTheta.toFixed(2)}°
+                                    </span>
+                                  </div>
+                                </div>
 
-                          <div className="flex justify-between items-center py-1 border-b border-white/5">
-                            <span className="text-slate-400 text-[9px] uppercase tracking-wider">d-spacing (d)</span>
-                            <span className="font-bold text-emerald-400">{peak.dSpacing ? `${convertLength(peak.dSpacing, lengthUnit).toFixed(precision)} ${lengthUnit}` : '---'}</span>
-                          </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {/* Relative Intensity Bar */}
+                                  <div className="w-12 bg-slate-950 rounded-full h-1.5 overflow-hidden hidden sm:block border border-white/5">
+                                    <div
+                                      className="h-full rounded-full"
+                                      style={{
+                                        width: `${Math.min(100, Math.max(5, peak.intensity))}%`,
+                                        backgroundColor: isHidden ? '#475569' : markerColor
+                                      }}
+                                    />
+                                  </div>
 
-                          <div className="flex justify-between items-center py-1 border-b border-white/5">
-                            <span className="text-slate-400 text-[9px] uppercase tracking-wider">Relative Intensity</span>
-                            <span className="font-bold text-amber-400">{peak.intensity.toFixed(1)}%</span>
-                          </div>
+                                  <span className="text-[9px] font-mono text-slate-400 font-bold w-10 text-right">
+                                    {peak.intensity.toFixed(1)}%
+                                  </span>
 
-                          {peak.q !== undefined && (
-                            <div className="flex justify-between items-center py-1">
-                              <span className="text-slate-400 text-[9px] uppercase tracking-wider">Q-vector (Q)</span>
-                              <span className="font-bold text-sky-400">{peak.q.toFixed(precision)} Å⁻¹</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-2 text-[8px] text-slate-500 text-right leading-none select-none italic font-sans">
-                          {t('Click to Zoom onto Peak', 'Click to Zoom onto Peak')}
+                                  {/* Toggle Visibility Eye Button */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      togglePeakVisibility(peak.originalIdx);
+                                    }}
+                                    className={`p-1 rounded-md transition-all ${
+                                      isHidden
+                                        ? 'hover:bg-white/10 text-slate-600 hover:text-slate-400'
+                                        : 'hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300'
+                                    }`}
+                                    title={isHidden ? "Show reflection on diffractogram" : "Hide reflection from diffractogram"}
+                                  >
+                                    {isHidden ? (
+                                      <EyeOff className="w-3.5 h-3.5 text-slate-500" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
                   </div>
-                );
-              })}
+                </div>
+              )}
             </div>
           </div>
         )}
+
+        {/* Collapsed Legend Quick-Access Pill (if closed from floating panel) */}
+        {!showLegendPanel && chartData.peakData.length > 0 && (
+          <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+            <button
+              onClick={() => setShowLegendPanel(true)}
+              className="flex items-center gap-2 bg-[#0b1329]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 shadow-lg shadow-black/50 hover:bg-slate-900 transition-all text-slate-300 hover:text-white"
+            >
+              <ListFilter className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-[9px] font-black uppercase tracking-wider">
+                {t('Legend', 'Legend')}
+              </span>
+              <span className="text-[8px] px-1.5 py-0.2 bg-indigo-500/20 text-indigo-300 rounded font-mono font-bold border border-indigo-500/30">
+                {chartData.peakData.length - hiddenPeakIndices.size}/{chartData.peakData.length}
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* Graph Scientific Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
         
@@ -1456,14 +2066,34 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 fontSize: '9px', 
                 fontWeight: 'black', 
                 textTransform: 'uppercase', 
-                letterSpacing: '0.1em',
-                paddingRight: '10px'
+                letterSpacing: '0.08em',
+                paddingRight: '12px'
+              }}
+              formatter={(value, entry: any) => {
+                let isHidden = false;
+                if ((entry.dataKey === 'intensity' || entry.dataKey === 'intensityDisplay') && !showObserved) isHidden = true;
+                if ((entry.dataKey === 'theoreticalIntensity' || entry.dataKey === 'theoreticalIntensityDisplay') && !showTheoretical) isHidden = true;
+                if (entry.dataKey === 'residualDisplay' && !showResidual && !profileParams.showDifferenceCurve) isHidden = true;
+                if (typeof entry.dataKey === 'string' && entry.dataKey.startsWith('subPeak_')) {
+                  const idx = parseInt(entry.dataKey.replace('subPeak_', ''), 10);
+                  if (hiddenPeakIndices.has(idx) || hiddenSubPeakIndices.has(idx)) isHidden = true;
+                }
+                
+                return (
+                  <span 
+                    className={`cursor-pointer inline-flex items-center gap-1 px-1.5 py-0.5 rounded transition-all select-none hover:bg-white/5 ${
+                      isHidden ? 'opacity-35 line-through text-slate-500' : 'text-slate-300'
+                    }`}
+                  >
+                    <span>{value}</span>
+                  </span>
+                );
               }}
               onClick={handleLegendClick}
             />
 
             {/* Selected Reflection Reticle Marker */}
-            {selectedPeakIndex !== null && results[selectedPeakIndex] && (
+            {selectedPeakIndex !== null && results[selectedPeakIndex] && !hiddenPeakIndices.has(selectedPeakIndex) && (
               <ReferenceLine 
                 x={xAxisUnit === 'twoTheta' ? results[selectedPeakIndex].twoTheta : xAxisUnit === 'q' ? results[selectedPeakIndex].qVector : results[selectedPeakIndex].dSpacing} 
                 stroke="#818cf8" 
@@ -1473,21 +2103,26 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             )}
 
             {/* Constituent Sub-Peaks Deconvolution Areas */}
-            {showSubPeaks && chartData.peakData.slice(0, 10).map((peak, idx) => (
-              <Area 
-                key={`subpeak-area-${peak.originalIdx}`}
-                data={chartData.points}
-                type="monotone"
-                dataKey={profileParams.intensityScale !== 'linear' ? `subPeakDisplay_${peak.originalIdx}` : `subPeak_${peak.originalIdx}`}
-                name={`Peak #${idx + 1} (${peak.hkl ? `(${peak.hkl})` : `${peak.twoTheta.toFixed(2)}°`})`}
-                stroke={SUBPEAK_PALETTE[idx % SUBPEAK_PALETTE.length]}
-                strokeWidth={1.5}
-                strokeDasharray="4 2"
-                fill={SUBPEAK_PALETTE[idx % SUBPEAK_PALETTE.length]}
-                fillOpacity={0.12}
-                isAnimationActive={false}
-              />
-            ))}
+            {showSubPeaks && chartData.peakData.slice(0, 10).map((peak, idx) => {
+              if (hiddenPeakIndices.has(peak.originalIdx) || hiddenSubPeakIndices.has(peak.originalIdx)) {
+                return null;
+              }
+              return (
+                <Area 
+                  key={`subpeak-area-${peak.originalIdx}`}
+                  data={chartData.points}
+                  type="monotone"
+                  dataKey={profileParams.intensityScale !== 'linear' ? `subPeakDisplay_${peak.originalIdx}` : `subPeak_${peak.originalIdx}`}
+                  name={`Peak #${idx + 1} (${peak.hkl ? `(${peak.hkl})` : `${peak.twoTheta.toFixed(2)}°`})`}
+                  stroke={SUBPEAK_PALETTE[idx % SUBPEAK_PALETTE.length]}
+                  strokeWidth={1.5}
+                  strokeDasharray="4 2"
+                  fill={SUBPEAK_PALETTE[idx % SUBPEAK_PALETTE.length]}
+                  fillOpacity={0.12}
+                  isAnimationActive={false}
+                />
+              );
+            })}
 
             {/* Rietveld Residual Difference Curve (Ycalc - Ytheor) */}
             {(showResidual || profileParams.showDifferenceCurve) && (
@@ -1516,7 +2151,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             {/* Baseline Bragg Positions (Ticks) */}
             {showBraggTicks && (
               <Scatter 
-                data={chartData.tickData}
+                data={chartData.tickData.filter(t => !hiddenPeakIndices.has(t.originalIdx))}
                 name={t('Bragg Positions (Ticks)', 'Bragg Positions (Ticks)')}
                 shape={(props: any) => {
                   const { cx, cy, payload } = props;
@@ -1571,6 +2206,30 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               />
             )}
 
+            {/* Additional Comparative Datasets */}
+            {additionalDatasets.map((dataset, dsIdx) => {
+              if (hiddenDatasetIds.has(dataset.id) || dataset.visible === false) return null;
+              const dsColor = dataset.color || SUBPEAK_PALETTE[(dsIdx + 4) % SUBPEAK_PALETTE.length];
+              if (dataset.points && dataset.points.length > 0) {
+                return (
+                  <Line
+                    key={`add-dataset-${dataset.id}`}
+                    data={dataset.points}
+                    type="monotone"
+                    dataKey="intensity"
+                    name={dataset.name}
+                    stroke={dsColor}
+                    strokeWidth={2}
+                    dot={false}
+                    strokeDasharray={dataset.strokeDasharray || "4 4"}
+                    isAnimationActive={false}
+                  />
+                );
+              }
+              return null;
+            })}
+
+            {/* Peak Scatter & Markers */}
             <Scatter 
               data={chartData.peakData} 
               shape={(props: any) => {
@@ -1580,6 +2239,9 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 let l = left !== null ? left : dataMinTheta;
                 let r = right !== null ? right : dataMaxTheta;
                 if (payload.twoTheta < l || payload.twoTheta > r) return null;
+
+                const isHidden = hiddenPeakIndices.has(payload.originalIdx);
+                if (isHidden) return null;
                 
                 const yOffset = cy - 20 - (payload.labelLevel * 16);
                 const isMatch = payload.isMatch;
@@ -1652,7 +2314,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               <ReferenceLine 
                 x={results[draggedPeakIndex].twoTheta} 
                 stroke="#3b82f6" 
-                strokeWidth={2}
+                strokeWidth={2} 
                 strokeDasharray="3 3"
                 className="animate-pulse"
                 label={{ 
@@ -1667,12 +2329,12 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             )}
 
             {/* Hovered Peak Legend Highlight Marker */}
-            {hoveredPeakTheta !== null && hoveredPeakData && (
+            {hoveredPeakTheta !== null && hoveredPeakData && !hiddenPeakIndices.has(hoveredPeakData.originalIdx) && (
               <>
                 <ReferenceLine 
                   x={hoveredPeakTheta} 
                   stroke={hoveredPeakData.isMatch ? "#f59e0b" : "#10b981"} 
-                  strokeWidth={2}
+                  strokeWidth={2} 
                   strokeDasharray="3 3"
                   opacity={0.8}
                 />
@@ -1686,31 +2348,39 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               </>
             )}
 
-            {/* Reference Peaks Overlay Lines */}
-            {showRefPeaks && parsedRefPeaks.map((peak, idx) => {
-              const xMin = left !== null ? left : 10;
-              const xMax = right !== null ? right : 100;
-              if (peak.theta >= xMin && peak.theta <= xMax) {
-                return (
-                  <ReferenceLine 
-                    key={`chart-ref-peak-${idx}`} 
-                    x={peak.theta} 
-                    stroke="rgba(6, 182, 212, 0.6)" 
-                    strokeDasharray="4 4" 
-                    strokeWidth={1.5}
-                  >
-                     <Label 
-                       value={`${peak.label} (${peak.theta.toFixed(2)}°)`} 
-                       position="insideTopLeft" 
-                       fill="#06b6d4" 
-                       fontSize={9} 
-                       fontWeight="700" 
-                       offset={12} 
-                     />
-                  </ReferenceLine>
-                );
-              }
-              return null;
+            {/* Multiple Reference Materials Overlay Lines */}
+            {showRefPeaks && activeRefMaterials.map((matId) => {
+              const preset = REFERENCE_MATERIALS_PRESETS[matId];
+              if (!preset) return null;
+              const peaks = parsedMultiRefPeaks[matId] || [];
+              const isHoveredMat = hoveredRefMaterial === matId;
+
+              return peaks.map((peak, pIdx) => {
+                const xMin = left !== null ? left : 10;
+                const xMax = right !== null ? right : 100;
+                if (peak.theta >= xMin && peak.theta <= xMax) {
+                  return (
+                    <ReferenceLine 
+                      key={`chart-ref-peak-${matId}-${pIdx}`} 
+                      x={peak.theta} 
+                      stroke={preset.color} 
+                      strokeDasharray="4 4" 
+                      strokeWidth={isHoveredMat ? 2.5 : 1.5}
+                      opacity={isHoveredMat ? 1 : 0.75}
+                    >
+                       <Label 
+                         value={`${peak.label} (${peak.theta.toFixed(2)}°)`} 
+                         position="insideTopLeft" 
+                         fill={preset.color} 
+                         fontSize={9} 
+                         fontWeight="700" 
+                         offset={12 + (pIdx % 3) * 10} 
+                       />
+                    </ReferenceLine>
+                  );
+                }
+                return null;
+              });
             })}
 
             {refAreaLeft && refAreaRight ? (

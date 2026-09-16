@@ -1396,9 +1396,20 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                       Δ(2θ) Zero-Error Offset
                     </span>
-                    <span className="text-cyan-300 font-bold">
-                      {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}°
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-cyan-300 font-bold">
+                        {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}°
+                      </span>
+                      {zeroShiftDeg !== 0 && (
+                        <button
+                          onClick={() => setZeroShiftDeg(0)}
+                          className="px-1.5 py-0.5 rounded text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold border border-slate-700"
+                          title="Reset Zero Shift to 0.00°"
+                        >
+                          0°
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <input
                     type="range"
@@ -1411,7 +1422,12 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   />
                   <div className="flex justify-between text-[8px] text-slate-500">
                     <span>-1.00° (Shift Left)</span>
-                    <span>0.00° (Nominal)</span>
+                    <button
+                      onClick={() => setZeroShiftDeg(0)}
+                      className="hover:text-cyan-300 transition-colors"
+                    >
+                      0.00° (Nominal)
+                    </button>
                     <span>+1.00° (Shift Right)</span>
                   </div>
                 </div>
@@ -1422,9 +1438,20 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                       Uniform Lattice Strain (Δd/d)
                     </span>
-                    <span className="text-amber-300 font-bold">
-                      {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-300 font-bold">
+                        {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%
+                      </span>
+                      {latticeStrainPct !== 0 && (
+                        <button
+                          onClick={() => setLatticeStrainPct(0)}
+                          className="px-1.5 py-0.5 rounded text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold border border-slate-700"
+                          title="Reset Lattice Strain to 0.00%"
+                        >
+                          0%
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <input
                     type="range"
@@ -1437,7 +1464,12 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   />
                   <div className="flex justify-between text-[8px] text-slate-500">
                     <span>-2.0% (Compressive)</span>
-                    <span>0.0% (Relaxed)</span>
+                    <button
+                      onClick={() => setLatticeStrainPct(0)}
+                      className="hover:text-amber-300 transition-colors"
+                    >
+                      0.0% (Relaxed)
+                    </button>
                     <span>+2.0% (Tensile)</span>
                   </div>
                 </div>
@@ -1773,7 +1805,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               )}
             </div>
 
-            {/* Quick Zoom Presets Bar */}
+            {/* Quick Zoom Presets Bar & Reset View */}
             <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
               themeMode === "publication"
                 ? "bg-white border-slate-300"
@@ -1830,6 +1862,25 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                 title="High Angle (60-100° 2θ): Strain & Doublet splitting"
               >
                 60-100°
+              </button>
+              <div className="w-[1px] h-3.5 bg-slate-700/60 mx-1" />
+              <button
+                onClick={() => {
+                  setZoomRangePreset("all");
+                  setCoordSpace("twoTheta");
+                  setIntensityScale("linear");
+                  setShowBrush(true);
+                  setFocusedTwoTheta(null);
+                }}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold transition-all ${
+                  themeMode === "publication"
+                    ? "text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-300"
+                    : "text-slate-300 hover:bg-slate-800/80 border border-transparent hover:border-slate-700"
+                }`}
+                title="Reset View (Full range 2θ, linear intensity scale, show brush)"
+              >
+                <RotateCcw className="w-2.5 h-2.5" />
+                Reset View
               </button>
             </div>
           </div>
@@ -2502,7 +2553,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                       </span>
                     </div>
 
-                    <div className={`flex-1 relative h-5 rounded-lg border overflow-hidden transition-colors ${
+                    <div className={`flex-1 relative h-6 rounded-lg border transition-colors ${
                       themeMode === "publication"
                         ? "bg-slate-100 border-slate-300"
                         : "bg-[#09101F]/80 border-slate-800"
@@ -2522,11 +2573,17 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                               backgroundColor: color,
                             }}
                           >
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/tick:flex flex-col items-center bg-[#070D18] text-white border border-slate-700 px-2 py-1 rounded shadow-xl pointer-events-none z-50 whitespace-nowrap text-[9px] font-mono">
+                            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tick:flex flex-col items-center px-2 py-1 rounded-md shadow-2xl pointer-events-none z-50 whitespace-nowrap text-[9px] font-mono border ${
+                              themeMode === "publication"
+                                ? "bg-white text-slate-900 border-slate-300 shadow-slate-300/80"
+                                : "bg-[#070D18] text-white border-slate-700 shadow-black/90"
+                            }`}>
                               <span className="font-bold" style={{ color }}>
                                 {p.hkl ? `(${p.hkl})` : "Bragg Reflection"}
                               </span>
-                              <span>{p.calibratedRefT.toFixed(2)}° 2θ • {p.calibratedD?.toFixed(4)} Å</span>
+                              <span className={themeMode === "publication" ? "text-slate-600" : "text-slate-300"}>
+                                {p.calibratedRefT.toFixed(2)}° 2θ • {p.calibratedD?.toFixed(4)} Å
+                              </span>
                             </div>
                           </div>
                         );
@@ -2560,6 +2617,12 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             <div className="flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 4, right: 24, left: 16, bottom: 4 }}>
+                  <defs>
+                    <linearGradient id="splitResidGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={themeMode === "publication" ? "#2563eb" : "#f59e0b"} stopOpacity={themeMode === "publication" ? 0.25 : 0.45} />
+                      <stop offset="95%" stopColor={themeMode === "publication" ? "#2563eb" : "#f59e0b"} stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="2 4" stroke={themeMode === "publication" ? "#e2e8f0" : "#1e293b"} opacity={0.4} />
                   <XAxis dataKey="coordX" hide />
                   <YAxis
@@ -2567,13 +2630,33 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     tick={{ fill: themeMode === "publication" ? "#0f172a" : "#64748b", fontSize: 8, fontFamily: "monospace" }}
                     width={38}
                   />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const pt = payload[0].payload;
+                      return (
+                        <div className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-mono shadow-xl backdrop-blur-md ${
+                          themeMode === "publication"
+                            ? "bg-white/95 border-slate-300 text-slate-900 shadow-slate-200"
+                            : "bg-[#070D18]/95 border-slate-700 text-slate-200 shadow-black/80"
+                        }`}>
+                          <div className="font-bold text-slate-400">
+                            {pt.twoTheta?.toFixed(2)}° 2θ {pt.dSpacing ? `• d=${pt.dSpacing.toFixed(3)}Å` : ""}
+                          </div>
+                          <div className={`font-semibold ${themeMode === "publication" ? "text-blue-700" : "text-amber-400"}`}>
+                            ΔY: {pt.signedResidual > 0 ? "+" : ""}{pt.signedResidual?.toFixed(2)}
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
                   <ReferenceLine y={0} stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"} strokeWidth={1.5} />
                   <Area
                     type="monotone"
                     dataKey="signedResidual"
                     stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"}
-                    fill="url(#specResidGrad)"
-                    fillOpacity={themeMode === "publication" ? 0.12 : 0.4}
+                    fill="url(#splitResidGrad)"
+                    fillOpacity={1}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -2615,6 +2698,13 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               <div className="flex items-center gap-1.5 text-amber-500">
                 <span className="uppercase text-[9px] tracking-wider">Offset:</span>
                 <span className="font-semibold">Δ2θ {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}° | Strain {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%</span>
+                <button
+                  onClick={handleResetCalibration}
+                  className="px-1.5 py-0.2 rounded text-[8px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 font-bold transition-all"
+                  title="Reset both zero-shift and strain to zero"
+                >
+                  Reset Offset
+                </button>
               </div>
             )}
           </div>
