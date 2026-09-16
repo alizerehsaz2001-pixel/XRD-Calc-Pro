@@ -55,16 +55,24 @@ export interface XRFMatchResult {
 export interface XRFSpectrumPoint {
   energy: number;
   intensity: number;
+  netIntensity?: number;
+  backgroundIntensity?: number;
   isPeak?: boolean;
   peakLabel?: string;
+  peakSeries?: 'K' | 'L' | 'M' | 'Tube-Rayleigh' | 'Tube-Compton' | 'Escape' | 'Sum';
   isEscape?: boolean;
+  isSum?: boolean;
+  isTubeScatter?: boolean;
   isEdge?: boolean;
 }
 
 export interface XRFSpectrumOptions {
   fwhm_eV?: number; // detector resolution in eV (default 130 eV for SDD)
-  tubeTarget?: 'Rh' | 'Mo' | 'W' | 'Cr' | 'Cu';
+  tubeTarget?: 'Rh' | 'Mo' | 'W' | 'Cr' | 'Cu' | 'Ag';
+  tubeVoltageKV?: number; // excitation tube voltage in kV (default 40 kV)
+  detectorWindow?: 'beryllium_8um' | 'ultrathin_polymer' | 'windowless';
   includeBackground?: boolean;
+  includeTubeScatter?: boolean;
   includeEscapePeaks?: boolean;
   includeSumPeaks?: boolean;
   minKeV?: number;
@@ -16407,93 +16415,417 @@ export function matchXRFFingerprint(
   return results.sort((a, b) => b.score - a.score);
 }
 
+export interface TubeTargetCharacteristics {
+  symbol: 'Rh' | 'Mo' | 'W' | 'Cr' | 'Cu' | 'Ag';
+  z: number;
+  name: string;
+  lines: { name: string; energyKeV: number; relativeIntensity: number }[];
+}
+
+export const TUBE_TARGETS: Record<string, TubeTargetCharacteristics> = {
+  Rh: {
+    symbol: 'Rh',
+    z: 45,
+    name: 'Rhodium (Universal XRF Tube)',
+    lines: [
+      { name: 'Rh Kα1', energyKeV: 20.216, relativeIntensity: 100 },
+      { name: 'Rh Kα2', energyKeV: 20.074, relativeIntensity: 50 },
+      { name: 'Rh Kβ1', energyKeV: 22.724, relativeIntensity: 22 },
+      { name: 'Rh Lα1', energyKeV: 2.697, relativeIntensity: 15 }
+    ]
+  },
+  Mo: {
+    symbol: 'Mo',
+    z: 42,
+    name: 'Molybdenum (High Z Transition)',
+    lines: [
+      { name: 'Mo Kα1', energyKeV: 17.479, relativeIntensity: 100 },
+      { name: 'Mo Kα2', energyKeV: 17.374, relativeIntensity: 50 },
+      { name: 'Mo Kβ1', energyKeV: 19.608, relativeIntensity: 20 },
+      { name: 'Mo Lα1', energyKeV: 2.293, relativeIntensity: 12 }
+    ]
+  },
+  W: {
+    symbol: 'W',
+    z: 74,
+    name: 'Tungsten (High Power Bremsstrahlung)',
+    lines: [
+      { name: 'W Lα1', energyKeV: 8.398, relativeIntensity: 100 },
+      { name: 'W Lβ1', energyKeV: 9.672, relativeIntensity: 65 },
+      { name: 'W Lγ1', energyKeV: 11.286, relativeIntensity: 15 }
+    ]
+  },
+  Cr: {
+    symbol: 'Cr',
+    z: 24,
+    name: 'Chromium (Optimized for Light Elements)',
+    lines: [
+      { name: 'Cr Kα1', energyKeV: 5.415, relativeIntensity: 100 },
+      { name: 'Cr Kα2', energyKeV: 5.405, relativeIntensity: 50 },
+      { name: 'Cr Kβ1', energyKeV: 5.947, relativeIntensity: 18 }
+    ]
+  },
+  Cu: {
+    symbol: 'Cu',
+    z: 29,
+    name: 'Copper (General Purpose XRD/XRF)',
+    lines: [
+      { name: 'Cu Kα1', energyKeV: 8.048, relativeIntensity: 100 },
+      { name: 'Cu Kα2', energyKeV: 8.028, relativeIntensity: 50 },
+      { name: 'Cu Kβ1', energyKeV: 8.905, relativeIntensity: 17 }
+    ]
+  },
+  Ag: {
+    symbol: 'Ag',
+    z: 47,
+    name: 'Silver (Heavy Element Excitation)',
+    lines: [
+      { name: 'Ag Kα1', energyKeV: 22.163, relativeIntensity: 100 },
+      { name: 'Ag Kα2', energyKeV: 21.990, relativeIntensity: 50 },
+      { name: 'Ag Kβ1', energyKeV: 24.942, relativeIntensity: 20 },
+      { name: 'Ag Lα1', energyKeV: 2.984, relativeIntensity: 14 }
+    ]
+  }
+};
+
 /**
- * Simulate continuous XRF / EDS energy spectrum response curve with Gaussian detector broadening,
- * Bremsstrahlung background, and detector escape peaks.
+ * Calculates window transmission factor T(E) based on detector entrance window type.
+ */
+export function calculateWindowTransmission(
+  energyKeV: number,
+  windowType: 'beryllium_8um' | 'ultrathin_polymer' | 'windowless' = 'ultrathin_polymer'
+): number {
+  if (energyKeV <= 0) return 0;
+  if (windowType === 'windowless') return 1.0;
+  if (windowType === 'beryllium_8um') {
+    // 8 µm Beryllium foil cut-off: heavily absorbs below 1 keV
+    return Math.max(0, Math.min(1.0, Math.exp(-0.85 / (Math.pow(energyKeV, 2.7) + 0.005))));
+  }
+  // Ultra-thin polymer window (e.g. Moxtek AP3.3 / Si3N4): transparent down to C-K (0.28 keV)
+  const sig = 1 / (1 + Math.exp(-(energyKeV - 0.22) / 0.18));
+  return Math.max(0, Math.min(1.0, sig * (1 - 0.04 * Math.exp(-energyKeV / 0.5))));
+}
+
+/**
+ * Calculate energy-dependent FWHM resolution (keV) and Gaussian sigma based on Fano factor
+ * calibrated to FWHM at Mn Kα (5.895 keV).
+ */
+export function calculateDetectorSigma(
+  energyKeV: number,
+  fwhmAtMnKeV: number
+): { fwhmKeV: number; sigma: number } {
+  // Mn Kα = 5.895 keV standard calibration reference
+  const e0 = 5.895;
+  const fanoCoeff = 0.00246; // 2.355^2 * F * epsilon = 5.545 * 0.115 * 0.00385 ~ 0.00246 keV^2/keV
+  const fwhm0Sq = fwhmAtMnKeV * fwhmAtMnKeV;
+  const noiseSq = Math.max(0.0004, fwhm0Sq - fanoCoeff * e0);
+  const fwhmE = Math.sqrt(noiseSq + fanoCoeff * Math.max(0.1, energyKeV));
+  return {
+    fwhmKeV: fwhmE,
+    sigma: fwhmE / 2.35482
+  };
+}
+
+/**
+ * Simulate continuous XRF / EDS energy spectrum response curve with:
+ * - Gaussian detector broadening with energy-dependent Fano factor
+ * - Duane-Hunt limited Bremsstrahlung continuum background
+ * - Anode tube target characteristic lines with Rayleigh & Compton scattering
+ * - Si detector escape peaks (physically gated to E > 1.839 keV Si K edge)
+ * - Detector window transmission cut-off (Be 8µm vs Polymer vs Windowless)
+ * - Electronic pulse pileup sum peaks
  */
 export function simulateXRFSpectrum(
   fingerprint: XRFFingerprint,
   options: XRFSpectrumOptions = {}
 ): XRFSpectrumPoint[] {
-  const fwhm_eV = options.fwhm_eV ?? 130; // 130 eV = 0.13 keV default SDD
+  const fwhm_eV = options.fwhm_eV ?? 130; // 130 eV default SDD
   const fwhm_keV = fwhm_eV / 1000;
-  const sigma_base = fwhm_keV / 2.3548; // FWHM to Gaussian sigma
-  const numPoints = options.numPoints ?? 350;
-  
+  const tubeTargetKey = options.tubeTarget ?? 'Rh';
+  const tube = TUBE_TARGETS[tubeTargetKey] || TUBE_TARGETS.Rh;
+  const tubeVoltageKV = options.tubeVoltageKV ?? 40; // 40 kV excitation
+  const windowType = options.detectorWindow ?? 'ultrathin_polymer';
+  const numPoints = options.numPoints ?? 500;
+
   // Determine energy bounds
   const maxLineEnergy = fingerprint.lines.length > 0
     ? Math.max(...fingerprint.lines.map(l => l.energyKeV))
     : 10;
-  
+
   const minE = options.minKeV ?? 0.1;
-  const maxE = options.maxKeV ?? Math.min(30, Math.max(12, Math.ceil(maxLineEnergy * 1.35)));
+  const maxE = options.maxKeV ?? Math.min(Math.max(tubeVoltageKV * 0.85, 12), Math.max(12, Math.ceil(maxLineEnergy * 1.35)));
   const step = (maxE - minE) / (numPoints - 1);
 
-  const points: XRFSpectrumPoint[] = [];
-
-  // Tube characteristic line background/Bremsstrahlung
   const includeBg = options.includeBackground ?? true;
+  const includeTubeScatter = options.includeTubeScatter ?? true;
   const includeEscape = options.includeEscapePeaks ?? true;
   const includeSum = options.includeSumPeaks ?? false;
 
+  const points: XRFSpectrumPoint[] = [];
+
   for (let i = 0; i < numPoints; i++) {
     const e = minE + i * step;
-    let intensity = 0;
+    let netIntensity = 0;
+    let bgIntensity = 0;
 
-    // Kramers / Bremsstrahlung background model: I(E) ~ (E_max - E) / E
-    if (includeBg) {
-      const e_tube = 25.0; // tube voltage equivalent keV
-      if (e < e_tube && e > 0.3) {
-        const bg = 2.5 * ((e_tube - e) / e) * Math.exp(-0.8 / e);
-        intensity += Math.max(0, bg);
+    const winTrans = calculateWindowTransmission(e, windowType);
+
+    // 1. Bremsstrahlung Continuous Background (Kramers model with Duane-Hunt limit)
+    if (includeBg && e < tubeVoltageKV && e > 0.15) {
+      // Kramers equation: I(E) ~ Z_anode * (E_tube - E) / E
+      const zFactor = tube.z / 45.0; // normalized to Rh
+      const kramers = 3.2 * zFactor * ((tubeVoltageKV - e) / Math.max(0.4, e)) * Math.exp(-0.35 / e);
+      // Window transmission + low-energy self absorption
+      bgIntensity += Math.max(0, kramers * winTrans);
+    }
+
+    // 2. Tube Scatter Peaks (Rayleigh elastic & Compton inelastic)
+    if (includeTubeScatter) {
+      tube.lines.forEach(tLine => {
+        if (tLine.energyKeV < tubeVoltageKV) {
+          const { sigma: sigmaRay } = calculateDetectorSigma(tLine.energyKeV, fwhm_keV);
+          // Rayleigh (elastic) scatter at tube line energy
+          const rayAmp = tLine.relativeIntensity * 0.18 * winTrans;
+          const rayG = (rayAmp / (sigmaRay * Math.sqrt(2 * Math.PI))) *
+            Math.exp(-0.5 * Math.pow((e - tLine.energyKeV) / sigmaRay, 2));
+          bgIntensity += rayG;
+
+          // Compton (inelastic) scatter: shifted down by Delta E = E0 / (1 + E0 / 511.0)
+          const compE = tLine.energyKeV / (1 + tLine.energyKeV / 511.0);
+          const { sigma: sigmaBaseComp } = calculateDetectorSigma(compE, fwhm_keV);
+          // Compton peak has additional Doppler broadening from electron momentum
+          const sigmaComp = sigmaBaseComp * 1.45;
+          const compAmp = tLine.relativeIntensity * 0.28 * winTrans;
+          const compG = (compAmp / (sigmaComp * Math.sqrt(2 * Math.PI))) *
+            Math.exp(-0.5 * Math.pow((e - compE) / sigmaComp, 2));
+          bgIntensity += compG;
+        }
+      });
+    }
+
+    // 3. Characteristic Emission Lines of Sample Element
+    fingerprint.lines.forEach(line => {
+      // Only excited if tube voltage exceeds the absorption edge
+      if (line.energyKeV < tubeVoltageKV) {
+        const { sigma } = calculateDetectorSigma(line.energyKeV, fwhm_keV);
+        // Excitation overvoltage factor: (V_tube / E_edge - 1)^1.67
+        const overvoltage = Math.min(3.5, Math.max(0.3, Math.pow((tubeVoltageKV / Math.max(1, line.energyKeV)) - 0.9, 0.4)));
+        const amp = line.relativeIntensity * 9.5 * overvoltage * winTrans;
+        const g = (amp / (sigma * Math.sqrt(2 * Math.PI))) *
+          Math.exp(-0.5 * Math.pow((e - line.energyKeV) / sigma, 2));
+        netIntensity += g;
+      }
+    });
+
+    // 4. Silicon Detector Escape Peaks (gated to E > 1.839 keV Si K edge)
+    if (includeEscape && fingerprint.lines.length > 0) {
+      fingerprint.lines.forEach(line => {
+        if (line.energyKeV > 1.839 && line.relativeIntensity >= 15) {
+          const escEnergy = line.energyKeV - 1.740; // Si Kα escape
+          if (escEnergy > 0) {
+            const { sigma } = calculateDetectorSigma(escEnergy, fwhm_keV);
+            // Escape fraction drops off at higher energies
+            const escFraction = 0.012 * (1.839 / line.energyKeV);
+            const escAmp = (line.relativeIntensity * 9.5 * escFraction) * winTrans;
+            const g = (escAmp / (sigma * Math.sqrt(2 * Math.PI))) *
+              Math.exp(-0.5 * Math.pow((e - escEnergy) / sigma, 2));
+            netIntensity += g;
+          }
+        }
+      });
+    }
+
+    // 5. Electronic Pulse Pileup / Sum Peaks (2 * E)
+    if (includeSum && fingerprint.lines.length > 0) {
+      fingerprint.lines.forEach(line => {
+        if (line.relativeIntensity >= 60 && line.energyKeV * 2 < tubeVoltageKV * 1.1) {
+          const sumEnergy = line.energyKeV * 2;
+          const { sigma } = calculateDetectorSigma(sumEnergy, fwhm_keV);
+          const sumAmp = 0.004 * (line.relativeIntensity * 9.5);
+          const g = (sumAmp / (sigma * Math.sqrt(2 * Math.PI))) *
+            Math.exp(-0.5 * Math.pow((e - sumEnergy) / sigma, 2));
+          netIntensity += g;
+        }
+      });
+    }
+
+    const totalIntensity = Math.max(0, netIntensity + bgIntensity);
+
+    // Peak identification for tooltips
+    let nearestLine: XRFEmissionLine | null = null;
+    let isPeak = false;
+    let peakLabel: string | undefined = undefined;
+    let peakSeries: XRFSpectrumPoint['peakSeries'] = undefined;
+    let isEscape = false;
+    let isSum = false;
+    let isTubeScatter = false;
+
+    // Check sample lines
+    for (const l of fingerprint.lines) {
+      if (Math.abs(e - l.energyKeV) < step * 0.55) {
+        nearestLine = l;
+        isPeak = true;
+        peakLabel = `${fingerprint.symbol} ${l.siegbahn} (${l.energyKeV.toFixed(3)} keV)`;
+        peakSeries = l.siegbahn.startsWith('K') ? 'K' : l.siegbahn.startsWith('L') ? 'L' : 'M';
+        break;
       }
     }
 
-    // Characteristic emission lines Gaussian superposition
-    fingerprint.lines.forEach(line => {
-      // Energy-dependent Fano broadening: sigma(E) = sqrt(sigma_0^2 + 2.355^2 * F * epsilon * E)
-      const sigma_e = Math.sqrt(sigma_base * sigma_base + 0.00012 * line.energyKeV);
-      const amp = line.relativeIntensity * 8.0;
-      const g = (amp / (sigma_e * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((e - line.energyKeV) / sigma_e, 2));
-      intensity += g;
-    });
-
-    // Escape peaks (Si detector escape: E - 1.74 keV, approx 0.8% of parent peak)
-    if (includeEscape && fingerprint.escapePeaks.length > 0) {
-      fingerprint.escapePeaks.forEach(esc => {
-        const sigma_esc = Math.sqrt(sigma_base * sigma_base + 0.00012 * esc.escapeEnergyKeV);
-        const amp_esc = 8.0 * 0.8; // ~0.8% of parent
-        const g = (amp_esc / (sigma_esc * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((e - esc.escapeEnergyKeV) / sigma_esc, 2));
-        intensity += g;
-      });
+    // Check tube scatter peaks if not matching sample line
+    if (!isPeak && includeTubeScatter) {
+      for (const tLine of tube.lines) {
+        if (Math.abs(e - tLine.energyKeV) < step * 0.55) {
+          isPeak = true;
+          isTubeScatter = true;
+          peakLabel = `Tube Rayleigh: ${tLine.name} (${tLine.energyKeV.toFixed(3)} keV)`;
+          peakSeries = 'Tube-Rayleigh';
+          break;
+        }
+        const compE = tLine.energyKeV / (1 + tLine.energyKeV / 511.0);
+        if (Math.abs(e - compE) < step * 0.7) {
+          isPeak = true;
+          isTubeScatter = true;
+          peakLabel = `Tube Compton: ${tLine.name} (${compE.toFixed(3)} keV)`;
+          peakSeries = 'Tube-Compton';
+          break;
+        }
+      }
     }
 
-    // Sum peaks (pileup: 2 * E, approx 0.3% of parent)
-    if (includeSum && fingerprint.sumPeaks.length > 0) {
-      fingerprint.sumPeaks.forEach(sum => {
-        const sigma_sum = Math.sqrt(sigma_base * sigma_base + 0.00012 * sum.sumEnergyKeV);
-        const amp_sum = 8.0 * 0.3;
-        const g = (amp_sum / (sigma_sum * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((e - sum.sumEnergyKeV) / sigma_sum, 2));
-        intensity += g;
-      });
+    // Check escape peaks
+    if (!isPeak && includeEscape) {
+      for (const l of fingerprint.lines) {
+        if (l.energyKeV > 1.839 && Math.abs(e - (l.energyKeV - 1.740)) < step * 0.55) {
+          isPeak = true;
+          isEscape = true;
+          peakLabel = `Si Escape: ${l.siegbahn} - 1.74 keV (${(l.energyKeV - 1.74).toFixed(3)} keV)`;
+          peakSeries = 'Escape';
+          break;
+        }
+      }
     }
 
-    // Peak tagging for tooltips
-    let nearestLine: XRFEmissionLine | null = null;
-    let isPeak = false;
-    for (const l of fingerprint.lines) {
-      if (Math.abs(e - l.energyKeV) < step * 0.6) {
-        nearestLine = l;
-        isPeak = true;
-        break;
+    // Check sum peaks
+    if (!isPeak && includeSum) {
+      for (const l of fingerprint.lines) {
+        if (l.relativeIntensity >= 60 && Math.abs(e - l.energyKeV * 2) < step * 0.55) {
+          isPeak = true;
+          isSum = true;
+          peakLabel = `Pileup Sum: 2×${l.siegbahn} (${(l.energyKeV * 2).toFixed(3)} keV)`;
+          peakSeries = 'Sum';
+          break;
+        }
       }
     }
 
     points.push({
       energy: Number(e.toFixed(3)),
-      intensity: Number(Math.max(0, intensity).toFixed(2)),
+      intensity: Number(totalIntensity.toFixed(2)),
+      netIntensity: Number(netIntensity.toFixed(2)),
+      backgroundIntensity: Number(bgIntensity.toFixed(2)),
       isPeak,
-      peakLabel: nearestLine ? `${nearestLine.siegbahn} (${nearestLine.energyKeV.toFixed(3)} keV)` : undefined
+      peakLabel,
+      peakSeries,
+      isEscape,
+      isSum,
+      isTubeScatter
+    });
+  }
+
+  return points;
+}
+
+/**
+ * Simulate continuous XRF / EDS spectrum for a multi-element mixture (e.g. Alloy or Mineral).
+ */
+export function simulateMultiElementXRFSpectrum(
+  elements: { z: number; fraction: number; name?: string; sym?: string }[],
+  options: XRFSpectrumOptions = {}
+): XRFSpectrumPoint[] {
+  const fwhm_eV = options.fwhm_eV ?? 130;
+  const fwhm_keV = fwhm_eV / 1000;
+  const tubeTargetKey = options.tubeTarget ?? 'Rh';
+  const tube = TUBE_TARGETS[tubeTargetKey] || TUBE_TARGETS.Rh;
+  const tubeVoltageKV = options.tubeVoltageKV ?? 40;
+  const windowType = options.detectorWindow ?? 'ultrathin_polymer';
+  const numPoints = options.numPoints ?? 500;
+
+  const minE = options.minKeV ?? 0.1;
+  const maxE = options.maxKeV ?? 32;
+  const step = (maxE - minE) / (numPoints - 1);
+
+  const fps = elements.map(el => ({
+    fp: getXRFFingerprint(el.z),
+    fraction: el.fraction,
+    sym: el.sym || getXRFFingerprint(el.z).symbol
+  }));
+
+  const includeBg = options.includeBackground ?? true;
+  const includeTubeScatter = options.includeTubeScatter ?? true;
+  const points: XRFSpectrumPoint[] = [];
+
+  for (let i = 0; i < numPoints; i++) {
+    const e = minE + i * step;
+    let netIntensity = 0;
+    let bgIntensity = 0;
+    const winTrans = calculateWindowTransmission(e, windowType);
+
+    if (includeBg && e < tubeVoltageKV && e > 0.15) {
+      const zFactor = tube.z / 45.0;
+      const kramers = 3.2 * zFactor * ((tubeVoltageKV - e) / Math.max(0.4, e)) * Math.exp(-0.35 / e);
+      bgIntensity += Math.max(0, kramers * winTrans);
+    }
+
+    if (includeTubeScatter) {
+      tube.lines.forEach(tLine => {
+        if (tLine.energyKeV < tubeVoltageKV) {
+          const { sigma: sigmaRay } = calculateDetectorSigma(tLine.energyKeV, fwhm_keV);
+          const rayAmp = tLine.relativeIntensity * 0.18 * winTrans;
+          bgIntensity += (rayAmp / (sigmaRay * Math.sqrt(2 * Math.PI))) *
+            Math.exp(-0.5 * Math.pow((e - tLine.energyKeV) / sigmaRay, 2));
+
+          const compE = tLine.energyKeV / (1 + tLine.energyKeV / 511.0);
+          const { sigma: sigmaBaseComp } = calculateDetectorSigma(compE, fwhm_keV);
+          const compAmp = tLine.relativeIntensity * 0.28 * winTrans;
+          bgIntensity += (compAmp / (sigmaBaseComp * 1.45 * Math.sqrt(2 * Math.PI))) *
+            Math.exp(-0.5 * Math.pow((e - compE) / (sigmaBaseComp * 1.45), 2));
+        }
+      });
+    }
+
+    let nearestLabel: string | undefined = undefined;
+    let isPeak = false;
+    let peakSeries: XRFSpectrumPoint['peakSeries'] = undefined;
+
+    fps.forEach(({ fp, fraction, sym }) => {
+      fp.lines.forEach(line => {
+        if (line.energyKeV < tubeVoltageKV) {
+          const { sigma } = calculateDetectorSigma(line.energyKeV, fwhm_keV);
+          const overvoltage = Math.min(3.5, Math.max(0.3, Math.pow((tubeVoltageKV / Math.max(1, line.energyKeV)) - 0.9, 0.4)));
+          const amp = fraction * line.relativeIntensity * 9.5 * overvoltage * winTrans;
+          const g = (amp / (sigma * Math.sqrt(2 * Math.PI))) *
+            Math.exp(-0.5 * Math.pow((e - line.energyKeV) / sigma, 2));
+          netIntensity += g;
+
+          if (Math.abs(e - line.energyKeV) < step * 0.55 && !isPeak) {
+            isPeak = true;
+            nearestLabel = `${sym} ${line.siegbahn} (${line.energyKeV.toFixed(3)} keV)`;
+            peakSeries = line.siegbahn.startsWith('K') ? 'K' : line.siegbahn.startsWith('L') ? 'L' : 'M';
+          }
+        }
+      });
+    });
+
+    const totalIntensity = Math.max(0, netIntensity + bgIntensity);
+
+    points.push({
+      energy: Number(e.toFixed(3)),
+      intensity: Number(totalIntensity.toFixed(2)),
+      netIntensity: Number(netIntensity.toFixed(2)),
+      backgroundIntensity: Number(bgIntensity.toFixed(2)),
+      isPeak,
+      peakLabel: nearestLabel,
+      peakSeries
     });
   }
 

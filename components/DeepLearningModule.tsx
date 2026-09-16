@@ -6431,6 +6431,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <span className={`px-1.5 py-0.5 rounded text-xs font-mono ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-500/50 text-white" : "bg-slate-800 text-slate-500"}`}>
                           {candidate.confidence_score.toFixed(0)}%
                         </span>
+                        {candidate.mlValidationScore !== undefined && (
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono tracking-tight ${selectedCandidate.phase_name === candidate.phase_name ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400/40" : "bg-emerald-950/40 text-emerald-400 border border-emerald-800/40"}`} title="Phys-ML Validation Match">
+                            ML:{candidate.mlValidationScore.toFixed(0)}%
+                          </span>
+                        )}
                       </button>
                     ))}
                     </div>
@@ -6462,7 +6467,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           </span>
                         </div>
                       </h3>
-                      <div className="flex items-center gap-4 mt-2">
+                      <div className="flex flex-wrap items-center gap-4 mt-2">
                         <div className="flex gap-1.5 p-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
                           {[...Array(5)].map((_, i) => (
                             <div
@@ -6478,6 +6483,17 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             {selectedCandidate.confidence_score.toFixed(1)}%
                           </span>
                         </p>
+                        {selectedCandidate.mlValidationScore !== undefined && (
+                          <>
+                            <div className="h-4 w-px bg-slate-700/50" />
+                            <p className="text-xs sm:text-sm font-black text-emerald-300/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                              {t("Phys-ML Validation:", "Phys-ML Validation:")}
+                              <span className="text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded font-mono shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                                {selectedCandidate.mlValidationScore.toFixed(1)}%
+                              </span>
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

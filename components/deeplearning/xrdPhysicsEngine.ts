@@ -385,8 +385,8 @@ export function optimizePhaseWeightsNNLS(
         }
         numerator += phaseProfiles[i][j] * (observedPoints[j] - otherPhases);
       }
-      // Non-negative projection
-      weights[i] = Math.max(0.01, numerator / P_dot_P[i]);
+      // Non-negative projection with zero lower bound
+      weights[i] = Math.max(0, numerator / P_dot_P[i]);
     }
 
     // Evaluate residual loss
@@ -400,7 +400,7 @@ export function optimizePhaseWeightsNNLS(
       currentLoss += diff * diff;
     }
 
-    if (Math.abs(prevLoss - currentLoss) < 1e-4) {
+    if (Math.abs(prevLoss - currentLoss) < 1e-5) {
       break;
     }
     prevLoss = currentLoss;
@@ -427,7 +427,7 @@ export function optimizePhaseWeightsNNLS(
   const percentagesMap: Record<string, number> = {};
 
   phaseNames.forEach((name, idx) => {
-    weightsMap[name] = Number(weights[idx].toFixed(3));
+    weightsMap[name] = Number(weights[idx].toFixed(4));
     percentagesMap[name] = sumWeights > 0 ? Number(((weights[idx] / sumWeights) * 100).toFixed(1)) : 0;
   });
 

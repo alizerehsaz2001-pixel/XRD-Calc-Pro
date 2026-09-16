@@ -4256,11 +4256,18 @@ export const identifyPhasesDL = (
           else if (finalConfidence > 65) matchQuality = "Good";
           else if (finalConfidence > 40) matchQuality = "Possible";
           
+          const pythonValidatedScore = evaluateMLValidationScore(
+            remainingPoints.map(p => ({ two_theta: p.twoTheta, intensity: p.intensity })),
+            phase.peaks.map(p => ({ two_theta: p.t, intensity: p.i })),
+            TOLERANCE
+          );
+
           const rawCandidate: DLPhaseCandidate = {
             phase_name: phase.name, 
             formula: phase.formula, 
             card_id: phase.cardId, 
             confidence_score: parseFloat(finalConfidence.toFixed(1)),
+            mlValidationScore: parseFloat(pythonValidatedScore.toFixed(1)),
             match_quality: matchQuality,
             matched_peaks: matchedDetails,
             elements: (phase as any).elements,
@@ -4293,8 +4300,10 @@ export const identifyPhasesDL = (
         identifiedPhases.push(bestPhase);
         const phaseToStrip = availableDB[bestPhaseIdx];
         
+        // Dynamic stripping window based on engine tolerance with safety threshold
+        const stripTolerance = Math.max(0.18, TOLERANCE * 1.2);
         remainingPoints = remainingPoints.filter(p => {
-          return !phaseToStrip.peaks.some(ref => Math.abs(ref.t - p.twoTheta) <= (TOLERANCE * 1.5));
+          return !phaseToStrip.peaks.some(ref => Math.abs(ref.t - p.twoTheta) <= stripTolerance);
         });
         
         availableDB.splice(bestPhaseIdx, 1);
