@@ -1,10 +1,27 @@
 import React, { useState } from 'react';
-import { Database, Scale, Layers, ChevronDown, ChevronUp, Info, HelpCircle } from 'lucide-react';
+import { Database, Scale, Layers, ChevronDown, ChevronUp, Info, HelpCircle, ShieldCheck } from 'lucide-react';
 import { CrystalSystem } from './CohenPresetsDb';
 
 interface CohenMetricTensorCardProps {
-  lattice: { a: number; b: number; c: number; betaDeg?: number };
-  sigma: { sigmaA: number; sigmaB: number; sigmaC: number; sigmaVolume: number };
+  lattice: { 
+    a: number; 
+    b: number; 
+    c: number; 
+    alphaDeg?: number;
+    betaDeg?: number; 
+    gammaDeg?: number;
+    rhombohedralA?: number;
+    rhombohedralAlpha?: number;
+  };
+  sigma: { 
+    sigmaA: number; 
+    sigmaB: number; 
+    sigmaC: number; 
+    sigmaAlpha?: number;
+    sigmaBeta?: number;
+    sigmaGamma?: number;
+    sigmaVolume: number;
+  };
   volume: number;
   crystalSystem: CrystalSystem;
   molarMass?: number;
@@ -25,61 +42,84 @@ export const CohenMetricTensorCard: React.FC<CohenMetricTensorCardProps> = ({
   const [customM, setCustomM] = useState<number>(molarMass);
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState<boolean>(false);
 
-  const { a, b, c, betaDeg = 90 } = lattice;
+  const { 
+    a, 
+    b, 
+    c, 
+    alphaDeg = 90, 
+    betaDeg = 90, 
+    gammaDeg = 90, 
+    rhombohedralA, 
+    rhombohedralAlpha 
+  } = lattice;
+
+  const alphaRad = (alphaDeg * Math.PI) / 180;
   const betaRad = (betaDeg * Math.PI) / 180;
+  const gammaRad = (gammaDeg * Math.PI) / 180;
+
+  const cosA = Math.cos(alphaRad);
+  const cosB = Math.cos(betaRad);
+  const cosG = Math.cos(gammaRad);
 
   // Direct Metric Tensor G
   // G = [ [a^2, a*b*cos(gamma), a*c*cos(beta)], [b*a*cos(gamma), b^2, b*c*cos(alpha)], [c*a*cos(beta), c*b*cos(alpha), c^2] ]
-  let G: number[][] = [
-    [a * a, 0, 0],
-    [0, b * b, 0],
-    [0, 0, c * c]
+  const G: number[][] = [
+    [a * a, a * b * cosG, a * c * cosB],
+    [b * a * cosG, b * b, b * c * cosA],
+    [c * a * cosB, c * b * cosA, c * c]
   ];
 
-  if (crystalSystem === 'Hexagonal') {
-    // gamma = 120 deg, cos(120) = -0.5
-    G = [
-      [a * a, -0.5 * a * a, 0],
-      [-0.5 * a * a, a * a, 0],
-      [0, 0, c * c]
-    ];
-  } else if (crystalSystem === 'Monoclinic') {
-    // beta != 90 deg
-    const cosB = Math.cos(betaRad);
-    G = [
-      [a * a, 0, a * c * cosB],
-      [0, b * b, 0],
-      [a * c * cosB, 0, c * c]
+  // Invert 3x3 to get reciprocal metric tensor G*
+  const detG = volume * volume;
+  let GStar: number[][] = [
+    [1 / (a * a), 0, 0],
+    [0, 1 / (b * b), 0],
+    [0, 0, 1 / (c * c)]
+  ];
+
+  if (detG > 0) {
+    const invA = (G[1][1] * G[2][2] - G[1][2] * G[2][1]) / detG;
+    const invB = -(G[0][1] * G[2][2] - G[0][2] * G[2][1]) / detG;
+    const invC = (G[0][1] * G[1][2] - G[0][2] * G[1][1]) / detG;
+    const invD = -(G[1][0] * G[2][2] - G[1][2] * G[2][0]) / detG;
+    const invE = (G[0][0] * G[2][2] - G[0][2] * G[2][0]) / detG;
+    const invF = -(G[0][0] * G[1][2] - G[0][2] * G[1][0]) / detG;
+    const invG = (G[1][0] * G[2][1] - G[1][1] * G[2][0]) / detG;
+    const invH = -(G[0][0] * G[2][1] - G[0][1] * G[2][0]) / detG;
+    const invI = (G[0][0] * G[1][1] - G[0][1] * G[1][0]) / detG;
+
+    GStar = [
+      [invA, invB, invC],
+      [invD, invE, invF],
+      [invG, invH, invI]
     ];
   }
 
-  // Reciprocal Lattice Parameters
-  // a* = 2pi * (b x c) / V => in crystallography standard, a* = 1/d = lambda / ...
-  // Crystallographer's definition without 2pi:
-  let aStar = 1 / a;
-  let bStar = 1 / b;
-  let cStar = 1 / c;
+  // Reciprocal Lattice Lengths & Angles
+  const aStar = Math.sqrt(Math.max(1e-12, GStar[0][0]));
+  const bStar = Math.sqrt(Math.max(1e-12, GStar[1][1]));
+  const cStar = Math.sqrt(Math.max(1e-12, GStar[2][2]));
 
-  if (crystalSystem === 'Hexagonal') {
-    aStar = 2 / (Math.sqrt(3) * a);
-    bStar = aStar;
-    cStar = 1 / c;
-  } else if (crystalSystem === 'Monoclinic') {
-    const sinB = Math.sin(betaRad);
-    aStar = 1 / (a * sinB);
-    bStar = 1 / b;
-    cStar = 1 / (c * sinB);
-  }
+  const cosAlphaStar = Math.max(-1, Math.min(1, GStar[1][2] / (bStar * cStar)));
+  const cosBetaStar = Math.max(-1, Math.min(1, GStar[0][2] / (aStar * cStar)));
+  const cosGammaStar = Math.max(-1, Math.min(1, GStar[0][1] / (aStar * bStar)));
+
+  const alphaStarDeg = Math.acos(cosAlphaStar) * (180 / Math.PI);
+  const betaStarDeg = Math.acos(cosBetaStar) * (180 / Math.PI);
+  const gammaStarDeg = Math.acos(cosGammaStar) * (180 / Math.PI);
 
   // X-ray Density rho = (Z * M) / (N_A * V * 10^-24)
   // N_A = 6.02214076 * 10^23 mol^-1
-  // V in A^3 = V * 10^-24 cm^3
   const NA = 6.02214076e23;
   const densityGcm3 = volume > 0 && customZ > 0 && customM > 0
     ? (customZ * customM) / (NA * volume * 1e-24)
     : 0;
 
-  // Error in ppm for parameter a: (sigmaA / a) * 10^6
+  const sigmaDensity = volume > 0 && densityGcm3 > 0
+    ? densityGcm3 * (sigma.sigmaVolume / volume)
+    : 0;
+
+  // Relative error in ppm for parameter a: (sigmaA / a) * 10^6
   const ppmErrorA = a > 0 ? ((sigma.sigmaA / a) * 1e6).toFixed(1) : '0';
   const ppmErrorV = volume > 0 ? ((sigma.sigmaVolume / volume) * 1e6).toFixed(1) : '0';
 
@@ -98,117 +138,36 @@ export const CohenMetricTensorCard: React.FC<CohenMetricTensorCardProps> = ({
           onClick={() => setShowAdvancedMetrics(!showAdvancedMetrics)}
           className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1"
         >
-          {showAdvancedMetrics ? 'Collapse Tensor Matrix' : 'Expand Metric Tensor'}
+          <span>{showAdvancedMetrics ? 'Simple View' : 'Reciprocal Tensor Details'}</span>
           {showAdvancedMetrics ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Metric 1: X-ray Density */}
-        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-            <span>Theoretical X-ray Density</span>
-            <Scale className="w-3.5 h-3.5 text-emerald-500" />
-          </div>
-          <div className="text-xl font-black font-mono text-emerald-700 dark:text-emerald-400">
-            {densityGcm3.toFixed(3)} <span className="text-xs font-sans text-slate-500">g/cm³</span>
-          </div>
-          <div className="flex items-center gap-2 pt-1 border-t border-slate-200 dark:border-slate-800 text-[10px] font-mono">
-            <div className="flex items-center gap-1">
-              <span className="text-slate-400">Z =</span>
-              <input
-                type="number"
-                value={customZ}
-                onChange={(e) => setCustomZ(parseFloat(e.target.value) || 1)}
-                className="w-8 px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300"
-              />
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-slate-400">M =</span>
-              <input
-                type="number"
-                step="0.1"
-                value={customM}
-                onChange={(e) => setCustomM(parseFloat(e.target.value) || 28)}
-                className="w-14 px-1 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300"
-              />
-              <span className="text-slate-400">g/mol</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 2: Lattice Precision (ppm) */}
-        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-            <span>Relative Precision σ(a)/a</span>
-            <span className="px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-[9px] font-bold">
-              ppm
+      {/* Main Grid: Direct Tensor & Crystallographic Density */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Direct Metric Tensor Matrix [G] */}
+        <div className="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Direct Metric Tensor [G] (Å²)
             </span>
-          </div>
-          <div className="text-xl font-black font-mono text-indigo-700 dark:text-indigo-400">
-            {ppmErrorA} <span className="text-xs font-sans text-slate-500">ppm</span>
-          </div>
-          <div className="text-[11px] font-mono text-slate-500 pt-1 border-t border-slate-200 dark:border-slate-800">
-            Volume Uncertainty: ±{ppmErrorV} ppm
-          </div>
-        </div>
-
-        {/* Metric 3: Reciprocal Cell Spacings */}
-        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-            <span>Reciprocal Lattice Constants</span>
-            <Layers className="w-3.5 h-3.5 text-cyan-500" />
-          </div>
-          <div className="text-sm font-black font-mono text-cyan-700 dark:text-cyan-400 space-y-0.5">
-            <div>a* = {aStar.toFixed(4)} Å⁻¹</div>
-            {crystalSystem !== 'Cubic' && <div>c* = {cStar.toFixed(4)} Å⁻¹</div>}
-          </div>
-          <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
-            d* = 1 / d(hkl) basis
-          </div>
-        </div>
-
-        {/* Metric 4: Confidence Intervals */}
-        <div className="p-3.5 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-            <span>1σ, 2σ, 3σ Intervals</span>
-            <span className="text-[10px] text-amber-500 font-mono font-bold">Gaussian</span>
-          </div>
-          <div className="text-[11px] font-mono text-slate-700 dark:text-slate-300 space-y-0.5">
-            <div>68.3% (1σ): ±{(sigma.sigmaA).toFixed(precision + 1)} Å</div>
-            <div>95.4% (2σ): ±{(sigma.sigmaA * 2).toFixed(precision + 1)} Å</div>
-            <div>99.7% (3σ): ±{(sigma.sigmaA * 3).toFixed(precision + 1)} Å</div>
-          </div>
-          <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
-            Based on [M⁻¹] variance propagation
-          </div>
-        </div>
-      </div>
-
-      {/* Advanced Metric Tensor View */}
-      {showAdvancedMetrics && (
-        <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 animate-in fade-in">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-slate-700 dark:text-slate-300">
-              Direct Metric Tensor [G] Matrix (Å²):
-            </span>
-            <span className="font-mono text-[10px] text-slate-400">
-              g_ij = a_i · a_j
+            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+              det(G) = V² = {detG.toFixed(2)} Å⁶
             </span>
           </div>
 
-          <div className="overflow-x-auto flex justify-center py-2">
-            <table className="font-mono text-xs text-center border-collapse">
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs overflow-x-auto">
+            <table className="w-full text-center">
               <tbody>
                 {G.map((row, rIdx) => (
                   <tr key={rIdx}>
                     {row.map((val, cIdx) => (
                       <td
                         key={cIdx}
-                        className={`p-2.5 border border-slate-200 dark:border-slate-800 font-bold ${
+                        className={`p-1.5 ${
                           rIdx === cIdx
-                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
-                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400'
+                            ? 'font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 rounded'
+                            : 'text-slate-600 dark:text-slate-400'
                         }`}
                       >
                         {val.toFixed(4)}
@@ -218,6 +177,109 @@ export const CohenMetricTensorCard: React.FC<CohenMetricTensorCardProps> = ({
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span>Direct Angles: α={alphaDeg.toFixed(2)}°, β={betaDeg.toFixed(2)}°, γ={gammaDeg.toFixed(2)}°</span>
+            {rhombohedralA && (
+              <span className="text-amber-600 dark:text-amber-400 font-bold">
+                a_r={rhombohedralA.toFixed(4)}Å, α_r={rhombohedralAlpha?.toFixed(2)}°
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* X-ray Theoretical Density Card */}
+        <div className="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Crystallographic X-Ray Density (ρ_calc)
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+              ±{ppmErrorA} ppm precision
+            </span>
+          </div>
+
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+              {densityGcm3.toFixed(precision)}
+            </span>
+            <span className="text-sm font-bold text-slate-500">g / cm³</span>
+            {sigmaDensity > 0 && (
+              <span className="text-xs font-mono text-slate-400 ml-2">
+                ±{sigmaDensity.toFixed(Math.min(6, precision + 1))}
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">
+                Formula Units Z:
+              </label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={customZ}
+                onChange={(e) => setCustomZ(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                className="w-full px-2 py-1 text-xs font-mono rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">
+                Molar Mass M (g/mol):
+              </label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.01"
+                value={customM}
+                onChange={(e) => setCustomM(Math.max(0.1, parseFloat(e.target.value) || 1))}
+                className="w-full px-2 py-1 text-xs font-mono rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Advanced Reciprocal Tensor Matrix [G*] */}
+      {showAdvancedMetrics && (
+        <div className="p-4 bg-indigo-50/30 dark:bg-indigo-950/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 space-y-3 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+              Reciprocal Metric Tensor [G*] = [G]⁻¹ (Å⁻²)
+            </span>
+            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+              a* = {aStar.toFixed(5)} Å⁻¹, b* = {bStar.toFixed(5)} Å⁻¹, c* = {cStar.toFixed(5)} Å⁻¹
+            </span>
+          </div>
+
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-mono text-xs overflow-x-auto">
+            <table className="w-full text-center">
+              <tbody>
+                {GStar.map((row, rIdx) => (
+                  <tr key={rIdx}>
+                    {row.map((val, cIdx) => (
+                      <td
+                        key={cIdx}
+                        className={`p-1.5 ${
+                          rIdx === cIdx
+                            ? 'font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 rounded'
+                            : 'text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {val.toFixed(6)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+            Reciprocal Angles: α* = {alphaStarDeg.toFixed(2)}°, β* = {betaStarDeg.toFixed(2)}°, γ* = {gammaStarDeg.toFixed(2)}°
           </div>
         </div>
       )}

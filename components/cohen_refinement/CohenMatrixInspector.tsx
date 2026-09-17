@@ -324,11 +324,17 @@ export const CohenMatrixInspector: React.FC<CohenMatrixInspectorProps> = ({
       const label = matrixLabels[idx] || `Param_${idx}`;
 
       let physicalMeaning = '';
-      if (label === 'A') physicalMeaning = 'λ²/4a² (Cubic/Tetragonal/Hex/Ortho/Mono h² multiplier)';
-      else if (label === 'B') physicalMeaning = 'λ²/4b² (Orthorhombic/Monoclinic k² multiplier)';
-      else if (label === 'C') physicalMeaning = 'λ²/4c² (l² multiplier)';
-      else if (label === 'E') physicalMeaning = 'λ² cosβ / (2ac sin²β) (Monoclinic cross-term)';
-      else if (label === 'D') physicalMeaning = 'Systematic error drift function multiplier';
+      if (label.startsWith('A')) physicalMeaning = 'λ²/4a² (or λ²/3a² in Hex/Trig h²+hk+k² multiplier)';
+      else if (label.startsWith('B')) physicalMeaning = 'λ²/4b² (Orthorhombic/Monoclinic k² multiplier)';
+      else if (label.startsWith('C')) physicalMeaning = 'λ²/4c² (l² multiplier)';
+      else if (label.startsWith('E')) physicalMeaning = 'λ² cosβ / (2ac sin²β) (Monoclinic cross-term)';
+      else if (label.startsWith('S11')) physicalMeaning = '(λ²/4) a*² (Triclinic reciprocal tensor S11)';
+      else if (label.startsWith('S22')) physicalMeaning = '(λ²/4) b*² (Triclinic reciprocal tensor S22)';
+      else if (label.startsWith('S33')) physicalMeaning = '(λ²/4) c*² (Triclinic reciprocal tensor S33)';
+      else if (label.includes('S12')) physicalMeaning = '(λ²/4) 2a*b* cosγ* (Triclinic reciprocal cross-term)';
+      else if (label.includes('S23')) physicalMeaning = '(λ²/4) 2b*c* cosα* (Triclinic reciprocal cross-term)';
+      else if (label.includes('S13')) physicalMeaning = '(λ²/4) 2a*c* cosβ* (Triclinic reciprocal cross-term)';
+      else if (label.startsWith('Drift D1') || label.startsWith('Drift D2') || label.startsWith('D')) physicalMeaning = 'Systematic error drift function multiplier';
 
       return {
         label,

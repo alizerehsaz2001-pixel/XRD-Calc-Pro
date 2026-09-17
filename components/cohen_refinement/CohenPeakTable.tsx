@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, ArrowUpDown, FileText, Check, AlertTriangle, Eye, EyeOff, Sparkles, Zap } from 'lucide-react';
+import { Plus, Trash2, ArrowUpDown, FileText, Check, AlertTriangle, Eye, EyeOff, Sparkles, Zap, Filter, Tag } from 'lucide-react';
 import { PeakInput } from './CohenPresetsDb';
 
 interface PeakDetail {
@@ -8,6 +8,9 @@ interface PeakDetail {
   twoTheta: number;
   twoThetaCalc: number;
   deltaTwoTheta: number;
+  dObs?: number;
+  dCalc?: number;
+  deltaD?: number;
   h: number;
   k: number;
   l: number;
@@ -15,8 +18,11 @@ interface PeakDetail {
   sin2Calc: number;
   driftVal: number;
   residualSin2: number;
+  weight?: number;
   intensity?: number;
   enabled?: boolean;
+  wavelength?: number;
+  isOutlier?: boolean;
 }
 
 interface CohenPeakTableProps {
@@ -50,9 +56,10 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
   const [newL, setNewL] = useState<number>(1);
   const [newTwoTheta, setNewTwoTheta] = useState<string>('30.00');
   const [newIntensity, setNewIntensity] = useState<number>(100);
+  const [displayMode, setDisplayMode] = useState<'angles' | 'dSpacing'>('angles');
 
   // Sorting
-  const [sortBy, setSortBy] = useState<'twoTheta' | 'residual' | 'intensity'>('twoTheta');
+  const [sortBy, setSortBy] = useState<'twoTheta' | 'residual' | 'intensity' | 'weight'>('twoTheta');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
   const safePeakDetails = Array.isArray(peakDetails) ? peakDetails : [];
@@ -90,10 +97,25 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
 
   const handleDisableOutliers = () => {
     safePeakDetails.forEach(p => {
-      if (Math.abs(p.deltaTwoTheta) > 0.05) {
+      if (Math.abs(p.deltaTwoTheta) > 0.04) {
         onUpdatePeak(p.id, 'enabled', false);
       }
     });
+  };
+
+  const handleEnableHighAngleOnly = () => {
+    safePeaks.forEach(p => {
+      onUpdatePeak(p.id, 'enabled', p.twoTheta >= 50);
+    });
+  };
+
+  const handleToggleDoubletWavelength = (id: string, currentWavelength?: number) => {
+    // Cu Ka1 = 1.54056, Cu Ka2 = 1.54439
+    if (!currentWavelength || Math.abs(currentWavelength - 1.54056) < 0.0001) {
+      onUpdatePeak(id, 'wavelength', 1.54439); // Switch to Ka2
+    } else {
+      onUpdatePeak(id, 'wavelength', 1.54056); // Switch to Ka1
+    }
   };
 
   const sortedPeaks = [...safePeaks].sort((a, b) => {
@@ -108,10 +130,15 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
       const resB = Math.abs(detailMap.get(b.id)?.deltaTwoTheta || 0);
       return sortAsc ? resA - resB : resB - resA;
     }
+    if (sortBy === 'weight') {
+      const wA = detailMap.get(a.id)?.weight || 1;
+      const wB = detailMap.get(b.id)?.weight || 1;
+      return sortAsc ? wA - wB : wB - wA;
+    }
     return 0;
   });
 
-  const outlierCount = safePeakDetails.filter(p => Math.abs(p.deltaTwoTheta) > 0.05).length;
+  const outlierCount = safePeakDetails.filter(p => Math.abs(p.deltaTwoTheta) > 0.04).length;
   const enabledCount = safePeaks.filter(p => p.enabled !== false).length;
 
   return (
@@ -125,7 +152,7 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
               Add Reflection Peak
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Enter $(h, k, l)$ Miller indices and observed $2\theta$ diffraction position
+              Enter (<i>h</i>, <i>k</i>, <i>l</i>) Miller indices and observed 2θ diffraction position
             </p>
           </div>
 
@@ -242,7 +269,7 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                 Diffraction Reflection Peaks ({peaks.length} Peaks, {enabledCount} Active)
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Toggle reflections on/off to isolate outliers and observe real-time parameter convergence
+                Toggle reflections on/off to isolate outliers, observe real-time parameter convergence, and tag wavelengths
               </p>
             </div>
           </div>
@@ -252,8 +279,8 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
               <button
                 type="button"
                 onClick={handleDisableOutliers}
-                className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold rounded-lg flex items-center gap-1"
-                title="Disable peaks with |Δ2θ| > 0.05°"
+                className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm hover:bg-amber-100"
+                title="Disable peaks with |Δ2θ| > 0.04°"
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                 Exclude Outliers ({outlierCount})
@@ -262,12 +289,44 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
 
             <button
               type="button"
+              onClick={handleEnableHighAngleOnly}
+              className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm"
+              title="Isolate high angles 2θ >= 50° for highest lattice accuracy"
+            >
+              <Filter className="w-3.5 h-3.5 text-indigo-500" />
+              High-Angle Only
+            </button>
+
+            <button
+              type="button"
               onClick={() => handleToggleAll(true)}
-              className="px-2.5 py-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm"
+              className="px-2.5 py-1 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm hover:bg-slate-50"
             >
               <Eye className="w-3.5 h-3.5 text-indigo-500" />
               Enable All
             </button>
+
+            {/* Display toggle between 2theta and d-spacing */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
+              <button
+                type="button"
+                onClick={() => setDisplayMode('angles')}
+                className={`px-2 py-0.5 rounded font-bold transition-all ${
+                  displayMode === 'angles' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                2θ (°)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayMode('dSpacing')}
+                className={`px-2 py-0.5 rounded font-bold transition-all ${
+                  displayMode === 'dSpacing' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                d (Å)
+              </button>
+            </div>
 
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
               <span className="text-[10px] text-slate-400 px-1 font-bold uppercase">Sort:</span>
@@ -278,7 +337,7 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                   sortBy === 'twoTheta' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                2θ
+                Pos
               </button>
               <button
                 type="button"
@@ -287,7 +346,16 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                   sortBy === 'residual' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                |Δ2θ|
+                |Δ|
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSortBy('weight'); setSortAsc(!sortAsc); }}
+                className={`px-2 py-0.5 rounded font-bold transition-all ${
+                  sortBy === 'weight' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+                }`}
+              >
+                Weight
               </button>
             </div>
           </div>
@@ -300,10 +368,21 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                 <th className="p-3 w-10 text-center">Active</th>
                 <th className="p-3 w-10 text-center">#</th>
                 <th className="p-3">HKL (<i>h</i>, <i>k</i>, <i>l</i>)</th>
-                <th className="p-3">2θ<sub>Obs</sub> (°)</th>
-                <th className="p-3">2θ<sub>Calc</sub> (°)</th>
-                <th className="p-3">Δ2θ (°)</th>
-                <th className="p-3">sin²θ<sub>Obs</sub></th>
+                {displayMode === 'angles' ? (
+                  <>
+                    <th className="p-3">2θ<sub>Obs</sub> (°)</th>
+                    <th className="p-3">2θ<sub>Calc</sub> (°)</th>
+                    <th className="p-3">Δ2θ (°)</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="p-3">d<sub>Obs</sub> (Å)</th>
+                    <th className="p-3">d<sub>Calc</sub> (Å)</th>
+                    <th className="p-3">Δd (Å)</th>
+                  </>
+                )}
+                <th className="p-3">Wavelength λ</th>
+                <th className="p-3">Weight w<sub>i</sub></th>
                 <th className="p-3">Drift <i>f</i>(θ)</th>
                 <th className="p-3 text-center">Actions</th>
               </tr>
@@ -314,7 +393,9 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                   const detail = detailMap.get(p.id);
                   const isEnabled = p.enabled !== false;
                   const delta2Th = detail ? detail.deltaTwoTheta : 0;
-                  const isOutlier = Math.abs(delta2Th) > 0.05;
+                  const deltaD = detail?.deltaD || 0;
+                  const isOutlier = Math.abs(delta2Th) > 0.04;
+                  const isKa2 = p.wavelength && Math.abs(p.wavelength - 1.54439) < 0.0001;
 
                   return (
                     <motion.tr
@@ -368,45 +449,83 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                         </div>
                       </td>
 
-                      <td className="p-3 font-bold">
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={p.twoTheta}
-                          onChange={(e) => onUpdatePeak(p.id, 'twoTheta', parseFloat(e.target.value) || 30)}
-                          className="w-24 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-700 dark:text-indigo-400 shadow-sm focus:ring-1 focus:ring-indigo-500 outline-none"
-                        />
+                      {displayMode === 'angles' ? (
+                        <>
+                          <td className="p-3 font-bold">
+                            <input
+                              type="number"
+                              step="0.001"
+                              value={p.twoTheta}
+                              onChange={(e) => onUpdatePeak(p.id, 'twoTheta', parseFloat(e.target.value) || 30)}
+                              className="w-24 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-700 dark:text-indigo-400 shadow-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                            />
+                          </td>
+
+                          <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
+                            {detail ? detail.twoThetaCalc.toFixed(Math.min(precision, 3)) : '-'}
+                          </td>
+
+                          <td className="p-3 font-bold">
+                            {detail ? (
+                              <div className="flex items-center gap-2">
+                                <span className={Math.abs(delta2Th) < 0.015 ? 'text-emerald-600 dark:text-emerald-400' : Math.abs(delta2Th) < 0.04 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}>
+                                  {delta2Th > 0 ? `+${delta2Th.toFixed(4)}` : delta2Th.toFixed(4)}°
+                                </span>
+                                <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex items-center relative">
+                                  <div className="w-0.5 h-full bg-slate-400 dark:bg-slate-600 absolute left-1/2 -translate-x-1/2" />
+                                  <div
+                                    className={`h-full ${delta2Th >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                    style={{
+                                      width: `${Math.min(50, Math.abs(delta2Th) * 500)}%`,
+                                      marginLeft: delta2Th >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(delta2Th) * 500)}%`
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            ) : '-'}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="p-3 font-bold text-indigo-700 dark:text-indigo-300">
+                            {detail?.dObs ? detail.dObs.toFixed(4) : '-'}
+                          </td>
+                          <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
+                            {detail?.dCalc ? detail.dCalc.toFixed(4) : '-'}
+                          </td>
+                          <td className="p-3 font-bold">
+                            {detail ? (
+                              <span className={Math.abs(deltaD) < 0.0005 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                                {deltaD > 0 ? `+${deltaD.toFixed(5)}` : deltaD.toFixed(5)} Å
+                              </span>
+                            ) : '-'}
+                          </td>
+                        </>
+                      )}
+
+                      {/* Wavelength tag (Ka1 vs Ka2) */}
+                      <td className="p-3">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDoubletWavelength(p.id, p.wavelength)}
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-md border flex items-center gap-1 transition-all ${
+                            isKa2
+                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                              : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                          }`}
+                          title="Click to toggle Cu Ka1 (1.54056 Å) / Cu Ka2 (1.54439 Å)"
+                        >
+                          <Tag className="w-2.5 h-2.5" />
+                          <span>{isKa2 ? 'Kα₂' : 'Kα₁'}</span>
+                        </button>
                       </td>
 
-                      <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
-                        {detail ? detail.twoThetaCalc.toFixed(Math.min(precision, 3)) : '-'}
+                      {/* Weight */}
+                      <td className="p-3 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                        {detail?.weight !== undefined ? detail.weight.toFixed(3) : '1.000'}
                       </td>
 
-                      <td className="p-3 font-bold">
-                        {detail ? (
-                          <div className="flex items-center gap-2">
-                            <span className={Math.abs(delta2Th) < 0.02 ? 'text-emerald-600 dark:text-emerald-400' : Math.abs(delta2Th) < 0.05 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}>
-                              {delta2Th > 0 ? `+${delta2Th.toFixed(4)}` : delta2Th.toFixed(4)}
-                            </span>
-                            <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex items-center relative">
-                              <div className="w-0.5 h-full bg-slate-400 dark:bg-slate-600 absolute left-1/2 -translate-x-1/2" />
-                              <div
-                                className={`h-full ${delta2Th >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                                style={{
-                                  width: `${Math.min(50, Math.abs(delta2Th) * 500)}%`,
-                                  marginLeft: delta2Th >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(delta2Th) * 500)}%`
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ) : '-'}
-                      </td>
-
-                      <td className="p-3 text-slate-600 dark:text-slate-400">
-                        {detail ? detail.sin2Obs.toFixed(5) : '-'}
-                      </td>
-
-                      <td className="p-3 text-slate-500">
+                      <td className="p-3 text-slate-500 font-mono text-[11px]">
                         {detail ? detail.driftVal.toFixed(4) : '-'}
                       </td>
 

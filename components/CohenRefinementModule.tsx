@@ -41,6 +41,7 @@ import { ScientificMathControl } from './ScientificMathControl';
 import {
   CrystalSystem,
   DriftFunctionType,
+  WeightingScheme,
   PeakInput,
   PresetSample,
   COHEN_PRESET_SAMPLES
@@ -81,6 +82,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
   const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(0);
   const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
   const [driftType, setDriftType] = useState<DriftFunctionType>('nelson_riley');
+  const [weightingScheme, setWeightingScheme] = useState<WeightingScheme>('hess_hagg');
   const [wavelength, setWavelength] = useState<number>(1.54056);
   const [peaks, setPeaks] = useState<PeakInput[]>(COHEN_PRESET_SAMPLES[0].peaks);
   const [activeTab, setActiveTab] = useState<'plots' | 'peaks' | 'benchmark' | 'matrix' | 'tensor'>('plots');
@@ -223,26 +225,30 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
 
   // Solve Refinement Result
   const refinementResult: CohenRefinementResult = useMemo(() => {
-    return runCohenRefinement(peaks, crystalSystem, driftType, wavelength);
-  }, [peaks, crystalSystem, driftType, wavelength]);
+    return runCohenRefinement(peaks, crystalSystem, driftType, wavelength, weightingScheme);
+  }, [peaks, crystalSystem, driftType, wavelength, weightingScheme]);
 
   const isSuccess = !(refinementResult as any).error;
   const refinementData = isSuccess ? (refinementResult as CohenRefinementOutput) : null;
 
   // Matrix Labels
   const matrixLabels = useMemo(() => {
+    if (refinementData?.matrixLabels && refinementData.matrixLabels.length > 0) {
+      return refinementData.matrixLabels;
+    }
     if (crystalSystem === 'Cubic') return ['A', 'D'];
-    if (crystalSystem === 'Tetragonal') return ['A', 'C', 'D'];
-    if (crystalSystem === 'Hexagonal') return ['A', 'C', 'D'];
+    if (crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal') return ['A', 'C', 'D'];
+    if (crystalSystem === 'Trigonal') return ['A', 'C', 'D'];
     if (crystalSystem === 'Orthorhombic') return ['A', 'B', 'C', 'D'];
     if (crystalSystem === 'Monoclinic') return ['A', 'B', 'C', 'E', 'D'];
+    if (crystalSystem === 'Triclinic') return ['S11', 'S22', 'S33', '2S12', '2S23', '2S13', 'D'];
     return ['A', 'D'];
-  }, [crystalSystem]);
+  }, [refinementData, crystalSystem]);
 
   // Fast Solver for Multi-Model Comparator
   const solveSystemForComparator = useMemo(() => {
     return (testDrift: DriftFunctionType) => {
-      const res = runCohenRefinement(peaks, crystalSystem, testDrift, wavelength);
+      const res = runCohenRefinement(peaks, crystalSystem, testDrift, wavelength, weightingScheme);
       if ((res as any).error) return null;
       const data = res as CohenRefinementOutput;
       return {
@@ -252,10 +258,12 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
         sigmaA: data.sigma.sigmaA,
         D: data.D,
         rmsTwoTheta: data.rmsTwoThetaShift,
-        sumResidualSquare: data.sumResidualSquare
+        sumResidualSquare: data.sumResidualSquare,
+        rwpPct: data.rwpPct,
+        gof: data.gof
       };
     };
-  }, [peaks, crystalSystem, wavelength]);
+  }, [peaks, crystalSystem, wavelength, weightingScheme]);
 
   // Copy LaTeX representation
   const handleCopyLatex = () => {
@@ -268,11 +276,21 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
     latex += matrixM.map(row => row.map(v => v.toExponential(3)).join(' & ')).join(' \\\\\n');
     latex += `\n\\end{pmatrix}\n\\end{equation}\n\n`;
 
-    latex += `% Refined Lattice Parameters:\n`;
+    latex += `% Refined Lattice Parameters (${crystalSystem} System):\n`;
     latex += `a = ${lattice.a.toFixed(5)} \\pm ${sigma.sigmaA.toFixed(5)} \\text{ \\AA}\n`;
-    if (crystalSystem !== 'Cubic') {
-      latex += `c = ${lattice.c.toFixed(5)} \\pm ${sigma.sigmaC.toFixed(5)} \\text{ \\AA}\n`;
+    if (lattice.b && lattice.b !== lattice.a) {
+      latex += `b = ${lattice.b.toFixed(5)} \\pm ${(sigma.sigmaB || 0).toFixed(5)} \\text{ \\AA}\n`;
     }
+    if (lattice.c && crystalSystem !== 'Cubic') {
+      latex += `c = ${lattice.c.toFixed(5)} \\pm ${(sigma.sigmaC || 0).toFixed(5)} \\text{ \\AA}\n`;
+    }
+    if (lattice.betaDeg && crystalSystem === 'Monoclinic') {
+      latex += `\\beta = ${lattice.betaDeg.toFixed(3)}^\\circ \\pm ${(sigma.sigmaBeta || 0).toFixed(3)}^\\circ\n`;
+    }
+    if (crystalSystem === 'Triclinic') {
+      latex += `\\alpha = ${(lattice.alphaDeg || 90).toFixed(3)}^\\circ, \\beta = ${(lattice.betaDeg || 90).toFixed(3)}^\\circ, \\gamma = ${(lattice.gammaDeg || 90).toFixed(3)}^\\circ\n`;
+    }
+    latex += `V = ${refinementData.volume.toFixed(4)} \\pm ${sigma.sigmaVolume.toFixed(4)} \\text{ \\AA}^3\n`;
 
     navigator.clipboard.writeText(latex);
     setCopiedMatrix(true);
@@ -282,26 +300,40 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
   // Copy Full Text Report
   const handleCopyReport = () => {
     if (!refinementData) return;
-    const { lattice, sigma, volume, rmsTwoThetaShift, D, variance, dof } = refinementData;
+    const { lattice, sigma, volume, rmsTwoThetaShift, D, variance, dof, rwpPct, gof, condNumber } = refinementData;
     
     let rep = `=== COHEN'S LEAST-SQUARES REFINEMENT REPORT ===\n`;
     rep += `Material: ${activePreset?.name || 'Custom Sample'}\n`;
     rep += `Crystal System: ${crystalSystem}\n`;
     rep += `Drift Model: ${driftType}\n`;
+    rep += `Weighting Scheme: ${weightingScheme}\n`;
     rep += `X-ray Wavelength: ${wavelength} Å\n\n`;
     rep += `REFINED LATTICE CONSTANTS:\n`;
     rep += `  a = ${lattice.a.toFixed(decimalPrecision + 1)} ± ${sigma.sigmaA.toFixed(decimalPrecision + 2)} Å\n`;
+    if (crystalSystem === 'Orthorhombic' || crystalSystem === 'Monoclinic' || crystalSystem === 'Triclinic') {
+      rep += `  b = ${lattice.b.toFixed(decimalPrecision + 1)} ± ${(sigma.sigmaB || 0).toFixed(decimalPrecision + 2)} Å\n`;
+    }
     if (crystalSystem !== 'Cubic') {
-      rep += `  b = ${lattice.b.toFixed(decimalPrecision + 1)} ± ${sigma.sigmaB.toFixed(decimalPrecision + 2)} Å\n`;
-      rep += `  c = ${lattice.c.toFixed(decimalPrecision + 1)} ± ${sigma.sigmaC.toFixed(decimalPrecision + 2)} Å\n`;
+      rep += `  c = ${lattice.c.toFixed(decimalPrecision + 1)} ± ${(sigma.sigmaC || 0).toFixed(decimalPrecision + 2)} Å\n`;
     }
     if (crystalSystem === 'Monoclinic') {
-      rep += `  beta = ${lattice.betaDeg.toFixed(3)}°\n`;
+      rep += `  beta = ${(lattice.betaDeg || 90).toFixed(3)}° ± ${(sigma.sigmaBeta || 0).toFixed(3)}°\n`;
+    }
+    if (crystalSystem === 'Triclinic') {
+      rep += `  alpha = ${(lattice.alphaDeg || 90).toFixed(3)}°\n`;
+      rep += `  beta  = ${(lattice.betaDeg || 90).toFixed(3)}°\n`;
+      rep += `  gamma = ${(lattice.gammaDeg || 90).toFixed(3)}°\n`;
+    }
+    if (lattice.rhombohedralA) {
+      rep += `  Rhombohedral a_r = ${lattice.rhombohedralA.toFixed(decimalPrecision + 1)} Å, alpha_r = ${(lattice.rhombohedralAlpha || 0).toFixed(2)}°\n`;
     }
     rep += `  Volume V = ${volume.toFixed(4)} ± ${sigma.sigmaVolume.toFixed(4)} Å³\n`;
     rep += `  Drift Parameter D = ${D.toExponential(4)}\n\n`;
     rep += `RESIDUAL QUALITY METRICS:\n`;
     rep += `  RMS 2θ Shift: ±${rmsTwoThetaShift.toFixed(4)}°\n`;
+    rep += `  Weighted R_wp: ${(rwpPct || 0).toFixed(2)}%\n`;
+    rep += `  Goodness-of-Fit (GoF): ${(gof || 1).toFixed(3)}\n`;
+    rep += `  Condition Number κ₁(M): ${(condNumber || 1).toExponential(2)}\n`;
     rep += `  Variance s²: ${variance.toExponential(4)} (DOF = ${dof})\n`;
     rep += `  Total Active Reflections: ${refinementData.validPeaks.length}\n`;
 
@@ -471,9 +503,9 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
               </div>
             </div>
 
-            {/* Control Toolbar: Crystal System, Drift Function, Wavelength */}
+            {/* Control Toolbar: Crystal System, Drift Function, Weighting Scheme, Wavelength */}
             <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-5 md:p-6 border border-indigo-500/20 shadow-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-indigo-300 mb-1.5 flex items-center gap-1.5">
                     <Grid className="w-3.5 h-3.5 text-indigo-400" />
@@ -487,8 +519,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                     <option value="Cubic">Cubic (a = b = c, α = β = γ = 90°)</option>
                     <option value="Tetragonal">Tetragonal (a = b ≠ c, α = β = γ = 90°)</option>
                     <option value="Hexagonal">Hexagonal (a = b ≠ c, α = β = 90°, γ = 120°)</option>
+                    <option value="Trigonal">Trigonal / Rhombohedral (R-3c / Hexagonal)</option>
                     <option value="Orthorhombic">Orthorhombic (a ≠ b ≠ c, α = β = γ = 90°)</option>
                     <option value="Monoclinic">Monoclinic (a ≠ b ≠ c, α = γ = 90°, β ≠ 90°)</option>
+                    <option value="Triclinic">Triclinic (a ≠ b ≠ c, α ≠ β ≠ γ)</option>
                   </select>
                 </div>
 
@@ -507,6 +541,26 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                     <option value="bradley_jay">Bradley-Jay: cos²θ</option>
                     <option value="hess_hagg">Hess-Hägg: sin²(2θ)</option>
                     <option value="zero_shift">Pure Zero Shift: cosθ</option>
+                    <option value="flat_specimen">Flat Specimen &amp; Transparency: cotθ</option>
+                    <option value="dual_drift">Dual-Drift: NR + Zero-Shift (2 Coeffs)</option>
+                    <option value="none">Fixed Zero: D = 0 (Pre-calibrated)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-indigo-300 mb-1.5 flex items-center gap-1.5">
+                    <Scale className="w-3.5 h-3.5 text-indigo-400" />
+                    Statistical Weighting Scheme
+                  </label>
+                  <select
+                    value={weightingScheme}
+                    onChange={(e) => setWeightingScheme(e.target.value as WeightingScheme)}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-indigo-500/30 rounded-xl text-sm font-bold text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
+                  >
+                    <option value="hess_hagg">Hess-Hägg: w_i = cos²θ_i</option>
+                    <option value="statistical">Statistical: w_i = 1/σ²(2θ_i)</option>
+                    <option value="intensity">Intensity-Weighted: √(I / I_max)</option>
+                    <option value="unit">Unit Weighting: w_i = 1.0 (Uniform)</option>
                   </select>
                 </div>
 
@@ -515,30 +569,52 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                     <FlaskConical className="w-3.5 h-3.5 text-indigo-400" />
                     X-ray Wavelength λ (Å)
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <input
                       type="number"
                       step="0.00001"
                       value={wavelength}
                       onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-indigo-500/30 rounded-xl text-sm font-black font-mono text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
+                      className="w-full px-3 py-2 bg-slate-900 border border-indigo-500/30 rounded-xl text-sm font-black font-mono text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm min-w-0"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setWavelength(1.54056)}
-                      className="px-2.5 py-1 bg-indigo-900 text-indigo-200 rounded-xl text-xs font-bold hover:bg-indigo-800 transition-colors border border-indigo-700 shrink-0"
-                      title="Cu Kα1 (1.54056 Å)"
-                    >
-                      Cu Kα
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWavelength(0.71073)}
-                      className="px-2.5 py-1 bg-indigo-900 text-indigo-200 rounded-xl text-xs font-bold hover:bg-indigo-800 transition-colors border border-indigo-700 shrink-0"
-                      title="Mo Kα (0.71073 Å)"
-                    >
-                      Mo Kα
-                    </button>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setWavelength(1.54056)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors border ${
+                          Math.abs(wavelength - 1.54056) < 0.0001
+                            ? 'bg-indigo-600 text-white border-indigo-400'
+                            : 'bg-indigo-950/60 text-indigo-300 border-indigo-800/60 hover:bg-indigo-900'
+                        }`}
+                        title="Cu Kα1 (1.54056 Å)"
+                      >
+                        Cu Kα₁
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWavelength(1.54439)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors border ${
+                          Math.abs(wavelength - 1.54439) < 0.0001
+                            ? 'bg-indigo-600 text-white border-indigo-400'
+                            : 'bg-indigo-950/60 text-indigo-300 border-indigo-800/60 hover:bg-indigo-900'
+                        }`}
+                        title="Cu Kα2 (1.54439 Å)"
+                      >
+                        Cu Kα₂
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWavelength(0.71073)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors border ${
+                          Math.abs(wavelength - 0.71073) < 0.0001
+                            ? 'bg-indigo-600 text-white border-indigo-400'
+                            : 'bg-indigo-950/60 text-indigo-300 border-indigo-800/60 hover:bg-indigo-900'
+                        }`}
+                        title="Mo Kα (0.71073 Å)"
+                      >
+                        Mo
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -656,12 +732,18 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 </h2>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 text-xs font-black rounded-xl font-mono">
                   RMS Δ2θ: ±{refinementData.rmsTwoThetaShift.toFixed(4)}°
                 </span>
+                <span className="px-3 py-1 bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-800 text-xs font-black rounded-xl font-mono">
+                  R_wp: {(refinementData.rwpPct || 0).toFixed(2)}%
+                </span>
+                <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-800 text-xs font-black rounded-xl font-mono">
+                  GoF (χ²): {(refinementData.gof || 1).toFixed(3)}
+                </span>
                 <span className="px-3 py-1 bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 text-xs font-black rounded-xl font-mono">
-                  {refinementData.validPeaks.length} Peaks
+                  {refinementData.validPeaks.length} Reflections (DOF={refinementData.dof})
                 </span>
               </div>
             </div>
@@ -680,8 +762,8 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 </div>
               </div>
 
-              {/* Parameter b (if orthorhombic / monoclinic) */}
-              {crystalSystem === 'Orthorhombic' || crystalSystem === 'Monoclinic' ? (
+              {/* Parameter b (if orthorhombic / monoclinic / triclinic) */}
+              {(crystalSystem === 'Orthorhombic' || crystalSystem === 'Monoclinic' || crystalSystem === 'Triclinic') && (
                 <div className="p-4 bg-white dark:bg-slate-950/80 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm space-y-1">
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Lattice Parameter b₀</div>
                   <div className="text-2xl sm:text-3xl font-black font-mono text-indigo-700 dark:text-indigo-400">
@@ -689,10 +771,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                     <span className="text-sm font-normal text-slate-400 ml-1">Å</span>
                   </div>
                   <div className="text-xs font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                    σ(b) = ±{refinementData.sigma.sigmaB.toFixed(decimalPrecision + 2)} Å
+                    σ(b) = ±{(refinementData.sigma.sigmaB || 0).toFixed(decimalPrecision + 2)} Å
                   </div>
                 </div>
-              ) : null}
+              )}
 
               {/* Parameter c (if not cubic) */}
               {crystalSystem !== 'Cubic' && (
@@ -703,7 +785,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                     <span className="text-sm font-normal text-slate-400 ml-1">Å</span>
                   </div>
                   <div className="text-xs font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                    σ(c) = ±{refinementData.sigma.sigmaC.toFixed(decimalPrecision + 2)} Å
+                    σ(c) = ±{(refinementData.sigma.sigmaC || 0).toFixed(decimalPrecision + 2)} Å
+                    {refinementData.lattice.c && refinementData.lattice.a && (
+                      <span className="ml-2 text-indigo-600 dark:text-indigo-400">c/a = {(refinementData.lattice.c / refinementData.lattice.a).toFixed(4)}</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -713,11 +798,38 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 <div className="p-4 bg-white dark:bg-slate-950/80 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm space-y-1">
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Monoclinic Angle β</div>
                   <div className="text-2xl sm:text-3xl font-black font-mono text-indigo-700 dark:text-indigo-400">
-                    {refinementData.lattice.betaDeg.toFixed(3)}
+                    {(refinementData.lattice.betaDeg || 90).toFixed(3)}
                     <span className="text-sm font-normal text-slate-400 ml-1">°</span>
                   </div>
                   <div className="text-xs font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                    cos(β) = {(-refinementData.vectorX[3] / (2 * Math.sqrt(refinementData.vectorX[0] * refinementData.vectorX[2]))).toFixed(5)}
+                    σ(β) = ±{(refinementData.sigma.sigmaBeta || 0).toFixed(3)}°
+                  </div>
+                </div>
+              )}
+
+              {/* Triclinic Angles */}
+              {crystalSystem === 'Triclinic' && (
+                <div className="p-4 bg-white dark:bg-slate-950/80 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm space-y-1">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Triclinic Angles (α, β, γ)</div>
+                  <div className="text-base sm:text-lg font-black font-mono text-indigo-700 dark:text-indigo-400">
+                    {(refinementData.lattice.alphaDeg || 90).toFixed(2)}°, {(refinementData.lattice.betaDeg || 90).toFixed(2)}°, {(refinementData.lattice.gammaDeg || 90).toFixed(2)}°
+                  </div>
+                  <div className="text-xs font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    Full S_ij Reciprocal Tensor Solved
+                  </div>
+                </div>
+              )}
+
+              {/* Trigonal Rhombohedral Parameters */}
+              {crystalSystem === 'Trigonal' && refinementData.lattice.rhombohedralA && (
+                <div className="p-4 bg-white dark:bg-slate-950/80 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm space-y-1">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Rhombohedral Setting (a_r, α_r)</div>
+                  <div className="text-xl sm:text-2xl font-black font-mono text-indigo-700 dark:text-indigo-400">
+                    {refinementData.lattice.rhombohedralA.toFixed(decimalPrecision + 1)} Å
+                    <span className="text-sm font-normal text-slate-400 ml-1">({refinementData.lattice.rhombohedralAlpha?.toFixed(2)}°)</span>
+                  </div>
+                  <div className="text-xs font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    Hexagonal ↔ Rhombohedral transformation
                   </div>
                 </div>
               )}
@@ -734,14 +846,19 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 </div>
               </div>
 
-              {/* Drift Constant D */}
+              {/* Systematic Drift Constant D */}
               <div className="p-4 bg-white dark:bg-slate-950/80 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm space-y-1">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-500">Systematic Constant D</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  {driftType === 'dual_drift' ? 'Systematic Drift D₁ / D₂' : 'Systematic Drift D'}
+                </div>
                 <div className="text-xl sm:text-2xl font-black font-mono text-amber-700 dark:text-amber-400">
                   {refinementData.D.toExponential(3)}
+                  {refinementData.D2 !== undefined && (
+                    <span className="text-xs text-amber-600 block">D₂: {refinementData.D2.toExponential(3)}</span>
+                  )}
                 </div>
                 <div className="text-xs font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  Variance s² = {refinementData.variance.toExponential(3)}
+                  Variance s² = {refinementData.variance.toExponential(3)} | κ₁ = {(refinementData.condNumber || 1).toExponential(1)}
                 </div>
               </div>
             </div>

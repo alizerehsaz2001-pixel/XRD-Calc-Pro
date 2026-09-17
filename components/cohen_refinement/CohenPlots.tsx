@@ -60,11 +60,14 @@ export const CohenPlots: React.FC<CohenPlotsProps> = ({
   const [activePlotTab, setActivePlotTab] = useState<'residuals' | 'extrapolation' | 'deltaBar'>('residuals');
 
   const driftLabelMap: Record<DriftFunctionType, string> = {
+    none: 'Zero Drift (Fixed D=0)',
     nelson_riley: 'Nelson-Riley f(θ)',
     bradley_jay: 'Bradley-Jay cos²θ',
     sample_displacement: 'Sample Displacement cos²θ sinθ',
     hess_hagg: 'Hess-Hägg sin²(2θ)',
-    zero_shift: 'Zero Shift cosθ'
+    zero_shift: 'Zero Shift cosθ',
+    flat_specimen: 'Flat Specimen cot(θ)',
+    dual_drift: 'Dual-Drift (NR + Zero-Shift)'
   };
 
   // Prepare data for Residuals Plot: Delta 2Theta vs 2Theta
@@ -78,11 +81,11 @@ export const CohenPlots: React.FC<CohenPlotsProps> = ({
     absDelta: Math.abs(p.deltaTwoTheta),
     driftVal: parseFloat(p.driftVal.toFixed(4)),
     intensity: p.intensity || 100,
-    isOutlier: Math.abs(p.deltaTwoTheta) > 0.05
+    isOutlier: Math.abs(p.deltaTwoTheta) > 0.04
   }));
 
   // Prepare data for Extrapolation Plot (Apparent parameter vs f(θ))
-  // For cubic crystals, apparent a_i = (lambda / 2) * sqrt( (h^2+k^2+l^2) / sin^2(theta_i) )
+  // For any crystal system, the apparent lattice parameter a_apparent = a_0 * sqrt(sin^2(theta_calc) / sin^2(theta_obs))
   const extrapolationData = peakDetails.map((p, idx) => {
     let apparentA = refinedLattice.a;
     const thetaRad = (p.twoTheta / 2) * (Math.PI / 180);
@@ -90,10 +93,9 @@ export const CohenPlots: React.FC<CohenPlotsProps> = ({
     
     if (crystalSystem === 'Cubic') {
       const s = p.h * p.h + p.k * p.k + p.l * p.l;
-      apparentA = (wavelength / (2 * sinTh)) * Math.sqrt(s);
-    } else if (crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal') {
-      // Effective apparent spacing normalization
-      apparentA = (wavelength / (2 * sinTh)) * Math.sqrt(p.h * p.h + p.k * p.k + (p.l ? 1 : 0));
+      apparentA = (wavelength / (2 * Math.max(1e-5, sinTh))) * Math.sqrt(s);
+    } else if (p.sin2Calc > 0 && p.sin2Obs > 0) {
+      apparentA = refinedLattice.a * Math.sqrt(p.sin2Calc / p.sin2Obs);
     }
 
     return {

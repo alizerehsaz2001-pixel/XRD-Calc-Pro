@@ -1,5 +1,27 @@
-export type CrystalSystem = 'Cubic' | 'Tetragonal' | 'Hexagonal' | 'Orthorhombic' | 'Monoclinic';
-export type DriftFunctionType = 'nelson_riley' | 'bradley_jay' | 'sample_displacement' | 'hess_hagg' | 'zero_shift';
+export type CrystalSystem = 
+  | 'Cubic' 
+  | 'Tetragonal' 
+  | 'Hexagonal' 
+  | 'Trigonal' 
+  | 'Orthorhombic' 
+  | 'Monoclinic' 
+  | 'Triclinic';
+
+export type DriftFunctionType = 
+  | 'none'
+  | 'nelson_riley' 
+  | 'bradley_jay' 
+  | 'sample_displacement' 
+  | 'hess_hagg' 
+  | 'zero_shift'
+  | 'flat_specimen'
+  | 'dual_drift';
+
+export type WeightingScheme = 
+  | 'hess_hagg' 
+  | 'statistical' 
+  | 'intensity' 
+  | 'unit';
 
 export interface PeakInput {
   id: string;
@@ -9,13 +31,25 @@ export interface PeakInput {
   l: number;
   intensity?: number;
   enabled?: boolean; // toggle peak inclusion
+  wavelength?: number; // peak-specific wavelength (e.g. Cu Ka1 vs Ka2)
+  weight?: number; // optional custom weight override
+  sigmaTwoTheta?: number; // angular uncertainty in 2theta (deg)
 }
 
 export interface PresetSample {
   name: string;
   chemicalFormula?: string;
   system: CrystalSystem;
-  refLattice?: { a?: number; b?: number; c?: number; betaDeg?: number };
+  refLattice?: { 
+    a?: number; 
+    b?: number; 
+    c?: number; 
+    alphaDeg?: number;
+    betaDeg?: number; 
+    gammaDeg?: number;
+    rhombohedralA?: number;
+    rhombohedralAlpha?: number;
+  };
   wavelength: number;
   molarMass?: number; // g/mol
   formulaUnitsZ?: number; // Z
@@ -160,8 +194,8 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Alumina Corundum (α-Al2O3 NIST SRM 674a)',
     chemicalFormula: 'Al2O3',
-    system: 'Hexagonal',
-    refLattice: { a: 4.7587, c: 12.9929 },
+    system: 'Trigonal',
+    refLattice: { a: 4.7587, c: 12.9929, rhombohedralA: 5.128, rhombohedralAlpha: 55.28 },
     wavelength: 1.54056,
     molarMass: 101.96,
     formulaUnitsZ: 6,
@@ -175,6 +209,31 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
       { id: 'al-6', twoTheta: 57.496, h: 1, k: 1, l: 6, intensity: 80, enabled: true },
       { id: 'al-7', twoTheta: 66.519, h: 2, k: 1, l: 4, intensity: 40, enabled: true },
       { id: 'al-8', twoTheta: 68.212, h: 3, k: 0, l: 0, intensity: 60, enabled: true }
+    ]
+  },
+  {
+    name: 'Calcite (CaCO3 - Trigonal)',
+    chemicalFormula: 'CaCO3',
+    system: 'Trigonal',
+    refLattice: { a: 4.9896, c: 17.0610, rhombohedralA: 6.375, rhombohedralAlpha: 46.08 },
+    wavelength: 1.54056,
+    molarMass: 100.0869,
+    formulaUnitsZ: 6,
+    description: 'Trigonal calcite crystal standard, space group R-3c (#167).',
+    peaks: [
+      { id: 'cal-1', twoTheta: 23.06, h: 0, k: 1, l: 2, intensity: 12, enabled: true },
+      { id: 'cal-2', twoTheta: 29.42, h: 1, k: 0, l: 4, intensity: 100, enabled: true },
+      { id: 'cal-3', twoTheta: 31.42, h: 0, k: 0, l: 6, intensity: 4, enabled: true },
+      { id: 'cal-4', twoTheta: 35.97, h: 1, k: 1, l: 0, intensity: 14, enabled: true },
+      { id: 'cal-5', twoTheta: 39.42, h: 1, k: 1, l: 3, intensity: 18, enabled: true },
+      { id: 'cal-6', twoTheta: 43.16, h: 2, k: 0, l: 2, intensity: 18, enabled: true },
+      { id: 'cal-7', twoTheta: 47.51, h: 0, k: 2, l: 4, intensity: 5, enabled: true },
+      { id: 'cal-8', twoTheta: 48.51, h: 0, k: 1, l: 8, intensity: 17, enabled: true },
+      { id: 'cal-9', twoTheta: 56.57, h: 2, k: 1, l: 1, intensity: 4, enabled: true },
+      { id: 'cal-10', twoTheta: 57.42, h: 1, k: 2, l: 2, intensity: 6, enabled: true },
+      { id: 'cal-11', twoTheta: 60.68, h: 1, k: 0, l: 10, intensity: 3, enabled: true },
+      { id: 'cal-12', twoTheta: 64.68, h: 2, k: 1, l: 4, intensity: 4, enabled: true },
+      { id: 'cal-13', twoTheta: 65.62, h: 3, k: 0, l: 0, intensity: 5, enabled: true }
     ]
   },
   {
@@ -218,6 +277,71 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
       { id: 'zro-8', twoTheta: 41.173, h: 1, k: 2, l: 1, intensity: 16, enabled: true },
       { id: 'zro-9', twoTheta: 49.278, h: -2, k: 2, l: 1, intensity: 18, enabled: true },
       { id: 'zro-10', twoTheta: 50.124, h: 2, k: 2, l: 0, intensity: 22, enabled: true }
+    ]
+  },
+  {
+    name: 'Chalcanthite Copper Sulfate (CuSO4·5H2O - Triclinic)',
+    chemicalFormula: 'CuSO4·5H2O',
+    system: 'Triclinic',
+    refLattice: { 
+      a: 6.122, 
+      b: 10.722, 
+      c: 5.962, 
+      alphaDeg: 97.58, 
+      betaDeg: 107.17, 
+      gammaDeg: 77.55 
+    },
+    wavelength: 1.54056,
+    molarMass: 249.68,
+    formulaUnitsZ: 2,
+    description: 'Triclinic copper sulfate pentahydrate standard, space group P-1 (#2).',
+    peaks: [
+      { id: 'cuso-1', twoTheta: 8.44, h: 0, k: 1, l: 0, intensity: 10, enabled: true },
+      { id: 'cuso-2', twoTheta: 14.54, h: 1, k: -1, l: 0, intensity: 35, enabled: true },
+      { id: 'cuso-3', twoTheta: 15.68, h: 0, k: 0, l: 1, intensity: 40, enabled: true },
+      { id: 'cuso-4', twoTheta: 16.03, h: 1, k: 1, l: 0, intensity: 75, enabled: true },
+      { id: 'cuso-5', twoTheta: 16.92, h: 0, k: 2, l: 0, intensity: 45, enabled: true },
+      { id: 'cuso-6', twoTheta: 18.24, h: 1, k: -2, l: 0, intensity: 25, enabled: true },
+      { id: 'cuso-7', twoTheta: 20.52, h: 1, k: 2, l: 0, intensity: 40, enabled: true },
+      { id: 'cuso-8', twoTheta: 22.25, h: 1, k: 0, l: 1, intensity: 100, enabled: true },
+      { id: 'cuso-9', twoTheta: 22.75, h: 1, k: 1, l: -1, intensity: 50, enabled: true },
+      { id: 'cuso-10', twoTheta: 23.36, h: 0, k: 2, l: 1, intensity: 60, enabled: true },
+      { id: 'cuso-11', twoTheta: 26.42, h: 1, k: 3, l: 0, intensity: 30, enabled: true },
+      { id: 'cuso-12', twoTheta: 30.82, h: 2, k: 0, l: 0, intensity: 25, enabled: true },
+      { id: 'cuso-13', twoTheta: 31.85, h: 0, k: 0, l: 2, intensity: 20, enabled: true },
+      { id: 'cuso-14', twoTheta: 34.34, h: 0, k: 4, l: 0, intensity: 15, enabled: true }
+    ]
+  },
+  {
+    name: 'Kaolinite Clay (Al2Si2O5(OH)4 - Triclinic)',
+    chemicalFormula: 'Al2Si2O5(OH)4',
+    system: 'Triclinic',
+    refLattice: { 
+      a: 5.154, 
+      b: 8.942, 
+      c: 7.391, 
+      alphaDeg: 91.93, 
+      betaDeg: 105.05, 
+      gammaDeg: 89.80 
+    },
+    wavelength: 1.54056,
+    molarMass: 258.16,
+    formulaUnitsZ: 2,
+    description: 'Triclinic 1:1 aluminosilicate dioctahedral phyllosilicate clay mineral.',
+    peaks: [
+      { id: 'kao-1', twoTheta: 12.35, h: 0, k: 0, l: 1, intensity: 100, enabled: true },
+      { id: 'kao-2', twoTheta: 19.88, h: 0, k: 2, l: 0, intensity: 30, enabled: true },
+      { id: 'kao-3', twoTheta: 20.38, h: 1, k: 1, l: 0, intensity: 45, enabled: true },
+      { id: 'kao-4', twoTheta: 21.24, h: 1, k: -1, l: 0, intensity: 35, enabled: true },
+      { id: 'kao-5', twoTheta: 24.62, h: 0, k: 2, l: 1, intensity: 25, enabled: true },
+      { id: 'kao-6', twoTheta: 24.88, h: 0, k: 0, l: 2, intensity: 85, enabled: true },
+      { id: 'kao-7', twoTheta: 26.64, h: 1, k: 1, l: -1, intensity: 40, enabled: true },
+      { id: 'kao-8', twoTheta: 35.04, h: 1, k: 3, l: 0, intensity: 20, enabled: true },
+      { id: 'kao-9', twoTheta: 35.95, h: 2, k: 0, l: 0, intensity: 30, enabled: true },
+      { id: 'kao-10', twoTheta: 37.78, h: 0, k: 0, l: 3, intensity: 25, enabled: true },
+      { id: 'kao-11', twoTheta: 38.48, h: 1, k: 3, l: 1, intensity: 20, enabled: true },
+      { id: 'kao-12', twoTheta: 42.42, h: 2, k: 0, l: -2, intensity: 15, enabled: true },
+      { id: 'kao-13', twoTheta: 62.32, h: 0, k: 6, l: 0, intensity: 30, enabled: true }
     ]
   }
 ];
