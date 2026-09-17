@@ -90,6 +90,8 @@ import { SpectralAlignmentVisualizer } from './deeplearning/SpectralAlignmentVis
 import { getActiveMaterials } from "../utils/materialsHelper";
 import { EXAMPLE_MIXTURES, EXAMPLE_MATERIAL_SEARCH_MAP } from "../utils/dlExamplePatterns";
 import { getPythonEngineCode } from "../utils/dlPythonExporter";
+import { ScientificFormatMenuBar } from './deeplearning/ScientificFormatMenuBar';
+import { ScientificDataIngestionConsole } from './deeplearning/ScientificDataIngestionConsole';
 const MATERIAL_DB = getActiveMaterials();
 
 const MATERIAL_ELEMENTS: Record<
@@ -555,6 +557,7 @@ export function parseChemicalFormula(formula: string): Record<string, number> {
 export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
   const [inputData, setInputData] = useState<string>("");
+  const [selectedFormat, setSelectedFormat] = useState<string>("2col");
   const [result, setResult] = useState<DLPhaseResult | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
@@ -4761,320 +4764,33 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 </div>
               )}
 
-              {/* Format Quick Presets Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mr-1">Load Format:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputData(
-                        "# Standard 2-Column XRD Pattern\n# 2θ (deg), Intensity (a.u.)\n28.44, 100.0\n47.30, 55.0\n56.12, 30.0\n69.13, 8.0\n76.38, 12.0\n88.03, 16.0\n94.95, 6.0\n106.71, 7.0"
-                      );
-                      playSynthTone("success");
-                    }}
-                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-emerald-500/50 transition-colors"
-                  >
-                    2-Col XY
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputData(
-                        "# 5-Column Crystallographic Dataset with Miller Indices\n# 2θ (deg), Intensity (a.u.), h, k, l\n28.44, 100.0, 1, 1, 1\n47.30, 55.0, 2, 2, 0\n56.12, 30.0, 3, 1, 1\n69.13, 8.0, 4, 0, 0\n76.38, 12.0, 3, 3, 1\n88.03, 16.0, 4, 2, 2\n94.95, 6.0, 5, 1, 1\n106.71, 7.0, 4, 4, 0"
-                      );
-                      playSynthTone("success");
-                    }}
-                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-700/50 hover:border-cyan-400 transition-colors"
-                  >
-                    5-Col (2θ, I, h, k, l)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputData(
-                        "# 3-Column XRD Pattern with (hkl) Plane Labels\n# 2θ (deg), Intensity (a.u.), (h k l)\n28.44, 100.0, (1 1 1)\n47.30, 55.0, (2 2 0)\n56.12, 30.0, (3 1 1)\n69.13, 8.0, (4 0 0)\n76.38, 12.0, (3 3 1)\n88.03, 16.0, (4 2 2)"
-                      );
-                      playSynthTone("success");
-                    }}
-                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-violet-950/40 hover:bg-violet-900/50 text-violet-300 border border-violet-700/50 hover:border-violet-400 transition-colors"
-                  >
-                    3-Col (hkl)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputData(
-                        "# Full Crystallographic Profile: 2θ (deg), Intensity (a.u.), h, k, l, FWHM (deg)\n28.442, 100.0, 1, 1, 1, 0.125\n47.304, 55.0, 2, 2, 0, 0.142\n56.123, 30.0, 3, 1, 1, 0.158\n69.131, 8.0, 4, 0, 0, 0.176\n76.377, 12.0, 3, 3, 1, 0.192\n88.032, 16.0, 4, 2, 2, 0.218"
-                      );
-                      playSynthTone("success");
-                    }}
-                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 border border-amber-700/50 hover:border-amber-400 transition-colors"
-                  >
-                    Full Profile (FWHM)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInputData(
-                        "# NIST SRM 660 LaB6 Hexaboride Standard Reflections\n# 2θ (deg), Intensity (a.u.), h, k, l\n21.36, 100.0, 1, 0, 0\n30.38, 75.0, 1, 1, 0\n37.44, 60.0, 1, 1, 1\n43.51, 45.0, 2, 0, 0\n48.96, 50.0, 2, 1, 0\n53.99, 35.0, 2, 1, 1\n63.26, 30.0, 2, 2, 0"
-                      );
-                      playSynthTone("success");
-                    }}
-                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-500 transition-colors"
-                  >
-                    LaB₆ SRM 660
-                  </button>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowFormatGuide(!showFormatGuide)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-colors"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    {showFormatGuide ? "Hide Format Guide" : "Format Guide & Specs"}
-                  </button>
-                  {inputData && (
-                    <button
-                      type="button"
-                      onClick={() => setInputData("")}
-                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Clear
-                    </button>
-                  )}
-                </div>
-              </div>
+              {/* Scientific Data Ingestion & Format Menu Bar */}
+              <ScientificFormatMenuBar
+                inputData={inputData}
+                setInputData={setInputData}
+                selectedFormat={selectedFormat}
+                setSelectedFormat={setSelectedFormat}
+                showFormatGuide={showFormatGuide}
+                setShowFormatGuide={setShowFormatGuide}
+                playSynthTone={playSynthTone}
+                formatSuccessInfo={formatSuccessInfo}
+                formatErrorLog={formatErrorLog}
+              />
 
-              {/* Collapsible Format Syntax Guide */}
-              {showFormatGuide && (
-                <div className="mb-4 p-4 bg-[#050A14] border border-indigo-500/40 rounded-xl space-y-3 text-xs font-mono text-slate-300 shadow-xl animate-in zoom-in-95 duration-200">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="font-black text-indigo-300 flex items-center gap-2 uppercase tracking-wider text-[12px]">
-                      <FileCode className="w-4 h-4 text-indigo-400" />
-                      XRD Neural Phase ID Supported Input Formats
-                    </span>
-                    <button
-                      onClick={() => setShowFormatGuide(false)}
-                      className="text-slate-500 hover:text-slate-300"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-lg space-y-1.5">
-                      <div className="font-bold text-emerald-400 text-[11px] uppercase tracking-wider flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> Standard 2-Column
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Pure Bragg position and intensity. Supports comma, tab, or space delimiters.
-                      </p>
-                      <pre className="bg-[#03060C] p-2 rounded border border-slate-800 text-[11px] text-emerald-300/90 overflow-x-auto">
-{`28.44, 100.0\n47.30, 55.0\n56.12, 30.0`}
-                      </pre>
-                    </div>
-
-                    <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-lg space-y-1.5">
-                      <div className="font-bold text-cyan-400 text-[11px] uppercase tracking-wider flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> 5-Column (h, k, l)
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Supplies Miller indices directly. Enhances neural candidate confidence by +25%.
-                      </p>
-                      <pre className="bg-[#03060C] p-2 rounded border border-slate-800 text-[11px] text-cyan-300/90 overflow-x-auto">
-{`28.44, 100.0, 1, 1, 1\n47.30, 55.0, 2, 2, 0\n56.12, 30.0, 3, 1, 1`}
-                      </pre>
-                    </div>
-
-                    <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-lg space-y-1.5">
-                      <div className="font-bold text-amber-400 text-[11px] uppercase tracking-wider flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> 6-Col Full Profile
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Includes peak broadening (FWHM in degrees) for Scherrer crystallite size modeling.
-                      </p>
-                      <pre className="bg-[#03060C] p-2 rounded border border-slate-800 text-[11px] text-amber-300/90 overflow-x-auto">
-{`28.44, 100, 1, 1, 1, 0.12\n47.30, 55, 2, 2, 0, 0.14`}
-                      </pre>
-                    </div>
-                  </div>
-                  <div className="p-2.5 bg-indigo-950/30 border border-indigo-500/20 rounded-lg text-[11px] text-indigo-300 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <span>
-                      Automatic features: Lines beginning with <code className="bg-indigo-900/40 px-1 py-0.5 rounded text-indigo-200">#</code>, <code className="bg-indigo-900/40 px-1 py-0.5 rounded text-indigo-200">//</code>, and CIF loop tags are skipped. Parenthesized planes like <code className="bg-indigo-900/40 px-1 py-0.5 rounded text-indigo-200">(1 1 1)</code> are parsed automatically.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div
-                className={`relative border-2 border-dashed rounded-xl transition-all duration-500 overflow-hidden group
-                  ${inputData ? "border-violet-500/50 bg-slate-800/90 shadow-[0_0_20px_rgba(139,92,246,0.15)]" : "border-slate-600 bg-[#050A14]/60 hover:border-violet-500/50 hover:bg-slate-800/80 hover:shadow-lg"}
-                `}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.add(
-                    "border-violet-400",
-                    "bg-slate-800",
-                    "shadow-lg",
-                  );
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove(
-                    "border-violet-400",
-                    "bg-slate-800",
-                    "shadow-lg",
-                  );
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.currentTarget.classList.remove(
-                    "border-violet-400",
-                    "bg-slate-800",
-                    "shadow-lg",
-                  );
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                      const content = e.target?.result as string;
-                      if (content) setInputData(content);
-                    };
-                    reader.readAsText(file);
-                    playSynthTone("success");
-                  }
-                }}
-              >
-                {!inputData && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-500 group-hover:text-violet-400 transition-colors p-4 text-center">
-                    <div className="p-3.5 bg-slate-800 rounded-full shadow-inner border border-slate-700 mb-2.5 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.2)] group-hover:border-violet-500/30 transition-all duration-300">
-                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-violet-400" />
-                    </div>
-                    <p className="text-xs font-black tracking-wide text-slate-300">
-                      Drag & drop XRD dataset (.xy, .csv, .dat, .txt)
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 font-semibold font-mono">
-                      Expected Format: 2θ (deg), Intensity (a.u.), [h, k, l], [FWHM]
-                    </p>
-                  </div>
-                )}
-                <textarea
-                  value={inputData}
-                  onChange={(e) => setInputData(e.target.value)}
-                  placeholder={
-                    inputData
-                      ? ""
-                      : "# Expected Dataset Format:\n# 2θ (deg), Intensity (a.u.), [h, k, l], [FWHM]\n28.44, 100.0, 1, 1, 1\n47.30,  55.0, 2, 2, 0\n56.12,  30.0, 3, 1, 1\n69.13,   8.0, 4, 0, 0"
-                  }
-                  className={`w-full h-48 px-5 py-4 bg-transparent text-slate-200 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative custom-scrollbar
-                    ${!inputData ? "placeholder:text-slate-600/70" : ""}
-                  `}
-                  spellCheck={false}
-                />
-              </div>
-
-              {/* Interactive Expected Dataset Format Bar */}
-              <div className="flex flex-col gap-3 mt-4 px-2 bg-[#050A14]/60 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs font-mono font-bold text-slate-400 flex flex-wrap items-center gap-1.5 uppercase tracking-wider">
-                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
-                    <span>Expected Dataset Format:</span>
-                    <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded font-black text-[11px]">
-                      2θ (deg)
-                    </span>
-                    <span className="text-slate-500 font-bold">,</span>
-                    <span className="text-violet-400 bg-violet-500/10 border border-violet-500/25 px-2 py-0.5 rounded font-black text-[11px]">
-                      Intensity (a.u.)
-                    </span>
-                    <span className="text-slate-500 font-bold">,</span>
-                    <span className="text-cyan-400 bg-cyan-500/10 border border-cyan-500/25 px-2 py-0.5 rounded font-black text-[11px]">
-                      Hkl / (h k l)
-                    </span>
-                    <span className="text-slate-500 font-bold">,</span>
-                    <span className="text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold text-[11px]">
-                      FWHM (optional)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowFormatGuide(!showFormatGuide)}
-                      className="text-[11px] font-mono font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 flex items-center gap-1"
-                    >
-                      <HelpCircle className="w-3.5 h-3.5" /> Syntax details
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={() => {
-                        setIsMixMode(!isMixMode);
-                        if (!isMixMode) setMixtureList([]);
-                      }}
-                      className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all border
-                        ${isMixMode ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700/80"}
-                      `}
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      {isMixMode ? "Mix Mode ACTIVE" : "Enable Mix Mode"}
-                    </button>
-                    {inputData && (
-                      <div className="text-xs font-black uppercase tracking-widest text-violet-300 bg-violet-500/20 border border-violet-500/30 px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(139,92,246,0.15)] flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
-                        {inputData.split("\n").filter((l) => l.trim()).length}{" "}
-                        Data Points Loaded
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="text-[11px] font-mono text-slate-500">
-                    Neural Engine Target: <span className="text-slate-300 font-bold">Deep MLP / ResNet-XRD</span>
-                  </div>
-                </div>
-              </div>
-
-              {isMixMode && mixtureList.length > 0 && (
-                <div className="mt-4 p-4 bg-slate-800/80 border border-indigo-500/30 rounded-xl animate-in zoom-in-95 duration-300 shadow-inner relative z-10">
-                  <div className="flex items-center justify-between mb-3 border-b border-slate-700/50 pb-2">
-                    <span className="text-xs font-black text-indigo-400 uppercase tracking-widest">
-                      Mixture Components
-                    </span>
-                    <button
-                      onClick={() => setMixtureList([])}
-                      className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {mixtureList.map((m, mIdx) => (
-                      <div
-                        key={`mix-${m}-${mIdx}`}
-                        className="flex items-center gap-2 bg-[#050A14] border border-indigo-500/50 px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-300 shadow-sm"
-                      >
-                        {m}
-                        <button
-                          onClick={() => {
-                            const nl = mixtureList.filter((x) => x !== m);
-                            setMixtureList(nl);
-                            generateMixturePattern(nl);
-                          }}
-                        >
-                          <X className="w-3.5 h-3.5 text-rose-500/80 hover:text-rose-400 transition-colors" />
-                        </button>
-                      </div>
-                    ))}
-                    <div className="px-3 py-1.5 bg-indigo-500/10 border border-dashed border-indigo-500/30 rounded-lg text-xs text-indigo-400 font-bold flex items-center gap-1.5 hover:bg-indigo-500/20 transition-colors cursor-pointer">
-                      <Plus className="w-3.5 h-3.5" /> Add from DB
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Scientific Data Ingestion Terminal & Editor Console */}
+              <ScientificDataIngestionConsole
+                inputData={inputData}
+                setInputData={setInputData}
+                selectedFormat={selectedFormat}
+                setSelectedFormat={setSelectedFormat}
+                playSynthTone={playSynthTone}
+                isMixMode={isMixMode}
+                setIsMixMode={setIsMixMode}
+                mixtureList={mixtureList}
+                setMixtureList={setMixtureList}
+                generateMixturePattern={generateMixturePattern}
+                setShowFormatGuide={setShowFormatGuide}
+              />
 
               <div className="mt-8 space-y-4 relative z-10">
                 <div className="flex flex-col gap-4">
