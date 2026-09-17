@@ -29,6 +29,7 @@ import {
   X
 } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
+import { ScientificMenuBar } from './ScientificMenuBar';
 
 export type Module = string;
 
@@ -70,6 +71,7 @@ export interface TopAppBarProps {
   theme: ThemeType;
   setTheme: (theme: ThemeType) => void;
   activeModule: Module;
+  setActiveModule?: (module: any) => void;
   modules: { id: Module; label: string; group?: string; icon?: any; description?: string }[];
   getModuleIcon: (mod: Module, isActive?: boolean) => React.ReactNode;
   isNavigatorOpen: boolean;
@@ -109,12 +111,19 @@ export interface TopAppBarProps {
   t: (key: string, defaultVal?: any) => any;
   sampleId?: string;
   onOpenActivityLedger?: () => void;
+  wavelength?: number;
+  setWavelength?: (w: number) => void;
+  onCalculate?: () => void;
+  onBatchCalculate?: () => void;
+  onClearAll?: () => void;
+  onExportPdf?: () => void;
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
   theme,
   setTheme,
   activeModule,
+  setActiveModule,
   modules,
   getModuleIcon,
   isNavigatorOpen,
@@ -146,7 +155,13 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   isRTL,
   t,
   sampleId,
-  onOpenActivityLedger
+  onOpenActivityLedger,
+  wavelength,
+  setWavelength,
+  onCalculate,
+  onBatchCalculate,
+  onClearAll,
+  onExportPdf
 }) => {
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showSystemMenu, setShowSystemMenu] = useState(false);
@@ -906,6 +921,29 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
         </div>
       </header>
+
+      {/* Scientific Desktop Menu Bar & Instrument Measurement Status Ribbon */}
+      {setActiveModule && (
+        <ScientificMenuBar
+          activeModule={activeModule as any}
+          setActiveModule={setActiveModule}
+          theme={theme}
+          wavelength={wavelength}
+          setWavelength={setWavelength}
+          onCalculate={onCalculate}
+          onBatchCalculate={onBatchCalculate}
+          onClearAll={onClearAll}
+          onExportPdf={onExportPdf}
+          onOpenActivityLedger={onOpenActivityLedger}
+          onOpenShortcuts={() => setShowShortcutsModal(true)}
+          isOnline={isOnline}
+          firestoreSyncType={firestoreSyncType}
+          pythonReady={pythonReady}
+          playSynthTone={playSynthTone}
+          t={t}
+          isRTL={isRTL}
+        />
+      )}
 
       {/* Non-Intrusive Floating Toast Alert */}
       <AnimatePresence>

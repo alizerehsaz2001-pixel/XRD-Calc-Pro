@@ -73,7 +73,13 @@ import {
   Download,
   Maximize2,
   Network,
-  Target
+  Target,
+  Copy,
+  Check,
+  FileCode,
+  Table,
+  ListFilter,
+  Tag
 } from "lucide-react";
 
 import { GeminiFlashMaterialSearch } from './GeminiFlashMaterialSearch';
@@ -1069,6 +1075,15 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [inputBroadening, setInputBroadening] = useState<number>(0.25);
   const [inputBgAmorphous, setInputBgAmorphous] = useState<number>(10);
   const [formatErrorLog, setFormatErrorLog] = useState<string | null>(null);
+  const [formatSuccessInfo, setFormatSuccessInfo] = useState<{
+    summary: string;
+    pointsCount: number;
+    hasHkl: boolean;
+    hasFwhm: boolean;
+    hasDSpacing: boolean;
+  } | null>(null);
+  const [showFormatGuide, setShowFormatGuide] = useState<boolean>(false);
+  const [copiedFormatTag, setCopiedFormatTag] = useState<string | null>(null);
 
   // AI Neural Net Training & Tutor State Variables
   const [trainEpochs, setTrainEpochs] = useState<number>(40);
@@ -1676,31 +1691,75 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Real-time input custom format validator
+  // Real-time input custom format validator & metadata detector
   useEffect(() => {
     if (!inputData.trim()) {
       setFormatErrorLog(null);
+      setFormatSuccessInfo(null);
       return;
     }
     const lines = inputData.split("\n");
     let firstError: string | null = null;
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      if (line.startsWith("#")) continue;
+    let validCount = 0;
+    let detectedHklCount = 0;
+    let detectedFwhmCount = 0;
+    let detectedDSpacingCount = 0;
 
-      const parts = line.split(/[\s,]+/).filter((v) => v !== "");
-      if (parts.length < 2) {
-        firstError = `Line ${i + 1}: "${line}" is missing Intensity. Format needs to be: 2θ, Intensity`;
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+      if (!line) continue;
+      
+      // Comments & CIF metadata tags
+      if (line.startsWith("#") || line.startsWith("//") || line.startsWith(";") || line.startsWith("!") || line.startsWith("*") || line.startsWith("_")) {
+        continue;
+      }
+      
+      // Check for parenthesized hkl like (1 1 1) or (111)
+      const hasParenthesisHkl = /[\(\[]\s*(-?\d+)[\s,]+(-?\d+)[\s,]+(-?\d+)\s*[\)\]]/.test(line) || /[\(\[]\s*(-?\d{3,4})\s*[\)\]]/.test(line);
+      if (hasParenthesisHkl) {
+        detectedHklCount++;
+      }
+
+      // Check tokens
+      const tokens = line.split(/[\s,;\t]+/).filter((v) => v !== "");
+      if (tokens.length === 0) continue;
+
+      const firstNum = parseFloat(tokens[0]);
+      if (isNaN(firstNum)) {
+        // Line starts with non-number; check if it is a recognized header row
+        const lower = line.toLowerCase();
+        if (
+          lower.includes("2theta") ||
+          lower.includes("2θ") ||
+          lower.includes("angle") ||
+          lower.includes("intensity") ||
+          lower.includes("counts") ||
+          lower.includes("hkl") ||
+          lower.includes("d-spacing") ||
+          lower.includes("fwhm") ||
+          lower.includes("pos")
+        ) {
+          // Valid header row, skip without error
+          continue;
+        } else {
+          firstError = `Line ${i + 1}: Could not parse numeric 2θ angle from "${line}". Expected format: 2θ (deg), Intensity (a.u.), [h, k, l]`;
+          break;
+        }
+      }
+
+      if (tokens.length < 2) {
+        firstError = `Line ${i + 1}: "${line}" is missing Intensity. Required format: 2θ (deg), Intensity (a.u.)`;
         break;
       }
-      const twoTheta = parseFloat(parts[0]);
-      const intensity = parseFloat(parts[1]);
+
+      const twoTheta = parseFloat(tokens[0]);
+      const intensity = parseFloat(tokens[1]);
+
       if (isNaN(twoTheta) || isNaN(intensity)) {
         firstError = `Line ${i + 1}: Could not parse values in "${line}". Expected "2θ, Intensity" as numbers`;
         break;
       }
-      if (twoTheta < 2 || twoTheta > 165) {
+      if (twoTheta < 1 || twoTheta > 175) {
         firstError = `Line ${i + 1}: Sub-optimal 2θ value (${twoTheta}°). Recommended standard range is 5° to 150°`;
         break;
       }
@@ -1708,8 +1767,46 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
         firstError = `Line ${i + 1}: Intensity value cannot be negative (${intensity})`;
         break;
       }
+
+      if (tokens.length >= 5) {
+        detectedHklCount++;
+        if (tokens.length >= 6) detectedFwhmCount++;
+      } else if (tokens.length === 3 || tokens.length === 4) {
+        if (!hasParenthesisHkl) {
+          const val3 = parseFloat(tokens[2]);
+          if (!isNaN(val3) && val3 < 15 && val3 > 0.4) detectedDSpacingCount++;
+          else if (!isNaN(val3) && val3 < 2) detectedFwhmCount++;
+        }
+      }
+
+      validCount++;
     }
-    setFormatErrorLog(firstError);
+
+    if (firstError) {
+      setFormatErrorLog(firstError);
+      setFormatSuccessInfo(null);
+    } else if (validCount > 0) {
+      setFormatErrorLog(null);
+      let formatName = "2-Column XY (2θ, Intensity)";
+      if (detectedHklCount > 0) {
+        formatName = "Crystallographic with Miller Indices (2θ, Intensity, h, k, l)";
+      } else if (detectedDSpacingCount > 0) {
+        formatName = "3-Column (2θ, Intensity, d-spacing)";
+      } else if (detectedFwhmCount > 0) {
+        formatName = "3-Column (2θ, Intensity, FWHM)";
+      }
+
+      setFormatSuccessInfo({
+        summary: formatName,
+        pointsCount: validCount,
+        hasHkl: detectedHklCount > 0,
+        hasFwhm: detectedFwhmCount > 0,
+        hasDSpacing: detectedDSpacingCount > 0
+      });
+    } else {
+      setFormatErrorLog(null);
+      setFormatSuccessInfo(null);
+    }
   }, [inputData]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -4389,17 +4486,21 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           {/* Right Column: Resolved reflections table */}
                           <div className="lg:col-span-7 flex flex-col gap-2">
                             <div className="flex items-center justify-between text-xs font-mono text-slate-500 uppercase tracking-widest font-black">
-                              <span>Peak Indexing Registry</span>
-                              <span>Scroll for all resolved reflections</span>
+                              <span className="flex items-center gap-1.5 text-cyan-400">
+                                <Table className="w-3.5 h-3.5" /> Peak Indexing Registry
+                              </span>
+                              <span>{parsedPoints.length} resolved reflections</span>
                             </div>
                             
-                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80/80 rounded-2xl bg-[#03060C]/80 p-4 text-sm font-mono shadow-inner">
+                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80 rounded-2xl bg-[#03060C]/80 p-4 text-xs font-mono shadow-inner">
                               <table className="w-full text-left border-collapse">
                                 <thead>
-                                  <tr className="border-b border-slate-800/80 text-slate-500 text-xs uppercase tracking-wider">
+                                  <tr className="border-b border-slate-800/80 text-slate-500 text-[11px] uppercase tracking-wider">
                                     <th className="p-2 font-black">Ref#</th>
                                     <th className="p-2 font-black">2θ Angle</th>
-                                    <th className="p-2 font-black">d-spacing (Å)</th>
+                                    <th className="p-2 font-black">d-spacing</th>
+                                    <th className="p-2 font-black text-center">(h k l) Miller</th>
+                                    <th className="p-2 font-black text-center">FWHM (β)</th>
                                     <th className="p-2 font-black text-right">Rel. Intensity</th>
                                   </tr>
                                 </thead>
@@ -4408,7 +4509,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                     .sort((a, b) => a.twoTheta - b.twoTheta)
                                     .map((pk, idx) => {
                                       const rad = (pk.twoTheta / 2) * (Math.PI / 180);
-                                      const d = 1.5406 / (2 * Math.sin(rad));
+                                      const calcD = 1.5406 / (2 * Math.sin(rad));
+                                      const displayD = pk.dSpacing !== undefined ? pk.dSpacing : (!isNaN(calcD) ? calcD : null);
+                                      const hasHkl = pk.h !== undefined && pk.k !== undefined && pk.l !== undefined;
+                                      const hklDisplay = pk.hkl || (hasHkl ? `(${pk.h} ${pk.k} ${pk.l})` : null);
+
                                       return (
                                         <tr key={idx} className="hover:bg-[#050A14]/60 transition-colors group/row">
                                           <td className="p-2 font-bold text-slate-600 group-hover/row:text-slate-400">
@@ -4417,18 +4522,34 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                           <td className="p-2 font-black text-cyan-400">
                                             {pk.twoTheta.toFixed(3)}°
                                           </td>
-                                          <td className="p-2 text-slate-400">
-                                            {isNaN(d) ? 'N/A' : d.toFixed(4)} Å
+                                          <td className="p-2 text-slate-400 font-mono">
+                                            {displayD !== null ? `${displayD.toFixed(4)} Å` : 'N/A'}
+                                          </td>
+                                          <td className="p-2 text-center">
+                                            {hklDisplay ? (
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 text-[11px] font-black tracking-wide">
+                                                {hklDisplay}
+                                              </span>
+                                            ) : (
+                                              <span className="text-slate-600 text-[10px] italic">unindexed</span>
+                                            )}
+                                          </td>
+                                          <td className="p-2 text-center text-slate-400">
+                                            {pk.fwhm !== undefined ? (
+                                              <span className="text-amber-300 font-bold">{pk.fwhm.toFixed(3)}°</span>
+                                            ) : (
+                                              <span className="text-slate-600 text-[10px]">—</span>
+                                            )}
                                           </td>
                                           <td className="p-2 text-right">
-                                            <div className="flex items-center justify-end gap-3">
-                                              <div className="w-16 h-1.5 bg-[#050A14] border border-slate-800/80 rounded-full overflow-hidden flex shadow-inner">
+                                            <div className="flex items-center justify-end gap-2.5">
+                                              <div className="w-12 h-1.5 bg-[#050A14] border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
                                                 <div 
                                                   className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]"
                                                   style={{ width: `${Math.min(100, (pk.intensity / Math.max(...parsedPoints.map(p => p.intensity))) * 100)}%` }}
                                                 />
                                               </div>
-                                              <span className="text-emerald-400 font-bold tabular-nums min-w-[32px]">
+                                              <span className="text-emerald-400 font-bold tabular-nums min-w-[28px]">
                                                 {(pk.intensity).toFixed(0)}
                                               </span>
                                             </div>
@@ -4601,9 +4722,190 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
               {/* Warning/Error validation banner */}
               {formatErrorLog && (
-                <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs font-mono text-rose-400 flex items-start gap-2 animate-bounce">
-                  <div className="w-2 h-2 bg-rose-500 rounded-full mt-1 shrink-0" />
-                  <span>{formatErrorLog}</span>
+                <div className="mb-4 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs font-mono text-rose-300 flex items-start gap-2.5 shadow-lg animate-in fade-in duration-200">
+                  <ShieldAlert className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <span className="font-black text-rose-400 uppercase tracking-wider block mb-0.5">Dataset Format Notice:</span>
+                    <span>{formatErrorLog}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Format Success & Feature Detection Badge */}
+              {!formatErrorLog && formatSuccessInfo && (
+                <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-xs font-mono text-emerald-300 flex flex-wrap items-center justify-between gap-3 shadow-inner">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-emerald-200">{formatSuccessInfo.summary}</span>
+                      <span className="text-emerald-400/80 ml-2 font-mono">({formatSuccessInfo.pointsCount} reflections resolved)</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {formatSuccessInfo.hasHkl && (
+                      <span className="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[11px] font-black tracking-wide">
+                        ✓ Miller (hkl) Indexed
+                      </span>
+                    )}
+                    {formatSuccessInfo.hasFwhm && (
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-black tracking-wide">
+                        ✓ FWHM Peak Broadening
+                      </span>
+                    )}
+                    {formatSuccessInfo.hasDSpacing && (
+                      <span className="px-2 py-0.5 rounded bg-blue-500/20 border border-blue-500/40 text-blue-300 text-[11px] font-black tracking-wide">
+                        ✓ d-spacing Loaded
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Format Quick Presets Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mr-1">Load Format:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputData(
+                        "# Standard 2-Column XRD Pattern\n# 2θ (deg), Intensity (a.u.)\n28.44, 100.0\n47.30, 55.0\n56.12, 30.0\n69.13, 8.0\n76.38, 12.0\n88.03, 16.0\n94.95, 6.0\n106.71, 7.0"
+                      );
+                      playSynthTone("success");
+                    }}
+                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-emerald-500/50 transition-colors"
+                  >
+                    2-Col XY
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputData(
+                        "# 5-Column Crystallographic Dataset with Miller Indices\n# 2θ (deg), Intensity (a.u.), h, k, l\n28.44, 100.0, 1, 1, 1\n47.30, 55.0, 2, 2, 0\n56.12, 30.0, 3, 1, 1\n69.13, 8.0, 4, 0, 0\n76.38, 12.0, 3, 3, 1\n88.03, 16.0, 4, 2, 2\n94.95, 6.0, 5, 1, 1\n106.71, 7.0, 4, 4, 0"
+                      );
+                      playSynthTone("success");
+                    }}
+                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-cyan-950/40 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-700/50 hover:border-cyan-400 transition-colors"
+                  >
+                    5-Col (2θ, I, h, k, l)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputData(
+                        "# 3-Column XRD Pattern with (hkl) Plane Labels\n# 2θ (deg), Intensity (a.u.), (h k l)\n28.44, 100.0, (1 1 1)\n47.30, 55.0, (2 2 0)\n56.12, 30.0, (3 1 1)\n69.13, 8.0, (4 0 0)\n76.38, 12.0, (3 3 1)\n88.03, 16.0, (4 2 2)"
+                      );
+                      playSynthTone("success");
+                    }}
+                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-violet-950/40 hover:bg-violet-900/50 text-violet-300 border border-violet-700/50 hover:border-violet-400 transition-colors"
+                  >
+                    3-Col (hkl)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputData(
+                        "# Full Crystallographic Profile: 2θ (deg), Intensity (a.u.), h, k, l, FWHM (deg)\n28.442, 100.0, 1, 1, 1, 0.125\n47.304, 55.0, 2, 2, 0, 0.142\n56.123, 30.0, 3, 1, 1, 0.158\n69.131, 8.0, 4, 0, 0, 0.176\n76.377, 12.0, 3, 3, 1, 0.192\n88.032, 16.0, 4, 2, 2, 0.218"
+                      );
+                      playSynthTone("success");
+                    }}
+                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-amber-950/40 hover:bg-amber-900/50 text-amber-300 border border-amber-700/50 hover:border-amber-400 transition-colors"
+                  >
+                    Full Profile (FWHM)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInputData(
+                        "# NIST SRM 660 LaB6 Hexaboride Standard Reflections\n# 2θ (deg), Intensity (a.u.), h, k, l\n21.36, 100.0, 1, 0, 0\n30.38, 75.0, 1, 1, 0\n37.44, 60.0, 1, 1, 1\n43.51, 45.0, 2, 0, 0\n48.96, 50.0, 2, 1, 0\n53.99, 35.0, 2, 1, 1\n63.26, 30.0, 2, 2, 0"
+                      );
+                      playSynthTone("success");
+                    }}
+                    className="px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-500 transition-colors"
+                  >
+                    LaB₆ SRM 660
+                  </button>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFormatGuide(!showFormatGuide)}
+                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-colors"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    {showFormatGuide ? "Hide Format Guide" : "Format Guide & Specs"}
+                  </button>
+                  {inputData && (
+                    <button
+                      type="button"
+                      onClick={() => setInputData("")}
+                      className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-bold rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Collapsible Format Syntax Guide */}
+              {showFormatGuide && (
+                <div className="mb-4 p-4 bg-[#050A14] border border-indigo-500/40 rounded-xl space-y-3 text-xs font-mono text-slate-300 shadow-xl animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="font-black text-indigo-300 flex items-center gap-2 uppercase tracking-wider text-[12px]">
+                      <FileCode className="w-4 h-4 text-indigo-400" />
+                      XRD Neural Phase ID Supported Input Formats
+                    </span>
+                    <button
+                      onClick={() => setShowFormatGuide(false)}
+                      className="text-slate-500 hover:text-slate-300"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-lg space-y-1.5">
+                      <div className="font-bold text-emerald-400 text-[11px] uppercase tracking-wider flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> Standard 2-Column
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Pure Bragg position and intensity. Supports comma, tab, or space delimiters.
+                      </p>
+                      <pre className="bg-[#03060C] p-2 rounded border border-slate-800 text-[11px] text-emerald-300/90 overflow-x-auto">
+{`28.44, 100.0\n47.30, 55.0\n56.12, 30.0`}
+                      </pre>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-lg space-y-1.5">
+                      <div className="font-bold text-cyan-400 text-[11px] uppercase tracking-wider flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> 5-Column (h, k, l)
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Supplies Miller indices directly. Enhances neural candidate confidence by +25%.
+                      </p>
+                      <pre className="bg-[#03060C] p-2 rounded border border-slate-800 text-[11px] text-cyan-300/90 overflow-x-auto">
+{`28.44, 100.0, 1, 1, 1\n47.30, 55.0, 2, 2, 0\n56.12, 30.0, 3, 1, 1`}
+                      </pre>
+                    </div>
+
+                    <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-lg space-y-1.5">
+                      <div className="font-bold text-amber-400 text-[11px] uppercase tracking-wider flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> 6-Col Full Profile
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Includes peak broadening (FWHM in degrees) for Scherrer crystallite size modeling.
+                      </p>
+                      <pre className="bg-[#03060C] p-2 rounded border border-slate-800 text-[11px] text-amber-300/90 overflow-x-auto">
+{`28.44, 100, 1, 1, 1, 0.12\n47.30, 55, 2, 2, 0, 0.14`}
+                      </pre>
+                    </div>
+                  </div>
+                  <div className="p-2.5 bg-indigo-950/30 border border-indigo-500/20 rounded-lg text-[11px] text-indigo-300 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span>
+                      Automatic features: Lines beginning with <code className="bg-indigo-900/40 px-1 py-0.5 rounded text-indigo-200">#</code>, <code className="bg-indigo-900/40 px-1 py-0.5 rounded text-indigo-200">//</code>, and CIF loop tags are skipped. Parenthesized planes like <code className="bg-indigo-900/40 px-1 py-0.5 rounded text-indigo-200">(1 1 1)</code> are parsed automatically.
+                    </span>
+                  </div>
                 </div>
               )}
 
@@ -4647,15 +4949,15 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 }}
               >
                 {!inputData && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-500 group-hover:text-violet-400 transition-colors">
-                    <div className="p-4 bg-slate-800 rounded-full shadow-inner border border-slate-700 mb-3 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.2)] group-hover:border-violet-500/30 transition-all duration-300">
-                      <Upload className="w-6 h-6 text-slate-400 group-hover:text-violet-400" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-500 group-hover:text-violet-400 transition-colors p-4 text-center">
+                    <div className="p-3.5 bg-slate-800 rounded-full shadow-inner border border-slate-700 mb-2.5 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.2)] group-hover:border-violet-500/30 transition-all duration-300">
+                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-violet-400" />
                     </div>
                     <p className="text-xs font-black tracking-wide text-slate-300">
-                      Drag & drop raw XY pattern data
+                      Drag & drop XRD dataset (.xy, .csv, .dat, .txt)
                     </p>
-                    <p className="text-xs text-slate-500 mt-1 font-semibold">
-                      or paste table entries here
+                    <p className="text-[11px] text-slate-500 mt-0.5 font-semibold font-mono">
+                      Expected Format: 2θ (deg), Intensity (a.u.), [h, k, l], [FWHM]
                     </p>
                   </div>
                 )}
@@ -4663,47 +4965,76 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   value={inputData}
                   onChange={(e) => setInputData(e.target.value)}
                   placeholder={
-                    inputData ? "" : "\n\n\n\n\n\n28.44, 100\n47.30, 55"
+                    inputData
+                      ? ""
+                      : "# Expected Dataset Format:\n# 2θ (deg), Intensity (a.u.), [h, k, l], [FWHM]\n28.44, 100.0, 1, 1, 1\n47.30,  55.0, 2, 2, 0\n56.12,  30.0, 3, 1, 1\n69.13,   8.0, 4, 0, 0"
                   }
                   className={`w-full h-48 px-5 py-4 bg-transparent text-slate-200 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative custom-scrollbar
-                    ${!inputData ? "placeholder:text-transparent" : ""}
+                    ${!inputData ? "placeholder:text-slate-600/70" : ""}
                   `}
                   spellCheck={false}
                 />
               </div>
 
+              {/* Interactive Expected Dataset Format Bar */}
               <div className="flex flex-col gap-3 mt-4 px-2 bg-[#050A14]/60 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10">
-                <div className="text-xs font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
-                  <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
-                  Expected Dataset Format:{" "}
-                  <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded ml-1 font-black">
-                    2θ (deg)
-                  </span>{" "}
-                  ,{" "}
-                  <span className="text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded font-black">
-                    Intensity (a.u.)
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-mono font-bold text-slate-400 flex flex-wrap items-center gap-1.5 uppercase tracking-wider">
+                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse" />
+                    <span>Expected Dataset Format:</span>
+                    <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded font-black text-[11px]">
+                      2θ (deg)
+                    </span>
+                    <span className="text-slate-500 font-bold">,</span>
+                    <span className="text-violet-400 bg-violet-500/10 border border-violet-500/25 px-2 py-0.5 rounded font-black text-[11px]">
+                      Intensity (a.u.)
+                    </span>
+                    <span className="text-slate-500 font-bold">,</span>
+                    <span className="text-cyan-400 bg-cyan-500/10 border border-cyan-500/25 px-2 py-0.5 rounded font-black text-[11px]">
+                      Hkl / (h k l)
+                    </span>
+                    <span className="text-slate-500 font-bold">,</span>
+                    <span className="text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold text-[11px]">
+                      FWHM (optional)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowFormatGuide(!showFormatGuide)}
+                      className="text-[11px] font-mono font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 flex items-center gap-1"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5" /> Syntax details
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setIsMixMode(!isMixMode);
-                      if (!isMixMode) setMixtureList([]);
-                    }}
-                    className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all border
-                      ${isMixMode ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700/80"}
-                    `}
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                    {isMixMode ? "Mix Mode ACTIVE" : "Enable Mix Mode"}
-                  </button>
-                  {inputData && (
-                    <div className="text-xs font-black uppercase tracking-widest text-violet-300 bg-violet-500/20 border border-violet-500/30 px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(139,92,246,0.15)] flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
-                      {inputData.split("\n").filter((l) => l.trim()).length}{" "}
-                      Data Points Loaded
-                    </div>
-                  )}
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setIsMixMode(!isMixMode);
+                        if (!isMixMode) setMixtureList([]);
+                      }}
+                      className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all border
+                        ${isMixMode ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700/80"}
+                      `}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      {isMixMode ? "Mix Mode ACTIVE" : "Enable Mix Mode"}
+                    </button>
+                    {inputData && (
+                      <div className="text-xs font-black uppercase tracking-widest text-violet-300 bg-violet-500/20 border border-violet-500/30 px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(139,92,246,0.15)] flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+                        {inputData.split("\n").filter((l) => l.trim()).length}{" "}
+                        Data Points Loaded
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-[11px] font-mono text-slate-500">
+                    Neural Engine Target: <span className="text-slate-300 font-bold">Deep MLP / ResNet-XRD</span>
+                  </div>
                 </div>
               </div>
 

@@ -1593,6 +1593,7 @@ const App: React.FC = () => {
             theme={theme}
             setTheme={setTheme}
             activeModule={activeModule}
+            setActiveModule={setActiveModule}
             modules={modules}
             getModuleIcon={getModuleIcon}
             isNavigatorOpen={isNavigatorOpen}
@@ -1625,6 +1626,14 @@ const App: React.FC = () => {
             t={t}
             sampleId={sampleId}
             onOpenActivityLedger={() => setIsActivityLedgerOpen(true)}
+            wavelength={wavelength}
+            setWavelength={setWavelength}
+            onCalculate={() => handleCalculate(true)}
+            onClearAll={handleClearAll}
+            onExportPdf={() => {
+              playSynthTone('success');
+              generatePdfReport();
+            }}
           />
 
           <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">

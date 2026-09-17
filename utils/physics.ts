@@ -4142,8 +4142,29 @@ export const identifyPhasesDL = (
             // To ensure intensity ratio validity
             const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
             matchScore *= (0.8 + 0.2 * relativeIntensityMatch);
+
+            // Crystallographic Miller Index (hkl) verification bonus
+            let hklMatched = false;
+            if ((closest as any).h !== undefined && refPeak.h !== undefined) {
+              if ((closest as any).h === refPeak.h && (closest as any).k === refPeak.k && (closest as any).l === refPeak.l) {
+                matchScore *= 1.25;
+                hklMatched = true;
+              }
+            }
             
-            matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity, h: refPeak.h, k: refPeak.k, l: refPeak.l });
+            matchedDetails.push({ 
+              refT: refPeak.t, 
+              obsT: closest.twoTheta, 
+              refI: refPeak.i, 
+              obsI: closest.intensity, 
+              h: refPeak.h, 
+              k: refPeak.k, 
+              l: refPeak.l,
+              obsH: (closest as any).h,
+              obsK: (closest as any).k,
+              obsL: (closest as any).l,
+              hklMatched
+            });
           }
         }
         
@@ -4340,8 +4361,29 @@ export const identifyPhasesDL = (
         const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
         scoreInc *= (0.8 + 0.2 * relativeIntensityMatch);
         
+        // Crystallographic Miller Index (hkl) verification bonus
+        let hklMatched = false;
+        if ((closest as any).h !== undefined && refPeak.h !== undefined) {
+          if ((closest as any).h === refPeak.h && (closest as any).k === refPeak.k && (closest as any).l === refPeak.l) {
+            scoreInc *= 1.25; // 25% Miller index confidence bonus
+            hklMatched = true;
+          }
+        }
+
         matchScore += scoreInc;
-        matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity, h: refPeak.h, k: refPeak.k, l: refPeak.l });
+        matchedDetails.push({ 
+          refT: refPeak.t, 
+          obsT: closest.twoTheta, 
+          refI: refPeak.i, 
+          obsI: closest.intensity, 
+          h: refPeak.h, 
+          k: refPeak.k, 
+          l: refPeak.l,
+          obsH: (closest as any).h,
+          obsK: (closest as any).k,
+          obsL: (closest as any).l,
+          hklMatched
+        });
       }
     }
 
@@ -4494,18 +4536,134 @@ export const identifyPhasesDL = (
   return { module: "DL-Phase-ID-Smart", candidates };
 };
 
-export const parseXYData = (input: string) => {
+export interface ParsedXYPoint {
+  twoTheta: number;
+  intensity: number;
+  h?: number;
+  k?: number;
+  l?: number;
+  hkl?: string;
+  fwhm?: number;
+  dSpacing?: number;
+}
+
+export const parseXYData = (input: string): ParsedXYPoint[] => {
   if (!input || typeof input !== 'string') return [];
-  return input.split('\n').filter(l => (l || '').trim()).map(l => {
-    const p = l.split(/[\s,]+/).filter(v => v !== '').map(parseFloat);
-    return { 
-      twoTheta: p[0], 
-      intensity: p[1] || 100,
-      h: p.length > 2 && !isNaN(p[2]) ? p[2] : undefined,
-      k: p.length > 3 && !isNaN(p[3]) ? p[3] : undefined,
-      l: p.length > 4 && !isNaN(p[4]) ? p[4] : undefined
-    };
-  }).filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0);
+  
+  const lines = input.split('\n');
+  const results: ParsedXYPoint[] = [];
+
+  for (const rawLine of lines) {
+    let line = (rawLine || '').trim();
+    if (!line) continue;
+    
+    // Ignore comment and metadata prefix indicators
+    if (line.startsWith('#') || line.startsWith('//') || line.startsWith(';') || line.startsWith('!') || line.startsWith('*')) {
+      continue;
+    }
+    
+    // Ignore CIF metadata loop tags
+    if (line.startsWith('_') || line.toLowerCase().startsWith('loop_') || line.toLowerCase().startsWith('data_')) {
+      continue;
+    }
+
+    // Check for parenthesized or bracketed Miller indices: (1 1 1), (1,1,1), [1 1 1], or (111)
+    let extractedH: number | undefined = undefined;
+    let extractedK: number | undefined = undefined;
+    let extractedL: number | undefined = undefined;
+    let hklString: string | undefined = undefined;
+
+    const parenthesizedHklMatch = line.match(/[\(\[]\s*(-?\d+)[\s,]+(-?\d+)[\s,]+(-?\d+)\s*[\)\]]/);
+    if (parenthesizedHklMatch) {
+      extractedH = parseInt(parenthesizedHklMatch[1], 10);
+      extractedK = parseInt(parenthesizedHklMatch[2], 10);
+      extractedL = parseInt(parenthesizedHklMatch[3], 10);
+      hklString = `(${extractedH} ${extractedK} ${extractedL})`;
+      line = line.replace(parenthesizedHklMatch[0], ' ');
+    } else {
+      const compactHklMatch = line.match(/[\(\[]\s*(-?\d{3,4})\s*[\)\]]/);
+      if (compactHklMatch) {
+        const digits = compactHklMatch[1];
+        if (digits.length === 3) {
+          extractedH = parseInt(digits[0], 10);
+          extractedK = parseInt(digits[1], 10);
+          extractedL = parseInt(digits[2], 10);
+          hklString = `(${extractedH} ${extractedK} ${extractedL})`;
+          line = line.replace(compactHklMatch[0], ' ');
+        }
+      }
+    }
+
+    // Split tokens by comma, tab, whitespace, semicolon
+    const tokens = line.split(/[\s,;\t]+/).filter(v => v !== '');
+    if (tokens.length === 0) continue;
+
+    // Detect header row: if first token is non-numeric or standard column heading text
+    const firstNum = parseFloat(tokens[0]);
+    if (isNaN(firstNum)) {
+      continue;
+    }
+
+    const nums = tokens.map(parseFloat).filter(v => !isNaN(v));
+    if (nums.length === 0) continue;
+
+    const twoTheta = nums[0];
+    if (isNaN(twoTheta) || twoTheta <= 0) continue;
+
+    const intensity = nums.length > 1 ? nums[1] : 100;
+    let h = extractedH;
+    let k = extractedK;
+    let l = extractedL;
+    let fwhm: number | undefined = undefined;
+    let dSpacing: number | undefined = undefined;
+
+    // Calculate theoretical d-spacing via Bragg's Law (Cu Ka = 1.5406 A)
+    const rad = (twoTheta / 2) * (Math.PI / 180);
+    const sinTheta = Math.sin(rad);
+    const calcD = sinTheta > 0 ? 1.5406 / (2 * sinTheta) : undefined;
+
+    if (h === undefined && nums.length >= 5) {
+      // 5-column or 6-column format: 2θ, Intensity, h, k, l, [FWHM]
+      h = Math.round(nums[2]);
+      k = Math.round(nums[3]);
+      l = Math.round(nums[4]);
+      hklString = `(${h} ${k} ${l})`;
+      if (nums.length >= 6) {
+        fwhm = nums[5];
+      }
+    } else if (h === undefined && nums.length === 3) {
+      // Could be: 2θ, Intensity, dSpacing OR 2θ, Intensity, FWHM
+      if (nums[2] < 15 && nums[2] > 0.4) {
+        dSpacing = nums[2];
+      } else if (nums[2] < 2) {
+        fwhm = nums[2];
+      }
+    } else if (nums.length === 4 && h === undefined) {
+      // Could be: 2θ, Intensity, FWHM, dSpacing
+      fwhm = nums[2];
+      dSpacing = nums[3];
+    } else if (nums.length >= 6 && h !== undefined) {
+      fwhm = nums[2];
+      dSpacing = nums[3];
+    }
+
+    if (dSpacing === undefined && calcD !== undefined) {
+      dSpacing = parseFloat(calcD.toFixed(4));
+    }
+
+    results.push({
+      twoTheta,
+      intensity,
+      h,
+      k,
+      l,
+      hkl: hklString || (h !== undefined && k !== undefined && l !== undefined ? `(${h} ${k} ${l})` : undefined),
+      fwhm,
+      dSpacing
+    });
+  }
+
+  return results;
 };
 
 export const calculateMonshiScherrer = (
