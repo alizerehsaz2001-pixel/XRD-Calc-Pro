@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
+import React, { useState, useMemo } from 'react';
+import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -21,16 +19,35 @@ import {
 } from 'lucide-react';
 import { playSynthTone } from '../../utils/sound';
 
+const InlineMath: React.FC<{ tex: string }> = ({ tex }) => {
+  const html = useMemo(() => {
+    try {
+      return katex.renderToString(tex, { displayMode: false, throwOnError: false });
+    } catch {
+      return tex;
+    }
+  }, [tex]);
+
+  return <span className="inline-flex items-center px-1 font-mono text-slate-200" dangerouslySetInnerHTML={{ __html: html }} />;
+};
+
 export const RIRTheoryGuide: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'chung' | 'matrix' | 'error' | 'internal' | 'mac'>('chung');
 
-  const renderMathBlock = (tex: string) => (
-    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 shadow-inner flex justify-center overflow-x-auto my-3 prose prose-invert prose-p:my-0 prose-math:text-emerald-400">
-      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-        {`$$${tex}$$`}
-      </ReactMarkdown>
-    </div>
-  );
+  const renderMathBlock = (tex: string) => {
+    let html = '';
+    try {
+      html = katex.renderToString(tex, { displayMode: true, throwOnError: false });
+    } catch {
+      html = tex;
+    }
+
+    return (
+      <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 shadow-inner flex justify-center overflow-x-auto my-3 text-emerald-400">
+        <div dangerouslySetInnerHTML={{ __html: html }} />
+      </div>
+    );
+  };
 
   const TABS = [
     { id: 'chung', label: 'Chung Adiabatic', icon: <FlaskConical className="w-3.5 h-3.5" /> },
@@ -98,22 +115,22 @@ export const RIRTheoryGuide: React.FC = () => {
                   <h3 className="text-sm font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest">
                     <Zap className="w-4 h-4" /> The Klug-Alexander General Intensity Equation
                   </h3>
-                  <p className="text-[13px] text-slate-400">
+                  <div className="text-[13px] text-slate-400">
                     The integrated intensity <code className="text-emerald-300 bg-emerald-500/10 px-1 rounded">I_i</code> of a diffraction peak from crystalline phase <code className="text-emerald-300 bg-emerald-500/10 px-1 rounded">i</code> in a multi-phase mixture is governed by:
-                  </p>
+                  </div>
                   {renderMathBlock('I_i = \\frac{K_i \\cdot W_i}{\\rho_i \\cdot \\mu_m^*}')}
-                  <p className="text-[13px] text-slate-400">
+                  <div className="text-[13px] text-slate-400">
                     where <code className="text-slate-200">W_i</code> is the weight fraction of phase <code className="text-slate-200">i</code>, <code className="text-slate-200">\rho_i</code> is its crystallographic density, <code className="text-slate-200">K_i</code> is a structure factor and instrument proportionality constant, and <code className="text-slate-200">\mu_m^*</code> is the total mass attenuation coefficient (MAC) of the mixture.
-                  </p>
+                  </div>
                 </div>
 
                 <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 space-y-3 shadow-sm hover:border-emerald-500/20 transition-colors">
                   <h3 className="text-sm font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest">
                     <Scale className="w-4 h-4" /> Chung's Elimination of Matrix Absorption
                   </h3>
-                  <p className="text-[13px] text-slate-400">
-                    In 1974, F. H. Chung demonstrated that when all crystalline components in a sample are identified and the sum of crystalline fractions equals 100% (<ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\sum W_i = 1$`}</ReactMarkdown>), the unknown mixture absorption <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\mu_m^*$`}</ReactMarkdown> cancels out completely when dividing each phase intensity by its Reference Intensity Ratio (<ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$RIR_i = I_i / I_c$`}</ReactMarkdown> relative to Corundum α-Al₂O₃):
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    In 1974, F. H. Chung demonstrated that when all crystalline components in a sample are identified and the sum of crystalline fractions equals 100% (<InlineMath tex="\sum W_i = 1" />), the unknown mixture absorption <InlineMath tex="\mu_m^*" /> cancels out completely when dividing each phase intensity by its Reference Intensity Ratio (<InlineMath tex="RIR_i = I_i / I_c" /> relative to Corundum α-Al₂O₃):
+                  </div>
                   {renderMathBlock('W_i = \\frac{\\frac{I_i}{RIR_i}}{\\sum_{j=1}^n \\frac{I_j}{RIR_j}}')}
                 </div>
               </>
@@ -125,17 +142,17 @@ export const RIRTheoryGuide: React.FC = () => {
                   <h3 className="text-sm font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest">
                     <Grid className="w-4 h-4" /> Vector & Matrix Representation
                   </h3>
-                  <p className="text-[13px] text-slate-400">
-                    Let <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\mathbf{I} = [I_1, I_2, \\dots, I_n]^T$`}</ReactMarkdown> be the vector of observed Bragg peak intensities and <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\mathbf{K} = [K_1, K_2, \\dots, K_n]^T$`}</ReactMarkdown> be the vector of RIR constants. We define the diagonal scaling matrix <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\mathbf{K}^{-1}$`}</ReactMarkdown>:
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    Let <InlineMath tex="\mathbf{I} = [I_1, I_2, \dots, I_n]^T" /> be the vector of observed Bragg peak intensities and <InlineMath tex="\mathbf{K} = [K_1, K_2, \dots, K_n]^T" /> be the vector of RIR constants. We define the diagonal scaling matrix <InlineMath tex="\mathbf{K}^{-1}" />:
+                  </div>
                   {renderMathBlock('\\mathbf{K}^{-1} = \\begin{bmatrix} 1/K_1 & 0 & \\dots & 0 \\\\ 0 & 1/K_2 & \\dots & 0 \\\\ \\vdots & \\vdots & \\ddots & \\vdots \\\\ 0 & 0 & \\dots & 1/K_n \\end{bmatrix}')}
-                  <p className="text-[13px] text-slate-400">
-                    The reduced intensity vector is defined as <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\tilde{\\mathbf{I}} = \\mathbf{K}^{-1} \\mathbf{I}$`}</ReactMarkdown>. The scalar total reduced intensity <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$S$`}</ReactMarkdown> is given by the inner product with the all-ones vector <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\mathbf{1}$`}</ReactMarkdown>:
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    The reduced intensity vector is defined as <InlineMath tex="\tilde{\mathbf{I}} = \mathbf{K}^{-1} \mathbf{I}" />. The scalar total reduced intensity <InlineMath tex="S" /> is given by the inner product with the all-ones vector <InlineMath tex="\mathbf{1}" />:
+                  </div>
                   {renderMathBlock('S = \\mathbf{1}^T \\tilde{\\mathbf{I}} = \\mathbf{1}^T \\mathbf{K}^{-1} \\mathbf{I} = \\sum_{k=1}^n \\frac{I_k}{K_k}')}
-                  <p className="text-[13px] text-slate-400">
-                    The normalized weight fraction vector <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\mathbf{w}$`}</ReactMarkdown> is thus:
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    The normalized weight fraction vector <InlineMath tex="\mathbf{w}" /> is thus:
+                  </div>
                   {renderMathBlock('\\mathbf{w} = \\frac{1}{S} \\tilde{\\mathbf{I}} = \\frac{\\mathbf{K}^{-1} \\mathbf{I}}{\\mathbf{1}^T \\mathbf{K}^{-1} \\mathbf{I}}')}
                 </div>
               </>
@@ -147,14 +164,14 @@ export const RIRTheoryGuide: React.FC = () => {
                   <h3 className="text-sm font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest">
                     <Activity className="w-4 h-4" /> Multivariate Analytical Error Propagation
                   </h3>
-                  <p className="text-[13px] text-slate-400">
-                    Because the normalization constraint creates cross-phase statistical correlations (<ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\sum w_i = 1$`}</ReactMarkdown>), naive independent error propagation is mathematically invalid. We compute the exact Jacobian tensor:
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    Because the normalization constraint creates cross-phase statistical correlations (<InlineMath tex="\sum w_i = 1" />), naive independent error propagation is mathematically invalid. We compute the exact Jacobian tensor:
+                  </div>
                   {renderMathBlock('J_{I, ij} = \\frac{\\partial w_i}{\\partial I_j} = \\frac{1}{S \\cdot K_j} (\\delta_{ij} - w_i)')}
                   {renderMathBlock('J_{K, ij} = \\frac{\\partial w_i}{\\partial K_j} = -\\frac{w_i}{K_j} (\\delta_{ij} - w_j)')}
-                  <p className="text-[13px] text-slate-400">
-                    Applying the generalized tensor covariance transformation yields the complete <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$n \\times n$`}</ReactMarkdown> covariance matrix:
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    Applying the generalized tensor covariance transformation yields the complete <InlineMath tex="n \times n" /> covariance matrix:
+                  </div>
                   {renderMathBlock('\\mathbf{\\Sigma}_{\\mathbf{w}} = \\mathbf{J}_{\\mathbf{I}} \\mathbf{\\Sigma}_{\\mathbf{I}} \\mathbf{J}_{\\mathbf{I}}^T + \\mathbf{J}_{\\mathbf{K}} \\mathbf{\\Sigma}_{\\mathbf{K}} \\mathbf{J}_{\\mathbf{K}}^T')}
                 </div>
               </>
@@ -166,9 +183,9 @@ export const RIRTheoryGuide: React.FC = () => {
                   <h3 className="text-sm font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest">
                     <Fingerprint className="w-4 h-4" /> Spiking Standard Dilution & Direct Amorphous Determination
                   </h3>
-                  <p className="text-[13px] text-slate-400">
-                    When an amorphous (non-crystalline) phase is present, standard RIR overestimates crystalline weight fractions because the amorphous content does not produce sharp Bragg peaks. Adding a known mass fraction <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$W_s$`}</ReactMarkdown> of an internal standard solves this directly:
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    When an amorphous (non-crystalline) phase is present, standard RIR overestimates crystalline weight fractions because the amorphous content does not produce sharp Bragg peaks. Adding a known mass fraction <InlineMath tex="W_s" /> of an internal standard solves this directly:
+                  </div>
                   {renderMathBlock('W_i^{\\text{orig}} = \\left( \\frac{I_i}{I_s} \\right) \\left( \\frac{RIR_s}{RIR_i} \\right) \\left( \\frac{W_s}{1 - W_s} \\right)')}
                   {renderMathBlock('W_{\\text{amorphous}} = 100\\% - \\sum_{i=1}^n W_i^{\\text{orig}}')}
                 </div>
@@ -181,9 +198,9 @@ export const RIRTheoryGuide: React.FC = () => {
                   <h3 className="text-sm font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest">
                     <Layers className="w-4 h-4" /> Volumetric Fraction Transformation
                   </h3>
-                  <p className="text-[13px] text-slate-400">
-                    Given crystalline weight fractions <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$w_i$`}</ReactMarkdown> and crystallographic densities <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\rho_i$`}</ReactMarkdown> (g/cm³), volume fractions <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$v_i$`}</ReactMarkdown> are obtained through the diagonal density matrix <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} className="inline-block prose prose-invert prose-p:my-0 prose-math:text-slate-300">{`$\\mathbf{D} = \\text{diag}(\\rho_1, \\dots, \\rho_n)$`}</ReactMarkdown>:
-                  </p>
+                  <div className="text-[13px] text-slate-400">
+                    Given crystalline weight fractions <InlineMath tex="w_i" /> and crystallographic densities <InlineMath tex="\rho_i" /> (g/cm³), volume fractions <InlineMath tex="v_i" /> are obtained through the diagonal density matrix <InlineMath tex="\mathbf{D} = \text{diag}(\rho_1, \dots, \rho_n)" />:
+                  </div>
                   {renderMathBlock('v_i = \\frac{\\frac{w_i}{\\rho_i}}{\\sum_{j=1}^n \\frac{w_j}{\\rho_j}} = \\frac{\\mathbf{D}^{-1} \\mathbf{w}}{\\mathbf{1}^T \\mathbf{D}^{-1} \\mathbf{w}}')}
                 </div>
 
@@ -191,9 +208,9 @@ export const RIRTheoryGuide: React.FC = () => {
                   <h3 className="text-sm font-black text-emerald-400 flex items-center gap-2 uppercase tracking-widest">
                     <Cpu className="w-4 h-4" /> Total Mixture Mass Attenuation Coefficient
                   </h3>
-                  <p className="text-[13px] text-slate-400">
+                  <div className="text-[13px] text-slate-400">
                     The effective mass attenuation coefficient of the whole composite sample is the linear sum of component MACs weighted by their true mass fractions:
-                  </p>
+                  </div>
                   {renderMathBlock('\\mu_{\\text{sample}}^* = \\sum_{i=1}^n W_i^{\\text{total}} \\mu_i^* + W_{\\text{amorphous}} \\mu_{\\text{amorphous}}^*')}
                 </div>
               </>

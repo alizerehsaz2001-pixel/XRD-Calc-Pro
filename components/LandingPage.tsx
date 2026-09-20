@@ -67,6 +67,8 @@ import { WorkflowsSection } from './landing/WorkflowsSection';
 import { ScherrerBroadeningDemo } from './landing/ScherrerBroadeningDemo';
 import { InteractiveHeroDiffractionShowcase } from './landing/InteractiveHeroDiffractionShowcase';
 import { WelcomeTourModal } from './landing/WelcomeTourModal';
+import { ExperimentQuickLaunchpad } from './landing/ExperimentQuickLaunchpad';
+import { WelcomeFloatingDock } from './landing/WelcomeFloatingDock';
 
 // --- Background Decorations ---
 const DiffractionGrid = () => (
@@ -1212,6 +1214,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showWelcomeTour, setShowWelcomeTour] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   
   const heroSearchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1341,6 +1344,79 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
 
     return [...matchedModules, ...matchedMaterials].slice(0, 7);
   }, [heroSearchTerm, searchCategory]);
+
+  const defaultPopularSuggestions = useMemo(() => [
+    {
+      type: 'module' as const,
+      id: 'bragg',
+      name: 'Bragg Diffraction Simulator',
+      description: 'Calculate 2θ reflections, reciprocal d-spacings, and structure factor intensities.',
+      badge: 'Popular',
+      formula: 'nλ = 2d sinθ',
+      category: 'Fundamentals'
+    },
+    {
+      type: 'module' as const,
+      id: 'scherrer',
+      name: 'Scherrer Crystallite Sizing',
+      description: 'Extract mean crystallite domain size D from FWHM line broadening.',
+      badge: 'Core Lab',
+      formula: 'D = Kλ / (β cosθ)',
+      category: 'Crystallite Size'
+    },
+    {
+      type: 'module' as const,
+      id: 'wh',
+      name: 'Williamson-Hall Microstrain Plot',
+      description: 'Deconvolve finite domain size from lattice microstrain using UDM/USDM models.',
+      badge: 'Strain',
+      formula: 'β cosθ = Kλ/D + 4ε sinθ',
+      category: 'Microstrain'
+    },
+    {
+      type: 'module' as const,
+      id: 'rir',
+      name: 'RIR Quantitative Phase Analysis',
+      description: 'Chung matrix flushing method using reference intensity ratios.',
+      badge: 'Quantitative',
+      formula: 'Chung QPA',
+      category: 'Refinement'
+    },
+    {
+      type: 'module' as const,
+      id: 'dl',
+      name: 'AI Phase Identifier (Deep Learning)',
+      description: 'Autonomous neural network pattern matching against 1,200,000+ COD standards.',
+      badge: 'AI Core',
+      formula: 'COD Neural Net',
+      category: 'AI & Data'
+    },
+    {
+      type: 'material' as const,
+      id: 'Silicon',
+      name: 'Silicon (Si Standard)',
+      description: 'Standard cubic diamond reference material for XRD zero-shift calibration.',
+      badge: 'Si Standard',
+      formula: 'Fd-3m (#227)',
+      category: 'Crystal Standard'
+    },
+    {
+      type: 'material' as const,
+      id: 'Anatase',
+      name: 'Titanium Dioxide (TiO₂)',
+      description: 'Tetragonal polymorph standard for photocatalysis and solar cells.',
+      badge: 'TiO₂ Anatase',
+      formula: 'I4₁/amd (#141)',
+      category: 'Crystal Standard'
+    }
+  ], []);
+
+  const displaySuggestions = useMemo(() => {
+    if (!heroSearchTerm || heroSearchTerm.trim().length === 0) {
+      return defaultPopularSuggestions;
+    }
+    return filteredHeroSuggestions;
+  }, [heroSearchTerm, defaultPopularSuggestions, filteredHeroSuggestions]);
 
   useEffect(() => {
     try {
@@ -1693,13 +1769,13 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   <span>{isRegistered && userName ? `${t('Welcome')}, ${userName}` : t("Welcome to XRD CalcPro", "Welcome to XRD CalcPro")}</span>
                 </div>
 
-                {/* 3-Step Guided Tour Quick Action */}
+                {/* 4-Stage Guided Tour Quick Action */}
                 <button
                   onClick={() => setShowWelcomeTour(true)}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-900/80 hover:bg-violet-950/80 border border-violet-500/40 hover:border-cyan-400/60 text-slate-200 hover:text-white font-mono text-xs font-bold transition-all shadow-lg cursor-pointer group/tour active:scale-95 ${isRTL ? "flex-row-reverse" : ""}`}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-cyan-300 group-hover/tour:rotate-12 transition-transform" />
-                  <span>{t("3-Step Guided Tour", "3-Step Guided Tour")}</span>
+                  <span>{t("4-Stage Guided Tour", "4-Stage Guided Tour")}</span>
                   <ArrowRight className="w-3 h-3 text-cyan-400 group-hover/tour:translate-x-0.5 transition-transform" />
                 </button>
               </motion.div>
@@ -1764,14 +1840,61 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                     onChange={(e) => {
                       setHeroSearchTerm(e.target.value);
                       setShowHeroSuggestions(true);
+                      setActiveSuggestionIndex(-1);
                     }}
                     onFocus={() => setShowHeroSuggestions(true)}
                     placeholder={t("Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'", "Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'")} 
                     className={`flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-base sm:text-lg px-2 w-full ${isRTL ? "text-right font-sans" : "text-left font-sans"}`}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleEnterApp(isRegistered ? 'login' : 'register');
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (displaySuggestions.length > 0) {
+                          setActiveSuggestionIndex(prev => (prev + 1) % displaySuggestions.length);
+                        }
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (displaySuggestions.length > 0) {
+                          setActiveSuggestionIndex(prev => (prev - 1 + displaySuggestions.length) % displaySuggestions.length);
+                        }
+                      } else if (e.key === 'Enter') {
+                        if (activeSuggestionIndex >= 0 && displaySuggestions[activeSuggestionIndex]) {
+                          e.preventDefault();
+                          const item = displaySuggestions[activeSuggestionIndex];
+                          setHeroSearchTerm(item.name);
+                          setShowHeroSuggestions(false);
+                          if (item.type === 'module') {
+                            handleEnterApp(isRegistered ? 'login' : 'register', item.id);
+                          } else {
+                            try {
+                              localStorage.setItem("xrd_initial_search", item.name);
+                            } catch (err) {}
+                            handleEnterApp(isRegistered ? 'login' : 'register', 'database');
+                          }
+                        } else {
+                          handleEnterApp(isRegistered ? 'login' : 'register');
+                        }
+                      } else if (e.key === 'Escape') {
+                        setShowHeroSuggestions(false);
+                        setActiveSuggestionIndex(-1);
+                        searchInputRef.current?.blur();
+                      }
                     }}
                   />
+
+                  {/* Clear Search Button */}
+                  {heroSearchTerm && (
+                    <button
+                      onClick={() => {
+                        setHeroSearchTerm('');
+                        setActiveSuggestionIndex(-1);
+                        searchInputRef.current?.focus();
+                      }}
+                      className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mr-1 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
 
                   {/* Keyboard shortcut badge */}
                   <div className="hidden lg:flex items-center gap-1 mr-2 px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-[10px] font-mono text-slate-400 shrink-0 select-none">
@@ -1798,53 +1921,69 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 </div>
 
                 {/* Real-time floating suggestions */}
-                {showHeroSuggestions && filteredHeroSuggestions.length > 0 && (
-                  <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300 border border-white/5">
-                    <div className={`text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mb-3 px-2 flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span>{t("Matches in", "Matches in")} {searchCategory === 'all' ? t('All Categories', 'All Categories') : searchCategory}</span>
-                      <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">{t("Local rapid index", "Local rapid index")}</span>
+                {showHeroSuggestions && displaySuggestions.length > 0 && (
+                  <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/15 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300 border border-white/10">
+                    <div className={`text-[10px] font-black uppercase text-slate-400 tracking-[0.15em] mb-3 px-2 flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
+                      <span>
+                        {heroSearchTerm.trim() 
+                          ? `${t("Matches in", "Matches in")} ${searchCategory === 'all' ? t('All Categories', 'All Categories') : searchCategory}`
+                          : t("Top Recommended Tools & Reference Standards", "Top Recommended Tools & Reference Standards")}
+                      </span>
+                      <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">
+                        {heroSearchTerm.trim() ? t("Local rapid index", "Local rapid index") : t("Instant Jump", "Instant Jump")}
+                      </span>
                     </div>
                     <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                      {filteredHeroSuggestions.map((item) => (
-                        <div 
-                          key={`${item.type}-${item.id}`}
-                          onClick={() => {
-                            setHeroSearchTerm(item.name);
-                            setShowHeroSuggestions(false);
-                            if (item.type === 'module') {
-                              handleEnterApp(isRegistered ? 'login' : 'register', item.id);
-                            } else {
-                              try {
-                                localStorage.setItem("xrd_initial_search", item.name);
-                              } catch (err) {}
-                              handleEnterApp(isRegistered ? 'login' : 'register', 'database');
-                            }
-                          }}
-                          className={`w-full p-3 rounded-2xl bg-white/[0.01] hover:bg-violet-600/10 border border-transparent hover:border-violet-500/20 transition-all duration-200 cursor-pointer flex items-center justify-between group/suggest ${isRTL ? "flex-row-reverse text-right" : ""}`}
-                        >
-                          <div className="flex flex-col pr-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-slate-200 group-hover/suggest:text-violet-300 transition-colors">{item.name}</span>
-                              <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded ${
-                                item.type === 'module' 
-                                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
-                                  : 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
-                              }`}>
-                                {item.type === 'module' ? 'Instrument' : 'Standard'}
-                              </span>
+                      {displaySuggestions.map((item, idx) => {
+                        const isSelected = idx === activeSuggestionIndex;
+                        return (
+                          <div 
+                            key={`${item.type}-${item.id}`}
+                            onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                            onClick={() => {
+                              setHeroSearchTerm(item.name);
+                              setShowHeroSuggestions(false);
+                              if (item.type === 'module') {
+                                handleEnterApp(isRegistered ? 'login' : 'register', item.id);
+                              } else {
+                                try {
+                                  localStorage.setItem("xrd_initial_search", item.name);
+                                } catch (err) {}
+                                handleEnterApp(isRegistered ? 'login' : 'register', 'database');
+                              }
+                            }}
+                            className={`w-full p-3 rounded-2xl transition-all duration-200 cursor-pointer flex items-center justify-between group/suggest ${
+                              isSelected 
+                                ? 'bg-violet-600/25 border border-violet-500/50 shadow-[0_0_15px_rgba(139,92,246,0.3)]' 
+                                : 'bg-white/[0.02] hover:bg-white/[0.06] border border-transparent hover:border-white/10'
+                            } ${isRTL ? "flex-row-reverse text-right" : ""}`}
+                          >
+                            <div className="flex flex-col pr-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-bold transition-colors ${isSelected ? 'text-cyan-200' : 'text-slate-200 group-hover/suggest:text-violet-300'}`}>
+                                  {item.name}
+                                </span>
+                                <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded ${
+                                  item.type === 'module' 
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
+                                    : 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
+                                }`}>
+                                  {item.type === 'module' ? 'Instrument' : 'Standard'}
+                                </span>
+                              </div>
+                              <span className="text-xs text-slate-400 font-sans line-clamp-1 mt-0.5">{item.description}</span>
                             </div>
-                            <span className="text-xs text-slate-500 font-sans line-clamp-1 mt-0.5">{item.description}</span>
+                            <div className={`flex items-center gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+                              {item.badge && (
+                                <span className="font-mono text-[10px] uppercase tracking-wider bg-slate-800/80 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700/60 font-medium">
+                                  {item.badge}
+                                </span>
+                              )}
+                              <ArrowRight className={`w-3.5 h-3.5 transition-colors ${isSelected ? 'text-cyan-300 translate-x-0.5' : 'text-slate-500 group-hover/suggest:text-cyan-400'}`} />
+                            </div>
                           </div>
-                          <div className={`flex items-center gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-                            {item.badge && (
-                              <span className="font-mono text-[10px] uppercase tracking-wider bg-slate-800/80 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700/60 font-medium">
-                                {item.badge}
-                              </span>
-                            )}
-                            <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover/suggest:text-cyan-400 transition-colors" />
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -2006,6 +2145,15 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                </div>
             </div>
           </div>
+        </section>
+
+        {/* --- 1-Click Crystallography Experiment Presets --- */}
+        <section id="presets">
+          <ExperimentQuickLaunchpad 
+            onLaunchExperiment={(targetMod) => handleEnterApp(isRegistered ? 'login' : 'register', targetMod)}
+            onOpenTour={() => setShowWelcomeTour(true)}
+            isRTL={isRTL}
+          />
         </section>
 
         {/* --- Interactive Bragg's Law Sandbox Lab --- */}
@@ -2696,32 +2844,13 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       )}
 
       {/* Floating Quick Action Dock */}
-      <div className={`fixed bottom-6 ${isRTL ? 'left-6' : 'right-6'} z-50 flex items-center gap-2 pointer-events-auto`}>
-        {showBackToTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="p-3 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/80 shadow-2xl backdrop-blur-xl transition-all cursor-pointer hover:-translate-y-0.5 active:scale-95"
-            title="Back to Top"
-            aria-label="Back to Top"
-          >
-            <ChevronUp className="w-5 h-5" />
-          </motion.button>
-        )}
-
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-          className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 text-white font-bold text-xs shadow-[0_0_25px_rgba(139,92,246,0.5)] border border-white/20 backdrop-blur-xl flex items-center gap-2 cursor-pointer"
-        >
-          <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
-          <span className="hidden sm:inline">{isRegistered ? 'Go to Suite' : 'Launch XRD Workbench'}</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </motion.button>
-      </div>
+      <WelcomeFloatingDock
+        isVisible={isScrolled}
+        onOpenTour={() => setShowWelcomeTour(true)}
+        onLaunchApp={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+        isRegistered={isRegistered}
+        isRTL={isRTL}
+      />
     </div>
   );
 };

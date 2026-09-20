@@ -31,7 +31,8 @@ import {
   AlertTriangle,
   Cpu,
   Share2,
-  Code2
+  Code2,
+  GitMerge
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
@@ -56,6 +57,8 @@ import { RIRDatabaseExplorer, RIRDatabaseItem, DATABASE_PRESETS } from './rir/RI
 import { RIRTheoryGuide } from './rir/RIRTheoryGuide';
 import { RIRScriptExport } from './rir/RIRScriptExport';
 import { RIRBrindleyInspector, calcBrindleyTau } from './rir/RIRBrindleyInspector';
+import { PawleyRIRBridge } from './rir/PawleyRIRBridge';
+import { computeRIRCovariance } from './rir/rirMathUtils';
 import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
@@ -144,7 +147,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
   const [computingStep, setComputingStep] = useState(-1);
 
-  const [mainTab, setMainTab] = useState<'analysis' | 'matrix' | 'calibration' | 'spectrum' | 'database' | 'microabsorption' | 'script' | 'theory'>('analysis');
+  const [mainTab, setMainTab] = useState<'analysis' | 'pawley_bridge' | 'matrix' | 'calibration' | 'spectrum' | 'database' | 'microabsorption' | 'script' | 'theory'>('analysis');
   const [amorphousWtPct, setAmorphousWtPct] = useState<number>(0);
   const [internalStandardMode, setInternalStandardMode] = useState<boolean>(false);
   const [standardPhaseId, setStandardPhaseId] = useState<string>('3');
@@ -279,6 +282,30 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     updatePhase(targetId, 'rir', calibratedRIRValue);
   };
 
+  // Pawley/Le Bail Bridge Handlers
+  const handleImportPawleyPhase = (newPhase: RIRMatrixPhase) => {
+    playSynthTone('success');
+    const colorIndex = phases.length % COLOR_PALETTE.length;
+    setPhases(prev => [
+      ...prev,
+      {
+        ...newPhase,
+        notes: `Imported from Pawley Whole-Pattern Refinement (${newPhase.hkl})`,
+        color: COLOR_PALETTE[colorIndex]
+      }
+    ]);
+    setActionNotification(`Imported ${newPhase.name} from Pawley deconvolution!`);
+    setTimeout(() => setActionNotification(null), 3500);
+  };
+
+  const handleUpdatePawleyIntensity = (phaseId: string, refinedIntensity: number) => {
+    playSynthTone('success');
+    updatePhase(phaseId, 'intensity', refinedIntensity);
+    const pName = phases.find(p => p.id === phaseId)?.name || 'Phase';
+    setActionNotification(`Updated ${pName} peak intensity to ${refinedIntensity} cps.`);
+    setTimeout(() => setActionNotification(null), 3500);
+  };
+
   // Quantitative calculations
   const calculations = useMemo(() => {
     // 1. Effective intensities (incorporating Brindley microabsorption if active)
@@ -351,6 +378,22 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     const effectiveAmorphousWtPct = internalStandardMode && standardPhase ? measuredAmorphousPct : amorphousWtPct;
     const amorphousFactor = (100 - Math.min(99, Math.max(0, effectiveAmorphousWtPct))) / 100;
 
+    // Calculate exact analytical Jacobian covariance propagation for adiabatic RIR
+    const covarAnalysis = computeRIRCovariance(
+      effPhases.map(p => ({
+        id: p.id,
+        name: p.name,
+        hkl: p.hkl,
+        twoTheta: p.twoTheta,
+        intensity: p.effI,
+        rir: p.rir,
+        density: p.density,
+        mac: p.mac
+      })),
+      intensityUncertaintyPct,
+      rirUncertaintyPct
+    );
+
     const phaseResults = effPhases.map((p, idx) => {
       let crystallineFraction = 0;
       let totalSampleFraction = 0;
@@ -375,8 +418,13 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       const crystallineVolFraction = totalVolumeFactor > 0 ? ((p.rI / p.rho) / totalVolumeFactor) * 100 : 0;
       const totalSampleVolFraction = crystallineVolFraction * amorphousFactor;
 
-      const errMarginCrystalline = crystallineFraction * baseRelError;
-      const errMarginTotal = totalSampleFraction * baseRelError;
+      // Use analytical covariance standard deviation if available (converted to wt%), fallback to base relative error
+      const analyticalSigmaCryst = (covarAnalysis.stdDevW && covarAnalysis.stdDevW[idx] !== undefined)
+        ? covarAnalysis.stdDevW[idx] * 100
+        : crystallineFraction * baseRelError;
+
+      const errMarginCrystalline = analyticalSigmaCryst;
+      const errMarginTotal = analyticalSigmaCryst * amorphousFactor;
       const errMarginVol = crystallineVolFraction * baseRelError;
 
       weightedMacSum += (crystallineFraction / 100) * p.mac;
@@ -654,6 +702,18 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             >
               <FlaskConical className="w-4 h-4 text-indigo-300" />
               <span>Phase Engine</span>
+            </button>
+
+            <button
+              onClick={() => { playSynthTone('tick'); setMainTab('pawley_bridge'); }}
+              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                mainTab === 'pawley_bridge'
+                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+              }`}
+            >
+              <GitMerge className="w-4 h-4 text-violet-300" />
+              <span>Pawley Pipeline</span>
             </button>
 
             <button
@@ -1220,6 +1280,15 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB: PAWLEY & LE BAIL DECONVOLUTION BRIDGE */}
+          {mainTab === 'pawley_bridge' && (
+            <PawleyRIRBridge
+              currentPhases={phases}
+              onImportDecomposedPhase={handleImportPawleyPhase}
+              onUpdatePhaseIntensity={handleUpdatePawleyIntensity}
+            />
           )}
 
           {/* TAB 2: MATRIX ALGEBRA & COVARIANCE INSPECTOR */}

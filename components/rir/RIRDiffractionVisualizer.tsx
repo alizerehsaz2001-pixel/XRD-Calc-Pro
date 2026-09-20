@@ -48,7 +48,7 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
   amorphousWtPct,
   internalStandardPhaseId
 }) => {
-  const [spectrumMode, setSpectrumMode] = useState<'continuous' | 'stick'>('continuous');
+  const [spectrumMode, setSpectrumMode] = useState<'continuous' | 'decomposed' | 'stick'>('continuous');
   const [profileFWHM, setProfileFWHM] = useState<number>(0.28);
   const [selectedWavelengthIdx, setSelectedWavelengthIdx] = useState(0);
   const [showAmorphousHump, setShowAmorphousHump] = useState<boolean>(true);
@@ -222,7 +222,17 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
               }`}
             >
-              Continuous
+              Total Profile
+            </button>
+            <button
+              onClick={() => { playSynthTone('tick'); setSpectrumMode('decomposed'); }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                spectrumMode === 'decomposed'
+                  ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/20'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+              }`}
+            >
+              Decomposed Sub-Peaks
             </button>
             <button
               onClick={() => { playSynthTone('tick'); setSpectrumMode('stick'); }}
@@ -416,12 +426,31 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
                     isAnimationActive={false}
                   />
                 )}
+                {/* Individual phase sub-peaks when in decomposed mode */}
+                {spectrumMode === 'decomposed' && phases.map((p) => {
+                  if (visiblePhases[p.id] === false) return null;
+                  const phaseColor = p.color || '#6366f1';
+                  return (
+                    <Area
+                      key={`phase-area-${p.id}`}
+                      type="monotone"
+                      dataKey={p.name}
+                      stroke={phaseColor}
+                      strokeWidth={2}
+                      fill={phaseColor}
+                      fillOpacity={0.25}
+                      isAnimationActive={false}
+                    />
+                  );
+                })}
+
                 <Area
                   type="monotone"
                   dataKey="Total"
                   stroke="#06b6d4"
-                  strokeWidth={2.5}
-                  fill="url(#colorTotal)"
+                  strokeWidth={spectrumMode === 'decomposed' ? 2 : 2.5}
+                  strokeDasharray={spectrumMode === 'decomposed' ? '3 3' : undefined}
+                  fill={spectrumMode === 'decomposed' ? 'none' : 'url(#colorTotal)'}
                   isAnimationActive={false}
                 />
               </AreaChart>
