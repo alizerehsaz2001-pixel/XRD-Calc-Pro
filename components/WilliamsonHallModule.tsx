@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
+import { WHPeakDataManager } from './williamson_hall/WHPeakDataManager';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -1030,29 +1031,27 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               </div>
             </div>
 
-            {/* Raw Peak Input Textarea */}
-            <div className="bg-[#070D18] p-4 rounded-2xl border border-white/10">
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Binary className="w-3.5 h-3.5 text-emerald-400" />
-                  Peak Data (2θ, FWHM, h, k, l)
-                </label>
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="text-[8px] font-black uppercase text-red-400 hover:bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 flex items-center gap-1"
-                >
-                  <Trash2 className="w-2.5 h-2.5" /> Clear
-                </button>
-              </div>
-              <textarea
-                value={inputData}
-                onChange={(e) => setInputData(e.target.value)}
-                className="w-full h-28 px-3 py-2 bg-[#0A101C] text-emerald-300 border border-white/10 focus:border-emerald-500/60 rounded-xl outline-none font-mono text-xs leading-relaxed custom-scrollbar"
-                placeholder="2θ, FWHM, h, k, l"
-                spellCheck="false"
-              />
-            </div>
+            {/* Peak Data Manager (Dual Grid/Raw Editor with HKL indexing and Synthetic Synthesis) */}
+            <WHPeakDataManager
+              inputData={inputData}
+              onInputChange={(newVal) => setInputData(newVal)}
+              wavelength={wavelength}
+              constantK={constantK}
+              instFwhm={instFwhm}
+              isDecouplingEnabled={isDecouplingEnabled}
+              broadeningModel={broadeningModel}
+              excludedIndices={excludedIndices}
+              onToggleExcludePeak={toggleExcludePeak}
+              onSelectPreset={(data, name, ym, den) => {
+                setInputData(data);
+                if (ym) {
+                  setYoungsModulusGPa(ym);
+                  setIsModulusEnabled(true);
+                }
+                if (den) setMaterialDensityGcm3(den);
+                setExcludedIndices([]);
+              }}
+            />
 
             {/* Action Buttons */}
             <div className="space-y-2">

@@ -32,8 +32,14 @@ import {
   Sliders,
   Award,
   Target,
-  FileText
+  FileText,
+  Search,
+  ArrowUpDown,
+  Maximize2,
+  Filter
 } from 'lucide-react';
+import { ReflectionsDataManager } from './integral_breadth/ReflectionsDataManager';
+import { ReflectionInspectionDrawer } from './integral_breadth/ReflectionInspectionDrawer';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
 import { 
@@ -176,6 +182,12 @@ export const IntegralBreadthModule: React.FC = () => {
   const [avgSize, setAvgSize] = useState<number>(0);
   const [avgRmsStrain, setAvgRmsStrain] = useState<number>(0);
 
+  // Table filtering, sorting, and inspector states
+  const [tableSearchQuery, setTableSearchQuery] = useState<string>('');
+  const [tableSortField, setTableSortField] = useState<string>('twoTheta');
+  const [tableSortAsc, setTableSortAsc] = useState<boolean>(true);
+  const [selectedInspectResult, setSelectedInspectResult] = useState<{ result: IntegralBreadthResult; index: number } | null>(null);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (kMenuRef.current && !kMenuRef.current.contains(event.target as Node)) {
@@ -234,6 +246,59 @@ export const IntegralBreadthModule: React.FC = () => {
         materialDensity
       );
       setAdvancedResult(adv);
+    }
+  };
+
+  // Filtered and sorted results for reflections table
+  const displayedResults = useMemo(() => {
+    let filtered = [...results];
+    if (tableSearchQuery.trim()) {
+      const q = tableSearchQuery.toLowerCase().trim();
+      filtered = filtered.filter(r => 
+        r.twoTheta.toFixed(2).includes(q) || 
+        (r.hklString && r.hklString.toLowerCase().includes(q)) ||
+        (r.profileType && r.profileType.toLowerCase().includes(q))
+      );
+    }
+
+    filtered.sort((a, b) => {
+      let valA: number = 0;
+      let valB: number = 0;
+      if (tableSortField === 'twoTheta') {
+        valA = a.twoTheta;
+        valB = b.twoTheta;
+      } else if (tableSortField === 'fwhm') {
+        valA = a.fwhmObs || 0;
+        valB = b.fwhmObs || 0;
+      } else if (tableSortField === 'betaObs') {
+        valA = a.betaObsDeg || a.integralBreadthDeg || 0;
+        valB = b.betaObsDeg || b.integralBreadthDeg || 0;
+      } else if (tableSortField === 'shape') {
+        valA = a.shapeFactorPhi;
+        valB = b.shapeFactorPhi;
+      } else if (tableSortField === 'sizeDv') {
+        valA = a.volumeWeightedSizeDvNm || a.calcSizeNm;
+        valB = b.volumeWeightedSizeDvNm || b.calcSizeNm;
+      } else if (tableSortField === 'strain') {
+        valA = a.apparentRmsStrain || 0;
+        valB = b.apparentRmsStrain || 0;
+      } else if (tableSortField === 'dSpacing') {
+        valA = a.dSpacing || 0;
+        valB = b.dSpacing || 0;
+      }
+
+      return tableSortAsc ? valA - valB : valB - valA;
+    });
+
+    return filtered;
+  }, [results, tableSearchQuery, tableSortField, tableSortAsc]);
+
+  const handleSortTable = (field: string) => {
+    if (tableSortField === field) {
+      setTableSortAsc(!tableSortAsc);
+    } else {
+      setTableSortField(field);
+      setTableSortAsc(true);
     }
   };
 
@@ -574,22 +639,20 @@ plt.show()
               </div>
             </div>
 
-            {/* Input Data Box */}
-            <div className="bg-[#070D18] p-4 rounded-2xl border border-white/5">
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-purple-400" /> Reflections Data
-                </label>
-                <span className="text-[9px] font-mono text-slate-500">2θ, FWHM, Area, Imax, [h k l]</span>
-              </div>
-              <textarea
-                value={inputData}
-                onChange={(e) => setInputData(e.target.value)}
-                rows={5}
-                className="w-full px-3 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-xl focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-xs leading-relaxed"
-                placeholder="28.44, 0.22, 230, 1000, 1 1 1"
-              />
-            </div>
+            {/* Reflections Data Manager */}
+            <ReflectionsDataManager
+              inputData={inputData}
+              onInputChange={(val) => {
+                setInputData(val);
+                computeAll(val);
+              }}
+              wavelength={wavelength}
+              constantK={constantK}
+              materialDensity={materialDensity}
+              selectedMaterial={materialName}
+              onSelectPreset={handleSelectPreset}
+              results={results}
+            />
 
             {/* Physical Parameters */}
             <div className="bg-[#070D18] p-4 rounded-2xl border border-white/5 space-y-4">
@@ -897,28 +960,41 @@ plt.show()
         {activeTab === 'deconvolution' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Table of Reflections */}
-            <div className="bg-[#050A14] p-6 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
-              <div className="flex justify-between items-center mb-4">
+            <div className="bg-[#050A14] p-6 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden space-y-4">
+              <div className="flex flex-wrap justify-between items-center gap-3">
                 <div>
                   <h3 className="text-sm font-black text-white uppercase tracking-widest">Single-Line Voigt Peak Deconvolution Matrix</h3>
                   <p className="text-[10px] text-slate-500 font-mono mt-0.5">de Keijser analytical separation of Cauchy size (Dv, Da) and Gaussian strain (e_rms)</p>
                 </div>
-                <div className="flex gap-2">
+                
+                {/* Search & Export Actions */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Filter 2θ or HKL..."
+                      value={tableSearchQuery}
+                      onChange={(e) => setTableSearchQuery(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 bg-[#0A101C] text-purple-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-purple-500/50 w-44"
+                    />
+                  </div>
+
                   <button
                     onClick={handleExportCSV}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 rounded-xl border border-white/10 text-xs font-mono font-bold flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 rounded-xl border border-white/10 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer"
                   >
                     <Download className="w-3 h-3" /> CSV
                   </button>
                   <button
                     onClick={handleExportPython}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 rounded-xl border border-white/10 text-xs font-mono font-bold flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 rounded-xl border border-white/10 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer"
                   >
                     <FileCode2 className="w-3 h-3" /> Python
                   </button>
                   <button
                     onClick={handleCopyJSON}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 rounded-xl border border-white/10 text-xs font-mono font-bold flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-white/5 hover:bg-purple-500/20 text-slate-300 hover:text-purple-300 rounded-xl border border-white/10 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer"
                   >
                     {copiedNotification ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />} JSON
                   </button>
@@ -928,20 +1004,51 @@ plt.show()
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs font-mono">
                   <thead>
-                    <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider">
-                      <th className="py-2.5 px-3">2θ (deg)</th>
+                    <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider select-none bg-[#070D18]">
+                      <th onClick={() => handleSortTable('twoTheta')} className="py-2.5 px-3 cursor-pointer hover:text-white">
+                        <div className="flex items-center gap-1">
+                          <span>2θ (deg)</span>
+                          {tableSortField === 'twoTheta' && <span>{tableSortAsc ? '▲' : '▼'}</span>}
+                        </div>
+                      </th>
                       <th className="py-2.5 px-3">HKL</th>
-                      <th className="py-2.5 px-3">FWHM (°)</th>
-                      <th className="py-2.5 px-3">β_Obs (°)</th>
-                      <th className="py-2.5 px-3">Shape φ</th>
+                      <th onClick={() => handleSortTable('fwhm')} className="py-2.5 px-3 cursor-pointer hover:text-white">
+                        <div className="flex items-center gap-1">
+                          <span>FWHM (°)</span>
+                          {tableSortField === 'fwhm' && <span>{tableSortAsc ? '▲' : '▼'}</span>}
+                        </div>
+                      </th>
+                      <th onClick={() => handleSortTable('betaObs')} className="py-2.5 px-3 cursor-pointer hover:text-white">
+                        <div className="flex items-center gap-1">
+                          <span>β_Obs (°)</span>
+                          {tableSortField === 'betaObs' && <span>{tableSortAsc ? '▲' : '▼'}</span>}
+                        </div>
+                      </th>
+                      <th onClick={() => handleSortTable('shape')} className="py-2.5 px-3 cursor-pointer hover:text-white">
+                        <div className="flex items-center gap-1">
+                          <span>Shape φ</span>
+                          {tableSortField === 'shape' && <span>{tableSortAsc ? '▲' : '▼'}</span>}
+                        </div>
+                      </th>
                       <th className="py-2.5 px-3">Type</th>
-                      <th className="py-2.5 px-3">D_v (nm)</th>
+                      <th onClick={() => handleSortTable('sizeDv')} className="py-2.5 px-3 cursor-pointer hover:text-white">
+                        <div className="flex items-center gap-1">
+                          <span>D_v (nm)</span>
+                          {tableSortField === 'sizeDv' && <span>{tableSortAsc ? '▲' : '▼'}</span>}
+                        </div>
+                      </th>
                       <th className="py-2.5 px-3">D_a (nm)</th>
-                      <th className="py-2.5 px-3">RMS Strain</th>
+                      <th onClick={() => handleSortTable('strain')} className="py-2.5 px-3 cursor-pointer hover:text-white">
+                        <div className="flex items-center gap-1">
+                          <span>RMS Strain</span>
+                          {tableSortField === 'strain' && <span>{tableSortAsc ? '▲' : '▼'}</span>}
+                        </div>
+                      </th>
+                      <th className="py-2.5 px-3 text-right">Inspect</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {results.map((r, idx) => {
+                    {displayedResults.map((r, idx) => {
                       const isSelected = selectedPeakIndex === idx;
                       const profileColor = r.profileType === 'Lorentzian' ? 'text-blue-400 bg-blue-500/10' : r.profileType === 'Gaussian' ? 'text-emerald-400 bg-emerald-500/10' : 'text-purple-400 bg-purple-500/10';
                       return (
@@ -951,7 +1058,7 @@ plt.show()
                           className={`hover:bg-purple-500/10 cursor-pointer transition-colors ${isSelected ? 'bg-purple-500/15' : ''}`}
                         >
                           <td className="py-3 px-3 font-bold text-white">{r.twoTheta.toFixed(2)}°</td>
-                          <td className="py-3 px-3 text-purple-300">{r.hklString || `Peak ${idx+1}`}</td>
+                          <td className="py-3 px-3 text-purple-300 font-bold">{r.hklString || `Peak ${idx+1}`}</td>
                           <td className="py-3 px-3 text-slate-300">{r.fwhmObs?.toFixed(3)}°</td>
                           <td className="py-3 px-3 text-slate-300">{(r.betaObsDeg || r.integralBreadthDeg).toFixed(3)}°</td>
                           <td className="py-3 px-3 text-amber-300 font-bold">{r.shapeFactorPhi.toFixed(3)}</td>
@@ -962,7 +1069,18 @@ plt.show()
                           </td>
                           <td className="py-3 px-3 font-bold text-pink-400">{(r.volumeWeightedSizeDvNm || r.calcSizeNm).toFixed(2)}</td>
                           <td className="py-3 px-3 text-pink-300/80">{(r.areaWeightedSizeDaNm || r.calcSizeNm/2).toFixed(2)}</td>
-                          <td className="py-3 px-3 text-cyan-300">{(r.apparentRmsStrain || 0).toExponential(2)}</td>
+                          <td className="py-3 px-3 text-cyan-300 font-mono">{(r.apparentRmsStrain || 0).toExponential(2)}</td>
+                          <td className="py-3 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedInspectResult({ result: r, index: idx })}
+                              className="px-2 py-1 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 rounded-lg text-[10px] font-bold flex items-center gap-1 ml-auto cursor-pointer"
+                              title="Inspect physical math and derivation"
+                            >
+                              <Maximize2 className="w-3 h-3" />
+                              <span>Inspect</span>
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -1360,6 +1478,19 @@ plt.show()
           </div>
         )}
       </div>
+
+      {/* Reflection Inspection Modal */}
+      {selectedInspectResult && (
+        <ReflectionInspectionDrawer
+          reflection={selectedInspectResult.result}
+          index={selectedInspectResult.index}
+          wavelength={wavelength}
+          constantK={constantK}
+          materialDensity={materialDensity}
+          instFwhm={instBetaIB}
+          onClose={() => setSelectedInspectResult(null)}
+        />
+      )}
     </div>
   );
 };

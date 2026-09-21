@@ -328,6 +328,7 @@ export interface IntegralBreadthInput {
   area: number;
   iMax: number;
   hkl?: [number, number, number];
+  isExcluded?: boolean;
 }
 
 export interface IntegralBreadthResult {
@@ -357,6 +358,7 @@ export interface IntegralBreadthResult {
   hkl?: [number, number, number];
   hklString?: string;
   profileType?: 'Lorentzian' | 'Gaussian' | 'Pseudo-Voigt';
+  isExcluded?: boolean;
 }
 
 export interface IBModelComparisonItem {
@@ -430,6 +432,38 @@ export interface WAInputPoint {
   A2: number;
   A3?: number;
   A4?: number;
+  isExcluded?: boolean;
+  B1?: number; // Optional sine harmonic for asymmetry
+  B2?: number;
+  B3?: number;
+  B4?: number;
+}
+
+export interface WAHarmonicDeconvolvedPoint {
+  L_nm: number;
+  harmonicIndexN: number; // n = L / d1
+  A_size: number; // Pure size Fourier coefficient A_S(L)
+  A_size_raw?: number; // Pre-hook correction size coeff
+  A_size_tangent?: number; // Linear tangent extrapolation
+  A1_obs: number;
+  A1_inst?: number;
+  A1_sample: number;
+  A1_distortion: number; // A_D(L, s1)
+  A2_obs: number;
+  A2_inst?: number;
+  A2_sample: number;
+  A2_distortion: number; // A_D(L, s2)
+  A3_obs?: number;
+  A3_sample?: number;
+  A3_distortion?: number;
+  A4_obs?: number;
+  A4_sample?: number;
+  A4_distortion?: number;
+  B1_sine?: number;
+  B2_sine?: number;
+  phaseAngleRad?: number;
+  rmsStrain: number;
+  isExcluded?: boolean;
 }
 
 export interface WAColumnDistributionPoint {
@@ -489,6 +523,14 @@ export interface WAResult {
   }[];
   orderPlots?: WAOrderPlotLine[];
   metrics?: WAMetrics;
+  harmonicsTable?: WAHarmonicDeconvolvedPoint[];
+  hookDiagnostics?: {
+    hookDetected: boolean;
+    extrapolatedIntercept: number;
+    inflectionL_nm?: number;
+    initialSlope: number;
+    apparentSizeDaNm: number;
+  };
 }
 
 export interface RietveldAtom {

@@ -51,6 +51,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { IBAdvancedPeakDataManager } from './integral_breadth/IBAdvancedPeakDataManager';
 
 const MATERIAL_PRESETS = [
   { 
@@ -1018,95 +1019,36 @@ plt.show()
               </div>
             </div>
 
-            {/* Presets & Peak Data */}
-            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-colors shadow-inner relative">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Atom className="w-3.5 h-3.5 text-emerald-400" />
-                  Presets & Peak Breadths
-                </h3>
-                <div className="flex gap-2">
-                  {excludedIndices.length > 0 && (
-                    <button 
-                      onClick={resetExclusions}
-                      className="text-[8px] font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30 transition-all"
-                    >
-                      Reset Excluded
-                    </button>
-                  )}
-                  <button 
-                    onClick={handleClear}
-                    className="text-[8px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1 bg-red-500/10 hover:bg-red-500/20 px-2 py-0.5 rounded border border-red-500/30"
-                  >
-                    <Trash2 className="w-2.5 h-2.5" /> Clear
-                  </button>
-                </div>
-              </div>
-              
-              <div className={`relative mb-3 ${isMaterialMenuOpen ? 'z-50' : 'z-10'}`} ref={matMenuRef}>
-                <button
-                  onClick={() => setIsMaterialMenuOpen(!isMaterialMenuOpen)}
-                  className="w-full px-3 py-2.5 bg-[#0A101C] border border-white/10 hover:border-emerald-500/40 rounded-lg outline-none transition-all flex items-center justify-between shadow-inner"
-                >
-                  <span className="text-xs font-black text-emerald-300 truncate">
-                    {selectedMaterial}
-                  </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                <AnimatePresence>
-                  {isMaterialMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute top-full left-0 right-0 mt-2 bg-slate-950/95 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-50 p-1.5 backdrop-blur-3xl"
-                    >
-                      <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
-                        {MATERIAL_PRESETS.map((m) => (
-                          <button
-                            key={m.label}
-                            onClick={() => {
-                              setSelectedMaterial(m.label);
-                              setInputData(m.data);
-                              if (m.youngsModulus) setYoungsModulusGPa(m.youngsModulus);
-                              if (m.density) setMaterialDensityGcm3(m.density);
-                              setExcludedIndices([]);
-                              setAdvisorReport(null);
-                              setIsMaterialMenuOpen(false);
-                            }}
-                            className={`w-full px-3 py-2 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-emerald-500/10' : ''}`}
-                          >
-                            <span className={`text-xs font-black ${selectedMaterial === m.label ? 'text-emerald-400' : 'text-slate-300'}`}>
-                              {m.label}
-                            </span>
-                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">
-                              {m.desc}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <div className="relative font-mono text-xs">
-                <textarea
-                  value={inputData}
-                  onChange={(e) => {
-                    setInputData(e.target.value);
-                    setSelectedMaterial('Custom Data');
-                  }}
-                  placeholder="28.44, 230, 1000, 1 1 1&#10;47.30, 280, 950, 2 2 0"
-                  className="w-full h-32 px-4 py-3 bg-[#0A101C] text-emerald-300 border border-white/10 focus:border-emerald-500/50 rounded-lg focus:ring-1 focus:ring-emerald-500/20 outline-none custom-scrollbar transition-all leading-relaxed placeholder:text-slate-700 shadow-inner"
-                  spellCheck="false"
-                />
-                <div className="absolute top-2 right-2 text-[8px] font-black text-slate-500 uppercase tracking-widest bg-black/80 px-2 py-0.5 rounded border border-white/10">
-                  2θ, Area, Imax [, h k l]
-                </div>
-              </div>
-            </div>
+            {/* Refined Reflections Data Manager for IB Advanced */}
+            <IBAdvancedPeakDataManager
+              inputData={inputData}
+              onInputChange={(newData) => {
+                setInputData(newData);
+                setSelectedMaterial('Custom Data');
+              }}
+              wavelength={wavelength}
+              constantK={constantK}
+              instBetaIB={instBetaIB}
+              instrumentalMode={instrumentalMode}
+              cagliotiParams={{ U: cagliotiU, V: cagliotiV, W: cagliotiW }}
+              decouplingMethod={decouplingMethod}
+              materialDensityGcm3={materialDensityGcm3}
+              youngsModulusGPa={youngsModulusGPa}
+              excludedIndices={excludedIndices}
+              onToggleExcludePeak={toggleExcludePeak}
+              onResetExclusions={resetExclusions}
+              selectedMaterial={selectedMaterial}
+              materialPresets={MATERIAL_PRESETS}
+              onSelectPreset={(preset) => {
+                setSelectedMaterial(preset.label);
+                setInputData(preset.data);
+                if (preset.youngsModulus) setYoungsModulusGPa(preset.youngsModulus);
+                if (preset.density) setMaterialDensityGcm3(preset.density);
+                setExcludedIndices([]);
+                setAdvisorReport(null);
+              }}
+              result={result}
+            />
 
             {/* Calculate Button */}
             {!isSimulationRunning ? (

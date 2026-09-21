@@ -5,6 +5,7 @@ import { ScientificMathControl } from './ScientificMathControl';
 import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
 import { WarrenAverbachMetricsSummary } from './WarrenAverbachMetricsSummary';
 import { WarrenAverbachPeakConverterModal } from './WarrenAverbachPeakConverterModal';
+import { WarrenAverbachHarmonicsManager } from './WarrenAverbachHarmonicsManager';
 import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
@@ -299,7 +300,7 @@ export const WarrenAverbachModule: React.FC = () => {
   const [burgersVector, setBurgersVector] = useState<number>(MATERIAL_PRESETS[0].burgersVector);
   const [youngsModulus, setYoungsModulus] = useState<number>(MATERIAL_PRESETS[0].youngsModulus);
 
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'size_pv' | 'strain_wilkens' | 'order_plots' | 'defect_topography' | 'metrics_report' | 'ai_advisor' | 'python_export'>('size_pv');
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'harmonics_editor' | 'size_pv' | 'strain_wilkens' | 'order_plots' | 'defect_topography' | 'metrics_report' | 'ai_advisor' | 'python_export'>('harmonics_editor');
   const [isConverterOpen, setIsConverterOpen] = useState(false);
   const [isDEstimatorOpen, setIsDEstimatorOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -966,21 +967,30 @@ plt.show()
               </div>
             </div>
 
-            {/* Fourier Array Text Input */}
+            {/* Fourier Array Text Input & Quick Controls */}
             <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Binary className="w-4 h-4 text-rose-400" />
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-                    Fourier Harmonic Coefficients
+                    Fourier Harmonics Input
                   </label>
                 </div>
-                <button
-                  onClick={handleClear}
-                  className="text-[9px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 uppercase"
-                >
-                  <Trash2 className="w-3 h-3" /> Clear
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveAnalysisTab('harmonics_editor')}
+                    className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 flex items-center gap-1 uppercase"
+                    title="Open Full Harmonics Spreadsheet Manager"
+                  >
+                    <Sliders className="w-3 h-3" /> Grid Mode
+                  </button>
+                  <button
+                    onClick={handleClear}
+                    className="text-[9px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 uppercase"
+                  >
+                    <Trash2 className="w-3 h-3" /> Clear
+                  </button>
+                </div>
               </div>
 
               <textarea
@@ -989,9 +999,22 @@ plt.show()
                   setInputData(e.target.value);
                   setSelectedMaterial('Custom');
                 }}
-                className="w-full h-36 px-4 py-3 bg-black/60 text-rose-400 border border-white/10 rounded-xl font-mono text-xs leading-relaxed resize-none focus:outline-none focus:border-rose-500/40 custom-scrollbar shadow-inner"
+                className="w-full h-32 px-3.5 py-2.5 bg-black/60 text-rose-400 border border-white/10 rounded-xl font-mono text-xs leading-relaxed resize-none focus:outline-none focus:border-rose-500/40 custom-scrollbar shadow-inner"
                 spellCheck={false}
+                placeholder="# L[nm], A(d1), A(d2)&#10;1, 0.985, 0.952"
               />
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  onClick={() => setIsConverterOpen(true)}
+                  className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-mono"
+                >
+                  <Wand2 className="w-3 h-3" /> Stokes Synthesizer
+                </button>
+                <span className="text-[10px] text-slate-500 font-mono">
+                  Prefix <code className="text-rose-400">!</code> to exclude row
+                </span>
+              </div>
             </div>
 
             {/* Analyze Action Button */}
@@ -1073,6 +1096,7 @@ plt.show()
         {/* Analysis Navigation Tabs */}
         <div className="bg-slate-950/80 p-2 rounded-2xl border border-white/5 flex flex-wrap gap-2 ring-1 ring-white/10 ring-inset">
           {[
+            { id: 'harmonics_editor', label: '0. Fourier Harmonics & Stokes Deconvolution', icon: Binary },
             { id: 'size_pv', label: '1. Size & Column Length Distributions', icon: TrendingDown },
             { id: 'strain_wilkens', label: '2. Microstrain & Wilkens Model', icon: Activity },
             { id: 'order_plots', label: '3. Harmonic Order Plots ln A vs 1/d²', icon: BarChart3 },
@@ -1099,6 +1123,155 @@ plt.show()
             );
           })}
         </div>
+
+        {/* Tab 0: Fourier Harmonic Coefficients & Stokes Deconvolution Manager */}
+        {activeAnalysisTab === 'harmonics_editor' && (
+          <div className="space-y-6">
+            {/* Interactive Harmonics Grid & Text Manager */}
+            <WarrenAverbachHarmonicsManager
+              inputData={inputData}
+              onChangeInputData={(newData) => {
+                setInputData(newData);
+                setSelectedMaterial('Custom');
+              }}
+              d1={d1}
+              d2={d2}
+              d3={showOrder3 ? d3 : undefined}
+              d4={showOrder4 ? d4 : undefined}
+              result={result}
+              onOpenPeakConverter={() => setIsConverterOpen(true)}
+            />
+
+            {/* Fourier Harmonic Decay Curves & Stokes Breakdown */}
+            {result?.harmonicsTable && result.harmonicsTable.length > 0 && (
+              <div className="bg-slate-950/80 p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div>
+                    <h3 className="text-xl font-medium text-slate-100 flex items-center gap-2.5 font-sans">
+                      <Binary className="w-5 h-5 text-indigo-400" />
+                      Multi-Order Fourier Harmonic Decay Curves $A_n(L)$ & Size $A_S(L)$
+                    </h3>
+                    <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                      Separation of Pure Size Fourier Decay $A_S(L)$ and Strain Distortions $A_D(L, s_n)$
+                    </p>
+                  </div>
+                </div>
+
+                {/* Harmonics Multi-Order Chart */}
+                <div className="h-[400px] w-full relative z-10">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={result.harmonicsTable} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                      <XAxis 
+                        dataKey="L_nm" 
+                        label={{ value: 'Column Length L [nm]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <YAxis 
+                        domain={[0, 1.05]}
+                        label={{ value: 'Fourier Cosine Harmonic Coeff A(L)', angle: -90, position: 'insideLeft', fill: '#818cf8', fontSize: 10, fontFamily: 'monospace' }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0b1120', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px', backdropFilter: 'blur(10px)' }}
+                        itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
+                        labelStyle={{ color: '#94a3b8', fontSize: '10px', marginBottom: '6px', fontFamily: 'monospace' }}
+                      />
+                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+
+                      <Line
+                        type="monotone"
+                        dataKey="A_size"
+                        stroke="#f43f5e"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: '#f43f5e' }}
+                        name="Pure Size A_S(L)"
+                      />
+
+                      {result.harmonicsTable[0]?.A_size_tangent !== undefined && (
+                        <Line
+                          type="monotone"
+                          dataKey="A_size_tangent"
+                          stroke="#fb7185"
+                          strokeWidth={2}
+                          strokeDasharray="4 4"
+                          dot={false}
+                          name="Hook Tangent Extrapolation"
+                        />
+                      )}
+
+                      <Line
+                        type="monotone"
+                        dataKey="A1_sample"
+                        stroke="#38bdf8"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: '#38bdf8' }}
+                        name={`Order 1 (d=${d1.toFixed(3)}Å)`}
+                      />
+
+                      <Line
+                        type="monotone"
+                        dataKey="A2_sample"
+                        stroke="#a855f7"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: '#a855f7' }}
+                        name={`Order 2 (d=${d2.toFixed(3)}Å)`}
+                      />
+
+                      {showOrder3 && d3 && (
+                        <Line
+                          type="monotone"
+                          dataKey="A3_sample"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          dot={{ r: 3, fill: '#10b981' }}
+                          name={`Order 3 (d=${d3.toFixed(3)}Å)`}
+                        />
+                      )}
+
+                      {showOrder4 && d4 && (
+                        <Line
+                          type="monotone"
+                          dataKey="A4_sample"
+                          stroke="#f59e0b"
+                          strokeWidth={2}
+                          dot={{ r: 3, fill: '#f59e0b' }}
+                          name={`Order 4 (d=${d4.toFixed(3)}Å)`}
+                        />
+                      )}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Microstrain Distortions Fourier Factors A_D(L, s) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                  <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2">
+                    <h4 className="text-xs font-semibold text-slate-200 flex items-center gap-1.5 font-mono uppercase">
+                      <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                      Distortion Factor Decomposition $A_D(L, s_n)$
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Lattice microstrain causes Fourier coefficients to decay faster at higher diffraction orders ($s = 1/d$):
+                    </p>
+                    <div className="p-2.5 bg-slate-900/80 rounded-xl font-mono text-[11px] text-cyan-300 text-center border border-white/5">
+                      A_n(L) = A_S(L) &times; A_D(L, s_n) = A_S(L) &times; \exp(-2\pi^2 L^2 \langle\varepsilon_L^2\rangle s_n^2)
+                    </div>
+                  </div>
+
+                  <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2">
+                    <h4 className="text-xs font-semibold text-slate-200 flex items-center gap-1.5 font-mono uppercase">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      Hook Effect Elimination
+                    </h4>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Instrumental truncation or baseline curvature can cause an initial downward concave deviation at L &rarr; 0. The linear tangent extrapolated to L=0 recovers the true area-weighted column length &lang;D&rang;_A = -1 / (dA_S/dL)_(L&rarr;0).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tab 1: Size Fourier Decay A_S(L) & Column Distributions (P_V, P_N, Log-Normal) */}
         {activeAnalysisTab === 'size_pv' && (
