@@ -724,19 +724,31 @@ export const parseScherrerInput = (input: string): ScherrerInput[] => {
   const results: ScherrerInput[] = [];
   
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    let line = lines[i].trim();
     if (!line) continue;
 
-    const parts = line.split(/[\s,]+/).filter(s => s.trim() !== '');
+    // Support exclusion prefix (! or #) unless it's a pure text header
+    let excluded = false;
+    if (line.startsWith('!') || line.startsWith('#')) {
+      const rest = line.slice(1).trim();
+      if (/^[0-9.]/.test(rest)) {
+        excluded = true;
+        line = rest;
+      } else {
+        continue;
+      }
+    }
+
+    // Strip parentheses/brackets around hkl like (111) or [220]
+    const cleanedLine = line.replace(/[()[\]{}]/g, ' ');
+    const parts = cleanedLine.split(/[\s,;\t]+/).filter(s => s.trim() !== '');
     const nums = parts.map(s => parseFloat(s));
     
     if (nums.some(n => isNaN(n))) {
-      console.warn(`Scherrer Parser: Non-numeric data found on line ${i + 1}: "${line}"`);
       continue;
     }
 
     if (nums.length < 2) {
-      console.warn(`Scherrer Parser: Line ${i + 1} incomplete. Expected at least (2θ, FWHM).`);
       continue;
     }
 
@@ -744,28 +756,39 @@ export const parseScherrerInput = (input: string): ScherrerInput[] => {
     let intensity: number | undefined;
     let hkl: [number, number, number] | undefined;
 
-    if (nums.length === 5) {
+    if (nums.length === 4) {
+      // 2theta, fwhm, int, compact_hkl (e.g. 111, 220)
+      intensity = nums[2];
+      const hklToken = parts[3];
+      if (/^\d{3}$/.test(hklToken)) {
+        hkl = [parseInt(hklToken[0], 10), parseInt(hklToken[1], 10), parseInt(hklToken[2], 10)];
+      }
+    } else if (nums.length === 5) {
       // 2theta, fwhm, h, k, l (common format)
       hkl = [Math.round(nums[2]), Math.round(nums[3]), Math.round(nums[4])];
     } else if (nums.length >= 6) {
       // 2theta, fwhm, int, h, k, l
       intensity = nums[2];
       hkl = [Math.round(nums[3]), Math.round(nums[4]), Math.round(nums[5])];
-    } else if (nums.length >= 3) {
-      intensity = nums[2];
+    } else if (nums.length === 3) {
+      const thirdToken = parts[2];
+      if (/^\d{3}$/.test(thirdToken) && parseInt(thirdToken, 10) !== 100) {
+        hkl = [parseInt(thirdToken[0], 10), parseInt(thirdToken[1], 10), parseInt(thirdToken[2], 10)];
+        intensity = 100;
+      } else {
+        intensity = nums[2];
+      }
     }
 
     if (twoTheta <= 0 || twoTheta >= 180) {
-      console.warn(`Scherrer Parser: Line ${i + 1} 2θ value (${twoTheta}) out of valid range (0-180).`);
       continue;
     }
 
-    if (fwhmObs <= 0 || fwhmObs > 20) {
-      console.warn(`Scherrer Parser: Line ${i + 1} FWHM value (${fwhmObs}) is physically improbable or invalid.`);
+    if (fwhmObs <= 0 || fwhmObs > 25) {
       continue;
     }
 
-    results.push({ twoTheta, fwhmObs, intensity, hkl });
+    results.push({ twoTheta, fwhmObs, intensity, hkl, excluded });
   }
   
   return results;
@@ -783,7 +806,7 @@ export const calculateScherrer = (
   burgersVectorNm: number = 0.256
 ): ScherrerResult | null => {
   if (wavelength <= 0) return null;
-  const { twoTheta, fwhmObs, intensity, hkl } = peak;
+  const { twoTheta, fwhmObs, intensity, hkl, excluded } = peak;
   if (twoTheta <= 0 || twoTheta >= 180 || fwhmObs <= 0) return null;
   const thetaRad = (twoTheta / 2) * (Math.PI / 180);
   const effEta = Math.max(0, Math.min(1, pseudoVoigtEta));
@@ -814,6 +837,7 @@ export const calculateScherrer = (
       sizeNm: 0, 
       intensity,
       hkl,
+      excluded,
       dSpacing,
       qVector,
       error: "Observed broadening is equal to or smaller than instrumental resolution limit (β_obs ≤ β_inst). Finite crystallite size cannot be resolved." 
@@ -868,6 +892,7 @@ export const calculateScherrer = (
       sizeNm: 0, 
       intensity,
       hkl,
+      excluded,
       dSpacing,
       qVector,
       error: "Zero physical broadening detected, size cannot be determined." 
@@ -919,6 +944,7 @@ export const calculateScherrer = (
     sizeNm, 
     intensity,
     hkl,
+    excluded,
     dSpacing,
     qVector,
     dislocationDensityM2,
@@ -4944,15 +4970,21 @@ export const calculateMonshiScherrer = (
   };
 };
 
-export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number }[] => {
+export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number; excluded?: boolean }[] => {
   if (!inputData) return [];
   const lines = inputData.split('\n');
-  const results: { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number }[] = [];
+  const results: { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number; excluded?: boolean }[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || line.startsWith('#') || line.startsWith('//')) continue;
-    const parts = line.split(/[\s,;\t]+/).map(p => parseFloat(p)).filter(p => !isNaN(p));
+    const rawLine = lines[i].trim();
+    if (!rawLine) continue;
+    // Pure comment header lines
+    if ((rawLine.startsWith('#') || rawLine.startsWith('//')) && !rawLine.match(/^[#!]\s*\d/)) {
+      continue;
+    }
+    const isExcluded = rawLine.startsWith('!') || rawLine.startsWith('#') || rawLine.startsWith('//');
+    const cleanLine = rawLine.replace(/^[!#/\s]+/, '');
+    const parts = cleanLine.split(/[\s,;\t]+/).map(p => parseFloat(p)).filter(p => !isNaN(p));
     if (parts.length >= 2) {
       const sigmaDeg = parts[0];
       const varianceDeg2 = parts[1];
@@ -4965,7 +4997,7 @@ export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianc
         mu4Rad4 = parts[3];
       }
       if (sigmaDeg > 0 && varianceDeg2 >= 0) {
-        results.push({ sigmaDeg, varianceDeg2, mu3Rad3, mu4Rad4 });
+        results.push({ sigmaDeg, varianceDeg2, mu3Rad3, mu4Rad4, excluded: isExcluded });
       }
     }
   }
@@ -5171,7 +5203,7 @@ export const integrateRawPeakMoments = (
 export const calculateMethodOfMoments = (
   wavelength: number,
   twoTheta0: number,
-  momentInputs: { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number }[],
+  momentInputs: { sigmaDeg: number; varianceDeg2: number; mu3Rad3?: number; mu4Rad4?: number; excluded?: boolean }[],
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
   cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
   instFwhm: number = 0.05,
@@ -5260,17 +5292,22 @@ export const calculateMethodOfMoments = (
       fourthMomentRad4: pt.mu4Rad4,
       skewness,
       kurtosis,
-      excessKurtosis
+      excessKurtosis,
+      excluded: pt.excluded
     };
   });
 
-  // Fit quadratic equation: W(sigma) = W0 + K1 * sigma + K2 * sigma^2
-  // Using 2nd order polynomial least squares
-  let n = points.length;
+  const activePoints = points.filter(p => !p.excluded);
+  if (activePoints.length < 3) {
+    return null;
+  }
+
+  // Fit quadratic equation on active points: W(sigma) = W0 + K1 * sigma + K2 * sigma^2
+  let n = activePoints.length;
   let sumX = 0, sumX2 = 0, sumX3 = 0, sumX4 = 0;
   let sumY = 0, sumXY = 0, sumX2Y = 0;
 
-  for (const p of points) {
+  for (const p of activePoints) {
     const x = p.sigmaRad;
     const y = p.varianceRad2;
     const x2 = x * x;
@@ -5318,17 +5355,20 @@ export const calculateMethodOfMoments = (
     const quadraticComponentDeg2 = (quadraticK2 * x * x) * RAD_TO_DEG * RAD_TO_DEG;
     const residualDeg2 = p.varianceDeg2 - fittedWDeg2;
 
-    ssTot += Math.pow(p.varianceRad2 - meanY, 2);
-    ssRes += Math.pow(p.varianceRad2 - fittedWRad2, 2);
+    if (!p.excluded) {
+      ssTot += Math.pow(p.varianceRad2 - meanY, 2);
+      ssRes += Math.pow(p.varianceRad2 - fittedWRad2, 2);
+    }
 
     return {
       sigmaDeg: p.sigmaDeg,
-      sigmaRad: x,
+      sigmaRad: p.sigmaRad,
       fittedWDeg2,
       fittedWRad2,
       linearComponentDeg2,
       quadraticComponentDeg2,
-      residualDeg2
+      residualDeg2,
+      excluded: p.excluded
     };
   });
 

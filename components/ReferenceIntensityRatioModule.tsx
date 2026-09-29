@@ -902,78 +902,118 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                     </div>
 
                     {/* Phase Cards */}
-                    <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
-                      {phases.map((phase, idx) => (
-                        <div
-                          key={phase.id}
-                          className="bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 transition-all space-y-3"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5 flex-1">
-                              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: phase.color }} />
-                              <input
-                                type="text"
-                                value={phase.name}
-                                onChange={(e) => updatePhase(phase.id, 'name', e.target.value)}
-                                className="bg-transparent font-bold text-sm text-slate-200 outline-none border-b border-transparent focus:border-indigo-500/60 transition-colors w-full"
-                              />
+                    <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
+                      {phases.map((phase, idx) => {
+                        const isCleavageProne = /mica|kaolinite|graphite|calcite|gypsum|clay/i.test(phase.name);
+                        return (
+                          <div
+                            key={phase.id}
+                            className="bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 transition-all space-y-3"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5 flex-1">
+                                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: phase.color }} />
+                                <input
+                                  type="text"
+                                  value={phase.name}
+                                  onChange={(e) => updatePhase(phase.id, 'name', e.target.value)}
+                                  className="bg-transparent font-bold text-sm text-slate-200 outline-none border-b border-transparent focus:border-indigo-500/60 transition-colors w-full"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {/* Quick DB autofill dropdown */}
+                                <select
+                                  onChange={(e) => {
+                                    const selected = DATABASE_PRESETS.find(p => p.name === e.target.value);
+                                    if (selected) {
+                                      playSynthTone('success');
+                                      updatePhase(phase.id, 'name', selected.name);
+                                      updatePhase(phase.id, 'hkl', selected.hkl);
+                                      updatePhase(phase.id, 'twoTheta', selected.twoTheta);
+                                      updatePhase(phase.id, 'rir', selected.rir);
+                                      updatePhase(phase.id, 'density', selected.density || 3.0);
+                                      updatePhase(phase.id, 'mac', selected.macCu);
+                                    }
+                                  }}
+                                  defaultValue=""
+                                  className="bg-slate-900 border border-slate-700 hover:border-purple-500/50 text-slate-300 text-[11px] rounded-lg px-2 py-1 outline-none font-sans font-bold"
+                                  title="Auto-fill constants from ICDD Library"
+                                >
+                                  <option value="" disabled>⚡ DB Fill...</option>
+                                  {DATABASE_PRESETS.map((db, dbIdx) => (
+                                    <option key={dbIdx} value={db.name}>
+                                      {db.name} (RIR: {db.rir})
+                                    </option>
+                                  ))}
+                                </select>
+
+                                {phases.length > 1 && (
+                                  <button
+                                    onClick={() => removePhase(phase.id)}
+                                    className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            {phases.length > 1 && (
-                              <button
-                                onClick={() => removePhase(phase.id)}
-                                className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+
+                            {/* Preferred orientation warning if applicable */}
+                            {isCleavageProne && (
+                              <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg text-[10px] text-amber-300">
+                                <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                                <span>Plate/Cleavage Texture Warning: Consider side-loading or spray drying to avoid preferred orientation bias.</span>
+                              </div>
                             )}
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block">Peak Int. (I)</label>
+                                <input
+                                  type="number"
+                                  value={phase.intensity}
+                                  onChange={(e) => updatePhase(phase.id, 'intensity', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block">RIR ($I/I_c$)</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={phase.rir}
+                                  onChange={(e) => updatePhase(phase.id, 'rir', parseFloat(e.target.value) || 1.0)}
+                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block">2θ Angle (°)</label>
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  value={phase.twoTheta}
+                                  onChange={(e) => updatePhase(phase.id, 'twoTheta', parseFloat(e.target.value) || 0)}
+                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block">Density (g/cm³)</label>
+                                <input
+                                  type="number"
+                                  step="0.05"
+                                  value={phase.density || 3.0}
+                                  onChange={(e) => updatePhase(phase.id, 'density', parseFloat(e.target.value) || 3.0)}
+                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
+                                />
+                              </div>
+                            </div>
                           </div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                            <div className="space-y-1">
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block">Peak Int. (I)</label>
-                              <input
-                                type="number"
-                                value={phase.intensity}
-                                onChange={(e) => updatePhase(phase.id, 'intensity', parseFloat(e.target.value) || 0)}
-                                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block">RIR ($I/I_c$)</label>
-                              <input
-                                type="number"
-                                step="0.1"
-                                value={phase.rir}
-                                onChange={(e) => updatePhase(phase.id, 'rir', parseFloat(e.target.value) || 1.0)}
-                                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block">2θ Angle (°)</label>
-                              <input
-                                type="number"
-                                step="0.1"
-                                value={phase.twoTheta}
-                                onChange={(e) => updatePhase(phase.id, 'twoTheta', parseFloat(e.target.value) || 0)}
-                                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                              />
-                            </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] uppercase font-bold text-slate-400 block">Density (g/cm³)</label>
-                              <input
-                                type="number"
-                                step="0.05"
-                                value={phase.density || 3.0}
-                                onChange={(e) => updatePhase(phase.id, 'density', parseFloat(e.target.value) || 3.0)}
-                                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {/* Internal Standard Spiking Engine */}

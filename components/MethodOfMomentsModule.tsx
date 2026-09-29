@@ -65,6 +65,7 @@ import { AIAnalysis } from './AIAnalysis';
 import { PythonCodeExporter } from './PythonCodeExporter';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
+import { VarianceRangeDatasetMatrix } from './moments/VarianceRangeDatasetMatrix';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -940,48 +941,15 @@ export const MethodOfMomentsModule: React.FC = () => {
             {/* Right Column: Input Interface according to active inputMode */}
             <div className="lg:col-span-7 space-y-6">
               {inputMode === 'table' && (
-                <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/10 transition-colors" />
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
-                    <div className="flex items-center gap-2">
-                      <Database className="w-4 h-4 text-purple-400" />
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Variance-Range Dataset Matrix</h3>
-                    </div>
-                    <button
-                      onClick={() => setInputData('')}
-                      className="text-[10px] text-slate-400 hover:text-rose-400 font-mono transition-colors"
-                    >
-                      Clear Data
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                      <span>Format: <code>Range_σ [deg], Variance_W [deg²], μ₃ [rad³] (opt), μ₄ [rad⁴] (opt)</code></span>
-                    </div>
-                    <textarea
-                      rows={8}
-                      value={inputData}
-                      onChange={(e) => setInputData(e.target.value)}
-                      placeholder="0.20, 0.0021, 0.000015\n0.35, 0.0039, 0.000042\n0.50, 0.0058, 0.000088\n0.65, 0.0079, 0.000152\n0.80, 0.0101, 0.000238"
-                      spellCheck={false}
-                      className="w-full p-4 bg-black/60 text-indigo-300 font-mono text-xs border border-white/10 rounded-2xl outline-none focus:border-indigo-500/50 hover:border-white/20 transition-all custom-scrollbar leading-relaxed shadow-inner relative z-10"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] font-mono pt-1">
-                    <span className="text-slate-400">Parsed range cuts: <strong className="text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{result?.points?.length || 0}</strong></span>
-                    {result && result.points.length >= 3 ? (
-                      <span className="text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
-                        <CheckCircle className="w-3.5 h-3.5" /> Ready for Wilson-Langford Regression
-                      </span>
-                    ) : (
-                      <span className="text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
-                        <AlertTriangle className="w-3.5 h-3.5" /> Minimum 3 range points required
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <VarianceRangeDatasetMatrix
+                  inputData={inputData}
+                  onInputDataChange={setInputData}
+                  result={result}
+                  twoTheta0={twoTheta0}
+                  wavelength={wavelength}
+                  shapeK={shapeK}
+                  onTriggerCalculate={result && result.points.length >= 3 ? startComputation : undefined}
+                />
               )}
 
               {inputMode === 'rawProfile' && (
@@ -1726,55 +1694,14 @@ export const MethodOfMomentsModule: React.FC = () => {
 
           {/* Tab 5: Data Matrix & Residuals */}
           {activeResultTab === 'tableDetails' && (
-            <div className="bg-[#080E1A]/90 p-6 rounded-3xl border border-white/10 shadow-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Database className="w-4 h-4 text-purple-400" />
-                  <span>Variance-Range Regression Matrix & Residuals</span>
-                </h4>
-                <button
-                  onClick={handleDownloadCSV}
-                  className="px-3 py-1.5 bg-black/40 hover:bg-white/10 text-slate-300 border border-white/10 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5"
-                >
-                  <Download className="w-3.5 h-3.5 text-indigo-400" />
-                  Export CSV
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs font-mono">
-                  <thead>
-                    <tr className="border-b border-white/10 text-slate-400 bg-black/40">
-                      <th className="p-3">σ (deg)</th>
-                      <th className="p-3">σ (rad)</th>
-                      <th className="p-3">Obs W (deg²)</th>
-                      <th className="p-3">Fit W (deg²)</th>
-                      <th className="p-3">Residual (deg²)</th>
-                      <th className="p-3">Linear Part</th>
-                      <th className="p-3">Quadratic Part</th>
-                      <th className="p-3">Kurtosis β₂</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-slate-300">
-                    {result.points.map((p, idx) => {
-                      const f = result.fittedPoints[idx];
-                      return (
-                        <tr key={idx} className="hover:bg-white/5 transition-colors">
-                          <td className="p-3 font-bold text-indigo-300">{p.sigmaDeg.toFixed(2)}</td>
-                          <td className="p-3 text-slate-400">{p.sigmaRad.toFixed(5)}</td>
-                          <td className="p-3 text-purple-300 font-bold">{p.varianceDeg2.toFixed(6)}</td>
-                          <td className="p-3 text-emerald-300">{f?.fittedWDeg2.toFixed(6)}</td>
-                          <td className="p-3 text-amber-300">{f?.residualDeg2 ? f.residualDeg2.toExponential(2) : '0.0'}</td>
-                          <td className="p-3 text-sky-300">{f?.linearComponentDeg2.toFixed(6)}</td>
-                          <td className="p-3 text-amber-300">{f?.quadraticComponentDeg2.toFixed(6)}</td>
-                          <td className="p-3 text-slate-400">{p.kurtosis ? p.kurtosis.toFixed(2) : '3.0'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <VarianceRangeDatasetMatrix
+              inputData={inputData}
+              onInputDataChange={setInputData}
+              result={result}
+              twoTheta0={twoTheta0}
+              wavelength={wavelength}
+              shapeK={shapeK}
+            />
           )}
 
           {/* AI Analysis & Python Code Exporter */}

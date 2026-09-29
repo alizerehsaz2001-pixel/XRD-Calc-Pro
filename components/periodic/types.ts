@@ -74,6 +74,8 @@ export interface CrystalElement extends ScientificProperties {
 
 export type HeatmapMode =
   | 'none'
+  | 'latticeA'
+  | 'unitCellVolume'
   | 'electronegativity'
   | 'atomicRadius'
   | 'ionizationEnergy'

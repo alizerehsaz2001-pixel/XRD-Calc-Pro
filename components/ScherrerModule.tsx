@@ -199,7 +199,7 @@ export const ScherrerModule: React.FC = () => {
     };
   }, []);
 
-  const validResults = useMemo(() => results.filter(r => !r.error && r.sizeNm > 0), [results]);
+  const validResults = useMemo(() => results.filter(r => !r.excluded && !r.error && r.sizeNm > 0), [results]);
 
   const { exactArithmetic, exactWeighted, volumeWeighted, areaWeighted, geometricMean, geometricStdDev } = useMemo(() => {
     if (validResults.length === 0) {
@@ -344,6 +344,7 @@ export const ScherrerModule: React.FC = () => {
   // Helper to serialize peaks back to inputData string
   const handlePeaksTableChange = (newPeaks: ScherrerInput[]) => {
     const text = newPeaks.map(p => {
+      const prefix = p.excluded ? '! ' : '';
       const parts: (string | number)[] = [
         p.twoTheta.toFixed(3),
         p.fwhmObs.toFixed(3),
@@ -352,9 +353,39 @@ export const ScherrerModule: React.FC = () => {
       if (p.hkl && p.hkl.length === 3) {
         parts.push(p.hkl[0], p.hkl[1], p.hkl[2]);
       }
-      return parts.join(', ');
+      return prefix + parts.join(', ');
     }).join('\n');
     setInputData(text);
+  };
+
+  const handleTogglePeakExclusion = (index: number) => {
+    const updated = [...parsedPeaksList];
+    if (!updated[index]) return;
+    updated[index] = {
+      ...updated[index],
+      excluded: !updated[index].excluded
+    };
+    handlePeaksTableChange(updated);
+  };
+
+  const handleIncludeAllPeaks = () => {
+    const updated = parsedPeaksList.map(p => ({ ...p, excluded: false }));
+    handlePeaksTableChange(updated);
+  };
+
+  const handleAutoPruneOutliers = () => {
+    if (validResults.length < 3 || stats.stdDev <= 0) return;
+    const currentMean = computeAverageSize(validResults, averageType);
+    const updated = parsedPeaksList.map((p, idx) => {
+      const r = results[idx];
+      if (!r || r.excluded || r.error || r.sizeNm <= 0) return p;
+      const z = Math.abs(r.sizeNm - currentMean) / stats.stdDev;
+      if (z > 1.8) {
+        return { ...p, excluded: true };
+      }
+      return p;
+    });
+    handlePeaksTableChange(updated);
   };
 
   // Histogram data with Log-Normal fitting curve overlay
@@ -600,18 +631,38 @@ export const ScherrerModule: React.FC = () => {
   };
 
   useEffect(() => {
-    const valid = results.filter(r => !r.error && r.sizeNm > 0);
+    const valid = results.filter(r => !r.excluded && !r.error && r.sizeNm > 0);
     setAvgSize(computeAverageSize(valid, averageType));
   }, [results, averageType]);
 
+  // Live reactive computation whenever reflections or instrument parameters change
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    setResults([]);
-    localStorage.removeItem('xrd_scherrer_current');
-  }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel, materialDensity]);
+    const peaks = parseScherrerInput(inputData);
+    const computed = peaks
+      .map(p => {
+        const thetaRad = (p.twoTheta / 2) * Math.PI / 180;
+        const currentInstFwhm = useCaglioti 
+          ? Math.sqrt(Math.max(0.000001, caglioti.u * Math.pow(Math.tan(thetaRad), 2) + caglioti.v * Math.tan(thetaRad) + caglioti.w))
+          : instFwhm;
+        return calculateScherrer(
+          wavelength, 
+          constantK, 
+          currentInstFwhm, 
+          p, 
+          broadeningModel, 
+          materialDensity,
+          pseudoVoigtEta,
+          breadthType,
+          burgersVectorNm
+        );
+      })
+      .filter((r): r is ScherrerResult => r !== null);
+
+    setResults(computed);
+    const valid = computed.filter(r => !r.excluded && !r.error && r.sizeNm > 0);
+    const calculatedAvg = computeAverageSize(valid, averageType);
+    setAvgSize(calculatedAvg);
+  }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel, materialDensity, pseudoVoigtEta, breadthType, burgersVectorNm, averageType]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
@@ -1127,6 +1178,14 @@ export const ScherrerModule: React.FC = () => {
                     peaks={parsedPeaksList}
                     onChange={handlePeaksTableChange}
                     wavelength={wavelength}
+                    constantK={constantK}
+                    instFwhm={instFwhm}
+                    useCaglioti={useCaglioti}
+                    caglioti={caglioti}
+                    broadeningModel={broadeningModel}
+                    materialDensity={materialDensity}
+                    pseudoVoigtEta={pseudoVoigtEta}
+                    breadthType={breadthType}
                   />
                 </div>
               ) : (
@@ -1259,6 +1318,10 @@ export const ScherrerModule: React.FC = () => {
         {/* Enhanced Mean Crystallite Sizing Card */}
         <MeanCrystalliteSizingCard
           validResults={validResults}
+          allResults={results}
+          onTogglePeakExclusion={handleTogglePeakExclusion}
+          onAutoPruneOutliers={handleAutoPruneOutliers}
+          onIncludeAllPeaks={handleIncludeAllPeaks}
           constantK={constantK}
           wavelength={wavelength}
           precision={precision}

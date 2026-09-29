@@ -1,8 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css';
 import {
   Calculator,
   Sparkles,
@@ -19,7 +15,11 @@ import {
   Sliders,
   Check,
   Zap,
-  HelpCircle
+  HelpCircle,
+  Download,
+  Copy,
+  ArrowRight,
+  Percent
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -29,19 +29,28 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
+  ScatterChart,
   Scatter,
   AreaChart,
   Area,
   BarChart,
-  Bar
+  Bar,
+  ReferenceLine
 } from 'recharts';
 import { playSynthTone } from '../../utils/sound';
 import { RIRMatrixPhase } from './RIRMatrixInspector';
+import { DATABASE_PRESETS } from './RIRDatabaseExplorer';
 
 export interface CalibDataPoint {
   id: string;
   weightRatio: number; // W_A / W_B (e.g. Analyte / Standard mass ratio)
   intensityRatio: number; // I_A / I_B (measured peak intensity ratio)
+}
+
+export interface SpikingPoint {
+  id: string;
+  spikedStandardWtPct: number; // w_s (e.g., 5%, 10%, 15%, 20%)
+  measuredIntensityRatio: number; // I_unknown / I_standard
 }
 
 interface RIRCalibrationStudioProps {
@@ -53,7 +62,7 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
   phases,
   onApplyRIR
 }) => {
-  const [calibMode, setCalibMode] = useState<'single' | 'multi' | 'spiking'>('multi');
+  const [calibMode, setCalibMode] = useState<'multi' | 'single' | 'spiking' | 'converter'>('multi');
 
   // Single Point Mode State
   const [calibIntensityA, setCalibIntensityA] = useState(4800);
@@ -70,12 +79,22 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
     { id: '5', weightRatio: 2.00, intensityRatio: 6.90 },
   ]);
 
-  // Spiking / Internal Standard State
-  const [spikeAddedWtPct, setSpikeAddedWtPct] = useState(15.0); // 15 wt% Corundum standard added
-  const [spikeStdPhaseRIR, setSpikeStdPhaseRIR] = useState(1.00);
-  const [spikeStdIntensity, setSpikeStdIntensity] = useState(2500);
+  // Method of Standard Additions (Multi-Spiking) State
+  const [spikingPoints, setSpikingPoints] = useState<SpikingPoint[]>([
+    { id: 's1', spikedStandardWtPct: 5.0, measuredIntensityRatio: 4.80 },
+    { id: 's2', spikedStandardWtPct: 10.0, measuredIntensityRatio: 2.35 },
+    { id: 's3', spikedStandardWtPct: 15.0, measuredIntensityRatio: 1.52 },
+    { id: 's4', spikedStandardWtPct: 20.0, measuredIntensityRatio: 1.10 },
+  ]);
+
+  // Target Phase & Application
   const [targetPhaseId, setTargetPhaseId] = useState<string>(phases[0]?.id || '');
   const [appliedNotification, setAppliedNotification] = useState<string | null>(null);
+
+  // Universal Reference Converter State
+  const [converterSourceRIR, setConverterSourceRIR] = useState<number>(3.41); // Quartz
+  const [converterSourceRef, setConverterSourceRef] = useState<string>('Corundum');
+  const [converterTargetRef, setConverterTargetRef] = useState<string>('Quartz');
 
   // Single point calculated RIR:
   // (I_A / I_B) = (RIR_A / RIR_B) * (W_A / W_B) => RIR_A = RIR_B * (I_A / I_B) / (W_A / W_B)
@@ -89,7 +108,7 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
   // slope m = RIR_A / RIR_B => RIR_A = m * RIR_B
   const multiPointStats = useMemo(() => {
     if (calibPoints.length < 2) {
-      return { slope: 0, intercept: 0, r2: 0, stdErr: 0, calibRIR: 0, residuals: [] };
+      return { slope: 0, intercept: 0, r2: 0, stdErrSlope: 0, calibRIR: 0, stdErrRIR: 0, residuals: [] };
     }
     const n = calibPoints.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
@@ -115,61 +134,101 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
     const calibRIR = slope * calibRIRB;
     const stdErrRIR = stdErrSlope * calibRIRB;
 
-    const residuals = calibPoints.map(pt => ({
-      weightRatio: pt.weightRatio,
-      residual: Number((pt.intensityRatio - (slope * pt.weightRatio + intercept)).toFixed(4))
-    }));
+    const residuals = calibPoints.map(pt => {
+      const fitted = slope * pt.weightRatio + intercept;
+      const res = pt.intensityRatio - fitted;
+      return {
+        id: pt.id,
+        weightRatio: pt.weightRatio,
+        measured: pt.intensityRatio,
+        fitted: Number(fitted.toFixed(3)),
+        residual: Number(res.toFixed(4))
+      };
+    });
 
-    return { slope, intercept, r2, stdErr: stdErrSlope, calibRIR, stdErrRIR, residuals };
+    return { slope, intercept, r2, stdErrSlope, calibRIR, stdErrRIR, residuals };
   }, [calibPoints, calibRIRB]);
 
-  // Fitted regression line points
-  const regressionLineData = useMemo(() => {
+  // Fitted regression line points for charting
+  const regressionChartData = useMemo(() => {
     if (calibPoints.length < 2) return [];
     const xs = calibPoints.map(p => p.weightRatio);
-    const minX = Math.max(0, Math.min(...xs) * 0.8);
-    const maxX = Math.max(...xs) * 1.2;
-    const step = (maxX - minX) / 20;
-    const pts = [];
-    for (let x = minX; x <= maxX; x += step) {
+    const minX = Math.max(0, Math.min(...xs) * 0.7);
+    const maxX = Math.max(...xs) * 1.25;
+    const numPts = 25;
+    const step = (maxX - minX) / (numPts - 1);
+
+    const pts: any[] = [];
+    for (let i = 0; i < numPts; i++) {
+      const x = minX + i * step;
+      const fitted = multiPointStats.slope * x + multiPointStats.intercept;
+      const ci95 = 1.96 * multiPointStats.stdErrSlope * x;
       pts.push({
         weightRatio: Number(x.toFixed(3)),
-        fittedRatio: Number((multiPointStats.slope * x + multiPointStats.intercept).toFixed(3))
+        fittedRatio: Number(fitted.toFixed(3)),
+        ciUpper: Number((fitted + ci95).toFixed(3)),
+        ciLower: Number(Math.max(0, fitted - ci95).toFixed(3))
       });
     }
     return pts;
   }, [calibPoints, multiPointStats]);
 
-  // Spiking Absolute Analysis
-  const spikingResults = useMemo(() => {
-    // When adding w_s of standard with RIR_s, intensity I_s:
-    // for each phase i: W_i = (I_i / I_s) * (RIR_s / RIR_i) * w_s / (1 - w_s/100)
-    const stdInt = spikeStdIntensity > 0 ? spikeStdIntensity : 1;
-    const stdRir = spikeStdPhaseRIR > 0 ? spikeStdPhaseRIR : 1;
-    const w_s_fraction = spikeAddedWtPct / 100;
-    const originalMassFactor = 1 / (1 - Math.min(0.9, Math.max(0.01, w_s_fraction)));
+  // Multi-point table operations
+  const addCalibPoint = () => {
+    playSynthTone('tick');
+    const last = calibPoints[calibPoints.length - 1];
+    const newX = last ? Number((last.weightRatio + 0.5).toFixed(2)) : 1.0;
+    const newY = last ? Number((last.intensityRatio * 1.4).toFixed(2)) : 3.0;
+    setCalibPoints(prev => [
+      ...prev,
+      { id: Math.random().toString(36).substring(2, 9), weightRatio: newX, intensityRatio: newY }
+    ]);
+  };
 
-    let totalCrystallineAbsolute = 0;
-    const phaseAbsolute = phases.map(p => {
-      const pRir = p.rir > 0 ? p.rir : 1.0;
-      const absInMixture = (p.intensity / stdInt) * (stdRir / pRir) * spikeAddedWtPct;
-      const absInOriginalSample = absInMixture * originalMassFactor;
-      totalCrystallineAbsolute += absInOriginalSample;
-      return {
-        ...p,
-        absInMixture,
-        absInOriginalSample
-      };
+  const removeCalibPoint = (id: string) => {
+    playSynthTone('tick');
+    setCalibPoints(prev => prev.filter(p => p.id !== id));
+  };
+
+  const updateCalibPoint = (id: string, field: 'weightRatio' | 'intensityRatio', val: number) => {
+    setCalibPoints(prev => prev.map(p => p.id === id ? { ...p, [field]: val } : p));
+  };
+
+  // Standard Additions / Multi-Spiking Regression
+  const spikingStats = useMemo(() => {
+    // In standard addition: (I_std / I_unknown) * (RIR_unknown / RIR_std) = w_s / w_unknown
+    // Let Y = 1 / (I_unknown / I_std) = I_std / I_unknown, X = w_s (wt%)
+    // Y = (RIR_std / (RIR_unknown * w_unknown)) * w_s
+    const pts = spikingPoints.map(p => ({
+      x: p.spikedStandardWtPct,
+      y: p.measuredIntensityRatio > 0 ? 1 / p.measuredIntensityRatio : 0
+    }));
+
+    if (pts.length < 2) return { slope: 0, intercept: 0, r2: 0, estimatedUnknownWtPct: 0 };
+
+    const n = pts.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    pts.forEach(p => {
+      sumX += p.x;
+      sumY += p.y;
+      sumXY += p.x * p.y;
+      sumXX += p.x * p.x;
     });
 
-    const amorphousAbsolute = Math.max(0, 100 - totalCrystallineAbsolute);
+    const denom = n * sumXX - sumX * sumX;
+    const slope = denom !== 0 ? (n * sumXY - sumX * sumY) / denom : 0;
+    const intercept = (sumY - slope * sumX) / n;
 
-    return {
-      phaseAbsolute,
-      totalCrystallineAbsolute,
-      amorphousAbsolute
-    };
-  }, [phases, spikeAddedWtPct, spikeStdPhaseRIR, spikeStdIntensity]);
+    const yMean = sumY / n;
+    const ssTot = pts.reduce((acc, p) => acc + Math.pow(p.y - yMean, 2), 0);
+    const ssRes = pts.reduce((acc, p) => acc + Math.pow(p.y - (slope * p.x + intercept), 2), 0);
+    const r2 = ssTot > 0 ? Math.max(0, 1 - ssRes / ssTot) : 1;
+
+    // Unknown wt% in original mixture = (1 / slope) * (RIR_std / RIR_unknown)
+    const estimatedUnknownWtPct = slope > 0 ? Math.min(100, Math.max(0, 1 / slope)) : 0;
+
+    return { slope, intercept, r2, estimatedUnknownWtPct };
+  }, [spikingPoints]);
 
   const handleApply = (rirValue: number) => {
     const target = targetPhaseId || (phases[0]?.id || '');
@@ -181,6 +240,25 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
     setAppliedNotification(`Successfully applied RIR = ${rounded} to ${pName}!`);
     setTimeout(() => setAppliedNotification(null), 4000);
   };
+
+  // Reference standards mapping for Universal Converter
+  const REF_STANDARDS: Record<string, number> = {
+    'Corundum': 1.00,
+    'Quartz': 3.41,
+    'Silicon': 4.70,
+    'Zincite': 5.43,
+    'Calcite': 2.98,
+    'Magnetite': 4.80
+  };
+
+  const convertedRIR = useMemo(() => {
+    const rirSrcBase = REF_STANDARDS[converterSourceRef] || 1.0;
+    const rirTgtBase = REF_STANDARDS[converterTargetRef] || 1.0;
+    // RIR_cor = RIR_src * rirSrcBase
+    // RIR_tgt = RIR_cor / rirTgtBase
+    const rirCorundum = converterSourceRIR * rirSrcBase;
+    return rirCorundum / rirTgtBase;
+  }, [converterSourceRIR, converterSourceRef, converterTargetRef]);
 
   return (
     <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-md flex flex-col gap-6 text-slate-100">
@@ -195,16 +273,16 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
               RIR Calibration & Spiking Studio
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Calibrate empirical $I/I_c$ values from laboratory standards using single-point binary mixtures or multi-point linear regressions.
+              Calibrate empirical $I/I_c$ values from laboratory standards using single-point binary mixtures, multi-point linear regressions, or standard addition spiking curves.
             </p>
           </div>
         </div>
 
         {/* Mode Selector */}
-        <div className="bg-slate-950/80 border border-slate-800 p-1.5 rounded-2xl flex gap-1.5 shadow-inner">
+        <div className="bg-slate-950/80 border border-slate-800 p-1.5 rounded-2xl flex flex-wrap gap-1 shadow-inner">
           <button
             onClick={() => { playSynthTone('tick'); setCalibMode('multi'); }}
-            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
               calibMode === 'multi'
                 ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -214,7 +292,7 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
           </button>
           <button
             onClick={() => { playSynthTone('tick'); setCalibMode('single'); }}
-            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
               calibMode === 'single'
                 ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -224,13 +302,23 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
           </button>
           <button
             onClick={() => { playSynthTone('tick'); setCalibMode('spiking'); }}
-            className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
               calibMode === 'spiking'
                 ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
             }`}
           >
-            Spiking Method
+            Standard Additions
+          </button>
+          <button
+            onClick={() => { playSynthTone('tick'); setCalibMode('converter'); }}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+              calibMode === 'converter'
+                ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            Universal Converter
           </button>
         </div>
       </div>
@@ -248,369 +336,398 @@ export const RIRCalibrationStudio: React.FC<RIRCalibrationStudioProps> = ({
 
       {/* MODE 1: Multi-Point Linear Calibration */}
       {calibMode === 'multi' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left: Point Inputs */}
-            <div className="lg:col-span-5 flex flex-col gap-4">
-              <div className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-inner">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <div>
-                    <span className="font-bold text-slate-200 text-sm block">Standard Mixture Datasets</span>
-                    <span className="text-[11px] text-slate-400">$(W_A/W_B)$ vs $(I_A/I_B)$ data points</span>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const newId = Math.random().toString(36).substring(2, 9);
-                      setCalibPoints(prev => [
-                        ...prev,
-                        { id: newId, weightRatio: 2.5, intensityRatio: 8.6 }
-                      ]);
-                      playSynthTone('tick');
-                    }}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Point</span>
-                  </button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-300">
+          {/* Left Column: Data Points Table & Target Phase (5 cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-amber-400" />
+                  <span>Calibration Data Pairs</span>
+                </span>
+                <button
+                  onClick={addCalibPoint}
+                  className="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 text-xs font-bold transition-all flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Pair</span>
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                <div className="grid grid-cols-12 gap-2 text-[10px] uppercase font-bold text-slate-500 px-2">
+                  <span className="col-span-5">Mass Ratio ($W_A/W_B$)</span>
+                  <span className="col-span-5">Peak Int. ($I_A/I_B$)</span>
+                  <span className="col-span-2 text-center">Action</span>
                 </div>
 
-                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
-                  <div className="grid grid-cols-[1fr_1fr_auto] gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">
-                    <span>Mass Ratio $W_A / W_B$</span>
-                    <span>Int. Ratio $I_A / I_B$</span>
-                    <span className="w-8"></span>
-                  </div>
-                  {calibPoints.map((pt, idx) => (
-                    <div key={pt.id} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-center">
-                      <input
-                        type="number"
-                        step="0.05"
-                        value={pt.weightRatio}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, weightRatio: val } : p));
-                        }}
-                        className="bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-xs outline-none focus:border-amber-500/60 transition-colors"
-                      />
-                      <input
-                        type="number"
-                        step="0.05"
-                        value={pt.intensityRatio}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, intensityRatio: val } : p));
-                        }}
-                        className="bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-xs outline-none focus:border-amber-500/60 transition-colors"
-                      />
+                {calibPoints.map((pt, idx) => (
+                  <div key={pt.id} className="grid grid-cols-12 gap-2 items-center bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={pt.weightRatio}
+                      onChange={(e) => updateCalibPoint(pt.id, 'weightRatio', parseFloat(e.target.value) || 0)}
+                      className="col-span-5 bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-xs font-mono outline-none focus:border-amber-500"
+                    />
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={pt.intensityRatio}
+                      onChange={(e) => updateCalibPoint(pt.id, 'intensityRatio', parseFloat(e.target.value) || 0)}
+                      className="col-span-5 bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-xs font-mono outline-none focus:border-amber-500"
+                    />
+                    <div className="col-span-2 flex justify-center">
                       {calibPoints.length > 2 && (
                         <button
-                          onClick={() => {
-                            setCalibPoints(prev => prev.filter(p => p.id !== pt.id));
-                            playSynthTone('tick');
-                          }}
-                          className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors"
+                          onClick={() => removeCalibPoint(pt.id)}
+                          className="text-slate-500 hover:text-rose-400 p-1 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
-                  ))}
-                </div>
-
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium">Standard Reference RIR ($K_B$):</span>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={calibRIRB}
-                    onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
-                    className="w-24 bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 font-mono text-xs text-right outline-none focus:border-amber-500/60"
-                  />
-                </div>
+                  </div>
+                ))}
               </div>
-            </div>
 
-            {/* Right: Chart & Regression Stats */}
-            <div className="lg:col-span-7 flex flex-col gap-4">
-              <div className="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-inner">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <span className="font-bold text-slate-200 text-sm">Linear Calibration Regression Fit</span>
-                  <span className="font-mono text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
-                    $y =$ {multiPointStats.slope.toFixed(3)}$x$ {multiPointStats.intercept >= 0 ? '+' : ''}{multiPointStats.intercept.toFixed(3)}
-                  </span>
+              {/* Standard RIR Reference Value */}
+              <div className="pt-3 border-t border-slate-800 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Standard Phase RIR ($RIR_B$):</span>
+                  <span className="font-mono font-bold text-amber-300">{calibRIRB.toFixed(2)}</span>
                 </div>
+                <input
+                  type="number"
+                  step="0.05"
+                  value={calibRIRB}
+                  onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-mono outline-none focus:border-amber-500"
+                />
+              </div>
 
-                <div className="h-60 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart margin={{ top: 10, right: 20, left: -10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis
-                        dataKey="weightRatio"
-                        stroke="#64748b"
-                        fontSize={11}
-                        name="W_A/W_B"
-                        type="number"
-                        domain={['dataMin', 'dataMax']}
-                        tickLine={false}
-                      />
-                      <YAxis stroke="#64748b" fontSize={11} name="I_A/I_B" type="number" tickLine={false} />
-                      <RechartsTooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const pt = payload[0].payload;
-                            return (
-                              <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-xs font-mono text-slate-200 shadow-xl">
-                                <div className="text-slate-400">Mass Ratio ($W_A/W_B$): {pt.weightRatio}</div>
-                                <div className="text-amber-400 font-bold">Intensity Ratio: {pt.intensityRatio ?? pt.fittedRatio}</div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Line
-                        data={regressionLineData}
-                        dataKey="fittedRatio"
-                        stroke="#f59e0b"
-                        strokeWidth={2.5}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                      <Scatter
-                        data={calibPoints}
-                        dataKey="intensityRatio"
-                        fill="#6366f1"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+              {/* Target Phase in Active Mixture */}
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <label className="text-[10px] uppercase font-bold text-slate-400 block">
+                  Assign Calibrated RIR to Active Phase:
+                </label>
+                <select
+                  value={targetPhaseId}
+                  onChange={(e) => setTargetPhaseId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-amber-500"
+                >
+                  {phases.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} (Current RIR: {p.rir})
+                    </option>
+                  ))}
+                </select>
 
-                {/* Regression Metrics */}
-                <div className="grid grid-cols-3 gap-3 pt-2">
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Goodness $R^2$</span>
-                    <span className="text-lg font-mono font-black text-emerald-400 mt-1 block">
-                      {multiPointStats.r2.toFixed(4)}
-                    </span>
-                  </div>
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Slope ($m$)</span>
-                    <span className="text-lg font-mono font-black text-cyan-400 mt-1 block">
-                      {multiPointStats.slope.toFixed(3)}
-                    </span>
-                  </div>
-                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-center">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Extracted $RIR_A$</span>
-                    <span className="text-lg font-mono font-black text-amber-400 mt-1 block">
-                      {multiPointStats.calibRIR.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+                <button
+                  onClick={() => handleApply(multiPointStats.calibRIR)}
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Apply Calibrated RIR ({multiPointStats.calibRIR.toFixed(2)})</span>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Action Footer */}
-          <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">Target Phase:</span>
-              <select
-                value={targetPhaseId}
-                onChange={(e) => setTargetPhaseId(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-amber-500/60 w-full sm:w-64"
-              >
-                {phases.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} (Current RIR: {p.rir})
-                  </option>
-                ))}
-              </select>
+          {/* Right Column: Regression Plot & Live Statistics (7 cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            {/* Stats Metric Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-950/80 border border-slate-800 p-3 rounded-2xl">
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Calibrated RIR</span>
+                <span className="text-xl font-black font-mono text-amber-400 mt-0.5 block">
+                  {multiPointStats.calibRIR.toFixed(2)}
+                  <span className="text-xs font-normal text-slate-400"> ± {multiPointStats.stdErrRIR.toFixed(2)}</span>
+                </span>
+              </div>
+              <div className="bg-slate-950/80 border border-slate-800 p-3 rounded-2xl">
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Goodness $R^2$</span>
+                <span className="text-xl font-black font-mono text-emerald-400 mt-0.5 block">
+                  {(multiPointStats.r2 * 100).toFixed(2)}%
+                </span>
+              </div>
+              <div className="bg-slate-950/80 border border-slate-800 p-3 rounded-2xl">
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Slope ($m$)</span>
+                <span className="text-lg font-black font-mono text-indigo-400 mt-0.5 block">
+                  {multiPointStats.slope.toFixed(3)}
+                </span>
+              </div>
+              <div className="bg-slate-950/80 border border-slate-800 p-3 rounded-2xl">
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Intercept ($c$)</span>
+                <span className="text-lg font-black font-mono text-slate-300 mt-0.5 block">
+                  {multiPointStats.intercept.toFixed(3)}
+                </span>
+              </div>
             </div>
 
-            <button
-              onClick={() => handleApply(multiPointStats.calibRIR)}
-              className="w-full sm:w-auto px-6 py-3 text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Apply Calibrated RIR ({multiPointStats.calibRIR.toFixed(2)}) to Phase</span>
-            </button>
+            {/* Regression Chart */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-slate-300">
+                  Linear Calibration Curve: (I_A / I_B) = (RIR_A / RIR_B) · (W_A / W_B)
+                </span>
+                <span className="text-[10px] font-mono text-amber-400 font-bold">
+                  y = {multiPointStats.slope.toFixed(2)}x {multiPointStats.intercept >= 0 ? '+' : ''} {multiPointStats.intercept.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="h-60 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={regressionChartData} margin={{ top: 10, right: 20, bottom: 20, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.4} />
+                    <XAxis
+                      dataKey="weightRatio"
+                      stroke="#94a3b8"
+                      label={{ value: 'Mass Ratio (W_A / W_B)', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      label={{ value: 'Intensity Ratio (I_A / I_B)', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <RechartsTooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const d = payload[0].payload;
+                          return (
+                            <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-xs font-mono text-slate-200">
+                              <div>Mass Ratio: <strong>{d.weightRatio}</strong></div>
+                              <div className="text-amber-400">Fitted Ratio: <strong>{d.fittedRatio}</strong></div>
+                              <div className="text-slate-400 text-[10px]">95% CI: [{d.ciLower} - {d.ciUpper}]</div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Line type="monotone" dataKey="ciUpper" stroke="#f59e0b" strokeDasharray="2 2" dot={false} strokeOpacity={0.4} />
+                    <Line type="monotone" dataKey="ciLower" stroke="#f59e0b" strokeDasharray="2 2" dot={false} strokeOpacity={0.4} />
+                    <Line type="monotone" dataKey="fittedRatio" stroke="#f59e0b" strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* MODE 2: Single-Point Calibration */}
+      {/* MODE 2: Single Point (1:1 Mixture) Calibration */}
       {calibMode === 'single' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
-              <Sparkles className="w-4 h-4" />
-              <span>Single-Point Binary Calibration Equation</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              When mixing a target analyte ($A$) with a known reference standard ($B$, typically Corundum with $RIR_B = 1.0$) in a known mass ratio $W_A/W_B$:
-            </p>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-amber-300 overflow-x-auto text-sm">
-              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                {`$$ RIR_A = RIR_B \\times \\left(\\frac{I_A}{I_B}\\right) \\times \\left(\\frac{W_B}{W_A}\\right) $$`}
-              </ReactMarkdown>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
+          <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2">
+              <Scale className="w-4 h-4" />
+              <span>Single 1:1 Standard Mixture Inputs</span>
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 block">Analyte Peak Area ($I_A$)</label>
+                <input
+                  type="number"
+                  value={calibIntensityA}
+                  onChange={(e) => setCalibIntensityA(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 block">Standard Peak Area ($I_B$)</label>
+                <input
+                  type="number"
+                  value={calibIntensityB}
+                  onChange={(e) => setCalibIntensityB(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 block">Standard RIR ($RIR_B$)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={calibRIRB}
+                  onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 block">Mass Ratio ($W_A / W_B$)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={calibWeightRatioAB}
+                  onChange={(e) => setCalibWeightRatioAB(parseFloat(e.target.value) || 1.0)}
+                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-amber-500"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Analyte Int. ($I_A$)</label>
-              <input
-                type="number"
-                value={calibIntensityA}
-                onChange={(e) => setCalibIntensityA(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none focus:border-amber-500/60"
-              />
-            </div>
-
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Std Int. ($I_B$)</label>
-              <input
-                type="number"
-                value={calibIntensityB}
-                onChange={(e) => setCalibIntensityB(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none focus:border-amber-500/60"
-              />
-            </div>
-
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Std RIR ($K_B$)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={calibRIRB}
-                onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none focus:border-amber-500/60"
-              />
-            </div>
-
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mass Ratio ($W_A/W_B$)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={calibWeightRatioAB}
-                onChange={(e) => setCalibWeightRatioAB(parseFloat(e.target.value) || 1.0)}
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none focus:border-amber-500/60"
-              />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent border border-amber-500/30 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-4">
             <div>
-              <span className="text-xs uppercase tracking-wider text-amber-300/80 font-bold block">Calibrated RIR Value</span>
-              <span className="text-4xl font-mono font-black text-amber-400 mt-1 block">
-                {singlePointRIR.toFixed(2)}
-              </span>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Calculated Reference Ratio</span>
+              <div className="text-3xl font-black font-mono text-amber-400 mt-2">
+                RIR = {singlePointRIR.toFixed(2)}
+              </div>
+              <p className="text-xs text-slate-400 mt-2">
+                Empirical Corundum ratio determined from 1:1 binary mixture: RIR_A = RIR_B · (I_A / I_B) / (W_A / W_B).
+              </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="space-y-2 pt-3 border-t border-slate-800">
+              <label className="text-[10px] uppercase font-bold text-slate-400 block">Target Phase to Update:</label>
               <select
                 value={targetPhaseId}
                 onChange={(e) => setTargetPhaseId(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold outline-none focus:border-amber-500/60"
+                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-amber-500"
               >
                 {phases.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} (Current: {p.rir})</option>
+                  <option key={p.id} value={p.id}>{p.name} (RIR: {p.rir})</option>
                 ))}
               </select>
+
               <button
                 onClick={() => handleApply(singlePointRIR)}
-                className="px-5 py-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition-all shadow-md active:scale-95"
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2"
               >
-                Apply RIR
+                <Check className="w-4 h-4" />
+                <span>Apply Single-Point RIR ({singlePointRIR.toFixed(2)})</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODE 3: Spiking & Direct Amorphous Extraction */}
+      {/* MODE 3: Method of Standard Additions */}
       {calibMode === 'spiking' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
-              <FlaskConical className="w-4 h-4" />
-              <span>Internal Standard Spiking & Absolute Phase Recovery</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              By adding a known mass fraction (W_S) of an internal crystalline standard into the sample, absolute phase weights are determined independently of matrix attenuation, allowing direct determination of amorphous matrix content:
-            </p>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-indigo-300 overflow-x-auto text-sm">
-              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
-                {`$$ W_i^{\\text{orig}} = \\frac{I_i}{I_s} \\cdot \\frac{RIR_s}{RIR_i} \\cdot W_s \\cdot \\frac{1}{1 - W_s / 100} $$`}
-              </ReactMarkdown>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-300">
+          <div className="lg:col-span-6 bg-slate-950/70 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <h3 className="text-sm font-bold text-amber-400 flex items-center gap-2">
+              <Scale className="w-4 h-4" />
+              <span>Multi-Spiking Additions Matrix</span>
+            </h3>
+
+            <div className="space-y-2">
+              <div className="grid grid-cols-12 gap-2 text-[10px] uppercase font-bold text-slate-500 px-2">
+                <span className="col-span-6">Added Standard (w_s wt%)</span>
+                <span className="col-span-6">Peak Ratio (I_unk / I_std)</span>
+              </div>
+              {spikingPoints.map((sp) => (
+                <div key={sp.id} className="grid grid-cols-12 gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                  <input
+                    type="number"
+                    step="1"
+                    value={sp.spikedStandardWtPct}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setSpikingPoints(prev => prev.map(p => p.id === sp.id ? { ...p, spikedStandardWtPct: val } : p));
+                    }}
+                    className="col-span-6 bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-2.5 py-1 text-xs font-mono outline-none"
+                  />
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={sp.measuredIntensityRatio}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setSpikingPoints(prev => prev.map(p => p.id === sp.id ? { ...p, measuredIntensityRatio: val } : p));
+                    }}
+                    className="col-span-6 bg-slate-950 border border-slate-700 text-slate-200 rounded-lg px-2.5 py-1 text-xs font-mono outline-none"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Spike Added ($W_S$ wt%)</label>
-              <input
-                type="number"
-                step="1"
-                value={spikeAddedWtPct}
-                onChange={(e) => setSpikeAddedWtPct(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none focus:border-indigo-500/60"
-              />
+          <div className="lg:col-span-6 bg-slate-950/70 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-4">
+            <div>
+              <span className="text-xs uppercase font-bold text-slate-400 block">Extrapolated Original Sample Fraction</span>
+              <div className="text-3xl font-black font-mono text-emerald-400 mt-2">
+                {spikingStats.estimatedUnknownWtPct.toFixed(1)} wt%
+              </div>
+              <div className="text-xs text-slate-400 mt-2">
+                Determined by linear regression of reciprocal intensity ratio 1/(I_unk/I_std) against spiked standard mass percentage (R² = {(spikingStats.r2 * 100).toFixed(1)}%).
+              </div>
             </div>
 
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Standard Peak Int. ($I_S$)</label>
-              <input
-                type="number"
-                value={spikeStdIntensity}
-                onChange={(e) => setSpikeStdIntensity(parseFloat(e.target.value) || 1)}
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none focus:border-indigo-500/60"
-              />
+            <div className="p-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl text-xs space-y-1 text-slate-300">
+              <div className="flex justify-between">
+                <span>Standard Additions Slope:</span>
+                <span className="font-mono text-amber-400 font-bold">{spikingStats.slope.toFixed(4)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Linear Regression $R^2$:</span>
+                <span className="font-mono text-emerald-400 font-bold">{(spikingStats.r2 * 100).toFixed(2)}%</span>
+              </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Standard RIR ($RIR_S$)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={spikeStdPhaseRIR}
-                onChange={(e) => setSpikeStdPhaseRIR(parseFloat(e.target.value) || 1.0)}
-                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none focus:border-indigo-500/60"
-              />
+      {/* MODE 4: Universal Reference Standard Converter */}
+      {calibMode === 'converter' && (
+        <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 space-y-6 animate-in fade-in duration-300">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <RefreshCw className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-100">Universal Reference Ratio Conversion Matrix</h3>
+              <p className="text-xs text-slate-400">Convert RIR values between Corundum (α-Al₂O₃), Quartz, Silicon, and Zincite standards.</p>
             </div>
           </div>
 
-          {/* Results Table */}
-          <div className="bg-slate-950/70 rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
-            <div className="p-4 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center text-xs">
-              <span className="font-bold text-slate-200">Spike-Corrected Absolute Phase Quantification</span>
-              <span className="font-mono text-rose-400 font-bold bg-rose-500/10 px-2.5 py-1 rounded-md border border-rose-500/20">
-                Calculated Amorphous Content: {spikingResults.amorphousAbsolute.toFixed(1)} wt%
-              </span>
-            </div>
-            <table className="w-full text-xs font-mono">
-              <thead className="bg-slate-950/90 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                <tr>
-                  <th className="px-4 py-3 text-left font-sans">Phase Name</th>
-                  <th className="px-4 py-3 text-right">Int (I)</th>
-                  <th className="px-4 py-3 text-right">RIR</th>
-                  <th className="px-4 py-3 text-right text-indigo-300">In Spiked Blend</th>
-                  <th className="px-4 py-3 text-right text-emerald-300 font-bold">In Original Sample</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {spikingResults.phaseAbsolute.map(p => (
-                  <tr key={p.id} className="hover:bg-slate-900/50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-slate-200 font-sans">{p.name}</td>
-                    <td className="px-4 py-3 text-right text-slate-400">{p.intensity}</td>
-                    <td className="px-4 py-3 text-right text-slate-400">{p.rir.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right text-indigo-300">{p.absInMixture.toFixed(2)} wt%</td>
-                    <td className="px-4 py-3 text-right text-emerald-400 font-bold">{p.absInOriginalSample.toFixed(2)} wt%</td>
-                  </tr>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-bold text-slate-400 block">Source Reference Standard</label>
+              <select
+                value={converterSourceRef}
+                onChange={(e) => setConverterSourceRef(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+              >
+                {Object.keys(REF_STANDARDS).map(std => (
+                  <option key={std} value={std}>{std} (RIR: {REF_STANDARDS[std]})</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+              <input
+                type="number"
+                step="0.05"
+                value={converterSourceRIR}
+                onChange={(e) => setConverterSourceRIR(parseFloat(e.target.value) || 1.0)}
+                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-mono outline-none"
+                placeholder="Source RIR value"
+              />
+            </div>
+
+            <div className="flex justify-center">
+              <div className="p-3 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                <ArrowRight className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] uppercase font-bold text-slate-400 block">Target Reference Standard</label>
+              <select
+                value={converterTargetRef}
+                onChange={(e) => setConverterTargetRef(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+              >
+                {Object.keys(REF_STANDARDS).map(std => (
+                  <option key={std} value={std}>{std} (RIR: {REF_STANDARDS[std]})</option>
+                ))}
+              </select>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-center">
+                <span className="text-[9px] uppercase font-bold text-slate-500 block">Converted RIR (I / I_target)</span>
+                <span className="text-2xl font-black font-mono text-amber-400">{convertedRIR.toFixed(2)}</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

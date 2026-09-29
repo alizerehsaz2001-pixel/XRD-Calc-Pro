@@ -185,7 +185,9 @@ const CrystallineLattice3D: React.FC<{
   alpha?: number;
   beta?: number;
   gamma?: number;
-}> = ({ structure, a, b, c, colorClass, symbol = 'X', spaceGroup }) => {
+  hkl?: [number, number, number];
+  onHklChange?: (h: number, k: number, l: number) => void;
+}> = ({ structure, a, b, c, colorClass, symbol = 'X', spaceGroup, hkl = [1, 1, 1], onHklChange }) => {
   // Static view by default as requested by user ("make it more scientific and it should be static")
   const [yaw, setYaw] = useState<number>(35);
   const [pitch, setPitch] = useState<number>(-20);
@@ -195,6 +197,7 @@ const CrystallineLattice3D: React.FC<{
   const [showAxes] = useState<boolean>(true);
   const [showEdgeLabels] = useState<boolean>(true);
   const [showBasisDrawer, setShowBasisDrawer] = useState<boolean>(false);
+  const [showHklPlane, setShowHklPlane] = useState<boolean>(true);
 
   const requestRef = useRef<number | null>(null);
   const prevTimeRef = useRef<number | null>(null);
@@ -421,6 +424,48 @@ const CrystallineLattice3D: React.FC<{
   const projectedBox = boxVertices.map(v => project(v));
   const projectedAtoms = atoms.map(v => project(v));
 
+  // Compute 3D crystallographic (hkl) plane slice polygon inside the unit cell box
+  const hklPolygon2D = useMemo(() => {
+    const [mh, mk, ml] = hkl;
+    if (!showHklPlane || (mh === 0 && mk === 0 && ml === 0)) return [];
+    const ox = -sa / 2;
+    const oy = -sb / 2;
+    const oz = -sc / 2;
+    const boxEdgesFrac: [[number, number, number], [number, number, number]][] = [
+      [[0, 0, 0], [1, 0, 0]], [[1, 0, 0], [1, 1, 0]], [[1, 1, 0], [0, 1, 0]], [[0, 1, 0], [0, 0, 0]],
+      [[0, 0, 1], [1, 0, 1]], [[1, 0, 1], [1, 1, 1]], [[1, 1, 1], [0, 1, 1]], [[0, 1, 1], [0, 0, 1]],
+      [[0, 0, 0], [0, 0, 1]], [[1, 0, 0], [1, 0, 1]], [[1, 1, 0], [1, 1, 1]], [[0, 1, 0], [0, 1, 1]]
+    ];
+    const pts3D: Point3D[] = [];
+    for (const [p1, p2] of boxEdgesFrac) {
+      const f1 = mh * p1[0] + mk * p1[1] + ml * p1[2] - 1;
+      const f2 = mh * p2[0] + mk * p2[1] + ml * p2[2] - 1;
+      if (Math.abs(f1) < 1e-6) {
+        pts3D.push({ x: ox + p1[0] * sa, y: oy + p1[1] * sb, z: oz + p1[2] * sc });
+      } else if (Math.abs(f2) < 1e-6) {
+        pts3D.push({ x: ox + p2[0] * sa, y: oy + p2[1] * sb, z: oz + p2[2] * sc });
+      } else if (f1 * f2 < 0) {
+        const t = f1 / (f1 - f2);
+        const u = p1[0] + t * (p2[0] - p1[0]);
+        const v = p1[1] + t * (p2[1] - p1[1]);
+        const w = p1[2] + t * (p2[2] - p1[2]);
+        pts3D.push({ x: ox + u * sa, y: oy + v * sb, z: oz + w * sc });
+      }
+    }
+    // Deduplicate points
+    const unique: Point3D[] = [];
+    for (const pt of pts3D) {
+      if (!unique.some(u => Math.hypot(u.x - pt.x, u.y - pt.y, u.z - pt.z) < 0.5)) {
+        unique.push(pt);
+      }
+    }
+    if (unique.length < 3) return [];
+    const proj = unique.map(p => project(p));
+    const cx = proj.reduce((acc, p) => acc + p.x, 0) / proj.length;
+    const cy = proj.reduce((acc, p) => acc + p.y, 0) / proj.length;
+    return proj.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+  }, [hkl, showHklPlane, sa, sb, sc, yaw, pitch]);
+
   // Origin point for coordinate axes
   const origin3D: Point3D = { x: -sa / 2, y: -sb / 2, z: -sc / 2, id: 'Origin' };
   const origin2D = project(origin3D);
@@ -545,8 +590,46 @@ const CrystallineLattice3D: React.FC<{
           >
             CPK Radii
           </button>
+          <button
+            type="button"
+            onClick={() => { setShowHklPlane(!showHklPlane); playSynthTone('tick'); }}
+            className={`px-2 py-0.5 rounded transition-all cursor-pointer ${showHklPlane ? 'bg-cyan-600 text-white font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+            title="Toggle 3D Miller (hkl) Diffraction Plane Slice"
+          >
+            ({hkl.join('')}) Plane
+          </button>
         </div>
       </div>
+
+      {/* Quick Miller Plane (hkl) Slicer Bar */}
+      {onHklChange && (
+        <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2 px-2 py-1 rounded-lg bg-slate-900/70 border border-slate-800 text-[9.5px] font-mono z-20 relative">
+          <span className="text-cyan-400 font-bold uppercase">Miller Slice (hkl):</span>
+          <div className="flex flex-wrap items-center gap-1">
+            {([[1, 0, 0], [1, 1, 0], [1, 1, 1], [2, 0, 0], [2, 1, 1], [0, 0, 2]] as [number, number, number][]).map(([ph, pk, pl]) => {
+              const isAct = hkl[0] === ph && hkl[1] === pk && hkl[2] === pl;
+              return (
+                <button
+                  key={`hkl-p-${ph}${pk}${pl}`}
+                  type="button"
+                  onClick={() => {
+                    onHklChange(ph, pk, pl);
+                    setShowHklPlane(true);
+                    playSynthTone('tick');
+                  }}
+                  className={`px-1.5 py-0.5 rounded border transition-all cursor-pointer tabular-nums ${
+                    isAct
+                      ? 'bg-cyan-600 text-white border-cyan-400 font-bold'
+                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                  }`}
+                >
+                  ({ph}{pk}{pl})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Main interactive SVG projection viewport */}
       <div 

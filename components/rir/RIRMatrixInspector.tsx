@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import {
@@ -25,9 +25,29 @@ import {
   Percent,
   Download,
   Share2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Play,
+  RotateCcw,
+  Target
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Cell
+} from 'recharts';
 import { playSynthTone } from '../../utils/sound';
+import {
+  computeRIRCovariance,
+  runRIRMonteCarloSimulation,
+  computeDetectionLimits,
+  MonteCarloResult,
+  DetectionLimitResult
+} from './rirMathUtils';
 
 export interface RIRMatrixPhase {
   id: string;
@@ -95,34 +115,34 @@ export const MatrixBox: React.FC<{
 }) => {
   const accentClasses = {
     indigo: {
-      title: 'text-indigo-600 dark:text-indigo-400',
-      diag: 'text-indigo-700 dark:text-indigo-200 bg-indigo-50 dark:bg-indigo-500/20 font-black border border-indigo-200 dark:border-indigo-500/30',
-      val: 'text-indigo-600/90 dark:text-indigo-200/90 hover:bg-indigo-50/60 dark:hover:bg-indigo-900/30'
+      title: 'text-indigo-400',
+      diag: 'text-indigo-200 bg-indigo-500/20 font-black border border-indigo-500/30',
+      val: 'text-indigo-200/90 hover:bg-indigo-900/30'
     },
     emerald: {
-      title: 'text-emerald-600 dark:text-emerald-400',
-      diag: 'text-emerald-700 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-500/20 font-black border border-emerald-200 dark:border-emerald-500/30',
-      val: 'text-emerald-600/90 dark:text-emerald-200/90 hover:bg-emerald-50/60 dark:hover:bg-emerald-900/30'
+      title: 'text-emerald-400',
+      diag: 'text-emerald-200 bg-emerald-500/20 font-black border border-emerald-500/30',
+      val: 'text-emerald-200/90 hover:bg-emerald-900/30'
     },
     amber: {
-      title: 'text-amber-600 dark:text-amber-400',
-      diag: 'text-amber-700 dark:text-amber-200 bg-amber-50 dark:bg-amber-500/20 font-black border border-amber-200 dark:border-amber-500/30',
-      val: 'text-amber-600/90 dark:text-amber-200/90 hover:bg-amber-50/60 dark:hover:bg-amber-900/30'
+      title: 'text-amber-400',
+      diag: 'text-amber-200 bg-amber-500/20 font-black border border-amber-500/30',
+      val: 'text-amber-200/90 hover:bg-amber-900/30'
     },
     cyan: {
-      title: 'text-cyan-600 dark:text-cyan-400',
-      diag: 'text-cyan-700 dark:text-cyan-200 bg-cyan-50 dark:bg-cyan-500/20 font-black border border-cyan-200 dark:border-cyan-500/30',
-      val: 'text-cyan-600/90 dark:text-cyan-200/90 hover:bg-cyan-50/60 dark:hover:bg-cyan-900/30'
+      title: 'text-cyan-400',
+      diag: 'text-cyan-200 bg-cyan-500/20 font-black border border-cyan-500/30',
+      val: 'text-cyan-200/90 hover:bg-cyan-900/30'
     },
     purple: {
-      title: 'text-purple-600 dark:text-purple-400',
-      diag: 'text-purple-700 dark:text-purple-200 bg-purple-50 dark:bg-purple-500/20 font-black border border-purple-200 dark:border-purple-500/30',
-      val: 'text-purple-600/90 dark:text-purple-200/90 hover:bg-purple-50/60 dark:hover:bg-purple-900/30'
+      title: 'text-purple-400',
+      diag: 'text-purple-200 bg-purple-500/20 font-black border border-purple-500/30',
+      val: 'text-purple-200/90 hover:bg-purple-900/30'
     },
     rose: {
-      title: 'text-rose-600 dark:text-rose-400',
-      diag: 'text-rose-700 dark:text-rose-200 bg-rose-50 dark:bg-rose-500/20 font-black border border-rose-200 dark:border-rose-500/30',
-      val: 'text-rose-600/90 dark:text-rose-200/90 hover:bg-rose-50/60 dark:hover:bg-rose-900/30'
+      title: 'text-rose-400',
+      diag: 'text-rose-200 bg-rose-500/20 font-black border border-rose-500/30',
+      val: 'text-rose-200/90 hover:bg-rose-900/30'
     }
   }[accentColor];
 
@@ -136,19 +156,19 @@ export const MatrixBox: React.FC<{
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <span className={`text-xs font-bold uppercase tracking-wider ${accentClasses.title}`}>{title}</span>
-        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+        <span className="text-[10px] font-mono text-slate-400">
           {matrix.length} × {cols}
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2 shadow-inner">
+      <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 p-2 shadow-inner">
         <table className="w-full text-xs font-mono border-collapse">
           {labels && labels.length === cols && (
             <thead>
               <tr>
                 {labels.length === matrix.length && <th className="p-1.5 text-slate-400 font-sans text-[10px]"></th>}
                 {labels.map((lbl, idx) => (
-                  <th key={idx} className="p-1.5 text-slate-400 dark:text-slate-500 font-sans text-[10px] font-bold text-center truncate max-w-[80px]">
+                  <th key={idx} className="p-1.5 text-slate-400 font-sans text-[10px] font-bold text-center truncate max-w-[80px]">
                     {lbl}
                   </th>
                 ))}
@@ -159,7 +179,7 @@ export const MatrixBox: React.FC<{
             {matrix.map((row, rIdx) => (
               <tr key={rIdx}>
                 {labels && labels.length === matrix.length && (
-                  <td className="p-1.5 text-slate-400 dark:text-slate-500 font-sans text-[10px] font-bold text-right pr-2 truncate max-w-[80px]">
+                  <td className="p-1.5 text-slate-400 font-sans text-[10px] font-bold text-right pr-2 truncate max-w-[80px]">
                     {labels[rIdx]}
                   </td>
                 )}
@@ -175,7 +195,7 @@ export const MatrixBox: React.FC<{
                         isDiag
                           ? accentClasses.diag
                           : isHovered
-                          ? 'bg-slate-100 dark:bg-slate-800/80 font-bold'
+                          ? 'bg-slate-800/80 font-bold'
                           : accentClasses.val
                       }`}
                     >
@@ -198,176 +218,42 @@ export const RIRMatrixInspector: React.FC<RIRMatrixInspectorProps> = ({
   intensityUncertaintyPct,
   rirUncertaintyPct
 }) => {
-  const [activeTab, setActiveTab] = useState<'equations' | 'jacobian' | 'covariance' | 'stability' | 'code'>('equations');
+  const [activeTab, setActiveTab] = useState<'equations' | 'jacobian' | 'covariance' | 'monte_carlo' | 'detection_limits' | 'stability' | 'code'>('equations');
   const [hoveredCell, setHoveredCell] = useState<{ r: number | null; c: number | null }>({ r: null, c: null });
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [mcRunning, setMcRunning] = useState(false);
+  const [mcResult, setMcResult] = useState<MonteCarloResult | null>(null);
 
   const n = phases.length;
   const phaseLabels = useMemo(() => phases.map(p => p.name.split(' ')[0] || p.name), [phases]);
 
   // Matrix computations
   const matrixCalcs = useMemo(() => {
-    if (n === 0) {
-      return {
-        vectorI: [],
-        vectorK: [],
-        vectorReducedI: [],
-        vectorW: [],
-        vectorV: [],
-        jacobianI: [],
-        jacobianK: [],
-        covarI: [],
-        covarK: [],
-        covarW: [],
-        corrW: [],
-        totalReducedIntensity: 0,
-        conditionNumber: 1,
-        maxSensitivity: 0
-      };
+    return computeRIRCovariance(phases, intensityUncertaintyPct, rirUncertaintyPct);
+  }, [phases, intensityUncertaintyPct, rirUncertaintyPct]);
+
+  // Detection limits & penetration depths
+  const detectionLimits = useMemo(() => {
+    return computeDetectionLimits(phases, 80, 65.0);
+  }, [phases]);
+
+  // Run Monte Carlo on demand or when phases change
+  const handleRunMonteCarlo = () => {
+    setMcRunning(true);
+    playSynthTone('tick');
+    setTimeout(() => {
+      const res = runRIRMonteCarloSimulation(phases, intensityUncertaintyPct, rirUncertaintyPct, 4000);
+      setMcResult(res);
+      setMcRunning(false);
+      playSynthTone('success');
+    }, 100);
+  };
+
+  useEffect(() => {
+    if (activeTab === 'monte_carlo' && !mcResult) {
+      handleRunMonteCarlo();
     }
-
-    const vectorI = phases.map(p => p.intensity || 0);
-    const vectorK = phases.map(p => (p.rir > 0 ? p.rir : 1.0));
-    const vectorDensities = phases.map(p => (p.density && p.density > 0 ? p.density : 3.0));
-
-    // Reduced intensities: \tilde{I}_i = I_i / K_i
-    const vectorReducedI = vectorI.map((I_i, idx) => I_i / vectorK[idx]);
-    const totalReducedIntensity = vectorReducedI.reduce((sum, val) => sum + val, 0);
-
-    // Crystalline weight fractions w_i = \tilde{I}_i / \sum \tilde{I}_j
-    const vectorW = totalReducedIntensity > 0
-      ? vectorReducedI.map(rI => rI / totalReducedIntensity)
-      : phases.map(() => 1 / n);
-
-    // Volume fractions v_i = (w_i / \rho_i) / \sum (w_j / \rho_j)
-    const volumeFactors = vectorW.map((w_i, idx) => w_i / vectorDensities[idx]);
-    const totalVolFactor = volumeFactors.reduce((sum, val) => sum + val, 0);
-    const vectorV = totalVolFactor > 0
-      ? volumeFactors.map(vf => vf / totalVolFactor)
-      : phases.map(() => 1 / n);
-
-    // Jacobian Matrix with respect to Intensities: J_{I, ij} = \partial w_i / \partial I_j
-    // \partial w_i / \partial I_j = \frac{1}{S \cdot K_j} (\delta_{ij} - w_i)
-    const jacobianI: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      jacobianI[i] = [];
-      for (let j = 0; j < n; j++) {
-        if (totalReducedIntensity <= 0) {
-          jacobianI[i][j] = 0;
-        } else {
-          const delta = i === j ? 1 : 0;
-          jacobianI[i][j] = (delta - vectorW[i]) / (totalReducedIntensity * vectorK[j]);
-        }
-      }
-    }
-
-    // Jacobian Matrix with respect to RIR Constants: J_{K, ij} = \partial w_i / \partial K_j
-    // \partial w_i / \partial K_j = -\frac{w_i}{K_j} (\delta_{ij} - w_j)
-    const jacobianK: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      jacobianK[i] = [];
-      for (let j = 0; j < n; j++) {
-        const delta = i === j ? 1 : 0;
-        jacobianK[i][j] = -(vectorW[i] / vectorK[j]) * (delta - vectorW[j]);
-      }
-    }
-
-    // Covariance matrix of Intensity inputs \Sigma_I (assumed independent diagonal)
-    // Var(I_i) = (\sigma_{I, i})^2 = (I_i \cdot relErrI)^2
-    const relErrI = (intensityUncertaintyPct || 0) / 100;
-    const covarI: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      covarI[i] = [];
-      for (let j = 0; j < n; j++) {
-        if (i === j) {
-          const sigma_i = vectorI[i] * relErrI;
-          covarI[i][j] = sigma_i * sigma_i;
-        } else {
-          covarI[i][j] = 0;
-        }
-      }
-    }
-
-    // Covariance matrix of RIR inputs \Sigma_K (assumed independent diagonal)
-    const relErrK = (rirUncertaintyPct || 0) / 100;
-    const covarK: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      covarK[i] = [];
-      for (let j = 0; j < n; j++) {
-        if (i === j) {
-          const sigma_k = vectorK[i] * relErrK;
-          covarK[i][j] = sigma_k * sigma_k;
-        } else {
-          covarK[i][j] = 0;
-        }
-      }
-    }
-
-    // Full Covariance Matrix of Output Weight Fractions:
-    // \Sigma_w = J_I \Sigma_I J_I^T + J_K \Sigma_K J_K^T
-    // Since \Sigma_I and \Sigma_K are diagonal:
-    // \Sigma_{w, ij} = \sum_k J_{I, ik} J_{I, jk} Var(I_k) + \sum_k J_{K, ik} J_{K, jk} Var(K_k)
-    const covarW: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      covarW[i] = [];
-      for (let j = 0; j < n; j++) {
-        let sum = 0;
-        for (let k = 0; k < n; k++) {
-          const varI_k = covarI[k][k];
-          const varK_k = covarK[k][k];
-          sum += jacobianI[i][k] * jacobianI[j][k] * varI_k;
-          sum += jacobianK[i][k] * jacobianK[j][k] * varK_k;
-        }
-        covarW[i][j] = sum;
-      }
-    }
-
-    // Correlation Matrix: R_{ij} = \Sigma_{w, ij} / \sqrt{\Sigma_{w, ii} \Sigma_{w, jj}}
-    const corrW: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      corrW[i] = [];
-      for (let j = 0; j < n; j++) {
-        const var_i = covarW[i][i];
-        const var_j = covarW[j][j];
-        if (var_i > 0 && var_j > 0) {
-          corrW[i][j] = covarW[i][j] / Math.sqrt(var_i * var_j);
-        } else {
-          corrW[i][j] = i === j ? 1 : 0;
-        }
-      }
-    }
-
-    // Condition number estimation (ratio of max to min reduced intensity)
-    const validReduced = vectorReducedI.filter(v => v > 0);
-    const maxReduced = validReduced.length > 0 ? Math.max(...validReduced) : 1;
-    const minReduced = validReduced.length > 0 ? Math.min(...validReduced) : 1;
-    const conditionNumber = minReduced > 0 ? maxReduced / minReduced : 1;
-
-    // Max sensitivity
-    let maxSens = 0;
-    jacobianI.forEach(row => {
-      row.forEach(val => {
-        if (Math.abs(val) > maxSens) maxSens = Math.abs(val);
-      });
-    });
-
-    return {
-      vectorI,
-      vectorK,
-      vectorReducedI,
-      vectorW,
-      vectorV,
-      jacobianI,
-      jacobianK,
-      covarI,
-      covarK,
-      covarW,
-      corrW,
-      totalReducedIntensity,
-      conditionNumber,
-      maxSensitivity: maxSens
-    };
-  }, [phases, intensityUncertaintyPct, rirUncertaintyPct, n]);
+  }, [activeTab]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -383,10 +269,10 @@ export const RIRMatrixInspector: React.FC<RIRMatrixInspectorProps> = ({
     latex += `\\end{equation}\n\n`;
 
     latex += `% Intensity Vector I\n`;
-    latex += `\\mathbf{I} = \\begin{bmatrix} ${matrixCalcs.vectorI.map(v => v.toFixed(1)).join(' \\\\ ')} \\end{bmatrix}\n\n`;
+    latex += `\\mathbf{I} = \\begin{bmatrix} ${phases.map(p => (p.intensity || 0).toFixed(1)).join(' \\\\ ')} \\end{bmatrix}\n\n`;
 
     latex += `% RIR Vector K\n`;
-    latex += `\\mathbf{K} = \\begin{bmatrix} ${matrixCalcs.vectorK.map(v => v.toFixed(2)).join(' \\\\ ')} \\end{bmatrix}\n\n`;
+    latex += `\\mathbf{K} = \\begin{bmatrix} ${phases.map(p => (p.rir || 1.0).toFixed(2)).join(' \\\\ ')} \\end{bmatrix}\n\n`;
 
     latex += `% Normalized Phase Weight Fractions w (wt%)\n`;
     latex += `\\mathbf{w} = \\begin{bmatrix} ${matrixCalcs.vectorW.map(v => (v * 100).toFixed(2) + '\\%').join(' \\\\ ')} \\end{bmatrix}\n\n`;
@@ -490,7 +376,7 @@ if amorphous_wt_pct > 0:
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Interactive Chung adiabatic transformation vectors, Jacobian error propagation tensors, and analytical covariance matrices.
+              Interactive Chung adiabatic transformation vectors, Jacobian error propagation tensors, and Monte Carlo stochastic validation.
             </p>
           </div>
         </div>
@@ -504,9 +390,9 @@ if amorphous_wt_pct > 0:
             </span>
           </div>
           <div className="bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sum Reduced (Σ I_tilde):</span>
-            <span className="font-mono text-xs font-bold text-emerald-400">
-              {matrixCalcs.totalReducedIntensity.toFixed(1)}
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Max Sensitivity:</span>
+            <span className="font-mono text-xs font-bold text-cyan-400">
+              {matrixCalcs.maxSensitivity.toExponential(2)}
             </span>
           </div>
         </div>
@@ -516,69 +402,80 @@ if amorphous_wt_pct > 0:
       <div className="bg-slate-950/90 border border-slate-800 p-1.5 rounded-2xl flex flex-wrap gap-1.5 shadow-inner">
         <button
           onClick={() => { playSynthTone('tick'); setActiveTab('equations'); }}
-          className={`flex-1 min-w-[140px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'equations'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Calculator className="w-3.5 h-3.5 text-indigo-300" />
-          <span>1. Normal Vectors & System</span>
+          <span>1. Vectors & System</span>
         </button>
 
         <button
           onClick={() => { playSynthTone('tick'); setActiveTab('jacobian'); }}
-          className={`flex-1 min-w-[140px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'jacobian'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Layers className="w-3.5 h-3.5 text-cyan-300" />
-          <span>2. Jacobian Tensors ($J_I$, $J_K$)</span>
+          <span>2. Jacobian Tensors</span>
         </button>
 
         <button
           onClick={() => { playSynthTone('tick'); setActiveTab('covariance'); }}
-          className={`flex-1 min-w-[140px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'covariance'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Grid className="w-3.5 h-3.5 text-emerald-300" />
-          <span>3. Covariance & Correlation (Σ_w)</span>
+          <span>3. Covariance Matrix</span>
         </button>
 
         <button
-          onClick={() => { playSynthTone('tick'); setActiveTab('stability'); }}
-          className={`flex-1 min-w-[140px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'stability'
+          onClick={() => { playSynthTone('tick'); setActiveTab('monte_carlo'); }}
+          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'monte_carlo'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-300" />
-          <span>4. Stability & Sensitivity</span>
+          <Activity className="w-3.5 h-3.5 text-amber-300" />
+          <span>4. Monte Carlo (4k Runs)</span>
+        </button>
+
+        <button
+          onClick={() => { playSynthTone('tick'); setActiveTab('detection_limits'); }}
+          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+            activeTab === 'detection_limits'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <Target className="w-3.5 h-3.5 text-rose-300" />
+          <span>5. LOD / LOQ & Depths</span>
         </button>
 
         <button
           onClick={() => { playSynthTone('tick'); setActiveTab('code'); }}
-          className={`flex-1 min-w-[140px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
             activeTab === 'code'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Code2 className="w-3.5 h-3.5 text-purple-300" />
-          <span>5. LaTeX & Python Export</span>
+          <span>6. LaTeX & Python</span>
         </button>
       </div>
 
       {/* TAB 1: Normal Vectors & Transformation System */}
       {activeTab === 'equations' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Theoretical Box */}
           <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
               <Sparkles className="w-4 h-4" />
@@ -600,14 +497,13 @@ if amorphous_wt_pct > 0:
 
           {/* Grid of Vector Boxes */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Vector I */}
             <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 flex flex-col gap-3">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                 <span className="text-xs font-bold text-indigo-400 uppercase">Intensity Vector I</span>
                 <span className="text-[10px] font-mono text-slate-500">{n}×1</span>
               </div>
               <div className="space-y-1.5 font-mono text-xs">
-                {phases.map((p, idx) => (
+                {phases.map((p) => (
                   <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-slate-300 font-sans truncate max-w-[90px]">{p.name}</span>
                     <span className="font-bold text-indigo-300">{p.intensity} cps</span>
@@ -616,14 +512,13 @@ if amorphous_wt_pct > 0:
               </div>
             </div>
 
-            {/* Vector K */}
             <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 flex flex-col gap-3">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                 <span className="text-xs font-bold text-emerald-400 uppercase">RIR Vector K</span>
                 <span className="text-[10px] font-mono text-slate-500">{n}×1</span>
               </div>
               <div className="space-y-1.5 font-mono text-xs">
-                {phases.map((p, idx) => (
+                {phases.map((p) => (
                   <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-slate-300 font-sans truncate max-w-[90px]">{p.name}</span>
                     <span className="font-bold text-emerald-300">{p.rir.toFixed(2)}</span>
@@ -632,23 +527,21 @@ if amorphous_wt_pct > 0:
               </div>
             </div>
 
-            {/* Vector Reduced Intensity */}
             <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 flex flex-col gap-3">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                <span className="text-xs font-bold text-cyan-400 uppercase">Reduced Intensity (I / K)</span>
+                <span className="text-xs font-bold text-cyan-400 uppercase">Reduced Int. (I / K)</span>
                 <span className="text-[10px] font-mono text-slate-500">{n}×1</span>
               </div>
               <div className="space-y-1.5 font-mono text-xs">
-                {phases.map((p, idx) => (
+                {phases.map((p) => (
                   <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800/60">
                     <span className="text-slate-300 font-sans truncate max-w-[90px]">{p.name}</span>
-                    <span className="font-bold text-cyan-300">{matrixCalcs.vectorReducedI[idx]?.toFixed(1)}</span>
+                    <span className="font-bold text-cyan-300">{(p.intensity / (p.rir || 1.0)).toFixed(1)}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Vector w */}
             <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 flex flex-col gap-3">
               <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                 <span className="text-xs font-bold text-amber-400 uppercase">Mass Fraction w</span>
@@ -664,47 +557,12 @@ if amorphous_wt_pct > 0:
               </div>
             </div>
           </div>
-
-          {/* Summation Proof Table */}
-          <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-            <div className="space-y-1">
-              <span className="font-bold text-slate-200 block">Unit Partition Condition: Σ w_i ≡ 100.00%</span>
-              <p className="text-slate-400 text-[11px]">Exact mass conservation verified across all crystalline components.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl font-mono font-bold text-emerald-400 text-sm">
-                Σ w_i = {(matrixCalcs.vectorW.reduce((s, v) => s + v, 0) * 100).toFixed(2)}%
-              </div>
-              <div className="bg-amber-500/10 border border-amber-500/30 px-3.5 py-1.5 rounded-xl font-mono font-bold text-amber-400 text-sm">
-                Σ v_i = {(matrixCalcs.vectorV.reduce((s, v) => s + v, 0) * 100).toFixed(2)}%
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
       {/* TAB 2: Jacobian Tensors */}
       {activeTab === 'jacobian' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
-              <Layers className="w-4 h-4" />
-              <span>Analytical Jacobian Derivative Tensors</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              The Jacobian matrix J_I defines how infinitesimal fluctuations in measured peak intensity of phase j alter the calculated weight fraction of phase i:
-            </p>
-            <div 
-              className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-cyan-300 overflow-x-auto text-sm"
-              dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  'J_{I, ij} = \\frac{\\partial w_i}{\\partial I_j} = \\frac{1}{S \\cdot K_j} \\left( \\delta_{ij} - w_i \\right), \\quad \\text{where } S = \\sum_{k=1}^n \\frac{I_k}{K_k}',
-                  { displayMode: true, throwOnError: false }
-                )
-              }}
-            />
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MatrixBox
               title="Intensity Jacobian Tensor J_I (∂w_i / ∂I_j)"
@@ -728,50 +586,12 @@ if amorphous_wt_pct > 0:
               formatDigits={4}
             />
           </div>
-
-          {/* Interactive Cell Interpretation */}
-          {hoveredCell.r !== null && hoveredCell.c !== null && (
-            <div className="bg-slate-950/80 p-4 rounded-2xl border border-cyan-500/30 text-xs flex items-center justify-between animate-in fade-in">
-              <div className="space-y-1">
-                <span className="font-bold text-cyan-300">
-                  Inspecting Element ({phaseLabels[hoveredCell.r]}, {phaseLabels[hoveredCell.c]}):
-                </span>
-                <p className="text-slate-400">
-                  {hoveredCell.r === hoveredCell.c
-                    ? `Self-sensitivity: Increasing intensity of ${phases[hoveredCell.r]?.name} increases its own mass fraction by ${matrixCalcs.jacobianI[hoveredCell.r][hoveredCell.c]?.toExponential(3)} per cps.`
-                    : `Cross-coupling: Increasing intensity of ${phases[hoveredCell.c]?.name} depresses ${phases[hoveredCell.r]?.name} by ${matrixCalcs.jacobianI[hoveredCell.r][hoveredCell.c]?.toExponential(3)} per cps.`}
-                </p>
-              </div>
-              <span className="font-mono font-bold text-cyan-400 text-sm bg-cyan-950/40 px-3 py-1.5 rounded-xl border border-cyan-800/40">
-                {matrixCalcs.jacobianI[hoveredCell.r][hoveredCell.c]?.toExponential(4)}
-              </span>
-            </div>
-          )}
         </div>
       )}
 
       {/* TAB 3: Covariance & Correlation Matrix */}
       {activeTab === 'covariance' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-              <Grid className="w-4 h-4" />
-              <span>Full Analytical Covariance Matrix (Σ_w)</span>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Propagating experimental intensity variance and reference constant uncertainty through the multivariable chain rule yields the exact analytical covariance tensor:
-            </p>
-            <div 
-              className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-emerald-300 overflow-x-auto text-sm"
-              dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  '\\mathbf{\\Sigma}_{\\mathbf{w}} = \\mathbf{J}_{\\mathbf{I}} \\mathbf{\\Sigma}_{\\mathbf{I}} \\mathbf{J}_{\\mathbf{I}}^T + \\mathbf{J}_{\\mathbf{K}} \\mathbf{\\Sigma}_{\\mathbf{K}} \\mathbf{J}_{\\mathbf{K}}^T',
-                  { displayMode: true, throwOnError: false }
-                )
-              }}
-            />
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MatrixBox
               title="Mass Fraction Covariance Matrix Σ_w"
@@ -795,115 +615,109 @@ if amorphous_wt_pct > 0:
               formatDigits={3}
             />
           </div>
+        </div>
+      )}
 
-          {/* Uncertainty summary cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {phases.map((p, idx) => {
-              const variance = matrixCalcs.covarW[idx]?.[idx] || 0;
-              const stdDev = Math.sqrt(Math.max(0, variance));
-              const wtPct = matrixCalcs.vectorW[idx] * 100;
-              const errPct = stdDev * 100;
-              return (
-                <div key={p.id} className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between shadow-sm">
-                  <div>
-                    <span className="font-bold text-slate-200 text-xs block truncate">{p.name}</span>
-                    <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">
-                      Variance: {variance.toExponential(3)}
+      {/* TAB 4: Monte Carlo Stochastic Simulation */}
+      {activeTab === 'monte_carlo' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 p-4 rounded-2xl border border-slate-800">
+            <div>
+              <span className="text-xs font-bold text-amber-400 flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                <span>4,000-Iteration Stochastic Error Engine</span>
+              </span>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Evaluates non-linear error distribution tails and compares empirical percentiles with 1st-order analytical Taylor series.
+              </p>
+            </div>
+            <button
+              onClick={handleRunMonteCarlo}
+              disabled={mcRunning}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md active:scale-95 flex items-center gap-1.5 shrink-0"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${mcRunning ? 'animate-spin' : ''}`} />
+              <span>{mcRunning ? 'Simulating...' : 'Rerun Monte Carlo'}</span>
+            </button>
+          </div>
+
+          {mcResult && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {mcResult.phaseStats.map((stat) => (
+                <div key={stat.phaseId} className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-200 text-xs flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: stat.color }} />
+                      {stat.name}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-amber-400">
+                      {stat.meanWtPct.toFixed(1)} ± {stat.stdDevWtPct.toFixed(1)} wt%
                     </span>
                   </div>
-                  <div className="mt-3 flex items-baseline justify-between">
-                    <span className="text-xs font-mono font-bold text-indigo-400">{wtPct.toFixed(2)}%</span>
-                    <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                      ±{errPct.toFixed(2)}%
-                    </span>
+
+                  {/* Histogram */}
+                  <div className="h-28 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stat.histogram} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+                        <CartesianGrid strokeDasharray="2 2" stroke="#334155" opacity={0.3} />
+                        <XAxis dataKey="binStart" stroke="#94a3b8" fontSize={9} />
+                        <YAxis stroke="#94a3b8" fontSize={9} />
+                        <Bar dataKey="count" fill={stat.color} radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-400 bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+                    <div>90% CI: <strong className="text-slate-200">[{stat.p05WtPct}, {stat.p95WtPct}]</strong></div>
+                    <div>Skewness: <strong className="text-slate-200">{stat.skewness}</strong></div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* TAB 4: Stability & Sensitivity Diagnostics */}
-      {activeTab === 'stability' && (
+      {/* TAB 5: Detection Limits & X-Ray Penetration Depths */}
+      {activeTab === 'detection_limits' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Dynamic Range / Condition Ratio</span>
-              <span className="text-3xl font-mono font-black text-amber-400 mt-2">
-                {matrixCalcs.conditionNumber.toFixed(2)}
-              </span>
-              <p className="text-[11px] text-slate-500 mt-2">
-                {matrixCalcs.conditionNumber < 10
-                  ? 'Excellent numerical stability across peak intensities.'
-                  : 'Noticeable intensity disparity; small peak phase may carry higher relative error.'}
-              </p>
+          <div className="bg-slate-950/70 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-rose-400 uppercase tracking-wider">
+              <Target className="w-4 h-4" />
+              <span>Limits of Detection (LOD / LOQ) & Effective Absorption Depths</span>
             </div>
 
-            <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assumed Experimental Error</span>
-              <div className="flex items-center gap-3 mt-2 font-mono">
-                <span className="text-xl font-bold text-indigo-400">ΔI: ±{intensityUncertaintyPct}%</span>
-                <span className="text-xl font-bold text-emerald-400">ΔK: ±{rirUncertaintyPct}%</span>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-2">
-                Independent Gaussian quadrature applied to both integrated Bragg intensities and RIR reference constants.
-              </p>
-            </div>
-
-            <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Max Jacobian Sensitivity</span>
-              <span className="text-3xl font-mono font-black text-cyan-400 mt-2">
-                {matrixCalcs.maxSensitivity.toExponential(3)}
-              </span>
-              <p className="text-[11px] text-slate-500 mt-2">
-                Maximum partial derivative magnitude observed across the entire linear system.
-              </p>
-            </div>
-          </div>
-
-          {/* Phase Sensitivity Ranking */}
-          <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-4">
-            <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-indigo-400" />
-              <span>Phase Influence & Sensitivity Decomposition</span>
-            </h3>
-
-            <div className="space-y-3">
-              {phases.map((p, idx) => {
-                const selfSens = matrixCalcs.jacobianI[idx]?.[idx] || 0;
-                const rirSens = matrixCalcs.jacobianK[idx]?.[idx] || 0;
-                const fraction = matrixCalcs.vectorW[idx] || 0;
-                return (
-                  <div key={p.id} className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color || '#6366f1' }} />
-                      <span className="font-bold text-slate-200">{p.name}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4 font-mono text-[11px]">
-                      <span className="text-slate-400">
-                        Peak Int Sensitivity: <span className="text-cyan-400 font-bold">{selfSens.toExponential(2)}</span>
-                      </span>
-                      <span className="text-slate-400">
-                        RIR Sensitivity: <span className="text-purple-400 font-bold">{Math.abs(rirSens).toFixed(3)}</span>
-                      </span>
-                      <span className="text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded">
-                        {(fraction * 100).toFixed(1)} wt%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="overflow-x-auto rounded-2xl border border-slate-800">
+              <table className="w-full text-xs font-mono">
+                <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-sans">Phase Name</th>
+                    <th className="px-3 py-3 text-right">PBR (I/I_bg)</th>
+                    <th className="px-3 py-3 text-right text-rose-300">LOD (3σ)</th>
+                    <th className="px-3 py-3 text-right text-amber-300">LOQ (10σ)</th>
+                    <th className="px-3 py-3 text-right text-cyan-300">99% Depth (τ₉₉)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {detectionLimits.map(dl => (
+                    <tr key={dl.phaseId} className="hover:bg-slate-900/40 transition-colors">
+                      <td className="px-4 py-3 font-bold text-slate-200 font-sans">{dl.name}</td>
+                      <td className="px-3 py-3 text-right text-slate-300">{dl.pbr}×</td>
+                      <td className="px-3 py-3 text-right font-bold text-rose-400">{dl.lodWtPct} wt%</td>
+                      <td className="px-3 py-3 text-right font-bold text-amber-400">{dl.loqWtPct} wt%</td>
+                      <td className="px-3 py-3 text-right font-bold text-cyan-400">{dl.penetrationDepthUm} µm</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 5: Code & LaTeX Export */}
+      {/* TAB 6: Code & LaTeX Export */}
       {activeTab === 'code' && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* LaTeX Export */}
           <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
@@ -923,12 +737,11 @@ if amorphous_wt_pct > 0:
             </pre>
           </div>
 
-          {/* Python Export */}
           <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
                 <Code2 className="w-4 h-4" />
-                <span>Standalone Python / NumPy Reproduction Script</span>
+                <span>Standalone Python / NumPy Script</span>
               </span>
               <button
                 onClick={() => copyToClipboard(generatePythonScript(), 'python')}

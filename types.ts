@@ -92,6 +92,7 @@ export interface ScherrerInput {
   fwhmObs: number;
   intensity?: number;
   hkl?: [number, number, number];
+  excluded?: boolean;
 }
 
 export interface ScherrerResult {
@@ -101,6 +102,7 @@ export interface ScherrerResult {
   sizeNm: number;
   intensity?: number;
   hkl?: [number, number, number];
+  excluded?: boolean;
   dSpacing?: number; // Angstroms
   qVector?: number; // Angstrom^-1
   dislocationDensityM2?: number; // lines/m^2 (delta = 1/D^2)
@@ -177,6 +179,7 @@ export interface MomentDataPoint {
   skewness?: number;      // Skewness gamma_1 = mu_3 / W^(3/2)
   kurtosis?: number;      // Kurtosis K = mu_4 / W^2
   excessKurtosis?: number;// Excess kurtosis gamma_2 = K - 3
+  excluded?: boolean;     // Whether point is excluded from regression
 }
 
 export interface MethodOfMomentsResult {
