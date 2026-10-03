@@ -215,7 +215,9 @@ export const VarianceRangeDatasetMatrix: React.FC<VarianceRangeDatasetMatrixProp
   const handlePruneOutliers = () => {
     if (!result || result.points.length < 4) return;
     playSynthTone('success');
-    const residuals = result.fittedPoints.filter(p => !p.excluded && p.residualDeg2 !== undefined).map(p => Math.abs(p.residualDeg2 || 0));
+    const residuals = result.fittedPoints
+      .filter((p, idx) => !matrixRows[idx]?.excluded && p.residualDeg2 !== undefined)
+      .map(p => Math.abs(p.residualDeg2 || 0));
     if (residuals.length === 0) return;
     const meanRes = residuals.reduce((a, b) => a + b, 0) / residuals.length;
     const stdRes = Math.sqrt(residuals.reduce((a, b) => a + Math.pow(b - meanRes, 2), 0) / residuals.length) || 1e-6;

@@ -16,7 +16,8 @@ import {
   Database, 
   Terminal, 
   Loader2, 
-  Check 
+  Check,
+  Zap 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
@@ -899,6 +900,31 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister, 
                 />
               </svg>
               Sign In with Google Cloud Node
+            </button>
+
+            {/* Instant Guest Mode Button */}
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                const guestReg = {
+                  name: 'Guest Crystallographer',
+                  email: 'guest@quantum-crystallography.org',
+                  organization: 'Quantum Crystallography Labs',
+                  nationality: 'American',
+                  researchRole: 'Lead Investigator',
+                  researchField: 'Condensed Matter Physics',
+                  registeredAt: new Date().toISOString()
+                };
+                localStorage.setItem('xrd_user_registration', JSON.stringify(guestReg));
+                localStorage.setItem('xrd_has_entered', 'true');
+                onRegister();
+              }}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/40 text-emerald-300 hover:text-emerald-200 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              title="Instant exploration mode - no registration required"
+            >
+              <Zap className="w-4 h-4 text-emerald-400" />
+              <span>Continue as Guest (Instant Access)</span>
             </button>
           </form>
 

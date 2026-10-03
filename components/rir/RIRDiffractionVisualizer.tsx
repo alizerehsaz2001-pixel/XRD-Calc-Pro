@@ -34,6 +34,7 @@ interface RIRDiffractionVisualizerProps {
   phases: RIRMatrixPhase[];
   amorphousWtPct: number;
   internalStandardPhaseId?: string;
+  onUpdatePhaseIntensity?: (phaseId: string, intensity: number) => void;
 }
 
 const WAVELENGTHS = [
@@ -46,7 +47,8 @@ const WAVELENGTHS = [
 export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> = ({
   phases,
   amorphousWtPct,
-  internalStandardPhaseId
+  internalStandardPhaseId,
+  onUpdatePhaseIntensity
 }) => {
   const [spectrumMode, setSpectrumMode] = useState<'continuous' | 'decomposed' | 'stick'>('continuous');
   const [profileFWHM, setProfileFWHM] = useState<number>(0.28);
@@ -478,6 +480,80 @@ export const RIRDiffractionVisualizer: React.FC<RIRDiffractionVisualizerProps> =
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Interactive Peak Intensity Assignment & Auto-Quantification Summary Table */}
+      <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-bold text-slate-100">
+              Interactive Bragg Peak Intensity Assignment & Auto-Quantification Summary
+            </h3>
+          </div>
+          <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 self-start sm:self-auto">
+            Live Auto-Calculation Active
+          </span>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-800">
+          <table className="w-full text-xs font-mono">
+            <thead className="bg-slate-900/90 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th className="px-4 py-2.5 text-left font-sans">Phase & Peak (hkl)</th>
+                <th className="px-3 py-2.5 text-right">2θ (°)</th>
+                <th className="px-3 py-2.5 text-right">Assigned Peak Int. (cps)</th>
+                <th className="px-3 py-2.5 text-right">RIR (I/Ic)</th>
+                <th className="px-3 py-2.5 text-right text-cyan-300">Reduced (I/RIR)</th>
+                <th className="px-4 py-2.5 text-right text-indigo-300 font-bold">Auto Crystalline wt%</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {(() => {
+                const totalRed = phases.reduce((acc, ph) => {
+                  const relScale = (ph.relIntensity && ph.relIntensity > 0 ? ph.relIntensity : 100) / 100;
+                  const normI = (ph.intensity || 0) / relScale;
+                  return acc + normI / (ph.rir > 0 ? ph.rir : 1.0);
+                }, 0);
+                return phases.map(p => {
+                  const relScale = (p.relIntensity && p.relIntensity > 0 ? p.relIntensity : 100) / 100;
+                  const normI = (p.intensity || 0) / relScale;
+                  const redI = normI / (p.rir > 0 ? p.rir : 1.0);
+                  const wtPct = totalRed > 0 ? (redI / totalRed) * 100 : 0;
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-900/40 transition-colors">
+                      <td className="px-4 py-2.5 font-sans font-bold text-slate-200 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color || '#6366f1' }} />
+                        <span>{p.name}</span>
+                        <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                          {p.hkl}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-slate-300">{p.twoTheta.toFixed(2)}°</td>
+                      <td className="px-3 py-2.5 text-right">
+                        {onUpdatePhaseIntensity ? (
+                          <input
+                            type="number"
+                            min="0"
+                            step="50"
+                            value={p.intensity}
+                            onChange={(e) => onUpdatePhaseIntensity(p.id, Math.max(0, parseFloat(e.target.value) || 0))}
+                            className="w-28 bg-slate-900 border border-slate-700 focus:border-cyan-500 text-right text-cyan-300 font-bold rounded-lg px-2 py-1 text-xs outline-none"
+                          />
+                        ) : (
+                          <span className="text-cyan-300 font-bold">{p.intensity}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-amber-300">{p.rir.toFixed(2)}</td>
+                      <td className="px-3 py-2.5 text-right text-cyan-300">{redI.toFixed(1)}</td>
+                      <td className="px-4 py-2.5 text-right font-bold text-indigo-300">{wtPct.toFixed(2)} wt%</td>
+                    </tr>
+                  );
+                });
+              })()}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

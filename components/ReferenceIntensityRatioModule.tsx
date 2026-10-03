@@ -58,13 +58,22 @@ import { RIRTheoryGuide } from './rir/RIRTheoryGuide';
 import { RIRScriptExport } from './rir/RIRScriptExport';
 import { RIRBrindleyInspector, calcBrindleyTau } from './rir/RIRBrindleyInspector';
 import { PawleyRIRBridge } from './rir/PawleyRIRBridge';
-import { computeRIRCovariance } from './rir/rirMathUtils';
+import { computeRIRCovariance, computeDetectionLimits } from './rir/rirMathUtils';
 import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
+export interface RIRAssignedPeak {
+  id: string;
+  hkl: string;
+  twoTheta: number;
+  intensity: number;
+  relIntensity: number; // % relative intensity on reference card (1-100)
+}
+
 export interface RIRPhase extends RIRMatrixPhase {
   notes?: string;
+  peaks?: RIRAssignedPeak[];
 }
 
 const COLOR_PALETTE = [
@@ -161,6 +170,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const [chartUnitMode, setChartUnitMode] = useState<'wt' | 'vol'>('wt');
   const [actionNotification, setActionNotification] = useState<string | null>(null);
   const [copiedReport, setCopiedReport] = useState(false);
+  const [expandedMultiPeakPhases, setExpandedMultiPeakPhases] = useState<Record<string, boolean>>({});
 
   // Compute flow
   const startComputation = () => {
@@ -257,6 +267,90 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     setPhases(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
+  const toggleMultiPeakDrawer = (phaseId: string) => {
+    playSynthTone('tick');
+    setExpandedMultiPeakPhases(prev => ({ ...prev, [phaseId]: !prev[phaseId] }));
+  };
+
+  const addAssignedPeakToPhase = (phaseId: string) => {
+    playSynthTone('tick');
+    setPhases(prev => prev.map(p => {
+      if (p.id !== phaseId) return p;
+      const existingPeaks: RIRAssignedPeak[] = p.peaks && p.peaks.length > 0
+        ? p.peaks
+        : [{
+            id: `${p.id}-pk1`,
+            hkl: p.hkl || '(100)',
+            twoTheta: p.twoTheta || 30.0,
+            intensity: p.intensity || 0,
+            relIntensity: p.relIntensity || 100
+          }];
+      const nextIdx = existingPeaks.length + 1;
+      const newPeaks: RIRAssignedPeak[] = [
+        ...existingPeaks,
+        {
+          id: `${p.id}-pk-${Math.random().toString(36).substring(2, 7)}`,
+          hkl: `(00${nextIdx})`,
+          twoTheta: Number(((p.twoTheta || 25) + nextIdx * 6.5).toFixed(2)),
+          intensity: Math.round((p.intensity || 1000) * 0.5),
+          relIntensity: 50
+        }
+      ];
+      const activePeaks = newPeaks.filter(pk => (pk.intensity || 0) > 0);
+      const equivI100 = activePeaks.length > 0
+        ? Math.round(activePeaks.reduce((sum, pk) => sum + pk.intensity / ((pk.relIntensity || 100) / 100), 0) / activePeaks.length)
+        : 0;
+      return {
+        ...p,
+        peaks: newPeaks,
+        intensity: equivI100,
+        relIntensity: 100
+      };
+    }));
+  };
+
+  const updateAssignedPeak = (phaseId: string, peakId: string, field: keyof RIRAssignedPeak, val: string | number) => {
+    setPhases(prev => prev.map(p => {
+      if (p.id !== phaseId || !p.peaks) return p;
+      const updatedPeaks = p.peaks.map(pk => pk.id === peakId ? { ...pk, [field]: val } : pk);
+      const activePeaks = updatedPeaks.filter(pk => (pk.intensity || 0) > 0);
+      const equivI100 = activePeaks.length > 0
+        ? Math.round(activePeaks.reduce((sum, pk) => sum + pk.intensity / (Math.max(1, pk.relIntensity || 100) / 100), 0) / activePeaks.length)
+        : 0;
+      return {
+        ...p,
+        peaks: updatedPeaks,
+        hkl: updatedPeaks[0]?.hkl || p.hkl,
+        twoTheta: updatedPeaks[0]?.twoTheta || p.twoTheta,
+        intensity: equivI100,
+        relIntensity: 100
+      };
+    }));
+  };
+
+  const removeAssignedPeak = (phaseId: string, peakId: string) => {
+    playSynthTone('tick');
+    setPhases(prev => prev.map(p => {
+      if (p.id !== phaseId || !p.peaks) return p;
+      const updatedPeaks = p.peaks.filter(pk => pk.id !== peakId);
+      if (updatedPeaks.length === 0) {
+        return { ...p, peaks: undefined };
+      }
+      const activePeaks = updatedPeaks.filter(pk => (pk.intensity || 0) > 0);
+      const equivI100 = activePeaks.length > 0
+        ? Math.round(activePeaks.reduce((sum, pk) => sum + pk.intensity / (Math.max(1, pk.relIntensity || 100) / 100), 0) / activePeaks.length)
+        : 0;
+      return {
+        ...p,
+        peaks: updatedPeaks,
+        hkl: updatedPeaks[0].hkl,
+        twoTheta: updatedPeaks[0].twoTheta,
+        intensity: equivI100,
+        relIntensity: 100
+      };
+    }));
+  };
+
   const removePhase = (id: string) => {
     playSynthTone('tick');
     setPhases(prev => prev.filter(p => p.id !== id));
@@ -306,9 +400,9 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     setTimeout(() => setActionNotification(null), 3500);
   };
 
-  // Quantitative calculations
+  // Quantitative calculations (automatically computed in real time whenever peak intensities are assigned)
   const calculations = useMemo(() => {
-    // 1. Effective intensities (incorporating Brindley microabsorption if active)
+    // 1. Effective intensities (incorporating relative peak scaling I_rel% and Brindley microabsorption if active)
     const D_cm = (particleDiameterUm || 5.0) * 1e-4;
 
     // Estimate preliminary sample linear absorption muBar
@@ -316,8 +410,10 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       const rho = p.density && p.density > 0 ? p.density : 3.0;
       const mac = p.mac && p.mac > 0 ? p.mac : 50.0;
       const mu = rho * mac;
-      const rI = (p.intensity || 0) / (p.rir > 0 ? p.rir : 1.0);
-      return { id: p.id, rho, mac, mu, rI };
+      const relScale = (p.relIntensity && p.relIntensity > 0 ? p.relIntensity : 100) / 100;
+      const normI = (p.intensity || 0) / relScale;
+      const rI = normI / (p.rir > 0 ? p.rir : 1.0);
+      return { id: p.id, rho, mac, mu, rI, normI };
     });
     const tempSumRI = tempPhaseProps.reduce((s, p) => s + p.rI, 0);
     const sampleMuBar = tempSumRI > 0
@@ -328,28 +424,37 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       const rho = p.density && p.density > 0 ? p.density : 3.0;
       const mac = p.mac && p.mac > 0 ? p.mac : 50.0;
       const mu = rho * mac;
+      const relIntensityPct = p.relIntensity && p.relIntensity > 0 ? p.relIntensity : 100;
+      const relScale = relIntensityPct / 100;
+      const normI100 = (p.intensity || 0) / relScale;
       const tau = useBrindley ? calcBrindleyTau(mu - sampleMuBar, D_cm) : 1.0;
-      const effI = (p.intensity || 0) / tau;
+      const effI = normI100 / tau;
       const rI = effI / (p.rir > 0 ? p.rir : 1.0);
+      const assignedPeakCount = p.peaks && p.peaks.length > 0
+        ? p.peaks.filter(pk => (pk.intensity || 0) > 0).length
+        : ((p.intensity || 0) > 0 ? 1 : 0);
       return {
         ...p,
         rho,
         mac,
         mu,
+        relIntensityPct,
+        normI100,
         tau,
         effI,
-        rI
+        rI,
+        assignedPeakCount
       };
     });
 
+    let totalObservedIntensity = effPhases.reduce((sum, p) => sum + (p.intensity || 0), 0);
     let totalReducedIntensity = effPhases.reduce((sum, p) => sum + p.rI, 0);
     let weightedMacSum = 0;
 
     let totalVolumeFactor = 0;
-    const volumeFactors = effPhases.map(p => {
+    effPhases.forEach(p => {
       const vFactor = p.rI / p.rho;
       totalVolumeFactor += vFactor;
-      return { id: p.id, vFactor };
     });
 
     const relErrI = (intensityUncertaintyPct || 0) / 100;
@@ -394,6 +499,13 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       rirUncertaintyPct
     );
 
+    const prelimSampleMAC = effPhases.reduce((acc, p) => {
+      const w = totalReducedIntensity > 0 ? p.rI / totalReducedIntensity : 0;
+      return acc + w * p.mac;
+    }, 0) * amorphousFactor + (effectiveAmorphousWtPct / 100) * 30.0;
+
+    const detectionLimits = computeDetectionLimits(effPhases, 80, prelimSampleMAC || 65.0);
+
     const phaseResults = effPhases.map((p, idx) => {
       let crystallineFraction = 0;
       let totalSampleFraction = 0;
@@ -428,6 +540,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       const errMarginVol = crystallineVolFraction * baseRelError;
 
       weightedMacSum += (crystallineFraction / 100) * p.mac;
+      const dl = detectionLimits[idx];
 
       return {
         ...p,
@@ -440,14 +553,20 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         errMarginCrystalline,
         errMarginTotal,
         errMarginVol,
+        lodWtPct: dl?.lodWtPct ?? 0.5,
+        loqWtPct: dl?.loqWtPct ?? 1.5,
+        penetrationDepthUm: dl?.penetrationDepthUm ?? 25.0,
         isInternalStandard: p.id === standardPhaseId,
         color: p.color || COLOR_PALETTE[idx % COLOR_PALETTE.length]
       };
     });
 
     const totalSampleMAC = (weightedMacSum * amorphousFactor) + ((effectiveAmorphousWtPct / 100) * 30.0);
+    const assignedPhasesCount = phaseResults.filter(p => (p.intensity || 0) > 0).length;
+    const assignedPeaksCount = phaseResults.reduce((acc, p) => acc + p.assignedPeakCount, 0);
 
     return {
+      totalObservedIntensity,
       totalReducedIntensity,
       totalVolumeFactor,
       phaseResults,
@@ -455,7 +574,10 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       effectiveAmorphousWtPct,
       measuredAmorphousPct,
       isInternalStandardActive: !!(standardPhase && standardPhase.rI > 0),
-      totalSampleMAC
+      totalSampleMAC,
+      assignedPhasesCount,
+      assignedPeaksCount,
+      hasAssignedIntensities: assignedPhasesCount > 0
     };
   }, [phases, amorphousWtPct, intensityUncertaintyPct, rirUncertaintyPct, useBrindley, particleDiameterUm, internalStandardMode, standardPhaseId, standardAddedWtPct]);
 
@@ -967,19 +1089,49 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                               </div>
                             )}
 
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-xs">
                               <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block">Peak Int. (I)</label>
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block">Peak (hkl)</label>
                                 <input
-                                  type="number"
-                                  value={phase.intensity}
-                                  onChange={(e) => updatePhase(phase.id, 'intensity', parseFloat(e.target.value) || 0)}
+                                  type="text"
+                                  value={phase.hkl}
+                                  onChange={(e) => updatePhase(phase.id, 'hkl', e.target.value)}
                                   className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
                                 />
                               </div>
 
                               <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block">RIR ($I/I_c$)</label>
+                                <label className="text-[10px] uppercase font-bold text-indigo-300 flex items-center justify-between">
+                                  <span>Peak Int. (I)</span>
+                                  {(phase.intensity || 0) > 0 && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Intensity assigned — auto-calculating RIR" />
+                                  )}
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={phase.intensity}
+                                  onChange={(e) => updatePhase(phase.id, 'intensity', Math.max(0, parseFloat(e.target.value) || 0))}
+                                  className="w-full bg-slate-900 border border-indigo-500/40 text-indigo-200 font-bold rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-400"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block" title="Relative intensity of reflection on reference card (100% for primary peak)">
+                                  I_rel (%)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="100"
+                                  value={phase.relIntensity || 100}
+                                  onChange={(e) => updatePhase(phase.id, 'relIntensity', Math.min(100, Math.max(1, parseFloat(e.target.value) || 100)))}
+                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-slate-400 block">RIR (I/Ic)</label>
                                 <input
                                   type="number"
                                   step="0.1"
@@ -1011,6 +1163,111 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                                 />
                               </div>
                             </div>
+
+                            {/* Live Per-Card Auto-Quantification Strip & Multi-Peak Drawer Toggle */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/70 text-[11px]">
+                              <div className="flex items-center gap-3 font-mono">
+                                <span className="text-slate-400">
+                                  Reduced I/RIR:{' '}
+                                  <strong className="text-cyan-300">
+                                    {(calculations.phaseResults[idx]?.reducedIntensity || 0).toFixed(1)}
+                                  </strong>
+                                </span>
+                                <span className="text-slate-400">
+                                  Auto Mass:{' '}
+                                  <strong className="text-indigo-300">
+                                    {(calculations.phaseResults[idx]?.crystallineFraction || 0).toFixed(2)} ± {(calculations.phaseResults[idx]?.errMarginCrystalline || 0).toFixed(2)} wt%
+                                  </strong>
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => toggleMultiPeakDrawer(phase.id)}
+                                className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 rounded-lg border border-indigo-500/20 transition-colors"
+                              >
+                                <Plus className="w-3 h-3" />
+                                <span>
+                                  {phase.peaks && phase.peaks.length > 0
+                                    ? `${phase.peaks.length} Assigned Peaks`
+                                    : 'Assign Multi-Peaks'}
+                                </span>
+                              </button>
+                            </div>
+
+                            {/* Optional Multi-Peak Intensity Assignment Sub-Table */}
+                            {expandedMultiPeakPhases[phase.id] && (
+                              <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2.5 animate-in fade-in">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
+                                    Multi-Reflection Peak Intensity Assignment (Auto-Averaged I₁₀₀)
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => addAssignedPeakToPhase(phase.id)}
+                                    className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold flex items-center gap-1"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                    <span>Add Reflection</span>
+                                  </button>
+                                </div>
+
+                                {(!phase.peaks || phase.peaks.length === 0) ? (
+                                  <div className="text-[11px] text-slate-400 flex items-center justify-between bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+                                    <span>Primary reflection {phase.hkl} ({phase.intensity} cps) active. Click "Add Reflection" to assign multiple peaks.</span>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1.5">
+                                    <div className="grid grid-cols-12 gap-2 text-[9px] uppercase font-bold text-slate-500 px-1">
+                                      <span className="col-span-3">Reflection (hkl)</span>
+                                      <span className="col-span-3">2θ Angle (°)</span>
+                                      <span className="col-span-3">Assigned Int. (cps)</span>
+                                      <span className="col-span-2">I_rel (%)</span>
+                                      <span className="col-span-1 text-center">Del</span>
+                                    </div>
+                                    {phase.peaks.map((pk) => (
+                                      <div key={pk.id} className="grid grid-cols-12 gap-2 items-center bg-slate-950/80 p-1.5 rounded-lg border border-slate-800 text-xs font-mono">
+                                        <input
+                                          type="text"
+                                          value={pk.hkl}
+                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'hkl', e.target.value)}
+                                          className="col-span-3 bg-slate-900 border border-slate-700 text-slate-200 rounded px-2 py-1 text-xs outline-none"
+                                        />
+                                        <input
+                                          type="number"
+                                          step="0.1"
+                                          value={pk.twoTheta}
+                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'twoTheta', parseFloat(e.target.value) || 0)}
+                                          className="col-span-3 bg-slate-900 border border-slate-700 text-slate-200 rounded px-2 py-1 text-xs outline-none"
+                                        />
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          value={pk.intensity}
+                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'intensity', Math.max(0, parseFloat(e.target.value) || 0))}
+                                          className="col-span-3 bg-slate-900 border border-indigo-500/40 text-indigo-300 font-bold rounded px-2 py-1 text-xs outline-none"
+                                        />
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          max="100"
+                                          value={pk.relIntensity}
+                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'relIntensity', Math.min(100, Math.max(1, parseFloat(e.target.value) || 100)))}
+                                          className="col-span-2 bg-slate-900 border border-slate-700 text-slate-200 rounded px-2 py-1 text-xs outline-none"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => removeAssignedPeak(phase.id, pk.id)}
+                                          className="col-span-1 text-slate-500 hover:text-rose-400 flex justify-center"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1319,6 +1576,233 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* DEDICATED AUTOMATIC QUANTITATIVE PHASE ANALYSIS RESULTS SUMMARY TABLE */}
+              <div
+                id="rir-results-summary-table"
+                className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                  <div className="flex items-center gap-3.5">
+                    <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner">
+                      <FileSpreadsheet className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-black text-slate-100 tracking-tight">
+                          Quantitative Phase Analysis Results Summary Table
+                        </h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Auto-Calculated ({calculations.assignedPhasesCount}/{phases.length} Phases Assigned, {calculations.assignedPeaksCount} Peaks)
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Automatically computes Chung adiabatic mass fractions (wt%), volumetric fractions (vol%), reduced intensities (I/RIR), and analytical Jacobian uncertainties as peak intensities are assigned.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={copyReportToClipboard}
+                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5 transition-all"
+                    >
+                      {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedReport ? 'Copied Summary' : 'Copy Summary'}</span>
+                    </button>
+                    <button
+                      onClick={exportCSV}
+                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5 transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Export CSV</span>
+                    </button>
+                    <button
+                      onClick={() => { playSynthTone('tick'); setMainTab('matrix'); }}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-bold border border-indigo-500/40 flex items-center gap-1.5 transition-all"
+                    >
+                      <Cpu className="w-3.5 h-3.5" />
+                      <span>Covariance Matrix</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Quantitative KPI Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assigned Peak Sum (ΣI)</span>
+                    <span className="text-lg font-mono font-black text-slate-100 mt-0.5 block">
+                      {calculations.totalObservedIntensity.toLocaleString()} <span className="text-xs font-normal text-slate-400">cps</span>
+                    </span>
+                  </div>
+                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reduced Sum (Σ I/RIR)</span>
+                    <span className="text-lg font-mono font-black text-cyan-400 mt-0.5 block">
+                      {calculations.totalReducedIntensity.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Crystalline Total</span>
+                    <span className="text-lg font-mono font-black text-indigo-400 mt-0.5 block">
+                      {(100 - calculations.effectiveAmorphousWtPct).toFixed(2)} wt%
+                    </span>
+                  </div>
+                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {calculations.isInternalStandardActive ? 'Spiked Amorphous' : 'Amorphous Matrix'}
+                    </span>
+                    <span className="text-lg font-mono font-black text-rose-400 mt-0.5 block">
+                      {calculations.effectiveAmorphousWtPct.toFixed(2)} wt%
+                    </span>
+                  </div>
+                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl col-span-2 sm:col-span-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mixture MAC (Cu Kα)</span>
+                    <span className="text-lg font-mono font-black text-emerald-400 mt-0.5 block">
+                      {calculations.totalSampleMAC.toFixed(1)} <span className="text-xs font-normal text-slate-400">cm²/g</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dedicated Quantitative Results Table */}
+                {!calculations.hasAssignedIntensities ? (
+                  <div className="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-6 text-center space-y-3">
+                    <AlertTriangle className="w-7 h-7 text-amber-400 mx-auto" />
+                    <div className="text-sm font-bold text-slate-200">
+                      No Bragg Peak Intensities Assigned Yet
+                    </div>
+                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                      Enter a positive integrated peak intensity (cps) for one or more crystalline phases above to automatically compute quantitative phase fractions.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-slate-800 shadow-inner">
+                    <table className="w-full text-xs font-mono">
+                      <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-sans">Phase & Reflection</th>
+                          <th className="px-3 py-3 text-right">2θ (°)</th>
+                          <th className="px-3 py-3 text-right">Assigned Peak Int. (cps)</th>
+                          <th className="px-3 py-3 text-right">RIR (I/Ic)</th>
+                          <th className="px-3 py-3 text-right text-cyan-300">Reduced (I/RIR)</th>
+                          <th className="px-3 py-3 text-right text-indigo-300 font-bold">Crystalline (wt% ± σ)</th>
+                          <th className="px-3 py-3 text-right text-emerald-300 font-bold">Total Sample (wt% ± σ)</th>
+                          <th className="px-3 py-3 text-right text-amber-300">Volume (vol% ± σ)</th>
+                          <th className="px-3 py-3 text-right text-slate-400">LOD / Depth (τ₉₉)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 bg-slate-950/40">
+                        {calculations.phaseResults.map((p) => (
+                          <tr key={p.id} className="hover:bg-slate-900/60 transition-colors">
+                            <td className="px-4 py-3 font-sans">
+                              <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                <span className="font-bold text-slate-100">{p.name}</span>
+                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                                  {p.hkl}
+                                </span>
+                                {(p.relIntensityPct && p.relIntensityPct !== 100) && (
+                                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
+                                    I_rel={p.relIntensityPct}%
+                                  </span>
+                                )}
+                                {internalStandardMode && p.isInternalStandard && (
+                                  <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                    Internal Std
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 text-right text-slate-300">{p.twoTheta.toFixed(2)}°</td>
+                            <td className="px-3 py-3 text-right">
+                              <input
+                                type="number"
+                                min="0"
+                                step="50"
+                                value={p.intensity}
+                                onChange={(e) => updatePhase(p.id, 'intensity', Math.max(0, parseFloat(e.target.value) || 0))}
+                                className="w-24 bg-slate-900 border border-slate-700 focus:border-indigo-500 text-right text-slate-100 font-bold rounded-lg px-2 py-1 text-xs outline-none"
+                                title="Edit assigned peak intensity directly"
+                              />
+                            </td>
+                            <td className="px-3 py-3 text-right text-slate-300">
+                              {p.rir.toFixed(2)}
+                              {useBrindley && (
+                                <span className="block text-[9px] text-cyan-400">τ={p.tau.toFixed(3)}</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 text-right font-bold text-cyan-300">
+                              {p.reducedIntensity.toFixed(2)}
+                            </td>
+                            <td className="px-3 py-3 text-right">
+                              <div className="font-bold text-indigo-300">
+                                {p.crystallineFraction.toFixed(2)} <span className="text-slate-400 font-normal">± {p.errMarginCrystalline.toFixed(2)}%</span>
+                              </div>
+                              <div className="w-24 ml-auto h-1 bg-slate-900 rounded-full overflow-hidden mt-1">
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{ width: `${Math.min(100, Math.max(0, p.crystallineFraction))}%`, backgroundColor: p.color }}
+                                />
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 text-right font-bold text-emerald-300">
+                              {p.totalSampleFraction.toFixed(2)} <span className="text-slate-400 font-normal">± {p.errMarginTotal.toFixed(2)}%</span>
+                            </td>
+                            <td className="px-3 py-3 text-right font-bold text-amber-300">
+                              {p.crystallineVolFraction.toFixed(2)} <span className="text-slate-400 font-normal">± {p.errMarginVol.toFixed(2)}%</span>
+                            </td>
+                            <td className="px-3 py-3 text-right text-[11px] text-slate-400">
+                              <span className="text-rose-300">{p.lodWtPct} wt%</span> / <span className="text-cyan-300">{p.penetrationDepthUm} µm</span>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {calculations.effectiveAmorphousWtPct > 0 && (
+                          <tr className="bg-rose-950/15 text-rose-300">
+                            <td className="px-4 py-3 font-bold font-sans flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                              <span>Amorphous / Non-Crystalline Matrix</span>
+                            </td>
+                            <td className="px-3 py-3 text-right text-slate-500">---</td>
+                            <td className="px-3 py-3 text-right text-slate-500">Diffuse Halo</td>
+                            <td className="px-3 py-3 text-right text-slate-500">---</td>
+                            <td className="px-3 py-3 text-right text-slate-500">---</td>
+                            <td className="px-3 py-3 text-right text-slate-500">0.00% (Cryst. Basis)</td>
+                            <td className="px-3 py-3 text-right font-bold text-rose-400">
+                              {calculations.effectiveAmorphousWtPct.toFixed(2)} wt%
+                            </td>
+                            <td className="px-3 py-3 text-right font-bold text-rose-400">
+                              {calculations.effectiveAmorphousWtPct.toFixed(2)} vol%
+                            </td>
+                            <td className="px-3 py-3 text-right text-slate-500">---</td>
+                          </tr>
+                        )}
+                      </tbody>
+                      <tfoot className="bg-slate-950 border-t border-slate-800 text-slate-200 font-bold">
+                        <tr>
+                          <td className="px-4 py-3 font-sans text-xs uppercase tracking-wider text-slate-400">
+                            Total Mixture Summary ({calculations.assignedPhasesCount} Active Phases)
+                          </td>
+                          <td className="px-3 py-3 text-right text-slate-500">---</td>
+                          <td className="px-3 py-3 text-right text-slate-200">
+                            {calculations.totalObservedIntensity.toLocaleString()} cps
+                          </td>
+                          <td className="px-3 py-3 text-right text-slate-500">---</td>
+                          <td className="px-3 py-3 text-right text-cyan-300">
+                            {calculations.totalReducedIntensity.toFixed(2)}
+                          </td>
+                          <td className="px-3 py-3 text-right text-indigo-300">100.00 wt%</td>
+                          <td className="px-3 py-3 text-right text-emerald-300">100.00 wt%</td>
+                          <td className="px-3 py-3 text-right text-amber-300">100.00 vol%</td>
+                          <td className="px-3 py-3 text-right text-cyan-300">
+                            μ* = {calculations.totalSampleMAC.toFixed(1)} cm²/g
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1355,6 +1839,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               phases={phases}
               amorphousWtPct={amorphousWtPct}
               internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
+              onUpdatePhaseIntensity={(phaseId, newIntensity) => updatePhase(phaseId, 'intensity', newIntensity)}
             />
           )}
 

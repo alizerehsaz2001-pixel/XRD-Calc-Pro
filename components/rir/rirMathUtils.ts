@@ -8,6 +8,8 @@ export interface CovarianceResult {
   stdDevW: number[]; // in fractional units (0 to 1)
   conditionNumber: number;
   maxSensitivity: number;
+  jacobianI: number[][];
+  jacobianK: number[][];
 }
 
 export interface MonteCarloHistogramBin {
@@ -68,7 +70,9 @@ export function computeRIRCovariance(
       vectorV: [],
       stdDevW: [],
       conditionNumber: 1,
-      maxSensitivity: 0
+      maxSensitivity: 0,
+      jacobianI: [],
+      jacobianK: []
     };
   }
 
@@ -205,7 +209,9 @@ export function computeRIRCovariance(
     vectorV,
     stdDevW,
     conditionNumber,
-    maxSensitivity
+    maxSensitivity,
+    jacobianI,
+    jacobianK
   };
 }
 
