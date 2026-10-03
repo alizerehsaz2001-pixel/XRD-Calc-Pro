@@ -87,6 +87,7 @@ import { CrystallographicIntelligencePanel } from './CrystallographicIntelligenc
 import { ConstituentPhaseElementsPanel } from './ConstituentPhaseElementsPanel';
 import { SynthesisIntelligenceStudio, SynthMorphologyType, SynthAtmosphereType } from './SynthesisIntelligenceStudio';
 import { SpectralAlignmentVisualizer } from './deeplearning/SpectralAlignmentVisualizer';
+import { MLTechniquesStudio } from './deeplearning/MLTechniquesStudio';
 import { getActiveMaterials } from "../utils/materialsHelper";
 import { EXAMPLE_MIXTURES, EXAMPLE_MATERIAL_SEARCH_MAP } from "../utils/dlExamplePatterns";
 import { getPythonEngineCode } from "../utils/dlPythonExporter";
@@ -585,6 +586,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
 
   // ML Validation detailed tab view states
   const [selectedValidationTab, setSelectedValidationTab] = useState<'audit' | 'robustness' | 'confusion'>('audit');
+  const [resultsSubTab, setResultsSubTab] = useState<'alignment' | 'ml_techniques'>('ml_techniques');
   const [showGradCam, setShowGradCam] = useState<boolean>(false);
   const [noiseLevel, setNoiseLevel] = useState<number>(10); // Gaussian noise perturbation %
   const [backgroundDrift, setBackgroundDrift] = useState<number>(5); // Background curve shift %
@@ -2361,6 +2363,43 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
   };
 
   const parsedPoints = React.useMemo(() => parseXYData(inputData), [inputData]);
+
+  const dlExperimentalPeaks = React.useMemo(() => {
+    if (selectedCandidate?.matched_peaks && selectedCandidate.matched_peaks.length > 0) {
+      return selectedCandidate.matched_peaks.map((p) => ({
+        twoTheta: p.obsT || p.refT,
+        intensity: p.refI || 50
+      }));
+    }
+    if (parsedPoints && parsedPoints.length > 5) {
+      return parsedPoints
+        .filter((p) => p.intensity > 5)
+        .slice(0, 15)
+        .map((p) => ({ twoTheta: p.twoTheta, intensity: p.intensity }));
+    }
+    return [
+      { twoTheta: 20.85, intensity: 35 },
+      { twoTheta: 26.65, intensity: 100 },
+      { twoTheta: 36.54, intensity: 12 },
+      { twoTheta: 50.14, intensity: 14 },
+      { twoTheta: 59.98, intensity: 9 }
+    ];
+  }, [selectedCandidate, parsedPoints]);
+
+  const handleApplyMLPhase = (phaseName: string) => {
+    if (result?.candidates && result.candidates.length > 0) {
+      const match = result.candidates.find((c) =>
+        c.phase_name.toLowerCase().includes(phaseName.toLowerCase()) ||
+        phaseName.toLowerCase().includes(c.phase_name.toLowerCase())
+      );
+      if (match) {
+        setSelectedCandidate(match);
+      } else {
+        setSelectedCandidate(result.candidates[0]);
+      }
+    }
+    playSynthTone('success');
+  };
 
   // Continuous simulated spectrum for the live preview plot with interactive parameters
   const liveChartData = React.useMemo(() => {
@@ -5791,13 +5830,26 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setShowArchitectureDiagnostics(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-all self-end sm:self-auto"
-            >
-              <span>Show Diagnostics</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                onClick={() => {
+                  setResultsSubTab('ml_techniques');
+                  playSynthTone('switch');
+                  document.getElementById('ml-techniques-studio-anchor')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white border border-indigo-400/30 text-xs font-bold transition-all shadow-md shadow-indigo-600/20"
+              >
+                <Brain className="w-3.5 h-3.5 text-purple-200" />
+                <span>ML Studio</span>
+              </button>
+              <button
+                onClick={() => setShowArchitectureDiagnostics(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-all"
+              >
+                <span>Show Diagnostics</span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            </div>
           </div>
         ) : (
           <div className="bg-[#050A14] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800/80/80 hover:border-slate-700">
@@ -6410,19 +6462,75 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       </div>
 
       {/* Results Section */}
-      <div className="lg:col-span-12 space-y-6">
-        {/* Spectral Alignment Visualizer Module */}
-        <SpectralAlignmentVisualizer
-          inputData={inputData}
-          parsedPoints={parsedPoints}
-          selectedCandidate={selectedCandidate}
-          candidates={result?.candidates || []}
-          onSelectCandidate={(cand) => setSelectedCandidate(cand)}
-          inputBroadening={inputBroadening}
-          isSimulating={isSimulating}
-          scanPos={scanPos}
-          pythonRAGResults={pythonRAGResults}
-        />
+      <div id="ml-techniques-studio-anchor" className="lg:col-span-12 space-y-6">
+        {/* Sub-view Switcher: Spectral Alignment vs ML Techniques Studio */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => {
+                setResultsSubTab('alignment');
+                playSynthTone('tick');
+              }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+                resultsSubTab === 'alignment'
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-400/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+              }`}
+            >
+              <Activity className="w-4 h-4 text-cyan-400" />
+              <span>Spectral Cross-Correlation & Alignment</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setResultsSubTab('ml_techniques');
+                playSynthTone('switch');
+              }}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+                resultsSubTab === 'ml_techniques'
+                  ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-lg shadow-indigo-500/25 ring-2 ring-purple-400/40'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+              }`}
+            >
+              <Brain className="w-4 h-4 text-purple-300 animate-pulse" />
+              <span>ML Techniques & Neural Architecture Studio</span>
+              <span className="px-2 py-0.5 rounded-full bg-purple-400/20 text-purple-200 text-[10px] font-mono border border-purple-400/30">
+                PINN & Ensemble v4.0
+              </span>
+            </button>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono text-slate-400 pr-2">
+            <span className="flex items-center gap-1.5 text-indigo-400">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              PINN Extinctions
+            </span>
+            <span>•</span>
+            <span className="text-purple-400">MC-Dropout Uncertainty</span>
+            <span>•</span>
+            <span className="text-cyan-400">1D Grad-CAM</span>
+          </div>
+        </div>
+
+        {resultsSubTab === 'alignment' ? (
+          <SpectralAlignmentVisualizer
+            inputData={inputData}
+            parsedPoints={parsedPoints}
+            selectedCandidate={selectedCandidate}
+            candidates={result?.candidates || []}
+            onSelectCandidate={(cand) => setSelectedCandidate(cand)}
+            inputBroadening={inputBroadening}
+            isSimulating={isSimulating}
+            scanPos={scanPos}
+            pythonRAGResults={pythonRAGResults}
+          />
+        ) : (
+          <MLTechniquesStudio
+            experimentalPeaks={dlExperimentalPeaks}
+            activeCandidateName={selectedCandidate?.phase_name}
+            onApplyPredictedPhase={handleApplyMLPhase}
+          />
+        )}
 
         {/* Material Intelligence Section (Selected Candidate Details) */}
         <AnimatePresence mode="wait">

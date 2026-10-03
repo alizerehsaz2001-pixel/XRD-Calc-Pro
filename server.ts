@@ -2985,6 +2985,173 @@ CRITICAL RULES:
     }
   });
 
+  // Machine Learning Neural Network Training & Optimization Endpoint
+  app.post("/api/gemini/train-neural-net", async (req, res) => {
+    try {
+      const {
+        epochs = 40,
+        learningRate = 0.005,
+        batchSize = 32,
+        optimizer = "AdamW",
+        architecture = "Deep MLP",
+        noiseLevel = 0.1,
+        backgroundDrift = 5.0,
+        strainRange = 0.02,
+        broadeningRange = 0.25,
+        dropout = 0.0,
+        activation = "GELU",
+        lrScheduler = "CosineAnnealing",
+        labelSmoothing = 0.1,
+        weightDecay = 0.0001,
+        lossFunction = "LabelSmoothedCE"
+      } = req.body;
+
+      const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
+      const { spawn } = await import("child_process");
+
+      const child = spawn("python3", [
+        scriptPath,
+        "--mode", "train",
+        "--epochs", String(epochs),
+        "--lr", String(learningRate),
+        "--batch_size", String(batchSize),
+        "--optimizer", optimizer,
+        "--architecture", architecture,
+        "--noise_level", String(noiseLevel),
+        "--background_drift", String(backgroundDrift),
+        "--strain_range", String(strainRange),
+        "--broadening_range", String(broadeningRange),
+        "--dropout", String(dropout),
+        "--activation", activation,
+        "--lr_scheduler", lrScheduler,
+        "--label_smoothing", String(labelSmoothing),
+        "--weight_decay", String(weightDecay),
+        "--loss_function", lossFunction
+      ]);
+
+      let stdout = "";
+      let stderr = "";
+      let responded = false;
+
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          try { child.kill("SIGKILL"); } catch (e) {}
+          res.status(504).json({ success: false, error: "Neural network training execution timed out after 35 seconds." });
+        }
+      }, 35000);
+
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (code !== 0 && !stdout.trim()) {
+          console.error("Neural Net Training Error:", stderr);
+          res.status(500).json({ success: false, error: "Error during neural network training: " + (stderr || "exit code " + code) });
+          return;
+        }
+
+        try {
+          const rawOut = stdout.trim();
+          const jsonStart = rawOut.indexOf('{');
+          const jsonEnd = rawOut.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            res.json(results);
+          } else {
+            res.status(500).json({ success: false, error: "Failed to parse training output: " + rawOut });
+          }
+        } catch (parseError) {
+          console.error("Failed to parse Neural Net output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse model training JSON: " + (stderr || stdout.slice(0, 300)) });
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Neural Net Training Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Machine Learning Fast Neural Inference Predictor Endpoint
+  app.post("/api/gemini/predict-neural-net", async (req, res) => {
+    try {
+      const { peaks } = req.body;
+      if (!peaks || !Array.isArray(peaks) || peaks.length === 0) {
+        return res.status(400).json({ success: false, error: "Diffraction peaks array is required for inference." });
+      }
+
+      const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
+      const { spawn } = await import("child_process");
+
+      const child = spawn("python3", [
+        scriptPath,
+        "--mode", "predict",
+        "--predict_peaks", JSON.stringify(peaks)
+      ]);
+
+      let stdout = "";
+      let stderr = "";
+      let responded = false;
+
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          try { child.kill("SIGKILL"); } catch (e) {}
+          res.status(504).json({ success: false, error: "Inference timed out after 12s." });
+        }
+      }, 12000);
+
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (code) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (code !== 0 && !stdout.trim()) {
+          console.error("Neural Predict Error:", stderr);
+          res.status(500).json({ success: false, error: "Error during neural inference: " + (stderr || "exit code " + code) });
+          return;
+        }
+
+        try {
+          const rawOut = stdout.trim();
+          const jsonStart = rawOut.indexOf('{');
+          const jsonEnd = rawOut.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            res.json(results);
+          } else {
+            res.status(500).json({ success: false, error: "Invalid prediction JSON output: " + rawOut });
+          }
+        } catch (parseError) {
+          console.error("Failed to parse prediction output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse prediction output." });
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Neural Net Predict Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Generic Python Code Execution Endpoint
   app.post("/api/python/run", async (req, res) => {
     try {
