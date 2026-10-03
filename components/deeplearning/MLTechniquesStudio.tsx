@@ -39,7 +39,11 @@ import {
   Gauge,
   Binary,
   Award,
-  Info
+  Info,
+  FileCode,
+  Terminal,
+  ExternalLink,
+  Code
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -58,6 +62,7 @@ import {
   Cell
 } from 'recharts';
 import { playSynthTone } from '../../utils/sound';
+import { getMLPythonScript, PythonTechniqueId } from './mlPythonGenerators';
 
 export type MLTechniqueTab =
   | 'ensemble'
@@ -66,7 +71,8 @@ export type MLTechniqueTab =
   | 'latent_space'
   | 'grad_cam'
   | 'contrastive'
-  | 'workbench';
+  | 'workbench'
+  | 'python_code';
 
 export interface MLTechniquesStudioProps {
   experimentalPeaks: Array<{ twoTheta: number; intensity: number }>;
@@ -83,6 +89,15 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<MLTechniqueTab>('ensemble');
+
+  // =========================================================
+  // PYTHON SCRIPT & EXECUTION ENGINE STATE
+  // =========================================================
+  const [activePythonTechnique, setActivePythonTechnique] = useState<PythonTechniqueId>('pinn');
+  const [pythonDevice, setPythonDevice] = useState<'cuda' | 'cpu' | 'mps'>('cuda');
+  const [isRunningPython, setIsRunningPython] = useState<boolean>(false);
+  const [pythonOutput, setPythonOutput] = useState<{ stdout: string; stderr: string; success: boolean } | null>(null);
+  const [copiedScript, setCopiedScript] = useState<boolean>(false);
 
   // =========================================================
   // 1. ENSEMBLE MULTI-MODEL STATE
@@ -282,7 +297,6 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
       const progressPct = Math.round((current / mcIterations) * 100);
       setMcProgress(progressPct);
 
-      // Stochastic forward pass with dropout jitter
       const noise = (Math.random() - 0.5) * (mcDropoutRate * 20.0);
       const score = Math.max(10, Math.min(99.9, baseScore + noise));
       const p = Math.max(1e-5, Math.min(0.9999, score / 100));
@@ -338,7 +352,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
   }, [mcSamples]);
 
   // =========================================================
-  // 4. LATENT SPACE MANIFOLD PROJECTION (t-SNE / UMAP / PCA)
+  // 4. LATENT SPACE MANIFOLD PROJECTION
   // =========================================================
   const [latentMethod, setLatentMethod] = useState<'tsne' | 'umap' | 'pca'>('tsne');
 
@@ -561,7 +575,6 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
   const [optimizer, setOptimizer] = useState<'adamw' | 'lion' | 'sgd'>('adamw');
   const [learningRate, setLearningRate] = useState<string>('0.001');
 
-  // Interactive fine-tuning simulation
   const [isFineTuning, setIsFineTuning] = useState<boolean>(false);
   const [fineTuneEpoch, setFineTuneEpoch] = useState<number>(0);
   const [fineTuneLoss, setFineTuneLoss] = useState<number>(1.24);
@@ -569,12 +582,10 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
   const [trainingLogs, setTrainingLogs] = useState<string[]>([]);
 
   const architectureMetrics = useMemo(() => {
-    // Exact receptive field calculation: RF = (K - 1) * Layers + 1 in points
     const pointsCovered = (kernelSize - 1) * numLayers + 1;
-    const stepSizeDeg = 0.02; // standard 2theta step
+    const stepSizeDeg = 0.02;
     const receptiveFieldDeg = (pointsCovered * stepSizeDeg).toFixed(2);
 
-    // Parameter count estimation
     let params = 0;
     if (archBackbone === 'cnn1d') {
       params = 2048 * baseFilters + numLayers * (baseFilters * baseFilters * kernelSize);
@@ -630,6 +641,92 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
         playSynthTone('success');
       }
     }, 450);
+  };
+
+  // =========================================================
+  // PYTHON SCRIPT GENERATOR & RUNNER HANDLERS
+  // =========================================================
+  const currentPythonScript = useMemo(() => {
+    return getMLPythonScript(activePythonTechnique, {
+      activeCandidate: activeCandidateName,
+      kernelSize,
+      numLayers,
+      filters: baseFilters,
+      learningRate,
+      pinnExtinctionWeight: pinnLambdaExtinction,
+      pinnBraggWeight: pinnLambdaBragg,
+      mcPasses: mcIterations,
+      mcDropout: mcDropoutRate,
+      device: pythonDevice
+    });
+  }, [
+    activePythonTechnique,
+    activeCandidateName,
+    kernelSize,
+    numLayers,
+    baseFilters,
+    learningRate,
+    pinnLambdaExtinction,
+    pinnLambdaBragg,
+    mcIterations,
+    mcDropoutRate,
+    pythonDevice
+  ]);
+
+  const handleRunPythonCode = async () => {
+    setIsRunningPython(true);
+    setPythonOutput(null);
+    playSynthTone('switch');
+
+    try {
+      const response = await fetch('/api/python/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: currentPythonScript.code })
+      });
+      const data = await response.json();
+      setPythonOutput(data);
+      if (data.success) {
+        playSynthTone('success');
+      } else {
+        playSynthTone('error');
+      }
+    } catch (err: any) {
+      setPythonOutput({
+        success: false,
+        stdout: '',
+        stderr: err.message || 'Failed to communicate with local Python execution daemon.'
+      });
+      playSynthTone('error');
+    } finally {
+      setIsRunningPython(false);
+    }
+  };
+
+  const handleCopyPythonCode = () => {
+    navigator.clipboard.writeText(currentPythonScript.code);
+    setCopiedScript(true);
+    playSynthTone('success');
+    setTimeout(() => setCopiedScript(false), 2000);
+  };
+
+  const handleDownloadPythonFile = () => {
+    const blob = new Blob([currentPythonScript.code], { type: 'text/x-python' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentPythonScript.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    playSynthTone('success');
+  };
+
+  const openPythonViewerForTechnique = (tech: PythonTechniqueId) => {
+    setActivePythonTechnique(tech);
+    setActiveTab('python_code');
+    playSynthTone('switch');
   };
 
   // =========================================================
@@ -691,13 +788,25 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Ensemble soft-voting, physics-informed extinction loss, Monte Carlo uncertainty, Grad-CAM saliency, and interactive architecture tuning.
+              Ensemble soft-voting, physics-informed extinction loss, Monte Carlo uncertainty, Grad-CAM saliency, and runnable Python PyTorch scripts.
             </p>
           </div>
         </div>
 
-        {/* Live Predictor Trigger Button */}
+        {/* Live Predictor & Python Shortcut Buttons */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setActiveTab('python_code');
+              playSynthTone('switch');
+            }}
+            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            title="Inspect runnable PyTorch Python code for every ML technique"
+          >
+            <FileCode className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Python Scripts</span>
+          </button>
+
           <button
             onClick={handleRunNeuralInference}
             disabled={isPredicting}
@@ -753,11 +862,12 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
         {[
           { id: 'ensemble', label: t('Ensemble Multi-Model', 'Ensemble Multi-Model'), icon: Layers },
           { id: 'pinn', label: t('Physics-Informed (PINN)', 'Physics-Informed (PINN)'), icon: Scale },
-          { id: 'mc_dropout', label: t('Monte Carlo Epistemic Uncertainty', 'Monte Carlo Uncertainty'), icon: Radio },
+          { id: 'mc_dropout', label: t('Monte Carlo Uncertainty', 'Monte Carlo Uncertainty'), icon: Radio },
           { id: 'latent_space', label: t('Latent Manifold (2D)', 'Latent Manifold (2D)'), icon: Compass },
           { id: 'grad_cam', label: t('Grad-CAM Saliency', 'Grad-CAM Saliency'), icon: Crosshair },
           { id: 'contrastive', label: t('Contrastive Self-Supervised', 'Contrastive Learning'), icon: GitBranch },
-          { id: 'workbench', label: t('Architecture Workbench', 'Architecture Workbench'), icon: SlidersHorizontal }
+          { id: 'workbench', label: t('Architecture Workbench', 'Architecture Workbench'), icon: SlidersHorizontal },
+          { id: 'python_code', label: t('Python PyTorch Codes', 'Python PyTorch Codes'), icon: FileCode, badge: 'Run / Export' }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -776,6 +886,13 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{tab.label}</span>
+              {tab.badge && (
+                <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono ${
+                  isActive ? 'bg-white/20 text-white' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
             </button>
           );
         })}
@@ -790,13 +907,13 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
         {/* ========================================================= */}
         {activeTab === 'ensemble' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Quick Architecture Presets */}
+            {/* Quick Python Code Banner */}
             <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-500/20">
               <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
                 Quick Weight Profiles:
               </span>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
                 {[
                   { id: 'balanced', label: 'Balanced Ensemble' },
                   { id: 'attention', label: 'XRD-Former Heavy (Attention)' },
@@ -806,11 +923,18 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                   <button
                     key={p.id}
                     onClick={() => handlePresetWeights(p.id as any)}
-                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-600 transition-all"
+                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-600 transition-all cursor-pointer"
                   >
                     {p.label}
                   </button>
                 ))}
+                <button
+                  onClick={() => openPythonViewerForTechnique('ensemble')}
+                  className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ml-auto"
+                >
+                  <FileCode className="w-3 h-3" />
+                  <span>Python Ensemble Code</span>
+                </button>
               </div>
             </div>
 
@@ -922,7 +1046,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                         {onApplyPredictedPhase && (
                           <button
                             onClick={() => onApplyPredictedPhase(r.name)}
-                            className="px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white text-[10px] font-bold transition-all"
+                            className="px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white text-[10px] font-bold transition-all cursor-pointer"
                           >
                             Apply
                           </button>
@@ -964,20 +1088,24 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
         {/* ========================================================= */}
         {activeTab === 'pinn' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* PINN Equation Card */}
-            <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-500/20">
-              <div className="flex items-center justify-between gap-2 mb-2">
+            {/* PINN Equation Card with Python Shortcut */}
+            <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-500/20 flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1 max-w-2xl">
                 <span className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-300 flex items-center gap-2">
                   <Scale className="w-4 h-4 text-indigo-500" />
                   PINN Loss: L_PINN = L_CE + λ_ext L_extinction + λ_bragg L_Bragg + λ_strain L_microstrain
                 </span>
-                <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-[10px] font-mono text-indigo-400">
-                  Space Group Forbidden Reflections Penalized
-                </span>
+                <p className="text-xs text-indigo-900/80 dark:text-indigo-200/80 leading-relaxed font-sans">
+                  Space-group extinction tensors penalize impossible Bragg reflections directly in backpropagation.
+                </p>
               </div>
-              <p className="text-xs text-indigo-900/80 dark:text-indigo-200/80 leading-relaxed font-sans">
-                Standard deep learning models frequently hallucinate non-physical peaks that violate systematic crystallographic extinctions. PINN injects space-group extinction tensors directly into backpropagation gradients to penalize impossible Bragg reflections.
-              </p>
+              <button
+                onClick={() => openPythonViewerForTechnique('pinn')}
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                <span>View & Run PINN Python Code</span>
+              </button>
             </div>
 
             {/* PINN Tuning Controls */}
@@ -1098,7 +1226,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
               </div>
             </div>
 
-            {/* MC Dropout Interactive Controls */}
+            {/* MC Dropout Interactive Controls with Python Shortcut */}
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/5 text-xs">
               <div className="flex items-center gap-6">
                 <div className="space-y-1">
@@ -1131,14 +1259,23 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                 </div>
               </div>
 
-              <button
-                onClick={runMonteCarloSimulation}
-                disabled={isRunningMCDropout}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRunningMCDropout ? 'animate-spin' : ''}`} />
-                <span>{isRunningMCDropout ? `Sampling (${mcProgress}%)...` : 'Resample MC Dropout'}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openPythonViewerForTechnique('mc_dropout')}
+                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <FileCode className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Python MC Script</span>
+                </button>
+                <button
+                  onClick={runMonteCarloSimulation}
+                  disabled={isRunningMCDropout}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isRunningMCDropout ? 'animate-spin' : ''}`} />
+                  <span>{isRunningMCDropout ? `Sampling (${mcProgress}%)...` : 'Resample MC Dropout'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Scatter Distribution of Stochastic Inference Passes */}
@@ -1175,24 +1312,33 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                 </p>
               </div>
 
-              {/* Method Switcher */}
-              <div className="flex items-center gap-1.5 bg-slate-200/60 dark:bg-slate-900/60 p-1 rounded-xl">
-                {(['tsne', 'umap', 'pca'] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      setLatentMethod(m);
-                      playSynthTone('switch');
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                      latentMethod === m
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600'
-                    }`}
-                  >
-                    {m.toUpperCase()}
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openPythonViewerForTechnique('latent_space')}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                >
+                  <FileCode className="w-3.5 h-3.5" />
+                  <span>Python t-SNE / UMAP Script</span>
+                </button>
+
+                <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-900/60 p-1 rounded-xl">
+                  {(['tsne', 'umap', 'pca'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        setLatentMethod(m);
+                        playSynthTone('switch');
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                        latentMethod === m
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600'
+                      }`}
+                    >
+                      {m.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1239,7 +1385,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
         {/* ========================================================= */}
         {activeTab === 'grad_cam' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/5 flex items-center justify-between gap-4">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/5 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
                   <Crosshair className="w-4 h-4 text-cyan-500" />
@@ -1249,6 +1395,13 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                   The cyan gradient line indicates the neural network's backpropagated activation gradient weights (αₖ = 1/Z ∑ᵢ ∂y_c / ∂Aᵢᵏ). Peak intensities aligned with high Grad-CAM activation provide the strongest mathematical evidence for the selected phase.
                 </p>
               </div>
+              <button
+                onClick={() => openPythonViewerForTechnique('grad_cam')}
+                className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                <span>Python Grad-CAM Code</span>
+              </button>
             </div>
 
             <div className="h-64 w-full">
@@ -1298,21 +1451,30 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
         )}
 
         {/* ========================================================= */}
-        {/* 6. SELF-SUPERVISED CONTRASTIVE LEARNING (SimCLR for XRD) */}
+        {/* 6. SELF-SUPERVISED CONTRASTIVE LEARNING (SimCLR) */}
         {/* ========================================================= */}
         {activeTab === 'contrastive' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/5">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <GitBranch className="w-4 h-4 text-purple-500" />
-                Self-Supervised Contrastive Representation Learning (SimCLR / InfoNCE)
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Contrastive pre-training learns robust representations without requiring manual labels. Two physically augmented views of the same diffraction pattern form positive pairs whose cosine similarity in representation space is maximized via the InfoNCE objective:
-              </p>
-              <div className="mt-2 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 font-mono text-[11px] text-purple-300">
-                L_InfoNCE = -log [ exp(sim(z_i, z_j)/τ) / ∑_k exp(sim(z_i, z_k)/τ) ]
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/5 flex flex-wrap items-center justify-between gap-4">
+              <div className="max-w-2xl">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <GitBranch className="w-4 h-4 text-purple-500" />
+                  Self-Supervised Contrastive Representation Learning (SimCLR / InfoNCE)
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Contrastive pre-training learns robust representations without requiring manual labels via the InfoNCE objective:
+                </p>
+                <div className="mt-2 p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 font-mono text-[11px] text-purple-300">
+                  L_InfoNCE = -log [ exp(sim(z_i, z_j)/τ) / ∑_k exp(sim(z_i, z_k)/τ) ]
+                </div>
               </div>
+              <button
+                onClick={() => openPythonViewerForTechnique('contrastive')}
+                className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+              >
+                <FileCode className="w-3.5 h-3.5" />
+                <span>Python SimCLR Code</span>
+              </button>
             </div>
 
             {/* Augmentation Selector */}
@@ -1329,7 +1491,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                     setActiveAugmentation(aug.id as any);
                     playSynthTone('switch');
                   }}
-                  className={`p-3 rounded-2xl text-left border transition-all ${
+                  className={`p-3 rounded-2xl text-left border transition-all cursor-pointer ${
                     activeAugmentation === aug.id
                       ? 'bg-purple-500/10 border-purple-500 text-purple-900 dark:text-purple-200 shadow-md'
                       : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-purple-300'
@@ -1376,7 +1538,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
         )}
 
         {/* ========================================================= */}
-        {/* 7. NEURAL ARCHITECTURE WORKBENCH & INTERACTIVE TRAINER */}
+        {/* 7. NEURAL ARCHITECTURE WORKBENCH */}
         {/* ========================================================= */}
         {activeTab === 'workbench' && (
           <div className="space-y-6 animate-in fade-in duration-300">
@@ -1421,7 +1583,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                     <button
                       key={b.id}
                       onClick={() => setArchBackbone(b.id as any)}
-                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                      className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                         archBackbone === b.id
                           ? 'bg-indigo-600 text-white shadow-sm'
                           : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
@@ -1470,7 +1632,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                 <select
                   value={activationFn}
                   onChange={(e) => setActivationFn(e.target.value as any)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold"
+                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold cursor-pointer"
                 >
                   <option value="gelu">GELU (Gaussian Error Linear)</option>
                   <option value="swish">Swish / SiLU</option>
@@ -1484,7 +1646,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                 <select
                   value={optimizer}
                   onChange={(e) => setOptimizer(e.target.value as any)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold"
+                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold cursor-pointer"
                 >
                   <option value="adamw">AdamW (Decoupled Weight Decay)</option>
                   <option value="lion">Lion (EvoLved Sign Momentum)</option>
@@ -1497,7 +1659,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                 <select
                   value={learningRate}
                   onChange={(e) => setLearningRate(e.target.value)}
-                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold"
+                  className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold cursor-pointer"
                 >
                   <option value="0.0005">5e-4 (Fine-Tuning)</option>
                   <option value="0.001">1e-3 (Standard Default)</option>
@@ -1521,14 +1683,24 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                   </div>
                 </div>
 
-                <button
-                  onClick={handleStartFineTuning}
-                  disabled={isFineTuning}
-                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
-                >
-                  <Play className={`w-3.5 h-3.5 ${isFineTuning ? 'animate-spin' : ''}`} />
-                  <span>{isFineTuning ? 'Training in Progress...' : 'Start Model Fine-Tuning'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openPythonViewerForTechnique('complete_training')}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-slate-700 cursor-pointer"
+                  >
+                    <FileCode className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Export PyTorch Training Script</span>
+                  </button>
+
+                  <button
+                    onClick={handleStartFineTuning}
+                    disabled={isFineTuning}
+                    className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-50"
+                  >
+                    <Play className={`w-3.5 h-3.5 ${isFineTuning ? 'animate-spin' : ''}`} />
+                    <span>{isFineTuning ? 'Training in Progress...' : 'Start Model Fine-Tuning'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Training Progress Bar */}
@@ -1550,6 +1722,168 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 8. PYTHON PYTORCH CODES & RUNNER TAB */}
+        {/* ========================================================= */}
+        {activeTab === 'python_code' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Technique Selector & Config Deck */}
+            <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                    <FileCode className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black tracking-tight text-white flex items-center gap-2">
+                      <span>{currentPythonScript.title}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] font-mono text-emerald-400 border border-slate-700">
+                        {currentPythonScript.filename}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">{currentPythonScript.description}</p>
+                  </div>
+                </div>
+
+                {/* Hardware device selector */}
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-400">PyTorch Target Device:</span>
+                  <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+                    {(['cuda', 'mps', 'cpu'] as const).map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setPythonDevice(d)}
+                        className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                          pythonDevice === d
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Technique Selector Buttons */}
+              <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+                {[
+                  { id: 'pinn', label: '1. PINN Extinction Loss' },
+                  { id: 'ensemble', label: '2. Multi-Model Ensemble' },
+                  { id: 'mc_dropout', label: '3. MC-Dropout Uncertainty' },
+                  { id: 'grad_cam', label: '4. 1D Grad-CAM Saliency' },
+                  { id: 'latent_space', label: '5. Latent Manifold Projection' },
+                  { id: 'contrastive', label: '6. SimCLR Contrastive' },
+                  { id: 'complete_training', label: '7. Complete PyTorch Pipeline' }
+                ].map((tItem) => (
+                  <button
+                    key={tItem.id}
+                    onClick={() => {
+                      setActivePythonTechnique(tItem.id as PythonTechniqueId);
+                      setPythonOutput(null);
+                      playSynthTone('switch');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                      activePythonTechnique === tItem.id
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/20'
+                        : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border border-slate-700/60'
+                    }`}
+                  >
+                    {tItem.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Action Buttons Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRunPythonCode}
+                    disabled={isRunningPython}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer disabled:opacity-50 active:scale-95 transition-all"
+                  >
+                    {isRunningPython ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                    )}
+                    <span>{isRunningPython ? 'Executing in Python Engine...' : 'Run in Python Engine'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleCopyPythonCode}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  >
+                    {copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedScript ? 'Copied to Clipboard!' : 'Copy Python Code'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadPythonFile}
+                    className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download .py File</span>
+                  </button>
+                </div>
+
+                <div className="text-[11px] font-mono text-slate-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>PyTorch / NumPy Standalone Zero-Fail Engine</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Python Execution Output Console */}
+            {pythonOutput && (
+              <div className="rounded-2xl border border-slate-800 bg-[#050A14] text-white p-4 space-y-2 shadow-2xl animate-in fade-in duration-300">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+                      Python Engine Execution Output
+                    </span>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                    pythonOutput.success
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  }`}>
+                    {pythonOutput.success ? 'EXIT CODE 0 (SUCCESS)' : 'EXIT CODE != 0'}
+                  </span>
+                </div>
+
+                <pre className="font-mono text-xs text-slate-200 p-3 bg-black/60 rounded-xl overflow-x-auto custom-scrollbar max-h-60 whitespace-pre-wrap leading-relaxed">
+                  {pythonOutput.stdout || (pythonOutput.stderr ? '' : 'Script executed successfully with no stdout output.')}
+                  {pythonOutput.stderr && (
+                    <span className="text-rose-400 block mt-2">{pythonOutput.stderr}</span>
+                  )}
+                </pre>
+              </div>
+            )}
+
+            {/* Python Code Display Block */}
+            <div className="rounded-2xl border border-slate-800 bg-[#070D18] text-white overflow-hidden shadow-2xl">
+              <div className="p-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
+                  <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block" />
+                  <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
+                  <span className="ml-2 font-bold text-slate-200">{currentPythonScript.filename}</span>
+                </div>
+                <span>Python 3.10+ / PyTorch 2.x</span>
+              </div>
+
+              <div className="p-4 font-mono text-xs overflow-x-auto custom-scrollbar max-h-[500px] leading-relaxed select-text">
+                <pre className="text-slate-300">
+                  {currentPythonScript.code}
+                </pre>
               </div>
             </div>
           </div>
