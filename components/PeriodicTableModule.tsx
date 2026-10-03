@@ -6,7 +6,7 @@ import {
   HelpCircle, Orbit, RotateCw, Settings, ShieldAlert, Zap, Cpu,
   Droplets, Cloud, DownloadCloud, Eye, EyeOff, Maximize2, Sliders,
   Atom, Grid, ChevronDown, ChevronUp, RefreshCw, Copy, Check, FlaskConical,
-  Fingerprint, ArrowRight
+  Fingerprint, ArrowRight, ShieldCheck, Boxes, Radio
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
@@ -20,6 +20,9 @@ import { ElementalDiffractionPredictor } from './ElementalDiffractionPredictor';
 import { CompoundAttenuationCalculator } from './CompoundAttenuationCalculator';
 import { MolarMassStpCalculator } from './MolarMassStpCalculator';
 import { XRFFingerprintInspector } from './periodic/XRFFingerprintInspector';
+import { IsotopeNeutronMetrologyDeck } from './periodic/IsotopeNeutronMetrologyDeck';
+import { QuantumOrbitalEnergyDiagram } from './periodic/QuantumOrbitalEnergyDiagram';
+import { HumeRotheryAlloyWorkbench } from './periodic/HumeRotheryAlloyWorkbench';
 import { COMPLETE_PERIODIC_TABLE } from './periodic/elementsData';
 import { PeriodicFilterToolbar } from './periodic/PeriodicFilterToolbar';
 import { PeriodicHeatmapLegend } from './periodic/PeriodicHeatmapLegend';
@@ -2329,16 +2332,25 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [loadedBanner, setLoadedBanner] = useState<string | null>(null);
 
   // Comparison Module states
-  const [activeTab, setActiveTab] = useState<'grid' | 'compare'>('grid');
+  const [activeTab, setActiveTab] = useState<'grid' | 'compare' | 'alloy' | 'neutron_deck'>('grid');
   const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
   const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
-  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'xray' | 'xrf' | 'attenuation' | 'chemical' | 'physical' | 'stp'>('lattice');
+  const [detailSubTab, setDetailSubTab] = useState<
+    'lattice' | 'xray' | 'xrf' | 'isotopes' | 'orbitals' | 'alloy' | 'attenuation' | 'chemical' | 'physical' | 'stp'
+  >('lattice');
   const [temperature, setTemperature] = useState<number>(25); // °C
+
+  // Metallurgy & Nuclear Deck workspace states
+  const [alloySolventZ, setAlloySolventZ] = useState<number>(29); // Cu default
+  const [alloySoluteZ, setAlloySoluteZ] = useState<number>(30); // Zn default (Brass)
+  const [alloySoluteFraction, setAlloySoluteFraction] = useState<number>(0.30); // 30 at.%
+  const [neutronSelectedZ, setNeutronSelectedZ] = useState<number>(26); // Fe default
 
   // Modern Periodic Table visual & metrology states
   const [colorMode, setColorMode] = useState<ColorMode>('category');
   const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('none');
   const [blockFilter, setBlockFilter] = useState<string>('all');
+  const [structureFilter, setStructureFilter] = useState<string>('all');
   const [activePreset, setActivePreset] = useState<QuickPreset | null>(null);
   const [layoutMode, setLayoutMode] = useState<'split' | 'expanded'>('split');
 
@@ -2415,6 +2427,160 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     setTimeout(() => setLoadedBanner(null), 3500);
   };
 
+  const handleLoadElementDiffractionPeaks = (element: CrystalElement) => {
+    if (!onLoadPeaks) return;
+    const lambda = 1.5406; // Cu Ka in Angstroms
+    const a = element.a || 3.61;
+    const isFCC = element.crystalStructure === 'FCC';
+    const isBCC = element.crystalStructure === 'BCC';
+    const isDiamond = element.crystalStructure === 'Diamond';
+
+    let planes: Array<{ h: number; k: number; l: number; relI: number }> = [];
+    if (isFCC) {
+      planes = [
+        { h: 1, k: 1, l: 1, relI: 100 },
+        { h: 2, k: 0, l: 0, relI: 46 },
+        { h: 2, k: 2, l: 0, relI: 20 },
+        { h: 3, k: 1, l: 1, relI: 17 },
+        { h: 2, k: 2, l: 2, relI: 5 }
+      ];
+    } else if (isBCC) {
+      planes = [
+        { h: 1, k: 1, l: 0, relI: 100 },
+        { h: 2, k: 0, l: 0, relI: 18 },
+        { h: 2, k: 1, l: 1, relI: 30 },
+        { h: 2, k: 2, l: 0, relI: 8 },
+        { h: 3, k: 1, l: 0, relI: 12 }
+      ];
+    } else if (isDiamond) {
+      planes = [
+        { h: 1, k: 1, l: 1, relI: 100 },
+        { h: 2, k: 2, l: 0, relI: 55 },
+        { h: 3, k: 1, l: 1, relI: 30 },
+        { h: 4, k: 0, l: 0, relI: 6 },
+        { h: 3, k: 3, l: 1, relI: 11 }
+      ];
+    } else {
+      planes = [
+        { h: 1, k: 0, l: 0, relI: 100 },
+        { h: 0, k: 0, l: 2, relI: 40 },
+        { h: 1, k: 0, l: 1, relI: 80 },
+        { h: 1, k: 0, l: 2, relI: 25 },
+        { h: 1, k: 1, l: 0, relI: 35 }
+      ];
+    }
+
+    const calculatedPeaks: Array<{ twoTheta: number; relI: number; hkl: string }> = [];
+    for (const p of planes) {
+      const s = Math.sqrt(p.h * p.h + p.k * p.k + p.l * p.l);
+      const d = a / s;
+      const sinTheta = lambda / (2 * d);
+      if (sinTheta > 0 && sinTheta < 0.99) {
+        const thetaRad = Math.asin(sinTheta);
+        const twoThetaDeg = (thetaRad * 2 * 180) / Math.PI;
+        calculatedPeaks.push({
+          twoTheta: Number(twoThetaDeg.toFixed(2)),
+          relI: p.relI,
+          hkl: `(${p.h} ${p.k} ${p.l})`
+        });
+      }
+    }
+
+    if (calculatedPeaks.length > 0) {
+      const peaksStr = calculatedPeaks.map((p) => `${p.twoTheta}:${p.relI}`).join(', ');
+      const hklStr = calculatedPeaks.map((p) => p.hkl).join(', ');
+      onLoadPeaks(peaksStr, hklStr, `${element.name} (${element.symbol})`);
+      playSynthTone('success');
+      setLoadedBanner(`${element.symbol} Pure Crystal Standard`);
+      setTimeout(() => setLoadedBanner(null), 3500);
+    }
+  };
+
+  const currentAlloySolvent = useMemo(() => {
+    return fullElementsGrid.find(e => e.number === alloySolventZ) || fullElementsGrid[28]; // Cu default
+  }, [fullElementsGrid, alloySolventZ]);
+
+  const currentAlloySolute = useMemo(() => {
+    return fullElementsGrid.find(e => e.number === alloySoluteZ) || fullElementsGrid[29]; // Zn default
+  }, [fullElementsGrid, alloySoluteZ]);
+
+  const alloyVegardCalculations = useMemo(() => {
+    const aA = currentAlloySolvent.a || 3.615;
+    const aB = currentAlloySolute.a || 3.615;
+    const x = alloySoluteFraction;
+    const aAlloy = (1 - x) * aA + x * aB;
+    const strainPct = ((aAlloy - aA) / (aA || 1)) * 100;
+    const volA = Math.pow(aA, 3);
+    const volAlloy = Math.pow(aAlloy, 3);
+    const volChangePct = ((volAlloy - volA) / (volA || 1)) * 100;
+
+    const lambda = 1.5406; // Cu Ka in Angstroms
+    const planes = [
+      { h: 1, k: 1, l: 1, name: '(111)', relI: 100 },
+      { h: 2, k: 0, l: 0, name: '(200)', relI: 46 },
+      { h: 2, k: 2, l: 0, name: '(220)', relI: 20 },
+      { h: 3, k: 1, l: 1, name: '(311)', relI: 17 }
+    ];
+
+    const peakComparisons = planes.map(p => {
+      const s = Math.sqrt(p.h * p.h + p.k * p.k + p.l * p.l);
+      const d0 = aA / s;
+      const dAlloy = aAlloy / s;
+      const sin0 = lambda / (2 * d0);
+      const sinAlloy = lambda / (2 * dAlloy);
+
+      let twoTheta0 = 0;
+      let twoThetaAlloy = 0;
+      let shift = 0;
+
+      if (sin0 > 0 && sin0 < 0.99) {
+        twoTheta0 = (Math.asin(sin0) * 2 * 180) / Math.PI;
+      }
+      if (sinAlloy > 0 && sinAlloy < 0.99) {
+        twoThetaAlloy = (Math.asin(sinAlloy) * 2 * 180) / Math.PI;
+      }
+      if (twoTheta0 > 0 && twoThetaAlloy > 0) {
+        shift = twoThetaAlloy - twoTheta0;
+      }
+
+      return {
+        hkl: p.name,
+        d0: Number(d0.toFixed(4)),
+        dAlloy: Number(dAlloy.toFixed(4)),
+        twoTheta0: Number(twoTheta0.toFixed(2)),
+        twoThetaAlloy: Number(twoThetaAlloy.toFixed(2)),
+        shift: Number(shift.toFixed(2)),
+        relI: p.relI
+      };
+    });
+
+    return {
+      aA: Number(aA.toFixed(4)),
+      aB: Number(aB.toFixed(4)),
+      aAlloy: Number(aAlloy.toFixed(4)),
+      strainPct: Number(strainPct.toFixed(2)),
+      volChangePct: Number(volChangePct.toFixed(2)),
+      peakComparisons
+    };
+  }, [currentAlloySolvent, currentAlloySolute, alloySoluteFraction]);
+
+  const handleLoadAlloyDiffractionPeaks = () => {
+    if (!onLoadPeaks) return;
+    const validPeaks = alloyVegardCalculations.peakComparisons.filter(p => p.twoThetaAlloy > 0);
+    if (validPeaks.length === 0) return;
+    const peaksStr = validPeaks.map(p => `${p.twoThetaAlloy}:${p.relI}`).join(', ');
+    const hklStr = validPeaks.map(p => p.hkl).join(', ');
+    const label = `${currentAlloySolvent.symbol}-${((1 - alloySoluteFraction) * 100).toFixed(0)}${currentAlloySolute.symbol}-${(alloySoluteFraction * 100).toFixed(0)} Solid Solution`;
+    onLoadPeaks(peaksStr, hklStr, label);
+    playSynthTone('success');
+    setLoadedBanner(label);
+    setTimeout(() => setLoadedBanner(null), 3500);
+  };
+
+  const currentNeutronElement = useMemo(() => {
+    return fullElementsGrid.find(e => e.number === neutronSelectedZ) || fullElementsGrid[25]; // Fe default
+  }, [fullElementsGrid, neutronSelectedZ]);
+
   const filteredElements = useMemo(() => {
     return fullElementsGrid.filter(el => {
       // 1. Search filter
@@ -2442,9 +2608,14 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         if (el.block !== blockFilter) return false;
       }
 
+      // 5. Crystal Structure filter
+      if (structureFilter !== 'all') {
+        if (el.crystalStructure !== structureFilter) return false;
+      }
+
       return true;
     });
-  }, [fullElementsGrid, searchQuery, activePreset, categoryFilter, blockFilter]);
+  }, [fullElementsGrid, searchQuery, activePreset, categoryFilter, blockFilter, structureFilter]);
 
   const matchedElementNumbers = useMemo(() => {
     return new Set(filteredElements.map(e => e.number));
@@ -2797,13 +2968,13 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       )}
 
       {/* Module Mode Control Tabs */}
-      <div className="flex border-b border-slate-800/60 mb-6 gap-6 text-[11px] font-black pb-3 uppercase tracking-wider">
+      <div className="flex border-b border-slate-800/60 mb-6 gap-6 text-[11px] font-black pb-3 uppercase tracking-wider overflow-x-auto">
         <button
           onClick={() => {
             setActiveTab('grid');
             playSynthTone('tick');
           }}
-          className={`pb-2 transition-all duration-200 relative ${
+          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
             activeTab === 'grid' 
               ? 'text-indigo-400 border-b-2 border-indigo-500 font-extrabold' 
               : 'text-slate-400 hover:text-slate-200'
@@ -2819,7 +2990,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             setActiveTab('compare');
             playSynthTone('tick');
           }}
-          className={`pb-2 transition-all duration-200 relative ${
+          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
             activeTab === 'compare' 
               ? 'text-rose-400 border-b-2 border-rose-500 font-extrabold' 
               : 'text-slate-400 hover:text-slate-200'
@@ -2828,6 +2999,38 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
           <div className="flex items-center gap-2">
             <Activity className="w-4.5 h-4.5 text-rose-400" />
             Lattice Radar Comparator
+          </div>
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('alloy');
+            playSynthTone('tick');
+          }}
+          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
+            activeTab === 'alloy' 
+              ? 'text-violet-400 border-b-2 border-violet-500 font-extrabold' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Boxes className="w-4.5 h-4.5 text-violet-400" />
+            Hume-Rothery Metallurgy Workbench
+          </div>
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('neutron_deck');
+            playSynthTone('tick');
+          }}
+          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
+            activeTab === 'neutron_deck' 
+              ? 'text-cyan-400 border-b-2 border-cyan-500 font-extrabold' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Atom className="w-4.5 h-4.5 text-cyan-400" />
+            Neutron Scattering & Isotope Deck
           </div>
         </button>
       </div>
@@ -2846,6 +3049,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             onCategoryFilterChange={setCategoryFilter}
             blockFilter={blockFilter}
             onBlockFilterChange={setBlockFilter}
+            structureFilter={structureFilter}
+            onStructureFilterChange={setStructureFilter}
             temperature={temperature}
             onTemperatureChange={setTemperature}
             activePreset={activePreset}
@@ -2913,6 +3118,12 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   heatmapMode={heatmapMode}
                   temperature={temperature}
                   matchedElementNumbers={matchedElementNumbers}
+                  activeCategoryFilter={categoryFilter}
+                  onToggleCategoryFilter={setCategoryFilter}
+                  activeStructureFilter={structureFilter}
+                  onToggleStructureFilter={setStructureFilter}
+                  activeBlockFilter={blockFilter}
+                  onToggleBlockFilter={setBlockFilter}
                 />
               </div>
             </div>
@@ -2957,18 +3168,54 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center bg-slate-900 border-b border-slate-800/80 pb-2">
-                  <span className="text-xs font-semibold text-slate-300">Material Properties</span>
-                  <button
-                    onClick={() => {
-                      setIsEditingElement(!isEditingElement);
-                      playSynthTone('tick');
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white text-slate-300 transition-colors cursor-pointer"
-                  >
-                    <Settings className="w-3.5 h-3.5" />
-                    {isEditingElement ? "View Details" : "Edit Properties"}
-                  </button>
+                <div className="flex flex-wrap justify-between items-center gap-2 bg-slate-900 border-b border-slate-800/80 pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-slate-300">Material Profiler</span>
+                    <button
+                      onClick={() => handleLoadElementDiffractionPeaks(activeElementInfo)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition-colors cursor-pointer"
+                      title="Simulate pure element powder XRD Bragg peaks in spectrometer"
+                    >
+                      <Play className="w-2.5 h-2.5 fill-current" />
+                      Graph XRD
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setAlloySolventZ(activeElementInfo.number);
+                        setActiveTab('alloy');
+                        playSynthTone('switch');
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 transition-colors cursor-pointer"
+                      title="Open in Hume-Rothery Metallurgy Workbench"
+                    >
+                      <Boxes className="w-3 h-3" />
+                      Alloy
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNeutronSelectedZ(activeElementInfo.number);
+                        setActiveTab('neutron_deck');
+                        playSynthTone('switch');
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 transition-colors cursor-pointer"
+                      title="Open in Neutron & Nuclear Metrology Deck"
+                    >
+                      <Atom className="w-3 h-3" />
+                      Neutron
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingElement(!isEditingElement);
+                        playSynthTone('tick');
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white text-slate-300 transition-colors cursor-pointer"
+                    >
+                      <Settings className="w-3 h-3" />
+                      {isEditingElement ? "View" : "Edit"}
+                    </button>
+                  </div>
                 </div>
 
                 {isEditingElement ? (
@@ -3142,16 +3389,19 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                 ) : (
                   <>
                     {/* Sub-tab navigation bar for detail views */}
-                    <div className="flex bg-[#0B0F19] p-1.5 rounded-xl border border-white/5 gap-1 mt-1 justify-between shadow-inner relative isolate overflow-hidden">
+                    <div className="flex bg-[#0B0F19] p-1.5 rounded-xl border border-white/5 gap-1 mt-1 justify-between shadow-inner relative isolate overflow-x-auto scrollbar-thin">
                       <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-fuchsia-500/5 to-emerald-500/0 pointer-events-none" />
                       {([
                         { id: 'lattice', label: 'Lattice', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/10 border-rose-500/20' },
                         { id: 'xray', label: 'X-Ray & XRD', icon: Zap, color: 'text-amber-400', activeBg: 'bg-amber-500/10 border-amber-500/20' },
-                        { id: 'xrf', label: 'XRF Fingerprint', icon: Fingerprint, color: 'text-cyan-400', activeBg: 'bg-cyan-500/10 border-cyan-500/20' },
-                        { id: 'attenuation', label: 'Attenuation & Alloy', icon: ShieldAlert, color: 'text-purple-400', activeBg: 'bg-purple-500/10 border-purple-500/20' },
+                        { id: 'xrf', label: 'XRF', icon: Fingerprint, color: 'text-cyan-400', activeBg: 'bg-cyan-500/10 border-cyan-500/20' },
+                        { id: 'orbitals', label: 'Orbitals', icon: Atom, color: 'text-teal-400', activeBg: 'bg-teal-500/10 border-teal-500/20' },
+                        { id: 'isotopes', label: 'Neutron', icon: Layers, color: 'text-blue-400', activeBg: 'bg-blue-500/10 border-blue-500/20' },
+                        { id: 'alloy', label: 'Alloy', icon: Boxes, color: 'text-violet-400', activeBg: 'bg-violet-500/10 border-violet-500/20' },
+                        { id: 'attenuation', label: 'Attenuation', icon: ShieldAlert, color: 'text-purple-400', activeBg: 'bg-purple-500/10 border-purple-500/20' },
                         { id: 'chemical', label: 'Chemical', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/10 border-indigo-500/20' },
                         { id: 'physical', label: 'Physical', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/10 border-emerald-500/20' },
-                        { id: 'stp', label: 'Stoich & STP', icon: FlaskConical, color: 'text-sky-400', activeBg: 'bg-sky-500/10 border-sky-500/20' }
+                        { id: 'stp', label: 'Stoich', icon: FlaskConical, color: 'text-sky-400', activeBg: 'bg-sky-500/10 border-sky-500/20' }
                       ] as const).map((tab) => {
                         const Icon = tab.icon;
                         const active = detailSubTab === tab.id;
@@ -3163,7 +3413,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                               setDetailSubTab(tab.id);
                               playSynthTone('tick');
                             }}
-                            className={`flex-[1] flex items-center justify-center gap-1.5 px-2 py-2 text-[10px] font-mono font-bold uppercase tracking-widest rounded-lg border-[0.5px] transition-all duration-300 cursor-pointer z-10 ${
+                            className={`flex-[1] min-w-[50px] flex items-center justify-center gap-1 px-1.5 py-2 text-[9.5px] font-mono font-bold uppercase tracking-wider rounded-lg border-[0.5px] transition-all duration-300 cursor-pointer z-10 whitespace-nowrap ${
                               active
                                 ? `${tab.color} ${tab.activeBg} shadow-[inset_0_1px_3px_rgba(255,255,255,0.05)]`
                                 : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/[0.02]'
@@ -3394,6 +3644,27 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           element={activeElementInfo}
                           onSelectElement={(atomicNum) => setSelectedElement(atomicNum)}
                           isFa={isFa}
+                        />
+                      </div>
+                    )}
+
+                    {detailSubTab === 'orbitals' && (
+                      <div className="space-y-4 animate-fadeIn">
+                        <QuantumOrbitalEnergyDiagram element={activeElementInfo} />
+                      </div>
+                    )}
+
+                    {detailSubTab === 'isotopes' && (
+                      <div className="space-y-4 animate-fadeIn">
+                        <IsotopeNeutronMetrologyDeck element={activeElementInfo} />
+                      </div>
+                    )}
+
+                    {detailSubTab === 'alloy' && (
+                      <div className="space-y-4 animate-fadeIn">
+                        <HumeRotheryAlloyWorkbench
+                          solventElement={activeElementInfo}
+                          onSelectSoluteElement={(z) => setSelectedElement(z)}
                         />
                       </div>
                     )}
@@ -3877,7 +4148,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         </div>
       </div>
     </>
-  ) : (
+  ) : activeTab === 'compare' ? (
     <div className="space-y-6">
       {/* Top Panel: Comparables Selector Box */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
@@ -4054,6 +4325,274 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               * Dynamic crystallographic properties extracted directly from chemical database records.
             </span>
           </div>
+        </div>
+      </div>
+    </div>
+  ) : activeTab === 'alloy' ? (
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="relative overflow-hidden rounded-[24px] border border-white/5 bg-[#0B0F19] p-6 shadow-2xl isolate">
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-900/20 via-indigo-900/10 to-transparent pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-violet-300">
+                <Boxes className="w-3.5 h-3.5" /> Metallurgy & Solid Solutions
+              </span>
+            </div>
+            <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+              Hume-Rothery Compatibility & Vegard's Law Laboratory
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed font-medium">
+              Investigate substitutional solid solution rules (atomic size difference &Delta;r &le; 15%, electronegativity disparity &Delta;&chi; &le; 0.4, crystal structure parity, and valency rules), Darken-Gurry solubility contours, and simulated powder XRD Bragg peak shifts.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                setAlloySolventZ(29);
+                setAlloySoluteZ(30);
+                setAlloySoluteFraction(0.30);
+                playSynthTone('tick');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-violet-500 text-xs text-slate-200 transition-colors cursor-pointer"
+            >
+              Brass (Cu-Zn)
+            </button>
+            <button
+              onClick={() => {
+                setAlloySolventZ(26);
+                setAlloySoluteZ(28);
+                setAlloySoluteFraction(0.36);
+                playSynthTone('tick');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-violet-500 text-xs text-slate-200 transition-colors cursor-pointer"
+            >
+              Invar (Fe-Ni)
+            </button>
+            <button
+              onClick={() => {
+                setAlloySolventZ(22);
+                setAlloySoluteZ(13);
+                setAlloySoluteFraction(0.10);
+                playSynthTone('tick');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-violet-500 text-xs text-slate-200 transition-colors cursor-pointer"
+            >
+              Ti-Al Aerospace
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Dual Component: HumeRotheryAlloyWorkbench + Vegard Diffraction Peak Shift */}
+      <div className="space-y-6">
+        {/* Hume-Rothery Rules & Darken-Gurry Map */}
+        <HumeRotheryAlloyWorkbench
+          solventElement={currentAlloySolvent}
+          onSelectSoluteElement={(z) => setAlloySoluteZ(z)}
+        />
+
+        {/* Vegard's Law & Powder Diffraction Peak Shift Studio */}
+        <div className="rounded-[24px] border border-white/5 bg-[#0B0F19] p-6 space-y-5 shadow-2xl relative isolate overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/40 text-violet-300 flex items-center justify-center">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  Vegard's Law Solid Solution Peak Shift Simulator
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 font-mono">
+                    Cu K&alpha; (&lambda; = 1.5406 &Aring;)
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Calculates continuous lattice expansion/contraction and Bragg diffraction peak offsets as solute atoms substitute into the parent lattice.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleLoadAlloyDiffractionPeaks}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-mono font-bold flex items-center gap-2 shadow-lg shadow-violet-500/20 transition-all cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              Send Alloy to XRD Spectrometer
+            </button>
+          </div>
+
+          {/* Solute Concentration Slider & KPI Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2 p-4 rounded-2xl bg-slate-900/60 border border-white/5 space-y-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-400 font-mono font-medium">Solute Concentration (x):</span>
+                <span className="text-violet-300 font-mono font-bold text-sm">
+                  {(alloySoluteFraction * 100).toFixed(1)} at.% {currentAlloySolute.symbol}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="0.50"
+                step="0.01"
+                value={alloySoluteFraction}
+                onChange={(e) => setAlloySoluteFraction(parseFloat(e.target.value))}
+                className="w-full accent-violet-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                <span>0 at.% (Pure {currentAlloySolvent.symbol})</span>
+                <span>25 at.%</span>
+                <span>50 at.% (Equiatomic)</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5 space-y-1">
+              <span className="text-[10px] font-mono text-slate-400 uppercase">Alloy Lattice a(x)</span>
+              <div className="text-lg font-black font-mono text-white flex items-baseline gap-1">
+                {alloyVegardCalculations.aAlloy.toFixed(4)}
+                <span className="text-xs text-slate-500">&Aring;</span>
+              </div>
+              <div className="text-[10px] font-mono text-slate-400">
+                Pure: {alloyVegardCalculations.aA.toFixed(4)} &Aring; ({alloyVegardCalculations.strainPct > 0 ? '+' : ''}{alloyVegardCalculations.strainPct}%)
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/5 space-y-1">
+              <span className="text-[10px] font-mono text-slate-400 uppercase">Unit Cell Dilation (&Delta;V/V)</span>
+              <div className={`text-lg font-black font-mono flex items-baseline gap-1 ${alloyVegardCalculations.volChangePct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {alloyVegardCalculations.volChangePct > 0 ? `+${alloyVegardCalculations.volChangePct}%` : `${alloyVegardCalculations.volChangePct}%`}
+              </div>
+              <div className="text-[10px] font-mono text-slate-400">
+                {alloyVegardCalculations.volChangePct >= 0 ? 'Lattice expands → peaks shift left' : 'Lattice contracts → peaks shift right'}
+              </div>
+            </div>
+          </div>
+
+          {/* Table of Powder XRD Peak Shifts */}
+          <div className="overflow-x-auto rounded-xl border border-white/5">
+            <table className="w-full text-left text-xs font-mono">
+              <thead className="bg-slate-900/80 text-slate-400 text-[10px] uppercase border-b border-white/5">
+                <tr>
+                  <th className="py-2.5 px-3">Miller (hkl)</th>
+                  <th className="py-2.5 px-3">Pure d-Spacing</th>
+                  <th className="py-2.5 px-3">Alloy d-Spacing</th>
+                  <th className="py-2.5 px-3">Pure 2&theta;</th>
+                  <th className="py-2.5 px-3">Alloy 2&theta;</th>
+                  <th className="py-2.5 px-3">Shift &Delta;2&theta;</th>
+                  <th className="py-2.5 px-3">Relative Intensity</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-slate-300">
+                {alloyVegardCalculations.peakComparisons.map((row) => (
+                  <tr key={row.hkl} className="hover:bg-white/[0.02]">
+                    <td className="py-2 px-3 font-bold text-white">{row.hkl}</td>
+                    <td className="py-2 px-3">{row.d0.toFixed(4)} &Aring;</td>
+                    <td className="py-2 px-3 text-violet-300 font-bold">{row.dAlloy.toFixed(4)} &Aring;</td>
+                    <td className="py-2 px-3">{row.twoTheta0.toFixed(2)}&deg;</td>
+                    <td className="py-2 px-3 text-white font-bold">{row.twoThetaAlloy.toFixed(2)}&deg;</td>
+                    <td className="py-2 px-3">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        row.shift < 0 ? 'bg-amber-950/60 text-amber-300 border border-amber-800' :
+                        row.shift > 0 ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-800' :
+                        'bg-slate-800 text-slate-400'
+                      }`}>
+                        {row.shift > 0 ? `+${row.shift.toFixed(2)}` : row.shift.toFixed(2)}&deg;
+                      </span>
+                    </td>
+                    <td className="py-2 px-3 text-slate-400">{row.relI}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="relative overflow-hidden rounded-[24px] border border-white/5 bg-[#0B0F19] p-6 shadow-2xl isolate">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-900/20 via-indigo-900/10 to-transparent pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div className="space-y-1.5 max-w-2xl">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-cyan-300">
+                <Atom className="w-3.5 h-3.5" /> Nuclear Crystallography
+              </span>
+            </div>
+            <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+              Neutron Scattering & Nuclear Metrology Deck
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed font-medium">
+              Explore bound coherent scattering lengths b_coh, incoherent cross-sections &sigma;_inc, absorption cross-sections &sigma;_a, and nuclear vs electronic scattering contrast across the periodic table.
+            </p>
+          </div>
+
+          {/* Quick Benchmark Elements */}
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { z: 1, label: '¹H vs ²D' },
+              { z: 3, label: '⁷Li (Cathode)' },
+              { z: 22, label: '²²Ti (Null Alloy)' },
+              { z: 25, label: '⁵⁵Mn (b < 0)' },
+              { z: 26, label: '²⁶Fe (Adjacent Z)' },
+              { z: 48, label: '⁴⁸Cd (Poison)' },
+              { z: 64, label: '⁶⁴Gd (Absorber)' }
+            ].map((p) => (
+              <button
+                key={p.label}
+                onClick={() => {
+                  setNeutronSelectedZ(p.z);
+                  playSynthTone('tick');
+                }}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer ${
+                  neutronSelectedZ === p.z
+                    ? 'bg-cyan-600 text-white border-cyan-400 shadow-md shadow-cyan-500/20'
+                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-cyan-500/50'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Embedded Deep Metrology Deck */}
+      <IsotopeNeutronMetrologyDeck element={currentNeutronElement} />
+
+      {/* 5 Crystallographic Superpowers of Thermal Neutrons */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-4 rounded-2xl bg-[#0B0F19] border border-white/5 space-y-2">
+          <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
+            <Sparkles className="w-4 h-4" />
+            1. Light Atom Sensitivity in Heavy Matrices
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            While X-ray form factors vanish for light atoms (f &prop; Z), neutron scattering lengths are nuclear-dependent and comparable across the periodic table (e.g. b_O = +5.80 fm, b_Li = -1.90 fm vs b_U = +8.42 fm). Crucial for battery cathodes, perovskites, and metal hydrides.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[#0B0F19] border border-white/5 space-y-2">
+          <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+            <Layers className="w-4 h-4" />
+            2. Adjacent Transition Metal Discrimination
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Neighboring 3d transition metals (Fe Z=26, Co Z=27, Ni Z=28) are virtually identical in X-ray powder diffraction. Neutrons provide dramatic contrast: b_Fe = +9.45 fm, b_Co = +2.49 fm, b_Ni = +10.3 fm (&gt; 400% intensity disparity!).
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[#0B0F19] border border-white/5 space-y-2">
+          <div className="flex items-center gap-2 text-violet-400 font-bold text-xs">
+            <ShieldCheck className="w-4 h-4" />
+            3. Deep Non-Destructive Bulk Penetration
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Unlike lab X-rays that penetrate only 5–30 &mu;m, thermal neutrons traverse centimeters of dense structural alloys (steels, superalloys, aluminum). Enables full non-destructive residual strain and texture mapping inside real engineering components and battery pouches.
+          </p>
         </div>
       </div>
     </div>
