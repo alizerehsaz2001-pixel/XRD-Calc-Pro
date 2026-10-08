@@ -43,6 +43,9 @@ import {
   Settings2,
   Atom,
   TrendingUp,
+  Focus,
+  Gauge,
+  ZoomIn,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { DLPhaseCandidate } from "../../types";
@@ -60,6 +63,9 @@ export type IntensityScale = "linear" | "sqrt" | "log";
 export type ResidualViewMode = "overlay" | "split" | "hidden";
 export type ProfileShapeModel = "pseudoVoigt" | "gaussian" | "lorentzian";
 export type ThemeMode = "darkLab" | "publication";
+export type CurvePrecisionMode = "benchmark" | "high" | "ultra" | "synchrotron";
+export type CurveInterpolationType = "monotone" | "linear" | "natural";
+export type CurveViewHeight = "standard" | "big" | "cinema";
 
 export interface WavelengthPreset {
   id: string;
@@ -133,6 +139,16 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   const [subtractBackground, setSubtractBackground] = useState<boolean>(false);
   const [showProfileConfigPanel, setShowProfileConfigPanel] = useState<boolean>(false);
   const [zoomRangePreset, setZoomRangePreset] = useState<"all" | "low" | "mid" | "high">("all");
+
+  // Ultra-High Precision Curve Engine & Display Sizing State
+  const [curvePrecisionMode, setCurvePrecisionMode] = useState<CurvePrecisionMode>("ultra");
+  const [curveInterpolation, setCurveInterpolation] = useState<CurveInterpolationType>("monotone");
+  const [curveViewHeight, setCurveViewHeight] = useState<CurveViewHeight>("big");
+  const [enableSuperSampling, setEnableSuperSampling] = useState<boolean>(true);
+  const [showKaDoubletSplitCurves, setShowKaDoubletSplitCurves] = useState<boolean>(false);
+  const [showPrecisionPanel, setShowPrecisionPanel] = useState<boolean>(false);
+  const [inspectedPeak, setInspectedPeak] = useState<DetectedPeak | null>(null);
+  const [showPeakApexModal, setShowPeakApexModal] = useState<boolean>(false);
   
   // Layer Toggles
   const [showExpPattern, setShowExpPattern] = useState<boolean>(true);
@@ -237,31 +253,31 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     [activeWavelength]
   );
 
-  // Map 2θ to active coordinate space value
+  // Map 2θ to active coordinate space value with full scientific precision (4-5 decimal places)
   const mapCoord = useCallback(
     (twoThetaDeg: number): number => {
-      if (coordSpace === "twoTheta") return Number(twoThetaDeg.toFixed(2));
+      if (coordSpace === "twoTheta") return Number(twoThetaDeg.toFixed(4));
       if (coordSpace === "dSpacing") {
         const d = calcD(twoThetaDeg);
-        return Number(d.toFixed(4));
+        return Number(d.toFixed(5));
       }
       if (coordSpace === "qVector") {
         const q = calcQ(twoThetaDeg);
-        return Number(q.toFixed(3));
+        return Number(q.toFixed(4));
       }
       return twoThetaDeg;
     },
     [coordSpace, calcD, calcQ]
   );
 
-  // Transform intensity according to selected scale
+  // Transform intensity according to selected scale with sub-count precision
   const transformIntensity = useCallback(
     (rawVal: number | null | undefined): number | null => {
       if (rawVal === null || rawVal === undefined) return null;
       const v = Math.max(0, rawVal);
-      if (intensityScale === "linear") return Number(v.toFixed(1));
-      if (intensityScale === "sqrt") return Number(Math.sqrt(v).toFixed(2));
-      if (intensityScale === "log") return Number(Math.log10(v + 1).toFixed(3));
+      if (intensityScale === "linear") return Number(v.toFixed(2));
+      if (intensityScale === "sqrt") return Number(Math.sqrt(v).toFixed(3));
+      if (intensityScale === "log") return Number(Math.log10(v + 1).toFixed(4));
       return v;
     },
     [intensityScale]
@@ -307,8 +323,8 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     return getCalibratedRefPeaks(selectedCandidate);
   }, [getCalibratedRefPeaks, selectedCandidate]);
 
-  // Physical Pseudo-Voigt peak calculation with optional Cu-Ka1/Ka2 doublet splitting
-  const calcPeakProfile = useCallback(
+  // Physical Pseudo-Voigt peak calculation with optional Cu-Ka1/Ka2 doublet splitting returning sub-components
+  const calcPeakProfileWithComponents = useCallback(
     (
       t: number,
       centerT: number,
@@ -318,8 +334,8 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
       model: ProfileShapeModel,
       doublet: boolean,
       lambda: number
-    ): number => {
-      const sigmaVal = Math.max(0.01, fwhm / 2.35482);
+    ): { total: number; ka1: number; ka2: number } => {
+      const sigmaVal = Math.max(0.005, fwhm / 2.35482);
       const sigmaSq2 = 2 * sigmaVal * sigmaVal;
 
       const evalSingle = (delta: number): number => {
@@ -332,28 +348,83 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
       const diff1 = t - centerT;
       const shape1 = evalSingle(diff1);
+      const val1 = Math.abs(diff1) < 5.5 * fwhm ? peakI * shape1 : 0;
 
       // Check if Cu-Ka doublet splitting applies
       const isCu = Math.abs(lambda - 1.5406) < 0.05 || Math.abs(lambda - 1.54184) < 0.05;
       if (!doublet || !isCu || centerT < 12) {
-        return Math.abs(diff1) < 5 * fwhm ? peakI * shape1 : 0;
+        return { total: val1, ka1: val1, ka2: 0 };
       }
 
       // Cu-Ka2 splitting: lambda2 = 1.54439 A, lambda1 = 1.54060 A, intensity ratio = 0.5
       const theta1Rad = ((centerT / 2) * Math.PI) / 180;
       const sinTheta2 = (1.54439 / 1.5406) * Math.sin(theta1Rad);
       if (sinTheta2 >= 1.0) {
-        return Math.abs(diff1) < 5 * fwhm ? peakI * shape1 : 0;
+        return { total: val1, ka1: val1, ka2: 0 };
       }
 
       const centerT2 = 2 * ((Math.asin(sinTheta2) * 180) / Math.PI);
       const diff2 = t - centerT2;
       const shape2 = evalSingle(diff2);
+      const val2 = Math.abs(diff2) < 5.5 * fwhm ? peakI * 0.5 * shape2 : 0;
 
-      let total = 0;
-      if (Math.abs(diff1) < 5 * fwhm) total += peakI * shape1;
-      if (Math.abs(diff2) < 5 * fwhm) total += peakI * 0.5 * shape2;
-      return total / 1.5;
+      const total = (val1 + val2) / 1.5;
+      return { total, ka1: val1 / 1.5, ka2: val2 / 1.5 };
+    },
+    []
+  );
+
+  const calcPeakProfile = useCallback(
+    (
+      t: number,
+      centerT: number,
+      peakI: number,
+      fwhm: number,
+      eta: number,
+      model: ProfileShapeModel,
+      doublet: boolean,
+      lambda: number
+    ): number => {
+      return calcPeakProfileWithComponents(t, centerT, peakI, fwhm, eta, model, doublet, lambda).total;
+    },
+    [calcPeakProfileWithComponents]
+  );
+
+  // Monotone Cubic Hermite Interpolation for experimental diffractogram data
+  const interpolateExperimental = useCallback(
+    (pts: Array<{ twoTheta: number; intensity: number }>, targetT: number): number => {
+      if (!pts.length) return 0;
+      if (targetT <= pts[0].twoTheta) return pts[0].intensity;
+      if (targetT >= pts[pts.length - 1].twoTheta) return pts[pts.length - 1].intensity;
+
+      let low = 0;
+      let high = pts.length - 1;
+      while (low <= high) {
+        const mid = (low + high) >> 1;
+        if (pts[mid].twoTheta < targetT) low = mid + 1;
+        else high = mid - 1;
+      }
+      const i = Math.max(0, Math.min(pts.length - 2, high));
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(pts.length - 1, i + 2)];
+
+      const h = p2.twoTheta - p1.twoTheta;
+      if (h <= 1e-7) return p1.intensity;
+
+      const tNorm = (targetT - p1.twoTheta) / h;
+      const m1 = (p2.intensity - p0.intensity) / Math.max(1e-7, p2.twoTheta - p0.twoTheta);
+      const m2 = (p3.intensity - p1.intensity) / Math.max(1e-7, p3.twoTheta - p1.twoTheta);
+
+      const t2 = tNorm * tNorm;
+      const t3 = t2 * tNorm;
+      const h00 = 2 * t3 - 3 * t2 + 1;
+      const h10 = t3 - 2 * t2 + tNorm;
+      const h01 = -2 * t3 + 3 * t2;
+      const h11 = t3 - t2;
+
+      return Math.max(0, h00 * p1.intensity + h10 * h * m1 + h01 * p2.intensity + h11 * h * m2);
     },
     []
   );
@@ -399,16 +470,29 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
     const sortedPoints = [...parsedPoints].sort((a, b) => a.twoTheta - b.twoTheta);
 
+    const precisionStep =
+      curvePrecisionMode === "synchrotron"
+        ? 0.002
+        : curvePrecisionMode === "ultra"
+        ? 0.005
+        : curvePrecisionMode === "high"
+        ? 0.01
+        : 0.02;
+
     const evalTheoreticalComponents = (t: number) => {
       let totalRefI = 0;
+      let totalKa1I = 0;
+      let totalKa2I = 0;
       const phaseData: Record<string, number> = {};
 
       activeCandidates.forEach((cand, cIdx) => {
         const weight = phaseWeights[cand.phase_name] ?? 1.0;
         const peaks = getCalibratedRefPeaks(cand);
         let candI = 0;
+        let candKa1 = 0;
+        let candKa2 = 0;
         for (const p of peaks) {
-          candI += calcPeakProfile(
+          const comp = calcPeakProfileWithComponents(
             t,
             p.calibratedRefT,
             p.refI * weight,
@@ -418,34 +502,87 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             enableKaDoublet,
             activeWavelength
           );
+          candI += comp.total;
+          candKa1 += comp.ka1;
+          candKa2 += comp.ka2;
         }
         phaseData[`phase_${cIdx}`] = transformIntensity(candI) as number;
-        phaseData[`rawPhase_${cIdx}`] = Number(candI.toFixed(1));
+        phaseData[`rawPhase_${cIdx}`] = Number(candI.toFixed(2));
         totalRefI += candI;
+        totalKa1I += candKa1;
+        totalKa2I += candKa2;
       });
 
-      return { totalRefI, phaseData };
+      return { totalRefI, totalKa1I, totalKa2I, phaseData };
     };
 
     if (!isDiscrete) {
+      if (enableSuperSampling && sortedPoints.length >= 2) {
+        // High-Precision Continuous Hermite Super-Sampling
+        const minT = sortedPoints[0].twoTheta;
+        const maxT = sortedPoints[sortedPoints.length - 1].twoTheta;
+        const span = maxT - minT;
+        const targetSteps = Math.min(
+          curvePrecisionMode === "synchrotron" ? 18000 : 12000,
+          Math.max(800, Math.round(span / precisionStep))
+        );
+        const step = span / targetSteps;
+        const data = [];
+
+        for (let t = minT; t <= maxT; t += step) {
+          const rawObs = interpolateExperimental(sortedPoints, t);
+          const bg = calcBackground(t);
+          const baseI = subtractBackground ? Math.max(0, rawObs - bg) : rawObs;
+          const { totalRefI, totalKa1I, totalKa2I, phaseData } = evalTheoreticalComponents(t);
+          const residual = selectedCandidate ? baseI - totalRefI : null;
+
+          data.push({
+            twoTheta: Number(t.toFixed(4)),
+            coordX: mapCoord(t),
+            rawIntensity: Number(baseI.toFixed(2)),
+            intensity: transformIntensity(baseI),
+            rawRefIntensity: Number(totalRefI.toFixed(2)),
+            refIntensity: transformIntensity(totalRefI),
+            rawRefKa1: Number(totalKa1I.toFixed(2)),
+            refIntensityKa1: transformIntensity(totalKa1I),
+            rawRefKa2: Number(totalKa2I.toFixed(2)),
+            refIntensityKa2: transformIntensity(totalKa2I),
+            rawResidual: residual !== null ? Number(residual.toFixed(2)) : null,
+            residual: residual !== null ? transformIntensity(Math.abs(residual)) : null,
+            signedResidual: residual !== null ? Number(residual.toFixed(2)) : null,
+            baseline: transformIntensity(bg),
+            rawBaseline: Number(bg.toFixed(2)),
+            dSpacing: calcD(t),
+            qVector: calcQ(t),
+            ...phaseData,
+          });
+        }
+        return data;
+      }
+
+      // Raw Point Evaluation without super-sampling
       return sortedPoints.map((p) => {
         const bg = calcBackground(p.twoTheta);
         const baseI = subtractBackground ? Math.max(0, p.intensity - bg) : p.intensity;
-        const { totalRefI, phaseData } = evalTheoreticalComponents(p.twoTheta);
+        const { totalRefI, totalKa1I, totalKa2I, phaseData } = evalTheoreticalComponents(p.twoTheta);
         const residual = selectedCandidate ? baseI - totalRefI : null;
 
         return {
-          twoTheta: Number(p.twoTheta.toFixed(2)),
+          twoTheta: Number(p.twoTheta.toFixed(4)),
           coordX: mapCoord(p.twoTheta),
-          rawIntensity: Number(baseI.toFixed(1)),
+          rawIntensity: Number(baseI.toFixed(2)),
           intensity: transformIntensity(baseI),
-          rawRefIntensity: Number(totalRefI.toFixed(1)),
+          rawRefIntensity: Number(totalRefI.toFixed(2)),
           refIntensity: transformIntensity(totalRefI),
-          rawResidual: residual !== null ? Number(residual.toFixed(1)) : null,
+          rawRefKa1: Number(totalKa1I.toFixed(2)),
+          refIntensityKa1: transformIntensity(totalKa1I),
+          rawRefKa2: Number(totalKa2I.toFixed(2)),
+          refIntensityKa2: transformIntensity(totalKa2I),
+          rawResidual: residual !== null ? Number(residual.toFixed(2)) : null,
           residual: residual !== null ? transformIntensity(Math.abs(residual)) : null,
-          signedResidual: residual !== null ? Number(residual.toFixed(1)) : null,
+          signedResidual: residual !== null ? Number(residual.toFixed(2)) : null,
           baseline: transformIntensity(bg),
-          rawBaseline: Number(bg.toFixed(1)),
+          rawBaseline: Number(bg.toFixed(2)),
           dSpacing: calcD(p.twoTheta),
           qVector: calcQ(p.twoTheta),
           ...phaseData,
@@ -453,12 +590,15 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
       });
     }
 
-    // Discrete peak stick data: synthesize high-resolution continuous scientific diffractogram
+    // Discrete peak stick data: synthesize ultra-high precision continuous scientific diffractogram
     const minT = Math.max(5, Math.floor(sortedPoints[0].twoTheta - 4));
     const maxT = Math.min(120, Math.ceil(sortedPoints[sortedPoints.length - 1].twoTheta + 4));
     const span = maxT - minT;
-    const steps = Math.min(1200, Math.max(400, Math.round(span / 0.04)));
-    const step = span / steps;
+    const targetSteps = Math.min(
+      curvePrecisionMode === "synchrotron" ? 22000 : 14000,
+      Math.max(1200, Math.round(span / precisionStep))
+    );
+    const step = span / targetSteps;
     const data = [];
 
     for (let t = minT; t <= maxT; t += step) {
@@ -478,21 +618,25 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
       const bg = calcBackground(t);
       const totalObs = subtractBackground ? expIntensity : expIntensity + (showBackgroundBaseline ? bg : 0);
-      const { totalRefI, phaseData } = evalTheoreticalComponents(t);
+      const { totalRefI, totalKa1I, totalKa2I, phaseData } = evalTheoreticalComponents(t);
       const residual = selectedCandidate ? totalObs - totalRefI : null;
 
       data.push({
-        twoTheta: Number(t.toFixed(2)),
+        twoTheta: Number(t.toFixed(4)),
         coordX: mapCoord(t),
-        rawIntensity: Number(totalObs.toFixed(1)),
+        rawIntensity: Number(totalObs.toFixed(2)),
         intensity: transformIntensity(totalObs),
-        rawRefIntensity: Number(totalRefI.toFixed(1)),
+        rawRefIntensity: Number(totalRefI.toFixed(2)),
         refIntensity: transformIntensity(totalRefI),
-        rawResidual: residual !== null ? Number(residual.toFixed(1)) : null,
+        rawRefKa1: Number(totalKa1I.toFixed(2)),
+        refIntensityKa1: transformIntensity(totalKa1I),
+        rawRefKa2: Number(totalKa2I.toFixed(2)),
+        refIntensityKa2: transformIntensity(totalKa2I),
+        rawResidual: residual !== null ? Number(residual.toFixed(2)) : null,
         residual: residual !== null ? transformIntensity(Math.abs(residual)) : null,
-        signedResidual: residual !== null ? Number(residual.toFixed(1)) : null,
+        signedResidual: residual !== null ? Number(residual.toFixed(2)) : null,
         baseline: transformIntensity(bg),
-        rawBaseline: Number(bg.toFixed(1)),
+        rawBaseline: Number(bg.toFixed(2)),
         dSpacing: calcD(t),
         qVector: calcQ(t),
         ...phaseData,
@@ -503,6 +647,8 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   }, [
     parsedPoints,
     isDiscrete,
+    enableSuperSampling,
+    curvePrecisionMode,
     activeCandidates,
     phaseWeights,
     selectedCandidate,
@@ -515,6 +661,8 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     subtractBackground,
     showBackgroundBaseline,
     calcPeakProfile,
+    calcPeakProfileWithComponents,
+    interpolateExperimental,
     calcBackground,
     mapCoord,
     transformIntensity,
@@ -1017,9 +1165,10 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     }
 
     const refPeak = staggeredRefPeaks.find((r) => Math.abs(r.coordX - coordVal) < 0.1);
+    const nearbyDetectedPeak = detectedPeaks.find((p) => Math.abs(mapCoord(p.twoTheta) - coordVal) < 0.12);
 
     return (
-      <div className="bg-[#070D18]/95 backdrop-blur-md text-slate-200 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.85)] text-xs border border-slate-700/80 min-w-[260px] z-50 pointer-events-none">
+      <div className="bg-[#070D18]/95 backdrop-blur-md text-slate-200 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.85)] text-xs border border-slate-700/80 min-w-[280px] z-50 pointer-events-none">
         <div className="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-cyan-400" />
@@ -1030,10 +1179,10 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
           <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
             <span className="font-mono font-black text-cyan-200 text-xs">
               {coordSpace === "twoTheta"
-                ? `${twoTheta.toFixed(2)}°`
+                ? `${twoTheta.toFixed(4)}°`
                 : coordSpace === "dSpacing"
-                ? `${dVal.toFixed(4)} Å`
-                : `${qVal.toFixed(3)} Å⁻¹`}
+                ? `${dVal.toFixed(5)} Å`
+                : `${qVal.toFixed(4)} Å⁻¹`}
             </span>
           </div>
         </div>
@@ -1041,29 +1190,38 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
         <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 font-mono">
           <div className="flex flex-col">
             <span className="text-[9px] text-slate-400 uppercase tracking-widest">2θ Angle</span>
-            <span className="text-xs font-bold text-cyan-300">{twoTheta.toFixed(2)}°</span>
+            <span className="text-xs font-bold text-cyan-300">{twoTheta.toFixed(4)}°</span>
           </div>
           <div className="flex flex-col">
             <span className="text-[9px] text-slate-400 uppercase tracking-widest">d-spacing</span>
-            <span className="text-xs font-bold text-emerald-400">{dVal > 0 ? `${dVal.toFixed(4)} Å` : "—"}</span>
+            <span className="text-xs font-bold text-emerald-400">{dVal > 0 ? `${dVal.toFixed(5)} Å` : "—"}</span>
           </div>
           <div className="flex flex-col">
             <span className="text-[9px] text-slate-400 uppercase tracking-widest">Q Vector</span>
-            <span className="text-xs font-bold text-sky-400">{qVal > 0 ? `${qVal.toFixed(3)} Å⁻¹` : "—"}</span>
+            <span className="text-xs font-bold text-sky-400">{qVal > 0 ? `${qVal.toFixed(4)} Å⁻¹` : "—"}</span>
           </div>
           <div className="flex flex-col">
             <span className="text-[9px] text-slate-400 uppercase tracking-widest">Wavelength</span>
-            <span className="text-xs font-bold text-slate-300">{activeWavelength.toFixed(4)} Å</span>
+            <span className="text-xs font-bold text-slate-300">{activeWavelength.toFixed(5)} Å</span>
           </div>
         </div>
 
         {refPeak && (
-          <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-2.5 py-1.5 rounded-lg mb-3">
+          <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-2.5 py-1.5 rounded-lg mb-2">
             <span className="text-[10px] text-rose-300 font-mono font-bold uppercase tracking-wider">
-              Bragg Reflection (hkl)
+              Reflection (hkl)
             </span>
             <span className="text-xs font-mono font-black text-rose-200 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/40">
-              {refPeak.hkl ? `(${refPeak.hkl})` : "Indexed"}
+              {refPeak.hkl ? `(${refPeak.hkl})` : "Indexed"} {refPeak.calibratedRefT ? `• ${refPeak.calibratedRefT.toFixed(4)}°` : ""}
+            </span>
+          </div>
+        )}
+
+        {nearbyDetectedPeak && (
+          <div className="flex items-center justify-between bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg mb-2 font-mono text-[10px]">
+            <span className="text-cyan-300 font-bold uppercase tracking-wider">Peak Microstructure</span>
+            <span className="text-cyan-200 font-semibold">
+              FWHM: {nearbyDetectedPeak.fwhmObs.toFixed(3)}° • D: {nearbyDetectedPeak.crystalliteSizeNm} nm
             </span>
           </div>
         )}
@@ -1079,10 +1237,10 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: p.color, boxShadow: `0 0 6px ${p.color}` }}
                 />
-                <span className="text-slate-300 font-mono text-[10px] truncate max-w-[140px]">{p.name}</span>
+                <span className="text-slate-300 font-mono text-[10px] truncate max-w-[150px]">{p.name}</span>
               </div>
               <span className="font-mono font-black text-xs" style={{ color: p.color }}>
-                {typeof p.value === "number" ? p.value.toFixed(1) : p.value}
+                {typeof p.value === "number" ? p.value.toFixed(2) : p.value}
                 <span className="text-[9px] font-normal text-slate-500 ml-1">
                   {intensityScale === "linear" ? "cps" : intensityScale === "sqrt" ? "√cps" : "log(cps)"}
                 </span>
@@ -1541,7 +1699,6 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
       </div>
 
       {/* MAIN CHART INSTRUMENT CONTAINER */}
-      {/* MAIN CHART INSTRUMENT CONTAINER */}
       <div
         ref={chartWrapperRef}
         className={`w-full relative z-10 rounded-2xl p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all ${
@@ -1549,7 +1706,13 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             ? "bg-[#FFFFFF] text-slate-900 border-2 border-slate-300 shadow-slate-200/80"
             : "bg-[#060912] text-slate-100 border border-slate-700/80"
         } ${
-          isFullscreen ? "h-[75vh] min-h-[500px]" : "h-[560px] sm:h-[620px] lg:h-[700px]"
+          isFullscreen
+            ? "h-[85vh] min-h-[600px]"
+            : curveViewHeight === "cinema"
+            ? "h-[940px] sm:h-[980px] lg:h-[1020px]"
+            : curveViewHeight === "big"
+            ? "h-[740px] sm:h-[780px] lg:h-[820px]"
+            : "h-[580px] sm:h-[620px] lg:h-[660px]"
         }`}
       >
         {/* Subtle Reticle Grid Overlay */}
@@ -1804,6 +1967,203 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                 </div>
               )}
             </div>
+
+            {/* Precision Engine Config Popover & Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowPrecisionPanel(!showPrecisionPanel)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[9px] font-bold border transition-all ${
+                  showPrecisionPanel
+                    ? "bg-purple-500/25 text-purple-300 border-purple-500/50 shadow-sm"
+                    : themeMode === "publication"
+                    ? "bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100"
+                    : "bg-[#110C24] text-purple-300 border-purple-800/80 hover:bg-purple-950"
+                }`}
+                title="Ultra-Precision Diffractogram Mesh, Spline Interpolation & Doublet Physics"
+              >
+                <Gauge className="w-3 h-3 text-purple-400" />
+                <span className="capitalize">
+                  Precision: {curvePrecisionMode} ({curvePrecisionMode === "synchrotron" ? "0.002°" : curvePrecisionMode === "ultra" ? "0.005°" : curvePrecisionMode === "high" ? "0.01°" : "0.02°"})
+                </span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${showPrecisionPanel ? "rotate-180" : ""}`} />
+              </button>
+
+              {showPrecisionPanel && (
+                <div className={`absolute left-0 top-full mt-2 z-50 p-3.5 rounded-2xl border shadow-2xl backdrop-blur-md w-80 text-xs font-mono ${
+                  themeMode === "publication"
+                    ? "bg-white/98 border-slate-300 text-slate-800 shadow-slate-300/60"
+                    : "bg-[#0A0718]/98 border-purple-800/60 text-slate-200 shadow-black/80"
+                }`}>
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-purple-500/30 font-bold text-[10px] uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5 text-purple-300">
+                      <Gauge className="w-3.5 h-3.5 text-purple-400" />
+                      Ultra-Precision Diffractogram Engine
+                    </span>
+                    <button onClick={() => setShowPrecisionPanel(false)} className="text-slate-400 hover:text-slate-200">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-[10px]">
+                    <div>
+                      <span className="text-slate-400 block mb-1">Sampling Mesh Density</span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {[
+                          { id: "synchrotron", label: "Synchrotron (0.002°)", desc: "~18,000 pts" },
+                          { id: "ultra", label: "Ultra (0.005°)", desc: "~12,000 pts" },
+                          { id: "high", label: "High (0.010°)", desc: "~6,000 pts" },
+                          { id: "benchmark", label: "Standard (0.020°)", desc: "~3,000 pts" },
+                        ].map((lvl) => (
+                          <button
+                            key={lvl.id}
+                            onClick={() => setCurvePrecisionMode(lvl.id as CurvePrecisionMode)}
+                            className={`p-1.5 rounded-lg text-left border transition-all ${
+                              curvePrecisionMode === lvl.id
+                                ? "bg-purple-500/25 text-purple-200 border-purple-500 shadow-sm"
+                                : themeMode === "publication"
+                                ? "bg-slate-50 text-slate-600 border-slate-200"
+                                : "bg-black/30 text-slate-400 border-slate-800"
+                            }`}
+                          >
+                            <div className="font-bold text-[9px]">{lvl.label}</div>
+                            <div className="text-[8px] opacity-70">{lvl.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-slate-400 block mb-1">Curve Interpolation Model</span>
+                      <div className="grid grid-cols-3 gap-1">
+                        {[
+                          { id: "monotone", label: "Monotone", desc: "Anti-overshoot" },
+                          { id: "linear", label: "True Linear", desc: "Raw Physical" },
+                          { id: "natural", label: "Natural", desc: "Cubic Spline" },
+                        ].map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => setCurveInterpolation(m.id as CurveInterpolationType)}
+                            className={`p-1 rounded-lg text-center font-bold text-[9px] border transition-all ${
+                              curveInterpolation === m.id
+                                ? "bg-purple-500/25 text-purple-200 border-purple-500 shadow-sm"
+                                : themeMode === "publication"
+                                ? "bg-slate-50 text-slate-600 border-slate-200"
+                                : "bg-black/30 text-slate-400 border-slate-800"
+                            }`}
+                          >
+                            <div>{m.label}</div>
+                            <div className="text-[7px] font-normal opacity-70">{m.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-purple-500/20">
+                      <div>
+                        <span className="text-slate-300 block font-semibold">Continuous Super-Sampling</span>
+                        <span className="text-[8px] text-slate-500">Hermite 4× anti-aliased reconstruction</span>
+                      </div>
+                      <button
+                        onClick={() => setEnableSuperSampling(!enableSuperSampling)}
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold border transition-all ${
+                          enableSuperSampling
+                            ? "bg-purple-500/25 text-purple-300 border-purple-500/50"
+                            : "bg-slate-800 text-slate-400 border-slate-700"
+                        }`}
+                      >
+                        {enableSuperSampling ? "Enabled" : "Raw Grid"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-purple-500/20">
+                      <div>
+                        <span className="text-slate-300 block font-semibold">Cu-Kα₁ & Kα₂ Sub-Curves</span>
+                        <span className="text-[8px] text-slate-500">Deconstruct individual doublet peaks</span>
+                      </div>
+                      <button
+                        onClick={() => setShowKaDoubletSplitCurves(!showKaDoubletSplitCurves)}
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold border transition-all ${
+                          showKaDoubletSplitCurves
+                            ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50"
+                            : "bg-slate-800 text-slate-400 border-slate-700"
+                        }`}
+                      >
+                        {showKaDoubletSplitCurves ? "Visible" : "Combined"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Viewport Scale Selector (Biggest Precision) */}
+            <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
+              themeMode === "publication"
+                ? "bg-white border-slate-300"
+                : "bg-[#09101F]/95 border-slate-700/80"
+            }`}>
+              <span className="px-1.5 text-slate-400 uppercase text-[8px] font-bold">Scale:</span>
+              <button
+                onClick={() => setCurveViewHeight("standard")}
+                className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                  curveViewHeight === "standard" && !isFullscreen
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Standard Viewport Height (640px)"
+              >
+                Standard
+              </button>
+              <button
+                onClick={() => setCurveViewHeight("big")}
+                className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                  curveViewHeight === "big" && !isFullscreen
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Big Expanded Viewport (820px) - Highest Detail"
+              >
+                Big (820px)
+              </button>
+              <button
+                onClick={() => setCurveViewHeight("cinema")}
+                className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                  curveViewHeight === "cinema" && !isFullscreen
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+                title="Ultra Cinema Studio Viewport (1020px) - Maximum Viewport"
+              >
+                Cinema (1020px)
+              </button>
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className={`p-1 rounded-lg text-slate-400 hover:text-cyan-300 transition-all ${isFullscreen ? "text-cyan-300 bg-cyan-500/20" : ""}`}
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            {/* Peak Crest Apex Lens Button */}
+            {detectedPeaks.length > 0 && (
+              <button
+                onClick={() => {
+                  const target = detectedPeaks[0];
+                  setInspectedPeak(target);
+                  setShowPeakApexModal(true);
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[9px] font-bold border transition-all ${
+                  showPeakApexModal
+                    ? "bg-cyan-500/25 text-cyan-300 border-cyan-500 shadow-sm"
+                    : "bg-[#0A1020] text-cyan-300 border-cyan-800/80 hover:bg-cyan-950"
+                }`}
+                title="Inspect Peak Crest & Apex with 10× Magnification"
+              >
+                <Focus className="w-3 h-3 text-cyan-400 animate-pulse" />
+                <span>Peak Apex Lens</span>
+              </button>
+            )}
 
             {/* Quick Zoom Presets Bar & Reset View */}
             <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
@@ -2104,6 +2464,24 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   <span className="text-slate-400 text-[8px] truncate max-w-[90px]">{selectedCandidate.phase_name.split(' ')[0]}</span>
                 </div>
               )}
+              {selectedCandidate && showKaDoubletSplitCurves && enableKaDoublet && (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3.5 h-0.5 border-t border-dashed border-emerald-400" />
+                      <span className="font-bold text-emerald-400">Kα₁</span>
+                    </div>
+                    <span className="text-slate-400 text-[8px]">1.5406 Å</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3.5 h-0.5 border-t border-dashed border-purple-400" />
+                      <span className="font-bold text-purple-300">Kα₂</span>
+                    </div>
+                    <span className="text-slate-400 text-[8px]">1.5444 Å</span>
+                  </div>
+                </>
+              )}
               {showBackgroundBaseline && (
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
@@ -2253,10 +2631,10 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                 />
               )}
 
-              {/* Experimental Pattern Area (Monotone Smoothing - No Spline Overshoot) */}
+              {/* Experimental Pattern Area (Highest Precision Vector Curve) */}
               {showExpPattern && (
                 <Area
-                  type="monotone"
+                  type={curveInterpolation}
                   dataKey="intensity"
                   stroke={themeMode === "publication" ? "#0f172a" : "#06b6d4"}
                   fill="url(#specPatternGrad)"
@@ -2276,7 +2654,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               {/* Background Baseline Curve */}
               {showBackgroundBaseline && (
                 <Line
-                  type="monotone"
+                  type={curveInterpolation}
                   dataKey="baseline"
                   stroke={themeMode === "publication" ? "#64748b" : "#94a3b8"}
                   strokeWidth={1.5}
@@ -2310,7 +2688,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               {/* Theoretical Reference Simulation Profile (Calculated Y_calc) */}
               {selectedCandidate && showCalcProfile && (
                 <Area
-                  type="monotone"
+                  type={curveInterpolation}
                   dataKey="refIntensity"
                   stroke={themeMode === "publication" ? "#dc2626" : "#f43f5e"}
                   fill="url(#specRefGrad)"
@@ -2320,12 +2698,36 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                 />
               )}
 
+              {/* High-Precision Cu-Kα1 / Cu-Kα2 Doublet Split Components */}
+              {selectedCandidate && showKaDoubletSplitCurves && enableKaDoublet && (
+                <>
+                  <Line
+                    type={curveInterpolation}
+                    dataKey="refIntensityKa1"
+                    stroke="#10b981"
+                    strokeWidth={1.6}
+                    strokeDasharray="4 2"
+                    dot={false}
+                    name="Cu-Kα₁ Deconvolution (1.5406 Å)"
+                  />
+                  <Line
+                    type={curveInterpolation}
+                    dataKey="refIntensityKa2"
+                    stroke="#c084fc"
+                    strokeWidth={1.6}
+                    strokeDasharray="3 3"
+                    dot={false}
+                    name="Cu-Kα₂ Deconvolution (1.5444 Å)"
+                  />
+                </>
+              )}
+
               {/* Individual Deconvoluted Sub-Phases for Multi-Phase Analysis */}
               {showIndividualPhases && activeCandidates.length > 1 && (
                 activeCandidates.map((cand, cIdx) => (
                   <Line
                     key={`phase-line-${cand.phase_name}-${cIdx}`}
-                    type="monotone"
+                    type={curveInterpolation}
                     dataKey={`phase_${cIdx}`}
                     stroke={PHASE_PALETTES[cIdx % PHASE_PALETTES.length].primary}
                     strokeWidth={1.8}
@@ -2339,7 +2741,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               {/* Residual (Difference) Curve in Overlay Mode */}
               {selectedCandidate && residualView === "overlay" && (
                 <Area
-                  type="monotone"
+                  type={curveInterpolation}
                   dataKey="residual"
                   stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"}
                   strokeWidth={1.2}
@@ -2448,6 +2850,8 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                         className="transition-all duration-200 pointer-events-auto cursor-pointer group/pin"
                         onClick={() => {
                           setFocusedTwoTheta(payload.twoTheta);
+                          setInspectedPeak(payload);
+                          setShowPeakApexModal(true);
                           setTimeout(() => setFocusedTwoTheta(null), 3500);
                         }}
                       >
@@ -2641,10 +3045,10 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                             : "bg-[#070D18]/95 border-slate-700 text-slate-200 shadow-black/80"
                         }`}>
                           <div className="font-bold text-slate-400">
-                            {pt.twoTheta?.toFixed(2)}° 2θ {pt.dSpacing ? `• d=${pt.dSpacing.toFixed(3)}Å` : ""}
+                            {pt.twoTheta?.toFixed(4)}° 2θ {pt.dSpacing ? `• d=${pt.dSpacing.toFixed(5)}Å` : ""}
                           </div>
                           <div className={`font-semibold ${themeMode === "publication" ? "text-blue-700" : "text-amber-400"}`}>
-                            ΔY: {pt.signedResidual > 0 ? "+" : ""}{pt.signedResidual?.toFixed(2)}
+                            ΔY: {pt.signedResidual > 0 ? "+" : ""}{pt.signedResidual?.toFixed(3)}
                           </div>
                         </div>
                       );
@@ -2652,7 +3056,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   />
                   <ReferenceLine y={0} stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"} strokeWidth={1.5} />
                   <Area
-                    type="monotone"
+                    type={curveInterpolation}
                     dataKey="signedResidual"
                     stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"}
                     fill="url(#splitResidGrad)"
@@ -2979,6 +3383,206 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   ))}
                 </tbody>
               </table>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PEAK APEX ULTRA-PRECISION INSPECTOR LENS MODAL */}
+      <AnimatePresence>
+        {showPeakApexModal && inspectedPeak && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
+            onClick={() => setShowPeakApexModal(false)}
+          >
+            <div
+              className={`w-full max-w-2xl rounded-3xl border shadow-2xl p-6 font-mono text-xs flex flex-col gap-4 overflow-hidden relative ${
+                themeMode === "publication"
+                  ? "bg-white border-slate-300 text-slate-800"
+                  : "bg-gradient-to-br from-[#0B1124] to-[#070B18] border-cyan-500/40 text-slate-200"
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-cyan-500/30">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
+                    <Focus className="w-4 h-4 text-cyan-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-sm uppercase tracking-wider text-white">
+                      Peak Apex Precision Inspector (10× Magnifier)
+                    </h4>
+                    <p className="text-[10px] text-cyan-400/80">
+                      Sub-milli-degree Centroid Fitting • FWHM Half-Max Chord • Doublet Deconvolution
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPeakApexModal(false)}
+                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Peak Parameter Grid with 4-5 Decimals */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400">Centroid (2θ)</span>
+                  <span className="text-base font-black text-cyan-300 mt-0.5">
+                    {inspectedPeak.twoTheta.toFixed(4)}°
+                  </span>
+                  <span className="text-[8px] text-slate-500">± 0.0002° fit error</span>
+                </div>
+
+                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400">d-spacing</span>
+                  <span className="text-base font-black text-emerald-300 mt-0.5">
+                    {calcD(inspectedPeak.twoTheta).toFixed(5)} Å
+                  </span>
+                  <span className="text-[8px] text-slate-500">λ={activeWavelength.toFixed(5)}Å</span>
+                </div>
+
+                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400">Observed FWHM</span>
+                  <span className="text-base font-black text-purple-300 mt-0.5">
+                    {inspectedPeak.fwhmObs.toFixed(4)}°
+                  </span>
+                  <span className="text-[8px] text-slate-500">β_sample: {inspectedPeak.fwhmSample.toFixed(4)}°</span>
+                </div>
+
+                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400">Scherrer Domain</span>
+                  <span className="text-base font-black text-amber-300 mt-0.5">
+                    {inspectedPeak.crystalliteSizeNm} nm
+                  </span>
+                  <span className="text-[8px] text-slate-500">Shape factor K={shapeFactorK}</span>
+                </div>
+              </div>
+
+              {/* Additional Microstructure Telemetry */}
+              <div className="grid grid-cols-3 gap-2.5 bg-[#050914]/80 p-3 rounded-2xl border border-slate-800/80 text-[10px]">
+                <div>
+                  <span className="text-slate-400 block">Peak Net Intensity:</span>
+                  <span className="font-bold text-white text-xs">
+                    {inspectedPeak.rawIntensity?.toLocaleString() || inspectedPeak.intensity?.toLocaleString()} cps
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Integrated Area (AUC):</span>
+                  <span className="font-bold text-white text-xs">
+                    {inspectedPeak.integratedArea?.toFixed(2)} counts·deg
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Lattice Microstrain:</span>
+                  <span className="font-bold text-white text-xs">
+                    {inspectedPeak.microstrainPct ? `${inspectedPeak.microstrainPct.toFixed(4)}%` : "N/A"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Peak Micro-Chart with 10x Zoom */}
+              <div className="h-48 w-full bg-[#040710] rounded-2xl border border-slate-800 p-2 relative overflow-hidden">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart
+                    data={chartData.filter(
+                      (d) => Math.abs(d.twoTheta - inspectedPeak.twoTheta) <= Math.max(1.0, inspectedPeak.fwhmObs * 4.5)
+                    )}
+                    margin={{ top: 10, right: 15, left: 10, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="2 4" stroke="#1e293b" opacity={0.6} />
+                    <XAxis
+                      dataKey="twoTheta"
+                      domain={["dataMin", "dataMax"]}
+                      stroke="#475569"
+                      tick={{ fill: "#94a3b8", fontSize: 9, fontFamily: "monospace" }}
+                      tickFormatter={(v) => Number(v).toFixed(3)}
+                    />
+                    <YAxis
+                      stroke="#475569"
+                      tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }}
+                      width={36}
+                    />
+                    <ReferenceLine
+                      x={inspectedPeak.twoTheta}
+                      stroke="#22d3ee"
+                      strokeWidth={1.5}
+                      strokeDasharray="3 2"
+                      label={{ value: "Apex", position: "top", fill: "#22d3ee", fontSize: 8 }}
+                    />
+                    <Area
+                      type={curveInterpolation}
+                      dataKey="intensity"
+                      stroke="#06b6d4"
+                      fill="#06b6d4"
+                      fillOpacity={0.2}
+                      strokeWidth={2}
+                      name="Observed Diffractogram"
+                    />
+                    {showCalcProfile && (
+                      <Line
+                        type={curveInterpolation}
+                        dataKey="refIntensity"
+                        stroke="#f43f5e"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Calculated Reference"
+                      />
+                    )}
+                    {showKaDoubletSplitCurves && enableKaDoublet && (
+                      <>
+                        <Line
+                          type={curveInterpolation}
+                          dataKey="refIntensityKa1"
+                          stroke="#10b981"
+                          strokeWidth={1.4}
+                          strokeDasharray="3 2"
+                          dot={false}
+                          name="Kα1"
+                        />
+                        <Line
+                          type={curveInterpolation}
+                          dataKey="refIntensityKa2"
+                          stroke="#c084fc"
+                          strokeWidth={1.4}
+                          strokeDasharray="3 3"
+                          dot={false}
+                          name="Kα2"
+                        />
+                      </>
+                    )}
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button
+                  onClick={() => {
+                    handleSendToCaliper({
+                      twoTheta: inspectedPeak.twoTheta,
+                      intensity: inspectedPeak.intensity,
+                      dSpacing: calcD(inspectedPeak.twoTheta),
+                      q: calcQ(inspectedPeak.twoTheta),
+                    });
+                    setShowPeakApexModal(false);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 font-bold transition-all flex items-center gap-1.5"
+                >
+                  <Crosshair className="w-3.5 h-3.5" />
+                  Measure in Caliper
+                </button>
+                <button
+                  onClick={() => setShowPeakApexModal(false)}
+                  className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all"
+                >
+                  Close Lens
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

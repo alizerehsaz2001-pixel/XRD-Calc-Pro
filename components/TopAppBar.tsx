@@ -4,7 +4,6 @@ import {
   Sparkles,
   ChevronDown,
   Command,
-  Sliders,
   Database,
   RefreshCw,
   CheckCircle2,
@@ -15,21 +14,24 @@ import {
   PanelLeftOpen,
   Search,
   Check,
-  Sun,
-  Moon,
-  Zap,
-  Terminal as TermIcon,
   Palette,
   Activity,
   Layers,
-  HelpCircle,
-  Maximize2,
   AlertTriangle,
   Info,
-  X
+  X,
+  FlaskConical,
+  SlidersHorizontal,
+  User,
+  LogOut,
+  LogIn,
+  Settings2,
+  ShieldCheck,
+  Compass,
+  Home
 } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
-import { ScientificMenuBar } from './ScientificMenuBar';
+import { SAMPLE_PRESETS, SamplePreset } from './QuickWorkflowRibbon';
 
 export type Module = string;
 
@@ -56,15 +58,15 @@ export interface ThemeOption {
 }
 
 export const THEME_OPTIONS: ThemeOption[] = [
-  { id: 'light', label: 'Light', nativeLabel: 'روشن (Clean Slate)', icon: '☀️', color: 'text-amber-500', bgPreview: 'bg-slate-100', borderPreview: 'border-slate-300' },
-  { id: 'dark', label: 'Dark', nativeLabel: 'تاریک (Cosmic Dark)', icon: '🌙', color: 'text-indigo-400', bgPreview: 'bg-slate-900', borderPreview: 'border-indigo-500/40' },
-  { id: 'cyberpunk', label: 'Cyberpunk', nativeLabel: 'سایبرپانک (Neon Cyber)', icon: '⚡', color: 'text-pink-500', bgPreview: 'bg-black', borderPreview: 'border-cyan-400' },
-  { id: 'terminal', label: 'Terminal', nativeLabel: 'ترمینال (Matrix Green)', icon: '📟', color: 'text-emerald-400', bgPreview: 'bg-black', borderPreview: 'border-emerald-500' },
-  { id: 'synthwave', label: 'Synthwave', nativeLabel: 'سینث‌ویو (Sunset Glow)', icon: '🌆', color: 'text-purple-400', bgPreview: 'bg-[#1a102f]', borderPreview: 'border-pink-500' },
-  { id: 'dracula', label: 'Dracula', nativeLabel: 'دراکولا (Gothic Violet)', icon: '🦇', color: 'text-purple-300', bgPreview: 'bg-[#282a36]', borderPreview: 'border-purple-500' },
-  { id: 'oceanic', label: 'Oceanic', nativeLabel: 'اقیانوسی (Deep Marine)', icon: '🌊', color: 'text-cyan-400', bgPreview: 'bg-[#0f172a]', borderPreview: 'border-cyan-500' },
-  { id: 'gruvbox', label: 'Gruvbox', nativeLabel: 'گرووباکس (Warm Earth)', icon: '📦', color: 'text-amber-600', bgPreview: 'bg-[#282828]', borderPreview: 'border-amber-700' },
-  { id: 'monokai', label: 'Monokai', nativeLabel: 'مونوکای (Code Studio)', icon: '🎨', color: 'text-yellow-400', bgPreview: 'bg-[#272822]', borderPreview: 'border-yellow-600' },
+  { id: 'light', label: 'Light', nativeLabel: 'Clean Slate', icon: '☀️', color: 'text-amber-500', bgPreview: 'bg-slate-100', borderPreview: 'border-slate-300' },
+  { id: 'dark', label: 'Dark', nativeLabel: 'Cosmic Dark', icon: '🌙', color: 'text-indigo-400', bgPreview: 'bg-slate-900', borderPreview: 'border-indigo-500/40' },
+  { id: 'cyberpunk', label: 'Cyberpunk', nativeLabel: 'Neon Cyber', icon: '⚡', color: 'text-pink-500', bgPreview: 'bg-black', borderPreview: 'border-cyan-400' },
+  { id: 'terminal', label: 'Terminal', nativeLabel: 'Matrix Green', icon: '📟', color: 'text-emerald-400', bgPreview: 'bg-black', borderPreview: 'border-emerald-500' },
+  { id: 'synthwave', label: 'Synthwave', nativeLabel: 'Sunset Glow', icon: '🌆', color: 'text-purple-400', bgPreview: 'bg-[#1a102f]', borderPreview: 'border-pink-500' },
+  { id: 'dracula', label: 'Dracula', nativeLabel: 'Gothic Violet', icon: '🦇', color: 'text-purple-300', bgPreview: 'bg-[#282a36]', borderPreview: 'border-purple-500' },
+  { id: 'oceanic', label: 'Oceanic', nativeLabel: 'Deep Marine', icon: '🌊', color: 'text-cyan-400', bgPreview: 'bg-[#0f172a]', borderPreview: 'border-cyan-500' },
+  { id: 'gruvbox', label: 'Gruvbox', nativeLabel: 'Warm Earth', icon: '📦', color: 'text-amber-600', bgPreview: 'bg-[#282828]', borderPreview: 'border-amber-700' },
+  { id: 'monokai', label: 'Monokai', nativeLabel: 'Code Studio', icon: '🎨', color: 'text-yellow-400', bgPreview: 'bg-[#272822]', borderPreview: 'border-yellow-600' },
 ];
 
 export interface TopAppBarProps {
@@ -117,6 +119,20 @@ export interface TopAppBarProps {
   onBatchCalculate?: () => void;
   onClearAll?: () => void;
   onExportPdf?: () => void;
+  onLoadPreset?: (preset: SamplePreset) => void;
+  showQuickRibbon?: boolean;
+  onToggleQuickRibbon?: () => void;
+  user?: any;
+  userProfile?: {
+    name?: string;
+    email?: string;
+    organization?: string;
+    researchRole?: string;
+    photoURL?: string;
+  } | null;
+  onSignOut?: () => void;
+  onSignIn?: () => void;
+  onOpenWelcome?: () => void;
 }
 
 export const TopAppBar: React.FC<TopAppBarProps> = ({
@@ -154,25 +170,117 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   playSynthTone,
   isRTL,
   t,
-  sampleId,
   onOpenActivityLedger,
-  wavelength,
-  setWavelength,
-  onCalculate,
-  onBatchCalculate,
-  onClearAll,
-  onExportPdf
+  onLoadPreset,
+  showQuickRibbon = false,
+  onToggleQuickRibbon,
+  user,
+  userProfile,
+  onSignOut,
+  onSignIn,
+  onOpenWelcome
 }) => {
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showSystemMenu, setShowSystemMenu] = useState(false);
   const [showSyncTooltip, setShowSyncTooltip] = useState(false);
+  const [showSampleDropdown, setShowSampleDropdown] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeToast, setActiveToast] = useState<ToastAlert | null>(null);
   
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const systemMenuRef = useRef<HTMLDivElement>(null);
+  const sampleMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const prevSyncTypeRef = useRef<string>(firestoreSyncType);
   const prevOnlineRef = useRef<boolean>(isOnline);
   const toastTimerRef = useRef<any>(null);
+
+  // Derive active researcher / logged-in user profile info
+  const [userInfo, setUserInfo] = useState(() => {
+    let name = user?.displayName || userProfile?.name || '';
+    let email = user?.email || userProfile?.email || '';
+    let photo = user?.photoURL || userProfile?.photoURL || null;
+
+    try {
+      const regStr = localStorage.getItem('xrd_user_registration');
+      if (regStr) {
+        const reg = JSON.parse(regStr);
+        if (!name && reg.name) name = reg.name;
+        if (!email && reg.email) email = reg.email;
+      }
+    } catch {}
+
+    try {
+      const profStr = localStorage.getItem('lab_director_profile_payload');
+      if (profStr) {
+        const prof = JSON.parse(profStr);
+        if (!name && (prof.firstName || prof.lastName)) {
+          name = `${prof.firstName || ''} ${prof.lastName || ''}`.trim();
+        }
+      }
+    } catch {}
+
+    if (!name && email) {
+      name = email.split('@')[0];
+    }
+    if (!name) name = 'Ali Zerehsaz';
+    if (!email) email = 'alizerehsaz2001@gmail.com';
+
+    const parts = name.trim().split(/\s+/);
+    let initials = 'AZ';
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts[0]?.length >= 2) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    } else if (parts[0]?.length === 1) {
+      initials = parts[0][0].toUpperCase();
+    }
+
+    return { name, email, photo, initials };
+  });
+
+  useEffect(() => {
+    let name = user?.displayName || userProfile?.name || '';
+    let email = user?.email || userProfile?.email || '';
+    let photo = user?.photoURL || userProfile?.photoURL || null;
+
+    try {
+      const regStr = localStorage.getItem('xrd_user_registration');
+      if (regStr) {
+        const reg = JSON.parse(regStr);
+        if (!name && reg.name) name = reg.name;
+        if (!email && reg.email) email = reg.email;
+      }
+    } catch {}
+
+    try {
+      const profStr = localStorage.getItem('lab_director_profile_payload');
+      if (profStr) {
+        const prof = JSON.parse(profStr);
+        if (!name && (prof.firstName || prof.lastName)) {
+          name = `${prof.firstName || ''} ${prof.lastName || ''}`.trim();
+        }
+      }
+    } catch {}
+
+    if (!name && email) {
+      name = email.split('@')[0];
+    }
+    if (!name) name = 'Ali Zerehsaz';
+    if (!email) email = 'alizerehsaz2001@gmail.com';
+
+    const parts = name.trim().split(/\s+/);
+    let initials = 'AZ';
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    } else if (parts[0]?.length >= 2) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    } else if (parts[0]?.length === 1) {
+      initials = parts[0][0].toUpperCase();
+    }
+
+    setUserInfo({ name, email, photo, initials });
+  }, [user, userProfile]);
 
   // Helper to show non-intrusive toast alert
   const showToast = (toast: Omit<ToastAlert, 'id' | 'timestamp'>) => {
@@ -186,8 +294,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
     };
     setActiveToast(newToast);
 
-    // Auto dismiss after 4.5s for normal/success, 6s for errors
-    const duration = toast.type === 'error' ? 6000 : 4200;
+    const duration = toast.type === 'error' ? 6000 : 3800;
     toastTimerRef.current = setTimeout(() => {
       setActiveToast(null);
     }, duration);
@@ -200,12 +307,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
     setActiveToast(null);
   };
 
-  // 1. Detect sync state transitions (syncing -> success / error)
+  // Detect sync state transitions
   useEffect(() => {
     const prevSyncType = prevSyncTypeRef.current;
     prevSyncTypeRef.current = firestoreSyncType;
 
-    // Trigger on sync success
     if (prevSyncType === 'syncing' && firestoreSyncType === 'success') {
       showToast({
         type: 'success',
@@ -213,13 +319,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
         message: firestoreSyncStatus || t('All offline IndexedDB records successfully mirrored to Firestore.', 'All offline IndexedDB records successfully mirrored to Firestore.')
       });
       playSynthTone('chime');
-    } 
-    // Trigger on sync failure / error
-    else if (firestoreSyncType === 'error' && prevSyncType !== 'error') {
+    } else if (firestoreSyncType === 'error' && prevSyncType !== 'error') {
       showToast({
         type: 'error',
         title: t('Sync Alert', 'Sync Alert'),
-        message: firestoreSyncStatus || t('Could not complete remote database sync. Local records remain safely preserved in IndexedDB.', 'Could not complete remote database sync. Local records remain safely preserved in IndexedDB.'),
+        message: firestoreSyncStatus || t('Could not complete remote database sync. Local records preserved in IndexedDB.', 'Could not complete remote database sync. Local records preserved in IndexedDB.'),
         actionLabel: isOnline ? t('Retry', 'Retry') : undefined,
         onAction: isOnline ? () => syncIndexedDBWithFirestore(true) : undefined
       });
@@ -227,7 +331,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
     }
   }, [firestoreSyncType, firestoreSyncStatus, isOnline, syncIndexedDBWithFirestore, playSynthTone, t]);
 
-  // 2. Detect online / offline network state changes
+  // Detect online / offline network state changes
   useEffect(() => {
     const prevOnline = prevOnlineRef.current;
     prevOnlineRef.current = isOnline;
@@ -236,7 +340,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
       showToast({
         type: 'info',
         title: t('Offline Mode Active', 'Offline Mode Active'),
-        message: t('Operating in local mode. All XRD calculations and materials will persist in IndexedDB.', 'Operating in local mode. All XRD calculations and materials will persist in IndexedDB.')
+        message: t('Operating in local mode. All XRD calculations persist in IndexedDB.', 'Operating in local mode. All XRD calculations persist in IndexedDB.')
       });
     } else if (prevOnline === false && isOnline === true) {
       showToast({
@@ -259,6 +363,12 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
       if (systemMenuRef.current && !systemMenuRef.current.contains(e.target as Node)) {
         setShowSystemMenu(false);
       }
+      if (sampleMenuRef.current && !sampleMenuRef.current.contains(e.target as Node)) {
+        setShowSampleDropdown(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -267,127 +377,143 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   const activeModuleObj = modules.find(m => m.id === activeModule);
   const currentThemeObj = THEME_OPTIONS.find(th => th.id === theme) || THEME_OPTIONS[0];
 
+  const handleSelectPreset = (preset: SamplePreset) => {
+    setShowSampleDropdown(false);
+    if (onLoadPreset) {
+      onLoadPreset(preset);
+      showToast({
+        type: 'success',
+        title: t('Sample Loaded', 'Sample Loaded'),
+        message: `${preset.name} (${preset.chemicalFormula}) loaded into ${preset.targetModule}.`
+      });
+    }
+  };
+
   return (
     <>
-      {/* 1. Mobile Modern Top Navigation Bar */}
+      {/* 1. Mobile Top Navigation Bar (Single, compact, clean row) */}
       <div 
         id="mobile-top-bar"
-        className={`relative md:hidden border-b px-3.5 py-2.5 flex flex-col gap-2 z-30 shrink-0 shadow-sm transition-all duration-300 ${
+        className={`md:hidden border-b px-3 py-2 flex items-center justify-between gap-2 z-30 shrink-0 select-none transition-all duration-200 ${
           theme === 'cyberpunk'
             ? 'bg-black/95 border-cyber-accent/30 text-cyber-accent'
-            : 'bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100'
+            : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100'
         }`}
       >
-        {/* Progress Line */}
-        <AnimatePresence>
-          {(isSyncingWithFirestore || firestoreSyncType !== 'idle') && (
-            <motion.div
-              initial={{ opacity: 0, scaleY: 0 }}
-              animate={{ opacity: 1, scaleY: 1 }}
-              exit={{ opacity: 0, scaleY: 0 }}
-              className="absolute top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-slate-200/20 dark:bg-slate-800/40 pointer-events-none"
-            >
-              <motion.div
-                className={`h-full transition-all duration-300 ${
-                  firestoreSyncType === 'error'
-                    ? 'bg-amber-500'
-                    : firestoreSyncType === 'success'
-                    ? 'bg-emerald-500'
-                    : 'bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 shadow-[0_0_12px_rgba(99,102,241,0.8)]'
-                }`}
-                style={{ width: `${firestoreSyncProgress}%` }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Top Line: Brand, Language, Theme */}
-        <div className="flex items-center justify-between gap-2">
-          {/* Brand */}
+        {/* Brand & Active Module Switcher */}
+        <div className="flex items-center gap-2 min-w-0">
           <div 
             onClick={() => setIsNavigatorOpen(true)}
-            className="flex items-center gap-2 cursor-pointer select-none"
+            className="flex items-center gap-1.5 cursor-pointer shrink-0"
           >
-            <div className={`w-7 h-7 ${theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_10px_rgba(255,0,255,0.6)]' : 'bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-md shadow-indigo-500/20'} rounded-lg flex items-center justify-center text-white font-black text-sm`}>
+            <div className={`w-7 h-7 ${theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_10px_rgba(255,0,255,0.6)]' : 'bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-xs'} rounded-lg flex items-center justify-center text-white font-black text-sm`}>
               λ
             </div>
-            <span className="font-black text-base tracking-tight leading-none">
-              XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
+            <span className="font-bold text-sm tracking-tight leading-none hidden xs:inline">
+              XRD<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
             </span>
           </div>
 
-          {/* Controls: Language, Theme Quick Toggle */}
-          <div className="flex items-center gap-1.5">
-            <LanguageSelector compact={true} />
-            
-            {/* Quick Theme Switcher */}
-            <button
-              onClick={() => {
-                const nextIdx = (THEME_OPTIONS.findIndex(t => t.id === theme) + 1) % THEME_OPTIONS.length;
-                setTheme(THEME_OPTIONS[nextIdx].id);
-                playSynthTone('switch');
-              }}
-              className={`p-1.5 rounded-lg border text-xs font-bold flex items-center gap-1 transition-all ${
-                theme === 'cyberpunk'
-                  ? 'bg-black border-cyber-accent text-cyber-accent'
-                  : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200'
-              }`}
-              title="Toggle Theme"
-            >
-              <span>{currentThemeObj.icon}</span>
-            </button>
-          </div>
+          <span className="text-slate-300 dark:text-slate-700">/</span>
+
+          <button
+            onClick={() => {
+              setIsNavigatorOpen(true);
+              playSynthTone('switch');
+            }}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-white/10 text-xs font-bold truncate max-w-[170px]"
+          >
+            <span className="truncate">{activeModuleObj?.label || activeModule}</span>
+            <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
+          </button>
         </div>
 
-        {/* Bottom Line: Active Module Switcher Bar */}
-        <button
-          onClick={() => {
-            setIsNavigatorOpen(true);
-            playSynthTone('switch');
-          }}
-          className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between gap-2 shadow-sm font-bold text-xs transition-all cursor-pointer ${
-            theme === 'cyberpunk'
-              ? 'bg-black border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10'
-              : 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-500/30 text-indigo-900 dark:text-indigo-200 hover:bg-indigo-100 dark:hover:bg-indigo-900/60'
-          }`}
-        >
-          <div className="flex items-center gap-2 overflow-hidden min-w-0">
-            <div className="p-1 rounded-md bg-indigo-600 text-white shrink-0 shadow-sm">
-              {getModuleIcon(activeModule, true)}
-            </div>
-            <div className="flex flex-col text-left rtl:text-right overflow-hidden min-w-0">
-              <span className="text-[9px] font-mono uppercase tracking-wider text-indigo-500 dark:text-indigo-400 font-bold leading-none truncate">
-                {activeModuleObj?.group || t('Module', 'Module')}
-              </span>
-              <span className="text-xs font-black tracking-tight leading-tight truncate">
-                {activeModuleObj?.label || activeModule}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 text-[10px] font-mono text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-md border border-indigo-400/30 shrink-0">
-            <span>{t('Modules', 'Modules')}</span>
-            <ChevronDown className="w-3 h-3" />
-          </div>
-        </button>
+        {/* Mobile Right Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Welcome Page Button (Mobile) */}
+          {onOpenWelcome && (
+            <button
+              onClick={() => {
+                onOpenWelcome();
+                playSynthTone('switch');
+              }}
+              className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors"
+              title={t('Welcome Page & Tour', 'Welcome Page & Tour')}
+            >
+              <Sparkles className="w-4 h-4 animate-pulse" />
+            </button>
+          )}
+
+          {/* Quick Search */}
+          <button
+            onClick={() => {
+              setIsNavigatorOpen(true);
+              playSynthTone('switch');
+            }}
+            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            title="Search Tools"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
+          {/* Quick Theme Switcher */}
+          <button
+            onClick={() => {
+              const nextIdx = (THEME_OPTIONS.findIndex(t => t.id === theme) + 1) % THEME_OPTIONS.length;
+              setTheme(THEME_OPTIONS[nextIdx].id);
+              playSynthTone('switch');
+            }}
+            className="p-1.5 rounded-lg text-xs font-bold"
+            title="Toggle Theme"
+          >
+            <span>{currentThemeObj.icon}</span>
+          </button>
+
+          {/* Logged-in User Circle */}
+          <button
+            id="mobile-user-avatar-btn"
+            onClick={() => {
+              if (setActiveModule) {
+                setActiveModule('profile');
+                playSynthTone('switch');
+              }
+            }}
+            className="relative p-0.5 rounded-full cursor-pointer transition-transform active:scale-95 shrink-0"
+            title={`${userInfo.name} (${userInfo.email})`}
+          >
+            {userInfo.photo ? (
+              <img
+                src={userInfo.photo}
+                alt={userInfo.name}
+                className="w-7 h-7 rounded-full object-cover ring-2 ring-indigo-500/30"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 text-white font-black text-[10.5px] flex items-center justify-center ring-2 ring-indigo-500/30 shadow-xs">
+                {userInfo.initials}
+              </div>
+            )}
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs" />
+          </button>
+        </div>
       </div>
 
-      {/* 2. Desktop High-End Scientific App Bar */}
+      {/* 2. Desktop Minimalist Top App Bar (Sleek, organized, single-tier) */}
       <header
         id="desktop-top-app-bar"
-        className={`relative hidden md:flex items-center justify-between px-4 lg:px-6 py-2 border-b z-20 font-sans transition-all duration-300 shrink-0 ${
+        className={`relative hidden md:flex items-center justify-between px-4 lg:px-6 h-14 border-b z-20 font-sans transition-all duration-200 shrink-0 select-none ${
           theme === 'cyberpunk'
-            ? 'bg-black/95 border-cyber-accent/30 text-cyber-accent shadow-lg shadow-cyber-accent/5'
-            : 'bg-white/85 dark:bg-slate-950/85 backdrop-blur-xl border-slate-200/80 dark:border-white/10 shadow-sm'
+            ? 'bg-black/95 border-cyber-accent/30 text-cyber-accent shadow-xs'
+            : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100 shadow-xs'
         }`}
       >
-        {/* Top Visual Sync Progress Line */}
+        {/* Top Sync Progress Line */}
         <AnimatePresence>
           {(isSyncingWithFirestore || firestoreSyncType !== 'idle') && (
             <motion.div
               initial={{ opacity: 0, scaleY: 0 }}
               animate={{ opacity: 1, scaleY: 1 }}
               exit={{ opacity: 0, scaleY: 0 }}
-              className="absolute top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-slate-200/20 dark:bg-slate-800/40 pointer-events-none"
+              className="absolute top-0 left-0 right-0 h-[2px] z-50 overflow-hidden bg-slate-200/30 dark:bg-slate-800/40 pointer-events-none"
             >
               <motion.div
                 className={`h-full transition-all duration-300 ${
@@ -395,7 +521,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     ? 'bg-amber-500'
                     : firestoreSyncType === 'success'
                     ? 'bg-emerald-500'
-                    : 'bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 shadow-[0_0_12px_rgba(99,102,241,0.8)]'
+                    : 'bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400'
                 }`}
                 style={{ width: `${firestoreSyncProgress}%` }}
               />
@@ -403,91 +529,178 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
           )}
         </AnimatePresence>
 
-        {/* LEFT SECTION: Brand, Active Module Hub & Sidebar Pin Toggle */}
-        <div className="flex items-center gap-2.5 lg:gap-3 shrink-0">
-          {/* App Brand & Logo */}
+        {/* LEFT SECTION: Logo, Breadcrumb / Module Switcher, Sidebar Toggle */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Logo & Brand */}
           {!isSidebarPinned && (
             <div
               id="topbar-brand-button"
               onClick={() => {
-                setIsNavigatorOpen(true);
+                if (onOpenWelcome) {
+                  onOpenWelcome();
+                } else {
+                  setIsNavigatorOpen(true);
+                }
                 playSynthTone('switch');
               }}
-              className="flex items-center gap-2 cursor-pointer group shrink-0 select-none py-1 px-1.5 -ml-1 rounded-xl hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all"
-              title={t('Open Scientific Suite Navigator (Ctrl+K)', 'Open Scientific Suite Navigator (Ctrl+K)')}
+              className="flex items-center gap-2 cursor-pointer group shrink-0 py-1 px-1.5 -ml-1 rounded-xl hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all"
+              title={t('Return to Welcome Page & Showcase', 'Return to Welcome Page & Showcase')}
             >
-              <div className={`w-8 h-8 ${theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_12px_rgba(255,0,255,0.6)]' : 'bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-md shadow-indigo-500/25'} rounded-xl flex items-center justify-center text-white font-bold text-base group-hover:scale-105 group-hover:rotate-3 transition-transform duration-300`}>
+              <div className={`w-7 h-7 ${theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_10px_rgba(255,0,255,0.6)]' : 'bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-xs'} rounded-lg flex items-center justify-center text-white font-bold text-sm group-hover:scale-105 transition-transform`}>
                 λ
               </div>
-              <div className="flex flex-col text-left rtl:text-right">
-                <span className={`font-black text-base tracking-tight leading-none ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'}`}>
-                  XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400 font-bold'}>Pro</span>
-                </span>
-                <span className="text-[8.5px] font-mono font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mt-0.5">
-                  v2.5 Lab
-                </span>
-              </div>
+              <span className={`font-black text-sm tracking-tight leading-none ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'}`}>
+                XRD<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
+              </span>
             </div>
           )}
 
-          {/* Active Module Controller Button (Full breadth, no truncation!) */}
+          {!isSidebarPinned && (
+            <span className="text-slate-300 dark:text-slate-700 font-mono text-xs">/</span>
+          )}
+
+          {/* Active Module Controller Pill */}
           <button
             id="topbar-module-trigger-btn"
             onClick={() => {
               setIsNavigatorOpen(true);
               playSynthTone('switch');
             }}
-            className={`px-3 py-1.5 rounded-xl border flex items-center gap-2.5 transition-all duration-200 cursor-pointer group shadow-sm hover:shadow ${
+            className={`px-2.5 py-1.5 rounded-xl border flex items-center gap-2 transition-all duration-150 cursor-pointer group ${
               theme === 'cyberpunk'
-                ? 'bg-black border-cyber-accent/60 hover:border-cyber-accent hover:bg-cyber-accent/10 text-cyber-accent'
-                : 'bg-indigo-50/90 dark:bg-indigo-950/40 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/60 border-indigo-200/90 dark:border-indigo-500/30 text-indigo-950 dark:text-indigo-100'
+                ? 'bg-black border-cyber-accent/50 hover:border-cyber-accent text-cyber-accent'
+                : 'bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border-slate-200/80 dark:border-white/10 text-slate-900 dark:text-slate-100'
             }`}
-            title={t('Click or press Ctrl+K to browse all 28+ scientific modules', 'Click or press Ctrl+K to browse all 28+ scientific modules')}
+            title={t('Click to browse all 30+ scientific tools (Ctrl+K)', 'Click to browse all tools (Ctrl+K)')}
           >
-            <div className="p-1 rounded-lg bg-indigo-600 text-white shadow-sm shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-4 h-4 text-indigo-500 shrink-0">
               {getModuleIcon(activeModule, true)}
             </div>
-            <div className="flex flex-col text-left rtl:text-right min-w-[130px] max-w-[240px] lg:max-w-[300px]">
-              <span className="text-[9px] font-mono uppercase tracking-wider text-indigo-500 dark:text-indigo-400 font-bold leading-none truncate">
-                {activeModuleObj?.group || t('Computational Suite', 'Computational Suite')}
-              </span>
-              <span className="text-xs font-black tracking-tight leading-tight text-slate-900 dark:text-slate-100 truncate mt-0.5">
-                {activeModuleObj?.label || activeModule}
-              </span>
-            </div>
-            
-            <div className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-indigo-500/20 text-[9.5px] font-mono font-bold text-indigo-400 border border-indigo-500/30 shrink-0">
+            <span className="text-xs font-bold tracking-tight truncate max-w-[150px] lg:max-w-[200px]">
+              {activeModuleObj?.label || activeModule}
+            </span>
+            <div className="hidden lg:flex items-center gap-0.5 px-1 py-0.2 rounded bg-indigo-500/10 text-[9px] font-mono font-bold text-indigo-500 dark:text-indigo-300 border border-indigo-500/20">
               <Command className="w-2.5 h-2.5" />
               <span>K</span>
             </div>
-            
-            <ChevronDown className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-y-0.5 transition-transform shrink-0" />
+            <ChevronDown className="w-3 h-3 text-slate-400 group-hover:translate-y-0.5 transition-transform shrink-0" />
           </button>
 
-          {/* Sidebar Pin / Fullscreen Layout Toggle */}
+          {/* Welcome Page Button (Desktop) */}
+          {onOpenWelcome && (
+            <button
+              id="topbar-welcome-page-btn"
+              onClick={() => {
+                onOpenWelcome();
+                playSynthTone('switch');
+              }}
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 font-bold text-xs transition-all cursor-pointer shadow-xs active:scale-95"
+              title={t('Return to Welcome Page & Showcase', 'Return to Welcome Page & Showcase')}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+              <span className="hidden xl:inline">{t('Welcome Page', 'Welcome Page')}</span>
+            </button>
+          )}
+
+          {/* Sidebar Toggle Button */}
           <button
             id="topbar-sidebar-toggle-btn"
             onClick={() => {
               setIsSidebarPinned(!isSidebarPinned);
               playSynthTone('switch');
             }}
-            className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
-              isSidebarPinned
-                ? 'bg-indigo-600 text-white border-indigo-500 shadow-indigo-600/20'
-                : 'bg-white/80 dark:bg-slate-900/80 border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-            title={isSidebarPinned ? t('Expand to Full-Screen Workspace', 'Expand to Full-Screen Workspace') : t('Pin Sidebar on Left', 'Pin Sidebar on Left')}
+            className="p-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-800/70 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-200/80 dark:hover:bg-slate-700 transition-all cursor-pointer"
+            title={isSidebarPinned ? t('Collapse Sidebar to Mini Rail', 'Collapse Sidebar to Mini Rail') : t('Expand Sidebar', 'Expand Sidebar')}
           >
-            {isSidebarPinned ? <PanelLeftClose className="w-3.5 h-3.5" /> : <PanelLeftOpen className="w-3.5 h-3.5" />}
-            <span className="hidden xl:inline text-[10px] font-mono uppercase tracking-wider">
-              {isSidebarPinned ? t('Full-Screen', 'Full-Screen') : t('Sidebar', 'Sidebar')}
-            </span>
+            {isSidebarPinned ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* CENTER SECTION: Quick Actions (Guide & Search Navigator) */}
-        <div className="hidden md:flex items-center justify-center gap-2 flex-1 px-2 max-w-md mx-auto">
-          {/* Interactive Theory Guide Pill */}
+        {/* CENTER SECTION: Minimalist Command Search Pill */}
+        <div className="hidden lg:flex items-center justify-center flex-1 max-w-sm mx-4">
+          <button
+            id="topbar-quick-search-btn"
+            onClick={() => {
+              setIsNavigatorOpen(true);
+              playSynthTone('switch');
+            }}
+            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer ${
+              theme === 'cyberpunk'
+                ? 'border-cyber-accent/40 bg-black/60 text-slate-400 hover:text-cyber-accent hover:border-cyber-accent'
+                : 'border-slate-200/80 dark:border-white/10 bg-slate-100/60 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 hover:border-indigo-400/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+            }`}
+            title="Search suite tools, equations, or methods (Press / or Ctrl+K)"
+          >
+            <div className="flex items-center gap-2">
+              <Search className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs text-slate-500 dark:text-slate-400">{t('Search 30+ tools, formulas... (/ )', 'Search 30+ tools, formulas... (/ )')}</span>
+            </div>
+            <kbd className="hidden xl:inline text-[9.5px] font-mono text-slate-400 border border-slate-300 dark:border-slate-700 rounded px-1">⌘K</kbd>
+          </button>
+        </div>
+
+        {/* RIGHT SECTION: Organized, Minimalist Action Set */}
+        <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
+          {/* 1. Quick Sample Datasets Dropdown */}
+          <div className="relative" ref={sampleMenuRef}>
+            <button
+              onClick={() => {
+                setShowSampleDropdown(prev => !prev);
+                playSynthTone('switch');
+              }}
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                showSampleDropdown
+                  ? 'bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-400'
+                  : 'bg-slate-100/80 dark:bg-slate-800/80 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700'
+              }`}
+              title={t('Load pre-configured standard diffraction datasets', 'Load pre-configured standard diffraction datasets')}
+            >
+              <FlaskConical className="w-3.5 h-3.5 text-amber-500" />
+              <span className="hidden xl:inline">{t('Sample Data', 'Sample Data')}</span>
+              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showSampleDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+              {showSampleDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className={`absolute right-0 mt-2 w-72 rounded-2xl border shadow-xl p-2 z-50 ${
+                    theme === 'cyberpunk'
+                      ? 'bg-black/95 border-cyber-accent text-cyber-accent'
+                      : 'bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-white/10 shadow-slate-900/20'
+                  }`}
+                >
+                  <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-white/5 mb-1 flex items-center justify-between">
+                    <span>{t('Standard Samples', 'Standard Samples')}</span>
+                    <span className="font-mono text-[9px]">1-Click</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    {SAMPLE_PRESETS.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => handleSelectPreset(p)}
+                        className="w-full text-left p-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-slate-800 transition-all flex flex-col cursor-pointer group"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                            {p.name}
+                          </span>
+                          <span className="text-[9px] font-mono text-indigo-500 font-semibold">{p.badge}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 line-clamp-1">{p.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* 2. Guide & Theory Trigger */}
           {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
             <button
               id="topbar-guide-trigger-btn"
@@ -495,67 +708,30 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 setIsExplained(false);
                 playSynthTone('switch');
               }}
-              className={`px-3.5 py-1.5 rounded-full border text-[10.5px] font-bold tracking-wide cursor-pointer transition-all duration-200 hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 shadow-sm group ${
-                theme === 'cyberpunk'
-                  ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/15 bg-black shadow-[0_0_12px_rgba(0,255,255,0.2)]'
-                  : 'border-indigo-200/80 dark:border-indigo-500/25 bg-gradient-to-r from-indigo-50/90 to-violet-50/90 dark:from-indigo-950/40 dark:to-violet-950/40 hover:from-indigo-100 dark:hover:from-indigo-900/60 text-indigo-900 dark:text-indigo-200'
-              }`}
-              title={t('Open the mathematical and theoretical fundamentals for this module', 'Open the mathematical and theoretical fundamentals for this module')}
+              className="px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-200/80 dark:hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all"
+              title={t('Open theoretical principles and formulas for this module', 'Open theoretical principles and formulas')}
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 group-hover:rotate-12 transition-transform animate-pulse" />
-              <span>{t('Guide & Theory', 'Guide & Theory')}</span>
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="hidden xl:inline">{t('Theory', 'Theory')}</span>
             </button>
           )}
 
-          {/* Quick Navigator Pill */}
-          <button
-            id="topbar-quick-search-btn"
-            onClick={() => {
-              setIsNavigatorOpen(true);
-              playSynthTone('switch');
-            }}
-            className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-medium transition-all ${
-              theme === 'cyberpunk'
-                ? 'border-slate-800 bg-black/60 text-slate-400 hover:text-cyan-400 hover:border-cyan-400/50'
-                : 'border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 hover:border-indigo-400/40 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-            title={t('Search all XRD tools, equations, or methods (Press /)', 'Search all XRD tools, equations, or methods (Press /)')}
-          >
-            <Search className="w-3 h-3 text-slate-400" />
-            <span className="truncate">{t('Search suite... (/)', 'Search suite... (/)')}</span>
-          </button>
-        </div>
-
-        {/* RIGHT SECTION: Live Clock, Sync Status, System Hub, Language & Theme Selectors */}
-        <div className="flex items-center justify-end gap-2 lg:gap-2.5 shrink-0">
-          
-          {/* 1. Real-time Precision Chronometer Display */}
-          <div
-            id="header-live-clock"
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/70 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 text-[10px] font-mono font-bold shadow-sm select-none"
-            title={t('Real-Time 24h Scientific Clock', 'Real-Time 24h Scientific Clock')}
-          >
-            <Clock className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
-            <span>{currentClockTime}</span>
-          </div>
-
-          {/* 1b. Direct Activity Ledger Toolbar Trigger */}
-          {onOpenActivityLedger && (
+          {/* 3. Quick Modules Strip Toggle Button */}
+          {onToggleQuickRibbon && (
             <button
-              id="topbar-activity-ledger-btn"
-              onClick={() => {
-                onOpenActivityLedger();
-                playSynthTone('switch');
-              }}
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
-              title={t('Open Live Activity Ledger & Telemetry Audit (Click to view)', 'Open Live Activity Ledger & Telemetry Audit')}
+              onClick={onToggleQuickRibbon}
+              className={`p-1.5 rounded-xl border text-xs font-semibold flex items-center justify-center cursor-pointer transition-all ${
+                showQuickRibbon
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                  : 'bg-slate-100/80 dark:bg-slate-800/80 border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-200/80 dark:hover:bg-slate-700'
+              }`}
+              title={showQuickRibbon ? t('Hide Quick Modules Strip', 'Hide Quick Modules Strip') : t('Show Quick Modules Strip', 'Show Quick Modules Strip')}
             >
-              <Activity className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-              <span className="hidden xl:inline">{t('Ledger', 'Ledger')}</span>
+              <Layers className="w-4 h-4" />
             </button>
           )}
 
-          {/* 2. IndexedDB ↔ Cloud Sync Monitor Widget with Interactive Popover */}
+          {/* 4. Cloud & Offline Database Sync Indicator */}
           <div className="relative" id="indexeddb-sync-container">
             <button
               id="indexeddb-sync-button"
@@ -565,138 +741,78 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
               }}
               onMouseEnter={() => setShowSyncTooltip(true)}
               onMouseLeave={() => setShowSyncTooltip(false)}
-              className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all shadow-sm ${
+              className={`p-1.5 rounded-xl border flex items-center justify-center cursor-pointer transition-all relative ${
                 firestoreSyncType === 'syncing'
-                  ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/25 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
-                  : firestoreSyncType === 'success'
-                  ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/25'
-                  : firestoreSyncType === 'error'
-                  ? 'border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                  ? 'border-indigo-500 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300'
                   : !isOnline
-                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                  : 'border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/70 text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800'
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-600'
+                  : 'border-slate-200/80 dark:border-white/10 bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700'
               }`}
+              title="Database Sync Status"
             >
               {firestoreSyncType === 'syncing' ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
-                  <div className="flex flex-col text-left rtl:text-right leading-none">
-                    <span className="text-[9px] font-black">{t('Syncing...', 'Syncing...')}</span>
-                    <span className="text-[7.5px] font-mono opacity-80">{firestoreSyncProgress}%</span>
-                  </div>
-                </>
-              ) : firestoreSyncType === 'success' ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="hidden xl:inline text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400">{t('Synced', 'Synced')}</span>
-                </>
-              ) : firestoreSyncType === 'error' ? (
-                <>
-                  <WifiOff className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="hidden xl:inline text-[9.5px] font-bold text-amber-600 dark:text-amber-400">{t('Offline', 'Offline')}</span>
-                </>
+                <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+              ) : !isOnline ? (
+                <WifiOff className="w-4 h-4 text-amber-500" />
               ) : (
-                <>
-                  <Database className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="hidden xl:inline text-[9.5px]">{t('Sync', 'Sync')}</span>
-                </>
+                <Database className="w-4 h-4 text-indigo-500" />
+              )}
+              {isOnline && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-white dark:border-slate-900" />
               )}
             </button>
 
-            {/* Sync Tooltip Popover */}
+            {/* Sync Popover */}
             <AnimatePresence>
               {showSyncTooltip && (
                 <motion.div
-                  id="indexeddb-sync-tooltip"
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute top-full mt-2 w-72 sm:w-80 p-3.5 rounded-2xl border shadow-2xl backdrop-blur-xl z-50 ${
-                    isRTL ? 'left-0' : 'right-0'
-                  } ${
+                  className={`absolute right-0 mt-2 w-72 p-3 rounded-2xl border shadow-xl z-50 ${
                     theme === 'cyberpunk'
-                      ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_25px_rgba(0,255,255,0.25)]'
-                      : 'bg-slate-900/95 dark:bg-[#080E1E]/95 border-slate-700/70 dark:border-indigo-500/30 text-white shadow-2xl shadow-slate-950/80'
+                      ? 'bg-black/95 border-cyber-accent text-cyber-accent'
+                      : 'bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100 shadow-slate-900/20'
                   }`}
                 >
-                  {/* Header */}
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        firestoreSyncType === 'syncing'
-                          ? 'bg-indigo-400 animate-ping'
-                          : isOnline
-                          ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
-                          : 'bg-amber-400'
-                      }`} />
-                      <span className="text-[11px] font-black uppercase tracking-wider font-mono">
-                        {t('Database Telemetry', 'Database Telemetry')}
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-white/10">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider font-mono">
+                        {t('Database Status', 'Database Status')}
                       </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider ${
-                      isOnline
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    }`}>
-                      {isOnline ? t('Online Cloud', 'Online Cloud') : t('Local IndexedDB', 'Local IndexedDB')}
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+                      {isOnline ? 'Online' : 'IndexedDB Local'}
                     </span>
                   </div>
 
-                  {/* Timestamp */}
-                  <div className="mb-2.5 p-2 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
-                    <div className="flex items-center justify-between text-[9.5px] text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-indigo-400" />
-                        {t('Last Sync Time:', 'Last Sync Time:')}
+                  <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                    <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80">
+                      <span className="text-[10px] text-slate-400 block">Synced Items</span>
+                      <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {syncStats.syncedAnalyses + syncStats.syncedMaterials}
                       </span>
                     </div>
-                    <p className="text-[10.5px] font-mono font-bold text-indigo-300 pl-4 rtl:pl-0 rtl:pr-4">
-                      {lastSyncTime ? formatLastSyncTimestamp(lastSyncTime) : t('No sync recorded yet', 'No sync recorded yet')}
-                    </p>
-                  </div>
-
-                  {/* Items Breakdown */}
-                  <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                    <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
-                      <div className="flex items-center justify-between text-[10px] text-emerald-400 font-bold mb-1">
-                        <span className="flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          {t('Synced', 'Synced')}
-                        </span>
-                        <span className="font-mono">{syncStats.syncedAnalyses + syncStats.syncedMaterials}</span>
-                      </div>
-                      <div className="text-[8.5px] text-slate-300 font-mono space-y-0.5">
-                        <div className="flex justify-between"><span>Analyses:</span><span>{syncStats.syncedAnalyses}</span></div>
-                        <div className="flex justify-between"><span>Materials:</span><span>{syncStats.syncedMaterials}</span></div>
-                      </div>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25">
-                      <div className="flex items-center justify-between text-[10px] text-amber-400 font-bold mb-1">
-                        <span className="flex items-center gap-1">
-                          <RefreshCw className="w-3 h-3" />
-                          {t('Pending', 'Pending')}
-                        </span>
-                        <span className="font-mono">{syncStats.pendingAnalyses + syncStats.pendingMaterials}</span>
-                      </div>
-                      <div className="text-[8.5px] text-slate-300 font-mono space-y-0.5">
-                        <div className="flex justify-between"><span>Analyses:</span><span>{syncStats.pendingAnalyses}</span></div>
-                        <div className="flex justify-between"><span>Materials:</span><span>{syncStats.pendingMaterials}</span></div>
-                      </div>
+                    <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80">
+                      <span className="text-[10px] text-slate-400 block">Pending</span>
+                      <span className="font-mono font-bold text-amber-500">
+                        {syncStats.pendingAnalyses + syncStats.pendingMaterials}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="pt-1.5 border-t border-white/10 text-[9px] text-slate-400 flex items-center justify-between">
-                    <span>{t('Click icon to force manual sync', 'Click to trigger immediate sync')}</span>
-                    <span className="font-mono text-indigo-400 font-bold">IndexedDB ↔ Firestore</span>
+                  <div className="text-[9.5px] text-slate-400 font-mono flex items-center justify-between">
+                    <span>Last Sync:</span>
+                    <span>{lastSyncTime ? formatLastSyncTimestamp(lastSyncTime) : 'Ready'}</span>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* 3. System Tools & Engine Hub Popover */}
+          {/* 5. Clean System & Diagnostics Popover */}
           <div className="relative" ref={systemMenuRef}>
             <button
               id="topbar-system-menu-btn"
@@ -704,44 +820,37 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 setShowSystemMenu(!showSystemMenu);
                 playSynthTone('switch');
               }}
-              className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all shadow-sm ${
-                theme === 'cyberpunk'
-                  ? 'border-cyber-accent text-cyber-accent bg-black hover:bg-cyber-accent/15'
-                  : 'border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800'
-              }`}
-              title={t('System diagnostics, Python server engine & options', 'System diagnostics, Python server engine & options')}
+              className="p-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-200/80 dark:hover:bg-slate-700 transition-all cursor-pointer relative"
+              title={t('System diagnostics & engine options', 'System diagnostics & engine options')}
             >
-              <Sliders className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="hidden sm:inline">{t('System', 'System')}</span>
+              <SlidersHorizontal className="w-4 h-4" />
               {(!isOnline || !pythonReady) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-500" />
               )}
             </button>
 
             <AnimatePresence>
               {showSystemMenu && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute top-full mt-2 w-64 rounded-2xl border p-3 space-y-2.5 shadow-2xl z-50 ${
-                    isRTL ? 'left-0' : 'right-0'
-                  } ${
+                  className={`absolute right-0 mt-2 w-64 rounded-2xl border p-3 space-y-2.5 shadow-xl z-50 ${
                     theme === 'cyberpunk'
-                      ? 'bg-black border-cyber-accent text-cyber-accent shadow-[0_0_25px_rgba(0,255,255,0.2)]'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100'
+                      ? 'bg-black/95 border-cyber-accent text-cyber-accent'
+                      : 'bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100 shadow-slate-900/20'
                   }`}
                 >
-                  <div className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-1.5 flex items-center justify-between">
-                    <span>{t('System & Integration', 'System & Integration')}</span>
-                    <span className="font-mono text-[8.5px] text-indigo-500">v2.5</span>
+                  <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-1.5 flex items-center justify-between">
+                    <span>{t('System & Tools', 'System & Tools')}</span>
+                    <span className="font-mono text-indigo-500">{currentClockTime}</span>
                   </div>
 
                   {/* Python Engine */}
                   <div className="flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${pythonReady ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                      <div className={`w-2 h-2 rounded-full ${pythonReady ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                       <span className="font-semibold">{t('Python Engine', 'Python Engine')}</span>
                     </div>
                     <button
@@ -759,7 +868,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                   {/* Offline Database Hub */}
                   <div className="flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                      <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                       <span className="font-semibold">{t('IndexedDB Hub', 'IndexedDB Hub')}</span>
                     </div>
                     <button
@@ -775,11 +884,11 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     </button>
                   </div>
 
-                  {/* Activity & Action Ledger */}
+                  {/* Activity Ledger */}
                   {onOpenActivityLedger && (
                     <div className="flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                        <Activity className="w-3.5 h-3.5 text-emerald-500" />
                         <span className="font-semibold">{t('Activity Ledger', 'Activity Ledger')}</span>
                       </div>
                       <button
@@ -788,10 +897,9 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                           setShowSystemMenu(false);
                           playSynthTone('switch');
                         }}
-                        className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-emerald-500/20 text-[10px] transition-all flex items-center gap-1"
+                        className="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-emerald-500/20 text-[10px] transition-all"
                       >
-                        <Activity className="w-3 h-3" />
-                        {t('Open Ledger', 'Open Ledger')}
+                        {t('Open', 'Open')}
                       </button>
                     </div>
                   )}
@@ -820,7 +928,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
 
                   {/* Hotkeys */}
                   <div className="flex items-center justify-between gap-3 text-xs pt-1.5 border-t border-slate-100 dark:border-white/5">
-                    <span className="font-semibold">{t('Hotkeys', 'Hotkeys')}</span>
+                    <span className="font-semibold">{t('Shortcuts', 'Shortcuts')}</span>
                     <button
                       onClick={() => {
                         setShowShortcutsModal(true);
@@ -838,10 +946,10 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             </AnimatePresence>
           </div>
 
-          {/* 4. Polished Custom Language Selector */}
+          {/* 6. Language Selector */}
           <LanguageSelector compact={true} />
 
-          {/* 5. Luxury Custom Theme Selector (Replaces clunky HTML <select>) */}
+          {/* 7. Theme Selector Popover */}
           <div className="relative" ref={themeMenuRef}>
             <button
               id="topbar-theme-selector-btn"
@@ -849,33 +957,23 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 setShowThemeMenu(!showThemeMenu);
                 playSynthTone('switch');
               }}
-              className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1.5 cursor-pointer transition-all shadow-sm ${
-                theme === 'cyberpunk'
-                  ? 'border-cyber-accent text-cyber-accent bg-black hover:bg-cyber-accent/15'
-                  : 'border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-800'
-              }`}
+              className="p-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200/80 dark:hover:bg-slate-700 cursor-pointer transition-all"
               title={t('Change visual theme', 'Change visual theme')}
             >
               <span className="text-sm">{currentThemeObj.icon}</span>
-              <span className="hidden sm:inline font-mono uppercase tracking-wider font-black">
-                {currentThemeObj.label}
-              </span>
-              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showThemeMenu ? 'rotate-180' : ''}`} />
             </button>
 
             <AnimatePresence>
               {showThemeMenu && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
                   transition={{ duration: 0.15 }}
-                  className={`absolute top-full mt-2 w-56 p-2 rounded-2xl border shadow-2xl backdrop-blur-xl z-50 ${
-                    isRTL ? 'left-0' : 'right-0'
-                  } ${
+                  className={`absolute right-0 mt-2 w-52 p-2 rounded-2xl border shadow-xl z-50 ${
                     theme === 'cyberpunk'
-                      ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_25px_rgba(0,255,255,0.2)]'
-                      : 'bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100'
+                      ? 'bg-black/95 border-cyber-accent text-cyber-accent'
+                      : 'bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100 shadow-slate-900/20'
                   }`}
                 >
                   <div className="px-2 py-1 text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-white/5 mb-1.5 flex items-center justify-between">
@@ -883,33 +981,28 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                     <Palette className="w-3 h-3 text-indigo-400" />
                   </div>
 
-                  <div className="space-y-1 max-h-72 overflow-y-auto custom-scrollbar pr-0.5">
+                  <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
                     {THEME_OPTIONS.map((th) => {
                       const isSelected = theme === th.id;
                       return (
                         <button
                           key={th.id}
-                          id={`theme-option-${th.id}`}
                           onClick={() => {
                             setTheme(th.id);
                             setShowThemeMenu(false);
                             playSynthTone('switch');
                           }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                              : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                           }`}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="text-sm">{th.icon}</span>
-                            <span className="text-xs font-medium">
-                              {isRTL ? th.nativeLabel : th.label}
-                            </span>
+                            <span>{th.icon}</span>
+                            <span>{th.label}</span>
                           </div>
-                          {isSelected && (
-                            <Check className="w-3.5 h-3.5 text-white" />
-                          )}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                         </button>
                       );
                     })}
@@ -919,134 +1012,255 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
             </AnimatePresence>
           </div>
 
+          {/* 8. Logged-in User Circle with Name & Account Menu */}
+          <div className="relative" ref={userMenuRef}>
+            <button
+              id="topbar-user-avatar-btn"
+              onClick={() => {
+                setShowUserMenu(!showUserMenu);
+                playSynthTone('switch');
+              }}
+              className={`flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full border transition-all cursor-pointer group select-none ${
+                showUserMenu
+                  ? 'border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/20'
+                  : 'border-slate-200/80 dark:border-white/10 bg-slate-100/70 dark:bg-slate-800/70 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 hover:border-indigo-500/40'
+              }`}
+              title={`Logged in as ${userInfo.name} (${userInfo.email})`}
+            >
+              {/* Circle Avatar with Initials / Photo */}
+              <div className="relative shrink-0">
+                {userInfo.photo ? (
+                  <img
+                    src={userInfo.photo}
+                    alt={userInfo.name}
+                    className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-300 dark:ring-white/20"
+                  />
+                ) : (
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-[11px] text-white shadow-xs ${
+                    theme === 'cyberpunk'
+                      ? 'bg-gradient-to-tr from-pink-500 to-cyan-400 text-black font-extrabold ring-1 ring-cyan-400'
+                      : 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 ring-1 ring-indigo-400/40'
+                  }`}>
+                    {userInfo.initials}
+                  </div>
+                )}
+                {/* Active indicator dot */}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs" />
+              </div>
+
+              {/* Name & status label */}
+              <div className="hidden lg:flex flex-col text-left leading-tight min-w-0">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate max-w-[110px]">
+                  {userInfo.name.split(' ')[0]}
+                </span>
+                <span className="text-[9.5px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 leading-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {user ? 'Verified' : 'Online'}
+                </span>
+              </div>
+
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 transition-transform duration-200 shrink-0 ${showUserMenu ? 'rotate-180 text-indigo-500' : ''}`} />
+            </button>
+
+            {/* User Account Popover */}
+            <AnimatePresence>
+              {showUserMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className={`absolute right-0 mt-2 w-72 p-3 rounded-2xl border shadow-xl z-50 ${
+                    theme === 'cyberpunk'
+                      ? 'bg-black/95 border-cyber-accent text-cyber-accent'
+                      : 'bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-100 shadow-slate-900/20'
+                  }`}
+                >
+                  {/* User Profile Card Header */}
+                  <div className="flex items-center gap-3 pb-3 mb-2 border-b border-slate-100 dark:border-white/10">
+                    <div className="relative shrink-0">
+                      {userInfo.photo ? (
+                        <img
+                          src={userInfo.photo}
+                          alt={userInfo.name}
+                          className="w-11 h-11 rounded-full object-cover ring-2 ring-indigo-500/30"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-600 text-white font-black text-sm flex items-center justify-center ring-2 ring-indigo-500/30 shadow-md">
+                          {userInfo.initials}
+                        </div>
+                      )}
+                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-xs" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {userInfo.name}
+                      </div>
+                      <div className="text-[10.5px] font-mono text-slate-400 truncate mt-0.5">
+                        {userInfo.email}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold">
+                          {user ? 'Cloud Node Connected' : 'Laboratory Researcher'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Navigation Links */}
+                  <div className="space-y-1 mb-2">
+                    {onOpenWelcome && (
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          onOpenWelcome();
+                          playSynthTone('switch');
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-amber-500/10 text-amber-600 dark:text-amber-300 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{t('Welcome Page & Tour', 'Welcome Page & Tour')}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-amber-500 font-bold">Home</span>
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        if (setActiveModule) {
+                          setActiveModule('profile');
+                          setShowUserMenu(false);
+                          playSynthTone('switch');
+                        }
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>{t('Researcher Profile & Lab ID', 'Researcher Profile & Lab ID')}</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">View</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (setActiveModule) {
+                          setActiveModule('settings');
+                          setShowUserMenu(false);
+                          playSynthTone('switch');
+                        }
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Settings2 className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{t('App Settings & Precision', 'App Settings & Precision')}</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">Configure</span>
+                    </button>
+
+                    {onOpenActivityLedger && (
+                      <button
+                        onClick={() => {
+                          onOpenActivityLedger();
+                          setShowUserMenu(false);
+                          playSynthTone('switch');
+                        }}
+                        className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>{t('Activity Ledger', 'Activity Ledger')}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400">Logs</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Auth Actions */}
+                  <div className="pt-2 border-t border-slate-100 dark:border-white/10">
+                    {user || onSignOut ? (
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          if (onSignOut) {
+                            onSignOut();
+                          }
+                          playSynthTone('switch');
+                        }}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 transition-colors border border-rose-500/20 cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>{t('Sign Out / Switch User', 'Sign Out / Switch User')}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          if (onSignIn) {
+                            onSignIn();
+                          }
+                          playSynthTone('switch');
+                        }}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-xs cursor-pointer"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        <span>{t('Sign In with Google', 'Sign In with Google')}</span>
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </header>
 
-      {/* Scientific Desktop Menu Bar & Instrument Measurement Status Ribbon */}
-      {setActiveModule && (
-        <ScientificMenuBar
-          activeModule={activeModule as any}
-          setActiveModule={setActiveModule}
-          theme={theme}
-          wavelength={wavelength}
-          setWavelength={setWavelength}
-          onCalculate={onCalculate}
-          onBatchCalculate={onBatchCalculate}
-          onClearAll={onClearAll}
-          onExportPdf={onExportPdf}
-          onOpenActivityLedger={onOpenActivityLedger}
-          onOpenShortcuts={() => setShowShortcutsModal(true)}
-          isOnline={isOnline}
-          firestoreSyncType={firestoreSyncType}
-          pythonReady={pythonReady}
-          playSynthTone={playSynthTone}
-          t={t}
-          isRTL={isRTL}
-        />
-      )}
-
-      {/* Non-Intrusive Floating Toast Alert */}
+      {/* Non-Intrusive Floating Toast Notification */}
       <AnimatePresence>
         {activeToast && (
           <motion.div
             key={activeToast.id}
-            id="topbar-toast-alert"
-            role="status"
-            aria-live="polite"
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -16, scale: 0.95 }}
+            exit={{ opacity: 0, y: -12, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className={`fixed top-16 md:top-14 z-50 max-w-sm sm:max-w-md w-[calc(100%-2rem)] sm:w-auto sm:min-w-[340px] shadow-2xl rounded-2xl p-3.5 border backdrop-blur-xl transition-all select-none ${
+            className={`fixed top-16 z-50 max-w-sm w-[calc(100%-2rem)] sm:w-auto sm:min-w-[320px] shadow-xl rounded-2xl p-3 border backdrop-blur-xl transition-all select-none ${
               isRTL ? 'left-4 sm:left-8' : 'right-4 sm:right-8'
             } ${
               theme === 'cyberpunk'
                 ? activeToast.type === 'error'
-                  ? 'bg-black/95 border-pink-500 text-pink-400 shadow-[0_0_30px_rgba(236,72,153,0.35)]'
-                  : activeToast.type === 'success'
-                  ? 'bg-black/95 border-cyber-accent text-cyber-accent shadow-[0_0_30px_rgba(0,255,255,0.35)]'
-                  : 'bg-black/95 border-purple-500 text-purple-300 shadow-[0_0_30px_rgba(168,85,247,0.35)]'
+                  ? 'bg-black/95 border-pink-500 text-pink-400'
+                  : 'bg-black/95 border-cyber-accent text-cyber-accent'
                 : activeToast.type === 'error'
-                ? 'bg-rose-950/95 dark:bg-rose-950/95 border-rose-500/40 text-rose-100 shadow-rose-950/40'
-                : activeToast.type === 'success'
-                ? 'bg-slate-900/95 dark:bg-slate-950/95 border-emerald-500/40 text-slate-100 shadow-slate-950/50'
-                : 'bg-slate-900/95 dark:bg-slate-950/95 border-indigo-500/40 text-slate-100 shadow-slate-950/50'
+                ? 'bg-rose-950/95 border-rose-500/40 text-rose-100'
+                : 'bg-slate-900/95 dark:bg-slate-950/95 border-slate-700/60 text-slate-100 shadow-slate-950/50'
             }`}
           >
-            <div className="flex items-start gap-3">
-              {/* Icon Status */}
+            <div className="flex items-start gap-2.5">
               <div className="shrink-0 mt-0.5">
                 {activeToast.type === 'success' ? (
-                  <div className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 ) : activeToast.type === 'error' ? (
-                  <div className="w-7 h-7 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 animate-pulse">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
+                  <AlertTriangle className="w-4 h-4 text-rose-400" />
                 ) : (
-                  <div className="w-7 h-7 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
-                    <Info className="w-4 h-4" />
-                  </div>
+                  <Info className="w-4 h-4 text-indigo-400" />
                 )}
               </div>
-
-              {/* Text Information */}
-              <div className="flex-1 min-w-0 pr-1 rtl:pr-0 rtl:pl-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-xs font-black tracking-tight leading-tight">
-                    {activeToast.title}
-                  </h4>
-                  <span className="text-[9px] font-mono opacity-50 shrink-0">
-                    {t('just now', 'just now')}
-                  </span>
-                </div>
-                <p className="text-[11px] opacity-90 mt-0.5 leading-snug break-words">
-                  {activeToast.message}
-                </p>
-
-                {/* Optional Retry Action button */}
-                {activeToast.actionLabel && activeToast.onAction && (
-                  <div className="mt-2.5 flex justify-start">
-                    <button
-                      id="topbar-toast-action-btn"
-                      onClick={() => {
-                        activeToast.onAction?.();
-                        dismissToast();
-                      }}
-                      className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider bg-white/10 hover:bg-white/20 border border-white/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      <span>{activeToast.actionLabel}</span>
-                    </button>
-                  </div>
-                )}
+              <div className="flex-1 min-w-0 pr-1">
+                <h4 className="text-xs font-bold leading-tight">{activeToast.title}</h4>
+                <p className="text-[11px] opacity-80 mt-0.5 leading-snug">{activeToast.message}</p>
               </div>
-
-              {/* Dismiss Button */}
               <button
-                id="topbar-toast-close-btn"
                 onClick={dismissToast}
-                className="p-1 rounded-lg hover:bg-white/10 opacity-60 hover:opacity-100 transition-all text-slate-300 hover:text-white shrink-0 -mr-1 -mt-1 cursor-pointer"
-                title={t('Dismiss', 'Dismiss')}
+                className="p-1 rounded-lg opacity-60 hover:opacity-100 transition-all text-slate-300 hover:text-white shrink-0 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-
-            {/* Subtle Progress Bar */}
-            <motion.div
-              initial={{ scaleX: 1 }}
-              animate={{ scaleX: 0 }}
-              transition={{ duration: activeToast.type === 'error' ? 6 : 4.2, ease: 'linear' }}
-              className={`h-0.5 mt-2.5 rounded-full origin-left rtl:origin-right ${
-                activeToast.type === 'error'
-                  ? 'bg-rose-500/60'
-                  : activeToast.type === 'success'
-                  ? 'bg-emerald-400/60'
-                  : 'bg-indigo-400/60'
-              }`}
-            />
           </motion.div>
         )}
       </AnimatePresence>

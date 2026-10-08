@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { playSynthTone } from '../../utils/sound';
 import {
   Activity,
   Box,
@@ -482,11 +483,17 @@ export const ModulesDirectory: React.FC<ModulesDirectoryProps> = ({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: Math.min(idx * 0.04, 0.4), duration: 0.4 }}
-                onClick={() => onLaunchModule(item.id)}
+                onClick={() => {
+                  try { playSynthTone('xrd_scan'); } catch {}
+                  onLaunchModule(item.id);
+                }}
                 className={`group relative bg-[#070D1A]/90 hover:bg-[#0B1224] border ${
                   item.highlight ? 'border-violet-500/40 shadow-lg shadow-violet-950/20' : 'border-slate-800/80'
-                } hover:border-violet-500/60 p-6 rounded-2xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden`}
+                } hover:border-violet-500/60 p-6 rounded-2xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden active:scale-[0.98]`}
               >
+                {/* XRD Diffraction Beam Laser on hover */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_8px_#22d3ee]" />
+
                 {/* Subtle gradient hover glow */}
                 <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 

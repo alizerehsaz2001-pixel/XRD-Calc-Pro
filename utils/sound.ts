@@ -17,7 +17,7 @@ function getSharedAudioContext(): AudioContext | null {
   return sharedAudioCtx;
 }
 
-export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch' | 'chime' | 'action') => {
+export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch' | 'chime' | 'action' | 'xrd_scan' | 'xrd_beam') => {
   try {
     const isSound = localStorage.getItem('xrd_sound') === 'true';
     if (!isSound) return;
@@ -38,6 +38,44 @@ export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch' | 'c
       gainNode.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.08);
+    } 
+    else if (type === 'xrd_scan') {
+      // High-tech dual-frequency XRD beam frequency chirp (880Hz -> 1760Hz sweep)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+      osc.frequency.exponentialRampToValueAtTime(1318.51, ctx.currentTime + 0.16); // E6
+      gainNode.gain.setValueAtTime(0.02, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+      
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(1318.51, ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.2);
+      gain2.gain.setValueAtTime(0.012, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.24);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.22);
+      osc2.start();
+      osc2.stop(ctx.currentTime + 0.24);
+    }
+    else if (type === 'xrd_beam') {
+      // Harmonic resonance for XRD lattice constructive interference
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime); // A4
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+      gainNode.gain.setValueAtTime(0.025, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.28);
     } 
     else if (type === 'success' || type === 'chime') {
       // Arpeggio chime

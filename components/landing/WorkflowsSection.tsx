@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
+import { playSynthTone } from '../../utils/sound';
 import { 
   FileSpreadsheet, 
   Layers, 
@@ -123,8 +124,11 @@ export const WorkflowsSection: React.FC<WorkflowsSectionProps> = ({
                   {wf.steps.map((step, stepIdx) => (
                     <div
                       key={step.id}
-                      onClick={() => onLaunchModule(step.id)}
-                      className="group/step p-3 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-slate-800/80 hover:border-violet-500/40 transition-all cursor-pointer flex items-center justify-between gap-3"
+                      onClick={() => {
+                        try { playSynthTone('xrd_scan'); } catch {}
+                        onLaunchModule(step.id);
+                      }}
+                      className="group/step p-3 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-slate-800/80 hover:border-violet-500/40 transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99]"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center text-[10px] font-mono font-bold text-slate-400 shrink-0">
@@ -146,8 +150,11 @@ export const WorkflowsSection: React.FC<WorkflowsSectionProps> = ({
               </div>
 
               <button
-                onClick={() => onLaunchModule(wf.primaryModule)}
-                className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                onClick={() => {
+                  try { playSynthTone('xrd_scan'); } catch {}
+                  onLaunchModule(wf.primaryModule);
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95"
               >
                 <span>Launch This Pipeline</span>
                 <ArrowRight className="w-3.5 h-3.5" />

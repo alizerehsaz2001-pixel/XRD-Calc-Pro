@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
+import { playSynthTone } from '../utils/sound';
 import { 
   Search, 
   X, 
@@ -1001,6 +1002,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         if (filteredModules[focusedIndex]) {
           const mod = filteredModules[focusedIndex];
           recordRecent(mod.id);
+          playSynthTone('xrd_scan');
           onSelectModule(mod.id);
           onClose();
         }
@@ -1530,6 +1532,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                         isRTL={isRTL}
                         onSelect={() => {
                           recordRecent(m.id);
+                          playSynthTone('xrd_scan');
                           onSelectModule(m.id);
                           onClose();
                         }}

@@ -128,12 +128,12 @@ export const WelcomeFloatingDock: React.FC<Props> = ({
             <span className="hidden sm:inline">Tour</span>
           </button>
 
-          {/* Primary CTA button */}
+          {/* Primary CTA button with XRD resume */}
           <button
             onClick={onLaunchApp}
             className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-600 hover:from-violet-500 hover:to-cyan-500 text-white font-bold text-xs font-mono shadow-[0_0_20px_rgba(139,92,246,0.5)] flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
           >
-            <span>{isRegistered ? t('Workspace', 'Workspace') : t('Enter App', 'Enter App')}</span>
+            <span>{isRegistered ? t('Resume Session', 'Resume Session') : t('Enter App', 'Enter App')}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
 

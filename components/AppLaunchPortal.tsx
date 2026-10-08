@@ -21,6 +21,7 @@ import {
 interface AppLaunchPortalProps {
   isEntering: boolean;
   targetModule?: string | null;
+  isResuming?: boolean;
   isRTL?: boolean;
   onComplete?: () => void;
 }
@@ -41,9 +42,26 @@ const TELEMETRY_STEPS_FA = [
   "آماده‌سازی محیط آزمایشگاهی XRD-Calc Pro..."
 ];
 
+const RESUME_STEPS_EN = [
+  "Restoring Bragg-Brentano Goniometer & 2θ Calibration...",
+  "Re-aligning Detector Scintillator at 2θ = 38.45°...",
+  "Calibrating Powder Diffraction Profile & Specimen Stage...",
+  "Synthesizing Constructive Wave Interference (nλ = 2d sin θ)...",
+  "Active Session Restored: Resuming Workspace..."
+];
+
+const RESUME_STEPS_FA = [
+  "بازیابی موقعیت گونیومتر براگ-برنتانو و کالیبراسیون ۲تتا...",
+  "هم‌راستاسازی آشکارساز سنتیلاتور در زاویه ۲تتا = ۳۸.۴۵ درجه...",
+  "کالیبراسیون پروفایل پراش پودر و استیج نمونه...",
+  "سنتز امواج تداخل سازنده (nλ = 2d sin θ)...",
+  "جلسه فعال آزمایشگاه بازیابی شد: انتقال به میز کار..."
+];
+
 export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
   isEntering,
   targetModule,
+  isResuming = false,
   isRTL = false,
   onComplete
 }) => {
@@ -51,7 +69,9 @@ export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
   const [progress, setProgress] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
 
-  const steps = isRTL ? TELEMETRY_STEPS_FA : TELEMETRY_STEPS_EN;
+  const steps = isResuming 
+    ? (isRTL ? RESUME_STEPS_FA : RESUME_STEPS_EN)
+    : (isRTL ? TELEMETRY_STEPS_FA : TELEMETRY_STEPS_EN);
 
   useEffect(() => {
     if (!isEntering) {
@@ -60,7 +80,19 @@ export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
       return;
     }
 
-    const duration = 1100; // ms
+    // Play XRD beam initiation sound
+    try {
+      const isSound = localStorage.getItem('xrd_sound') === 'true';
+      if (isSound) {
+        import('../utils/sound').then(({ playSynthTone }) => {
+          playSynthTone(isResuming ? 'xrd_scan' : 'xrd_beam');
+        }).catch(() => {});
+      }
+    } catch {
+      // ignore sound error
+    }
+
+    const duration = isResuming ? 950 : 1100; // ms
     const intervalTime = 20;
     const stepsCount = duration / intervalTime;
     let currentStep = 0;
@@ -78,16 +110,28 @@ export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
 
       if (currentStep >= stepsCount) {
         clearInterval(timer);
+        try {
+          const isSound = localStorage.getItem('xrd_sound') === 'true';
+          if (isSound) {
+            import('../utils/sound').then(({ playSynthTone }) => {
+              playSynthTone('success');
+            }).catch(() => {});
+          }
+        } catch {}
         if (onComplete) {
-          setTimeout(onComplete, 150);
+          setTimeout(onComplete, 120);
         }
       }
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [isEntering]);
+  }, [isEntering, isResuming]);
 
   if (!isEntering) return null;
+
+  // Calculated 2-theta angle sweep across progress: 10.00 deg -> 68.20 deg
+  const currentTwoTheta = (10 + (progress / 100) * 58.2).toFixed(2);
+  const currentTheta = (Number(currentTwoTheta) / 2).toFixed(2);
 
   return (
     <AnimatePresence>
@@ -170,10 +214,18 @@ export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
             <motion.div
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 text-xs font-mono font-bold uppercase tracking-widest"
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold uppercase tracking-widest ${
+                isResuming
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                  : 'bg-violet-500/10 border-violet-500/30 text-violet-300'
+              }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              <span>{t("INITIALIZING APALET ENVIRONMENT", "INITIALIZING APALET ENVIRONMENT")}</span>
+              <Sparkles className={`w-3.5 h-3.5 ${isResuming ? 'text-emerald-400' : 'text-cyan-400'} animate-pulse`} />
+              <span>
+                {isResuming 
+                  ? t("RESUMING ACTIVE XRD SESSION", "RESUMING ACTIVE XRD SESSION") 
+                  : t("INITIALIZING APALET ENVIRONMENT", "INITIALIZING APALET ENVIRONMENT")}
+              </span>
             </motion.div>
 
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight font-mono">
@@ -181,11 +233,89 @@ export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
             </h2>
 
             {targetModule && (
-              <p className="text-xs text-cyan-300 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5">
+              <p className="text-xs text-cyan-300 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 font-mono">
                 <Box className="w-3.5 h-3.5 text-violet-400" />
-                {isRTL ? `ماژول هدف: ${targetModule}` : `Target Module: ${targetModule.toUpperCase()}`}
+                {isRTL ? `ماژول هدف: ${targetModule}` : `Active Target: ${targetModule.toUpperCase()}`}
               </p>
             )}
+          </div>
+
+          {/* Interactive Bragg Diffraction Goniometer & Lattice Visualizer */}
+          <div className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 shadow-2xl relative overflow-hidden backdrop-blur-md">
+            {/* Goniometer Angle & Bragg Condition Telemetry Strip */}
+            <div className="flex justify-between items-center text-[11px] font-mono mb-2 px-1 text-slate-300">
+              <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                <Activity className="w-3.5 h-3.5 text-violet-400 animate-pulse" />
+                <span>2θ = {currentTwoTheta}°</span>
+                <span className="text-slate-500 text-[10px]">(θ = {currentTheta}°)</span>
+              </span>
+              <span className="text-slate-400 font-medium hidden sm:inline">
+                λ = 1.5406 Å (Cu-Kα₁)
+              </span>
+              <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
+                nλ = 2d sin θ
+              </span>
+            </div>
+
+            {/* SVG Bragg Diffraction Rays & Crystal Planes */}
+            <div className="relative w-full h-24 flex items-center justify-center">
+              <svg className="w-full h-full" viewBox="0 0 400 100" fill="none" preserveAspectRatio="xMidYMid meet">
+                {/* Horizontal Crystal Lattice Planes (d-spacing) */}
+                <line x1="80" y1="52" x2="320" y2="52" stroke="rgba(147, 197, 253, 0.25)" strokeWidth="1" strokeDasharray="4 2" />
+                <line x1="80" y1="72" x2="320" y2="72" stroke="rgba(147, 197, 253, 0.25)" strokeWidth="1" strokeDasharray="4 2" />
+                <line x1="80" y1="92" x2="320" y2="92" stroke="rgba(147, 197, 253, 0.25)" strokeWidth="1" strokeDasharray="4 2" />
+
+                {/* Atoms on Crystal Lattice Planes */}
+                {[110, 155, 200, 245, 290].map((x, i) => (
+                  <g key={`plane1-${i}`}>
+                    <circle cx={x} cy="52" r="3.5" fill="#38bdf8" opacity="0.9" />
+                    <circle cx={x} cy="52" r="7" stroke="#38bdf8" strokeWidth="0.75" opacity="0.4" className="animate-ping" style={{ animationDuration: '3s', animationDelay: `${i * 0.2}s` }} />
+                  </g>
+                ))}
+                {[110, 155, 200, 245, 290].map((x, i) => (
+                  <circle key={`plane2-${i}`} cx={x} cy="72" r="3.5" fill="#818cf8" opacity="0.7" />
+                ))}
+                {[110, 155, 200, 245, 290].map((x, i) => (
+                  <circle key={`plane3-${i}`} cx={x} cy="92" r="3.5" fill="#a78bfa" opacity="0.5" />
+                ))}
+
+                {/* Incident Monochromatic X-Ray Beam (Source -> Lattice) */}
+                <path
+                  d="M 60 12 L 200 52"
+                  stroke="url(#xrayGradientIncident)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <circle cx="60" cy="12" r="4" fill="#22d3ee" className="animate-pulse" />
+                <text x="50" y="8" fill="#22d3ee" fontSize="8" fontFamily="monospace" fontWeight="bold">X-RAY TUBE</text>
+
+                {/* Diffracted X-Ray Beam (Lattice -> Detector at angle 2θ) */}
+                <path
+                  d="M 200 52 L 340 12"
+                  stroke="url(#xrayGradientDiffracted)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <circle cx="340" cy="12" r="5" fill="#c084fc" className="animate-pulse" />
+                <text x="320" y="8" fill="#c084fc" fontSize="8" fontFamily="monospace" fontWeight="bold">DETECTOR</text>
+
+                {/* Debye-Scherrer Concentric Wave Packets */}
+                <circle cx="200" cy="52" r="16" stroke="rgba(34, 211, 238, 0.7)" strokeWidth="1" strokeDasharray="3 3" opacity={progress > 30 ? 0.8 : 0.2} />
+                <circle cx="200" cy="52" r="28" stroke="rgba(192, 132, 252, 0.6)" strokeWidth="1" strokeDasharray="3 3" opacity={progress > 60 ? 0.7 : 0.2} />
+
+                {/* Gradients */}
+                <defs>
+                  <linearGradient id="xrayGradientIncident" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#22d3ee" />
+                    <stop offset="100%" stopColor="#818cf8" />
+                  </linearGradient>
+                  <linearGradient id="xrayGradientDiffracted" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#818cf8" />
+                    <stop offset="100%" stopColor="#c084fc" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
           </div>
 
           {/* Progress Bar & Laser Beam */}

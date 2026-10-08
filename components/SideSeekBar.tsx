@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { motion, useScroll, useSpring, useTransform } from 'motion/react';
-import { ChevronUp, ChevronDown, MoveVertical } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ArrowUp } from 'lucide-react';
 
 interface SideSeekBarProps {
   targetRef?: React.RefObject<HTMLElement | null>;
@@ -8,148 +8,90 @@ interface SideSeekBarProps {
 }
 
 export const SideSeekBar: React.FC<SideSeekBarProps> = ({ targetRef, theme }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const scrollTrackRef = useRef<HTMLDivElement>(null);
-  
-  // Use window scroll if no targetRef is provided
-  const { scrollYProgress } = useScroll({
-    target: targetRef || undefined,
-    offset: ["start start", "end end"]
-  });
-
-  const scaleY = useSpring(scrollYProgress, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001
-  });
-
-  const translateY = useTransform(scaleY, [0, 1], ["0%", "100%"]);
-
-  const handleDrag = (e: React.MouseEvent | React.TouchEvent, forceDrag = false) => {
-    if ((!forceDrag && !isDragging) || !scrollTrackRef.current) return;
-
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const rect = scrollTrackRef.current.getBoundingClientRect();
-    const percentage = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-
-    const scrollTarget = targetRef?.current || document.documentElement;
-    const maxScroll = scrollTarget.scrollHeight - scrollTarget.clientHeight;
-    
-    if (targetRef?.current) {
-        targetRef.current.scrollTo({ top: maxScroll * percentage, behavior: 'auto' });
-    } else {
-        window.scrollTo({ top: maxScroll * percentage, behavior: 'auto' });
-    }
-  };
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
-    const handleGlobalMouseUp = () => setIsDragging(false);
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
-        const rect = scrollTrackRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const percentage = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-        const scrollTarget = targetRef?.current || document.documentElement;
-        const maxScroll = scrollTarget.scrollHeight - scrollTarget.clientHeight;
-        if (targetRef?.current) {
-            targetRef.current.scrollTo({ top: maxScroll * percentage });
-        } else {
-            window.scrollTo({ top: maxScroll * percentage });
-        }
+    const target = targetRef?.current || window;
+    
+    const handleScroll = () => {
+      let scrollTop = 0;
+      let scrollHeight = 0;
+      let clientHeight = 0;
+
+      if (targetRef?.current) {
+        scrollTop = targetRef.current.scrollTop;
+        scrollHeight = targetRef.current.scrollHeight;
+        clientHeight = targetRef.current.clientHeight;
+      } else {
+        scrollTop = window.scrollY;
+        scrollHeight = document.documentElement.scrollHeight;
+        clientHeight = window.innerHeight;
       }
+
+      const totalScrollable = scrollHeight - clientHeight;
+      const progress = totalScrollable > 0 ? Math.min(1, Math.max(0, scrollTop / totalScrollable)) : 0;
+      setScrollProgress(progress);
+      setShowScrollTop(scrollTop > 280);
     };
 
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    window.addEventListener('mousemove', handleGlobalMouseMove);
-    return () => {
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
-    };
-  }, [isDragging, targetRef]);
+    if (targetRef?.current) {
+      const el = targetRef.current;
+      el.addEventListener('scroll', handleScroll, { passive: true });
+      return () => el.removeEventListener('scroll', handleScroll);
+    } else {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [targetRef]);
 
   const scrollToTop = () => {
-    const scrollTarget = targetRef?.current || window;
-    scrollTarget.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const scrollToBottom = () => {
-    const scrollTarget = targetRef?.current || document.documentElement;
-    const maxScroll = scrollTarget.scrollHeight - scrollTarget.clientHeight;
     if (targetRef?.current) {
-        targetRef.current.scrollTo({ top: maxScroll, behavior: 'smooth' });
+      targetRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-        window.scrollTo({ top: maxScroll, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const isCyber = theme === 'cyberpunk';
 
   return (
-    <div className="fixed right-6 top-1/2 -translate-y-1/2 z-[200] flex flex-col items-center gap-4 group">
-      {/* Scroll Up Button */}
-      <button 
-        onClick={scrollToTop}
-        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${
-          isCyber 
-            ? 'bg-black border border-cyber-accent text-cyber-accent hover:bg-cyber-accent hover:text-black shadow-[0_0_10px_rgba(0,255,159,0.3)]' 
-            : 'bg-white/10 backdrop-blur-md border border-white/20 text-white/60 hover:text-white hover:bg-violet-600/40'
-        } opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 duration-300`}
-      >
-        <ChevronUp size={16} />
-      </button>
-
-      {/* Main Seek Bar */}
-      <div 
-        ref={scrollTrackRef}
-        className={`relative w-1.5 h-64 rounded-full cursor-pointer overflow-hidden transition-all duration-500 overflow-visible ${
-          isCyber ? 'bg-cyber-accent/10' : 'bg-white/5'
-        } backdrop-blur-sm border border-white/5 group-hover:w-3`}
-        onMouseDown={(e) => {
-            setIsDragging(true);
-            handleDrag(e, true);
-        }}
-      >
-        {/* Progress Fill */}
-        <motion.div 
-          className={`absolute top-0 left-0 w-full rounded-full origin-top ${
-            isCyber ? 'bg-cyber-accent shadow-[0_0_15px_rgba(0,255,159,0.6)]' : 'bg-gradient-to-b from-violet-500 to-indigo-600 shadow-[0_0_15px_rgba(139,92,246,0.3)]'
-          }`}
-          style={{ scaleY }}
-        />
-
-        {/* Drag Handle */}
-        <motion.div 
-          className={`absolute left-1/2 -translate-x-1/2 w-6 h-6 rounded-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-shadow ${
-            isCyber 
-                ? 'bg-cyber-accent text-black shadow-[0_0_20px_rgba(0,255,159,0.8)]' 
-                : 'bg-white text-violet-700 shadow-xl'
-          }`}
-          style={{ top: translateY, y: "-50%" }}
-        >
-          <MoveVertical size={12} className="font-bold" />
-        </motion.div>
-      </div>
-
-      {/* Scroll Down Button */}
-      <button 
-        onClick={scrollToBottom}
-        className={`w-8 h-8 flex items-center justify-center rounded-full transition-all ${
-          isCyber 
-            ? 'bg-black border border-cyber-accent text-cyber-accent hover:bg-cyber-accent hover:text-black shadow-[0_0_10px_rgba(0,255,159,0.3)]' 
-            : 'bg-white/10 backdrop-blur-md border border-white/20 text-white/60 hover:text-white hover:bg-violet-600/40'
-        } opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 duration-300`}
-      >
-        <ChevronDown size={16} />
-      </button>
-
-      {/* Tooltip */}
-      <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap ${
-          isCyber ? 'bg-cyber-accent text-black' : 'bg-white/10 backdrop-blur-xl text-white border border-white/20'
-        }`}>
-          Seek Navigation
+    <>
+      {/* 1. Subtle, minimalist top scroll progress line */}
+      {scrollProgress > 0.01 && (
+        <div className="fixed top-0 left-0 right-0 h-[2px] z-50 pointer-events-none bg-transparent">
+          <div
+            className={`h-full transition-all duration-150 ease-out ${
+              isCyber
+                ? 'bg-cyber-accent shadow-[0_0_8px_rgba(0,255,159,0.8)]'
+                : 'bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-600'
+            }`}
+            style={{ width: `${(scrollProgress * 100).toFixed(1)}%` }}
+          />
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* 2. Minimalist Back to Top floating action button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            transition={{ duration: 0.2 }}
+            onClick={scrollToTop}
+            className={`fixed bottom-6 right-6 z-40 p-2.5 rounded-full shadow-lg border backdrop-blur-md transition-all cursor-pointer hover:scale-110 active:scale-95 group ${
+              isCyber
+                ? 'bg-black/90 border-cyber-accent text-cyber-accent shadow-[0_0_15px_rgba(0,255,159,0.4)] hover:bg-cyber-accent hover:text-black'
+                : 'bg-white/90 dark:bg-slate-900/90 border-slate-200/80 dark:border-white/15 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-500/40 shadow-slate-900/15'
+            }`}
+            title="Scroll to Top"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp className="w-4 h-4 transition-transform group-hover:-translate-y-0.5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </>
   );
 };

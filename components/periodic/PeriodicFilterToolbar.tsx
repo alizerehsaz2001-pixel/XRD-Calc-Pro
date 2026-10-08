@@ -9,7 +9,10 @@ import {
   Filter,
   X,
   Box,
-  Layers
+  Layers,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { HeatmapMode, ColorMode, QuickPreset } from './types';
 
@@ -149,13 +152,18 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
     }
   };
 
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(() => {
+    return temperature !== 25 || activePreset !== null;
+  });
+
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
     categoryFilter !== 'all' ||
     blockFilter !== 'all' ||
     structureFilter !== 'all' ||
     activePreset !== null ||
-    heatmapMode !== 'none';
+    heatmapMode !== 'none' ||
+    Math.round(temperature) !== 25;
 
   const handleResetAll = () => {
     onSearchChange('');
@@ -169,161 +177,42 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
     setIsPlayingHeat(false);
   };
 
+  const activeAdvancedCount = (activePreset !== null ? 1 : 0) + (Math.round(temperature) !== 25 ? 1 : 0) + (blockFilter !== 'all' ? 1 : 0);
+
   return (
-    <div className="space-y-3 bg-[#0B0F19] border border-slate-800/90 p-4 rounded-2xl shadow-xl">
-      {/* Row 1: Search, View Color Mode, Property Heatmap Selector */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+    <div className="bg-[#0B0F19] border border-slate-800/80 rounded-2xl p-3.5 space-y-3 shadow-xl transition-all">
+      {/* Primary Control Row: Search + Key Scientific Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
         {/* Search Bar */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by symbol, name, Z, crystal system, or space group (e.g. Si, Fm-3m, BCC)..."
+            placeholder="Search symbol, name, Z, space group..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full bg-[#070b14] border border-slate-700/80 rounded-xl pl-9 pr-8 py-2 text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+            className="w-full bg-[#070b14] border border-slate-700/70 rounded-xl pl-8 pr-7 py-1.5 text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => onSearchChange('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3" />
             </button>
           )}
         </div>
 
-        {/* Color / View Mode Switcher */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-[#070b14] p-1 rounded-xl border border-slate-800">
-          {(
-            [
-              { id: 'category', label: 'Chemical Family' },
-              { id: 'structure', label: 'Bravais Lattice' },
-              { id: 'block', label: 'Orbital Block (s,p,d,f)' },
-              { id: 'state', label: 'Phase State' }
-            ] as const
-          ).map(mode => (
-            <button
-              key={mode.id}
-              type="button"
-              onClick={() => {
-                onColorModeChange(mode.id);
-                onHeatmapModeChange('none');
-              }}
-              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                colorMode === mode.id && heatmapMode === 'none'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
-              }`}
-            >
-              {mode.label}
-            </button>
-          ))}
-
-          {/* Heatmap Mode Dropdown */}
-          <div className="relative">
-            <select
-              value={heatmapMode}
-              onChange={(e) => {
-                const val = e.target.value as HeatmapMode;
-                onHeatmapModeChange(val);
-                if (val !== 'none') onColorModeChange('heatmap');
-              }}
-              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase bg-[#070b14] border transition-all focus:outline-none cursor-pointer ${
-                heatmapMode !== 'none'
-                  ? 'bg-cyan-950 text-cyan-200 border-cyan-500 font-black'
-                  : 'border-slate-700/80 text-cyan-400 hover:border-cyan-500/60'
-              }`}
-            >
-              <option value="none" className="bg-[#080d1a] text-slate-300">Property Heatmap...</option>
-              <option value="latticeA" className="bg-[#080d1a] text-white">Lattice Constant a₀ (Å)</option>
-              <option value="unitCellVolume" className="bg-[#080d1a] text-white">Unit Cell Volume V_cell (Å³)</option>
-              <option value="density" className="bg-[#080d1a] text-white">X-Ray Mass Density (g/cm³)</option>
-              <option value="scatteringPower" className="bg-[#080d1a] text-white">Thomson Scattering f₀ (Z e⁻)</option>
-              <option value="massAttenuation" className="bg-[#080d1a] text-white">Cu-Kα Mass Attenuation μ/ρ (cm²/g)</option>
-              <option value="atomicRadius" className="bg-[#080d1a] text-white">Empirical Atomic Radius (pm)</option>
-              <option value="electronegativity" className="bg-[#080d1a] text-white">Pauling Electronegativity (χ)</option>
-              <option value="ionizationEnergy" className="bg-[#080d1a] text-white">1st Ionization Energy (eV)</option>
-              <option value="electronAffinity" className="bg-[#080d1a] text-white">Electron Affinity (eV)</option>
-              <option value="meltingPoint" className="bg-[#080d1a] text-white">Melting Point T_m (°C)</option>
-              <option value="boilingPoint" className="bg-[#080d1a] text-white">Boiling Point T_b (°C)</option>
-              <option value="thermalConductivity" className="bg-[#080d1a] text-white">Thermal Conductivity (W/m·K)</option>
-              <option value="electricalConductivity" className="bg-[#080d1a] text-white">Electrical Conductivity (MS/m)</option>
-            </select>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={handleResetAll}
-              className="px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase text-rose-300 bg-rose-950/50 hover:bg-rose-900/60 border border-rose-500/30 flex items-center gap-1 transition-colors cursor-pointer"
-              title="Reset all active filters, search, and temperature to STP defaults"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Reset</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: Crystallographic Structure Filter + Family & Block Selectors */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pt-2.5 border-t border-slate-800/80">
-        {/* Bravais / Crystal System Quick Filter */}
-        <div className="flex flex-wrap items-center gap-1">
-          <span className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1 mr-1.5">
-            <Box className="w-3.5 h-3.5 text-sky-400" />
-            Crystal System:
-          </span>
-          {CRYSTAL_SYSTEM_FILTERS.map(cs => {
-            const active = structureFilter === cs.id;
-            return (
-              <button
-                key={cs.id}
-                type="button"
-                onClick={() => {
-                  if (onStructureFilterChange) {
-                    onStructureFilterChange(active && cs.id !== 'all' ? 'all' : cs.id);
-                  }
-                }}
-                className={`px-2 py-1 rounded-md text-[10px] font-mono font-bold transition-all cursor-pointer border ${
-                  active
-                    ? 'bg-sky-600 text-white border-sky-400 shadow-sm'
-                    : 'bg-[#070b14] text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
-                }`}
-              >
-                {cs.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Orbital Block & Chemical Family Filters */}
+        {/* Filter Dropdowns & Views */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-[#070b14] p-0.5 rounded-lg border border-slate-800">
-            <span className="text-[9px] font-mono uppercase font-bold text-slate-500 px-1.5">Block:</span>
-            {(['all', 's', 'p', 'd', 'f'] as const).map(blk => (
-              <button
-                key={blk}
-                type="button"
-                onClick={() => onBlockFilterChange(blockFilter === blk && blk !== 'all' ? 'all' : blk)}
-                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer ${
-                  blockFilter === blk
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {blk === 'all' ? 'All' : `${blk}-block`}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-slate-500" />
+          {/* Chemical Family Dropdown */}
+          <div className="flex items-center gap-1 bg-[#070b14] border border-slate-800 rounded-xl px-2 py-0.5">
+            <span className="text-[10px] font-mono text-slate-500 uppercase font-bold">Family:</span>
             <select
               value={categoryFilter}
               onChange={(e) => onCategoryFilterChange(e.target.value)}
-              className="bg-[#070b14] border border-slate-800 hover:border-slate-700 text-slate-200 rounded-lg px-2.5 py-1 text-[10px] font-mono font-bold uppercase focus:outline-none focus:border-indigo-500 cursor-pointer"
+              className="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer py-1 pr-1"
             >
               {CATEGORY_FILTERS.map(cf => (
                 <option key={cf.id} value={cf.id} className="bg-[#080d1a] text-slate-200">
@@ -332,140 +221,276 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
               ))}
             </select>
           </div>
+
+          {/* Crystal System Dropdown */}
+          <div className="flex items-center gap-1 bg-[#070b14] border border-slate-800 rounded-xl px-2 py-0.5">
+            <Box className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <span className="text-[10px] font-mono text-slate-500 uppercase font-bold">Lattice:</span>
+            <select
+              value={structureFilter}
+              onChange={(e) => onStructureFilterChange && onStructureFilterChange(e.target.value)}
+              className="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer py-1 pr-1"
+            >
+              {CRYSTAL_SYSTEM_FILTERS.map(cs => (
+                <option key={cs.id} value={cs.id} className="bg-[#080d1a] text-slate-200">
+                  {cs.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Color Mode Segmented Control */}
+          <div className="hidden sm:flex items-center bg-[#070b14] p-0.5 rounded-xl border border-slate-800 text-[10px] font-mono font-bold">
+            {(
+              [
+                { id: 'category', label: 'Family' },
+                { id: 'structure', label: 'Lattice' },
+                { id: 'block', label: 'Block' },
+                { id: 'state', label: 'Phase' }
+              ] as const
+            ).map(mode => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => {
+                  onColorModeChange(mode.id);
+                  onHeatmapModeChange('none');
+                }}
+                className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                  colorMode === mode.id && heatmapMode === 'none'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Property Heatmap Dropdown */}
+          <select
+            value={heatmapMode}
+            onChange={(e) => {
+              const val = e.target.value as HeatmapMode;
+              onHeatmapModeChange(val);
+              if (val !== 'none') onColorModeChange('heatmap');
+            }}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold bg-[#070b14] border transition-all focus:outline-none cursor-pointer ${
+              heatmapMode !== 'none'
+                ? 'bg-cyan-950 text-cyan-200 border-cyan-500 font-black shadow-sm'
+                : 'border-slate-800 text-cyan-400 hover:border-cyan-500/50'
+            }`}
+          >
+            <option value="none" className="bg-[#080d1a] text-slate-300">Heatmap Mode (Off)</option>
+            <option value="latticeA" className="bg-[#080d1a] text-white">Lattice Constant a₀ (Å)</option>
+            <option value="unitCellVolume" className="bg-[#080d1a] text-white">Unit Cell Volume V_cell (Å³)</option>
+            <option value="density" className="bg-[#080d1a] text-white">X-Ray Density (g/cm³)</option>
+            <option value="scatteringPower" className="bg-[#080d1a] text-white">Scattering Factor f₀ (Z e⁻)</option>
+            <option value="massAttenuation" className="bg-[#080d1a] text-white">Cu-Kα Attenuation μ/ρ (cm²/g)</option>
+            <option value="atomicRadius" className="bg-[#080d1a] text-white">Atomic Radius (pm)</option>
+            <option value="electronegativity" className="bg-[#080d1a] text-white">Electronegativity (χ)</option>
+            <option value="ionizationEnergy" className="bg-[#080d1a] text-white">1st Ionization (eV)</option>
+            <option value="electronAffinity" className="bg-[#080d1a] text-white">Electron Affinity (eV)</option>
+            <option value="meltingPoint" className="bg-[#080d1a] text-white">Melting Point (°C)</option>
+            <option value="boilingPoint" className="bg-[#080d1a] text-white">Boiling Point (°C)</option>
+            <option value="thermalConductivity" className="bg-[#080d1a] text-white">Thermal Cond. (W/m·K)</option>
+            <option value="electricalConductivity" className="bg-[#080d1a] text-white">Electrical Cond. (MS/m)</option>
+          </select>
+
+          {/* Toggle Advanced Simulator & Presets Drawer */}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+              showAdvanced || activeAdvancedCount > 0
+                ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-300'
+                : 'bg-[#070b14] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+            }`}
+            title="Toggle thermal phase simulator, temperature controls, and material cohorts"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden md:inline">Phase Sim & Cohorts</span>
+            {activeAdvancedCount > 0 && (
+              <span className="px-1.5 py-0.2 bg-indigo-500 text-white rounded-full text-[9px] font-mono font-bold">
+                {activeAdvancedCount}
+              </span>
+            )}
+            <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${showAdvanced ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Reset All Filters */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleResetAll}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 flex items-center gap-1 transition-all cursor-pointer"
+              title="Reset all filters, temperature and search to standard STP defaults"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span className="hidden sm:inline">Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Row 3: Temperature Control Bar (Dynamic Phase State) */}
-      <div className="p-3 bg-[#070b14] rounded-xl border border-slate-800/90 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
-            <Thermometer className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase text-slate-400">
-                Isothermal Phase Simulator:
-              </span>
-              <div className="flex bg-black/60 rounded border border-slate-700 text-[9px]">
+      {/* Collapsible Advanced Drawer: Phase Simulation & Crystallographic Cohorts */}
+      {showAdvanced && (
+        <div className="space-y-3 pt-3 border-t border-slate-800/80 animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Temperature Phase Simulator Bar */}
+          <div className="p-3 bg-[#070b14] rounded-xl border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs font-mono">
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                <Thermometer className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase text-slate-400">
+                    Phase State Simulator:
+                  </span>
+                  <div className="flex bg-black/60 rounded border border-slate-700 text-[9px]">
+                    <button
+                      type="button"
+                      onClick={() => setTempUnit('C')}
+                      className={`px-1.5 py-0.5 font-bold cursor-pointer ${tempUnit === 'C' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                    >
+                      °C
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTempUnit('K')}
+                      className={`px-1.5 py-0.5 font-bold cursor-pointer ${tempUnit === 'K' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                    >
+                      K
+                    </button>
+                  </div>
+                </div>
+                <div className="text-sm font-black text-white tabular-nums mt-0.5">
+                  {displayTemp} {tempUnit === 'C' ? '°C' : 'K'}
+                  <span className="text-[10px] text-slate-400 ml-2 font-normal">
+                    ({temperature <= -270 ? 'Absolute Zero' : temperature < 0 ? 'Cryogenic' : temperature <= 35 ? 'STP (25°C)' : temperature <= 1500 ? 'Furnace' : 'Plasma Melt'})
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Slider & Thermal Quick Buttons */}
+            <div className="flex-1 max-w-xl flex flex-col gap-1.5">
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={tempUnit === 'C' ? -273 : 0}
+                  max={tempUnit === 'C' ? 4000 : 4273}
+                  step={5}
+                  value={displayTemp}
+                  onChange={(e) => handleTempSlider(parseFloat(e.target.value))}
+                  className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                />
                 <button
                   type="button"
-                  onClick={() => setTempUnit('C')}
-                  className={`px-1.5 py-0.5 font-bold cursor-pointer ${tempUnit === 'C' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                  onClick={() => setIsPlayingHeat(!isPlayingHeat)}
+                  className={`p-1.5 rounded-lg border transition-all shrink-0 cursor-pointer ${
+                    isPlayingHeat
+                      ? 'bg-rose-600/30 text-rose-300 border-rose-500/50'
+                      : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
+                  }`}
+                  title={isPlayingHeat ? 'Pause thermal ramp' : 'Play thermal ramp simulation'}
                 >
-                  °C
+                  {isPlayingHeat ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setTempUnit('K')}
-                  className={`px-1.5 py-0.5 font-bold cursor-pointer ${tempUnit === 'K' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
-                >
-                  K
+              </div>
+
+              <div className="flex flex-wrap gap-1 text-[9px] text-slate-400 font-bold tabular-nums">
+                <button type="button" onClick={() => onTemperatureChange(-273.15)} className="hover:text-white px-1.5 py-0.5 bg-slate-900 rounded border border-slate-800 cursor-pointer">
+                  0 K (-273°C)
+                </button>
+                <button type="button" onClick={() => onTemperatureChange(-196)} className="hover:text-white px-1.5 py-0.5 bg-slate-900 rounded border border-slate-800 cursor-pointer">
+                  LN₂ (-196°C)
+                </button>
+                <button type="button" onClick={() => onTemperatureChange(25)} className="hover:text-white px-1.5 py-0.5 bg-slate-900 rounded border border-slate-800 cursor-pointer">
+                  STP (25°C)
+                </button>
+                <button type="button" onClick={() => onTemperatureChange(660)} className="hover:text-white px-1.5 py-0.5 bg-slate-900 rounded border border-slate-800 cursor-pointer">
+                  Al (660°C)
+                </button>
+                <button type="button" onClick={() => onTemperatureChange(1085)} className="hover:text-white px-1.5 py-0.5 bg-slate-900 rounded border border-slate-800 cursor-pointer">
+                  Cu (1085°C)
+                </button>
+                <button type="button" onClick={() => onTemperatureChange(1538)} className="hover:text-white px-1.5 py-0.5 bg-slate-900 rounded border border-slate-800 cursor-pointer">
+                  Fe (1538°C)
+                </button>
+                <button type="button" onClick={() => onTemperatureChange(3422)} className="hover:text-white px-1.5 py-0.5 bg-slate-900 rounded border border-slate-800 cursor-pointer">
+                  W (3422°C)
                 </button>
               </div>
             </div>
-            <div className="text-sm font-black text-white tabular-nums mt-0.5">
-              {displayTemp} {tempUnit === 'C' ? '°C' : 'K'}
-              <span className="text-[10px] text-slate-400 ml-2 font-normal">
-                ({temperature <= -270 ? 'Absolute Zero' : temperature < 0 ? 'Cryogenic' : temperature <= 35 ? 'Standard Ambient (STP)' : temperature <= 1500 ? 'High-Temp Furnace' : 'Refractory Melt / Plasma'})
+
+            {/* Phase State Legend */}
+            <div className="flex items-center gap-3 text-[10px] font-bold shrink-0">
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-sm bg-slate-300" />
+                <span className="text-slate-300">Solid</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-sm bg-blue-500" />
+                <span className="text-blue-300">Liquid</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-sm bg-rose-500" />
+                <span className="text-rose-300">Gas</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cohorts & Block Filter Row */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            {/* Quick Cohorts */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1 mr-1">
+                <Award className="w-3.5 h-3.5 text-indigo-400" />
+                Cohorts:
               </span>
+              {QUICK_PRESETS.map(preset => {
+                const isActive = activePreset?.id === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => onSelectPreset(isActive ? null : preset)}
+                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-lg border transition-all flex items-center gap-1 cursor-pointer ${
+                      isActive
+                        ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
+                        : 'bg-[#070b14] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+                    }`}
+                    title={preset.description}
+                  >
+                    <span>{preset.label}</span>
+                    <span className="text-[8.5px] opacity-70">({preset.elementNumbers.length})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Orbital Block Filter */}
+            <div className="flex items-center gap-1 bg-[#070b14] p-0.5 rounded-lg border border-slate-800">
+              <span className="text-[9px] font-mono uppercase font-bold text-slate-500 px-1.5">Block:</span>
+              {(['all', 's', 'p', 'd', 'f'] as const).map(blk => (
+                <button
+                  key={blk}
+                  type="button"
+                  onClick={() => onBlockFilterChange(blockFilter === blk && blk !== 'all' ? 'all' : blk)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer ${
+                    blockFilter === blk
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {blk === 'all' ? 'All' : `${blk}`}
+                </button>
+              ))}
             </div>
           </div>
         </div>
-
-        {/* Range Slider & Thermal Setpoints */}
-        <div className="flex-1 max-w-xl flex flex-col gap-1.5">
-          <div className="flex items-center gap-3">
-            <input
-              type="range"
-              min={tempUnit === 'C' ? -273 : 0}
-              max={tempUnit === 'C' ? 4000 : 4273}
-              step={5}
-              value={displayTemp}
-              onChange={(e) => handleTempSlider(parseFloat(e.target.value))}
-              className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-            />
-            <button
-              type="button"
-              onClick={() => setIsPlayingHeat(!isPlayingHeat)}
-              className={`p-1.5 rounded-lg border transition-all shrink-0 cursor-pointer ${
-                isPlayingHeat
-                  ? 'bg-rose-600/30 text-rose-300 border-rose-500/50'
-                  : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
-              }`}
-              title={isPlayingHeat ? 'Pause thermal ramp' : 'Play thermal ramp simulation'}
-            >
-              {isPlayingHeat ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5 text-[9px] text-slate-400 font-bold tabular-nums">
-            <button type="button" onClick={() => onTemperatureChange(-273.15)} className="hover:text-white px-1.5 py-0.5 bg-slate-900/90 rounded border border-slate-800 cursor-pointer">
-              0 K (-273°C)
-            </button>
-            <button type="button" onClick={() => onTemperatureChange(-196)} className="hover:text-white px-1.5 py-0.5 bg-slate-900/90 rounded border border-slate-800 cursor-pointer">
-              LN₂ (77 K / -196°C)
-            </button>
-            <button type="button" onClick={() => onTemperatureChange(25)} className="hover:text-white px-1.5 py-0.5 bg-slate-900/90 rounded border border-slate-800 cursor-pointer">
-              STP (298 K / 25°C)
-            </button>
-            <button type="button" onClick={() => onTemperatureChange(660)} className="hover:text-white px-1.5 py-0.5 bg-slate-900/90 rounded border border-slate-800 cursor-pointer">
-              Al Melt (660°C)
-            </button>
-            <button type="button" onClick={() => onTemperatureChange(1085)} className="hover:text-white px-1.5 py-0.5 bg-slate-900/90 rounded border border-slate-800 cursor-pointer">
-              Cu Melt (1085°C)
-            </button>
-            <button type="button" onClick={() => onTemperatureChange(1538)} className="hover:text-white px-1.5 py-0.5 bg-slate-900/90 rounded border border-slate-800 cursor-pointer">
-              Fe Melt (1538°C)
-            </button>
-            <button type="button" onClick={() => onTemperatureChange(3422)} className="hover:text-white px-1.5 py-0.5 bg-slate-900/90 rounded border border-slate-800 cursor-pointer">
-              W Melt (3422°C)
-            </button>
-          </div>
-        </div>
-
-        {/* Phase State Legend */}
-        <div className="flex items-center gap-3 text-[10px] font-bold shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-slate-300" />
-            <span className="text-slate-300">Crystalline Solid</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-blue-500" />
-            <span className="text-blue-300">Liquid Melt</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-sm bg-rose-500" />
-            <span className="text-rose-300">Gas / Vapor</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 4: Quick Crystallography & Materials Presets */}
-      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-800/80">
-        <span className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1 mr-1">
-          <Award className="w-3.5 h-3.5 text-indigo-400" />
-          Crystallographic Cohorts:
-        </span>
-        {QUICK_PRESETS.map(preset => {
-          const isActive = activePreset?.id === preset.id;
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => onSelectPreset(isActive ? null : preset)}
-              className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
-                isActive
-                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
-                  : 'bg-[#070b14] border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-              }`}
-              title={preset.description}
-            >
-              <span>{preset.label}</span>
-              <span className="text-[8.5px] opacity-70">({preset.elementNumbers.length})</span>
-            </button>
-          );
-        })}
-      </div>
+      )}
     </div>
   );
 };

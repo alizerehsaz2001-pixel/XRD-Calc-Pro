@@ -2929,26 +2929,34 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   };
 
   return (
-    <div id="crystallography-periodic-table-suite" className="space-y-6">
-      <div className="relative overflow-hidden rounded-[24px] border border-white/5 bg-[#0B0F19] p-6 md:p-8 shadow-2xl isolate">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#0B0F19] to-[#0B0F19] pointer-events-none" />
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 to-transparent blur-[80px] pointer-events-none" />
-        
-        <div className="flex flex-col gap-4 md:flex-row md:items-start justify-between relative z-10">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-indigo-300">
-                Lattice Explorer
-              </span>
-            </div>
-            
-            <h2 className="text-2xl font-bold tracking-tight text-white sm:text-4xl bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400">
+    <div id="crystallography-periodic-table-suite" className="space-y-4">
+      {/* Sleek, organized suite header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0B0F19] border border-slate-800/80 px-5 py-3.5 rounded-2xl shadow-lg">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <Grid className="w-5 h-5 text-indigo-400" />
               Periodic Table & Crystallography
             </h2>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-xl font-medium">
-              Explore structural lattices, Bravais symmetries, space groups, and atomic geometries. Select elements to view unit cell projections, edit properties, and load compound data into the spectrometer.
-            </p>
+            <span className="text-[10px] font-mono text-slate-500 font-semibold border-l border-slate-800 pl-2">
+              118 Elements · Structural Database
+            </span>
           </div>
+          <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+            Explore crystal lattices, space groups, X-ray & neutron scattering, orbitals, and Hume-Rothery metallurgy.
+          </p>
+        </div>
+
+        {/* Quick layout toggle */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => { setLayoutMode(layoutMode === 'split' ? 'expanded' : 'split'); playSynthTone('tick'); }}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+            title="Toggle between Split view (Table + Profiler) and Expanded Full-Width Table"
+          >
+            <span>{layoutMode === 'split' ? 'Full Table' : 'Split View'}</span>
+          </button>
         </div>
       </div>
 
@@ -3064,42 +3072,23 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             elements={fullElementsGrid}
           />
 
-          {/* View Mode & Workspace Layout Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 px-4 py-2.5 rounded-xl text-xs shadow-sm">
+          {/* Quiet status line */}
+          <div className="flex items-center justify-between text-xs text-slate-400 font-mono px-1 py-0.5">
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-medium">Layout View:</span>
-              <button
-                type="button"
-                onClick={() => { setLayoutMode('split'); playSynthTone('tick'); }}
-                className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                  layoutMode === 'split'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Split Layout (Table + Profiler)
-              </button>
-              <button
-                type="button"
-                onClick={() => { setLayoutMode('expanded'); playSynthTone('tick'); }}
-                className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                  layoutMode === 'expanded'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Expanded Table (Full Width)
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
-              <span>Showing <strong className="text-white">{filteredElements.length}</strong> of 118 elements</span>
-              {activeElementInfo && (
-                <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
-                  Selected: <strong>{activeElementInfo.symbol}</strong> ({activeElementInfo.name}, #{activeElementInfo.number})
+              <span>Showing <strong className="text-white">{filteredElements.length}</strong> / 118 elements</span>
+              {filteredElements.length < 118 && (
+                <span className="text-amber-400 text-[10px] font-sans font-medium bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  filtered
                 </span>
               )}
             </div>
+            {activeElementInfo && (
+              <div className="flex items-center gap-1.5 text-xs text-indigo-300">
+                <span className="text-slate-500">Selected:</span>
+                <strong className="text-white font-bold">{activeElementInfo.symbol}</strong>
+                <span>({activeElementInfo.name}, #{activeElementInfo.number})</span>
+              </div>
+            )}
           </div>
 
           {/* Principal Workspace Grid Area */}
@@ -3388,42 +3377,98 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   </div>
                 ) : (
                   <>
-                    {/* Sub-tab navigation bar for detail views */}
-                    <div className="flex bg-[#0B0F19] p-1.5 rounded-xl border border-white/5 gap-1 mt-1 justify-between shadow-inner relative isolate overflow-x-auto scrollbar-thin">
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-fuchsia-500/5 to-emerald-500/0 pointer-events-none" />
-                      {([
-                        { id: 'lattice', label: 'Lattice', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/10 border-rose-500/20' },
-                        { id: 'xray', label: 'X-Ray & XRD', icon: Zap, color: 'text-amber-400', activeBg: 'bg-amber-500/10 border-amber-500/20' },
-                        { id: 'xrf', label: 'XRF', icon: Fingerprint, color: 'text-cyan-400', activeBg: 'bg-cyan-500/10 border-cyan-500/20' },
-                        { id: 'orbitals', label: 'Orbitals', icon: Atom, color: 'text-teal-400', activeBg: 'bg-teal-500/10 border-teal-500/20' },
-                        { id: 'isotopes', label: 'Neutron', icon: Layers, color: 'text-blue-400', activeBg: 'bg-blue-500/10 border-blue-500/20' },
-                        { id: 'alloy', label: 'Alloy', icon: Boxes, color: 'text-violet-400', activeBg: 'bg-violet-500/10 border-violet-500/20' },
-                        { id: 'attenuation', label: 'Attenuation', icon: ShieldAlert, color: 'text-purple-400', activeBg: 'bg-purple-500/10 border-purple-500/20' },
-                        { id: 'chemical', label: 'Chemical', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/10 border-indigo-500/20' },
-                        { id: 'physical', label: 'Physical', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/10 border-emerald-500/20' },
-                        { id: 'stp', label: 'Stoich', icon: FlaskConical, color: 'text-sky-400', activeBg: 'bg-sky-500/10 border-sky-500/20' }
-                      ] as const).map((tab) => {
-                        const Icon = tab.icon;
-                        const active = detailSubTab === tab.id;
-                        return (
-                          <button
-                            key={tab.id}
-                            type="button"
-                            onClick={() => {
-                              setDetailSubTab(tab.id);
-                              playSynthTone('tick');
-                            }}
-                            className={`flex-[1] min-w-[50px] flex items-center justify-center gap-1 px-1.5 py-2 text-[9.5px] font-mono font-bold uppercase tracking-wider rounded-lg border-[0.5px] transition-all duration-300 cursor-pointer z-10 whitespace-nowrap ${
-                              active
-                                ? `${tab.color} ${tab.activeBg} shadow-[inset_0_1px_3px_rgba(255,255,255,0.05)]`
-                                : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/[0.02]'
-                            }`}
-                          >
-                            <Icon className={`w-3.5 h-3.5 ${active ? '' : 'opacity-70'}`} />
-                            <span className="hidden sm:inline">{tab.label}</span>
-                          </button>
-                        );
-                      })}
+                    {/* Organized 2-tier Domain & Sub-tab Navigator */}
+                    <div className="space-y-1.5 mt-1">
+                      {/* Tier 1: Domain Switcher */}
+                      <div className="flex p-0.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px] font-mono font-bold">
+                        {[
+                          {
+                            id: 'structure',
+                            label: 'Structure & Quantum',
+                            tabIds: ['lattice', 'orbitals']
+                          },
+                          {
+                            id: 'metrology',
+                            label: 'Rays & Spectroscopy',
+                            tabIds: ['xray', 'xrf', 'isotopes', 'attenuation']
+                          },
+                          {
+                            id: 'materials',
+                            label: 'Materials & Chemistry',
+                            tabIds: ['alloy', 'chemical', 'physical', 'stp']
+                          }
+                        ].map(domain => {
+                          const isDomainActive = domain.tabIds.includes(detailSubTab);
+                          return (
+                            <button
+                              key={domain.id}
+                              type="button"
+                              onClick={() => {
+                                if (!isDomainActive) {
+                                  setDetailSubTab(domain.tabIds[0] as any);
+                                  playSynthTone('tick');
+                                }
+                              }}
+                              className={`flex-1 py-1 px-1 rounded-lg text-center transition-all cursor-pointer truncate ${
+                                isDomainActive
+                                  ? 'bg-indigo-600 text-white shadow-sm font-black'
+                                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                              }`}
+                            >
+                              {domain.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Tier 2: Specific Analysis Sub-tabs */}
+                      <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-[#070b14] border border-white/5">
+                        {([
+                          // Domain 1: Structure
+                          { id: 'lattice', label: '3D Lattice', domain: 'structure', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/15 border-rose-500/30 text-rose-300' },
+                          { id: 'orbitals', label: 'Radial Orbitals', domain: 'structure', icon: Atom, color: 'text-teal-400', activeBg: 'bg-teal-500/15 border-teal-500/30 text-teal-300' },
+                          // Domain 2: Metrology
+                          { id: 'xray', label: 'X-Ray & XRD', domain: 'metrology', icon: Zap, color: 'text-amber-400', activeBg: 'bg-amber-500/15 border-amber-500/30 text-amber-300' },
+                          { id: 'xrf', label: 'XRF Barcode', domain: 'metrology', icon: Fingerprint, color: 'text-cyan-400', activeBg: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300' },
+                          { id: 'isotopes', label: 'Neutron Deck', domain: 'metrology', icon: Layers, color: 'text-blue-400', activeBg: 'bg-blue-500/15 border-blue-500/30 text-blue-300' },
+                          { id: 'attenuation', label: 'Attenuation (μ/ρ)', domain: 'metrology', icon: ShieldAlert, color: 'text-purple-400', activeBg: 'bg-purple-500/15 border-purple-500/30 text-purple-300' },
+                          // Domain 3: Materials
+                          { id: 'alloy', label: 'Hume-Rothery', domain: 'materials', icon: Boxes, color: 'text-violet-400', activeBg: 'bg-violet-500/15 border-violet-500/30 text-violet-300' },
+                          { id: 'chemical', label: 'Chemical Trends', domain: 'materials', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300' },
+                          { id: 'physical', label: 'Physical Constants', domain: 'materials', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' },
+                          { id: 'stp', label: 'Stoichiometry & STP', domain: 'materials', icon: FlaskConical, color: 'text-sky-400', activeBg: 'bg-sky-500/15 border-sky-500/30 text-sky-300' }
+                        ] as const)
+                          .filter(tab => {
+                            const currentDomain = ['lattice', 'orbitals'].includes(detailSubTab)
+                              ? 'structure'
+                              : ['xray', 'xrf', 'isotopes', 'attenuation'].includes(detailSubTab)
+                              ? 'metrology'
+                              : 'materials';
+                            return tab.domain === currentDomain;
+                          })
+                          .map(tab => {
+                            const Icon = tab.icon;
+                            const active = detailSubTab === tab.id;
+                            return (
+                              <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => {
+                                  setDetailSubTab(tab.id);
+                                  playSynthTone('tick');
+                                }}
+                                className={`flex-1 min-w-[80px] py-1.5 px-2 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 border transition-all cursor-pointer whitespace-nowrap ${
+                                  active
+                                    ? `${tab.activeBg} font-black shadow-sm`
+                                    : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/5'
+                                }`}
+                              >
+                                <Icon className="w-3.5 h-3.5 shrink-0" />
+                                <span>{tab.label}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
                     </div>
 
                     {detailSubTab === 'lattice' && (

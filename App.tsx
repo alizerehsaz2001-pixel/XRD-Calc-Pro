@@ -59,7 +59,7 @@ import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
-import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
+import { useAuth, db, handleFirestoreError, OperationType, signIn, logOut } from './services/firebase';
 import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
 import { syncOfflineHelper } from './utils/materialsHelper';
@@ -76,6 +76,7 @@ import {
 import { ResidualStressModule } from './components/ResidualStressModule';
 import { XRRModule } from './components/XRRModule';
 import { UserActivityPlugin } from './components/UserActivityPlugin';
+import { XRDSectionScanAnimation } from './components/XRDSectionScanAnimation';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
 import { UnitCellsSection } from './components/fundamentals/UnitCellsSection';
 
@@ -235,9 +236,7 @@ const App: React.FC = () => {
      }
   }, [user]);
 
-  const [hasEntered, setHasEntered] = useState<boolean>(() => {
-    return localStorage.getItem('xrd_has_entered') === 'true' || !!localStorage.getItem('xrd_user_registration');
-  });
+  const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isNavigatorOpen, setIsNavigatorOpen] = useState<boolean>(false);
@@ -283,6 +282,18 @@ const App: React.FC = () => {
   const [skipIntros, setSkipIntros] = useState<boolean>(() => {
     return localStorage.getItem('xrd_skip_intros') === 'true';
   });
+  const [showQuickRibbon, setShowQuickRibbon] = useState<boolean>(() => {
+    return localStorage.getItem('xrd_show_quick_ribbon_tools') === 'true';
+  });
+
+  const toggleQuickRibbon = () => {
+    setShowQuickRibbon(prev => {
+      const next = !prev;
+      localStorage.setItem('xrd_show_quick_ribbon_tools', String(next));
+      return next;
+    });
+    playSynthTone('switch');
+  };
   const [isExplained, setIsExplained] = useState<boolean>(false);
 
   // Load persistent configurations from localStorage with robust safety fallbacks
@@ -1510,6 +1521,11 @@ const App: React.FC = () => {
           theme={theme}
           setTheme={setTheme}
           isRegistered={isRegistered}
+          activeModule={activeModule}
+          onReturnToApp={() => {
+            setHasEntered(true);
+            playSynthTone('switch');
+          }}
           onSignOut={() => {
             localStorage.removeItem('xrd_user_registration');
             setIsRegistered(false);
@@ -1576,8 +1592,26 @@ const App: React.FC = () => {
                </button>
             </div>
 
+            {/* Direct Link to Welcome Page & Showcase */}
+            <div className="px-4 pt-3 shrink-0">
+              <button
+                onClick={() => {
+                  setHasEntered(false);
+                  playSynthTone('switch');
+                }}
+                className="w-full px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-violet-500/10 to-indigo-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 cursor-pointer shadow-xs active:scale-95 group"
+                title={t('Return to Welcome Page & Scientific Tour', 'Return to Welcome Page & Scientific Tour')}
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-500 animate-pulse group-hover:rotate-12 transition-transform" />
+                  <span>{t('Welcome Page & Tour', 'Welcome Page & Tour')}</span>
+                </div>
+                <span className="text-[9px] font-mono uppercase bg-amber-500/20 text-amber-600 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">Home</span>
+              </button>
+            </div>
+
             {/* Quick Search / Filter Bar */}
-            <div className="px-4 pt-3 pb-1 shrink-0">
+            <div className="px-4 pt-2 pb-1 shrink-0">
               <div className="relative">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -1623,7 +1657,7 @@ const App: React.FC = () => {
                           key={m.id}
                           onClick={() => {
                             setActiveModule(m.id);
-                            playSynthTone('switch');
+                            playSynthTone('xrd_scan');
                           }}
                           className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group relative flex items-center gap-3 cursor-pointer ${
                             activeModule === m.id
@@ -1704,6 +1738,10 @@ const App: React.FC = () => {
             theme={theme}
             onExpandSidebar={() => setIsSidebarPinned(true)}
             onOpenNavigator={() => setIsNavigatorOpen(true)}
+            onOpenWelcome={() => {
+              setHasEntered(false);
+              playSynthTone('switch');
+            }}
           />
         )}
         
@@ -1756,20 +1794,42 @@ const App: React.FC = () => {
               playSynthTone('success');
               generatePdfReport();
             }}
+            onLoadPreset={handleLoadPreset}
+            showQuickRibbon={showQuickRibbon}
+            onToggleQuickRibbon={toggleQuickRibbon}
+            user={user}
+            onSignOut={() => {
+              logOut().catch(console.error);
+              localStorage.removeItem('xrd_user_registration');
+              setIsRegistered(false);
+              setHasEntered(false);
+            }}
+            onSignIn={() => {
+              signIn().catch(console.error);
+            }}
+            onOpenWelcome={() => {
+              setHasEntered(false);
+              playSynthTone('switch');
+            }}
           />
 
-          {/* User-Friendly Quick Workflow Ribbon & Sample Presets */}
-          <QuickWorkflowRibbon
-            activeModule={activeModule}
-            setActiveModule={setActiveModule}
-            modules={modules}
-            getModuleIcon={getModuleIcon}
-            theme={theme}
-            isExplained={isExplained}
-            setIsExplained={setIsExplained}
-            onLoadPreset={handleLoadPreset}
-            onOpenNavigator={() => setIsNavigatorOpen(true)}
-          />
+          {/* User-Friendly Quick Tools Module Strip (Collapsible) */}
+          <AnimatePresence>
+            {showQuickRibbon && (
+              <QuickWorkflowRibbon
+                activeModule={activeModule}
+                setActiveModule={setActiveModule}
+                modules={modules}
+                getModuleIcon={getModuleIcon}
+                theme={theme}
+                onClose={() => {
+                  setShowQuickRibbon(false);
+                  localStorage.setItem('xrd_show_quick_ribbon_tools', 'false');
+                  playSynthTone('switch');
+                }}
+              />
+            )}
+          </AnimatePresence>
 
           <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar relative">
             <div className="max-w-7xl mx-auto relative">
@@ -1801,6 +1861,9 @@ const App: React.FC = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Dynamic XRD Section Diffraction Scan Animation upon Section Click */}
+              <XRDSectionScanAnimation activeModule={activeModule} theme={theme} />
 
               <AnimatePresence mode="wait">
                   <motion.div

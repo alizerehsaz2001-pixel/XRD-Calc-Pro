@@ -32,6 +32,7 @@ interface NavigationRailProps {
   theme: string;
   onExpandSidebar: () => void;
   onOpenNavigator: () => void;
+  onOpenWelcome?: () => void;
 }
 
 export const NavigationRail: React.FC<NavigationRailProps> = ({
@@ -41,7 +42,8 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
   getModuleIcon,
   theme,
   onExpandSidebar,
-  onOpenNavigator
+  onOpenNavigator,
+  onOpenWelcome
 }) => {
   const { t } = useTranslation();
 
@@ -85,6 +87,23 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
           <span>λ</span>
         </button>
 
+        {/* Welcome Page Button (Mini Rail) */}
+        {onOpenWelcome && (
+          <button
+            onClick={() => {
+              onOpenWelcome();
+              playSynthTone('switch');
+            }}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all cursor-pointer relative group"
+            title={t('Welcome Page & Showcase', 'Welcome Page & Showcase')}
+          >
+            <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+            <span className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-[11px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">
+              {t('Welcome Page', 'Welcome Page')}
+            </span>
+          </button>
+        )}
+
         {/* Quick Search Icon Button */}
         <button
           onClick={() => {
@@ -113,7 +132,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
               <button
                 onClick={() => {
                   setActiveModule(item.id);
-                  playSynthTone('switch');
+                  playSynthTone('xrd_scan');
                 }}
                 className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer relative ${
                   isActive
