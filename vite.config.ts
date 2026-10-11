@@ -33,6 +33,15 @@ export default defineConfig(({ mode }) => {
           output: {
             manualChunks(id) {
               if (id.includes('node_modules')) {
+                if (id.includes('react/') || id.includes('react-dom/') || id.includes('react-i18next') || id.includes('i18next')) {
+                  return 'vendor-react';
+                }
+                if (id.includes('firebase')) {
+                  return 'vendor-firebase';
+                }
+                if (id.includes('jspdf') || id.includes('html2canvas')) {
+                  return 'vendor-pdf';
+                }
                 if (id.includes('katex') || id.includes('rehype-katex') || id.includes('remark-math')) {
                   return 'vendor-katex';
                 }

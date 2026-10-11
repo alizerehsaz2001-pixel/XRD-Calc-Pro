@@ -82,7 +82,7 @@ export interface TopAppBarProps {
   setIsSidebarPinned: (pinned: boolean | ((prev: boolean) => boolean)) => void;
   isExplained: boolean;
   setIsExplained: (explained: boolean) => void;
-  currentClockTime: string;
+  currentClockTime?: string;
   isOnline: boolean;
   firestoreSyncType: 'idle' | 'syncing' | 'success' | 'error';
   firestoreSyncProgress: number;
@@ -186,6 +186,18 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   const [showSampleDropdown, setShowSampleDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeToast, setActiveToast] = useState<ToastAlert | null>(null);
+  
+  const [localClockTime, setLocalClockTime] = useState<string>(() => {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  });
+
+  useEffect(() => {
+    if (!showSystemMenu) return;
+    const timer = setInterval(() => {
+      setLocalClockTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [showSystemMenu]);
   
   const themeMenuRef = useRef<HTMLDivElement>(null);
   const systemMenuRef = useRef<HTMLDivElement>(null);
@@ -844,7 +856,7 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
                 >
                   <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-1.5 flex items-center justify-between">
                     <span>{t('System & Tools', 'System & Tools')}</span>
-                    <span className="font-mono text-indigo-500">{currentClockTime}</span>
+                    <span className="font-mono text-indigo-500">{currentClockTime || localClockTime}</span>
                   </div>
 
                   {/* Python Engine */}

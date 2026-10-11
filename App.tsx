@@ -1,46 +1,50 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useI18n } from './components/I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
 import { DiffractionChart } from './components/DiffractionChart';
-import { DiffractionCompareModule } from './components/DiffractionCompareModule';
-import { SelectionRulesModule } from './components/SelectionRulesModule';
-import { ScherrerModule } from './components/ScherrerModule';
-import { WilliamsonHallModule } from './components/WilliamsonHallModule';
-import { MonshiScherrerModule } from './components/MonshiScherrerModule';
-import { DoubleVoigtModule } from './components/DoubleVoigtModule';
-import { IntegralBreadthModule } from './components/IntegralBreadthModule';
-import { IntegralBreadthAdvancedModule } from './components/IntegralBreadthAdvancedModule';
-import { WarrenAverbachModule } from './components/WarrenAverbachModule';
-import { MethodOfMomentsModule } from './components/MethodOfMomentsModule';
-import { RietveldModule } from './components/RietveldModule';
-import { NeutronModule } from './components/NeutronModule';
-import { MagneticNeutronModule } from './components/MagneticNeutronModule';
-import { DeepLearningModule } from './components/DeepLearningModule';
-import { FWHMModule } from './components/FWHMModule';
-import { PreferredOrientationModule } from './components/PreferredOrientationModule';
-import { CohenRefinementModule } from './components/CohenRefinementModule';
-import { CrystallographicMetricTensorModule } from './components/CrystallographicMetricTensorModule';
-import { SupercellTransformationModule } from './components/SupercellTransformationModule';
-import { PawleyLeBailDecompositionModule } from './components/PawleyLeBailDecompositionModule';
-import { ReferenceIntensityRatioModule } from './components/ReferenceIntensityRatioModule';
-import { ImageAnalysisModule } from './components/ImageAnalysisModule';
-import { ImageGenerationModule } from './components/ImageGenerationModule';
-import { XrdNanoModule } from './components/XrdNanoModule';
-import { PythonExportModule } from './components/PythonExportModule';
-import { MaterialDatabaseExplorer } from './components/MaterialDatabaseExplorer';
 
-import { SettingsModule } from './components/SettingsModule';
-import { ProfilePage } from './components/ProfilePage';
-import { LearnModule } from './components/LearnModule';
-import { AIChatSupport } from './components/AIChatSupport';
+// Lazy-loaded modules for lightning-fast initial page load and memory optimization
+const DiffractionCompareModule = lazy(() => import('./components/DiffractionCompareModule').then(m => ({ default: m.DiffractionCompareModule })));
+const SelectionRulesModule = lazy(() => import('./components/SelectionRulesModule').then(m => ({ default: m.SelectionRulesModule })));
+const ScherrerModule = lazy(() => import('./components/ScherrerModule').then(m => ({ default: m.ScherrerModule })));
+const WilliamsonHallModule = lazy(() => import('./components/WilliamsonHallModule').then(m => ({ default: m.WilliamsonHallModule })));
+const MonshiScherrerModule = lazy(() => import('./components/MonshiScherrerModule').then(m => ({ default: m.MonshiScherrerModule })));
+const DoubleVoigtModule = lazy(() => import('./components/DoubleVoigtModule').then(m => ({ default: m.DoubleVoigtModule })));
+const IntegralBreadthModule = lazy(() => import('./components/IntegralBreadthModule').then(m => ({ default: m.IntegralBreadthModule })));
+const IntegralBreadthAdvancedModule = lazy(() => import('./components/IntegralBreadthAdvancedModule').then(m => ({ default: m.IntegralBreadthAdvancedModule })));
+const WarrenAverbachModule = lazy(() => import('./components/WarrenAverbachModule').then(m => ({ default: m.WarrenAverbachModule })));
+const MethodOfMomentsModule = lazy(() => import('./components/MethodOfMomentsModule').then(m => ({ default: m.MethodOfMomentsModule })));
+const RietveldModule = lazy(() => import('./components/RietveldModule').then(m => ({ default: m.RietveldModule })));
+const NeutronModule = lazy(() => import('./components/NeutronModule').then(m => ({ default: m.NeutronModule })));
+const MagneticNeutronModule = lazy(() => import('./components/MagneticNeutronModule').then(m => ({ default: m.MagneticNeutronModule })));
+const DeepLearningModule = lazy(() => import('./components/DeepLearningModule').then(m => ({ default: m.DeepLearningModule })));
+const FWHMModule = lazy(() => import('./components/FWHMModule').then(m => ({ default: m.FWHMModule })));
+const PreferredOrientationModule = lazy(() => import('./components/PreferredOrientationModule').then(m => ({ default: m.PreferredOrientationModule })));
+const CohenRefinementModule = lazy(() => import('./components/CohenRefinementModule').then(m => ({ default: m.CohenRefinementModule })));
+const CrystallographicMetricTensorModule = lazy(() => import('./components/CrystallographicMetricTensorModule').then(m => ({ default: m.CrystallographicMetricTensorModule })));
+const SupercellTransformationModule = lazy(() => import('./components/SupercellTransformationModule').then(m => ({ default: m.SupercellTransformationModule })));
+const PawleyLeBailDecompositionModule = lazy(() => import('./components/PawleyLeBailDecompositionModule').then(m => ({ default: m.PawleyLeBailDecompositionModule })));
+const ReferenceIntensityRatioModule = lazy(() => import('./components/ReferenceIntensityRatioModule').then(m => ({ default: m.ReferenceIntensityRatioModule })));
+const ImageAnalysisModule = lazy(() => import('./components/ImageAnalysisModule').then(m => ({ default: m.ImageAnalysisModule })));
+const ImageGenerationModule = lazy(() => import('./components/ImageGenerationModule').then(m => ({ default: m.ImageGenerationModule })));
+const XrdNanoModule = lazy(() => import('./components/XrdNanoModule').then(m => ({ default: m.XrdNanoModule })));
+const PythonExportModule = lazy(() => import('./components/PythonExportModule').then(m => ({ default: m.PythonExportModule })));
+const MaterialDatabaseExplorer = lazy(() => import('./components/MaterialDatabaseExplorer').then(m => ({ default: m.MaterialDatabaseExplorer })));
+
+const SettingsModule = lazy(() => import('./components/SettingsModule').then(m => ({ default: m.SettingsModule })));
+const ProfilePage = lazy(() => import('./components/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const LearnModule = lazy(() => import('./components/LearnModule').then(m => ({ default: m.LearnModule })));
+const AIChatSupport = lazy(() => import('./components/AIChatSupport').then(m => ({ default: m.AIChatSupport })));
+const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
+const RegistrationPage = lazy(() => import('./components/RegistrationPage').then(m => ({ default: m.RegistrationPage })));
+const FooterInfoModal = lazy(() => import('./components/FooterInfoModal').then(m => ({ default: m.FooterInfoModal })));
+import type { FooterModalType } from './components/FooterInfoModal';
+
 import { ModuleIntro } from './components/ModuleIntro';
-import { LandingPage } from './components/LandingPage';
-import { RegistrationPage } from './components/RegistrationPage';
-import { FooterInfoModal, FooterModalType } from './components/FooterInfoModal';
 import { SideSeekBar } from './components/SideSeekBar';
 import LanguageSelector from './components/LanguageSelector';
 import { BraggHistory } from './components/BraggHistory';
@@ -48,8 +52,8 @@ import { BraggVisualization } from './components/BraggVisualization';
 import { LatticeEstimator } from './components/LatticeEstimator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext, LengthUnit } from './components/SettingsContext';
-import { PeriodicTableModule } from './components/PeriodicTableModule';
-import { ScientificModuleNavigator } from './components/ScientificModuleNavigator';
+const PeriodicTableModule = lazy(() => import('./components/PeriodicTableModule').then(m => ({ default: m.PeriodicTableModule })));
+const ScientificModuleNavigator = lazy(() => import('./components/ScientificModuleNavigator').then(m => ({ default: m.ScientificModuleNavigator })));
 import { TopAppBar } from './components/TopAppBar';
 import { QuickWorkflowRibbon, SamplePreset } from './components/QuickWorkflowRibbon';
 import { NavigationRail } from './components/NavigationRail';
@@ -58,7 +62,6 @@ import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal, Box, Search } from 'lucide-react';
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
-import { generatePdfReport } from './utils/pdfGenerator';
 import { useAuth, db, handleFirestoreError, OperationType, signIn, logOut } from './services/firebase';
 import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
@@ -73,14 +76,33 @@ import {
   AutoSyncConfig 
 } from './utils/networkUtils';
 
-import { ResidualStressModule } from './components/ResidualStressModule';
-import { XRRModule } from './components/XRRModule';
+const ResidualStressModule = lazy(() => import('./components/ResidualStressModule').then(m => ({ default: m.ResidualStressModule })));
+const XRRModule = lazy(() => import('./components/XRRModule').then(m => ({ default: m.XRRModule })));
 import { UserActivityPlugin } from './components/UserActivityPlugin';
 import { XRDSectionScanAnimation } from './components/XRDSectionScanAnimation';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
-import { UnitCellsSection } from './components/fundamentals/UnitCellsSection';
+const UnitCellsSection = lazy(() => import('./components/fundamentals/UnitCellsSection').then(m => ({ default: m.UnitCellsSection })));
 
 type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
+
+const ModuleLoadingFallback: React.FC = () => (
+  <div className="flex flex-col items-center justify-center p-12 min-h-[380px] rounded-3xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/60 dark:border-white/5 animate-pulse">
+    <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-4">
+      <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+    <div className="h-4 w-48 bg-slate-300 dark:bg-slate-700 rounded-full mb-2" />
+    <div className="h-3 w-32 bg-slate-200 dark:bg-slate-800 rounded-full" />
+  </div>
+);
+
+const PageLoadingFallback: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      <span className="text-xs font-mono tracking-widest text-slate-400 uppercase">Loading XRD-Calc Pro...</span>
+    </div>
+  </div>
+);
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -404,16 +426,6 @@ const App: React.FC = () => {
   const [firestoreSyncType, setFirestoreSyncType] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [totalSyncItems, setTotalSyncItems] = useState<number>(0);
   const [syncedItemsCount, setSyncedItemsCount] = useState<number>(0);
-  const [currentClockTime, setCurrentClockTime] = useState<string>(() => {
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentClockTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
     return localStorage.getItem('xrd_last_sync_time') || null;
@@ -1292,6 +1304,16 @@ const App: React.FC = () => {
     }
   };
 
+  const handleGeneratePdf = async () => {
+    playSynthTone('success');
+    try {
+      const { generatePdfReport } = await import('./utils/pdfGenerator');
+      generatePdfReport();
+    } catch (err) {
+      console.error('Failed to load PDF generator:', err);
+    }
+  };
+
   const braggJsonOutput = {
     module: "Bragg-Basics",
     material: materialName || "Unknown",
@@ -1319,6 +1341,8 @@ const App: React.FC = () => {
     }));
   }, [sampleId, wavelength, rawPeaks, rawHKL, results, materialName, crystalSystem]);
 
+  const lastSavedJsonRef = useRef<string>('');
+
   useEffect(() => {
     if (autosaveInterval <= 0) {
       setIsSaving(false);
@@ -1326,16 +1350,24 @@ const App: React.FC = () => {
     }
 
     const interval = setInterval(() => {
-      setIsSaving(true);
       const currentData = braggStateRef.current;
-      localStorage.setItem('xrd_bragg_autosave', JSON.stringify(currentData));
+      const currentJson = JSON.stringify(currentData);
+      
+      // Skip state update and storage write if no changes have occurred
+      if (currentJson === lastSavedJsonRef.current) {
+        return;
+      }
+      
+      lastSavedJsonRef.current = currentJson;
+      setIsSaving(true);
+      localStorage.setItem('xrd_bragg_autosave', currentJson);
       
       const now = new Date();
       setLastAutosaved(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
       
       setTimeout(() => {
         setIsSaving(false);
-      }, 800);
+      }, 600);
     }, autosaveInterval);
 
     return () => clearInterval(interval);
@@ -1344,8 +1376,10 @@ const App: React.FC = () => {
   const modules = useMemo<{ id: Module; label: string; icon?: string; group?: string }[]>(() => {
     const allModules: { id: Module; label: string; icon?: string; group?: string }[] = [
       { id: 'bragg', label: t('Bragg Basics'), group: t('Fundamentals') },
+      { id: 'unit_cells', label: t('14 Bravais & Crystal Systems'), group: t('Fundamentals') },
       { id: 'fwhm', label: t('FWHM Analysis'), group: t('Fundamentals') },
       { id: 'selection', label: t('Selection Rules'), group: t('Fundamentals') },
+      { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
       { id: 'compare', label: t('Diffraction Compare'), group: t('Fundamentals') },
       { id: 'scherrer', label: t('Scherrer Method'), group: t('Size & Strain') },
       { id: 'wh', label: t('Williamson-Hall'), group: t('Size & Strain') },
@@ -1356,7 +1390,7 @@ const App: React.FC = () => {
       { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
       { id: 'method_of_moments', label: t('Method of Moments'), group: t('Size & Strain') },
       { id: 'residual_stress', label: t('Residual Stress'), group: t('Size & Strain') },
-      { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
+      { id: 'xrr', label: t('X-Ray Reflectometry (XRR)'), group: t('Size & Strain') },
       { id: 'cohen', label: t("Cohen's Matrix Method"), group: t('Advanced Refinement') },
       { id: 'metric_tensor', label: t("Metric Tensor Algebra"), group: t('Advanced Refinement') },
       { id: 'supercell_transform', label: t("Supercell & Matrix Engine"), group: t('Advanced Refinement') },
@@ -1365,10 +1399,11 @@ const App: React.FC = () => {
       { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
       { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
       { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
+      { id: 'xrd_nano', label: t('Nano-Crystallite Simulator'), group: t('Advanced Sim') },
+      { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
       { id: 'dl', label: t('PhaseID Neural Net'), group: t('AI Tools') },
       { id: 'image_analysis', label: t('Image Analysis'), group: t('AI Tools') },
       { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
-      { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
       { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
       { id: 'periodic_table', label: t('Periodic Table'), group: t('Intelligence') },
       { id: 'database', label: t('Material Registry'), group: t('Intelligence') },
@@ -1495,54 +1530,61 @@ const App: React.FC = () => {
   if (!hasEntered) {
     return (
       <div className={theme === 'light' ? '' : theme}>
-        <LandingPage
-          onEnter={(mode?: 'register' | 'login', targetModule?: Module) => {
-            localStorage.setItem('xrd_has_entered', 'true');
-            const savedReg = localStorage.getItem('xrd_user_registration');
-            if (!savedReg) {
-              const defaultGuest = {
-                name: 'Guest Crystallographer',
-                email: 'guest@quantum-crystallography.org',
-                organization: 'Quantum Crystallography Labs',
-                nationality: 'American',
-                researchRole: 'Lead Investigator',
-                researchField: 'Condensed Matter Physics',
-                registeredAt: new Date().toISOString()
-              };
-              localStorage.setItem('xrd_user_registration', JSON.stringify(defaultGuest));
-              setIsRegistered(true);
-            }
-            setAuthMode(mode || 'register');
-            setHasEntered(true);
-            if (targetModule) {
-              setActiveModule(targetModule);
-            }
-          }}
-          theme={theme}
-          setTheme={setTheme}
-          isRegistered={isRegistered}
-          activeModule={activeModule}
-          onReturnToApp={() => {
-            setHasEntered(true);
-            playSynthTone('switch');
-          }}
-          onSignOut={() => {
-            localStorage.removeItem('xrd_user_registration');
-            setIsRegistered(false);
-            setHasEntered(false);
-          }}
-        />
+        <Suspense fallback={<PageLoadingFallback />}>
+          <LandingPage
+            onEnter={(mode?: 'register' | 'login', targetModule?: Module) => {
+              localStorage.setItem('xrd_has_entered', 'true');
+              const savedReg = localStorage.getItem('xrd_user_registration');
+              if (!savedReg) {
+                const defaultGuest = {
+                  name: 'Guest Crystallographer',
+                  email: 'guest@quantum-crystallography.org',
+                  organization: 'Quantum Crystallography Labs',
+                  nationality: 'American',
+                  researchRole: 'Lead Investigator',
+                  researchField: 'Condensed Matter Physics',
+                  registeredAt: new Date().toISOString()
+                };
+                localStorage.setItem('xrd_user_registration', JSON.stringify(defaultGuest));
+                setIsRegistered(true);
+              }
+              setAuthMode(mode || 'register');
+              setHasEntered(true);
+              if (targetModule) {
+                setActiveModule(targetModule);
+              }
+            }}
+            theme={theme}
+            setTheme={setTheme}
+            isRegistered={isRegistered}
+            activeModule={activeModule}
+            onReturnToApp={(targetModule?: Module) => {
+              if (targetModule) {
+                setActiveModule(targetModule);
+              }
+              setHasEntered(true);
+              playSynthTone('switch');
+            }}
+            onSignOut={() => {
+              localStorage.removeItem('xrd_user_registration');
+              setIsRegistered(false);
+              setHasEntered(false);
+            }}
+          />
+        </Suspense>
       </div>
     );
   }
 
   if (!isRegistered) {
     return (
-      <RegistrationPage
-        initialMode={authMode}
-        onRegister={() => setIsRegistered(true)}
-        onBack={() => setHasEntered(false)}
-      />
+      <Suspense fallback={<PageLoadingFallback />}>
+        <RegistrationPage
+          initialMode={authMode}
+          onRegister={() => setIsRegistered(true)}
+          onBack={() => setHasEntered(false)}
+        />
+      </Suspense>
     );
   }
 
@@ -1681,10 +1723,7 @@ const App: React.FC = () => {
             <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm space-y-2.5">
               <button
                 id="export-pdf-report-btn"
-                onClick={() => {
-                  playSynthTone('success');
-                  generatePdfReport();
-                }}
+                onClick={handleGeneratePdf}
                 className={`w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border ${
                   theme === 'cyberpunk'
                     ? 'bg-cyber-pink hover:bg-cyber-pink/85 border-cyber-accent text-white shadow-[0_0_15px_rgba(255,0,255,0.3)]'
@@ -1762,7 +1801,6 @@ const App: React.FC = () => {
             setIsSidebarPinned={setIsSidebarPinned}
             isExplained={isExplained}
             setIsExplained={setIsExplained}
-            currentClockTime={currentClockTime}
             isOnline={isOnline}
             firestoreSyncType={firestoreSyncType}
             firestoreSyncProgress={firestoreSyncProgress}
@@ -1790,10 +1828,7 @@ const App: React.FC = () => {
             setWavelength={setWavelength}
             onCalculate={() => handleCalculate(true)}
             onClearAll={handleClearAll}
-            onExportPdf={() => {
-              playSynthTone('success');
-              generatePdfReport();
-            }}
+            onExportPdf={handleGeneratePdf}
             onLoadPreset={handleLoadPreset}
             showQuickRibbon={showQuickRibbon}
             onToggleQuickRibbon={toggleQuickRibbon}
@@ -1954,99 +1989,101 @@ const App: React.FC = () => {
                     </div>
                   )}
 
-                  {activeModule === 'fwhm' && <FWHMModule />}
-                  {activeModule === 'selection' && <SelectionRulesModule />}
-                  {activeModule === 'compare' && (
-                    <DiffractionCompareModule 
-                      activeResults={comparePeaks || results} 
-                      activeMaterialName={compareMaterialName || materialName} 
-                    />
-                  )}
-                  {activeModule === 'scherrer' && <ScherrerModule />}
-                  {activeModule === 'wh' && <WilliamsonHallModule />}
-                  {activeModule === 'monshi_scherrer' && <MonshiScherrerModule />}
-                  {activeModule === 'double_voigt' && <DoubleVoigtModule />}
-                  {activeModule === 'integral' && <IntegralBreadthModule />}
-                  {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
-                  {activeModule === 'wa' && <WarrenAverbachModule />}
-                  {activeModule === 'method_of_moments' && <MethodOfMomentsModule />}
-                  {activeModule === 'residual_stress' && <ResidualStressModule />}
-                  {activeModule === 'xrr' && <XRRModule />}
-                  {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
-                  {activeModule === 'cohen' && (
-                    <CohenRefinementModule 
-                      activeResults={results} 
-                      activeMaterialName={materialName} 
-                    />
-                  )}
-                  {activeModule === 'metric_tensor' && (
-                    <CrystallographicMetricTensorModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
-                  )}
-                  {activeModule === 'supercell_transform' && (
-                    <SupercellTransformationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
-                  )}
-                  {activeModule === 'pawley_lebail' && (
-                    <PawleyLeBailDecompositionModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
-                  )}
-                  {activeModule === 'rir' && <ReferenceIntensityRatioModule />}
-                  {activeModule === 'rietveld' && <RietveldModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
-                  {activeModule === 'neutron' && <NeutronModule />}
-                  {activeModule === 'magnetic' && <MagneticNeutronModule />}
-                  {activeModule === 'dl' && <DeepLearningModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
-                  {activeModule === 'image_analysis' && (
-                    <ImageAnalysisModule 
-                      pythonFeaturesEnabled={pythonFeaturesEnabled} 
-                      onLoadPeaks={(peaksStr, hklStr, matName) => {
-                        setRawPeaks(peaksStr);
-                        if (hklStr) setRawHKL(hklStr);
-                        if (matName) setMaterialName(matName);
-                        setActiveModule('bragg');
-                      }}
-                    />
-                  )}
-                  {activeModule === 'image_gen' && <ImageGenerationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
-                  {activeModule === 'xrd_nano' && <XrdNanoModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
-                  {activeModule === 'python_export' && <PythonExportModule />}
-                  {activeModule === 'learn' && <LearnModule />}
-                  {activeModule === 'unit_cells' && <UnitCellsSection />}
-                  {activeModule === 'database' && <MaterialDatabaseExplorer pythonFeaturesEnabled={pythonFeaturesEnabled} />}
-                  {activeModule === 'periodic_table' && (
-                    <PeriodicTableModule
-                      onLoadPeaks={(peaksStr, hklStr, matName) => {
-                        setRawPeaks(peaksStr);
-                        setRawHKL(hklStr);
-                        setMaterialName(matName);
-                        setActiveModule('bragg');
-                      }}
-                    />
-                  )}
-                  {activeModule === 'profile' && <ProfilePage />}
-                  {activeModule === 'settings' && (
-                    <SettingsModule 
-                      theme={theme}
-                      setTheme={setTheme}
-                      precision={precision}
-                      setPrecision={setPrecision}
-                      animationsEnabled={animationsEnabled}
-                      setAnimationsEnabled={setAnimationsEnabled}
-                      soundEnabled={soundEnabled}
-                      setSoundEnabled={setSoundEnabled}
-                      zeroShift={zeroShift}
-                      setZeroShift={setZeroShift}
-                      sampleDisplacement={sampleDisplacement}
-                      setSampleDisplacement={setSampleDisplacement}
-                      goniometerRadius={goniometerRadius}
-                      setGoniometerRadius={setGoniometerRadius}
-                      defaultWavelength={defaultWavelength}
-                      setDefaultWavelength={setDefaultWavelength}
-                      autosaveInterval={autosaveInterval}
-                      setAutosaveInterval={setAutosaveInterval}
-                      pythonFeaturesEnabled={pythonFeaturesEnabled}
-                      setPythonFeaturesEnabled={setPythonFeaturesEnabled}
-                      lengthUnit={lengthUnit}
-                      setLengthUnit={setLengthUnit}
-                    />
-                  )}
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    {activeModule === 'fwhm' && <FWHMModule />}
+                    {activeModule === 'selection' && <SelectionRulesModule />}
+                    {activeModule === 'compare' && (
+                      <DiffractionCompareModule 
+                        activeResults={comparePeaks || results} 
+                        activeMaterialName={compareMaterialName || materialName} 
+                      />
+                    )}
+                    {activeModule === 'scherrer' && <ScherrerModule />}
+                    {activeModule === 'wh' && <WilliamsonHallModule />}
+                    {activeModule === 'monshi_scherrer' && <MonshiScherrerModule />}
+                    {activeModule === 'double_voigt' && <DoubleVoigtModule />}
+                    {activeModule === 'integral' && <IntegralBreadthModule />}
+                    {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
+                    {activeModule === 'wa' && <WarrenAverbachModule />}
+                    {activeModule === 'method_of_moments' && <MethodOfMomentsModule />}
+                    {activeModule === 'residual_stress' && <ResidualStressModule />}
+                    {activeModule === 'xrr' && <XRRModule />}
+                    {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
+                    {activeModule === 'cohen' && (
+                      <CohenRefinementModule 
+                        activeResults={results} 
+                        activeMaterialName={materialName} 
+                      />
+                    )}
+                    {activeModule === 'metric_tensor' && (
+                      <CrystallographicMetricTensorModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
+                    )}
+                    {activeModule === 'supercell_transform' && (
+                      <SupercellTransformationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
+                    )}
+                    {activeModule === 'pawley_lebail' && (
+                      <PawleyLeBailDecompositionModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
+                    )}
+                    {activeModule === 'rir' && <ReferenceIntensityRatioModule />}
+                    {activeModule === 'rietveld' && <RietveldModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                    {activeModule === 'neutron' && <NeutronModule />}
+                    {activeModule === 'magnetic' && <MagneticNeutronModule />}
+                    {activeModule === 'dl' && <DeepLearningModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                    {activeModule === 'image_analysis' && (
+                      <ImageAnalysisModule 
+                        pythonFeaturesEnabled={pythonFeaturesEnabled} 
+                        onLoadPeaks={(peaksStr, hklStr, matName) => {
+                          setRawPeaks(peaksStr);
+                          if (hklStr) setRawHKL(hklStr);
+                          if (matName) setMaterialName(matName);
+                          setActiveModule('bragg');
+                        }}
+                      />
+                    )}
+                    {activeModule === 'image_gen' && <ImageGenerationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                    {activeModule === 'xrd_nano' && <XrdNanoModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                    {activeModule === 'python_export' && <PythonExportModule />}
+                    {activeModule === 'learn' && <LearnModule />}
+                    {activeModule === 'unit_cells' && <UnitCellsSection />}
+                    {activeModule === 'database' && <MaterialDatabaseExplorer pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                    {activeModule === 'periodic_table' && (
+                      <PeriodicTableModule
+                        onLoadPeaks={(peaksStr, hklStr, matName) => {
+                          setRawPeaks(peaksStr);
+                          setRawHKL(hklStr);
+                          setMaterialName(matName);
+                          setActiveModule('bragg');
+                        }}
+                      />
+                    )}
+                    {activeModule === 'profile' && <ProfilePage />}
+                    {activeModule === 'settings' && (
+                      <SettingsModule 
+                        theme={theme}
+                        setTheme={setTheme}
+                        precision={precision}
+                        setPrecision={setPrecision}
+                        animationsEnabled={animationsEnabled}
+                        setAnimationsEnabled={setAnimationsEnabled}
+                        soundEnabled={soundEnabled}
+                        setSoundEnabled={setSoundEnabled}
+                        zeroShift={zeroShift}
+                        setZeroShift={setZeroShift}
+                        sampleDisplacement={sampleDisplacement}
+                        setSampleDisplacement={setSampleDisplacement}
+                        goniometerRadius={goniometerRadius}
+                        setGoniometerRadius={setGoniometerRadius}
+                        defaultWavelength={defaultWavelength}
+                        setDefaultWavelength={setDefaultWavelength}
+                        autosaveInterval={autosaveInterval}
+                        setAutosaveInterval={setAutosaveInterval}
+                        pythonFeaturesEnabled={pythonFeaturesEnabled}
+                        setPythonFeaturesEnabled={setPythonFeaturesEnabled}
+                        lengthUnit={lengthUnit}
+                        setLengthUnit={setLengthUnit}
+                      />
+                    )}
+                  </Suspense>
                 </ErrorBoundary>
               </motion.div>
             </AnimatePresence>
@@ -2089,21 +2126,23 @@ const App: React.FC = () => {
               </p>
             </div>
           </main>
-          <AIChatSupport />
+          <Suspense fallback={null}>
+            <AIChatSupport />
 
-          {/* Footer Info Modal for App */}
-          <FooterInfoModal 
-            isOpen={!!appFooterModal}
-            modalType={appFooterModal}
-            onClose={() => setAppFooterModal(null)}
-            isRTL={isRTL}
-            onActionNavigate={(modKey) => {
-              setAppFooterModal(null);
-              if (modKey) {
-                setActiveModule(modKey as any);
-              }
-            }}
-          />
+            {/* Footer Info Modal for App */}
+            <FooterInfoModal 
+              isOpen={!!appFooterModal}
+              modalType={appFooterModal}
+              onClose={() => setAppFooterModal(null)}
+              isRTL={isRTL}
+              onActionNavigate={(modKey) => {
+                setAppFooterModal(null);
+                if (modKey) {
+                  setActiveModule(modKey as any);
+                }
+              }}
+            />
+          </Suspense>
           
           {/* Global Keyboard Shortcut Modal / Cheat Sheet Overlay */}
           {showShortcutsModal && (
@@ -2658,16 +2697,18 @@ const App: React.FC = () => {
           </AnimatePresence>
 
           {/* Scientific Module Navigator Modal */}
-          <ScientificModuleNavigator
-            isOpen={isNavigatorOpen}
-            onClose={() => setIsNavigatorOpen(false)}
-            activeModule={activeModule}
-            onSelectModule={(modId) => {
-              setActiveModule(modId as Module);
-              playSynthTone('switch');
-            }}
-            theme={theme}
-          />
+          <Suspense fallback={null}>
+            <ScientificModuleNavigator
+              isOpen={isNavigatorOpen}
+              onClose={() => setIsNavigatorOpen(false)}
+              activeModule={activeModule}
+              onSelectModule={(modId) => {
+                setActiveModule(modId as Module);
+                playSynthTone('switch');
+              }}
+              theme={theme}
+            />
+          </Suspense>
 
           {/* User Activity & Telemetry Plugin */}
           <UserActivityPlugin

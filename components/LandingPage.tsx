@@ -69,6 +69,7 @@ import { InteractiveHeroDiffractionShowcase } from './landing/InteractiveHeroDif
 import { WelcomeTourModal } from './landing/WelcomeTourModal';
 import { ExperimentQuickLaunchpad } from './landing/ExperimentQuickLaunchpad';
 import { WelcomeFloatingDock } from './landing/WelcomeFloatingDock';
+import { ResumeSectionPickerModal, ResumeModuleId } from './landing/ResumeSectionPickerModal';
 
 // --- Background Decorations ---
 const DiffractionGrid = () => (
@@ -344,21 +345,19 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => 
   };
 
   useEffect(() => {
+    if (!isDraggingCanvas) return;
+
     const handleGlobalMove = (e: MouseEvent) => {
-      if (isDraggingCanvas) {
-        handleCanvasDrag(e.clientY);
-      }
+      handleCanvasDrag(e.clientY);
     };
     const handleGlobalTouchMove = (e: TouchEvent) => {
-      if (isDraggingCanvas) {
-        handleCanvasDrag(e.touches[0].clientY);
-      }
+      handleCanvasDrag(e.touches[0].clientY);
     };
     const handleGlobalUp = () => {
       setIsDraggingCanvas(false);
     };
 
-    window.addEventListener('mousemove', handleGlobalMove);
+    window.addEventListener('mousemove', handleGlobalMove, { passive: true });
     window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
     window.addEventListener('mouseup', handleGlobalUp);
     window.addEventListener('touchend', handleGlobalUp);
@@ -1196,7 +1195,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
   isRegistered?: boolean,
   onSignOut?: () => void,
   activeModule?: string,
-  onReturnToApp?: () => void
+  onReturnToApp?: (targetModule?: any) => void
 }) => {
   const { t, i18n } = useTranslation();
   const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
@@ -1212,6 +1211,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
   const [footerModal, setFooterModal] = useState<FooterModalType>(null);
   const [isEnteringApp, setIsEnteringApp] = useState(false);
   const [isResumingApp, setIsResumingApp] = useState(false);
+  const [showResumePickerModal, setShowResumePickerModal] = useState(false);
   const [pendingLaunchMode, setPendingLaunchMode] = useState<'login' | 'register'>('login');
   const [pendingTargetModule, setPendingTargetModule] = useState<any>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
@@ -1237,9 +1237,16 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
   };
 
   const handleResumeApp = (targetMod?: string) => {
+    // Instead of auto-jumping into Bragg basis or any default section,
+    // show the special resume list asking which section to resume into!
+    setShowResumePickerModal(true);
+  };
+
+  const handleSelectResumeSection = (selectedModule: ResumeModuleId) => {
+    setShowResumePickerModal(false);
     setIsResumingApp(true);
     setPendingLaunchMode(isRegistered ? 'login' : 'register');
-    setPendingTargetModule(targetMod || activeModule || 'bragg');
+    setPendingTargetModule(selectedModule);
     setIsEnteringApp(true);
   };
 
@@ -1449,22 +1456,40 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
   const springY = useSpring(mouseY, { stiffness: 50, damping: 15 });
 
   useEffect(() => {
+    let animFrame: number | null = null;
     const handleMouseMove = (e: MouseEvent) => {
-      const xOffset = (e.clientX / window.innerWidth - 0.5) * 60;
-      const yOffset = (e.clientY / window.innerHeight - 0.5) * -60;
-      mouseX.set(xOffset);
-      mouseY.set(yOffset);
+      if (animFrame !== null) return;
+      animFrame = requestAnimationFrame(() => {
+        const xOffset = (e.clientX / window.innerWidth - 0.5) * 60;
+        const yOffset = (e.clientY / window.innerHeight - 0.5) * -60;
+        mouseX.set(xOffset);
+        mouseY.set(yOffset);
+        animFrame = null;
+      });
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      if (animFrame !== null) cancelAnimationFrame(animFrame);
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
   }, [mouseX, mouseY]);
 
   useEffect(() => {
+    let lastScrolled = false;
+    let lastBackToTop = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-      setShowBackToTop(window.scrollY > 400);
+      const scrolled = window.scrollY > 50;
+      const backToTop = window.scrollY > 400;
+      if (scrolled !== lastScrolled) {
+        lastScrolled = scrolled;
+        setIsScrolled(scrolled);
+      }
+      if (backToTop !== lastBackToTop) {
+        lastBackToTop = backToTop;
+        setShowBackToTop(backToTop);
+      }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -2849,6 +2874,15 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
         }}
       />
 
+      {/* Special Resume Section Picker Modal (All 34 Sections Available) */}
+      <ResumeSectionPickerModal
+        isOpen={showResumePickerModal}
+        onClose={() => setShowResumePickerModal(false)}
+        onSelectSection={handleSelectResumeSection}
+        previousActiveModule={activeModule}
+        isRTL={isRTL}
+      />
+
       {/* Animated Portal Launch Screen with XRD Diffraction Engine */}
       <AppLaunchPortal 
         isEntering={isEnteringApp}
@@ -2859,7 +2893,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
           if (isResumingApp && onReturnToApp) {
             setIsResumingApp(false);
             setIsEnteringApp(false);
-            onReturnToApp();
+            onReturnToApp(pendingTargetModule || undefined);
           } else {
             setIsResumingApp(false);
             setIsEnteringApp(false);
