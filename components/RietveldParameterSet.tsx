@@ -454,17 +454,17 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
       <button
         onClick={onSnap}
         title={`Click to snap back to target nominal: ${nominal.toFixed(decimals)}${unit}`}
-        className={`px-2 py-1 rounded font-mono text-xs font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
+        className={`px-2 py-0.5 rounded font-mono text-[11px] font-semibold border transition-colors flex items-center gap-1 cursor-pointer shrink-0 ${
           isClose 
-            ? 'bg-slate-800 border-emerald-500/50 text-emerald-400 hover:bg-slate-700' 
+            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400 hover:bg-emerald-900/50' 
             : isModerate 
-            ? 'bg-slate-800 border-amber-500/50 text-amber-400 hover:bg-slate-700' 
-            : 'bg-slate-800 border-rose-500/50 text-rose-400 hover:bg-slate-700'
+            ? 'bg-amber-950/40 border-amber-500/40 text-amber-400 hover:bg-amber-900/50' 
+            : 'bg-rose-950/40 border-rose-500/40 text-rose-400 hover:bg-rose-900/50'
         }`}
       >
-        <span>Δ {diff >= 0 ? `+${diff.toFixed(decimals)}` : diff.toFixed(decimals)}{unit}</span>
-        <span className="opacity-75">({pct.toFixed(1)}%)</span>
-        <Target className="w-3 h-3 opacity-80" />
+        <span className="whitespace-nowrap">Δ {diff >= 0 ? `+${diff.toFixed(decimals)}` : diff.toFixed(decimals)}{unit}</span>
+        <span className="opacity-75 text-[10px]">({pct.toFixed(1)}%)</span>
+        <Target className="w-2.5 h-2.5 opacity-80 shrink-0" />
       </button>
     );
   };
@@ -476,14 +476,14 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
       <button
         onClick={() => toggleFlag(flagKey)}
         title={isFree ? `${label} is FREE: solver will optimize this parameter. Click to LOCK.` : `${label} is LOCKED (Fixed): held constant. Click to REFINE.`}
-        className={`px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 border transition-colors cursor-pointer ${
+        className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 border transition-colors cursor-pointer shrink-0 ${
           isFree 
-            ? 'bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700' 
+            ? 'bg-indigo-950/40 border-indigo-500/40 text-indigo-300 hover:bg-indigo-900/50' 
             : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'
         }`}
       >
-        {isFree ? <Unlock className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-        <span>{isFree ? 'Free' : 'Fixed'}</span>
+        {isFree ? <Unlock className="w-2.5 h-2.5 text-indigo-400 shrink-0" /> : <Lock className="w-2.5 h-2.5 text-slate-400 shrink-0" />}
+        <span>{isFree ? 'Free' : 'Lock'}</span>
       </button>
     );
   };
@@ -498,16 +498,16 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
   return (
     <div id="rietveld-parameter-set-card" className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
       {/* 1. Header & Live Quality Status Bar */}
-      <div className="p-5 border-b border-slate-800 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-900/90">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <div className="p-4 sm:p-5 border-b border-slate-800 bg-gradient-to-r from-slate-900/90 via-slate-900/70 to-slate-900/90">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 shadow-inner">
               <Settings className="w-5 h-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-lg font-bold text-slate-100 tracking-tight">Rietveld Parameter Set</h2>
-                <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 truncate max-w-[160px]">
                   {currentPhaseObj.name}
                 </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
@@ -521,10 +521,10 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
           </div>
 
           {/* Live Rwp & χ² Quality Badge */}
-          <div className="flex items-center gap-3 self-start lg:self-center flex-wrap">
-            <div className="flex items-center gap-3 px-4 py-2 rounded-xl border border-slate-700/80 bg-slate-950/60 shadow-md">
+          <div className="flex items-center gap-3 self-start xl:self-center flex-wrap shrink-0">
+            <div className="flex items-center gap-3 px-3.5 py-2 rounded-xl border border-slate-700/80 bg-slate-950/60 shadow-md">
               <div className="flex flex-col text-right">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Weighted Profile</span>
+                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Weighted Profile</span>
                 <span className={`text-sm font-black font-mono tracking-tight ${
                   rFactor < 12 ? 'text-emerald-400' : rFactor < 25 ? 'text-amber-400' : 'text-rose-400'
                 }`}>
@@ -533,14 +533,14 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
               </div>
               <div className="w-[1px] h-8 bg-slate-800" />
               <div className="flex flex-col text-left">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Goodness of Fit (χ²)</span>
+                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Goodness of Fit (χ²)</span>
                 <span className="text-sm font-black font-mono text-cyan-300">
                   {(Math.pow(rFactor / referenceRwp, 2)).toFixed(2)}
                 </span>
               </div>
               <div className="w-[1px] h-8 bg-slate-800" />
               <div className="flex flex-col text-left">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Stability</span>
+                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Stability</span>
                 <span className="text-sm font-black font-mono text-emerald-300">
                   {stabilityPercentage.toFixed(0)}%
                 </span>
@@ -549,117 +549,114 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
           </div>
         </div>
 
-        {/* 2. Quick Action Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 mt-4 pt-3.5 border-t border-slate-800/80">
-          {/* 5-Stage Guided Auto Refine */}
-          <button 
-            onClick={runStepwiseRefinement}
-            className={`px-3.5 py-1.5 rounded-lg transition-all border flex items-center gap-2 font-bold text-xs cursor-pointer shadow-sm ${
-              stepwiseActive 
-                ? 'text-slate-950 bg-emerald-400 border-emerald-300 hover:bg-emerald-300 shadow-emerald-950/50' 
-                : 'text-emerald-300 bg-emerald-950/30 border-emerald-500/40 hover:bg-emerald-900/40'
-            }`}
-            title="Execute automated 5-stage sequential Rietveld refinement protocol"
-          >
-            <Zap className={`w-3.5 h-3.5 ${stepwiseActive ? 'animate-bounce' : 'text-emerald-400'}`} />
-            {stepwiseActive ? `Stage ${stepwiseStage}/5 Refining...` : 'Auto Refine (5-Stage)'}
-          </button>
-
-          {/* 1-Step LM Refinement */}
-          {onRunLmStep && (
-            <button
-              onClick={onRunLmStep}
-              className="px-3 py-1.5 rounded-lg transition-all border border-indigo-500/30 bg-indigo-950/30 hover:bg-indigo-900/40 text-indigo-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-              title="Perform single damped Levenberg-Marquardt iteration step"
-            >
-              <Activity className="w-3.5 h-3.5 text-indigo-400" />
-              1-Step LM
-            </button>
-          )}
-
-          {/* Direct Stage Triggers */}
-          {onRunSingleStage && (
-            <div className="flex items-center gap-1 bg-slate-950/70 p-1 rounded-lg border border-slate-800">
-              <span className="text-[10px] uppercase font-bold text-slate-400 px-1.5">Stage:</span>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => onRunSingleStage(s)}
-                  className="px-2 py-0.5 rounded text-[11px] font-mono font-bold text-slate-300 hover:text-white hover:bg-indigo-600 transition-colors cursor-pointer"
-                  title={`Execute only Stage ${s}`}
-                >
-                  S{s}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Snap to Certified Nominal Target */}
-          <button
-            onClick={onResetToNominal}
-            className="px-3 py-1.5 rounded-lg transition-all border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
-            title="Reset parameters to canonical target/reference values"
-          >
-            <Target className="w-3.5 h-3.5 text-amber-400" />
-            Snap Target
-          </button>
-
-          {/* Cold Perturb / Perturb Starting Point */}
-          <button 
-            onClick={onResetCold}
-            className="px-3 py-1.5 rounded-lg transition-all border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer"
-            title="Perturb parameters by 5-20% to test solver convergence from scratch"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
-            Perturb
-          </button>
-
-          <div className="flex-1" />
-
-          {/* Live Tuning Toggle */}
-          <button 
-            onClick={() => setIsAutoRefining(!isAutoRefining)}
-            className={`px-3 py-1.5 rounded-lg transition-all border flex items-center gap-1.5 font-bold text-xs cursor-pointer ${
-              isAutoRefining 
-                ? 'text-emerald-300 bg-emerald-950/40 border-emerald-500/50 shadow-sm' 
-                : 'text-slate-400 bg-slate-800/60 border-slate-700 hover:bg-slate-800 hover:text-slate-200'
-            }`}
-            title="Toggle interactive real-time simulation updates"
-          >
-            <PlayCircle className={`w-3.5 h-3.5 ${isAutoRefining ? 'text-emerald-400' : 'text-slate-500'}`} />
-            {isAutoRefining ? 'Live Active' : 'Live Tuning'}
-          </button>
-
-          {/* Python Engine Toggle */}
-          {pythonFeaturesEnabled && (
+        {/* 2. Quick Action Toolbar - Clean, Non-Overlapping Layout */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 mt-4 pt-3.5 border-t border-slate-800/80">
+          {/* Primary Refinement Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
             <button 
-              onClick={() => setIsPythonActive(!isPythonActive)}
-              className={`px-3 py-1.5 rounded-lg transition-all border flex items-center gap-1.5 font-semibold text-xs cursor-pointer ${
-                isPythonActive 
-                  ? 'text-cyan-300 bg-cyan-950/40 border-cyan-500/50' 
+              onClick={runStepwiseRefinement}
+              className={`px-3 py-1.5 rounded-lg transition-all border flex items-center gap-1.5 font-bold text-xs cursor-pointer shadow-sm shrink-0 ${
+                stepwiseActive 
+                  ? 'text-slate-950 bg-emerald-400 border-emerald-300 hover:bg-emerald-300 shadow-emerald-950/50' 
+                  : 'text-emerald-300 bg-emerald-950/30 border-emerald-500/40 hover:bg-emerald-900/40'
+              }`}
+              title="Execute automated 5-stage sequential Rietveld refinement protocol"
+            >
+              <Zap className={`w-3.5 h-3.5 ${stepwiseActive ? 'animate-bounce' : 'text-emerald-400'}`} />
+              <span>{stepwiseActive ? `Stage ${stepwiseStage}/5...` : 'Auto Refine'}</span>
+            </button>
+
+            {onRunLmStep && (
+              <button
+                onClick={onRunLmStep}
+                className="px-2.5 py-1.5 rounded-lg transition-all border border-indigo-500/30 bg-indigo-950/30 hover:bg-indigo-900/40 text-indigo-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                title="Perform single damped Levenberg-Marquardt iteration step"
+              >
+                <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                <span>1-Step LM</span>
+              </button>
+            )}
+
+            {onRunSingleStage && (
+              <div className="flex items-center gap-1 bg-slate-950/70 p-1 rounded-lg border border-slate-800 shrink-0">
+                <span className="text-[10px] uppercase font-bold text-slate-400 px-1">Stage:</span>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => onRunSingleStage(s)}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold text-slate-300 hover:text-white hover:bg-indigo-600 transition-colors cursor-pointer"
+                    title={`Execute only Stage ${s}`}
+                  >
+                    S{s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Reset & Calibration Controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={onResetToNominal}
+              className="px-2.5 py-1.5 rounded-lg transition-all border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Reset parameters to canonical target/reference values"
+            >
+              <Target className="w-3.5 h-3.5 text-amber-400" />
+              <span>Snap Target</span>
+            </button>
+
+            <button 
+              onClick={onResetCold}
+              className="px-2.5 py-1.5 rounded-lg transition-all border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Perturb parameters by 5-20% to test solver convergence from scratch"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Perturb</span>
+            </button>
+
+            <button 
+              onClick={() => setIsAutoRefining(!isAutoRefining)}
+              className={`px-2.5 py-1.5 rounded-lg transition-all border flex items-center gap-1.5 font-bold text-xs cursor-pointer shrink-0 ${
+                isAutoRefining 
+                  ? 'text-emerald-300 bg-emerald-950/40 border-emerald-500/50 shadow-sm' 
                   : 'text-slate-400 bg-slate-800/60 border-slate-700 hover:bg-slate-800 hover:text-slate-200'
               }`}
-              title="Toggle server-side Python SciPy/Pandas Rietveld optimizer"
+              title="Toggle interactive real-time simulation updates"
             >
-              <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-              Python
+              <PlayCircle className={`w-3.5 h-3.5 ${isAutoRefining ? 'text-emerald-400' : 'text-slate-500'}`} />
+              <span>{isAutoRefining ? 'Live Active' : 'Live Tuning'}</span>
             </button>
-          )}
 
-          {isPythonActive && (
-            <button 
-              onClick={runPythonRietveldRefinement}
-              disabled={isPythonRefining}
-              className={`px-3 py-1.5 rounded-lg transition-all border flex items-center gap-1.5 font-bold text-xs cursor-pointer ${
-                isPythonRefining 
-                  ? 'text-slate-400 bg-slate-800 border-slate-700 cursor-wait' 
-                  : 'text-white bg-cyan-600 border-cyan-500 hover:bg-cyan-500 shadow-sm'
-              }`}
-            >
-              {isPythonRefining ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Cpu className="w-3.5 h-3.5" />}
-              {isPythonRefining ? 'Refining...' : 'Run SciPy'}
-            </button>
-          )}
+            {pythonFeaturesEnabled && (
+              <button 
+                onClick={() => setIsPythonActive(!isPythonActive)}
+                className={`px-2.5 py-1.5 rounded-lg transition-all border flex items-center gap-1.5 font-semibold text-xs cursor-pointer shrink-0 ${
+                  isPythonActive 
+                    ? 'text-cyan-300 bg-cyan-950/40 border-cyan-500/50' 
+                    : 'text-slate-400 bg-slate-800/60 border-slate-700 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+                title="Toggle server-side Python SciPy/Pandas Rietveld optimizer"
+              >
+                <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Python</span>
+              </button>
+            )}
+
+            {isPythonActive && (
+              <button 
+                onClick={runPythonRietveldRefinement}
+                disabled={isPythonRefining}
+                className={`px-2.5 py-1.5 rounded-lg transition-all border flex items-center gap-1.5 font-bold text-xs cursor-pointer shrink-0 ${
+                  isPythonRefining 
+                    ? 'text-slate-400 bg-slate-800 border-slate-700 cursor-wait' 
+                    : 'text-white bg-cyan-600 border-cyan-500 hover:bg-cyan-500 shadow-sm'
+                }`}
+              >
+                {isPythonRefining ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Cpu className="w-3.5 h-3.5" />}
+                <span>{isPythonRefining ? 'Refining...' : 'Run SciPy'}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stepwise Banner when active */}
@@ -867,49 +864,49 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
       </div>
 
       {/* 4. Global Refinement Protocol Presets & Step Sensitivity Bar */}
-      <div className="px-5 py-3 bg-slate-950/40 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-4 sm:px-5 py-2.5 bg-slate-950/40 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mr-1.5">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mr-1">
             <Sliders className="w-3.5 h-3.5 text-indigo-400" /> Presets:
           </span>
           <button
             onClick={() => applyRefinePreset('stage1')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
+            className="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
             title="Refine Scale Only"
           >
-            Stage 1 (Scale)
+            S1 (Scale)
           </button>
           <button
             onClick={() => applyRefinePreset('stage2')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
+            className="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
             title="Refine Scale + Zero Shift"
           >
-            Stage 2 (+Zero)
+            S2 (+Zero)
           </button>
           <button
             onClick={() => applyRefinePreset('stage3')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
+            className="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
             title="Refine Scale + Zero + Lattice"
           >
-            Stage 3 (+Lattice)
+            S3 (+Lattice)
           </button>
           <button
             onClick={() => applyRefinePreset('stage4')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
+            className="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-mono font-semibold text-slate-300 transition-colors cursor-pointer"
             title="Refine Scale + Zero + Lattice + Profile"
           >
-            Stage 4 (+Profile)
+            S4 (+Profile)
           </button>
           <button
             onClick={() => applyRefinePreset('all')}
-            className="px-2.5 py-1 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-xs font-mono font-bold text-emerald-300 transition-colors cursor-pointer"
+            className="px-2 py-1 rounded-md bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-[11px] font-mono font-bold text-emerald-300 transition-colors cursor-pointer"
             title="Free all parameters for full refinement"
           >
             Free All
           </button>
           <button
             onClick={() => applyRefinePreset('none')}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono font-semibold text-slate-400 transition-colors cursor-pointer"
+            className="px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] font-mono font-semibold text-slate-400 transition-colors cursor-pointer"
             title="Lock all parameters"
           >
             Lock All
@@ -917,24 +914,24 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
         </div>
 
         {/* Step Sensitivity Toggle */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Step:</span>
           <div className="bg-slate-950 p-0.5 rounded-lg border border-slate-800 flex items-center">
             <button
               onClick={() => setStepSensitivity('fine')}
-              className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-xs font-mono font-bold transition-all cursor-pointer ${
                 stepSensitivity === 'fine' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Fine (0.001)
+              Fine
             </button>
             <button
               onClick={() => setStepSensitivity('coarse')}
-              className={`px-2.5 py-1 rounded-md text-xs font-mono font-bold transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-xs font-mono font-bold transition-all cursor-pointer ${
                 stepSensitivity === 'coarse' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Coarse (0.02)
+              Coarse
             </button>
           </div>
         </div>
@@ -1071,13 +1068,13 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
             </div>
 
             {/* Parameter 1: Lattice Parameter a (Å) */}
-            <div className="p-5 rounded-lg bg-slate-800/30 border border-slate-700 hover:border-slate-600 transition-colors space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-200 flex items-center gap-1.5">
+            <div className="p-4 sm:p-5 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-slate-600 transition-colors space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-semibold text-slate-200 flex items-center gap-1.5 truncate">
                     Lattice Parameter <span className="font-mono text-emerald-400 font-bold">a</span>
                   </span>
-                  <span className="text-xs font-mono text-slate-400">(Å)</span>
+                  <span className="text-xs font-mono text-slate-400 shrink-0">(Å)</span>
                   <WhatDoesThisMeanTooltip 
                     term="Lattice Constant a"
                     explanation="The edge length of the unit cell along the primary crystallographic axis."
@@ -1085,17 +1082,17 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
                     ruleOfThumb="Refine only after scale factor and zero shift are stabilized to avoid severe parameter divergence."
                   />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {renderDeltaChip(userParams.a, targetLookup.a, ' Å', () => snapParamToTarget('a'), 4)}
                   {renderLockToggle('refineLattice', 'Lattice a')}
                 </div>
               </div>
 
               {/* Slider, Micro-Steppers, and Numeric Input */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   onClick={() => setUserParams((p: any) => ({ ...p, a: parseFloat((p.a - 0.01 * stepCoeff).toFixed(4)) }))}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer shrink-0"
                   title="Step Down"
                 >
                   -
@@ -1107,48 +1104,48 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
                   step={0.001 * stepCoeff}
                   value={userParams.a}
                   onChange={(e) => setUserParams((p: any) => ({ ...p, a: parseFloat(e.target.value) }))}
-                  className="flex-1 accent-emerald-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
+                  className="flex-1 min-w-[60px] accent-emerald-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
                 />
                 <button
                   onClick={() => setUserParams((p: any) => ({ ...p, a: parseFloat((p.a + 0.01 * stepCoeff).toFixed(4)) }))}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer shrink-0"
                   title="Step Up"
                 >
                   +
                 </button>
-                <div className="w-28">
+                <div className="w-24 shrink-0">
                   <input
                     type="number"
                     step={0.0001}
                     value={userParams.a}
                     onChange={(e) => setUserParams((p: any) => ({ ...p, a: parseFloat(e.target.value) || 0 }))}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-1.5 text-sm font-mono font-semibold text-emerald-400 text-right focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-600 rounded-md px-2.5 py-1.5 text-sm font-mono font-semibold text-emerald-400 text-right focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               {/* Live Derived Crystallographic Cards */}
-              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-slate-700">
-                <div className="p-3 rounded border border-slate-700 bg-slate-800 flex flex-col">
-                  <span className="text-slate-400 font-semibold uppercase text-xs">Cell Volume (V)</span>
-                  <span className="text-slate-200 font-mono font-semibold mt-1">{stats.volume.toFixed(2)} Å³</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2.5 border-t border-slate-700/60">
+                <div className="p-2.5 rounded-lg border border-slate-700 bg-slate-800/80 flex flex-col">
+                  <span className="text-slate-400 font-semibold uppercase text-[10px]">Cell Volume (V)</span>
+                  <span className="text-slate-200 font-mono font-semibold text-xs mt-0.5">{stats.volume.toFixed(2)} Å³</span>
                 </div>
-                <div className="p-3 rounded border border-slate-700 bg-slate-800 flex flex-col">
-                  <span className="text-slate-400 font-semibold uppercase text-xs">Theor. Density (ρ)</span>
-                  <span className="text-emerald-400 font-mono font-semibold mt-1">{stats.density.toFixed(2)} g/cm³</span>
+                <div className="p-2.5 rounded-lg border border-slate-700 bg-slate-800/80 flex flex-col">
+                  <span className="text-slate-400 font-semibold uppercase text-[10px]">Theor. Density (ρ)</span>
+                  <span className="text-emerald-400 font-mono font-semibold text-xs mt-0.5">{stats.density.toFixed(2)} g/cm³</span>
                 </div>
-                <div className="p-3 rounded border border-slate-700 bg-slate-800 flex flex-col">
-                  <span className="text-slate-400 font-semibold uppercase text-xs">Formula Units (Z)</span>
-                  <span className="text-indigo-400 font-mono font-semibold mt-1">Z = {stats.z}</span>
+                <div className="p-2.5 rounded-lg border border-slate-700 bg-slate-800/80 flex flex-col">
+                  <span className="text-slate-400 font-semibold uppercase text-[10px]">Formula Units (Z)</span>
+                  <span className="text-indigo-400 font-mono font-semibold text-xs mt-0.5">Z = {stats.z}</span>
                 </div>
               </div>
             </div>
 
             {/* Parameter 2: Scale Factor Sp */}
-            <div className="p-5 rounded-lg bg-slate-800/30 border border-slate-700 hover:border-slate-600 transition-colors space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-slate-200 flex items-center gap-1.5">
+            <div className="p-4 sm:p-5 rounded-xl bg-slate-800/30 border border-slate-700 hover:border-slate-600 transition-colors space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-semibold text-slate-200 flex items-center gap-1.5 truncate">
                     Phase Scale Factor <span className="font-mono text-emerald-400 font-bold">S_p</span>
                   </span>
                   <WhatDoesThisMeanTooltip 
@@ -1158,16 +1155,16 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
                     ruleOfThumb="Refine first before all other structural parameters (Stage 1)."
                   />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {renderDeltaChip(userParams.scale, targetLookup.scale, '', () => snapParamToTarget('scale'), 0)}
                   {renderLockToggle('refineScale', 'Scale Factor')}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   onClick={() => setUserParams((p: any) => ({ ...p, scale: Math.max(10, Math.round(p.scale - 50 * stepCoeff)) }))}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer shrink-0"
                 >
                   -
                 </button>
@@ -1178,21 +1175,21 @@ export const RietveldParameterSet: React.FC<RietveldParameterSetProps> = ({
                   step={10 * stepCoeff}
                   value={userParams.scale}
                   onChange={(e) => setUserParams((p: any) => ({ ...p, scale: parseInt(e.target.value) }))}
-                  className="flex-1 accent-emerald-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
+                  className="flex-1 min-w-[60px] accent-emerald-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer"
                 />
                 <button
                   onClick={() => setUserParams((p: any) => ({ ...p, scale: Math.min(10000, Math.round(p.scale + 50 * stepCoeff)) }))}
-                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer"
+                  className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold text-slate-300 font-mono cursor-pointer shrink-0"
                 >
                   +
                 </button>
-                <div className="w-28">
+                <div className="w-24 shrink-0">
                   <input
                     type="number"
                     step={10}
                     value={userParams.scale}
                     onChange={(e) => setUserParams((p: any) => ({ ...p, scale: parseInt(e.target.value) || 0 }))}
-                    className="w-full bg-slate-900 border border-slate-600 rounded-md px-3 py-1.5 text-sm font-mono font-semibold text-emerald-400 text-right focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-900 border border-slate-600 rounded-md px-2.5 py-1.5 text-sm font-mono font-semibold text-emerald-400 text-right focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>

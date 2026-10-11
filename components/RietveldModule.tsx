@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
-  Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
+  Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, Maximize2, Minimize2, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
   Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check, Trash2, Cpu, Terminal
 } from 'lucide-react';
@@ -474,6 +474,17 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
   const [activeTab, setActiveTab ] = useState<'simulation' | 'setup' | 'log' | 'rfactor'>('simulation');
   const [showMatrix, setShowMatrix] = useState(false);
   const [isPythonActive, setIsPythonActive] = useState<boolean>(pythonFeaturesEnabled);
+  const [isChartFullscreen, setIsChartFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isChartFullscreen) {
+        setIsChartFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isChartFullscreen]);
 
   // --- Simulation State ---
   interface SimStructure {
@@ -1221,7 +1232,14 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
 
     const R = Math.sqrt(sumResSq / Math.max(0.0001, sumObsSq)) * 100;
     
-    return { data, R };
+    // Sample every 2nd point for 60FPS Recharts rendering (800 points instead of 1600)
+    // Halves SVG overhead and path computations while preserving peak profiles and resolution
+    const chartData = [];
+    for (let i = 0; i < dataLen; i += 2) {
+      chartData.push(data[i]);
+    }
+
+    return { data, chartData, R };
   }, [simPhases, obsIntensities, customObsIntensities, simZeroShift, simSampleDisplacement, simBackground]);
 
   const rFactor = generatePatternData.R;
@@ -2930,7 +2948,11 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           </div>
 
           <div className="lg:col-span-7">
-            <div className="bg-[#050A14] p-8 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-800/80 h-[650px] flex flex-col relative overflow-hidden group/pattern ring-1 ring-white/5 ring-inset backdrop-blur-2xl">
+            <div className={`bg-[#050A14] p-5 sm:p-7 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-800/80 flex flex-col relative group/pattern ring-1 ring-white/5 ring-inset backdrop-blur-2xl transition-all duration-300 ${
+              isChartFullscreen
+                ? 'fixed inset-2 md:inset-4 z-[9999] h-[calc(100vh-16px)] md:h-[calc(100vh-32px)] max-h-none shadow-[0_0_80px_rgba(0,0,0,0.95)] border-teal-500/50 overflow-y-auto'
+                : 'h-[680px] overflow-hidden'
+            }`}>
               {/* Custom Background Graphic */}
               <div className="absolute inset-0 z-0 pointer-events-none opacity-5 group-hover/pattern:opacity-10 transition-opacity duration-1000 mix-blend-screen">
                 <img src={rietveldBg} alt="Rietveld Pattern" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -2939,53 +2961,80 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
               <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none group-hover/pattern:bg-teal-500/10 transition-all duration-1000"></div>
               <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px] pointer-events-none group-hover/pattern:bg-blue-500/10 transition-all duration-1000"></div>
               
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 relative z-10">
-                 <div>
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 relative z-10">
+                 <div className="min-w-0">
                    <h3 className="text-xl font-medium text-slate-100 flex items-center gap-3 tracking-tight font-sans">
-                     <div className="p-2.5 bg-teal-500/10 rounded-xl border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
+                     <div className="p-2.5 bg-teal-500/10 rounded-xl border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)] shrink-0">
                         <BarChart2 className="w-5 h-5 text-teal-400" />
                      </div>
-                     Diffraction Pattern Analysis <span className="text-white/50 lowercase px-1 text-sm pt-1">for</span> <span className="text-teal-300 text-lg">{currentPhaseObj.name}</span>
+                     <span className="truncate">Diffraction Pattern Analysis <span className="text-white/50 lowercase px-1 text-sm pt-1">for</span> <span className="text-teal-300 text-lg">{currentPhaseObj.name}</span></span>
                    </h3>
                    <div className="flex items-center gap-2 mt-2 px-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)] shrink-0" />
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">Real-time Spectral Synthesis</span>
+                      <span className="text-slate-600">•</span>
+                      <span className="text-[10px] font-mono text-teal-400 font-bold">R_wp: {rFactor.toFixed(2)}%</span>
                    </div>
                  </div>
 
-                 <div className="flex flex-wrap gap-2 p-1.5 bg-black/40 rounded-xl border border-white/5 shadow-inner backdrop-blur-xl max-w-2xl justify-end">
-                     <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
-                       <div className="w-2 h-2 rounded-full bg-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.6)]"></div>
-                       <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Obs</span>
-                     </div>
-                     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-lg border border-red-500/10 hover:bg-red-500/20 transition-colors cursor-default">
-                       <div className="w-3 h-0.5 bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]"></div>
-                       <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Calc</span>
-                     </div>
-                     {simPhases.filter(p => p.enabled).map((p, idx) => {
-                       const colors = ['#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#34d399', '#f87171'];
-                       const color = colors[idx % colors.length];
-                       return (
-                         <div key={`legend-${idx}`} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-default">
-                           <div className="w-3 h-0.5" style={{ backgroundColor: color }}></div>
-                           <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color }}>{p.name}</span>
-                         </div>
-                       );
-                     })}
-                     <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
-                       <div className="w-3 h-px border-t border-dashed border-slate-500"></div>
-                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Bkg</span>
-                     </div>
-                     <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 rounded-lg border border-slate-700/50 hover:bg-slate-700/40 transition-colors cursor-default">
-                       <div className="w-3 h-0.5 bg-slate-500 rounded-full"></div>
-                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Diff</span>
-                     </div>
+                 <div className="flex items-center gap-2 flex-wrap self-stretch lg:self-auto justify-end">
+                   {/* Compact Legend Badges */}
+                   <div className="flex flex-wrap gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5 shadow-inner backdrop-blur-xl">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
+                        <div className="w-2 h-2 rounded-full bg-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.6)]"></div>
+                        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Obs</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 rounded-lg border border-red-500/10 hover:bg-red-500/20 transition-colors cursor-default">
+                        <div className="w-3 h-0.5 bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]"></div>
+                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Calc</span>
+                      </div>
+                      {simPhases.filter(p => p.enabled).map((p, idx) => {
+                        const colors = ['#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#34d399', '#f87171'];
+                        const color = colors[idx % colors.length];
+                        return (
+                          <div key={`legend-${idx}`} className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-default">
+                            <div className="w-2.5 h-0.5" style={{ backgroundColor: color }}></div>
+                            <span className="text-[9px] font-bold uppercase tracking-widest truncate max-w-[85px]" style={{ color }}>{p.name}</span>
+                          </div>
+                        );
+                      })}
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
+                        <div className="w-2.5 h-px border-t border-dashed border-slate-500"></div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Bkg</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800/40 rounded-lg border border-slate-700/50 hover:bg-slate-700/40 transition-colors cursor-default">
+                        <div className="w-2.5 h-0.5 bg-slate-500 rounded-full"></div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Diff</span>
+                      </div>
+                   </div>
+
+                   {/* Fullscreen Toggle Button */}
+                   <button
+                     onClick={() => {
+                       setIsChartFullscreen(!isChartFullscreen);
+                       playSynthTone('switch');
+                     }}
+                     className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-teal-300 border border-slate-700 hover:border-teal-500/50 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
+                     title={isChartFullscreen ? "Exit Fullscreen (Esc)" : "Expand to Fullscreen"}
+                   >
+                     {isChartFullscreen ? (
+                       <>
+                         <Minimize2 className="w-4 h-4 text-teal-400" />
+                         <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Exit</span>
+                       </>
+                     ) : (
+                       <>
+                         <Maximize2 className="w-4 h-4 text-teal-400" />
+                         <span className="text-[10px] font-bold uppercase tracking-wider font-mono">Fullscreen</span>
+                       </>
+                     )}
+                   </button>
                  </div>
               </div>
 
               <div className="flex-1 w-full min-h-0 relative z-10 bg-black/20 rounded-2xl border border-white/5 p-4 backdrop-blur-sm">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={generatePatternData.data} margin={{ top: 20, right: 20, left: -10, bottom: 20 }}>
+                  <ComposedChart data={generatePatternData.chartData || generatePatternData.data} margin={{ top: 20, right: 20, left: -10, bottom: 25 }}>
                     <defs>
                       <linearGradient id="diffGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#475569" stopOpacity={0.6}/>
@@ -3002,17 +3051,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                           <feMergeNode in="SourceGraphic"/>
                         </feMerge>
                       </filter>
-                      <filter id="obsGlow">
-                        <feGaussianBlur stdDeviation="1.5" result="blur" />
-                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                      </filter>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.5} />
                     <XAxis 
                       dataKey="twoTheta" 
                       type="number" 
                       domain={[SIMULATION_RANGE.start, SIMULATION_RANGE.end]} 
-                      label={{ value: 'Angular Position [2θ°]', position: 'bottom', offset: 0, fill: '#94a3b8', fontSize: 11, fontWeight: 900, textAnchor: 'middle', letterSpacing: '0.15em' }}
+                      label={{ value: 'Angular Position [2θ°]', position: 'bottom', offset: 5, fill: '#94a3b8', fontSize: 11, fontWeight: 900, textAnchor: 'middle', letterSpacing: '0.15em' }}
                       tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
                       axisLine={{ stroke: '#334155', strokeWidth: 1.5 }}
                       tickLine={{ stroke: '#334155', strokeWidth: 1.5 }}
@@ -3042,7 +3087,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       activeDot={{ r: 3, fill: '#64748b', stroke: '#0f172a', strokeWidth: 1 }}
                     />
                     
-                    {/* Original Observed Data points */}
+                    {/* Original Observed Data points - Fast optimized rendering without GPU filter thrashing */}
                     <Scatter 
                       dataKey="obs" 
                       name="obs"
@@ -3050,9 +3095,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       shape={(props: any) => {
                         const { cx, cy } = props;
                         return (
-                          <g filter="url(#obsGlow)">
-                            <circle cx={cx} cy={cy} r={1.5} fill="#f1f5f9" fillOpacity={0.8} />
-                          </g>
+                          <circle cx={cx} cy={cy} r={1.25} fill="#f1f5f9" fillOpacity={0.8} />
                         );
                       }}
                       isAnimationActive={false}
@@ -3146,7 +3189,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                           fontSize: 9,
                           fontWeight: 'bold',
                           fontFamily: 'monospace',
-                          dy: -5, // offset slightly to fit within top margin
+                          dy: -5,
                         }}
                       />
                     ))}
@@ -3154,42 +3197,113 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                 </ResponsiveContainer>
               </div>
 
-              {/* Status Overlay */}
-              <div className="absolute bottom-6 left-6 flex items-center gap-4 bg-[#0B1221]/80 backdrop-blur-md px-5 py-2.5 rounded-full border border-slate-700/50 z-20 shadow-[0_5px_20px_rgba(0,0,0,0.5)]">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute animate-ping opacity-75" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] relative z-10" />
+              {/* Bottom Telemetry Bar - Positioned below the chart without overlapping X-axis ticks or numbers */}
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5 relative z-10 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 absolute animate-ping opacity-75" />
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] relative z-10" />
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest font-mono">Live Spectral Feed</span>
                   </div>
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">Active Data Feed</span>
+                  <div className="h-3 w-[1px] bg-slate-700/80" />
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">
+                    Step: <span className="text-white">{SIMULATION_RANGE.step}°</span>
+                  </span>
+                  <div className="h-3 w-[1px] bg-slate-700/80" />
+                  <span className="text-[10px] font-mono text-slate-400">
+                    R_wp: <span className="text-emerald-400 font-bold">{rFactor.toFixed(2)}%</span>
+                  </span>
+                  <div className="h-3 w-[1px] bg-slate-700/80" />
+                  <span className="text-[10px] font-mono text-slate-400">
+                    χ²: <span className="text-cyan-400 font-bold">{(Math.pow(rFactor / referenceRwp, 2)).toFixed(2)}</span>
+                  </span>
                 </div>
-                <div className="h-4 w-[1px] bg-slate-700/80" />
-                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">Resolution: <span className="text-white">{SIMULATION_RANGE.step}°/step</span></span>
-                <div className="h-4 w-[1px] bg-slate-700/80" />
-                <div className="flex items-center gap-2">
-                   <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                   <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-bold">Rendering Engine</span>
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold">Levenberg-Marquardt Solver</span>
+                  </div>
+                  {isChartFullscreen && (
+                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+                      Press [Esc] to exit
+                    </span>
+                  )}
                 </div>
               </div>
+
+              {/* Fullscreen Comprehensive Metrology & Actions Strip */}
+              {isChartFullscreen && (
+                <div className="mt-4 pt-4 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10 bg-black/40 p-4 rounded-2xl border border-white/5">
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-teal-400">Refinement Quick Actions</span>
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <button
+                        onClick={handleRunLmStep}
+                        disabled={isSolverRefining}
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-teal-500/20 text-teal-300 border border-teal-500/40 hover:bg-teal-500/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Play className="w-3 h-3 text-teal-400" /> 1-Cycle LM
+                      </button>
+                      <button
+                        onClick={() => handleRunMultiCycle(5)}
+                        disabled={isSolverRefining}
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-teal-500/20 text-teal-300 border border-teal-500/40 hover:bg-teal-500/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3 h-3 text-teal-400 ${isSolverRefining ? 'animate-spin' : ''}`} /> 5 Cycles
+                      </button>
+                      <button
+                        onClick={handleResetToNominal}
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3 text-amber-400" /> Reset
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400">Active Phase Parameters</span>
+                    <div className="text-xs text-slate-300 flex items-center gap-3 pt-0.5">
+                      <span>a = <strong className="font-mono text-emerald-400">{currentPhaseObj.a.toFixed(4)} Å</strong></span>
+                      <span>FWHM = <strong className="font-mono text-violet-400">{currentPhaseObj.fwhm.toFixed(3)}°</strong></span>
+                      <span>η = <strong className="font-mono text-amber-400">{currentPhaseObj.eta.toFixed(2)}</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400">Quantitative Mass Fractions</span>
+                    <div className="flex items-center gap-2 pt-0.5 flex-wrap">
+                      {qpaResults.slice(0, 3).map((q) => (
+                        <span key={q.phaseId} className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                          {q.phaseName}: <strong className="text-teal-400">{q.weightFraction.toFixed(1)}%</strong>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* Physical Residual Corrections Advisor */}
-          <div className="mt-8">
-            <PhysicalResidualCorrectionsModule
-              data={generatePatternData.data}
-              currentZeroShift={setupZeroShift}
-              currentDisplacement={sampleDisplacement}
-              currentFwhm={currentPhaseObj.fwhm}
-              currentEta={currentPhaseObj.eta}
-              bgTerms={bgTerms}
-              onApplyCorrection={handleApplyPhysicalCorrection}
-            />
-          </div>
+        {/* Physical Residual Corrections Advisor - Full Width Section */}
+        <div className="w-full mt-8">
+          <PhysicalResidualCorrectionsModule
+            data={generatePatternData.data}
+            currentZeroShift={setupZeroShift}
+            currentDisplacement={sampleDisplacement}
+            currentFwhm={currentPhaseObj.fwhm}
+            currentEta={currentPhaseObj.eta}
+            bgTerms={bgTerms}
+            onApplyCorrection={handleApplyPhysicalCorrection}
+          />
+        </div>
 
-          {/* Python and Pandas Refinement Report */}
-          {(pythonFeaturesEnabled || isPythonActive) && (isPythonRefining || pythonRefineResult || pythonRefineError) && (
-            <div className="mt-8 bg-[#050A14] rounded-[2rem] border border-amber-500/20 p-8 shadow-[0_20px_50px_rgba(245,158,11,0.1)] relative overflow-hidden group hover:border-amber-500/40 transition-colors">
+        {/* Python and Pandas Refinement Report - Full Width Section */}
+        {(pythonFeaturesEnabled || isPythonActive) && (isPythonRefining || pythonRefineResult || pythonRefineError) && (
+          <div className="w-full mt-8 bg-[#050A14] rounded-[2rem] border border-amber-500/20 p-8 shadow-[0_20px_50px_rgba(245,158,11,0.1)] relative overflow-hidden group hover:border-amber-500/40 transition-colors">
               {/* Custom Background Graphic */}
               <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
                 <img src={rietveldBg} alt="Python Refinement" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -3328,7 +3442,6 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
             </div>
           )}
         </div>
-      </div>
       )}
       
       {activeTab === 'setup' && (
@@ -4379,9 +4492,105 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           {/* Results Output */}
           <div id="rietveld-result" className="lg:col-span-7 scroll-mt-6">
             <div className="flex flex-col gap-6 h-full">
-               
-               {/* Strategy Card */}
-               {result && (
+
+                {/* Pre-Flight Preview Card when result is not yet compiled */}
+                {!result && (
+                  <div className="bg-[#050A14] backdrop-blur-md p-6 lg:p-8 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-teal-500/20 relative overflow-hidden group space-y-6 animate-in fade-in duration-300">
+                    <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
+                      <img src={rietveldBg} alt="Rietveld Setup" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
+                    </div>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10 border-b border-white/5 pb-5">
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-400 font-mono text-[9px] font-bold uppercase tracking-widest border border-teal-500/20">
+                          <CheckCircle2 className="w-3 h-3" /> Pre-Flight Configuration Staged
+                        </div>
+                        <h3 className="text-xl font-bold text-white tracking-tight">Refinement Protocol Preview</h3>
+                        <p className="text-xs text-slate-400 max-w-lg leading-relaxed">
+                          Your parameter configuration matrix has been staged across {refinementMetrics.activePhases} phase(s). Click below to compile the mathematical execution strategy, evaluate degrees of freedom, and formulate the step-by-step solver protocol.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={handleGenerate}
+                        disabled={isGenerating}
+                        className="px-5 py-3 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-teal-500/20 transition-all flex items-center gap-2 cursor-pointer shrink-0 active:scale-95 disabled:opacity-50"
+                      >
+                        {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                        <span>{isGenerating ? 'Compiling...' : 'Build Strategy'}</span>
+                      </button>
+                    </div>
+
+                    {/* Pre-flight Parameter Checklist */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10 font-mono">
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+                        <span className="text-[8px] uppercase text-slate-500 block mb-1">Global Flags</span>
+                        <span className="text-lg font-bold text-teal-400">{refinementMetrics.global}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+                        <span className="text-[8px] uppercase text-slate-500 block mb-1">Phase Flags</span>
+                        <span className="text-lg font-bold text-amber-400">{refinementMetrics.phase}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+                        <span className="text-[8px] uppercase text-slate-500 block mb-1">Active Phases</span>
+                        <span className="text-lg font-bold text-indigo-400">{refinementMetrics.activePhases}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-center">
+                        <span className="text-[8px] uppercase text-slate-500 block mb-1">Total Refined</span>
+                        <span className="text-lg font-bold text-emerald-400">{refinementMetrics.total}</span>
+                      </div>
+                    </div>
+
+                    {/* Strategy Sequence Highlights */}
+                    <div className="space-y-2 relative z-10">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400 block">
+                        Sequential Strategy Architecture
+                      </span>
+                      <div className="space-y-2 text-xs">
+                        <div className="p-3 rounded-xl bg-[#0B1221] border border-slate-800/80 flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center font-mono font-bold text-xs shrink-0">1</div>
+                          <div>
+                            <span className="font-bold text-slate-200">Stage 1: Scale Factor & Background Initialization</span>
+                            <p className="text-[10px] text-slate-500">Normalizes overall profile intensity and baseline Chebyshev polynomial floor.</p>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#0B1221] border border-slate-800/80 flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center font-mono font-bold text-xs shrink-0">2</div>
+                          <div>
+                            <span className="font-bold text-slate-200">Stage 2: Goniometer Zero-Point Shift & Specimen Displacement</span>
+                            <p className="text-[10px] text-slate-500">Corrects systematic mechanical misalignment and 2θ displacement errors.</p>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#0B1221] border border-slate-800/80 flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center font-mono font-bold text-xs shrink-0">3</div>
+                          <div>
+                            <span className="font-bold text-slate-200">Stage 3: Unit Cell Metric Tensor & Lattice Parameters</span>
+                            <p className="text-[10px] text-slate-500">Refines cell constants conforming to space group symmetry.</p>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#0B1221] border border-slate-800/80 flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center font-mono font-bold text-xs shrink-0">4</div>
+                          <div>
+                            <span className="font-bold text-slate-200">Stage 4: Peak Broadening & Pseudo-Voigt Profile</span>
+                            <p className="text-[10px] text-slate-500">Optimizes Gaussian/Lorentzian convolute (FWHM, η, crystallite size, microstrain).</p>
+                          </div>
+                        </div>
+                        <div className="p-3 rounded-xl bg-[#0B1221] border border-slate-800/80 flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-lg bg-teal-500/10 text-teal-400 flex items-center justify-center font-mono font-bold text-xs shrink-0">5</div>
+                          <div>
+                            <span className="font-bold text-slate-200">Stage 5: Atomic Coordinates, Site Occupancies & Isotropic B-iso</span>
+                            <p className="text-[10px] text-slate-500">Refines fractional atomic coordinates, Wyckoff sites, and thermal parameters.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Strategy Card */}
+                {result && (
                  <div className="bg-[#050A14] backdrop-blur-md p-6 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-slate-800/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500">
                    {/* Custom Background Graphic */}
                    <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">

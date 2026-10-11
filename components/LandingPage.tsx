@@ -1545,29 +1545,31 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
       {/* Side Seek Navigation */}
       <SideSeekBar theme={theme} />
 
-      {/* Active Session Quick-Resume Banner */}
-      {onReturnToApp && (
-        <div className="bg-gradient-to-r from-indigo-950/90 via-slate-900/95 to-violet-950/90 border-b border-indigo-500/30 px-4 py-2 text-xs z-[105] relative select-none backdrop-blur-md">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-              <span className="text-slate-300 font-medium truncate">
-                {t('Active XRD Session Available:', 'Active XRD Session Available:')} <strong className="text-white font-bold">{activeModule ? activeModule.toUpperCase() : 'CALCULATOR SUITE'}</strong>
-              </span>
+      {/* Unified Fixed Header Container */}
+      <header className="fixed top-0 left-0 w-full z-40 transition-all duration-300">
+        {/* Active Session Quick-Resume Banner */}
+        {onReturnToApp && (
+          <div className="bg-gradient-to-r from-indigo-950/95 via-slate-900/95 to-violet-950/95 border-b border-indigo-500/30 px-4 py-2 text-xs select-none backdrop-blur-md">
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="text-slate-300 font-medium truncate">
+                  {t('Active XRD Session Available:', 'Active XRD Session Available:')} <strong className="text-white font-bold">{activeModule ? activeModule.toUpperCase() : 'CALCULATOR SUITE'}</strong>
+                </span>
+              </div>
+              <button
+                onClick={() => handleResumeApp(activeModule)}
+                className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+              >
+                <span>{t('Resume Calculations', 'Resume Calculations')}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button
-              onClick={() => handleResumeApp(activeModule)}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
-            >
-              <span>{t('Resume Calculations', 'Resume Calculations')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Dynamic Navbar */}
-      <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/85 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
+        {/* Dynamic Navbar */}
+        <nav className={`w-full transition-all duration-300 ${isScrolled ? 'bg-[#050B14]/90 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-[#020617]/80 backdrop-blur-md border-b border-white/5 py-4'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}>
              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-700 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 relative overflow-hidden">
@@ -1777,6 +1779,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
           )}
         </AnimatePresence>
       </nav>
+      </header>
 
       <main className="flex-1 relative z-10">
         {/* --- Hero Section --- */}

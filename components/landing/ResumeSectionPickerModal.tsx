@@ -708,7 +708,7 @@ export const ResumeSectionPickerModal: React.FC<ResumeSectionPickerModalProps> =
     <AnimatePresence>
       {isOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-6 bg-slate-950/85 backdrop-blur-xl overflow-y-auto"
+          className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-5 md:p-6 bg-slate-950/85 backdrop-blur-xl overflow-y-auto"
           dir={isRTL ? 'rtl' : 'ltr'}
           onClick={onClose}
         >
