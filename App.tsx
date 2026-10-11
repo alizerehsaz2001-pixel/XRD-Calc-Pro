@@ -4,8 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { useI18n } from './components/I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
-import { ResultsTable } from './components/ResultsTable';
-import { DiffractionChart } from './components/DiffractionChart';
+
+// Lazy-loaded core Bragg components to prevent initial bundle bloat
+const ResultsTable = lazy(() => import('./components/ResultsTable').then(m => ({ default: m.ResultsTable })));
+const DiffractionChart = lazy(() => import('./components/DiffractionChart').then(m => ({ default: m.DiffractionChart })));
+const BraggHistory = lazy(() => import('./components/BraggHistory').then(m => ({ default: m.BraggHistory })));
+const BraggVisualization = lazy(() => import('./components/BraggVisualization').then(m => ({ default: m.BraggVisualization })));
+const LatticeEstimator = lazy(() => import('./components/LatticeEstimator').then(m => ({ default: m.LatticeEstimator })));
 
 // Lazy-loaded modules for lightning-fast initial page load and memory optimization
 const DiffractionCompareModule = lazy(() => import('./components/DiffractionCompareModule').then(m => ({ default: m.DiffractionCompareModule })));
@@ -47,9 +52,6 @@ import type { FooterModalType } from './components/FooterInfoModal';
 import { ModuleIntro } from './components/ModuleIntro';
 import { SideSeekBar } from './components/SideSeekBar';
 import LanguageSelector from './components/LanguageSelector';
-import { BraggHistory } from './components/BraggHistory';
-import { BraggVisualization } from './components/BraggVisualization';
-import { LatticeEstimator } from './components/LatticeEstimator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext, LengthUnit } from './components/SettingsContext';
 const PeriodicTableModule = lazy(() => import('./components/PeriodicTableModule').then(m => ({ default: m.PeriodicTableModule })));
@@ -78,7 +80,7 @@ import {
 
 const ResidualStressModule = lazy(() => import('./components/ResidualStressModule').then(m => ({ default: m.ResidualStressModule })));
 const XRRModule = lazy(() => import('./components/XRRModule').then(m => ({ default: m.XRRModule })));
-import { UserActivityPlugin } from './components/UserActivityPlugin';
+const UserActivityPlugin = lazy(() => import('./components/UserActivityPlugin').then(m => ({ default: m.UserActivityPlugin })));
 import { XRDSectionScanAnimation } from './components/XRDSectionScanAnimation';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
 const UnitCellsSection = lazy(() => import('./components/fundamentals/UnitCellsSection').then(m => ({ default: m.UnitCellsSection })));
@@ -1940,11 +1942,13 @@ const App: React.FC = () => {
                           crystalSystem={crystalSystem}
                           setCrystalSystem={setCrystalSystem}
                         />
-                        <BraggHistory 
-                          history={braggHistory} 
-                          onRestore={restoreHistory} 
-                          onClear={clearHistory} 
-                        />
+                        <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
+                          <BraggHistory 
+                            history={braggHistory} 
+                            onRestore={restoreHistory} 
+                            onClear={clearHistory} 
+                          />
+                        </Suspense>
                         
                         <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-800 dark:border-white/5 ring-1 ring-white/10">
                            <div className="flex justify-between items-center mb-3">
@@ -1966,25 +1970,27 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="lg:col-span-8 space-y-6">
-                        <BraggVisualization 
-                          wavelength={wavelength} 
-                          twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
-                        />
-                        <DiffractionChart 
-                          results={results} 
-                          materialName={materialName} 
-                          wavelength={wavelength} 
-                          onResultsChange={setResults} 
-                        />
-                        <ResultsTable 
-                          results={results} 
-                          onExportCompare={(selectedResults) => {
-                            setComparePeaks(selectedResults);
-                            setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
-                            setActiveModule('compare');
-                          }}
-                        />
-                        <LatticeEstimator results={results} />
+                        <Suspense fallback={<ModuleLoadingFallback />}>
+                          <BraggVisualization 
+                            wavelength={wavelength} 
+                            twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
+                          />
+                          <DiffractionChart 
+                            results={results} 
+                            materialName={materialName} 
+                            wavelength={wavelength} 
+                            onResultsChange={setResults} 
+                          />
+                          <ResultsTable 
+                            results={results} 
+                            onExportCompare={(selectedResults) => {
+                              setComparePeaks(selectedResults);
+                              setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
+                              setActiveModule('compare');
+                            }}
+                          />
+                          <LatticeEstimator results={results} />
+                        </Suspense>
                       </div>
                     </div>
                   )}
@@ -2711,10 +2717,14 @@ const App: React.FC = () => {
           </Suspense>
 
           {/* User Activity & Telemetry Plugin */}
-          <UserActivityPlugin
-            isOpen={isActivityLedgerOpen}
-            onClose={() => setIsActivityLedgerOpen(false)}
-          />
+          {isActivityLedgerOpen && (
+            <Suspense fallback={null}>
+              <UserActivityPlugin
+                isOpen={isActivityLedgerOpen}
+                onClose={() => setIsActivityLedgerOpen(false)}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>

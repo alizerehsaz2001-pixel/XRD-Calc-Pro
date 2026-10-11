@@ -35,7 +35,7 @@ interface NavigationRailProps {
   onOpenWelcome?: () => void;
 }
 
-export const NavigationRail: React.FC<NavigationRailProps> = ({
+const NavigationRailComponent: React.FC<NavigationRailProps> = ({
   activeModule,
   setActiveModule,
   modules,
@@ -176,3 +176,6 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
     </nav>
   );
 };
+
+export const NavigationRail = React.memo(NavigationRailComponent);
+export default NavigationRail;

@@ -56,6 +56,12 @@ export default defineConfig(({ mode }) => {
                 }
                 return 'vendor';
               }
+              if (id.includes('materialDB') || id.includes('materialsHelper')) {
+                return 'app-material-db';
+              }
+              if (id.includes('/i18n.ts') || id.includes('/i18n.')) {
+                return 'app-i18n';
+              }
             }
           }
         }

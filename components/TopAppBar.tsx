@@ -135,7 +135,7 @@ export interface TopAppBarProps {
   onOpenWelcome?: () => void;
 }
 
-export const TopAppBar: React.FC<TopAppBarProps> = ({
+const TopAppBarComponent: React.FC<TopAppBarProps> = ({
   theme,
   setTheme,
   activeModule,
@@ -1280,4 +1280,5 @@ export const TopAppBar: React.FC<TopAppBarProps> = ({
   );
 };
 
+export const TopAppBar = React.memo(TopAppBarComponent);
 export default TopAppBar;

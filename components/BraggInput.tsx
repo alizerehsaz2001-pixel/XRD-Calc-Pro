@@ -127,7 +127,7 @@ const CALIBRATION_PRESETS = [
   }
 ];
 
-export const BraggInput: React.FC<BraggInputProps> = ({
+const BraggInputComponent: React.FC<BraggInputProps> = ({
   sampleId = '',
   setSampleId,
   wavelength,
@@ -2438,3 +2438,6 @@ export const BraggInput: React.FC<BraggInputProps> = ({
     </div>
   );
 };
+
+export const BraggInput = React.memo(BraggInputComponent);
+export default BraggInput;
