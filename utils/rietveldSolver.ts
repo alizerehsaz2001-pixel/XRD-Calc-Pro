@@ -590,9 +590,11 @@ export function runLevenbergMarquardtStep(
     g[j] = gSum;
   }
 
-  // 4. Apply Levenberg-Marquardt damping: A_damped = A + lambda * diag(A)
+  // 4. Apply Levenberg-Marquardt damping with scale-invariant Marquardt-Fletcher regularization
+  const maxDiag = Math.max(...A.map((row, idx) => Math.abs(row[idx])));
+  const regularizer = Math.max(1e-8, maxDiag * 1e-6);
   const ADamped: number[][] = A.map((row, rIdx) =>
-    row.map((val, cIdx) => (rIdx === cIdx ? val * (1.0 + lambda) + 1e-6 : val))
+    row.map((val, cIdx) => (rIdx === cIdx ? val * (1.0 + lambda) + regularizer : val))
   );
 
   // Invert damped normal matrix
@@ -710,32 +712,56 @@ export function runLevenbergMarquardtStep(
  * W_p = S_p * (Z * M * V)_p / sum_k( S_k * (Z * M * V)_k )
  */
 export function calculateHillHowardQpa(phases: PhaseModel[]): QpaResult[] {
-  const active = phases.filter(p => p.enabled);
+  const active = phases.filter(p => p.enabled && p.scale > 0);
   if (active.length === 0) return [];
 
-  // Default Z, M, V mappings for common crystal systems/phases if unspecified
+  // Certified crystallographic parameters (Z, M, V) for quantitative phase analysis (Hill & Howard 1987)
   const entries = active.map(p => {
-    const a = p.a;
-    let volume = Math.pow(a, 3); // Default cubic
+    const a = Math.max(0.1, p.a);
     let z = p.zValue || 4;
     let m = p.molarMass || 60.0;
+    let volume = Math.pow(a, 3);
 
-    if (p.phaseType === 'Silicon') {
-      z = 8;
-      m = 28.0855;
+    const typeLower = (p.phaseType || p.name || '').toLowerCase();
+
+    if (typeLower.includes('silicon') || typeLower.includes('si')) {
+      z = p.zValue || 8;
+      m = p.molarMass || 28.0855;
       volume = Math.pow(a, 3);
-    } else if (p.phaseType === 'Quartz') {
-      z = 3;
-      m = 60.08;
-      volume = 0.866025 * a * a * 5.405; // Hexagonal V = a^2 * c * sin(60)
-    } else if (p.phaseType === 'Rutile') {
-      z = 2;
-      m = 79.866;
-      volume = a * a * 2.958;
-    } else if (p.phaseType === 'Alumina (Hexagonal)') {
-      z = 6;
-      m = 101.96;
-      volume = 0.866025 * a * a * 12.99;
+    } else if (typeLower.includes('quartz') || typeLower.includes('sio2')) {
+      z = p.zValue || 3;
+      m = p.molarMass || 60.0843;
+      const c = a * 1.10013; // c/a ratio for alpha-quartz
+      volume = (Math.sqrt(3) / 2) * a * a * c;
+    } else if (typeLower.includes('rutile')) {
+      z = p.zValue || 2;
+      m = p.molarMass || 79.866;
+      const c = a * 0.64415; // c/a ratio for rutile
+      volume = a * a * c;
+    } else if (typeLower.includes('anatase')) {
+      z = p.zValue || 4;
+      m = p.molarMass || 79.866;
+      const c = a * 2.5136; // c/a ratio for anatase
+      volume = a * a * c;
+    } else if (typeLower.includes('corundum') || typeLower.includes('alumina') || typeLower.includes('al2o3')) {
+      z = p.zValue || 6;
+      m = p.molarMass || 101.9613;
+      const c = a * 2.7297; // c/a ratio for hexagonal corundum
+      volume = (Math.sqrt(3) / 2) * a * a * c;
+    } else if (typeLower.includes('magnetite') || typeLower.includes('fe3o4')) {
+      z = p.zValue || 8;
+      m = p.molarMass || 231.533;
+      volume = Math.pow(a, 3);
+    } else if (typeLower.includes('hematite') || typeLower.includes('fe2o3')) {
+      z = p.zValue || 6;
+      m = p.molarMass || 159.688;
+      const c = a * 2.730;
+      volume = (Math.sqrt(3) / 2) * a * a * c;
+    } else if (typeLower.includes('calcite') || typeLower.includes('caco3')) {
+      z = p.zValue || 6;
+      m = p.molarMass || 100.0869;
+      const c = a * 3.421;
+      volume = (Math.sqrt(3) / 2) * a * a * c;
     }
 
     const zmv = z * m * volume;
@@ -745,9 +771,9 @@ export function calculateHillHowardQpa(phases: PhaseModel[]): QpaResult[] {
       phaseId: p.id,
       phaseName: p.name,
       scale: p.scale,
-      volume,
+      volume: Number(volume.toFixed(4)),
       zValue: z,
-      molarMass: m,
+      molarMass: Number(m.toFixed(4)),
       factor
     };
   });
@@ -761,7 +787,7 @@ export function calculateHillHowardQpa(phases: PhaseModel[]): QpaResult[] {
     volume: e.volume,
     zValue: e.zValue,
     molarMass: e.molarMass,
-    weightFraction: totalFactor > 0 ? (e.factor / totalFactor) * 100 : 0
+    weightFraction: totalFactor > 0 ? Number(((e.factor / totalFactor) * 100).toFixed(2)) : 0
   }));
 }
 

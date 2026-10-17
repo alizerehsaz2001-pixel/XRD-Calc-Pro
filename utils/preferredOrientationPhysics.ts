@@ -261,14 +261,16 @@ export function processReflections(
       row.h, row.k, row.l, 
       axis1.h, axis1.k, axis1.l, 
       crystalSystem as any, 
-      lattice.a, lattice.b, lattice.c
+      lattice.a, lattice.b, lattice.c,
+      (lattice as any).alpha ?? 90, (lattice as any).beta ?? 90, (lattice as any).gamma ?? 90
     );
 
     const angle2 = calculateInterplanarAngle(
       row.h, row.k, row.l, 
       axis2.h, axis2.k, axis2.l, 
       crystalSystem as any, 
-      lattice.a, lattice.b, lattice.c
+      lattice.a, lattice.b, lattice.c,
+      (lattice as any).alpha ?? 90, (lattice as any).beta ?? 90, (lattice as any).gamma ?? 90
     );
 
     const corr = calculateCombinedTextureFactor(angle1, angle2, textureConfig);

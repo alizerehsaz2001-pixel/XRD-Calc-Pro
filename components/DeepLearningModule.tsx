@@ -6494,21 +6494,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             >
               <Brain className="w-4 h-4 text-purple-300 animate-pulse" />
               <span>ML Techniques & Neural Architecture Studio</span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-400/20 text-purple-200 text-[10px] font-mono border border-purple-400/30">
-                PINN & Ensemble v4.0
+              <span className="px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 text-[10px] font-mono border border-cyan-400/30">
+                Transformers & Deconv v5.0
               </span>
             </button>
           </div>
 
           <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono text-slate-400 pr-2">
-            <span className="flex items-center gap-1.5 text-indigo-400">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              PINN Extinctions
+            <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              Spectral Transformers
             </span>
             <span>•</span>
-            <span className="text-purple-400">MC-Dropout Uncertainty</span>
+            <span className="text-emerald-400">Multi-Phase Deconv</span>
             <span>•</span>
-            <span className="text-cyan-400">1D Grad-CAM</span>
+            <span className="text-indigo-400">PINN Extinctions</span>
+            <span>•</span>
+            <span className="text-purple-400">MC-Dropout Uncertainty</span>
           </div>
         </div>
 

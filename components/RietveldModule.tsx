@@ -5,7 +5,7 @@ import {
   ComposedChart, Area, Scatter, AreaChart, ReferenceLine
 } from 'recharts';
 import { 
-  Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
+  Activity, Settings, RefreshCw, BarChart2, Download, Play, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, Maximize2, Minimize2, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
   Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check, Trash2, Cpu, Terminal

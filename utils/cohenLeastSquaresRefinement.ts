@@ -522,9 +522,13 @@ export function runCohenLeastSquaresRefinement(
     b = (aStar * cStar * Math.sin(betaStar)) / vStar;
     c = (aStar * bStar * Math.sin(gammaStar)) / vStar;
 
-    alpha = Math.acos((cosBetaStar * cosGammaStar - cosAlphaStar) / (Math.sin(betaStar) * Math.sin(gammaStar))) * 180 / Math.PI;
-    betaAngle = Math.acos((cosAlphaStar * cosGammaStar - cosBetaStar) / (Math.sin(alphaStar) * Math.sin(gammaStar))) * 180 / Math.PI;
-    gamma = Math.acos((cosAlphaStar * cosBetaStar - cosGammaStar) / (Math.sin(alphaStar) * Math.sin(betaStar))) * 180 / Math.PI;
+    const cosAlphaArg = Math.max(-1.0, Math.min(1.0, (cosBetaStar * cosGammaStar - cosAlphaStar) / Math.max(1e-9, Math.sin(betaStar) * Math.sin(gammaStar))));
+    const cosBetaArg = Math.max(-1.0, Math.min(1.0, (cosAlphaStar * cosGammaStar - cosBetaStar) / Math.max(1e-9, Math.sin(alphaStar) * Math.sin(gammaStar))));
+    const cosGammaArg = Math.max(-1.0, Math.min(1.0, (cosAlphaStar * cosBetaStar - cosGammaStar) / Math.max(1e-9, Math.sin(alphaStar) * Math.sin(betaStar))));
+
+    alpha = Math.acos(cosAlphaArg) * 180 / Math.PI;
+    betaAngle = Math.acos(cosBetaArg) * 180 / Math.PI;
+    gamma = Math.acos(cosGammaArg) * 180 / Math.PI;
   }
 
   // Calculate residuals & statistical goodness of fit

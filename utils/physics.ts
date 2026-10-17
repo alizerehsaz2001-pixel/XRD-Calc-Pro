@@ -485,46 +485,90 @@ export const calculateCubicAngle = (h1: number, k1: number, l1: number, h2: numb
 export const calculateInterplanarAngle = (
   h1: number, k1: number, l1: number,
   h2: number, k2: number, l2: number,
-  crystalSystem: 'Cubic' | 'Tetragonal' | 'Hexagonal' | 'Orthorhombic' = 'Cubic',
-  a: number = 1, b: number = 1, c: number = 1
+  crystalSystem: string = 'Cubic',
+  a: number = 1, b: number = 1, c: number = 1,
+  alpha: number = 90, beta: number = 90, gamma: number = 90
 ): number => {
-  let dot = 0;
-  let mag1Sq = 0;
-  let mag2Sq = 0;
+  const magSq1 = h1 * h1 + k1 * k1 + l1 * l1;
+  const magSq2 = h2 * h2 + k2 * k2 + l2 * l2;
+  if (magSq1 === 0 || magSq2 === 0) return 0;
 
-  if (crystalSystem === 'Cubic') {
+  const sys = (crystalSystem || 'Cubic').toLowerCase();
+
+  let dot = 0;
+  let len1Sq = 0;
+  let len2Sq = 0;
+
+  if (sys.includes('cubic')) {
     dot = h1 * h2 + k1 * k2 + l1 * l2;
-    mag1Sq = h1 * h1 + k1 * k1 + l1 * l1;
-    mag2Sq = h2 * h2 + k2 * k2 + l2 * l2;
-  } else if (crystalSystem === 'Tetragonal') {
-    const a2 = a * a;
-    const c2 = c * c;
+    len1Sq = h1 * h1 + k1 * k1 + l1 * l1;
+    len2Sq = h2 * h2 + k2 * k2 + l2 * l2;
+  } else if (sys.includes('tetragonal')) {
+    const a2 = Math.max(1e-12, a * a);
+    const c2 = Math.max(1e-12, c * c);
     dot = (h1 * h2 + k1 * k2) / a2 + (l1 * l2) / c2;
-    mag1Sq = (h1 * h1 + k1 * k1) / a2 + (l1 * l1) / c2;
-    mag2Sq = (h2 * h2 + k2 * k2) / a2 + (l2 * l2) / c2;
-  } else if (crystalSystem === 'Orthorhombic') {
-    const a2 = a * a;
-    const b2 = b * b;
-    const c2 = c * c;
+    len1Sq = (h1 * h1 + k1 * k1) / a2 + (l1 * l1) / c2;
+    len2Sq = (h2 * h2 + k2 * k2) / a2 + (l2 * l2) / c2;
+  } else if (sys.includes('orthorhombic')) {
+    const a2 = Math.max(1e-12, a * a);
+    const b2 = Math.max(1e-12, b * b);
+    const c2 = Math.max(1e-12, c * c);
     dot = (h1 * h2) / a2 + (k1 * k2) / b2 + (l1 * l2) / c2;
-    mag1Sq = (h1 * h1) / a2 + (k1 * k1) / b2 + (l1 * l1) / c2;
-    mag2Sq = (h2 * h2) / a2 + (k2 * k2) / b2 + (l2 * l2) / c2;
-  } else if (crystalSystem === 'Hexagonal') {
-    const a2 = a * a;
-    const c2 = c * c;
-    // For hexagonal: d*^2 = 4/3 * (h^2 + k^2 + hk)/a^2 + l^2/c^2
+    len1Sq = (h1 * h1) / a2 + (k1 * k1) / b2 + (l1 * l1) / c2;
+    len2Sq = (h2 * h2) / a2 + (k2 * k2) / b2 + (l2 * l2) / c2;
+  } else if (sys.includes('hexagonal') || sys.includes('trigonal')) {
+    const a2 = Math.max(1e-12, a * a);
+    const c2 = Math.max(1e-12, c * c);
     dot = (4 / 3) * (h1 * h2 + k1 * k2 + 0.5 * (h1 * k2 + h2 * k1)) / a2 + (l1 * l2) / c2;
-    mag1Sq = (4 / 3) * (h1 * h1 + k1 * k1 + h1 * k1) / a2 + (l1 * l1) / c2;
-    mag2Sq = (4 / 3) * (h2 * h2 + k2 * k2 + h2 * k2) / a2 + (l2 * l2) / c2;
+    len1Sq = (4 / 3) * (h1 * h1 + k1 * k1 + h1 * k1) / a2 + (l1 * l1) / c2;
+    len2Sq = (4 / 3) * (h2 * h2 + k2 * k2 + h2 * k2) / a2 + (l2 * l2) / c2;
+  } else if (sys.includes('monoclinic')) {
+    const bRad = (beta * Math.PI) / 180;
+    const sinB = Math.sin(bRad);
+    const cosB = Math.cos(bRad);
+    const sin2Beta = Math.max(1e-8, sinB * sinB);
+    const a2 = Math.max(1e-12, a * a);
+    const b2 = Math.max(1e-12, b * b);
+    const c2 = Math.max(1e-12, c * c);
+    dot = (h1 * h2) / (a2 * sin2Beta) + (k1 * k2) / b2 + (l1 * l2) / (c2 * sin2Beta) - (h1 * l2 + h2 * l1) * cosB / (a * c * sin2Beta);
+    len1Sq = (h1 * h1) / (a2 * sin2Beta) + (k1 * k1) / b2 + (l1 * l1) / (c2 * sin2Beta) - 2 * (h1 * l1) * cosB / (a * c * sin2Beta);
+    len2Sq = (h2 * h2) / (a2 * sin2Beta) + (k2 * k2) / b2 + (l2 * l2) / (c2 * sin2Beta) - 2 * (h2 * l2) * cosB / (a * c * sin2Beta);
+  } else {
+    // General Triclinic / Rhombohedral
+    const aRad = (alpha * Math.PI) / 180;
+    const bRad = (beta * Math.PI) / 180;
+    const gRad = (gamma * Math.PI) / 180;
+    const sinA = Math.sin(aRad);
+    const sinB = Math.sin(bRad);
+    const sinG = Math.sin(gRad);
+    const cosA = Math.cos(aRad);
+    const cosB = Math.cos(bRad);
+    const cosG = Math.cos(gRad);
+
+    const s11 = Math.pow(b * c * sinA, 2);
+    const s22 = Math.pow(a * c * sinB, 2);
+    const s33 = Math.pow(a * b * sinG, 2);
+    const s12 = a * b * c * c * (cosA * cosB - cosG);
+    const s23 = a * a * b * c * (cosB * cosG - cosA);
+    const s13 = a * b * b * c * (cosA * cosG - cosB);
+
+    const metricDot = (ha: number, ka: number, la: number, hb: number, kb: number, lb: number) => {
+      return (
+        s11 * ha * hb + s22 * ka * kb + s33 * la * lb +
+        s12 * (ha * kb + hb * ka) +
+        s23 * (ka * lb + kb * la) +
+        s13 * (ha * lb + hb * la)
+      );
+    };
+
+    dot = metricDot(h1, k1, l1, h2, k2, l2);
+    len1Sq = metricDot(h1, k1, l1, h1, k1, l1);
+    len2Sq = metricDot(h2, k2, l2, h2, k2, l2);
   }
 
-  if (mag1Sq === 0 || mag2Sq === 0) return 0;
-  const mag1 = Math.sqrt(mag1Sq);
-  const mag2 = Math.sqrt(mag2Sq);
-  let cosTheta = dot / (mag1 * mag2);
-  if (cosTheta > 1) cosTheta = 1;
-  if (cosTheta < -1) cosTheta = -1;
-  return Math.acos(cosTheta) * (180 / Math.PI);
+  if (len1Sq <= 0 || len2Sq <= 0) return 0;
+  const cosAngle = Math.max(-1.0, Math.min(1.0, dot / Math.sqrt(len1Sq * len2Sq)));
+  return Math.acos(cosAngle) * (180 / Math.PI);
 };
 
 export const calculateThetaFromBragg = (wavelength: number, dSpacing: number): number | null => {
@@ -3147,6 +3191,21 @@ export const ATOMIC_NUMBERS: Record<string, number> = {
 
 export const calculateCellVolume = (lattice: LatticeParameters): number => {
   const { a, b, c, alpha, beta, gamma } = lattice;
+  if (a <= 0 || b <= 0 || c <= 0) return 0;
+
+  // Exact solutions for orthogonal and hexagonal systems
+  if (alpha === 90 && beta === 90 && gamma === 90) {
+    return a * b * c;
+  }
+  if (alpha === 90 && beta === 90 && (gamma === 120 || gamma === 60)) {
+    return (Math.sqrt(3) / 2) * a * a * c;
+  }
+  if (alpha === 90 && gamma === 90) {
+    const bRad = (beta * Math.PI) / 180;
+    return a * b * c * Math.sin(bRad);
+  }
+
+  // General Triclinic / Rhombohedral
   const aRad = (alpha * Math.PI) / 180;
   const bRad = (beta * Math.PI) / 180;
   const gRad = (gamma * Math.PI) / 180;
@@ -3155,34 +3214,70 @@ export const calculateCellVolume = (lattice: LatticeParameters): number => {
   const cosB = Math.cos(bRad);
   const cosG = Math.cos(gRad);
 
-  return a * b * c * Math.sqrt(
-    1 - cosA * cosA - cosB * cosB - cosG * cosG + 2 * cosA * cosB * cosG
-  );
+  const rad = Math.max(0, 1 - cosA * cosA - cosB * cosB - cosG * cosG + 2 * cosA * cosB * cosG);
+  return a * b * c * Math.sqrt(rad);
 };
 
 export const calculateDSpacing = (h: number, k: number, l: number, lattice: LatticeParameters): number => {
+  if (h === 0 && k === 0 && l === 0) return 0;
   const { a, b, c, alpha, beta, gamma } = lattice;
+  if (a <= 0 || b <= 0 || c <= 0) return 0;
+
+  // Orthogonal systems (Cubic, Tetragonal, Orthorhombic)
+  if (alpha === 90 && beta === 90 && gamma === 90) {
+    const invDSq = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
+    return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
+  }
+
+  // Hexagonal / Trigonal
+  if (alpha === 90 && beta === 90 && (gamma === 120 || gamma === 60)) {
+    const invDSq = (4 / 3) * (h * h + h * k + k * k) / (a * a) + (l * l) / (c * c);
+    return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
+  }
+
+  // Monoclinic (unique b-axis, beta != 90)
+  if (alpha === 90 && gamma === 90) {
+    const bRad = (beta * Math.PI) / 180;
+    const sinB = Math.sin(bRad);
+    const cosB = Math.cos(bRad);
+    const sin2Beta = Math.max(1e-8, sinB * sinB);
+    const invDSq = (
+      (h * h) / (a * a) +
+      ((k * k) * sin2Beta) / (b * b) +
+      (l * l) / (c * c) -
+      (2 * h * l * cosB) / (a * c)
+    ) / sin2Beta;
+    return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
+  }
+
+  // General Triclinic & Rhombohedral: Reciprocal Metric Tensor
   const aRad = (alpha * Math.PI) / 180;
   const bRad = (beta * Math.PI) / 180;
   const gRad = (gamma * Math.PI) / 180;
 
   const V = calculateCellVolume(lattice);
+  if (V <= 0) return 0;
 
-  // General expression for d-spacing for any crystal system
-  // Using the reciprocal lattice metric tensor components
-  const s11 = Math.pow(b * c * Math.sin(aRad), 2);
-  const s22 = Math.pow(a * c * Math.sin(bRad), 2);
-  const s33 = Math.pow(a * b * Math.sin(gRad), 2);
-  const s12 = a * b * Math.pow(c, 2) * (Math.cos(aRad) * Math.cos(bRad) - Math.cos(gRad));
-  const s23 = a * Math.pow(b, 2) * c * (Math.cos(bRad) * Math.cos(gRad) - Math.cos(aRad));
-  const s13 = Math.pow(a, 2) * b * c * (Math.cos(aRad) * Math.cos(gRad) - Math.cos(bRad));
+  const sinA = Math.sin(aRad);
+  const sinB = Math.sin(bRad);
+  const sinG = Math.sin(gRad);
+  const cosA = Math.cos(aRad);
+  const cosB = Math.cos(bRad);
+  const cosG = Math.cos(gRad);
+
+  const s11 = Math.pow(b * c * sinA, 2);
+  const s22 = Math.pow(a * c * sinB, 2);
+  const s33 = Math.pow(a * b * sinG, 2);
+  const s12 = a * b * Math.pow(c, 2) * (cosA * cosB - cosG);
+  const s23 = Math.pow(a, 2) * b * c * (cosB * cosG - cosA); // Corrected: a^2 * b * c
+  const s13 = a * Math.pow(b, 2) * c * (cosA * cosG - cosB); // Corrected: a * b^2 * c
 
   const invDSq = (
     s11 * h * h + s22 * k * k + s33 * l * l +
     2 * s12 * h * k + 2 * s23 * k * l + 2 * s13 * h * l
   ) / Math.pow(V, 2);
 
-  return 1 / Math.sqrt(invDSq);
+  return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
 };
 
 export const calculateNeutronDiffraction = (wavelength: number, lattice: LatticeParameters, atoms: NeutronAtom[], maxTwoTheta: number = 100): NeutronResult[] => {
@@ -5581,15 +5676,19 @@ export const calculateDoubleVoigt = (
     const s = (2 * sinTheta) / lambdaNm; // scattering vector [nm^-1]
     const s2 = s * s;
 
-    // Deconvolve observed profile into Cauchy (C) and Gaussian (G) parts using eta_obs
+    // Deconvolve observed profile into Cauchy (C) and Gaussian (G) parts using de Keijser & Langford (1982)
     const etaClean = Math.min(0.99, Math.max(0.01, peak.eta ?? 0.5));
-    const betaCObs = etaClean * betaObsRad;
-    const betaGObs = Math.sqrt(Math.max(1e-10, (1 - etaClean * etaClean) * betaObsRad * betaObsRad));
+    const ratioC_obs = Math.max(0.001, 0.0146 + 0.99395 * etaClean - 0.0083 * etaClean * etaClean);
+    const ratioG_obs = Math.sqrt(Math.max(1e-10, 1.0016 - 0.52115 * etaClean - 0.47885 * etaClean * etaClean));
+    const betaCObs = ratioC_obs * betaObsRad;
+    const betaGObs = ratioG_obs * betaObsRad;
 
     // Deconvolve instrumental profile into Cauchy and Gaussian parts using instEta
     const instEtaClean = Math.min(0.99, Math.max(0.01, instEta));
-    const betaCInst = instEtaClean * betaInstRad;
-    const betaGInst = Math.sqrt(Math.max(1e-10, (1 - instEtaClean * instEtaClean) * betaInstRad * betaInstRad));
+    const ratioC_inst = Math.max(0.001, 0.0146 + 0.99395 * instEtaClean - 0.0083 * instEtaClean * instEtaClean);
+    const ratioG_inst = Math.sqrt(Math.max(1e-10, 1.0016 - 0.52115 * instEtaClean - 0.47885 * instEtaClean * instEtaClean));
+    const betaCInst = ratioC_inst * betaInstRad;
+    const betaGInst = ratioG_inst * betaInstRad;
 
     // Subtract instrumental Cauchy and Gaussian components independently (Langford's Double-Voigt method)
     const betaCSample = Math.max(1e-10, betaCObs - betaCInst);

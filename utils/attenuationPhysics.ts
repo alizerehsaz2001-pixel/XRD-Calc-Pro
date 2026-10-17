@@ -376,7 +376,7 @@ export function calculateExtendedCompoundAttenuation(
 
   if (formulaWeight <= 0 || validElements.length === 0) return null;
 
-  const wavelengthAngstrom = Number((12.3984 / Math.max(0.1, energyKeV)).toFixed(5));
+  const wavelengthAngstrom = Number((12.39841984 / Math.max(0.1, energyKeV)).toFixed(6));
   let compoundMuRho = 0;
   const parsedExtended: ParsedElementRatioExtended[] = [];
   const criticalFluorescenceElements: string[] = [];
@@ -444,9 +444,9 @@ export function calculateExtendedCompoundAttenuation(
 
   // Penetration Lengths in micrometers (1 cm = 10,000 μm)
   const oneOverMuDepthUm = effectiveLinearMu > 0 ? (1 / effectiveLinearMu) * 10000 : 0;
-  const halfValueLayerUm = effectiveLinearMu > 0 ? (0.69315 / effectiveLinearMu) * 10000 : 0;
-  const ninetyPercentDepthUm = effectiveLinearMu > 0 ? (2.30259 / effectiveLinearMu) * 10000 : 0;
-  const ninetyNinePercentDepthUm = effectiveLinearMu > 0 ? (4.60517 / effectiveLinearMu) * 10000 : 0;
+  const halfValueLayerUm = effectiveLinearMu > 0 ? (Math.LN2 / effectiveLinearMu) * 10000 : 0;
+  const ninetyPercentDepthUm = effectiveLinearMu > 0 ? (Math.LN10 / effectiveLinearMu) * 10000 : 0;
+  const ninetyNinePercentDepthUm = effectiveLinearMu > 0 ? ((2 * Math.LN10) / effectiveLinearMu) * 10000 : 0;
 
   // Optimum Capillary Diameter (d = 1/μ in mm)
   const optCapMm = effectiveLinearMu > 0 ? (1 / effectiveLinearMu) * 10 : 0.5;

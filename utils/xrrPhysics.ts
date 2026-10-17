@@ -724,15 +724,16 @@ export function calculateReflectivityCurve(
       const deltaVal = fullStack[j].delta * 1e-6;
       const betaVal = fullStack[j].beta * 1e-7;
 
+      // In Parratt recursion with wave exp(i kz z), physical attenuation downward requires Im(kz) >= 0
       const radicand: Complex = {
         re: sin2Theta - 2 * deltaVal,
-        im: -2 * betaVal
+        im: 2 * betaVal
       };
 
       const sqrtRad = cSqrt(radicand);
       kzLayers.push({
-        re: k0 * sqrtRad.re,
-        im: k0 * sqrtRad.im
+        re: k0 * Math.max(0, sqrtRad.re),
+        im: k0 * Math.max(0, sqrtRad.im)
       });
     }
 
@@ -749,8 +750,10 @@ export function calculateReflectivityCurve(
 
       const isDebyeWaller = roughnessModel === 'debye-waller';
       const roughExpTerm = isDebyeWaller ? cMul(kz_j, kz_j) : cMul(kz_j, kz_next);
+      // Roughness factor must be strictly dissipative: exp(-2 * Re(kz_j * kz_next) * sigma^2) <= 1
+      const roughReal = Math.max(0, roughExpTerm.re);
       const roughExponent: Complex = {
-        re: -2 * roughExpTerm.re * sigma * sigma,
+        re: -2 * roughReal * sigma * sigma,
         im: -2 * roughExpTerm.im * sigma * sigma
       };
       const roughDamping = cExp(roughExponent);
@@ -761,7 +764,7 @@ export function calculateReflectivityCurve(
       if (j + 1 < numLayers - 1) {
         const d_layer = fullStack[j + 1].thickness;
         const phaseExp: Complex = {
-          re: -2 * kz_next.im * d_layer,
+          re: -2 * kz_next.im * d_layer, // Im(kz) >= 0 guarantees real exponent <= 0 (exponential attenuation)
           im: 2 * kz_next.re * d_layer
         };
         phaseFactor = cExp(phaseExp);
@@ -780,7 +783,9 @@ export function calculateReflectivityCurve(
       footprintFactor = Math.max(0.01, footprintFactor);
     }
 
-    let rIntensity = cAbs2(R_next) * intensityScale * footprintFactor;
+    // Specular reflectivity bounded to [0, 1] by conservation of energy
+    const rawReflectivity = Math.min(1.0, Math.max(0.0, cAbs2(R_next)));
+    let rIntensity = rawReflectivity * intensityScale * footprintFactor;
     rIntensity = Math.max(rIntensity, background);
 
     const kz0 = kzLayers[0];
