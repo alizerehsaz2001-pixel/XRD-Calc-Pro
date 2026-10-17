@@ -3,10 +3,14 @@ import { ScherrerResult } from '../../types';
 import { 
   Zap, Copy, CheckCircle2, Sparkles, ChevronDown, ChevronUp, 
   AlertTriangle, Scale, Atom, Layers, Compass, Download, Check, FileText,
-  HelpCircle, Lightbulb, BookOpen, Eye, EyeOff, Filter, RotateCcw, Code
+  HelpCircle, Lightbulb, BookOpen, Eye, EyeOff, Filter, RotateCcw, Code, BarChart2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MeanCrystalliteCalculationTrace } from './MeanCrystalliteCalculationTrace';
+import { 
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
+  CartesianGrid, ReferenceLine, Cell, ComposedChart, Line 
+} from 'recharts';
 
 export type SizingAverageMethod = 'weighted' | 'arithmetic' | 'volume' | 'area' | 'harmonic';
 
@@ -55,10 +59,23 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
   const [traceTab, setTraceTab] = useState<'trace' | 'models' | 'physics' | 'diagnostics'>('trace');
   const [isMaterialDropdownOpen, setIsMaterialDropdownOpen] = useState(false);
   const [customDensityInput, setCustomDensityInput] = useState<string>(materialDensity.toString());
+  const [viewMode, setViewMode] = useState<'summary' | 'chart'>('summary');
 
   const totalReflectionsCount = allResults.length > 0 ? allResults.length : validResults.length;
   const excludedReflectionsCount = allResults.filter(r => r.excluded).length;
   const unresolvedReflectionsCount = allResults.filter(r => !r.excluded && (r.error || r.sizeNm <= 0)).length;
+
+  const chartData = useMemo(() => {
+    const source = allResults.length > 0 ? allResults : validResults;
+    return source.map((r, idx) => ({
+      name: r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`,
+      twoTheta: r.twoTheta,
+      size: r.sizeNm > 0 ? r.sizeNm : 0,
+      intensity: r.intensity || 100,
+      excluded: !!r.excluded,
+      error: !!r.error || r.sizeNm <= 0
+    })).filter(d => !d.excluded && !d.error);
+  }, [validResults, allResults]);
 
   // 1. Compute multi-method statistical metrics
   const sizingStats = useMemo(() => {
@@ -430,6 +447,20 @@ ${rowsLatex}
 
         {/* Action Controls & Publication Exporters */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Toggle Chart View */}
+          <button
+            onClick={() => setViewMode(viewMode === 'summary' ? 'chart' : 'summary')}
+            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border ${
+              viewMode === 'chart' 
+                ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-[0_0_15px_rgba(6,182,212,0.4)]' 
+                : 'bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-500/40 text-cyan-300 hover:text-cyan-200'
+            }`}
+            title="Toggle interactive size distribution chart view"
+          >
+            <BarChart2 className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{viewMode === 'summary' ? 'View Chart' : 'Summary View'}</span>
+          </button>
+
           {/* Inspect Math & Why Button */}
           <button
             onClick={() => {
@@ -515,6 +546,53 @@ ${rowsLatex}
           </button>
         </div>
       </div>
+
+      {/* --- Interactive Size Distribution Chart View (when viewMode === 'chart') --- */}
+      {viewMode === 'chart' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-black/80 p-6 rounded-2xl border border-cyan-500/30 relative z-10 mb-6 shadow-2xl"
+        >
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <BarChart2 className="w-4 h-4 text-cyan-400" />
+                <span>Facet-by-Facet Crystallite Size Distribution (D_hkl)</span>
+              </h4>
+              <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                Comparing apparent crystallite domain size across resolved Miller indices with mean reference line ({currentSizeNm.toFixed(2)} nm).
+              </p>
+            </div>
+            <button
+              onClick={() => setViewMode('summary')}
+              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-sans cursor-pointer"
+            >
+              Back to Summary Cards
+            </button>
+          </div>
+
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11, fontFamily: 'monospace' }} />
+                <YAxis stroke="#94a3b8" unit=" nm" tick={{ fontSize: 11, fontFamily: 'monospace' }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px', fontFamily: 'monospace' }}
+                  formatter={(val: any) => [`${Number(val).toFixed(2)} nm`, 'Crystallite Size (D)']}
+                />
+                <ReferenceLine y={currentSizeNm} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: `Mean: ${currentSizeNm.toFixed(1)} nm`, fill: '#f59e0b', fontSize: 11, position: 'top' }} />
+                <Bar dataKey="size" fill="#06b6d4" radius={[6, 6, 0, 0]}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={Math.abs(entry.size - currentSizeNm) > sizingStats.stdDev ? '#f59e0b' : '#38bdf8'} />
+                  ))}
+                </Bar>
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
 
       {/* --- Main Grid: Hero Metric + Statistical Uncertainty & Key Microstructural Cards --- */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch relative z-10">
