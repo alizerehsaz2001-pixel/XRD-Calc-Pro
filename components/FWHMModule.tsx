@@ -10,6 +10,8 @@ import { FWHMResult, CustomPeak, CustomPeakMetrics } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import { MultiPeakManager, SCIENTIFIC_PEAK_COLORS } from './MultiPeakManager';
 import { OriginProFWHMPlotter } from './OriginProFWHMPlotter';
+import { InteractiveResidualSubplot } from './profile/InteractiveResidualSubplot';
+import { LiveComponentDeconstructionCard, DeconstructedComponentItem } from './profile/LiveComponentDeconstructionCard';
 import {
   ComposedChart,
   Area,
@@ -346,14 +348,48 @@ export const REFERENCE_MATERIALS_CATALOG: RefMaterialDetail[] = [
 ];
 
 export const FWHMModule: React.FC = () => {
-  const [type, setType] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII'>('Pseudo-Voigt');
+  const [type, setType] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII' | 'Thompson-Cox-Hastings'>('Pseudo-Voigt');
   const [center, setCenter] = useState<number>(30);
   const [fwhmManual, setFwhmManual] = useState<number>(0.5);
   const [eta, setEta] = useState<number>(0.5);
+  const [pearsonM, setPearsonM] = useState<number>(2.0); // Pearson VII shape exponent m
+  const [showDeconstructedLayers, setShowDeconstructedLayers] = useState<boolean>(true); // Component deconstruction
   const [amplitude, setAmplitude] = useState<number>(100);
   const [background, setBackground] = useState<number>(10);
   const [bgSlope, setBgSlope] = useState<number>(0); // deg 2theta background slope
+  const [bgCurvature, setBgCurvature] = useState<number>(0); // deg^-2 2theta quadratic background curvature
   const [noiseLevel, setNoiseLevel] = useState<number>(2);
+
+  // Live Component Visibility Filter Map
+  const [componentVisibility, setComponentVisibility] = useState<Record<string, boolean>>({
+    obs: true,
+    calc: true,
+    peak1: true,
+    ka2: true,
+    rachinger: true,
+    peak2: true,
+    halo: true,
+    bg: true,
+    gComp: true,
+    lComp: true
+  });
+
+  const handleToggleComponentVisibility = (id: string) => {
+    setComponentVisibility((prev) => ({
+      ...prev,
+      [id]: prev[id] === undefined ? false : !prev[id]
+    }));
+  };
+
+  const handleToggleAllComponentVisibility = (visible: boolean) => {
+    setComponentVisibility((prev) => {
+      const next: Record<string, boolean> = {};
+      Object.keys(prev).forEach((k) => {
+        next[k] = visible;
+      });
+      return next;
+    });
+  };
   
   // Advanced Physics State
   const [voigtFormulation, setVoigtFormulation] = useState<'Linear' | 'TCH'>('TCH'); // Linear PV vs Thompson-Cox-Hastings formulation
@@ -483,7 +519,7 @@ export const FWHMModule: React.FC = () => {
   const [showShapeFactorMeter, setShowShapeFactorMeter] = useState<boolean>(true); // Shape factor phi meter
 
   // Quick Preset Scenario loader
-  const applyPeakScenarioPreset = (scenario: 'nist_si' | 'nano_tio2' | 'strained_alloy' | 'ka_doublet' | 'polymer_halo') => {
+  const applyPeakScenarioPreset = (scenario: 'nist_si' | 'nano_tio2' | 'strained_alloy' | 'ka_doublet' | 'polymer_halo' | 'tch_lab6' | 'pearson_heavy') => {
     if (scenario === 'nist_si') {
       setType('Pseudo-Voigt');
       setCenter(28.44);
@@ -496,6 +532,35 @@ export const FWHMModule: React.FC = () => {
       setEnableSecondaryPeak(false);
       setEnableAmorphousHalo(false);
       setMicrostrain(0.0);
+    } else if (scenario === 'tch_lab6') {
+      setType('Thompson-Cox-Hastings');
+      setCenter(30.386);
+      setFwhmManual(0.082);
+      setEta(0.55);
+      setAmplitude(160);
+      setBackground(8);
+      setBgSlope(0.05);
+      setBgCurvature(0.002);
+      setNoiseLevel(1.5);
+      setEnableKaDoublet(false);
+      setEnableSecondaryPeak(false);
+      setEnableAmorphousHalo(false);
+      setMicrostrain(0.0002);
+    } else if (scenario === 'pearson_heavy') {
+      setType('Pearson VII');
+      setCenter(38.184);
+      setFwhmManual(0.24);
+      setPearsonM(1.8);
+      setEta(0.18);
+      setAmplitude(135);
+      setBackground(10);
+      setBgSlope(-0.02);
+      setBgCurvature(0.001);
+      setNoiseLevel(2.0);
+      setEnableKaDoublet(false);
+      setEnableSecondaryPeak(false);
+      setEnableAmorphousHalo(false);
+      setMicrostrain(0.0015);
     } else if (scenario === 'nano_tio2') {
       setType('Pseudo-Voigt');
       setCenter(25.28);
@@ -865,15 +930,15 @@ export const FWHMModule: React.FC = () => {
 
     const gamma = Math.max(0.0001, fwhm / 2);
     const sigma = Math.max(0.0001, fwhm / (2 * Math.sqrt(2 * Math.log(2))));
-    const m = Math.max(1, eta * 10);
-    const PVII_w = fwhm / (2 * Math.sqrt(Math.pow(2, 1 / m) - 1));
+    const effM = type === 'Pearson VII' ? pearsonM : Math.max(1, eta * 10);
+    const PVII_w = Math.max(0.0001, fwhm / (2 * Math.sqrt(Math.max(1e-6, Math.pow(2, 1 / effM) - 1))));
 
     // Effective Pseudo-Voigt mixing & FWHM under Thompson-Cox-Hastings (TCH) formulation
     let effEta = eta;
     let effTchFwhm = fwhm;
-    if (type === 'Pseudo-Voigt' && voigtFormulation === 'TCH') {
-      const H_G = fwhm * Math.sqrt(Math.max(0.0001, 1 - eta));
-      const H_L = fwhm * eta;
+    if (type === 'Thompson-Cox-Hastings' || (type === 'Pseudo-Voigt' && voigtFormulation === 'TCH')) {
+      const H_G = Math.max(0.0001, fwhm * Math.sqrt(Math.max(0.0001, 1 - eta)));
+      const H_L = Math.max(0.0001, fwhm * eta);
       effTchFwhm = Math.pow(
         Math.pow(H_G, 5) +
         2.69269 * Math.pow(H_G, 4) * H_L +
@@ -906,24 +971,24 @@ export const FWHMModule: React.FC = () => {
       const effFwhm = Math.max(0.001, pFwhm * asymFactor);
       const effGamma = Math.max(0.0001, effFwhm / 2);
       const effSigma = Math.max(0.0001, effFwhm / (2 * Math.sqrt(2 * Math.log(2))));
-      const effW = effFwhm / (2 * Math.sqrt(Math.pow(2, 1 / m) - 1));
+      const effW = Math.max(0.0001, effFwhm / (2 * Math.sqrt(Math.max(1e-6, Math.pow(2, 1 / effM) - 1))));
 
       let gVal = 0;
       let lVal = 0;
       let val = 0;
 
-      if (type === 'Gaussian' || type === 'Pseudo-Voigt') {
+      if (type === 'Gaussian' || type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') {
         gVal = pAmp * Math.exp(-0.5 * Math.pow((x - pCenter) / effSigma, 2));
       }
-      if (type === 'Lorentzian' || type === 'Pseudo-Voigt') {
+      if (type === 'Lorentzian' || type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') {
         lVal = pAmp * (Math.pow(effGamma, 2) / (Math.pow(x - pCenter, 2) + Math.pow(effGamma, 2)));
       }
 
       if (type === 'Gaussian') val = gVal;
       else if (type === 'Lorentzian') val = lVal;
-      else if (type === 'Pseudo-Voigt') val = (1 - pEta) * gVal + pEta * lVal;
+      else if (type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') val = (1 - pEta) * gVal + pEta * lVal;
       else if (type === 'Pearson VII') {
-        val = pAmp * Math.pow(1 + Math.pow((x - pCenter) / effW, 2), -m);
+        val = pAmp * Math.pow(1 + Math.pow((x - pCenter) / effW, 2), -effM);
       }
 
       return { val, gVal, lVal };
@@ -939,7 +1004,7 @@ export const FWHMModule: React.FC = () => {
 
     for (let i = 0; i <= steps; i++) {
       const x = start + i * stepSize;
-      const currentBg = background + bgSlope * (x - center);
+      const currentBg = background + bgSlope * (x - center) + bgCurvature * Math.pow(x - center, 2);
 
       const pk1 = evalPeak(x, center, effFwhmWithStrain, amplitude, effEta);
 
@@ -1026,6 +1091,12 @@ export const FWHMModule: React.FC = () => {
       const noise = (Math.random() - 0.5) * noiseLevel * Math.sqrt(Math.max(1, cleanSum)) * 2;
       const noisyY = Math.max(0, cleanSum + noise);
       const residual = noisyY - cleanSum;
+      const sigma = Math.sqrt(Math.max(1, cleanSum));
+      const normResidual = residual / Math.max(0.001, sigma);
+      const sigmaPos1 = sigma;
+      const sigmaNeg1 = -sigma;
+      const sigmaPos3 = 3 * sigma;
+      const sigmaNeg3 = -3 * sigma;
 
       sumSqDiff += residual * residual;
       sumSqNoisy += noisyY * noisyY;
@@ -1052,16 +1123,23 @@ export const FWHMModule: React.FC = () => {
         y_net: netNoisy,
         _cleanY: cleanSum,
         _cleanY_net: purePeak,
-        yG: (type === 'Pseudo-Voigt' && showComponents) ? pk1.gVal + Math.max(0, currentBg) : undefined,
-        yL: (type === 'Pseudo-Voigt' && showComponents) ? pk1.lVal + Math.max(0, currentBg) : undefined,
+        yG: ((type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') && showComponents) ? pk1.gVal + Math.max(0, currentBg) : undefined,
+        yL: ((type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') && showComponents) ? pk1.lVal + Math.max(0, currentBg) : undefined,
         yKa1: enableKaDoublet ? pk1.val + Math.max(0, currentBg) : undefined,
         yKa2: enableKaDoublet ? pk2Val + Math.max(0, currentBg) : undefined,
         yRachinger,
         yPeak2: enableSecondaryPeak ? pkSecVal + Math.max(0, currentBg) : undefined,
+        yHalo: enableAmorphousHalo ? (amorphousAmp * Math.exp(-0.5 * Math.pow((x - amorphousCenter) / Math.max(0.1, amorphousFwhm / (2 * Math.sqrt(2 * Math.log(2)))), 2)) + Math.max(0, currentBg)) : undefined,
+        yBg: Math.max(0, currentBg),
         yGaussModel,
         yLorentzModel,
         yPearsonModel,
         residual,
+        normResidual,
+        sigmaPos1,
+        sigmaNeg1,
+        sigmaPos3,
+        sigmaNeg3,
         ...customPeakMap
       });
     }
@@ -1247,14 +1325,59 @@ export const FWHMModule: React.FC = () => {
     const betaG_sample_rad = (betaG_sample * Math.PI) / 180;
     const deKeijserStrainRms = betaG_sample_rad / (4 * Math.tan(thetaCenterRad));
 
+    // Durbin-Watson statistic and Poisson-weighted R-factors
+    let dwDiffSqSum = 0;
+    let dwResidualSqSum = 0;
+    let sumWDiffSq = 0;
+    let sumWObsSq = 0;
+    let maxAbsDiff = 0;
+    let outlierCount = 0;
+
+    for (let i = 0; i < points.length; i++) {
+      const diff = points[i].residual;
+      const absDiff = Math.abs(diff);
+      if (absDiff > maxAbsDiff) maxAbsDiff = absDiff;
+      const w = 1 / Math.max(1, points[i].y);
+      sumWDiffSq += w * diff * diff;
+      sumWObsSq += w * points[i].y * points[i].y;
+      if (Math.abs(points[i].normResidual) > 3) outlierCount++;
+
+      dwResidualSqSum += diff * diff;
+      if (i > 0) {
+        const dStep = diff - points[i - 1].residual;
+        dwDiffSqSum += dStep * dStep;
+      }
+    }
+
+    const degFreedom = Math.max(1, steps - 5);
+    const durbinWatson = dwResidualSqSum > 0 ? dwDiffSqSum / dwResidualSqSum : 2.0;
+    let durbinWatsonStatus: 'ideal' | 'positive_autocorrelation' | 'negative_autocorrelation' = 'ideal';
+    if (durbinWatson < 1.6) durbinWatsonStatus = 'positive_autocorrelation';
+    else if (durbinWatson > 2.4) durbinWatsonStatus = 'negative_autocorrelation';
+
     const rP = sumNoisy > 0 ? (sumAbsDiff / sumNoisy) * 100 : 0;
-    const rWP = sumSqNoisy > 0 ? Math.sqrt(sumSqDiff / sumSqNoisy) * 100 : 0;
-    const goodnessOfFit = sumSqDiff / Math.max(1, steps - 5);
+    const rWP = sumWObsSq > 0 ? Math.sqrt(sumWDiffSq / sumWObsSq) * 100 : 0;
+    const goodnessOfFit = sumWDiffSq / degFreedom;
+    const rExp = rWP / Math.sqrt(Math.max(0.0001, goodnessOfFit));
+    const rmsResidual = Math.sqrt(sumSqDiff / points.length);
+
+    const variance = sumSqDiff / points.length;
+    const aic = points.length * Math.log(Math.max(1e-12, variance)) + 2 * 5;
+    const bic = points.length * Math.log(Math.max(1e-12, variance)) + 5 * Math.log(points.length);
 
     const resStats: FWHMResult & {
       rP: number;
       rWP: number;
+      rExp: number;
       goodnessOfFit: number;
+      durbinWatson: number;
+      durbinWatsonStatus: 'ideal' | 'positive_autocorrelation' | 'negative_autocorrelation';
+      rmsResidual: number;
+      maxAbsResidual: number;
+      outlierCount: number;
+      aic: number;
+      bic: number;
+      center: number;
       centerKa2: number;
       theta1: number;
       theta2: number;
@@ -1307,7 +1430,16 @@ export const FWHMModule: React.FC = () => {
       maxIntensity: amplitude,
       rP,
       rWP,
+      rExp,
       goodnessOfFit,
+      durbinWatson,
+      durbinWatsonStatus,
+      rmsResidual,
+      maxAbsResidual: maxAbsDiff,
+      outlierCount,
+      aic,
+      bic,
+      center,
       centerKa2,
       theta1,
       theta2,
@@ -1356,7 +1488,7 @@ export const FWHMModule: React.FC = () => {
 
     return { points, stats: resStats };
   }, [
-    type, center, fwhm, eta, amplitude, background, bgSlope, noiseLevel, zoomRange,
+    type, center, fwhm, eta, pearsonM, amplitude, background, bgSlope, bgCurvature, noiseLevel, zoomRange,
     enableKaDoublet, ka2Ratio, asymmetry, enableSecondaryPeak, secondPeakOffset,
     secondPeakFwhm, secondPeakAmp, showComponents, showModelComparison, activeWavelength, applyLpFactor,
     voigtFormulation, enableInstCorrection, instBroadening, microstrain, monochromatorType,
@@ -1368,6 +1500,197 @@ export const FWHMModule: React.FC = () => {
     setChartData(extSim.points);
     setStats(extSim.stats);
   }, [extSim]);
+
+  // Live Component Deconstruction Breakdown Data
+  const deconstructedComponents = useMemo<DeconstructedComponentItem[]>(() => {
+    if (!extSim || !extSim.points || extSim.points.length === 0 || !extSim.stats) return [];
+    const stepSize = Math.max(0.0001, (extSim.points[1]?.x ?? 1) - (extSim.points[0]?.x ?? 0));
+    const rangeSteps = extSim.points.length;
+
+    let sumPeak1 = 0;
+    let sumKa2 = 0;
+    let sumSec = 0;
+    let sumHalo = 0;
+    let sumBg = 0;
+    let sumG = 0;
+    let sumL = 0;
+    let sumTotal = 0;
+
+    for (let i = 0; i < rangeSteps; i++) {
+      const pt = extSim.points[i];
+      const bgVal = pt.yBg ?? 0;
+      sumBg += bgVal;
+      sumTotal += (pt._cleanY ?? 0);
+
+      if (pt.yKa1 !== undefined) sumPeak1 += Math.max(0, pt.yKa1 - bgVal);
+      else sumPeak1 += Math.max(0, (pt._cleanY ?? 0) - bgVal);
+
+      if (pt.yKa2 !== undefined) sumKa2 += Math.max(0, pt.yKa2 - bgVal);
+      if (pt.yPeak2 !== undefined) sumSec += Math.max(0, pt.yPeak2 - bgVal);
+      if (pt.yHalo !== undefined) sumHalo += Math.max(0, pt.yHalo - bgVal);
+      if (pt.yG !== undefined) sumG += Math.max(0, pt.yG - bgVal);
+      if (pt.yL !== undefined) sumL += Math.max(0, pt.yL - bgVal);
+    }
+
+    const areaTotal = Math.max(0.001, sumTotal * stepSize);
+    const areaPeak1 = Math.max(0, sumPeak1 * stepSize);
+    const areaKa2 = Math.max(0, sumKa2 * stepSize);
+    const areaSec = Math.max(0, sumSec * stepSize);
+    const areaHalo = Math.max(0, sumHalo * stepSize);
+    const areaBg = Math.max(0, sumBg * stepSize);
+    const areaG = Math.max(0, sumG * stepSize);
+    const areaL = Math.max(0, sumL * stepSize);
+
+    const items: DeconstructedComponentItem[] = [
+      {
+        id: 'peak1',
+        name: enableKaDoublet ? 'Bragg Peak 1 (Kα₁)' : 'Primary Bragg Reflection',
+        formula:
+          type === 'Pearson VII'
+            ? `Pearson VII (m=${pearsonM.toFixed(1)})`
+            : type === 'Thompson-Cox-Hastings'
+            ? `TCH-pV (η_L=${(eta * 100).toFixed(0)}%)`
+            : `${type} Profile`,
+        color: '#6366f1',
+        enabled: true,
+        visible: componentVisibility['peak1'] ?? true,
+        center: center,
+        fwhm: extSim.stats.fwhm,
+        amplitude: amplitude,
+        area: areaPeak1,
+        fractionPercent: (areaPeak1 / areaTotal) * 100,
+        integralBreadth: extSim.stats.integralBreadth,
+        shapeFactor: extSim.stats.shapeFactor
+      }
+    ];
+
+    if (enableKaDoublet) {
+      items.push({
+        id: 'ka2',
+        name: 'Bragg Satellite (Kα₂ Doublet)',
+        formula: `Kα₂ doublet (ratio: ${ka2Ratio.toFixed(2)})`,
+        color: '#f59e0b',
+        enabled: true,
+        visible: componentVisibility['ka2'] ?? true,
+        center: extSim.stats.centerKa2,
+        fwhm: extSim.stats.fwhm,
+        amplitude: amplitude * ka2Ratio,
+        area: areaKa2,
+        fractionPercent: (areaKa2 / areaTotal) * 100,
+        integralBreadth: extSim.stats.integralBreadth,
+        shapeFactor: extSim.stats.shapeFactor
+      });
+    }
+
+    if (enableSecondaryPeak) {
+      items.push({
+        id: 'peak2',
+        name: 'Secondary Overlapping Reflection',
+        formula: `Overlapping phase peak (offset: ${secondPeakOffset >= 0 ? '+' : ''}${secondPeakOffset.toFixed(2)}°)`,
+        color: '#10b981',
+        enabled: true,
+        visible: componentVisibility['peak2'] ?? true,
+        center: center + secondPeakOffset,
+        fwhm: secondPeakFwhm,
+        amplitude: amplitude * (secondPeakAmp / 100),
+        area: areaSec,
+        fractionPercent: (areaSec / areaTotal) * 100,
+        integralBreadth: secondPeakFwhm * 1.064,
+        shapeFactor: 0.94
+      });
+    }
+
+    if (showComponents && (type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings')) {
+      items.push({
+        id: 'gComp',
+        name: 'Pure Gaussian Sub-Component G(2θ)',
+        formula: `exp(-½(x-x₀)²/σ²) with share ${(1 - extSim.stats.effEta).toFixed(2)}`,
+        color: '#3b82f6',
+        enabled: true,
+        visible: componentVisibility['gComp'] ?? true,
+        center: center,
+        fwhm: extSim.stats.fwhm,
+        amplitude: amplitude * (1 - extSim.stats.effEta),
+        area: areaG,
+        fractionPercent: (areaG / areaTotal) * 100,
+        integralBreadth: extSim.stats.fwhm * 1.064,
+        shapeFactor: 0.9394
+      });
+      items.push({
+        id: 'lComp',
+        name: 'Pure Lorentzian Sub-Component L(2θ)',
+        formula: `γ²/((x-x₀)²+γ²) with share ${extSim.stats.effEta.toFixed(2)}`,
+        color: '#06b6d4',
+        enabled: true,
+        visible: componentVisibility['lComp'] ?? true,
+        center: center,
+        fwhm: extSim.stats.fwhm,
+        amplitude: amplitude * extSim.stats.effEta,
+        area: areaL,
+        fractionPercent: (areaL / areaTotal) * 100,
+        integralBreadth: extSim.stats.fwhm * 1.571,
+        shapeFactor: 0.6366
+      });
+    }
+
+    if (enableAmorphousHalo) {
+      items.push({
+        id: 'halo',
+        name: 'Amorphous Broad Halo',
+        formula: `Gaussian broad halo (FWHM: ${amorphousFwhm.toFixed(1)}°)`,
+        color: '#a855f7',
+        enabled: true,
+        visible: componentVisibility['halo'] ?? true,
+        center: amorphousCenter,
+        fwhm: amorphousFwhm,
+        amplitude: amorphousAmp,
+        area: areaHalo,
+        fractionPercent: (areaHalo / areaTotal) * 100,
+        integralBreadth: amorphousFwhm * 1.064,
+        shapeFactor: 0.9394
+      });
+    }
+
+    items.push({
+      id: 'bg',
+      name: 'Baseline Polynomial Background B(2θ)',
+      formula: `b₀=${background.toFixed(1)}, b₁=${bgSlope.toFixed(2)}, b₂=${bgCurvature.toFixed(3)}`,
+      color: '#94a3b8',
+      enabled: true,
+      visible: componentVisibility['bg'] ?? true,
+      center: center,
+      fwhm: (extSim.points[rangeSteps - 1]?.x ?? 180) - (extSim.points[0]?.x ?? 0),
+      amplitude: background,
+      area: areaBg,
+      fractionPercent: (areaBg / areaTotal) * 100,
+      integralBreadth: 0,
+      shapeFactor: 0
+    });
+
+    return items;
+  }, [
+    extSim,
+    type,
+    pearsonM,
+    eta,
+    center,
+    amplitude,
+    enableKaDoublet,
+    ka2Ratio,
+    enableSecondaryPeak,
+    secondPeakOffset,
+    secondPeakFwhm,
+    secondPeakAmp,
+    showComponents,
+    enableAmorphousHalo,
+    amorphousCenter,
+    amorphousFwhm,
+    amorphousAmp,
+    background,
+    bgSlope,
+    bgCurvature,
+    componentVisibility
+  ]);
 
   // Non-linear Least Squares Auto-Fit Routine
   const autoFitPeakModel = () => {
@@ -1494,6 +1817,11 @@ export const FWHMModule: React.FC = () => {
         stdErrFwhm: Number(stdErrW.toFixed(4)),
         stdErrEta: Number(stdErrE.toFixed(3))
       });
+      setCenter(Number(bestCenter.toFixed(4)));
+      setFwhmManual(Number(bestFwhm.toFixed(4)));
+      setEta(Number(bestEta.toFixed(3)));
+      setAmplitude(Number(bestAmp.toFixed(1)));
+      setBackground(Number(bestBg.toFixed(1)));
       setIsFitting(false);
     }, 250);
   };
@@ -1946,8 +2274,41 @@ export const FWHMModule: React.FC = () => {
     }));
   }, [type, center, fwhm, eta, amplitude, stats, analysis, activeWavelength, scherrerK]);
 
-  const applyScenarioPreset = (scenario: 'silicon' | 'gold_nano' | 'ka_doublet' | 'strain' | 'multi_peak' | 'solitude') => {
+  const applyScenarioPreset = (scenario: 'silicon' | 'gold_nano' | 'ka_doublet' | 'strain' | 'multi_peak' | 'solitude' | 'tch_lab6' | 'pearson_vii') => {
     switch (scenario) {
+      case 'tch_lab6':
+        setType('Thompson-Cox-Hastings');
+        setCenter(30.386);
+        setFwhmManual(0.082);
+        setEta(0.55);
+        setAmplitude(160);
+        setBackground(8);
+        setBgSlope(0.05);
+        setBgCurvature(0.002);
+        setNoiseLevel(1.5);
+        setEnableKaDoublet(false);
+        setEnableSecondaryPeak(false);
+        setAsymmetry(1.0);
+        setRefMaterial('LaB6');
+        setShowReferencePeaks(true);
+        break;
+      case 'pearson_vii':
+        setType('Pearson VII');
+        setCenter(38.184);
+        setFwhmManual(0.24);
+        setPearsonM(1.8);
+        setEta(0.18);
+        setAmplitude(135);
+        setBackground(10);
+        setBgSlope(-0.02);
+        setBgCurvature(0.001);
+        setNoiseLevel(2.0);
+        setEnableKaDoublet(false);
+        setEnableSecondaryPeak(false);
+        setAsymmetry(1.0);
+        setRefMaterial('Gold');
+        setShowReferencePeaks(true);
+        break;
       case 'solitude':
         setType('Pseudo-Voigt');
         setCenter(30.0);
@@ -2133,25 +2494,34 @@ export const FWHMModule: React.FC = () => {
                     Convolution Model
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt', 'Pearson VII'] as const).map(t => (
+                    {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt', 'Pearson VII', 'Thompson-Cox-Hastings'] as const).map(t => (
                       <button
                         key={t}
                         onClick={() => {
                           setType(t);
                           if (t === 'Gaussian') setEta(0);
                           else if (t === 'Lorentzian') setEta(1);
-                          else if (t === 'Pearson VII') setEta(0.2); // m = 2
-                          else setEta(0.5);
+                          else if (t === 'Pearson VII') {
+                            setPearsonM(2.0);
+                            setEta(0.2);
+                          } else if (t === 'Thompson-Cox-Hastings') {
+                            setVoigtFormulation('TCH');
+                            setEta(0.5);
+                          } else {
+                            setEta(0.5);
+                          }
                         }}
                         className={`p-2 rounded-lg border text-left transition-all text-xs flex flex-col justify-between cursor-pointer ${
                           type === t 
                             ? 'bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-500 dark:border-indigo-400 font-bold text-indigo-700 dark:text-indigo-300 shadow-sm' 
                             : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 text-slate-700 dark:text-slate-300'
-                        }`}
+                        } ${t === 'Thompson-Cox-Hastings' ? 'col-span-2' : ''}`}
                       >
-                        <span className="block truncate">{t === 'Pseudo-Voigt' ? 'Pseudo-Voigt' : t}</span>
+                        <span className="block truncate font-semibold">
+                          {t === 'Thompson-Cox-Hastings' ? 'Thompson-Cox-Hastings (TCH-pV)' : t}
+                        </span>
                         <span className="text-[9px] font-mono text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
-                          {t === 'Gaussian' ? 'Exp decay' : t === 'Lorentzian' ? 'Poly decay' : t === 'Pearson VII' ? 'Pearson m' : 'PV hybrid'}
+                          {t === 'Gaussian' ? 'Exp decay' : t === 'Lorentzian' ? 'Poly decay' : t === 'Pearson VII' ? 'Pearson m-exponent' : t === 'Thompson-Cox-Hastings' ? 'Caglioti TCH Polynomial Voigt' : 'PV hybrid'}
                         </span>
                       </button>
                     ))}
@@ -2284,15 +2654,101 @@ export const FWHMModule: React.FC = () => {
                     />
                   </div>
 
-                  {/* Mixing / Exponent Slider */}
-                  {(type === 'Pseudo-Voigt' || type === 'Pearson VII') && (
+                  {/* Pearson VII Dedicated Shape Parameter (m) */}
+                  {type === 'Pearson VII' && (
+                    <div className="space-y-2 p-2.5 bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/60 rounded-xl">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-500" />
+                          Pearson VII Exponent (m)
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            step="0.1" min="1.0" max="10.0"
+                            value={pearsonM}
+                            onChange={(e) => {
+                              const val = Math.max(1, Math.min(10, parseFloat(e.target.value) || 1));
+                              setPearsonM(val);
+                              setEta(val / 10);
+                            }}
+                            className="w-14 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 rounded px-1.5 py-0.5 font-mono text-xs text-right font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <input
+                        type="range" min="1.0" max="10.0" step="0.1"
+                        value={pearsonM} 
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setPearsonM(val);
+                          setEta(val / 10);
+                        }}
+                        className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                      />
+                      <div className="grid grid-cols-4 gap-1 text-[8px] font-mono">
+                        {[
+                          { m: 1.0, label: 'm=1 (Cauchy)' },
+                          { m: 2.0, label: 'm=2 (XRD)' },
+                          { m: 5.0, label: 'm=5 (Medium)' },
+                          { m: 10.0, label: 'm=10 (Gauss)' }
+                        ].map((btn) => (
+                          <button
+                            key={btn.m}
+                            type="button"
+                            onClick={() => {
+                              setPearsonM(btn.m);
+                              setEta(btn.m / 10);
+                            }}
+                            className={`p-1 rounded text-center transition-all cursor-pointer border ${
+                              Math.abs(pearsonM - btn.m) < 0.05 
+                                ? 'bg-emerald-600 text-white border-emerald-500 font-bold' 
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-emerald-400'
+                            }`}
+                          >
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Thompson-Cox-Hastings Dedicated Profile Controls */}
+                  {type === 'Thompson-Cox-Hastings' && (
+                    <div className="space-y-2 p-2.5 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/60 rounded-xl">
+                      <div className="flex justify-between items-center text-[10px]">
+                        <span className="font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500" />
+                          Lorentzian Breadth Fraction (η_L)
+                        </span>
+                        <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                          {(eta * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range" min="0" max="1" step="0.01"
+                        value={String(eta) === 'NaN' ? '' : eta} 
+                        onChange={(e) => setEta(parseFloat(e.target.value))}
+                        className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      />
+                      <div className="grid grid-cols-2 gap-1.5 text-[9px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 p-1.5 rounded border border-indigo-100 dark:border-indigo-900">
+                        <div>H_G: <strong className="text-purple-600 dark:text-purple-400">{(fwhm * Math.sqrt(Math.max(0.0001, 1 - eta))).toFixed(3)}°</strong></div>
+                        <div>H_L: <strong className="text-cyan-600 dark:text-cyan-400">{(fwhm * eta).toFixed(3)}°</strong></div>
+                        <div>TCH Γ: <strong className="text-indigo-600 dark:text-indigo-400">{extSim.stats.effTchFwhm.toFixed(3)}°</strong></div>
+                        <div>Eff η: <strong className="text-indigo-600 dark:text-indigo-400">{(extSim.stats.effEta * 100).toFixed(1)}%</strong></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Standard Linear Pseudo-Voigt Mixing Slider */}
+                  {type === 'Pseudo-Voigt' && (
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center text-[10px]">
                         <span className="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                          {type === 'Pearson VII' ? 'Exponent (m)' : 'Mixing Parameter (η)'}
+                          Mixing Parameter (η)
                         </span>
                         <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                          {type === 'Pearson VII' ? Math.max(1, eta * 10).toFixed(1) : `${(eta * 100).toFixed(0)}%`}
+                          {(eta * 100).toFixed(0)}%
                         </span>
                       </div>
                       <input
@@ -2302,17 +2758,8 @@ export const FWHMModule: React.FC = () => {
                         className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                       />
                       <div className="flex justify-between text-[9px] text-slate-400 mt-0.5 font-medium">
-                        {type === 'Pearson VII' ? (
-                          <>
-                            <span>m=1 (Lorentzian)</span>
-                            <span>m=10 (Gaussian)</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Gaussian (0)</span>
-                            <span>Lorentzian (1)</span>
-                          </>
-                        )}
+                        <span>Gaussian (0)</span>
+                        <span>Lorentzian (1)</span>
                       </div>
                     </div>
                   )}
@@ -3309,6 +3756,22 @@ export const FWHMModule: React.FC = () => {
               Solitude Pure Peak
             </button>
             <button
+              onClick={() => applyScenarioPreset('tch_lab6')}
+              className="px-2.5 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-indigo-400/50 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
+              title="Thompson-Cox-Hastings Pseudo-Voigt on SRM 660c LaB6 standard"
+            >
+              <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
+              TCH-pV (LaB₆)
+            </button>
+            <button
+              onClick={() => applyScenarioPreset('pearson_vii')}
+              className="px-2.5 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-100 text-[10px] font-bold uppercase rounded-lg border border-emerald-400/50 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
+              title="Pearson VII with variable exponent m=1.8 (heavy tails)"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Pearson VII (m=1.8)
+            </button>
+            <button
               onClick={() => applyScenarioPreset('silicon')}
               className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
               title="Silicon (111) Calibration Standard - Narrow Instrumental Broadening"
@@ -3628,6 +4091,17 @@ export const FWHMModule: React.FC = () => {
                 >
                   <Activity className="w-3 h-3" />
                   Residuals
+                </button>
+
+                <button
+                  onClick={() => setShowDeconstructedLayers(!showDeconstructedLayers)}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
+                    showDeconstructedLayers ? 'bg-indigo-600 text-white font-semibold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Toggle Live Component Deconstruction & Energy Budget Panel"
+                >
+                  <Layers className="w-3 h-3" />
+                  Deconstruct
                 </button>
 
                 {enableKaDoublet && (
@@ -5108,7 +5582,7 @@ export const FWHMModule: React.FC = () => {
                 )}
 
                 {/* Gaussian Sub-Curve Component */}
-                {type === 'Pseudo-Voigt' && showComponents && (
+                {(type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') && showComponents && componentVisibility['gComp'] !== false && (
                   <Line 
                     type="monotone" 
                     dataKey="yG" 
@@ -5121,7 +5595,7 @@ export const FWHMModule: React.FC = () => {
                 )}
 
                 {/* Lorentzian Sub-Curve Component */}
-                {type === 'Pseudo-Voigt' && showComponents && (
+                {(type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') && showComponents && componentVisibility['lComp'] !== false && (
                   <Line 
                     type="monotone" 
                     dataKey="yL" 
@@ -5167,7 +5641,7 @@ export const FWHMModule: React.FC = () => {
                 )}
 
                 {/* Kα1 Profile */}
-                {enableKaDoublet && (
+                {enableKaDoublet && componentVisibility['peak1'] !== false && (
                   <Line 
                     type="monotone" 
                     dataKey="yKa1" 
@@ -5179,7 +5653,7 @@ export const FWHMModule: React.FC = () => {
                 )}
 
                 {/* Kα2 Profile */}
-                {enableKaDoublet && (
+                {enableKaDoublet && componentVisibility['ka2'] !== false && (
                   <Line 
                     type="monotone" 
                     dataKey="yKa2" 
@@ -5206,7 +5680,7 @@ export const FWHMModule: React.FC = () => {
                 )}
 
                 {/* Secondary Overlapping Reflection */}
-                {enableSecondaryPeak && (
+                {enableSecondaryPeak && componentVisibility['peak2'] !== false && (
                   <Line 
                     type="monotone" 
                     dataKey="yPeak2" 
@@ -5270,20 +5744,22 @@ export const FWHMModule: React.FC = () => {
                   );
                 })}
 
-                {/* Clean Peak Curve */}
-                <Area 
-                   type="monotone" 
-                   dataKey={showNetIntensity ? "_cleanY_net" : "_cleanY"} 
-                   stroke={plotTheme === 'monochrome' ? "#18181b" : enableMultiPeakMode ? "#8b5cf6" : "#4f46e5"} 
-                   strokeWidth={3.5}
-                   fillOpacity={enableMultiPeakMode ? 0.05 : 1} 
-                   fill="url(#colorY)" 
-                   isAnimationActive={false}
-                   activeDot={false}
-                />
+                {/* Clean Peak Curve (Total Model Fit) */}
+                {componentVisibility['calc'] !== false && (
+                  <Area 
+                     type="monotone" 
+                     dataKey={showNetIntensity ? "_cleanY_net" : "_cleanY"} 
+                     stroke={plotTheme === 'monochrome' ? "#18181b" : enableMultiPeakMode ? "#8b5cf6" : "#4f46e5"} 
+                     strokeWidth={3.5}
+                     fillOpacity={enableMultiPeakMode ? 0.05 : 1} 
+                     fill="url(#colorY)" 
+                     isAnimationActive={false}
+                     activeDot={false}
+                  />
+                )}
 
                 {/* Statistical Noisy Curve (Red Raw Peak Data) */}
-                {showNoisyCurve && (
+                {showNoisyCurve && componentVisibility['obs'] !== false && (
                   <Area 
                      type="monotone" 
                      dataKey={showNetIntensity ? "y_net" : "y"} 
@@ -5368,32 +5844,42 @@ export const FWHMModule: React.FC = () => {
             </div>
           )}
 
-          {/* Synchronized Difference Residuals Pane */}
+          {/* Synchronized Difference Residuals Sub-Plot */}
           {showResiduals && chartData.length > 0 && (
-            <div className="mt-4 bg-slate-100 dark:bg-slate-950 p-3 rounded-xl border-2 border-slate-300 dark:border-slate-800 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between mb-1.5 text-xs font-mono">
-                <span className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-rose-500" />
-                  Fit Residual Difference (Y_obs - Y_calc)
-                </span>
-                <div className="flex items-center gap-3 text-xs font-bold">
-                  <span className="text-slate-600 dark:text-slate-400">R_p: <strong className="text-indigo-600 dark:text-indigo-400">{extSim.stats.rP.toFixed(2)}%</strong></span>
-                  <span className="text-slate-600 dark:text-slate-400">R_wp: <strong className="text-purple-600 dark:text-purple-400">{extSim.stats.rWP.toFixed(2)}%</strong></span>
-                  <span className="text-slate-600 dark:text-slate-400">GoF (χ²): <strong className="text-emerald-600 dark:text-emerald-400">{extSim.stats.goodnessOfFit.toFixed(2)}</strong></span>
-                </div>
-              </div>
-              <div className="h-[110px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 5, right: 35, left: 15, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="2 2" stroke="#94a3b8" strokeOpacity={0.5} />
-                    <XAxis dataKey="x" hide domain={['dataMin', 'dataMax']} />
-                    <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
-                    <ReferenceLine y={0} stroke="#10b981" strokeWidth={2} strokeDasharray="3 3" />
-                    <Line type="monotone" dataKey="residual" stroke="#ff2a5f" strokeWidth={1.8} dot={false} isAnimationActive={false} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            <InteractiveResidualSubplot
+              data={chartData}
+              stats={extSim.stats as any}
+              hoveredX={hoveredPointData?.x}
+              onHoverPoint={(pt) => {
+                if (pt) setHoveredPointData(pt);
+              }}
+              plotTheme={plotTheme}
+            />
+          )}
+
+          {/* Live Peak Component Deconstruction & Energy Budget Card */}
+          {showDeconstructedLayers && (
+            <LiveComponentDeconstructionCard
+              components={deconstructedComponents}
+              onToggleVisibility={handleToggleComponentVisibility}
+              onToggleAllVisibility={handleToggleAllComponentVisibility}
+              type={type}
+              onTypeChange={setType}
+              eta={eta}
+              onEtaChange={setEta}
+              pearsonM={pearsonM}
+              onPearsonMChange={setPearsonM}
+              asymmetry={asymmetry}
+              onAsymmetryChange={setAsymmetry}
+              background={background}
+              onBackgroundChange={setBackground}
+              bgSlope={bgSlope}
+              onBgSlopeChange={setBgSlope}
+              bgCurvature={bgCurvature}
+              onBgCurvatureChange={setBgCurvature}
+              totalModelArea={extSim.stats.area}
+              observedTotalArea={extSim.stats.area}
+            />
           )}
 
           {/* Synchronized Numerical 1st and 2nd Derivative Inspection Window */}

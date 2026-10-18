@@ -799,8 +799,9 @@ export interface CustomPeak {
   center: number;
   fwhm: number;
   amplitude: number;
-  shape: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII' | 'Split-Pseudo-Voigt';
+  shape: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Thompson-Cox-Hastings' | 'Pearson VII' | 'Split-Pseudo-Voigt';
   eta: number; // For Pseudo-Voigt (0-1) or Pearson VII exponent m
+  pearsonM?: number; // Explicit Pearson VII exponent m (1.0 to 10.0)
   asymmetry: number;
   phase?: string;
   hkl?: [number, number, number];

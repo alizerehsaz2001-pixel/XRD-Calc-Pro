@@ -579,10 +579,173 @@ export const calculateThetaFromBragg = (wavelength: number, dSpacing: number): n
   return thetaRad * (180 / Math.PI);
 };
 
+/**
+ * Lanczos 9-term approximation for the Gamma function Γ(z) (g=7, precision ~1e-15).
+ * Used for exact analytical Pearson VII peak profile integration and shape evaluation.
+ */
+export const lanczosGamma = (z: number): number => {
+  if (z < 0.5) {
+    return Math.PI / (Math.sin(Math.PI * z) * lanczosGamma(1 - z));
+  }
+  z -= 1;
+  const p = [
+    0.99999999999980993,
+    676.5203681218851,
+    -1259.1392167224028,
+    771.32342877765313,
+    -176.61502916214059,
+    12.507343278686905,
+    -0.138571095836524,
+    9.9843695780195716e-6,
+    1.5056327351493116e-7
+  ];
+  let x = p[0];
+  for (let i = 1; i < p.length; i++) {
+    x += p[i] / (z + i);
+  }
+  const t = z + p.length - 1.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+};
+
+/**
+ * Analytical Pearson VII Area and Integral Breadth computation:
+ * I(x) = I_0 * [1 + 4(2^(1/m) - 1)*((x - x_0)^2 / FWHM^2)]^(-m)
+ * Exact Integral = I_0 * FWHM * [sqrt(pi) * Γ(m - 0.5)] / [2 * sqrt(2^(1/m) - 1) * Γ(m)]
+ */
+export const calculatePearsonVIIArea = (
+  amplitude: number,
+  fwhm: number,
+  m: number
+): { area: number; integralBreadth: number; shapeFactor: number } => {
+  const safeM = Math.max(1.0001, m);
+  const factor = 2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / safeM) - 1));
+  const w = fwhm / factor;
+  const gammaM = lanczosGamma(safeM);
+  const gammaMMinusHalf = lanczosGamma(safeM - 0.5);
+  const area = amplitude * w * Math.sqrt(Math.PI) * (gammaMMinusHalf / gammaM);
+  const integralBreadth = area / Math.max(1e-6, amplitude);
+  const shapeFactor = fwhm / Math.max(1e-6, integralBreadth);
+  return { area, integralBreadth, shapeFactor };
+};
+
+/**
+ * Statistical Metrics for Powder Line Profile Fitting & Residual Analysis
+ * Includes R_p, R_wp, Goodness-of-Fit (reduced chi2), Durbin-Watson autocorrelation, AIC, and BIC.
+ */
+export interface ResidualStatisticsResult {
+  rP: number;
+  rWP: number;
+  rExp: number;
+  goodnessOfFit: number;
+  durbinWatson: number;
+  durbinWatsonStatus: 'ideal' | 'positive_autocorrelation' | 'negative_autocorrelation';
+  rmsResidual: number;
+  maxAbsResidual: number;
+  outlierCount: number; // |ΔI / σ| > 3
+  aic: number;
+  bic: number;
+}
+
+export const calculateResidualStatistics = (
+  observed: number[],
+  calculated: number[],
+  numParameters: number = 5
+): ResidualStatisticsResult => {
+  const n = observed.length;
+  if (n === 0) {
+    return {
+      rP: 0,
+      rWP: 0,
+      rExp: 0,
+      goodnessOfFit: 1,
+      durbinWatson: 2,
+      durbinWatsonStatus: 'ideal',
+      rmsResidual: 0,
+      maxAbsResidual: 0,
+      outlierCount: 0,
+      aic: 0,
+      bic: 0
+    };
+  }
+
+  let sumAbsDiff = 0;
+  let sumObs = 0;
+  let sumWDiffSq = 0;
+  let sumWObsSq = 0;
+  let sumSqDiff = 0;
+  let maxAbsDiff = 0;
+  let outlierCount = 0;
+
+  let dwDiffSqSum = 0;
+  let dwResidualSqSum = 0;
+
+  for (let i = 0; i < n; i++) {
+    const yObs = observed[i];
+    const yCalc = calculated[i];
+    const diff = yObs - yCalc;
+    const absDiff = Math.abs(diff);
+
+    sumAbsDiff += absDiff;
+    sumObs += yObs;
+    sumSqDiff += diff * diff;
+    if (absDiff > maxAbsDiff) maxAbsDiff = absDiff;
+
+    // Weight w_i = 1 / max(1, yObs) based on Poisson statistics
+    const w = 1 / Math.max(1, yObs);
+    sumWDiffSq += w * diff * diff;
+    sumWObsSq += w * yObs * yObs;
+
+    const sigma = Math.sqrt(Math.max(1, yCalc));
+    if (Math.abs(diff / sigma) > 3) {
+      outlierCount++;
+    }
+
+    dwResidualSqSum += diff * diff;
+    if (i > 0) {
+      const prevDiff = observed[i - 1] - calculated[i - 1];
+      const dStep = diff - prevDiff;
+      dwDiffSqSum += dStep * dStep;
+    }
+  }
+
+  const degFreedom = Math.max(1, n - numParameters);
+  const rP = sumObs > 0 ? (sumAbsDiff / sumObs) * 100 : 0;
+  const rWP = sumWObsSq > 0 ? Math.sqrt(sumWDiffSq / sumWObsSq) * 100 : 0;
+  const goodnessOfFit = sumWDiffSq / degFreedom;
+  const rExp = rWP / Math.sqrt(Math.max(0.0001, goodnessOfFit));
+  const rmsResidual = Math.sqrt(sumSqDiff / n);
+  const durbinWatson = dwResidualSqSum > 0 ? dwDiffSqSum / dwResidualSqSum : 2.0;
+
+  let durbinWatsonStatus: 'ideal' | 'positive_autocorrelation' | 'negative_autocorrelation' = 'ideal';
+  if (durbinWatson < 1.6) {
+    durbinWatsonStatus = 'positive_autocorrelation';
+  } else if (durbinWatson > 2.4) {
+    durbinWatsonStatus = 'negative_autocorrelation';
+  }
+
+  // Model selection criteria
+  const variance = sumSqDiff / n;
+  const aic = n * Math.log(Math.max(1e-12, variance)) + 2 * numParameters;
+  const bic = n * Math.log(Math.max(1e-12, variance)) + numParameters * Math.log(n);
+
+  return {
+    rP,
+    rWP,
+    rExp,
+    goodnessOfFit,
+    durbinWatson,
+    durbinWatsonStatus,
+    rmsResidual,
+    maxAbsResidual: maxAbsDiff,
+    outlierCount,
+    aic,
+    bic
+  };
+};
 
 // Line Profile Simulation
 export const simulatePeak = (
-  type: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII',
+  type: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII' | 'Thompson-Cox-Hastings',
   center: number,
   fwhm: number,
   eta: number, // mixing factor for PV, or shape parameter (m) for Pearson VII
@@ -590,23 +753,42 @@ export const simulatePeak = (
   range: [number, number],
   steps: number = 200,
   background: number = 0,
-  noiseLevel: number = 0
+  noiseLevel: number = 0,
+  pearsonM?: number
 ) => {
   const points = [];
   const start = range[0];
   const end = range[1];
   const stepSize = (end - start) / steps;
 
+  // Thompson-Cox-Hastings (TCH) formulation
+  let effEta = eta;
+  let effFwhm = fwhm;
+  if (type === 'Thompson-Cox-Hastings') {
+    const H_G = Math.max(0.0001, fwhm * Math.sqrt(Math.max(0.0001, 1 - eta)));
+    const H_L = Math.max(0.0001, fwhm * eta);
+    effFwhm = Math.pow(
+      Math.pow(H_G, 5) +
+      2.69269 * Math.pow(H_G, 4) * H_L +
+      2.42843 * Math.pow(H_G, 3) * Math.pow(H_L, 2) +
+      4.47163 * Math.pow(H_G, 2) * Math.pow(H_L, 3) +
+      0.07842 * H_G * Math.pow(H_L, 4) +
+      Math.pow(H_L, 5),
+      0.2
+    );
+    const ratioHL = H_L / Math.max(0.0001, effFwhm);
+    effEta = Math.min(1, Math.max(0, 1.36603 * ratioHL - 0.47719 * Math.pow(ratioHL, 2) + 0.11116 * Math.pow(ratioHL, 3)));
+  }
+
   // HWHM = Half Width at Half Maximum
-  const gamma = Math.max(0.0001, fwhm / 2);
+  const gamma = Math.max(0.0001, effFwhm / 2);
   // Gaussian sigma
-  const sigma = Math.max(0.0001, fwhm / (2 * Math.sqrt(2 * Math.log(2))));
+  const sigma = Math.max(0.0001, effFwhm / (2 * Math.sqrt(2 * Math.log(2))));
 
   // Pearson VII variables
-  // For Pearson VII, let's use eta for the 'm' parameter, typically m >= 1.
   // m=1 is Lorentzian, m=infinity is Gaussian
-  const m = Math.max(1, eta * 10); // scale eta from [0,1] to [1,10] since it's the PV slider. Let's reinterpret eta for Pearson VII.
-  const PVII_w = fwhm / (2 * Math.sqrt(Math.pow(2, 1/m) - 1));
+  const m = pearsonM !== undefined ? Math.max(1, pearsonM) : (eta > 1 ? eta : Math.max(1, eta * 10));
+  const PVII_w = Math.max(0.0001, fwhm / (2 * Math.sqrt(Math.max(1e-6, Math.pow(2, 1 / m) - 1))));
 
   for (let i = 0; i <= steps; i++) {
     const x = start + i * stepSize;
@@ -614,16 +796,18 @@ export const simulatePeak = (
     let yG: number | undefined = undefined;
     let yL: number | undefined = undefined;
 
-    if (type === 'Gaussian' || type === 'Pseudo-Voigt') {
+    if (type === 'Gaussian' || type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') {
       const g = amplitude * Math.exp(-0.5 * Math.pow((x - center) / sigma, 2));
-      const valG = (type === 'Gaussian') ? g : (1 - eta) * g;
+      const mixEta = type === 'Thompson-Cox-Hastings' ? effEta : eta;
+      const valG = (type === 'Gaussian') ? g : (1 - mixEta) * g;
       yG = valG;
       y += valG;
     }
 
-    if (type === 'Lorentzian' || type === 'Pseudo-Voigt') {
+    if (type === 'Lorentzian' || type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') {
       const l = amplitude * (Math.pow(gamma, 2) / (Math.pow(x - center, 2) + Math.pow(gamma, 2)));
-      const valL = (type === 'Lorentzian') ? l : eta * l;
+      const mixEta = type === 'Thompson-Cox-Hastings' ? effEta : eta;
+      const valL = (type === 'Lorentzian') ? l : mixEta * l;
       yL = valL;
       y += valL;
     }
@@ -634,34 +818,30 @@ export const simulatePeak = (
     
     // Apply background and simulated Poisson-like random noise
     const bg = background;
-    const noisyY = y + bg + (Math.random() - 0.5) * noiseLevel * Math.sqrt(y + bg + 1) * 2;
+    const noisyY = y + bg + (Math.random() - 0.5) * noiseLevel * Math.sqrt(Math.max(0, y + bg + 1)) * 2;
 
     points.push({ 
       x, 
       y: noisyY, 
       _cleanY: y + bg,
-      yG: (type === 'Pseudo-Voigt' && yG !== undefined) ? yG + bg : undefined,
-      yL: (type === 'Pseudo-Voigt' && yL !== undefined) ? yL + bg : undefined
+      yG: ((type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') && yG !== undefined) ? yG + bg : undefined,
+      yL: ((type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') && yL !== undefined) ? yL + bg : undefined
     });
   }
 
   // Calculate Integral Breadth Area
-  // Area_G = amplitude * sigma * sqrt(2*PI)
-  // Area_L = amplitude * PI * gamma
   const areaG = amplitude * sigma * Math.sqrt(2 * Math.PI);
   const areaL = amplitude * Math.PI * gamma;
   
-  // Area of Pearson VII: amplitude * PVII_w * sqrt(PI) * Gamma(m - 0.5) / Gamma(m)
-  // Approximation for gamma function ratio or just numerical integration
   let totalArea = 0;
   if (type === 'Gaussian') totalArea = areaG;
   else if (type === 'Lorentzian') totalArea = areaL;
   else if (type === 'Pseudo-Voigt') totalArea = (1 - eta) * areaG + eta * areaL;
+  else if (type === 'Thompson-Cox-Hastings') totalArea = (1 - effEta) * areaG + effEta * areaL;
   else {
-     // numerical integration for Pearson VII since Gamma function is complex in pure JS
-     let sum = 0;
-     for (let i = 0; i < steps; i++) sum += (points[i].y + points[i+1].y) / 2 * stepSize;
-     totalArea = sum;
+     // exact analytical integration for Pearson VII via Lanczos Gamma function
+     const pvii = calculatePearsonVIIArea(amplitude, fwhm, m);
+     totalArea = pvii.area;
   }
 
   const integralBreadth = totalArea / amplitude;
