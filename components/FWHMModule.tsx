@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
 import { 
   RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle, Download, BookOpen, HelpCircle,
   Sliders, Eye, ZoomIn, ZoomOut, Crosshair, TrendingUp, BarChart2, Split, Maximize2, Sparkles, SlidersHorizontal,
@@ -12,6 +12,7 @@ import { MultiPeakManager, SCIENTIFIC_PEAK_COLORS } from './MultiPeakManager';
 import { OriginProFWHMPlotter } from './OriginProFWHMPlotter';
 import { InteractiveResidualSubplot } from './profile/InteractiveResidualSubplot';
 import { LiveComponentDeconstructionCard, DeconstructedComponentItem } from './profile/LiveComponentDeconstructionCard';
+import { downsampleLTTB } from '../utils/performanceOptimizer';
 import {
   ComposedChart,
   Area,
@@ -1497,7 +1498,9 @@ export const FWHMModule: React.FC = () => {
   ]);
 
   useEffect(() => {
-    setChartData(extSim.points);
+    // Apply LTTB downsampling for chart rendering to eliminate SVG DOM lag during slider drags
+    const sampled = downsampleLTTB(extSim.points, 450, 'x', 'y');
+    setChartData(sampled);
     setStats(extSim.stats);
   }, [extSim]);
 

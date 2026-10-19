@@ -503,8 +503,18 @@ export function synthesizeCalculatedProfile(
     let peaksSum = 0;
     const peakContributions: number[] = [];
     const subPeaksMap: Record<number, number> = {};
+    let hasSubPeaks = false;
 
-    peakMetadata.forEach(meta => {
+    for (let mIdx = 0; mIdx < peakMetadata.length; mIdx++) {
+      const meta = peakMetadata[mIdx];
+      const dx1 = Math.abs(x - meta.twoTheta);
+      const cutoff = meta.fwhm * 6.5;
+      
+      // Fast rejection: if outside peak range and outside Ka2 range, skip immediately
+      if (dx1 > cutoff && (!params.enableKaDoublet || !meta.ka2Theta || Math.abs(x - meta.ka2Theta) > cutoff)) {
+        continue;
+      }
+
       // Main Ka1 reflection with asymmetry
       const fwhm1 = meta.fwhm;
       const peakShapeVal1 = evaluatePeakShape(
@@ -538,9 +548,10 @@ export function synthesizeCalculatedProfile(
         peakContributions.push(reflectionContrib);
         if (params.showSubPeaks) {
           subPeaksMap[meta.index] = reflectionContrib;
+          hasSubPeaks = true;
         }
       }
-    });
+    }
 
     // 3. Noise injection
     let noise = 0;
@@ -571,11 +582,13 @@ export function synthesizeCalculatedProfile(
     let theInt: number | undefined;
     if (theoreticalPattern && theoreticalPattern.length > 0) {
       let thePeakSum = 0;
-      theoreticalPattern.forEach(tp => {
+      for (let tIdx = 0; tIdx < theoreticalPattern.length; tIdx++) {
+        const tp = theoreticalPattern[tIdx];
+        if (Math.abs(x - tp.twoTheta) > 1.2) continue; // Skip far-away peaks
         const tFwhm = 0.15;
         const shapeVal = evaluatePeakShape(x, tp.twoTheta, tFwhm, 'pseudo_voigt', 0.5);
         thePeakSum += (tp.intensity * 0.95) * shapeVal;
-      });
+      }
       theInt = bg + thePeakSum;
     }
 
@@ -587,7 +600,7 @@ export function synthesizeCalculatedProfile(
       totalIntensity,
       overlapIntensity: overlapIntensity > 0.5 ? overlapIntensity : undefined,
       theInt,
-      subPeaksMap: Object.keys(subPeaksMap).length > 0 ? subPeaksMap : undefined,
+      subPeaksMap: hasSubPeaks ? subPeaksMap : undefined,
     });
   }
 

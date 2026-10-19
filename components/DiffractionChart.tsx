@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   XAxis,
@@ -63,6 +63,7 @@ import {
   XAxisUnit, 
   identifyAnode 
 } from '../utils/calculatedProfileEngine';
+import { downsampleDiffractionPoints } from '../utils/performanceOptimizer';
 import { ProfileTuningPanel } from './ProfileTuningPanel';
 import { ReflectionInspector } from './ReflectionInspector';
 
@@ -254,6 +255,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
     ...DEFAULT_PROFILE_PARAMS,
     wavelength: wavelength || 1.54059,
   }));
+  const deferredProfileParams = useDeferredValue(profileParams);
   const [showTuningPanel, setShowTuningPanel] = useState(false);
   const [xAxisUnit, setXAxisUnit] = useState<XAxisUnit>('twoTheta');
   const [showSubPeaks, setShowSubPeaks] = useState(false);
@@ -706,7 +708,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
 
     // 2. Synthesize continuous profile using scientific engine
     const profileParamsWithActiveWavelength: ProfileCalculationParams = {
-      ...profileParams,
+      ...deferredProfileParams,
       wavelength: activeWavelengthVal,
       showSubPeaks,
       showBraggTicks,
@@ -856,14 +858,23 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
       originalIdx: p.originalIdx,
     }));
 
+    // LTTB downsampling to screen resolution for ultra-fast 60fps SVG rendering
+    const optimizedPoints = downsampleDiffractionPoints(
+      processedPoints,
+      1000,
+      'twoTheta',
+      'intensityDisplay',
+      'theoreticalIntensityDisplay'
+    );
+
     return { 
-      points: processedPoints, 
+      points: optimizedPoints, 
       peakData, 
       tickData,
       metrics: synthesis.globalMetrics,
       agreementMetrics: synthesis.agreementMetrics
     };
-  }, [results, materialName, activeWavelengthVal, profileParams, showSubPeaks, showBraggTicks, smoothChart, subtractBaseline]);
+  }, [results, materialName, activeWavelengthVal, deferredProfileParams, showSubPeaks, showBraggTicks, smoothChart, subtractBaseline]);
 
   const filteredPeaks = useMemo(() => {
     if (!legendSearch.trim()) return chartData.peakData;
@@ -1006,6 +1017,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
               </div>
               <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-400">
                 {profileParams.profileShape === 'pseudo_voigt' ? `Pseudo-Voigt (η=${Math.round(profileParams.eta * 100)}%)` : profileParams.profileShape.toUpperCase()}
+              </span>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold flex items-center gap-1" title="LTTB continuous downsampling enabled for 60fps hardware accelerated rendering">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                ⚡ 60 FPS LTTB
               </span>
             </div>
             <div className="flex flex-wrap gap-2.5 items-center">
