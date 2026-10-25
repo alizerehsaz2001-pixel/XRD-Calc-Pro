@@ -35,7 +35,8 @@ import {
   Flame,
   Scale,
   Star,
-  Copy
+  Copy,
+  Zap
 } from 'lucide-react';
 import { playSynthTone } from '../utils/sound';
 import { MATERIAL_DB } from '../utils/materialDB';
@@ -3473,7 +3474,8 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                             const finalVal = Math.min(100, Math.max(0, intensity + baseline + pseudoNoise + 1));
                             const x = (i / steps) * 100;
                             const y = 180 - (finalVal / 100) * 145;
-                            path += (i === 0 ? "M " : "L ") + `${x.toFixed(1)},${y.toFixed(1)} `;
+                            const safeY = isNaN(y) || !isFinite(y) ? 180 : y;
+                            path += (i === 0 ? "M " : "L ") + `${x.toFixed(1)},${safeY.toFixed(1)} `;
                           }
                           return (
                             <path
@@ -3541,6 +3543,34 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                     <X className="w-4 h-4" />
                   </button>
                 )}
+              </div>
+
+              {/* Quick Preset Compound Buttons */}
+              <div className="flex flex-wrap items-center gap-1.5 w-full">
+                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-bold mr-1">Presets:</span>
+                {[
+                  { label: 'Hydroxyapatite', query: 'Hydroxyapatite' },
+                  { label: 'Anatase TiO₂', query: 'Anatase' },
+                  { label: 'Silicon Std', query: 'Silicon' },
+                  { label: 'Corundum Al₂O₃', query: 'Corundum' },
+                  { label: 'SrTiO₃', query: 'SrTiO3' },
+                  { label: 'LiFePO₄', query: 'LiFePO4' },
+                  { label: 'Graphene', query: 'Graphene' },
+                  { label: 'Perovskite', query: 'Perovskite' }
+                ].map(preset => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setSearchQuery(preset.query)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                      searchQuery === preset.query
+                        ? 'bg-cyan-500 text-slate-950 shadow-[0_0_10px_rgba(6,182,212,0.5)] font-black'
+                        : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 hover:border-indigo-400/50'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
               </div>
 
               <div className="flex gap-3 items-center flex-wrap sm:flex-nowrap w-full xl:w-auto">
@@ -5324,6 +5354,20 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                     </span>
                     
                     <div className="flex gap-2 flex-wrap justify-end">
+                      <button
+                        onClick={() => {
+                          const event = new CustomEvent('LOAD_MATERIAL_TO_WORKSPACE', { detail: selectedMaterial });
+                          window.dispatchEvent(event);
+                          setImportStatus(`Loaded "${selectedMaterial.name}" into active Bragg simulation workspace!`);
+                          setTimeout(() => setImportStatus(null), 4000);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 border border-emerald-400/50 text-white rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.3)] hover:scale-105 transition-all duration-200"
+                        title="Load this material into active Bragg profile simulation"
+                      >
+                        <Zap className="w-3.5 h-3.5 fill-emerald-200" />
+                        <span>Load to Workspace</span>
+                      </button>
+
                       <button
                         onClick={(e) => handleToggleStarMaterial(selectedMaterial.name, e)}
                         className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200 border ${
