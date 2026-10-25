@@ -2033,18 +2033,24 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
             }}
           >
             <defs>
+               {/* High-tech Multi-Stop Spectral Gradient */}
                <linearGradient id="profileGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
-                  <stop offset="50%" stopColor="#6366f1" stopOpacity={0.1} />
-                  <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.65} />
+                  <stop offset="20%" stopColor="#818cf8" stopOpacity={0.4} />
+                  <stop offset="60%" stopColor="#4338ca" stopOpacity={0.12} />
+                  <stop offset="100%" stopColor="#312e81" stopOpacity={0} />
                </linearGradient>
+               {/* Neon Laser Glow Filter */}
                <filter id="glowShadow" x="-20%" y="-20%" width="140%" height="140%">
-                 <feGaussianBlur stdDeviation="3" result="blur" />
-                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                 <feDropShadow dx="0" dy="0" stdDeviation="3.5" floodColor="#818cf8" floodOpacity="0.55" />
+               </filter>
+               {/* Bragg Tick Glow */}
+               <filter id="tickGlow" x="-50%" y="-50%" width="200%" height="200%">
+                 <feDropShadow dx="0" dy="0" stdDeviation="2.5" floodColor="#38bdf8" floodOpacity="0.75" />
                </filter>
             </defs>
             
-            <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.03)" />
+            <CartesianGrid strokeDasharray="3 3" vertical={true} horizontal={true} stroke="rgba(255,255,255,0.04)" />
             
             <XAxis 
               dataKey={xAxisUnit === 'twoTheta' ? 'twoTheta' : xAxisUnit === 'q' ? 'q' : 'dSpacing'} 
@@ -2182,9 +2188,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
                       y1={cy - 12} 
                       x2={cx} 
                       y2={cy + 2} 
-                      stroke={payload.isMatch ? '#f59e0b' : '#38bdf8'} 
-                      strokeWidth={2}
+                      stroke={payload.isMatch ? '#fbbf24' : '#38bdf8'} 
+                      strokeWidth={2.2}
                       strokeLinecap="round" 
+                      filter="url(#tickGlow)"
                     />
                   );
                 }}
@@ -2197,11 +2204,12 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
                 type="monotone"
                 dataKey={profileParams.intensityScale !== 'linear' ? "intensityDisplay" : "intensity"}
                 name={t('Observed Pattern', 'Observed Pattern')}
-                stroke="#6366f1"
-                strokeWidth={3}
+                stroke="#818cf8"
+                strokeWidth={2.8}
                 fill="url(#profileGradient)"
                 isAnimationActive={false}
                 strokeLinecap="round"
+                filter="url(#glowShadow)"
               />
             )}
 

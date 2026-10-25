@@ -101,33 +101,33 @@ export const UnitCell3DViewer: React.FC<Props> = ({
   const v111 = project3D(1, 1, 1);
 
   // Bravais Centering additional atoms
-  const atoms: Array<{ x: number; y: number; r: number; color: string; label: string; stroke: string }> = [
+  const atoms: Array<{ x: number; y: number; depth: number; r: number; color: string; label: string; stroke: string; gradientId: string }> = [
     // 8 Corner atoms
-    { ...v000, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(0,0,0)' },
-    { ...v100, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(1,0,0)' },
-    { ...v010, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(0,1,0)' },
-    { ...v110, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(1,1,0)' },
-    { ...v001, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(0,0,1)' },
-    { ...v101, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(1,0,1)' },
-    { ...v011, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(0,1,1)' },
-    { ...v111, r: 4.5, color: '#38bdf8', stroke: '#0284c7', label: '(1,1,1)' },
+    { ...v000, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(0,0,0)' },
+    { ...v100, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(1,0,0)' },
+    { ...v010, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(0,1,0)' },
+    { ...v110, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(1,1,0)' },
+    { ...v001, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(0,0,1)' },
+    { ...v101, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(1,0,1)' },
+    { ...v011, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(0,1,1)' },
+    { ...v111, r: 6.5, color: '#38bdf8', stroke: '#0284c7', gradientId: 'atomRadialCorner', label: '(1,1,1)' },
   ];
 
   if (centeringCode === 'I') {
     // Body-Centered atom at (0.5, 0.5, 0.5)
-    atoms.push({ ...project3D(0.5, 0.5, 0.5), r: 5.5, color: '#fbbf24', stroke: '#d97706', label: 'Body (½,½,½)' });
+    atoms.push({ ...project3D(0.5, 0.5, 0.5), r: 8.5, color: '#fbbf24', stroke: '#d97706', gradientId: 'atomRadialBody', label: 'Body (½,½,½)' });
   } else if (centeringCode === 'F') {
     // 6 Face-Centered atoms
-    atoms.push({ ...project3D(0.5, 0.5, 0), r: 4, color: '#34d399', stroke: '#059669', label: 'Face XY' });
-    atoms.push({ ...project3D(0.5, 0.5, 1), r: 4, color: '#34d399', stroke: '#059669', label: 'Face XY' });
-    atoms.push({ ...project3D(0.5, 0, 0.5), r: 4, color: '#34d399', stroke: '#059669', label: 'Face XZ' });
-    atoms.push({ ...project3D(0.5, 1, 0.5), r: 4, color: '#34d399', stroke: '#059669', label: 'Face XZ' });
-    atoms.push({ ...project3D(0, 0.5, 0.5), r: 4, color: '#34d399', stroke: '#059669', label: 'Face YZ' });
-    atoms.push({ ...project3D(1, 0.5, 0.5), r: 4, color: '#34d399', stroke: '#059669', label: 'Face YZ' });
+    atoms.push({ ...project3D(0.5, 0.5, 0), r: 6.0, color: '#34d399', stroke: '#059669', gradientId: 'atomRadialFace', label: 'Face XY' });
+    atoms.push({ ...project3D(0.5, 0.5, 1), r: 6.0, color: '#34d399', stroke: '#059669', gradientId: 'atomRadialFace', label: 'Face XY' });
+    atoms.push({ ...project3D(0.5, 0, 0.5), r: 6.0, color: '#34d399', stroke: '#059669', gradientId: 'atomRadialFace', label: 'Face XZ' });
+    atoms.push({ ...project3D(0.5, 1, 0.5), r: 6.0, color: '#34d399', stroke: '#059669', gradientId: 'atomRadialFace', label: 'Face XZ' });
+    atoms.push({ ...project3D(0, 0.5, 0.5), r: 6.0, color: '#34d399', stroke: '#059669', gradientId: 'atomRadialFace', label: 'Face YZ' });
+    atoms.push({ ...project3D(1, 0.5, 0.5), r: 6.0, color: '#34d399', stroke: '#059669', gradientId: 'atomRadialFace', label: 'Face YZ' });
   } else if (centeringCode === 'C') {
     // 2 Base-Centered atoms on (001) faces
-    atoms.push({ ...project3D(0.5, 0.5, 0), r: 4.5, color: '#c084fc', stroke: '#9333ea', label: 'Base C' });
-    atoms.push({ ...project3D(0.5, 0.5, 1), r: 4.5, color: '#c084fc', stroke: '#9333ea', label: 'Base C' });
+    atoms.push({ ...project3D(0.5, 0.5, 0), r: 6.5, color: '#c084fc', stroke: '#9333ea', gradientId: 'atomRadialBase', label: 'Base C' });
+    atoms.push({ ...project3D(0.5, 0.5, 1), r: 6.5, color: '#c084fc', stroke: '#9333ea', gradientId: 'atomRadialBase', label: 'Base C' });
   }
 
   // Intercept calculation for (hkl) plane
@@ -233,10 +233,48 @@ export const UnitCell3DViewer: React.FC<Props> = ({
       <div className="relative bg-[#02050D] rounded-xl border border-slate-800/90 overflow-hidden flex items-center justify-center min-h-[320px]">
         <svg viewBox="0 0 350 350" className="w-full max-w-[350px] h-[320px] select-none">
           <defs>
+            {/* Shaded Plane Facet Gradient */}
             <linearGradient id="planeFacetGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.7} />
-              <stop offset="100%" stopColor="#e11d48" stopOpacity={0.25} />
+              <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.75} />
+              <stop offset="50%" stopColor="#fb7185" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="#be123c" stopOpacity={0.15} />
             </linearGradient>
+
+            {/* 3D Photorealistic Atom Radial Sphere Shaders */}
+            <radialGradient id="atomRadialCorner" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity={0.95} />
+              <stop offset="25%" stopColor="#38bdf8" stopOpacity={1} />
+              <stop offset="70%" stopColor="#0284c7" stopOpacity={1} />
+              <stop offset="100%" stopColor="#0369a1" stopOpacity={1} />
+            </radialGradient>
+            <radialGradient id="atomRadialBody" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity={0.95} />
+              <stop offset="25%" stopColor="#fbbf24" stopOpacity={1} />
+              <stop offset="70%" stopColor="#d97706" stopOpacity={1} />
+              <stop offset="100%" stopColor="#78350f" stopOpacity={1} />
+            </radialGradient>
+            <radialGradient id="atomRadialFace" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity={0.95} />
+              <stop offset="25%" stopColor="#34d399" stopOpacity={1} />
+              <stop offset="70%" stopColor="#059669" stopOpacity={1} />
+              <stop offset="100%" stopColor="#064e3b" stopOpacity={1} />
+            </radialGradient>
+            <radialGradient id="atomRadialBase" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity={0.95} />
+              <stop offset="25%" stopColor="#c084fc" stopOpacity={1} />
+              <stop offset="70%" stopColor="#9333ea" stopOpacity={1} />
+              <stop offset="100%" stopColor="#581c87" stopOpacity={1} />
+            </radialGradient>
+
+            {/* Subtle Drop Shadow and Glow */}
+            <filter id="atomDropShadow" x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="1" dy="3" stdDeviation="2.5" floodColor="#000000" floodOpacity="0.75" />
+            </filter>
+            <filter id="vectorGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="1.5" floodColor="#38bdf8" floodOpacity="0.6" />
+            </filter>
+
+            {/* Tapered Vector Arrowheads */}
             <marker id="arrowA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#f43f5e" />
             </marker>
@@ -248,37 +286,41 @@ export const UnitCell3DViewer: React.FC<Props> = ({
             </marker>
           </defs>
 
-          {/* Shaded Plane Polygon */}
+          {/* Perspective Coordinate Grid Rings in Background */}
+          <ellipse cx="175" cy="280" rx="110" ry="25" fill="none" stroke="#1e293b" strokeWidth="1" strokeDasharray="4 4" opacity={0.6} />
+          <ellipse cx="175" cy="280" rx="60" ry="14" fill="none" stroke="#1e293b" strokeWidth="1" strokeDasharray="2 2" opacity={0.4} />
+
+          {/* Shaded (hkl) Lattice Plane Polygon */}
           {showPlane && planePoly && (
             <polygon
               points={planePoly}
               fill="url(#planeFacetGrad)"
               stroke="#fb7185"
-              strokeWidth="1.75"
+              strokeWidth="2"
               strokeDasharray="4 2"
               className="animate-pulse"
             />
           )}
 
           {/* 12 Wireframe Unit Cell Edges */}
-          <line x1={v000.x} y1={v000.y} x2={v100.x} y2={v100.y} stroke="#475569" strokeWidth="1.5" />
-          <line x1={v000.x} y1={v000.y} x2={v010.x} y2={v010.y} stroke="#475569" strokeWidth="1.5" />
-          <line x1={v000.x} y1={v000.y} x2={v001.x} y2={v001.y} stroke="#475569" strokeWidth="1.5" />
+          <line x1={v000.x} y1={v000.y} x2={v100.x} y2={v100.y} stroke="#334155" strokeWidth="1.5" strokeOpacity={0.7} />
+          <line x1={v000.x} y1={v000.y} x2={v010.x} y2={v010.y} stroke="#334155" strokeWidth="1.5" strokeOpacity={0.7} />
+          <line x1={v000.x} y1={v000.y} x2={v001.x} y2={v001.y} stroke="#334155" strokeWidth="1.5" strokeOpacity={0.7} />
 
-          <line x1={v100.x} y1={v100.y} x2={v110.x} y2={v110.y} stroke="#64748b" strokeWidth="1.5" />
-          <line x1={v010.x} y1={v010.y} x2={v110.x} y2={v110.y} stroke="#64748b" strokeWidth="1.5" />
+          <line x1={v100.x} y1={v100.y} x2={v110.x} y2={v110.y} stroke="#475569" strokeWidth="1.5" />
+          <line x1={v010.x} y1={v010.y} x2={v110.x} y2={v110.y} stroke="#475569" strokeWidth="1.5" />
 
-          <line x1={v001.x} y1={v001.y} x2={v101.x} y2={v101.y} stroke="#64748b" strokeWidth="1.5" />
-          <line x1={v001.x} y1={v001.y} x2={v011.x} y2={v011.y} stroke="#64748b" strokeWidth="1.5" />
+          <line x1={v001.x} y1={v001.y} x2={v101.x} y2={v101.y} stroke="#475569" strokeWidth="1.5" />
+          <line x1={v001.x} y1={v001.y} x2={v011.x} y2={v011.y} stroke="#475569" strokeWidth="1.5" />
 
-          <line x1={v101.x} y1={v101.y} x2={v111.x} y2={v111.y} stroke="#94a3b8" strokeWidth="1.5" />
-          <line x1={v011.x} y1={v011.y} x2={v111.x} y2={v111.y} stroke="#94a3b8" strokeWidth="1.5" />
+          <line x1={v101.x} y1={v101.y} x2={v111.x} y2={v111.y} stroke="#64748b" strokeWidth="1.75" />
+          <line x1={v011.x} y1={v011.y} x2={v111.x} y2={v111.y} stroke="#64748b" strokeWidth="1.75" />
 
-          <line x1={v100.x} y1={v100.y} x2={v101.x} y2={v101.y} stroke="#64748b" strokeWidth="1.5" />
-          <line x1={v010.x} y1={v010.y} x2={v011.x} y2={v011.y} stroke="#64748b" strokeWidth="1.5" />
-          <line x1={v110.x} y1={v110.y} x2={v111.x} y2={v111.y} stroke="#94a3b8" strokeWidth="1.5" />
+          <line x1={v100.x} y1={v100.y} x2={v101.x} y2={v101.y} stroke="#475569" strokeWidth="1.5" />
+          <line x1={v010.x} y1={v010.y} x2={v011.x} y2={v011.y} stroke="#475569" strokeWidth="1.5" />
+          <line x1={v110.x} y1={v110.y} x2={v111.x} y2={v111.y} stroke="#64748b" strokeWidth="1.75" />
 
-          {/* Real-Space Basis Axis Vectors */}
+          {/* Real-Space Basis Axis Vectors with Glowing Tips */}
           <line x1={origin.x} y1={origin.y} x2={axisA.x} y2={axisA.y} stroke="#f43f5e" strokeWidth="2.5" markerEnd="url(#arrowA)" />
           <line x1={origin.x} y1={origin.y} x2={axisB.x} y2={axisB.y} stroke="#38bdf8" strokeWidth="2.5" markerEnd="url(#arrowB)" />
           <line x1={origin.x} y1={origin.y} x2={axisC.x} y2={axisC.y} stroke="#34d399" strokeWidth="2.5" markerEnd="url(#arrowC)" />
@@ -287,13 +329,37 @@ export const UnitCell3DViewer: React.FC<Props> = ({
           <text x={axisB.x + 8} y={axisB.y + 4} fill="#38bdf8" fontSize="11" fontFamily="monospace" fontWeight="bold">b ({lattice.b.toFixed(2)}Å)</text>
           <text x={axisC.x} y={axisC.y - 8} fill="#34d399" fontSize="11" fontFamily="monospace" fontWeight="bold">c ({lattice.c.toFixed(2)}Å)</text>
 
-          {/* Bravais Lattice Site Atoms */}
+          {/* Depth-Sorted 3D Spherical Atoms */}
           {showAtoms &&
-            atoms.map((atm, i) => (
-              <g key={`atm-${i}`}>
-                <circle cx={atm.x} cy={atm.y} r={atm.r} fill={atm.color} stroke={atm.stroke} strokeWidth={1.5} />
-              </g>
-            ))}
+            [...atoms]
+              .sort((a, b) => a.depth - b.depth)
+              .map((atm, i) => (
+                <g key={`atm-${i}`} className="transition-transform duration-200">
+                  {/* Subtle 3D shadow on floor/depth */}
+                  <ellipse cx={atm.x} cy={atm.y + atm.r * 0.4} rx={atm.r * 0.85} ry={atm.r * 0.35} fill="#000000" opacity={0.45} />
+                  {/* Photorealistic 3D Sphere */}
+                  <circle
+                    cx={atm.x}
+                    cy={atm.y}
+                    r={atm.r}
+                    fill={`url(#${atm.gradientId})`}
+                    stroke={atm.stroke}
+                    strokeWidth={0.8}
+                    filter="url(#atomDropShadow)"
+                  >
+                    <title>{atm.label}</title>
+                  </circle>
+                  {/* Specular White Highlight Dot */}
+                  <circle
+                    cx={atm.x - atm.r * 0.35}
+                    cy={atm.y - atm.r * 0.35}
+                    r={atm.r * 0.28}
+                    fill="#ffffff"
+                    opacity={0.65}
+                    pointerEvents="none"
+                  />
+                </g>
+              ))}
         </svg>
 
         {/* Floating Quick Badges */}
