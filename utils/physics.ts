@@ -50,7 +50,13 @@ function invertMatrix(matrix: number[][]): number[][] {
   return a.map(row => row.slice(n, 2 * n));
 }
 
+const sgCache = new Map<string, number[]>();
+
 function sgCoefficients(m: number, degree: number): number[] {
+  const cacheKey = `${m}_${degree}`;
+  const cached = sgCache.get(cacheKey);
+  if (cached) return cached;
+
   let J: number[][] = [];
   for (let i = -m; i <= m; i++) {
     let row = [];
@@ -93,6 +99,7 @@ function sgCoefficients(m: number, degree: number): number[] {
     }
     coefs.push(sum);
   }
+  sgCache.set(cacheKey, coefs);
   return coefs;
 }
 
@@ -136,7 +143,7 @@ export const calculateBragg = (wavelength: number, twoTheta: number): BraggResul
   if (wavelength <= 0 || twoTheta <= 0 || twoTheta >= 180) return null;
   const thetaRad = (twoTheta / 2) * (Math.PI / 180);
   const sinTheta = Math.sin(thetaRad);
-  if (sinTheta === 0) return null;
+  if (sinTheta <= 1e-9) return null;
   const dSpacing = wavelength / (2 * sinTheta);
   const qVector = (4 * Math.PI * sinTheta) / wavelength;
   const sinThetaOverLambda = sinTheta / wavelength;
@@ -844,8 +851,8 @@ export const simulatePeak = (
      totalArea = pvii.area;
   }
 
-  const integralBreadth = totalArea / amplitude;
-  const shapeFactor = fwhm / integralBreadth;
+  const integralBreadth = amplitude > 0 ? totalArea / amplitude : 0;
+  const shapeFactor = integralBreadth > 0 ? fwhm / integralBreadth : 0;
 
   const resultStats: FWHMResult = {
     fwhm,

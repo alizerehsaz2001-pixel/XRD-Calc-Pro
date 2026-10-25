@@ -858,10 +858,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
       originalIdx: p.originalIdx,
     }));
 
-    // LTTB downsampling to screen resolution for ultra-fast 60fps SVG rendering
+    // LTTB downsampling to screen resolution for ultra-fast 120fps high-refresh rendering
     const optimizedPoints = downsampleDiffractionPoints(
       processedPoints,
-      1000,
+      800,
       'twoTheta',
       'intensityDisplay',
       'theoreticalIntensityDisplay'
@@ -1018,9 +1018,9 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
               <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-400">
                 {profileParams.profileShape === 'pseudo_voigt' ? `Pseudo-Voigt (η=${Math.round(profileParams.eta * 100)}%)` : profileParams.profileShape.toUpperCase()}
               </span>
-              <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold flex items-center gap-1" title="LTTB continuous downsampling enabled for 60fps hardware accelerated rendering">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                ⚡ 60 FPS LTTB
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold flex items-center gap-1" title="LTTB continuous downsampling enabled for 120fps high-refresh-rate hardware accelerated rendering">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                ⚡ 120 FPS Ultra-Hz
               </span>
             </div>
             <div className="flex flex-wrap gap-2.5 items-center">
@@ -2200,8 +2200,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({
                 stroke="#6366f1"
                 strokeWidth={3}
                 fill="url(#profileGradient)"
-                isAnimationActive={!isZoomedIn}
-                animationDuration={1500}
+                isAnimationActive={false}
                 strokeLinecap="round"
               />
             )}

@@ -475,29 +475,6 @@ export const generateSynthesizedProfile = (
       diff = Math.pow(iA - totalModel, 2) / 100;
     }
 
-    // Numerical derivatives
-    const dStep = 0.05;
-    let iA_plus = 0;
-    for (const p of peaksA) {
-      const relH = (p.intensity / maxIntensityA) * 100;
-      const peakFwhm = p.fwhm || fwhm;
-      if (Math.abs((twoTheta + dStep) - p.twoTheta) < peakFwhm * 4.5) {
-        iA_plus += evalPeakShape(twoTheta + dStep, p.twoTheta, peakFwhm, relH);
-      }
-    }
-    const derivA = Number(((iA_plus - (iA - background - noise)) / dStep).toFixed(2));
-
-    let iB_plus = 0;
-    for (const p of peaksB) {
-      const relH = (p.intensity / maxIntensityB) * 100 * scaleSampleB;
-      const targetCenter = p.twoTheta + shiftTwoThetaB;
-      const peakFwhm = p.fwhm || fwhm;
-      if (Math.abs((twoTheta + dStep) - targetCenter) < peakFwhm * 4.5) {
-        iB_plus += evalPeakShape(twoTheta + dStep, targetCenter, peakFwhm, relH);
-      }
-    }
-    const derivB = Number(((iB_plus - (iB - background - noise)) / dStep).toFixed(2));
-
     points[i] = {
       twoTheta,
       intensityA: Math.max(0, Number(iA.toFixed(2))),
@@ -511,9 +488,21 @@ export const generateSynthesizedProfile = (
       negDiff: diff < 0 ? Number(diff.toFixed(2)) : 0,
       toleranceUpper: Number((totalModel * 1.08 + 2).toFixed(2)),
       toleranceLower: Number((totalModel * 0.92 - 2).toFixed(2)),
-      derivA,
-      derivB
+      derivA: 0,
+      derivB: 0
     };
+  }
+
+  // Fast O(N) central difference numerical derivatives
+  for (let i = 0; i < numPoints; i++) {
+    const prevA = i > 0 ? points[i - 1].intensityA : points[i].intensityA;
+    const nextA = i < numPoints - 1 ? points[i + 1].intensityA : points[i].intensityA;
+    const prevB = i > 0 ? points[i - 1].intensityB : points[i].intensityB;
+    const nextB = i < numPoints - 1 ? points[i + 1].intensityB : points[i].intensityB;
+    const dx = (i > 0 && i < numPoints - 1) ? 2 * step : step;
+
+    points[i].derivA = Number(((nextA - prevA) / dx).toFixed(2));
+    points[i].derivB = Number(((nextB - prevB) / dx).toFixed(2));
   }
 
   // Apply optional Savitzky-Golay or moving-average smoothing if requested

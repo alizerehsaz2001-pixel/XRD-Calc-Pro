@@ -5221,7 +5221,7 @@ export const FWHMModule: React.FC = () => {
                     fontSize: 13, 
                     fontWeight: 800 
                   }}
-                  tickFormatter={(val) => val.toFixed(2)}
+                  tickFormatter={(val) => val != null && !isNaN(Number(val)) ? Number(val).toFixed(2) : ''}
                   axisLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
                   tickLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
                 />
@@ -5233,8 +5233,10 @@ export const FWHMModule: React.FC = () => {
                   axisLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
                   tickLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
                   tickFormatter={(val) => {
-                    if (yScaleMode === 'log10') return `10^${Math.round(Math.log10(Math.max(0.1, val)))}`;
-                    return val >= 1000 ? `${(val/1000).toFixed(1)}k` : `${Math.round(val)}`;
+                    if (val == null || isNaN(Number(val))) return '';
+                    const nVal = Number(val);
+                    if (yScaleMode === 'log10') return `10^${Math.round(Math.log10(Math.max(0.1, nVal)))}`;
+                    return nVal >= 1000 ? `${(nVal/1000).toFixed(1)}k` : `${Math.round(nVal)}`;
                   }}
                   label={{
                     value: yScaleMode === 'log10' ? 'Log₁₀ Intensity' : yScaleMode === 'sqrt' ? '√Intensity (cps^½)' : showNetIntensity ? 'Net Intensity (I - I_bg)' : 'Intensity I (cps)',
@@ -5916,7 +5918,7 @@ export const FWHMModule: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData} margin={{ top: 8, right: 35, left: 15, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="2 2" stroke="#334155" strokeOpacity={0.6} />
-                    <XAxis dataKey="x" stroke="#64748b" tickFormatter={(val) => `${val.toFixed(2)}°`} fontSize={10} domain={['dataMin', 'dataMax']} />
+                    <XAxis dataKey="x" stroke="#64748b" tickFormatter={(val) => val != null && !isNaN(Number(val)) ? `${Number(val).toFixed(2)}°` : ''} fontSize={10} domain={['dataMin', 'dataMax']} />
                     <YAxis stroke="#64748b" fontSize={10} />
                     <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1.5} />
                     <ReferenceLine x={center} stroke="#818cf8" strokeDasharray="3 3" strokeWidth={1.5} />
@@ -6772,19 +6774,19 @@ export const FWHMModule: React.FC = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={importedPoints} margin={{ top: 20, right: 20, left: -20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.4} />
-                      <XAxis dataKey="x" stroke="#94a3b8" fontSize={10} tickFormatter={(v) => `${v.toFixed(1)}°`} />
+                      <XAxis dataKey="x" stroke="#94a3b8" fontSize={10} tickFormatter={(v) => v != null && !isNaN(Number(v)) ? `${Number(v).toFixed(1)}°` : ''} />
                       <YAxis stroke="#94a3b8" fontSize={10} />
                       <Tooltip
                         contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
-                        formatter={(val: any) => [`${Number(val).toFixed(1)} cps`, 'Intensity']}
-                        labelFormatter={(lbl) => `2θ = ${Number(lbl).toFixed(2)}°`}
+                        formatter={(val: any) => [`${Number(val ?? 0).toFixed(1)} cps`, 'Intensity']}
+                        labelFormatter={(lbl) => lbl != null && !isNaN(Number(lbl)) ? `2θ = ${Number(lbl).toFixed(2)}°` : ''}
                       />
                       <Area type="monotone" dataKey="y" stroke="#10b981" fill="#10b981" fillOpacity={0.15} strokeWidth={2} isAnimationActive={false} />
                       
                       {/* Plot Vertical Lines and Label Flags for Each Extracted Peak */}
                       {extractedPeaks.map((pk) => (
                         <ReferenceLine key={pk.id} x={pk.center} stroke="#f59e0b" strokeDasharray="4 4" strokeWidth={1.5}>
-                          <Label value={`#${pk.id} (${pk.center.toFixed(1)}°)`} position="top" fill="#f59e0b" fontSize={10} fontWeight="bold" />
+                          <Label value={`#${pk.id} (${(pk.center ?? 0).toFixed(1)}°)`} position="top" fill="#f59e0b" fontSize={10} fontWeight="bold" />
                         </ReferenceLine>
                       ))}
                     </ComposedChart>
@@ -6832,7 +6834,7 @@ export const FWHMModule: React.FC = () => {
 
                     <button
                       onClick={() => {
-                        const refs = extractedPeaks.map(p => p.center.toFixed(2)).join(', ');
+                        const refs = extractedPeaks.map(p => (p.center ?? 0).toFixed(2)).join(', ');
                         setCustomRefPeaks(refs);
                         setShowReferencePeaks(true);
                         setActiveTab('visualizer');
@@ -6858,7 +6860,7 @@ export const FWHMModule: React.FC = () => {
                           <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs font-mono">
                             Peak #{pk.id}
                           </span>
-                          {pk.relIntensity >= 95 && (
+                          {(pk.relIntensity ?? 0) >= 95 && (
                             <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300">
                               Primary Peak
                             </span>
@@ -6868,19 +6870,19 @@ export const FWHMModule: React.FC = () => {
                         <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                           <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200/60 dark:border-slate-800">
                             <span className="text-[10px] text-slate-400 block font-sans">Centroid 2θ:</span>
-                            <span className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{pk.center.toFixed(3)}°</span>
+                            <span className="font-extrabold text-slate-900 dark:text-slate-100 text-sm">{(pk.center ?? 0).toFixed(3)}°</span>
                           </div>
                           <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200/60 dark:border-slate-800">
                             <span className="text-[10px] text-slate-400 block font-sans">Intensity:</span>
-                            <span className="font-bold text-indigo-600 dark:text-indigo-400">{pk.intensity.toFixed(1)} cps</span>
+                            <span className="font-bold text-indigo-600 dark:text-indigo-400">{(pk.intensity ?? 0).toFixed(1)} cps</span>
                           </div>
                           <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200/60 dark:border-slate-800">
                             <span className="text-[10px] text-slate-400 block font-sans">Est. FWHM:</span>
-                            <span className="font-bold text-amber-600 dark:text-amber-400">{pk.fwhmEst.toFixed(3)}°</span>
+                            <span className="font-bold text-amber-600 dark:text-amber-400">{(pk.fwhmEst ?? 0).toFixed(3)}°</span>
                           </div>
                           <div className="bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200/60 dark:border-slate-800">
                             <span className="text-[10px] text-slate-400 block font-sans">d-Spacing:</span>
-                            <span className="font-bold text-purple-600 dark:text-purple-400">{pk.dSpacing > 0 ? `${pk.dSpacing.toFixed(3)} Å` : '-'}</span>
+                            <span className="font-bold text-purple-600 dark:text-purple-400">{pk.dSpacing > 0 ? `${(pk.dSpacing ?? 0).toFixed(3)} Å` : '-'}</span>
                           </div>
                         </div>
 
@@ -6888,10 +6890,10 @@ export const FWHMModule: React.FC = () => {
                         <div className="space-y-1">
                           <div className="flex justify-between text-[10px] text-slate-400 font-mono">
                             <span>Rel. Height:</span>
-                            <span className="font-bold text-slate-700 dark:text-slate-300">{pk.relIntensity.toFixed(1)}%</span>
+                            <span className="font-bold text-slate-700 dark:text-slate-300">{(pk.relIntensity ?? 0).toFixed(1)}%</span>
                           </div>
                           <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, pk.relIntensity)}%` }} />
+                            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, pk.relIntensity ?? 0)}%` }} />
                           </div>
                         </div>
 
@@ -6954,24 +6956,24 @@ export const FWHMModule: React.FC = () => {
                               #{pk.id}
                             </td>
                             <td className="py-3 px-4 font-extrabold text-slate-900 dark:text-slate-100">
-                              {pk.center.toFixed(3)}°
+                              {(pk.center ?? 0).toFixed(3)}°
                             </td>
                             <td className="py-3 px-4 text-indigo-600 dark:text-indigo-400 font-bold">
-                              {pk.intensity.toFixed(1)}
+                              {(pk.intensity ?? 0).toFixed(1)}
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2">
                                 <div className="w-16 bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, pk.relIntensity)}%` }} />
+                                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, pk.relIntensity ?? 0)}%` }} />
                                 </div>
-                                <span className="text-[11px] text-slate-600 dark:text-slate-300 font-bold">{pk.relIntensity.toFixed(1)}%</span>
+                                <span className="text-[11px] text-slate-600 dark:text-slate-300 font-bold">{(pk.relIntensity ?? 0).toFixed(1)}%</span>
                               </div>
                             </td>
                             <td className="py-3 px-4 text-amber-600 dark:text-amber-400 font-bold">
-                              {pk.fwhmEst.toFixed(3)}°
+                              {(pk.fwhmEst ?? 0).toFixed(3)}°
                             </td>
                             <td className="py-3 px-4 text-purple-600 dark:text-purple-400 font-bold">
-                              {pk.dSpacing > 0 ? `${pk.dSpacing.toFixed(4)} Å` : '-'}
+                              {pk.dSpacing > 0 ? `${(pk.dSpacing ?? 0).toFixed(4)} Å` : '-'}
                             </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-2">

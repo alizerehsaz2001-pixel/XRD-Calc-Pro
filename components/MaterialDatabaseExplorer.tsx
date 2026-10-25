@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -825,6 +825,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedCrystalSystem, setSelectedCrystalSystem] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'name' | 'density' | 'molecularWeight' | 'elasticModulus'>('name');
@@ -2288,8 +2289,8 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
     let list = materials;
 
     // Apply Search Query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
+    if (deferredSearchQuery.trim()) {
+      const q = deferredSearchQuery.toLowerCase().trim();
       list = list.filter(m => {
         const nameMatch = m.name?.toLowerCase().includes(q);
         const formulaMatch = m.formula?.toLowerCase().includes(q);
@@ -2377,7 +2378,7 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
     });
 
     return list;
-  }, [materials, searchQuery, selectedCategory, selectedCrystalSystem, densityRange, elasticRange, sortBy, sortOrder, showStarredOnly, starredMaterials, selectedElementFilter]);
+  }, [materials, deferredSearchQuery, selectedCategory, selectedCrystalSystem, densityRange, elasticRange, sortBy, sortOrder, showStarredOnly, starredMaterials, selectedElementFilter]);
 
   // Current page records
   const paginatedMaterials = useMemo(() => {

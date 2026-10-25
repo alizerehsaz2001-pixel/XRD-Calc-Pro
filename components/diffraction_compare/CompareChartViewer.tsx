@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ResponsiveContainer,
@@ -64,6 +64,7 @@ import {
   calculateCaliperMetrics,
   CU_KA_WAVELENGTH
 } from './compareUtils';
+import { downsampleDiffractionPoints } from '../../utils/performanceOptimizer';
 
 interface CompareChartViewerProps {
   points: ProfilePoint[];
@@ -183,6 +184,19 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const miniMapRef = useRef<HTMLDivElement>(null);
   const [isDraggingMiniMap, setIsDraggingMiniMap] = useState(false);
+
+  const deferredPoints = useDeferredValue(points);
+
+  // High-performance LTTB downsampling for smooth 60fps ComposedChart rendering
+  const chartPoints = useMemo(() => {
+    return downsampleDiffractionPoints(
+      deferredPoints,
+      850,
+      'twoTheta',
+      'intensityA',
+      'intensityB'
+    );
+  }, [deferredPoints]);
 
   // Compute active colors with full fallback & custom color override support
   const pal = getActivePalette(diffTheme, customPalette);
@@ -1345,7 +1359,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             <div className="flex-1 w-full min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
-                  data={points}
+                  data={chartPoints}
                   onMouseDown={handleChartMouseDown}
                   onMouseMove={handleChartMouseMove}
                   onMouseUp={handleZoom}
@@ -1559,7 +1573,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </div>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                  <ComposedChart data={chartPoints} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
                     <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
                     <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="%" />
@@ -1580,7 +1594,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </div>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                  <ComposedChart data={chartPoints} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
                     <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
                     <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="%" />
@@ -1603,7 +1617,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </span>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
+                  <ComposedChart data={chartPoints} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
                     <XAxis dataKey="twoTheta" domain={[left, right]} hide />
                     <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
@@ -1620,7 +1634,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </span>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
+                  <ComposedChart data={chartPoints} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
                     <XAxis dataKey="twoTheta" domain={[left, right]} hide />
                     <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
@@ -1637,7 +1651,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </span>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={points} margin={{ top: 5, right: 15, bottom: 20, left: 5 }}>
+                  <ComposedChart data={chartPoints} margin={{ top: 5, right: 15, bottom: 20, left: 5 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
                     <XAxis dataKey="twoTheta" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
                     <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
@@ -1662,7 +1676,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             </div>
             <div className="flex-1 w-full min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={points} margin={{ top: 15, right: 20, bottom: 20, left: 10 }}>
+                <ComposedChart data={chartPoints} margin={{ top: 15, right: 20, bottom: 20, left: 10 }}>
                   {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
                   <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} unit="°" />
                   <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} domain={[-100, 100]} unit="%" />
@@ -1689,7 +1703,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             </div>
             <div className="flex-1 w-full min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={points} margin={{ top: 15, right: 20, bottom: 20, left: 10 }}>
+                <ComposedChart data={chartPoints} margin={{ top: 15, right: 20, bottom: 20, left: 10 }}>
                   {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
                   <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} unit="°" />
                   <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} unit="ΔI/Δθ" />
@@ -1725,7 +1739,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           {/* Miniature Spectrum Trace */}
           <div className="w-full h-full opacity-60 pointer-events-none">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={points} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
+              <ComposedChart data={chartPoints} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
                 <Line type="linear" dataKey="intensityA" stroke={pal.colorA} strokeWidth={1} dot={false} isAnimationActive={false} />
                 <Line type="linear" dataKey="intensityB" stroke={pal.colorB} strokeWidth={1} strokeDasharray="2 2" dot={false} isAnimationActive={false} />
               </ComposedChart>

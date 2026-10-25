@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Sparkles, 
@@ -181,37 +181,41 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   const peaksC = useMemo(() => materialC ? extractMaterialPeaks(materialC) : [], [materialC]);
   const peaksD = useMemo(() => materialD ? extractMaterialPeaks(materialD) : [], [materialD]);
 
+  const deferredShiftTwoTheta = useDeferredValue(shiftTwoTheta);
+  const deferredScaleSampleB = useDeferredValue(scaleSampleB);
+  const deferredEngineSettings = useDeferredValue(engineSettings);
+
   // Generate continuous synthetic profiles with updated engine settings
   const profileSynthesis = useMemo(() => {
     return generateSynthesizedProfile(materialA, materialB, materialC, materialD, {
-      shiftTwoThetaB: shiftTwoTheta,
-      scaleSampleB: scaleSampleB,
+      shiftTwoThetaB: deferredShiftTwoTheta,
+      scaleSampleB: deferredScaleSampleB,
       scaleSampleC: hasPhaseC ? scalePhaseC : 0,
       scaleSampleD: hasPhaseD ? scalePhaseD : 0,
       minTheta: 10,
       maxTheta: 90,
       step: 0.1,
-      fwhm: engineSettings.fwhm,
-      eta: engineSettings.eta,
-      peakShape: engineSettings.peakShape,
-      noiseLevel: engineSettings.noiseLevel,
-      background: engineSettings.backgroundLevel,
-      differenceMode: engineSettings.differenceMode,
-      smoothingFilter: engineSettings.smoothingFilter,
-      stripBackground: engineSettings.stripBackground
+      fwhm: deferredEngineSettings.fwhm,
+      eta: deferredEngineSettings.eta,
+      peakShape: deferredEngineSettings.peakShape,
+      noiseLevel: deferredEngineSettings.noiseLevel,
+      background: deferredEngineSettings.backgroundLevel,
+      differenceMode: deferredEngineSettings.differenceMode,
+      smoothingFilter: deferredEngineSettings.smoothingFilter,
+      stripBackground: deferredEngineSettings.stripBackground
     });
   }, [
     materialA, 
     materialB, 
     materialC, 
     materialD, 
-    shiftTwoTheta, 
-    scaleSampleB, 
+    deferredShiftTwoTheta, 
+    deferredScaleSampleB, 
     hasPhaseC, 
     scalePhaseC, 
     hasPhaseD, 
     scalePhaseD,
-    engineSettings
+    deferredEngineSettings
   ]);
 
   // Compute crystallographic metrics
