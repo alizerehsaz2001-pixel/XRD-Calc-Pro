@@ -366,9 +366,14 @@ async function startServer() {
   // 2. CORS: Enable Cross-Origin Resource Sharing
   app.use(cors());
 
-  // 3. Enforce HTTPS in production environments
+  // 3. Enforce Security Headers & HTTPS in production
   app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
     if (process.env.NODE_ENV === 'production') {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
       if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
         return res.redirect('https://' + req.headers.host + req.url);
       }
@@ -382,16 +387,37 @@ async function startServer() {
   // 4. HPP: Protect against HTTP Parameter Pollution attacks
   app.use(hpp());
 
-  // 5. Rate Limiting: Prevent brute-force and DDoS attacks on API routes
+  // 5. Rate Limiting: Prevent brute-force and DDoS attacks
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 1000, // Limit each IP to 1000 requests per windowMs
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, error: "Too many requests, please try again later." },
-    validate: { xForwardedForHeader: false } // Disables validation warnings for proxy headers
+    validate: { xForwardedForHeader: false }
   });
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30, // Limit 30 registration requests per 15 mins
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: "Too many registration attempts. Please try again later." },
+    validate: { xForwardedForHeader: false }
+  });
+
+  const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 120, // Limit 120 AI requests per 15 mins
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { success: false, error: "AI query rate limit reached. Please try again shortly." },
+    validate: { xForwardedForHeader: false }
+  });
+
   app.use('/api', apiLimiter);
+  app.use('/api/register', authLimiter);
+  app.use('/api/gemini', aiLimiter);
 
   // 6. High-Performance HTTP Request Latency Logging
   app.use((req, res, next) => {

@@ -2,69 +2,68 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 1. Global Safety Net
+    // 1. Global Safety Net - Default Deny All
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // 2. Connectivity Test
+    // 2. Connectivity Diagnostic Endpoint
     match /test/{docId} {
       allow read: if true;
     }
 
-    // 3. Helper Functions
+    // 3. Helper Security Functions
     function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isVerified() {
-      // In development env we might not have email_verified, but best practice:
-      return request.auth.token.email_verified == true || request.auth.token.email_verified == false; // Bypass strict email verify for dev since Google Auth popup doesn't always guarantee immediate verified token flag without refresh if not configured right. But let's check it strictly if requested. Actually, just return true for basic check.
+      return request.auth != null && request.auth.uid != null;
     }
 
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
 
-    // Validation for UserProfile
+    // Validation Schema for UserProfile
     function isValidUserProfile(data) {
       return data.keys().hasAll(['uid', 'email']) &&
              data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid &&
-             data.email is string && data.email.size() <= 256;
+             data.email is string && data.email.size() <= 256 &&
+             (!data.keys().contains('displayName') || (data.displayName is string && data.displayName.size() <= 200)) &&
+             (!data.keys().contains('affiliation') || (data.affiliation is string && data.affiliation.size() <= 300)) &&
+             (!data.keys().contains('createdAt') || (data.createdAt is string && data.createdAt.size() <= 100));
     }
 
-    // Validation for EngineConfig
+    // Validation Schema for EngineConfig
     function isValidEngineConfig(data) {
        return data.keys().hasAll(['userId', 'name', 'configData', 'createdAt', 'updatedAt']) &&
               data.userId is string && data.userId == request.auth.uid &&
-              data.name is string && data.name.size() <= 100 &&
-              data.configData is string && data.configData.size() <= 50000 &&
+              data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
+              data.configData is string && data.configData.size() <= 100000 &&
               data.createdAt is timestamp &&
               data.updatedAt is timestamp;
     }
 
-    // Validation for BraggHistoryItem
+    // Validation Schema for BraggHistoryItem
     function isValidBraggHistoryItem(data) {
        return data.keys().hasAll(['id', 'userId', 'timestamp', 'wavelength', 'rawPeaks', 'rawHKL', 'resultsJson']) &&
               data.id is string && data.id.size() <= 128 &&
               data.userId is string && data.userId == request.auth.uid &&
               data.timestamp is string && data.timestamp.size() <= 100 &&
-              data.wavelength is number &&
-              data.rawPeaks is string && data.rawPeaks.size() <= 5000 &&
-              data.rawHKL is string && data.rawHKL.size() <= 5000 &&
-              data.resultsJson is string && data.resultsJson.size() <= 100000 &&
+              data.wavelength is number && data.wavelength > 0 && data.wavelength < 100 &&
+              data.rawPeaks is string && data.rawPeaks.size() <= 10000 &&
+              data.rawHKL is string && data.rawHKL.size() <= 10000 &&
+              data.resultsJson is string && data.resultsJson.size() <= 200000 &&
               (!data.keys().contains('sampleId') || (data.sampleId is string && data.sampleId.size() <= 100));
     }
 
-    // Validation for CustomMaterial
+    // Validation Schema for CustomMaterial
     function isValidCustomMaterial(data) {
        return data.keys().hasAll(['id', 'userId', 'name', 'formula', 'pattern']) &&
               data.id is string && data.id.size() <= 128 &&
               data.userId is string && data.userId == request.auth.uid &&
-              data.name is string && data.name.size() <= 200 &&
+              data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
               data.formula is string && data.formula.size() <= 100 &&
-              data.pattern is string && data.pattern.size() <= 100000 &&
+              data.pattern is string && data.pattern.size() <= 200000 &&
               (!data.keys().contains('type') || (data.type is string && data.type.size() <= 200)) &&
+              (!data.keys().contains('description') || (data.description is string && data.description.size() <= 2000)) &&
               (!data.keys().contains('crystalSystem') || (data.crystalSystem is string && data.crystalSystem.size() <= 200)) &&
               (!data.keys().contains('spaceGroup') || (data.spaceGroup is string && data.spaceGroup.size() <= 200)) &&
               (!data.keys().contains('density') || (data.density is number)) &&
@@ -72,7 +71,7 @@ service cloud.firestore {
               (!data.keys().contains('elasticModulus') || (data.elasticModulus is number));
     }
 
-    // Validation for UserActivity
+    // Validation Schema for UserActivity
     function isValidUserActivity(data) {
        return data.keys().hasAll(['id', 'userId', 'category', 'action', 'timestamp']) &&
               data.id is string && data.id.size() <= 128 &&
@@ -86,16 +85,18 @@ service cloud.firestore {
               (!data.keys().contains('userEmail') || (data.userEmail is string && data.userEmail.size() <= 256));
     }
 
-    // Subcollections definition
-    // /users/{userId}
+    // Collection Security Rules
+
+    // 1. /users/{userId}
     match /users/{userId} {
       allow get: if isSignedIn() && request.auth.uid == userId;
       allow create: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming());
-      allow update: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming()) && incoming().uid == existing().uid && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email']);
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming()) && incoming().uid == existing().uid && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'affiliation', 'createdAt']);
+      allow delete: if isSignedIn() && request.auth.uid == userId;
       allow list: if false; 
     }
 
-    // /engineConfigs/{configId}
+    // 2. /engineConfigs/{configId}
     match /engineConfigs/{configId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && isValidId(configId) && resource.data.userId == request.auth.uid;
@@ -104,7 +105,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(configId) && existing().userId == request.auth.uid;
     }
 
-    // /braggHistory/{historyId}
+    // 3. /braggHistory/{historyId}
     match /braggHistory/{historyId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && isValidId(historyId) && resource.data.userId == request.auth.uid;
@@ -113,7 +114,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(historyId) && existing().userId == request.auth.uid;
     }
 
-    // /customMaterials/{materialId}
+    // 4. /customMaterials/{materialId}
     match /customMaterials/{materialId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && isValidId(materialId) && resource.data.userId == request.auth.uid;
@@ -122,7 +123,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && isValidId(materialId) && existing().userId == request.auth.uid;
     }
 
-    // /userActivities/{activityId}
+    // 5. /userActivities/{activityId}
     match /userActivities/{activityId} {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow get: if isSignedIn() && isValidId(activityId) && resource.data.userId == request.auth.uid;
