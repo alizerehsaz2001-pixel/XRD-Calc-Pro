@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
 import { SAMPLE_PRESETS, SamplePreset } from './QuickWorkflowRibbon';
+import { DisplayModeSwitcher } from './DisplayModeSwitcher';
 
 export type Module = string;
 
@@ -727,6 +728,9 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
               <span className="hidden xl:inline">{t('Theory', 'Theory')}</span>
             </button>
           )}
+
+          {/* Display Mode Switcher (Full-Screen vs Half-Screen Mode) */}
+          <DisplayModeSwitcher />
 
           {/* 3. Quick Modules Strip Toggle Button */}
           {onToggleQuickRibbon && (

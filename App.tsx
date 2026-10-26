@@ -61,7 +61,7 @@ import { QuickWorkflowRibbon, SamplePreset } from './components/QuickWorkflowRib
 import { NavigationRail } from './components/NavigationRail';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal, Box, Search } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, RotateCcw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal, Box, Search } from 'lucide-react';
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
 import { playSynthTone } from './utils/sound';
 import { useAuth, db, handleFirestoreError, OperationType, signIn, logOut } from './services/firebase';
@@ -84,6 +84,10 @@ const UserActivityPlugin = lazy(() => import('./components/UserActivityPlugin').
 import { XRDSectionScanAnimation } from './components/XRDSectionScanAnimation';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
 const UnitCellsSection = lazy(() => import('./components/fundamentals/UnitCellsSection').then(m => ({ default: m.UnitCellsSection })));
+import { useDisplayMode } from './components/DisplayModeContext';
+import { DisplayModeSwitcher } from './components/DisplayModeSwitcher';
+import { WorkflowStageHeader } from './components/WorkflowStageHeader';
+import { HalfScreenStageNavigator } from './components/HalfScreenStageNavigator';
 
 type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
@@ -191,6 +195,7 @@ const App: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { isRTL } = useI18n();
   const { user, loading: authLoading } = useAuth();
+  const { displayMode, halfScreenPosition } = useDisplayMode();
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
     return !!localStorage.getItem('xrd_user_registration');
   });
@@ -1868,8 +1873,21 @@ const App: React.FC = () => {
             )}
           </AnimatePresence>
 
-          <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar relative">
-            <div className="max-w-7xl mx-auto relative">
+          <main ref={mainContentRef} className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 custom-scrollbar relative">
+            <div className={
+              displayMode === 'fullscreen' 
+                ? 'w-full max-w-[1850px] mx-auto px-2 sm:px-4 lg:px-8 relative transition-all duration-300' 
+                : halfScreenPosition === 'left' 
+                ? 'w-full lg:w-1/2 mr-auto px-2 sm:px-4 border-r border-indigo-500/20 bg-slate-900/10 dark:bg-slate-950/30 shadow-2xl relative transition-all duration-300 min-h-full' 
+                : halfScreenPosition === 'right' 
+                ? 'w-full lg:w-1/2 ml-auto px-2 sm:px-4 border-l border-indigo-500/20 bg-slate-900/10 dark:bg-slate-950/30 shadow-2xl relative transition-all duration-300 min-h-full' 
+                : 'w-full max-w-[860px] mx-auto px-2 sm:px-4 border-x border-indigo-500/20 bg-slate-900/10 dark:bg-slate-950/30 shadow-2xl relative transition-all duration-300 min-h-full'
+            }>
+              {/* Half-Screen Quick Stage Navigation Bar */}
+              {displayMode === 'halfscreen' && (
+                <HalfScreenStageNavigator />
+              )}
+
               {/* Non-destructive Theory & Mathematical Basis Modal Overlay */}
               <AnimatePresence>
                 {!isExplained && (
@@ -1916,83 +1934,381 @@ const App: React.FC = () => {
                   >
                     <ErrorBoundary key={activeModule}>
                   {activeModule === 'bragg' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 items-start">
-                      <div className="lg:col-span-4 space-y-6">
-                        <BraggInput 
-                          sampleId={sampleId}
-                          setSampleId={setSampleId}
-                          wavelength={wavelength}
-                          setWavelength={setWavelength}
-                          rawPeaks={rawPeaks}
-                          setRawPeaks={setRawPeaks}
-                          rawHKL={rawHKL}
-                          setRawHKL={setRawHKL}
-                          onCalculate={() => handleCalculate(true)}
-                          onBatchCalculate={handleBatchCalculate}
-                          zeroShift={zeroShift}
-                          setZeroShift={setZeroShift}
-                          sampleDisplacement={sampleDisplacement}
-                          setSampleDisplacement={setSampleDisplacement}
-                          goniometerRadius={goniometerRadius}
-                          setGoniometerRadius={setGoniometerRadius}
-                          isSimulationRunning={isSimulationRunning}
-                          simulationStep={simulationStep}
-                          isSaving={isSaving}
-                          lastAutosaved={lastAutosaved}
-                          crystalSystem={crystalSystem}
-                          setCrystalSystem={setCrystalSystem}
-                        />
-                        <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
-                          <BraggHistory 
-                            history={braggHistory} 
-                            onRestore={restoreHistory} 
-                            onClear={clearHistory} 
+                    displayMode === 'fullscreen' ? (
+                      /* Full-Screen Mode: Strict Functional Sequential Dependency Pipeline */
+                      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Stage 1: Numerical Inputs & Goniometer Geometry */}
+                        <div id="stage-inputs" className="space-y-3">
+                          <WorkflowStageHeader 
+                            step={1} 
+                            totalSteps={5} 
+                            title={t('Stage 1: Numerical Inputs & Goniometer Geometry', 'Stage 1: Numerical Inputs & Goniometer Geometry')} 
+                            subtitle={t('Radiation source wavelength (λ), goniometer radius (R), instrument zero-offset, and 2θ reflection angles', 'Radiation source wavelength (λ), goniometer radius (R), instrument zero-offset, and 2θ reflection angles')} 
+                            badge="Inputs & Geometry" 
+                            badgeColor="indigo" 
+                            isComplete={results.length > 0} 
                           />
-                        </Suspense>
-                        
-                        <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-800 dark:border-white/5 ring-1 ring-white/10">
-                           <div className="flex justify-between items-center mb-3">
-                             <div className="flex items-center gap-2">
-                               <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                               <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Engine Data Link</span>
-                             </div>
-                             <button 
-                               onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
-                               className="text-[10px] text-white/40 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-md"
-                             >
-                               Copy Strict JSON
-                             </button>
-                           </div>
-                           <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-48 scrollbar-thin scrollbar-thumb-slate-700">
-                              {JSON.stringify(braggJsonOutput, null, 2)}
-                           </pre>
+                          <div className="rounded-3xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 p-4 sm:p-6 shadow-xl backdrop-blur-md">
+                            <BraggInput 
+                              sampleId={sampleId}
+                              setSampleId={setSampleId}
+                              wavelength={wavelength}
+                              setWavelength={setWavelength}
+                              rawPeaks={rawPeaks}
+                              setRawPeaks={setRawPeaks}
+                              rawHKL={rawHKL}
+                              setRawHKL={setRawHKL}
+                              onCalculate={() => handleCalculate(true)}
+                              onBatchCalculate={handleBatchCalculate}
+                              zeroShift={zeroShift}
+                              setZeroShift={setZeroShift}
+                              sampleDisplacement={sampleDisplacement}
+                              setSampleDisplacement={setSampleDisplacement}
+                              goniometerRadius={goniometerRadius}
+                              setGoniometerRadius={setGoniometerRadius}
+                              isSimulationRunning={isSimulationRunning}
+                              simulationStep={simulationStep}
+                              isSaving={isSaving}
+                              lastAutosaved={lastAutosaved}
+                              crystalSystem={crystalSystem}
+                              setCrystalSystem={setCrystalSystem}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Stage 2: Operational Controls & Processing Console */}
+                        <div id="stage-operations" className="space-y-3">
+                          <WorkflowStageHeader 
+                            step={2} 
+                            totalSteps={5} 
+                            title={t('Stage 2: Operational Controls & Processing Console', 'Stage 2: Operational Controls & Processing Console')} 
+                            subtitle={t('Execute Bragg diffraction solver, run batch array evaluation, and review instrument calibration', 'Execute Bragg diffraction solver, run batch array evaluation, and review instrument calibration')} 
+                            badge="Execution Pipeline" 
+                            badgeColor="cyan" 
+                            isComplete={results.length > 0} 
+                          />
+                          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/95 to-indigo-950/90 border border-cyan-500/30 shadow-xl backdrop-blur-md text-white">
+                            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                              {/* Real-time telemetry badges */}
+                              <div className="flex flex-wrap items-center gap-2.5">
+                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
+                                  <span className="text-slate-400">Radiation Source:</span>
+                                  <span className="font-bold text-cyan-400">λ = {wavelength.toFixed(5)} Å</span>
+                                </div>
+                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
+                                  <span className="text-slate-400">Zero Offset:</span>
+                                  <span className="font-bold text-emerald-400">{zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°</span>
+                                </div>
+                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
+                                  <span className="text-slate-400">Goniometer Radius:</span>
+                                  <span className="font-bold text-indigo-400">{goniometerRadius} mm</span>
+                                </div>
+                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
+                                  <span className="text-slate-400">Loaded Peaks:</span>
+                                  <span className="font-bold text-amber-400">{results.length} Indexed</span>
+                                </div>
+                              </div>
+
+                              {/* Direct execution triggers */}
+                              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCalculate(true)}
+                                  className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer hover:scale-[1.02] transition-all"
+                                >
+                                  <Zap className="w-4 h-4 text-cyan-200 animate-pulse" />
+                                  <span>{t('Execute Solver (Enter)', 'Execute Solver')}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleGeneratePdf}
+                                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center gap-1.5 border border-white/10 cursor-pointer transition-colors"
+                                  title={t('Export Certified PDF Report', 'Export Certified PDF Report')}
+                                >
+                                  <FileDown className="w-3.5 h-3.5 text-indigo-300" />
+                                  <span>PDF Report</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleClearAll}
+                                  className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 font-bold text-xs flex items-center gap-1.5 border border-white/5 cursor-pointer transition-colors"
+                                  title={t('Reset inputs and calculated results', 'Reset inputs and calculated results')}
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <span>Reset</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Stage 3: High-Refresh 120 FPS Visualizer & Diffraction Profile */}
+                        <div id="stage-visualizer" className="space-y-3">
+                          <WorkflowStageHeader 
+                            step={3} 
+                            totalSteps={5} 
+                            title={t('Stage 3: High-Refresh 120 FPS Visualizer & Diffraction Profile', 'Stage 3: High-Refresh 120 FPS Visualizer & Diffraction Profile')} 
+                            subtitle={t('Sub-8ms real-time ray-tracing goniometer and high-precision interactive spectrum chart', 'Sub-8ms real-time ray-tracing goniometer and high-precision interactive spectrum chart')} 
+                            badge="120 FPS Interactive" 
+                            badgeColor="emerald" 
+                            isComplete={results.length > 0} 
+                          />
+                          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                            <div className="xl:col-span-5">
+                              <Suspense fallback={<ModuleLoadingFallback />}>
+                                <BraggVisualization 
+                                  wavelength={wavelength} 
+                                  twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
+                                />
+                              </Suspense>
+                            </div>
+                            <div className="xl:col-span-7">
+                              <Suspense fallback={<ModuleLoadingFallback />}>
+                                <DiffractionChart 
+                                  results={results} 
+                                  materialName={materialName} 
+                                  wavelength={wavelength} 
+                                  onResultsChange={setResults} 
+                                />
+                              </Suspense>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Stage 4: Quantitative Results & Lattice Refinement */}
+                        <div id="stage-results" className="space-y-3">
+                          <WorkflowStageHeader 
+                            step={4} 
+                            totalSteps={5} 
+                            title={t('Stage 4: Quantitative Results & Lattice Parameter Refinement', 'Stage 4: Quantitative Results & Lattice Parameter Refinement')} 
+                            subtitle={t('Calculated interplanar d-spacing (Å), scattering vectors Q (Å⁻¹), and unit cell indexing', 'Calculated interplanar d-spacing (Å), scattering vectors Q (Å⁻¹), and unit cell indexing')} 
+                            badge="Quantitative Data" 
+                            badgeColor="amber" 
+                            isComplete={results.length > 0} 
+                          />
+                          <Suspense fallback={<ModuleLoadingFallback />}>
+                            <ResultsTable 
+                              results={results} 
+                              onExportCompare={(selectedResults) => {
+                                setComparePeaks(selectedResults);
+                                setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
+                                setActiveModule('compare');
+                              }}
+                            />
+                            <div className="mt-6">
+                              <LatticeEstimator results={results} />
+                            </div>
+                          </Suspense>
+                        </div>
+
+                        {/* Stage 5: Engine Data Link & Audit Archives */}
+                        <div id="stage-history" className="space-y-3">
+                          <WorkflowStageHeader 
+                            step={5} 
+                            totalSteps={5} 
+                            title={t('Stage 5: Engine Data Link & Historical Audit Trail', 'Stage 5: Engine Data Link & Historical Audit Trail')} 
+                            subtitle={t('Strict JSON export and reproducible calculation history with point-in-time restore points', 'Strict JSON export and reproducible calculation history with point-in-time restore points')} 
+                            badge="Data & Archives" 
+                            badgeColor="purple" 
+                            isComplete={braggHistory.length > 0} 
+                          />
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                            <div className="lg:col-span-6">
+                              <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
+                                <BraggHistory 
+                                  history={braggHistory} 
+                                  onRestore={restoreHistory} 
+                                  onClear={clearHistory} 
+                                />
+                              </Suspense>
+                            </div>
+                            <div className="lg:col-span-6">
+                              <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-800 dark:border-white/5 ring-1 ring-white/10">
+                                 <div className="flex justify-between items-center mb-3">
+                                   <div className="flex items-center gap-2">
+                                     <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                     <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Engine Data Link (Strict JSON)</span>
+                                   </div>
+                                   <button 
+                                     onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
+                                     className="text-[10px] text-white/60 hover:text-white transition-colors bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md font-mono cursor-pointer"
+                                   >
+                                     Copy Strict JSON
+                                   </button>
+                                 </div>
+                                 <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-56 scrollbar-thin scrollbar-thumb-slate-700 p-2 bg-black/40 rounded-xl">
+                                    {JSON.stringify(braggJsonOutput, null, 2)}
+                                 </pre>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
+                    ) : (
+                      /* Half-Screen Mode (50% Split Width Multitasking Flow) */
+                      <div className="space-y-6 animate-in fade-in duration-300">
+                        {/* Stage 1: Numerical Inputs & Parameters */}
+                        <div id="stage-inputs" className="space-y-2">
+                          <WorkflowStageHeader 
+                            step={1} 
+                            totalSteps={5} 
+                            title={t('Stage 1: Inputs & Goniometer Geometry', 'Stage 1: Inputs & Goniometer Geometry')} 
+                            badge="Inputs" 
+                            badgeColor="indigo" 
+                            isComplete={results.length > 0} 
+                          />
+                          <div className="rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 p-3 sm:p-4 shadow-md backdrop-blur-md">
+                            <BraggInput 
+                              sampleId={sampleId}
+                              setSampleId={setSampleId}
+                              wavelength={wavelength}
+                              setWavelength={setWavelength}
+                              rawPeaks={rawPeaks}
+                              setRawPeaks={setRawPeaks}
+                              rawHKL={rawHKL}
+                              setRawHKL={setRawHKL}
+                              onCalculate={() => handleCalculate(true)}
+                              onBatchCalculate={handleBatchCalculate}
+                              zeroShift={zeroShift}
+                              setZeroShift={setZeroShift}
+                              sampleDisplacement={sampleDisplacement}
+                              setSampleDisplacement={setSampleDisplacement}
+                              goniometerRadius={goniometerRadius}
+                              setGoniometerRadius={setGoniometerRadius}
+                              isSimulationRunning={isSimulationRunning}
+                              simulationStep={simulationStep}
+                              isSaving={isSaving}
+                              lastAutosaved={lastAutosaved}
+                              crystalSystem={crystalSystem}
+                              setCrystalSystem={setCrystalSystem}
+                            />
+                          </div>
+                        </div>
 
-                      <div className="lg:col-span-8 space-y-6">
-                        <Suspense fallback={<ModuleLoadingFallback />}>
-                          <BraggVisualization 
-                            wavelength={wavelength} 
-                            twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
+                        {/* Stage 2: Operational Controls & Processing Console */}
+                        <div id="stage-operations" className="space-y-2">
+                          <WorkflowStageHeader 
+                            step={2} 
+                            totalSteps={5} 
+                            title={t('Stage 2: Operational Controls', 'Stage 2: Operational Controls')} 
+                            badge="Operations" 
+                            badgeColor="cyan" 
+                            isComplete={results.length > 0} 
                           />
-                          <DiffractionChart 
-                            results={results} 
-                            materialName={materialName} 
-                            wavelength={wavelength} 
-                            onResultsChange={setResults} 
+                          <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-cyan-500/30 text-white space-y-3">
+                            <div className="flex items-center justify-between text-xs font-mono">
+                              <span className="text-slate-400">λ: <strong className="text-cyan-400">{wavelength.toFixed(4)} Å</strong></span>
+                              <span className="text-slate-400">Zero: <strong className="text-emerald-400">{zeroShift}°</strong></span>
+                              <span className="text-slate-400">Peaks: <strong className="text-amber-400">{results.length}</strong></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleCalculate(true)}
+                                className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                              >
+                                <Zap className="w-3.5 h-3.5 text-cyan-200" />
+                                <span>{t('Calculate', 'Calculate')}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleClearAll}
+                                className="py-2 px-3 rounded-xl bg-white/10 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Reset</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Stage 3: Visualizer & Spectrum */}
+                        <div id="stage-visualizer" className="space-y-2">
+                          <WorkflowStageHeader 
+                            step={3} 
+                            totalSteps={5} 
+                            title={t('Stage 3: 120 FPS Visualizer & Spectrum', 'Stage 3: 120 FPS Visualizer & Spectrum')} 
+                            badge="Visualizer" 
+                            badgeColor="emerald" 
+                            isComplete={results.length > 0} 
                           />
-                          <ResultsTable 
-                            results={results} 
-                            onExportCompare={(selectedResults) => {
-                              setComparePeaks(selectedResults);
-                              setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
-                              setActiveModule('compare');
-                            }}
+                          <Suspense fallback={<ModuleLoadingFallback />}>
+                            <div className="space-y-4">
+                              <BraggVisualization 
+                                wavelength={wavelength} 
+                                twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
+                              />
+                              <DiffractionChart 
+                                results={results} 
+                                materialName={materialName} 
+                                wavelength={wavelength} 
+                                onResultsChange={setResults} 
+                              />
+                            </div>
+                          </Suspense>
+                        </div>
+
+                        {/* Stage 4: Results & Lattice Solver */}
+                        <div id="stage-results" className="space-y-2">
+                          <WorkflowStageHeader 
+                            step={4} 
+                            totalSteps={5} 
+                            title={t('Stage 4: Quantitative Results & Lattice', 'Stage 4: Quantitative Results & Lattice')} 
+                            badge="Results" 
+                            badgeColor="amber" 
+                            isComplete={results.length > 0} 
                           />
-                          <LatticeEstimator results={results} />
-                        </Suspense>
+                          <Suspense fallback={<ModuleLoadingFallback />}>
+                            <div className="space-y-4">
+                              <ResultsTable 
+                                results={results} 
+                                onExportCompare={(selectedResults) => {
+                                  setComparePeaks(selectedResults);
+                                  setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
+                                  setActiveModule('compare');
+                                }}
+                              />
+                              <LatticeEstimator results={results} />
+                            </div>
+                          </Suspense>
+                        </div>
+
+                        {/* Stage 5: Archives & JSON Data */}
+                        <div id="stage-history" className="space-y-2">
+                          <WorkflowStageHeader 
+                            step={5} 
+                            totalSteps={5} 
+                            title={t('Stage 5: History & Engine Data', 'Stage 5: History & Engine Data')} 
+                            badge="Archives" 
+                            badgeColor="purple" 
+                            isComplete={braggHistory.length > 0} 
+                          />
+                          <div className="space-y-4">
+                            <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
+                              <BraggHistory 
+                                history={braggHistory} 
+                                onRestore={restoreHistory} 
+                                onClear={clearHistory} 
+                              />
+                            </Suspense>
+                            <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-800 dark:border-white/5">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest font-mono">Engine Data Link</span>
+                                <button 
+                                  onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
+                                  className="text-[10px] text-white/60 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded cursor-pointer"
+                                >
+                                  Copy JSON
+                                </button>
+                              </div>
+                              <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-40 scrollbar-thin scrollbar-thumb-slate-700 p-2 bg-black/40 rounded-lg">
+                                {JSON.stringify(braggJsonOutput, null, 2)}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )
                   )}
 
                   <Suspense fallback={<ModuleLoadingFallback />}>

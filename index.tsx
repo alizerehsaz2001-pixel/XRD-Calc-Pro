@@ -4,6 +4,7 @@ import App from './App';
 import './i18n';
 import { AuthProvider } from './services/firebase';
 import { I18nProvider } from './components/I18nProvider';
+import { DisplayModeProvider } from './components/DisplayModeContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -14,7 +15,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <I18nProvider>
     <AuthProvider>
-      <App />
+      <DisplayModeProvider>
+        <App />
+      </DisplayModeProvider>
     </AuthProvider>
   </I18nProvider>
 );
