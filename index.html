@@ -96,9 +96,13 @@
         }
       }
     </script>
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="modulepreload" href="/index.tsx">
     <style>
       body {
         font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
@@ -118,11 +122,144 @@
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background-color: rgba(107, 114, 128, 0.8);
       }
+
+      /* Instant Pre-Hydration Scientific Loading Screen */
+      #xrd-initial-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 50% 45%, #0f172a 0%, #020617 75%, #000000 100%);
+        color: #f8fafc;
+        z-index: 99999;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        user-select: none;
+      }
+      .xrd-splash-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 2.5rem;
+        max-width: 440px;
+        width: 90%;
+      }
+      .xrd-ring-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        margin-bottom: 1.5rem;
+      }
+      .xrd-gonio-ring {
+        width: 100%;
+        height: 100%;
+        will-change: transform;
+      }
+      .xrd-spin {
+        transform-origin: 60px 60px;
+        animation: xrdSpin 3.5s linear infinite;
+      }
+      .xrd-spin-rev {
+        transform-origin: 60px 60px;
+        animation: xrdSpinRev 5s linear infinite;
+      }
+      .xrd-pulse-node {
+        transform-origin: 60px 60px;
+        animation: xrdPulseNode 1.8s ease-in-out infinite;
+      }
+      .xrd-beam-glow {
+        position: absolute;
+        inset: 15%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(6, 182, 212, 0.1) 60%, transparent 80%);
+        filter: blur(12px);
+        animation: xrdBeamPulse 2s ease-in-out infinite alternate;
+      }
+      .xrd-splash-title {
+        font-size: 1.75rem;
+        font-weight: 900;
+        letter-spacing: -0.035em;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0 0 0.4rem 0;
+        text-transform: uppercase;
+      }
+      .xrd-splash-badge {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        color: #94a3b8;
+        margin: 0 0 1.75rem 0;
+        text-transform: uppercase;
+      }
+      .xrd-bar-track {
+        width: 220px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 9999px;
+        overflow: hidden;
+        position: relative;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .xrd-bar-fill {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 40%;
+        background: linear-gradient(90deg, #6366f1, #06b6d4, #a855f7);
+        border-radius: 9999px;
+        box-shadow: 0 0 12px rgba(6, 182, 212, 0.8);
+        animation: xrdScanBeam 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      .xrd-splash-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        letter-spacing: 0.06em;
+        color: #64748b;
+      }
+      .xrd-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #06b6d4;
+        box-shadow: 0 0 8px #06b6d4;
+        animation: xrdBlink 1s ease-in-out infinite alternate;
+      }
+      @keyframes xrdSpin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      @keyframes xrdSpinRev {
+        from { transform: rotate(360deg); }
+        to { transform: rotate(0deg); }
+      }
+      @keyframes xrdPulseNode {
+        0%, 100% { transform: scale(0.9); opacity: 0.85; }
+        50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 8px #6366f1); }
+      }
+      @keyframes xrdBeamPulse {
+        0% { opacity: 0.4; transform: scale(0.85); }
+        100% { opacity: 0.9; transform: scale(1.15); }
+      }
+      @keyframes xrdScanBeam {
+        0% { left: -45%; width: 35%; }
+        50% { width: 55%; }
+        100% { left: 105%; width: 35%; }
+      }
+      @keyframes xrdBlink {
+        0% { opacity: 0.35; transform: scale(0.85); }
+        100% { opacity: 1; transform: scale(1.2); }
+      }
     </style>
 
 <link rel="stylesheet" href="/index.css">
-<!-- Google Translate Fallback Engine -->
-<div id="google_translate_element"></div>
 <script type="text/javascript">
   function googleTranslateElementInit() {
     if (window.google && window.google.translate) {
@@ -137,7 +274,37 @@
 <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" defer async></script>
 </head>
   <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-    <div id="root" class="h-full"></div>
+    <!-- Google Translate Fallback Anchor in Body -->
+    <div id="google_translate_element" style="display:none"></div>
+    <div id="root" class="h-full">
+      <!-- Instant 0ms Scientific Loading Splash Screen (replaced upon React mount) -->
+      <div id="xrd-initial-splash">
+        <div class="xrd-splash-card">
+          <div class="xrd-ring-container">
+            <svg class="xrd-gonio-ring" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="60" cy="60" r="54" stroke="rgba(99, 102, 241, 0.25)" stroke-width="2" stroke-dasharray="4 6"/>
+              <circle cx="60" cy="60" r="42" stroke="rgba(6, 182, 212, 0.4)" stroke-width="1.5" stroke-dasharray="6 4" class="xrd-spin-rev"/>
+              <circle cx="60" cy="60" r="30" stroke="rgba(129, 140, 248, 0.6)" stroke-width="2" stroke-dasharray="8 6" class="xrd-spin"/>
+              <circle cx="60" cy="60" r="8" fill="#6366f1" class="xrd-pulse-node"/>
+              <line x1="60" y1="6" x2="60" y2="114" stroke="rgba(6, 182, 212, 0.4)" stroke-width="1.5" stroke-dasharray="3 3"/>
+              <line x1="6" y1="60" x2="114" y2="60" stroke="rgba(6, 182, 212, 0.4)" stroke-width="1.5" stroke-dasharray="3 3"/>
+            </svg>
+            <div class="xrd-beam-glow"></div>
+          </div>
+          <div class="xrd-splash-text">
+            <h1 class="xrd-splash-title">XRD-Calc Pro</h1>
+            <p class="xrd-splash-badge">POWDER DIFFRACTION &amp; CRYSTALLOGRAPHY SUITE</p>
+          </div>
+          <div class="xrd-bar-track">
+            <div class="xrd-bar-fill"></div>
+          </div>
+          <div class="xrd-splash-status">
+            <span class="xrd-status-dot"></span>
+            <span>INITIALIZING CRYSTALLOGRAPHIC ENGINE...</span>
+          </div>
+        </div>
+      </div>
+    </div>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

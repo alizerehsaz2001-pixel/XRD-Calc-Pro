@@ -32,7 +32,6 @@ import {
   RotateCcw,
   Save
 } from 'lucide-react';
-import { MATERIAL_DB } from '../utils/materialDB';
 
 export interface BraggSavedConfig {
   id: string;
@@ -366,23 +365,53 @@ const BraggInputComponent: React.FC<BraggInputProps> = ({
     }).filter((val: any): val is number => val !== null);
   };
 
+  // Dynamic material DB loading on demand - prevents loading 756KB on initial page mount
+  const [materialDbList, setMaterialDbList] = useState<any[]>([]);
+  const [isLoadingMaterialDb, setIsLoadingMaterialDb] = useState(false);
+
+  useEffect(() => {
+    if (showRefineModal && materialDbList.length === 0 && !isLoadingMaterialDb) {
+      setIsLoadingMaterialDb(true);
+      import('../utils/materialDB')
+        .then(mod => {
+          const list = mod.MATERIAL_DB || [];
+          setMaterialDbList(list);
+          if (list.length > 0) {
+            setSelectedRefineMaterial((prev: any) => prev || list[0]);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to load materials database:", err);
+        })
+        .finally(() => {
+          setIsLoadingMaterialDb(false);
+        });
+    }
+  }, [showRefineModal, materialDbList.length, isLoadingMaterialDb]);
+
   const filteredRefineMaterials = useMemo(() => {
+    if (materialDbList.length === 0) return [];
     if (!refineSearchQuery.trim()) {
       // Common standard reference materials
       const commonNames = ["Quartz", "Silicon", "Aluminium Oxide", "Magnetite", "Corundum", "Halite", "Rutile", "Anatase", "Hematite", "Copper", "Gold", "Iron", "Silver"];
-      return MATERIAL_DB.filter(m => commonNames.some(name => m.name.toLowerCase().includes(name.toLowerCase()))).slice(0, 15);
+      return materialDbList.filter(m => commonNames.some(name => m.name.toLowerCase().includes(name.toLowerCase()))).slice(0, 15);
     }
     const q = refineSearchQuery.toLowerCase();
-    return MATERIAL_DB.filter(m => 
+    return materialDbList.filter(m => 
       m.name.toLowerCase().includes(q) || 
       m.formula?.toLowerCase().includes(q) ||
       m.crystalSystem?.toLowerCase().includes(q)
     ).slice(0, 30);
-  }, [refineSearchQuery]);
+  }, [refineSearchQuery, materialDbList]);
 
   const autoDetectBestMaterial = () => {
     if (parsedPeaks.length === 0) {
       setRefineLogs(prev => [...prev, "Warning: No user-inputted peak positions detected. Please write peak values first."]);
+      return;
+    }
+
+    if (materialDbList.length === 0) {
+      setRefineLogs(prev => [...prev, "Loading reference material database... Please try again in a moment."]);
       return;
     }
     
@@ -392,7 +421,7 @@ const BraggInputComponent: React.FC<BraggInputProps> = ({
     let bestScore = -9999;
     let bestShift = 0;
     
-    for (const mat of MATERIAL_DB) {
+    for (const mat of materialDbList) {
       const refPeaks = getMaterialPeaks(mat);
       if (refPeaks.length === 0) continue;
       
@@ -1004,8 +1033,8 @@ const BraggInputComponent: React.FC<BraggInputProps> = ({
                     setRefinedPeaksResult([]);
                     setRefineLogs([]);
                     setRefineProgress(0);
-                    if (MATERIAL_DB.length > 0) {
-                      setSelectedRefineMaterial(MATERIAL_DB[0]);
+                    if (materialDbList.length > 0) {
+                      setSelectedRefineMaterial(materialDbList[0]);
                     }
                   }}
                   className="px-2 py-1 text-[8px] font-black uppercase rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"

@@ -22,6 +22,17 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve(__dirname, '.'),
         }
       },
+      optimizeDeps: {
+        include: [
+          'react',
+          'react-dom',
+          'react-i18next',
+          'i18next',
+          'motion/react',
+          'lucide-react',
+          'recharts',
+        ],
+      },
       build: {
         target: 'esnext',
         sourcemap: false,

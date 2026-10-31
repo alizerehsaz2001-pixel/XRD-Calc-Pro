@@ -67,7 +67,16 @@ import { playSynthTone } from './utils/sound';
 import { useAuth, db, handleFirestoreError, OperationType, signIn, logOut } from './services/firebase';
 import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
-import { syncOfflineHelper } from './utils/materialsHelper';
+// Defer materialsHelper loading to dynamic import to keep initial bundle tiny and lightning-fast
+const triggerSyncOfflineHelper = async () => {
+  try {
+    const { syncOfflineHelper } = await import('./utils/materialsHelper');
+    return await syncOfflineHelper();
+  } catch (err) {
+    console.warn('[Sync] Deferred materials sync warning:', err);
+    return [];
+  }
+};
 import { 
   getNetworkQualityInfo, 
   getStoredAutoSyncConfig, 
@@ -476,7 +485,7 @@ const App: React.FC = () => {
     setNetworkQuality(quality);
 
     if (enabled && isOnline && (!updated.highSpeedOnly || quality.isHighSpeed)) {
-      syncOfflineHelper()
+      triggerSyncOfflineHelper()
         .then(() => syncIndexedDBWithFirestore(false))
         .then(() => refreshOfflineAnalyses())
         .catch(console.error);
@@ -731,7 +740,7 @@ const App: React.FC = () => {
         return;
       }
 
-      syncOfflineHelper()
+      triggerSyncOfflineHelper()
         .then(() => syncIndexedDBWithFirestore(false))
         .then(() => updateOfflineData())
         .catch(console.error);

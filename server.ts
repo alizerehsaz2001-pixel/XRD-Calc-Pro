@@ -3713,6 +3713,14 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    // Accelerate dev reloads with immutable caching on pre-bundled deps
+    app.use((req, res, next) => {
+      if (req.url.includes('/node_modules/.vite/deps/') || req.url.includes('/@vite/') || req.url.includes('/@fs/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+      next();
+    });
+
     const vite = await createViteServer({
       server: { 
         middlewareMode: true,
