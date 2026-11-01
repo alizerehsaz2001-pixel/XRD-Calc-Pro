@@ -1187,15 +1187,15 @@ const CookieBanner = ({ isRTL, onAccept }: { isRTL: boolean, onAccept: () => voi
   );
 };
 
-// --- Main Page Component ---
-export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut, activeModule, onReturnToApp }: { 
+export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut, activeModule, onReturnToApp, onOpenWhyXrd }: { 
   onEnter: (mode?: 'register' | 'login', targetModule?: any) => void, 
   setTheme: (theme: any) => void,
   theme: string,
   isRegistered?: boolean,
   onSignOut?: () => void,
   activeModule?: string,
-  onReturnToApp?: (targetModule?: any) => void
+  onReturnToApp?: (targetModule?: any) => void,
+  onOpenWhyXrd?: () => void
 }) => {
   const { t, i18n } = useTranslation();
   const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
@@ -1626,6 +1626,16 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
               )}
             </div>
 
+            {onOpenWhyXrd && (
+              <button
+                onClick={onOpenWhyXrd}
+                className="text-yellow-400 hover:text-yellow-300 font-bold px-2.5 py-1 rounded-lg hover:bg-yellow-400/10 border border-yellow-400/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="How XRD Helps in Different Disciplines (Lecture 11 Reference)"
+              >
+                <Atom className="w-3.5 h-3.5 text-yellow-400 animate-spin" style={{ animationDuration: '8s' }} />
+                <span>Why XRD?</span>
+              </button>
+            )}
             <a href="#sandbox" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-bold px-2 py-1 rounded-lg hover:bg-cyan-500/10">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
               Diffraction Lab

@@ -1992,3 +1992,6 @@ plt.show()
     </div>
   );
 };
+
+export default WarrenAverbachModule;
+

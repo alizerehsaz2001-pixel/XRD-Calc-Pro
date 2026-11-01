@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../../utils/sound';
+import { QuickOfflineSection } from './QuickOfflineSection';
 
 export const DatabasesApiTab: React.FC = () => {
   const { t } = useTranslation();
@@ -207,8 +208,13 @@ Model latency: 284ms. Cloud server proxy verified operational with active Redis 
           </div>
         </div>
 
-        {/* Subnavigation Tabs */}
-        <div className="flex flex-wrap items-center gap-2 mt-8 pt-6 border-t border-slate-800">
+      </div>
+
+      {/* Quick Offline IndexedDB Force-Cache Control */}
+      <QuickOfflineSection />
+
+      {/* Subnavigation Tabs */}
+      <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => { setActiveTabSub('databases'); playSynthTone('switch'); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTabSub === 'databases' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'}`}
@@ -228,7 +234,6 @@ Model latency: 284ms. Cloud server proxy verified operational with active Redis 
             <HardDrive className="w-3.5 h-3.5" /> Manifests & Snapshots
           </button>
         </div>
-      </div>
 
       {/* Content Switcher */}
       <AnimatePresence mode="wait">

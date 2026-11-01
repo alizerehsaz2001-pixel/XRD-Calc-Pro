@@ -484,47 +484,48 @@ export function runCohenLeastSquaresRefinement(
     const A_param = beta[0];
     const B_param = beta[1];
     const C_param = beta[2];
-    const D_param = beta[3]; // cross term
+    const D_param = beta[3]; // cross term: beta[3] = - (lambda^2 * cos(beta)) / (4 * a * c * sin^2(beta)) = - cos(beta) * sqrt(A * C)
 
     b = Math.sqrt(lam2 / (4 * B_param));
-    // D_param / (2 * sqrt(A*C)) = -cos(beta*)
-    const cosBetaStar = -D_param / (2 * Math.sqrt(Math.max(1e-12, A_param * C_param)));
-    const sinBetaStar = Math.sqrt(Math.max(1e-6, 1 - cosBetaStar * cosBetaStar));
-    
-    a = Math.sqrt(lam2 / (4 * A_param)) / sinBetaStar;
-    c = Math.sqrt(lam2 / (4 * C_param)) / sinBetaStar;
-    betaAngle = 180 - (Math.acos(Math.max(-1, Math.min(1, cosBetaStar))) * 180 / Math.PI);
+    // Since X_i includes 2hl, beta[3] = -cos(beta) * sqrt(A * C), so cos(beta) = - D_param / sqrt(A * C)
+    const cosBetaDirect = -D_param / Math.sqrt(Math.max(1e-12, A_param * C_param));
+    const clampedCosBeta = Math.max(-0.999999, Math.min(0.999999, cosBetaDirect));
+    betaAngle = Math.acos(clampedCosBeta) * (180 / Math.PI);
     const betaRad = betaAngle * (Math.PI / 180);
-    vol = a * b * c * Math.sin(betaRad);
+    const sinBeta = Math.sin(betaRad);
+    
+    a = Math.sqrt(lam2 / (4 * A_param)) / Math.max(1e-6, sinBeta);
+    c = Math.sqrt(lam2 / (4 * C_param)) / Math.max(1e-6, sinBeta);
+    vol = a * b * c * sinBeta;
   } else if (crystalSystem === 'Triclinic') {
-    // S11 = a*^2, S22 = b*^2, S33 = c*^2
+    // In reciprocal metric tensor: S11 = a*^2, S22 = b*^2, S33 = c*^2
+    // Since row pushed 2hk, 2kl, 2hl, beta[3]=S12, beta[4]=S23, beta[5]=S13 without extra division
     const S11 = beta[0], S22 = beta[1], S33 = beta[2];
-    const S12 = beta[3] / 2, S23 = beta[4] / 2, S13 = beta[5] / 2;
+    const S12 = beta[3], S23 = beta[4], S13 = beta[5];
 
     const aStar = Math.sqrt(Math.max(1e-12, S11)) * (2 / wavelength);
     const bStar = Math.sqrt(Math.max(1e-12, S22)) * (2 / wavelength);
     const cStar = Math.sqrt(Math.max(1e-12, S33)) * (2 / wavelength);
 
-    const cosGammaStar = S12 / Math.sqrt(S11 * S22);
-    const cosAlphaStar = S23 / Math.sqrt(S22 * S33);
-    const cosBetaStar = S13 / Math.sqrt(S11 * S33);
+    const cosGammaStar = S12 / Math.sqrt(Math.max(1e-12, S11 * S22));
+    const cosAlphaStar = S23 / Math.sqrt(Math.max(1e-12, S22 * S33));
+    const cosBetaStar = S13 / Math.sqrt(Math.max(1e-12, S11 * S33));
 
-    const alphaStar = Math.acos(Math.max(-1, Math.min(1, cosAlphaStar)));
-    const betaStar = Math.acos(Math.max(-1, Math.min(1, cosBetaStar)));
-    const gammaStar = Math.acos(Math.max(-1, Math.min(1, cosGammaStar)));
+    const alphaStar = Math.acos(Math.max(-0.999999, Math.min(0.999999, cosAlphaStar)));
+    const betaStar = Math.acos(Math.max(-0.999999, Math.min(0.999999, cosBetaStar)));
+    const gammaStar = Math.acos(Math.max(-0.999999, Math.min(0.999999, cosGammaStar)));
 
     // Invert reciprocal tensor to direct metric tensor
-    const vStar = aStar * bStar * cStar * Math.sqrt(
-      Math.max(1e-10, 1 - cosAlphaStar**2 - cosBetaStar**2 - cosGammaStar**2 + 2*cosAlphaStar*cosBetaStar*cosGammaStar)
-    );
-    vol = 1 / vStar;
-    a = (bStar * cStar * Math.sin(alphaStar)) / vStar;
-    b = (aStar * cStar * Math.sin(betaStar)) / vStar;
-    c = (aStar * bStar * Math.sin(gammaStar)) / vStar;
+    const vStarRad = Math.max(1e-10, 1 - Math.pow(Math.cos(alphaStar), 2) - Math.pow(Math.cos(betaStar), 2) - Math.pow(Math.cos(gammaStar), 2) + 2 * Math.cos(alphaStar) * Math.cos(betaStar) * Math.cos(gammaStar));
+    const vStar = aStar * bStar * cStar * Math.sqrt(vStarRad);
+    vol = vStar > 0 ? 1 / vStar : 0;
+    a = vStar > 0 ? (bStar * cStar * Math.sin(alphaStar)) / vStar : 0;
+    b = vStar > 0 ? (aStar * cStar * Math.sin(betaStar)) / vStar : 0;
+    c = vStar > 0 ? (aStar * bStar * Math.sin(gammaStar)) / vStar : 0;
 
-    const cosAlphaArg = Math.max(-1.0, Math.min(1.0, (cosBetaStar * cosGammaStar - cosAlphaStar) / Math.max(1e-9, Math.sin(betaStar) * Math.sin(gammaStar))));
-    const cosBetaArg = Math.max(-1.0, Math.min(1.0, (cosAlphaStar * cosGammaStar - cosBetaStar) / Math.max(1e-9, Math.sin(alphaStar) * Math.sin(gammaStar))));
-    const cosGammaArg = Math.max(-1.0, Math.min(1.0, (cosAlphaStar * cosBetaStar - cosGammaStar) / Math.max(1e-9, Math.sin(alphaStar) * Math.sin(betaStar))));
+    const cosAlphaArg = Math.max(-1.0, Math.min(1.0, (Math.cos(betaStar) * Math.cos(gammaStar) - Math.cos(alphaStar)) / Math.max(1e-9, Math.sin(betaStar) * Math.sin(gammaStar))));
+    const cosBetaArg = Math.max(-1.0, Math.min(1.0, (Math.cos(alphaStar) * Math.cos(gammaStar) - Math.cos(betaStar)) / Math.max(1e-9, Math.sin(alphaStar) * Math.sin(gammaStar))));
+    const cosGammaArg = Math.max(-1.0, Math.min(1.0, (Math.cos(alphaStar) * Math.cos(betaStar) - Math.cos(gammaStar)) / Math.max(1e-9, Math.sin(alphaStar) * Math.sin(betaStar))));
 
     alpha = Math.acos(cosAlphaArg) * 180 / Math.PI;
     betaAngle = Math.acos(cosBetaArg) * 180 / Math.PI;

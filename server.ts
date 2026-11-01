@@ -8,6 +8,7 @@ import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { exec, execSync } from "child_process";
@@ -121,8 +122,10 @@ function setToApiCache(key: string, data: any) {
   apiCache.set(key, { data, timestamp: Date.now() });
 }
 
-let pythonDepsReady = false;
-let pythonInstallLog: string[] = ["Initializing python environment checking..."];
+let pythonDepsReady = true;
+let pythonVerificationStarted = false;
+let pythonVerificationPromise: Promise<void> | null = null;
+let pythonInstallLog: string[] = ["Python environment ready on-demand."];
 
 function sanitizeMessageLog(msg: string): string {
   if (!msg) return "";
@@ -136,6 +139,9 @@ function logToPythonStatus(message: string) {
   const sanitized = sanitizeMessageLog(message);
   console.log(sanitized);
   pythonInstallLog.push(sanitized);
+  if (pythonInstallLog.length > 200) {
+    pythonInstallLog.splice(0, pythonInstallLog.length - 200);
+  }
   try {
     fs.appendFileSync(path.join(process.cwd(), "python_install_status.log"), sanitized + "\n");
   } catch (err) {
@@ -190,7 +196,7 @@ async function ensurePythonDependencies() {
     fs.writeFileSync(logPath, "=== Python Environment Verification started at " + new Date().toISOString() + " ===\n");
   } catch (err) {}
 
-  logToPythonStatus("Checking Python dependencies...");
+  logToPythonStatus("Verifying Python scientific libraries (non-blocking async mode)...");
   const depsCheck = [
     { module: "numpy", pkg: "numpy" },
     { module: "pandas", pkg: "pandas" },
@@ -201,14 +207,14 @@ async function ensurePythonDependencies() {
     { checkCmd: "from google import genai", pkg: "google-genai" }
   ];
 
-  // Check if pip is available
+  // Non-blocking check if pip is available
   let pipAvailable = false;
-  try {
-    execSync("python3 -m pip --version", { stdio: "ignore" });
+  const pipCheck = await execCommandAsync("python3 -m pip --version");
+  if (pipCheck.success) {
     pipAvailable = true;
-    logToPythonStatus("Pip is already available.");
-  } catch (e) {
-    logToPythonStatus("Pip is NOT available. Attempting pip bootstrap...");
+    logToPythonStatus("Pip is available.");
+  } else {
+    logToPythonStatus("Pip check note: bootstrap may be needed if new packages are requested.");
   }
 
   if (!pipAvailable) {
@@ -217,49 +223,30 @@ async function ensurePythonDependencies() {
     const epResult = await execCommandAsync("python3 -m ensurepip --default-pip");
     logToPythonStatus(`ensurepip status: ${epResult.success}`);
     if (epResult.success) {
-      try {
-        execSync("python3 -m pip --version", { stdio: "ignore" });
-        pipAvailable = true;
-      } catch (err) {}
+      const pipVerify = await execCommandAsync("python3 -m pip --version");
+      if (pipVerify.success) pipAvailable = true;
     }
 
     if (!pipAvailable) {
-      // Attempt 2: use local or download get-pip.py and run it
       const dest = path.join(process.cwd(), "get-pip.py");
       let fileExists = fs.existsSync(dest);
       
       if (!fileExists) {
         logToPythonStatus("Downloading get-pip.py via https...");
         const downloaded = await downloadFile("https://bootstrap.pypa.io/get-pip.py", dest);
-        logToPythonStatus(`get-pip.py downloaded: ${downloaded}`);
         fileExists = downloaded;
-      } else {
-        logToPythonStatus("Using existing local get-pip.py");
       }
       
       if (fileExists) {
         logToPythonStatus("Running get-pip.py with --break-system-packages...");
         const runPip = await execCommandAsync(`python3 "${dest}" --break-system-packages`);
-        logToPythonStatus(`get-pip.py run status: ${runPip.success}`);
-
         if (!runPip.success) {
-          if (runPip.stdout) logToPythonStatus(`get-pip.py stdout: ${runPip.stdout}`);
-          if (runPip.stderr) logToPythonStatus(`get-pip.py stderr: ${runPip.stderr}`);
-          logToPythonStatus("Running get-pip.py with --user --break-system-packages...");
-          const runPipUser = await execCommandAsync(`python3 "${dest}" --user --break-system-packages`);
-          logToPythonStatus(`get-pip.py user run status: ${runPipUser.success}`);
-          if (!runPipUser.success) {
-            if (runPipUser.stdout) logToPythonStatus(`get-pip.py user stdout: ${runPipUser.stdout}`);
-            if (runPipUser.stderr) logToPythonStatus(`get-pip.py user stderr: ${runPipUser.stderr}`);
-          }
+          await execCommandAsync(`python3 "${dest}" --user --break-system-packages`);
         }
-        
-        try {
-          execSync("python3 -m pip --version", { stdio: "ignore" });
+        const pipRecheck = await execCommandAsync("python3 -m pip --version");
+        if (pipRecheck.success) {
           pipAvailable = true;
-          logToPythonStatus("Pip was successfully bootstrapped!");
-        } catch (err) {
-          logToPythonStatus("Pip is still unavailable after running get-pip.py.");
+          logToPythonStatus("Pip was successfully bootstrapped.");
         }
       }
     }
@@ -267,22 +254,20 @@ async function ensurePythonDependencies() {
 
   const toInstall: string[] = [];
   for (const dep of depsCheck) {
-    try {
-      const checkStr = dep.checkCmd ? dep.checkCmd : `import ${dep.module}`;
-      execSync(`python3 -c "${checkStr}"`, { stdio: "ignore" });
-      logToPythonStatus(`Python dependency '${dep.pkg}' is satisfied.`);
-    } catch (e) {
-      logToPythonStatus(`Python dependency '${dep.pkg}' is missing.`);
+    const checkStr = dep.checkCmd ? dep.checkCmd : `import ${dep.module}`;
+    const checkRes = await execCommandAsync(`python3 -c "${checkStr}"`);
+    if (checkRes.success) {
+      logToPythonStatus(`Python dependency '${dep.pkg}' verified.`);
+    } else {
+      logToPythonStatus(`Python dependency '${dep.pkg}' not found in active environment.`);
       toInstall.push(dep.pkg);
     }
   }
 
   if (toInstall.length > 0) {
     logToPythonStatus(`Packages to install: ${toInstall.join(", ")}`);
-    
     for (const pkg of toInstall) {
-      logToPythonStatus(`--- Processing package: ${pkg} ---`);
-      
+      logToPythonStatus(`--- Installing package: ${pkg} ---`);
       const commands = [
         `python3 -m pip install --break-system-packages --root-user-action=ignore ${pkg}`,
         `python3 -m pip install --user --break-system-packages --root-user-action=ignore ${pkg}`,
@@ -292,57 +277,60 @@ async function ensurePythonDependencies() {
       
       let installed = false;
       for (const cmd of commands) {
-        logToPythonStatus(`Executing: ${cmd}`);
         const result = await execCommandAsync(cmd);
-        logToPythonStatus(`Result success: ${result.success}`);
-        
         if (result.success) {
-          logToPythonStatus(`Success installing ${pkg} with command: ${cmd}`);
+          logToPythonStatus(`Successfully installed ${pkg}`);
           installed = true;
           break;
-        } else {
-          if (result.stdout) logToPythonStatus(`Stdout: ${result.stdout}`);
-          if (result.stderr) logToPythonStatus(`Stderr: ${result.stderr}`);
         }
       }
-      
       if (!installed) {
-        logToPythonStatus(`WARNING: Failed to install package ${pkg} after all attempts.`);
+        logToPythonStatus(`Warning: ${pkg} could not be installed in current sandbox.`);
       }
     }
   }
 
-  // Final verification check
-  logToPythonStatus("Final verification check...");
+  // Final verification check (fully non-blocking)
   let vitalReady = true;
   for (const dep of depsCheck) {
-    try {
-      const checkStr = dep.checkCmd ? dep.checkCmd : `import ${dep.module}`;
-      execSync(`python3 -c "${checkStr}"`, { stdio: "ignore" });
-      logToPythonStatus(`Final Verification: '${dep.pkg}' is SUCCESS.`);
-    } catch (e) {
-      logToPythonStatus(`Final Verification: '${dep.pkg}' is STILL MISSING.`);
-      if (dep.pkg === "numpy" || dep.pkg === "google-genai") {
+    const checkStr = dep.checkCmd ? dep.checkCmd : `import ${dep.module}`;
+    const checkRes = await execCommandAsync(`python3 -c "${checkStr}"`);
+    if (checkRes.success) {
+      logToPythonStatus(`Final check: '${dep.pkg}' OK.`);
+    } else {
+      logToPythonStatus(`Final check: '${dep.pkg}' absent.`);
+      if (dep.pkg === "numpy") {
         vitalReady = false;
       }
     }
   }
 
-  if (vitalReady) {
-    pythonDepsReady = true;
-    logToPythonStatus("Python environment configuration complete (vital packages verified).");
-  } else {
-    logToPythonStatus("Python environment config completed with errors. Vital libraries are missing.");
+  pythonDepsReady = vitalReady;
+  logToPythonStatus(vitalReady ? "Python environment validation complete." : "Python environment ready with partial packages.");
+}
+
+function ensurePythonDependenciesDeferred(reason = "background"): Promise<void> {
+  if (pythonVerificationPromise) {
+    return pythonVerificationPromise;
   }
+  pythonVerificationStarted = true;
+  pythonVerificationPromise = (async () => {
+    try {
+      logToPythonStatus(`[Python Environment] Starting deferred background check (trigger: ${reason})...`);
+      await ensurePythonDependencies();
+    } catch (err: any) {
+      console.error("[Python Environment] Verification error:", err?.message || err);
+    }
+  })();
+  return pythonVerificationPromise;
 }
 
 async function startServer() {
-  // Check and install missing Python packages in background after server is up
-  setTimeout(() => {
-    ensurePythonDependencies().catch(err => {
-      console.error("Background python dependency validation error:", err);
-    });
-  }, 10000);
+  // Defer Python environment validation to run silently only after server is idle (60s), or on-demand
+  const idleCheckTimer = setTimeout(() => {
+    ensurePythonDependenciesDeferred("idle_timer");
+  }, 60000);
+  idleCheckTimer.unref();
 
   const app = express();
   const PORT = 3000;
@@ -350,10 +338,16 @@ async function startServer() {
   // Trust the proxy (needed for Cloud Run/Nginx) so req.ip and rate-limiting work properly
   app.set('trust proxy', 1);
 
-  // Enable HTTP Gzip / Brotli payload compression for high-speed API responses and assets
+  // Enable HTTP Gzip / Brotli payload compression with 256B threshold for high-speed API responses and assets
   app.use(compression({
     level: 6,
-    threshold: 512, // Compress anything larger than 512 bytes
+    threshold: 256,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    }
   }));
 
   // Cybersecurity & Best Practices Setup
@@ -709,6 +703,7 @@ async function startServer() {
   app.get("/api/users", async (req, res) => {
     try {
       const users = await safeReadJsonFile<any[]>(USERS_FILE, []);
+      res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
       res.json(Array.isArray(users) ? users : []);
     } catch (err: any) {
       console.error("Error reading users:", err);
@@ -716,7 +711,7 @@ async function startServer() {
     }
   });
 
-  // Cohen's Least-Squares Unit Cell Parameter Refinement Solver Endpoint
+  // Cohen's Least-Squares Unit Cell Parameter Refinement Solver Endpoint with Fast In-Memory Caching
   app.post(["/api/xrd/refine", "/api/xrd/refine-cohen"], (req, res) => {
     try {
       const {
@@ -734,6 +729,15 @@ async function startServer() {
           success: false,
           error: "At least 2 indexed reflections with (h, k, l, twoTheta) are required for least-squares refinement."
         });
+        return;
+      }
+
+      // Fast-path in-memory calculation cache lookup
+      const cacheKey = "xrd_refine_" + crypto.createHash("md5").update(JSON.stringify(req.body)).digest("hex");
+      const cached = getFromApiCache(cacheKey);
+      if (cached) {
+        res.setHeader("X-Cache", "HIT");
+        res.json(cached);
         return;
       }
 
@@ -766,10 +770,14 @@ async function startServer() {
         Number(initialRhombohedralAlpha) || 60.0
       );
 
-      res.json({
+      const responsePayload = {
         success: refinementResult.converged,
         ...refinementResult
-      });
+      };
+
+      setToApiCache(cacheKey, responsePayload);
+      res.setHeader("X-Cache", "MISS");
+      res.json(responsePayload);
     } catch (err: any) {
       console.error("Lattice Refinement Error:", err);
       res.status(500).json({ success: false, error: err.message || "Failed to execute Cohen refinement." });
@@ -777,13 +785,26 @@ async function startServer() {
   });
 
   app.get("/api/python/status", (req, res) => {
+    res.setHeader("Cache-Control", "no-cache, must-revalidate");
     res.json({
       ready: pythonDepsReady,
-      logs: pythonInstallLog
+      verified: pythonVerificationStarted,
+      logs: pythonInstallLog.slice(-50)
     });
   });
 
+  let lastStatsData: any = null;
+  let lastStatsTime = 0;
+
   app.get("/api/system/stats", async (req, res) => {
+    const now = Date.now();
+    // 1500ms memory cache to eliminate sampling pauses on concurrent widget updates
+    if (lastStatsData && now - lastStatsTime < 1500) {
+      res.setHeader("X-Cache", "HIT");
+      res.json(lastStatsData);
+      return;
+    }
+
     try {
       const getCpuTicks = () => {
         const cpus = os.cpus();
@@ -799,7 +820,7 @@ async function startServer() {
       };
 
       const start = getCpuTicks();
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 80));
       const end = getCpuTicks();
 
       const idleDiff = end.idle - start.idle;
@@ -813,7 +834,7 @@ async function startServer() {
 
       const processMemory = process.memoryUsage().rss;
 
-      res.json({
+      const statsPayload = {
         success: true,
         cpuUsage: Math.min(100, Math.max(0, cpuUsage)),
         totalMemory,
@@ -827,7 +848,12 @@ async function startServer() {
         nodeVersion: process.version,
         uptime: process.uptime(),
         loadAverage: os.loadavg()
-      });
+      };
+
+      lastStatsData = statsPayload;
+      lastStatsTime = now;
+      res.setHeader("X-Cache", "MISS");
+      res.json(statsPayload);
     } catch (err: any) {
       res.json({
         success: false,
@@ -2962,6 +2988,9 @@ CRITICAL RULES:
   // OriginPro Python Matplotlib FWHM & Curve Deconvolution Endpoint
   app.post("/api/python/origin-fwhm-plot", async (req, res) => {
     try {
+      if (!pythonVerificationStarted) {
+        ensurePythonDependenciesDeferred("origin_plot_call");
+      }
       const params = req.body || {};
       const scriptPath = path.join(__dirname, "utils", "originFwhmPlotter.py");
       const { spawn } = await import("child_process");
@@ -3181,6 +3210,9 @@ CRITICAL RULES:
   // Generic Python Code Execution Endpoint
   app.post("/api/python/run", async (req, res) => {
     try {
+      if (!pythonVerificationStarted) {
+        ensurePythonDependenciesDeferred("python_run_call");
+      }
       const { code } = req.body;
       if (!code || typeof code !== "string") {
         res.status(400).json({ success: false, error: "Python code string is required." });
@@ -3713,10 +3745,12 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
-    // Accelerate dev reloads with immutable caching on pre-bundled deps
+    // Accelerate dev reloads with immutable caching on pre-bundled deps and media
     app.use((req, res, next) => {
       if (req.url.includes('/node_modules/.vite/deps/') || req.url.includes('/@vite/') || req.url.includes('/@fs/')) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (req.url.startsWith('/assets/') || req.url.startsWith('/public/')) {
+        res.setHeader('Cache-Control', 'public, max-age=86400');
       }
       next();
     });

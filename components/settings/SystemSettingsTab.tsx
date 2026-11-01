@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../../utils/sound';
+import { QuickOfflineSection } from './QuickOfflineSection';
 
 interface SystemSettingsTabProps {
   autosaveInterval: number;
@@ -139,6 +140,9 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({
       transition={{ duration: 0.2 }}
       className="space-y-6"
     >
+      {/* Quick Offline IndexedDB Force-Cache Framework */}
+      <QuickOfflineSection />
+
       {/* Real-time Hardware Telemetry Card */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex items-center justify-between mb-6">

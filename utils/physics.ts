@@ -581,8 +581,9 @@ export const calculateInterplanarAngle = (
 export const calculateThetaFromBragg = (wavelength: number, dSpacing: number): number | null => {
   if (wavelength <= 0 || dSpacing <= 0) return null;
   const sinTheta = wavelength / (2 * dSpacing);
-  if (sinTheta > 1) return null;
-  const thetaRad = Math.asin(sinTheta);
+  if (sinTheta > 1.0000001) return null;
+  const clampedSin = Math.min(1.0, Math.max(-1.0, sinTheta));
+  const thetaRad = Math.asin(clampedSin);
   return thetaRad * (180 / Math.PI);
 };
 
@@ -1515,10 +1516,12 @@ export const calculateWilliamsonHall = (
     sizeInterceptNm = Math.exp(-intercept) * (K * wavelength) / 10;
     strainPercent = 0;
   } else if (strainModel === 'SSP') {
-    // Size-Strain Plot:
-    // Slope = K * lambda / D (in Angstroms) => D = K * lambda / Slope (in Angstroms) / 10 (nm)
-    // Intercept = (epsilon / 2)^2 => epsilon = 2 * sqrt(intercept)
-    sizeInterceptNm = slope > 0 ? (K * wavelength) / slope / 10 : 0;
+    // Size-Strain Plot (SSP, Halder 1973):
+    // (d * beta*)^2 = (K / D) * (d^2 * beta*) + (epsilon / 2)^2
+    // X = d_hkl^2 * beta* (in Angstroms)
+    // Y = (d_hkl * beta*)^2 (dimensionless)
+    // Slope = K / D (in Angstroms^-1) => D (Angstroms) = K / Slope => D (nm) = K / (10 * Slope)
+    sizeInterceptNm = slope > 1e-9 ? K / (slope * 10) : 0;
     const microstrain = intercept > 0 ? 2 * Math.sqrt(intercept) : 0;
     strainPercent = microstrain * 100;
     if (youngsModulusGPa && youngsModulusGPa > 0) {
@@ -1526,10 +1529,12 @@ export const calculateWilliamsonHall = (
       energyDensityKjM3 = 0.5 * youngsModulusGPa * microstrain * microstrain * 1000000;
     }
   } else if (strainModel === 'Halder-Wagner') {
-    // Halder-Wagner:
-    // Slope = 1 / D (in Angstroms^-1) => D = 1 / Slope / 10 (nm)
-    // Intercept = (epsilon / 2)^2 => epsilon = 2 * sqrt(intercept)
-    sizeInterceptNm = slope > 0 ? (1 / slope) / 10 : 0;
+    // Halder-Wagner (1966):
+    // (beta* / d*)^2 = (K / D) * (beta* / d*^2) + (epsilon / 2)^2
+    // X = beta* / (d*^2) (in Angstroms)
+    // Y = (beta* / d*)^2 (dimensionless)
+    // Slope = K / D (in Angstroms^-1) => D (nm) = K / (10 * Slope)
+    sizeInterceptNm = slope > 1e-9 ? K / (slope * 10) : 0;
     const microstrain = intercept > 0 ? 2 * Math.sqrt(intercept) : 0;
     strainPercent = microstrain * 100;
     if (youngsModulusGPa && youngsModulusGPa > 0) {
@@ -1619,7 +1624,7 @@ export const calculateWilliamsonHall = (
       let mEnergy: number | undefined = undefined;
 
       if (m === 'SSP') {
-        mSize = mReg.slope > 0 ? (K * wavelength) / mReg.slope / 10 : 0;
+        mSize = mReg.slope > 1e-9 ? K / (mReg.slope * 10) : 0;
         const eps = mReg.intercept > 0 ? 2 * Math.sqrt(mReg.intercept) : 0;
         mStrain = eps * 100;
         if (youngsModulusGPa) {
@@ -1627,7 +1632,7 @@ export const calculateWilliamsonHall = (
           mEnergy = 0.5 * youngsModulusGPa * eps * eps * 1e6;
         }
       } else if (m === 'Halder-Wagner') {
-        mSize = mReg.slope > 0 ? (1 / mReg.slope) / 10 : 0;
+        mSize = mReg.slope > 1e-9 ? K / (mReg.slope * 10) : 0;
         const eps = mReg.intercept > 0 ? 2 * Math.sqrt(mReg.intercept) : 0;
         mStrain = eps * 100;
         if (youngsModulusGPa) {
@@ -3380,19 +3385,39 @@ export const calculateCellVolume = (lattice: LatticeParameters): number => {
   const { a, b, c, alpha, beta, gamma } = lattice;
   if (a <= 0 || b <= 0 || c <= 0) return 0;
 
-  // Exact solutions for orthogonal and hexagonal systems
+  // 1. Orthogonal systems (Cubic, Tetragonal, Orthorhombic)
   if (alpha === 90 && beta === 90 && gamma === 90) {
     return a * b * c;
   }
+
+  // 2. Hexagonal system (120 deg or 60 deg gamma)
   if (alpha === 90 && beta === 90 && (gamma === 120 || gamma === 60)) {
     return (Math.sqrt(3) / 2) * a * a * c;
   }
-  if (alpha === 90 && gamma === 90) {
+
+  // 3. Rhombohedral setting (a=b=c, alpha=beta=gamma != 90)
+  if (Math.abs(a - b) < 1e-5 && Math.abs(b - c) < 1e-5 && Math.abs(alpha - beta) < 1e-4 && Math.abs(beta - gamma) < 1e-4 && alpha !== 90) {
+    const aRad = (alpha * Math.PI) / 180;
+    const cosA = Math.cos(aRad);
+    const radRhom = Math.max(0, 1 - 3 * cosA * cosA + 2 * Math.pow(cosA, 3));
+    return Math.pow(a, 3) * Math.sqrt(radRhom);
+  }
+
+  // 4. Monoclinic systems (unique b, c, or a axis)
+  if (alpha === 90 && gamma === 90 && beta !== 90) {
     const bRad = (beta * Math.PI) / 180;
     return a * b * c * Math.sin(bRad);
   }
+  if (alpha === 90 && beta === 90 && gamma !== 90) {
+    const gRad = (gamma * Math.PI) / 180;
+    return a * b * c * Math.sin(gRad);
+  }
+  if (beta === 90 && gamma === 90 && alpha !== 90) {
+    const aRad = (alpha * Math.PI) / 180;
+    return a * b * c * Math.sin(aRad);
+  }
 
-  // General Triclinic / Rhombohedral
+  // 5. General Triclinic: V = a*b*c*sqrt(1 - cos^2 a - cos^2 b - cos^2 c + 2*cos a*cos b*cos c)
   const aRad = (alpha * Math.PI) / 180;
   const bRad = (beta * Math.PI) / 180;
   const gRad = (gamma * Math.PI) / 180;
@@ -3410,20 +3435,33 @@ export const calculateDSpacing = (h: number, k: number, l: number, lattice: Latt
   const { a, b, c, alpha, beta, gamma } = lattice;
   if (a <= 0 || b <= 0 || c <= 0) return 0;
 
-  // Orthogonal systems (Cubic, Tetragonal, Orthorhombic)
+  // 1. Orthogonal systems (Cubic, Tetragonal, Orthorhombic)
   if (alpha === 90 && beta === 90 && gamma === 90) {
     const invDSq = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
     return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
   }
 
-  // Hexagonal / Trigonal
+  // 2. Hexagonal / Trigonal (hexagonal setting)
   if (alpha === 90 && beta === 90 && (gamma === 120 || gamma === 60)) {
     const invDSq = (4 / 3) * (h * h + h * k + k * k) / (a * a) + (l * l) / (c * c);
     return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
   }
 
-  // Monoclinic (unique b-axis, beta != 90)
-  if (alpha === 90 && gamma === 90) {
+  // 3. Rhombohedral setting (a=b=c, alpha=beta=gamma != 90)
+  if (Math.abs(a - b) < 1e-5 && Math.abs(b - c) < 1e-5 && Math.abs(alpha - beta) < 1e-4 && Math.abs(beta - gamma) < 1e-4 && alpha !== 90) {
+    const aRad = (alpha * Math.PI) / 180;
+    const cosA = Math.cos(aRad);
+    const sinA = Math.sin(aRad);
+    const denom = a * a * (1 - 3 * cosA * cosA + 2 * Math.pow(cosA, 3));
+    if (denom > 1e-12) {
+      const num = (h * h + k * k + l * l) * sinA * sinA + 2 * (h * k + k * l + l * h) * (cosA * cosA - cosA);
+      const invDSq = num / denom;
+      return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
+    }
+  }
+
+  // 4. Monoclinic (unique b-axis, beta != 90)
+  if (alpha === 90 && gamma === 90 && beta !== 90) {
     const bRad = (beta * Math.PI) / 180;
     const sinB = Math.sin(bRad);
     const cosB = Math.cos(bRad);
@@ -3437,7 +3475,37 @@ export const calculateDSpacing = (h: number, k: number, l: number, lattice: Latt
     return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
   }
 
-  // General Triclinic & Rhombohedral: Reciprocal Metric Tensor
+  // Monoclinic (unique c-axis, gamma != 90)
+  if (alpha === 90 && beta === 90 && gamma !== 90) {
+    const gRad = (gamma * Math.PI) / 180;
+    const sinG = Math.sin(gRad);
+    const cosG = Math.cos(gRad);
+    const sin2Gamma = Math.max(1e-8, sinG * sinG);
+    const invDSq = (
+      (h * h) / (a * a) +
+      (k * k) / (b * b) +
+      ((l * l) * sin2Gamma) / (c * c) -
+      (2 * h * k * cosG) / (a * b)
+    ) / sin2Gamma;
+    return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
+  }
+
+  // Monoclinic (unique a-axis, alpha != 90)
+  if (beta === 90 && gamma === 90 && alpha !== 90) {
+    const aRad = (alpha * Math.PI) / 180;
+    const sinA = Math.sin(aRad);
+    const cosA = Math.cos(aRad);
+    const sin2Alpha = Math.max(1e-8, sinA * sinA);
+    const invDSq = (
+      ((h * h) * sin2Alpha) / (a * a) +
+      (k * k) / (b * b) +
+      (l * l) / (c * c) -
+      (2 * k * l * cosA) / (b * c)
+    ) / sin2Alpha;
+    return invDSq > 0 ? 1 / Math.sqrt(invDSq) : 0;
+  }
+
+  // 5. General Triclinic: Reciprocal Metric Tensor
   const aRad = (alpha * Math.PI) / 180;
   const bRad = (beta * Math.PI) / 180;
   const gRad = (gamma * Math.PI) / 180;
@@ -3456,8 +3524,8 @@ export const calculateDSpacing = (h: number, k: number, l: number, lattice: Latt
   const s22 = Math.pow(a * c * sinB, 2);
   const s33 = Math.pow(a * b * sinG, 2);
   const s12 = a * b * Math.pow(c, 2) * (cosA * cosB - cosG);
-  const s23 = Math.pow(a, 2) * b * c * (cosB * cosG - cosA); // Corrected: a^2 * b * c
-  const s13 = a * Math.pow(b, 2) * c * (cosA * cosG - cosB); // Corrected: a * b^2 * c
+  const s23 = Math.pow(a, 2) * b * c * (cosB * cosG - cosA);
+  const s13 = a * Math.pow(b, 2) * c * (cosA * cosG - cosB);
 
   const invDSq = (
     s11 * h * h + s22 * k * k + s33 * l * l +

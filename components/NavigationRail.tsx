@@ -33,6 +33,7 @@ interface NavigationRailProps {
   onExpandSidebar: () => void;
   onOpenNavigator: () => void;
   onOpenWelcome?: () => void;
+  onOpenWhyXrd?: () => void;
 }
 
 const NavigationRailComponent: React.FC<NavigationRailProps> = ({
@@ -43,7 +44,8 @@ const NavigationRailComponent: React.FC<NavigationRailProps> = ({
   theme,
   onExpandSidebar,
   onOpenNavigator,
-  onOpenWelcome
+  onOpenWelcome,
+  onOpenWhyXrd
 }) => {
   const { t } = useTranslation();
 
@@ -86,6 +88,23 @@ const NavigationRailComponent: React.FC<NavigationRailProps> = ({
         >
           <span>λ</span>
         </button>
+
+        {/* Why XRD? Disciplines Button (Mini Rail) */}
+        {onOpenWhyXrd && (
+          <button
+            onClick={() => {
+              onOpenWhyXrd();
+              playSynthTone('switch');
+            }}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10 transition-all cursor-pointer relative group border border-yellow-400/20"
+            title={t('How XRD Helps in Different Disciplines (Why XRD?)', 'How XRD Helps in Different Disciplines (Why XRD?)')}
+          >
+            <Atom className="w-4 h-4 text-yellow-400 animate-spin" style={{ animationDuration: '10s' }} />
+            <span className="absolute left-full ml-3 px-2 py-1 bg-slate-900 text-white text-[11px] font-medium rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-50">
+              {t('Why XRD? Disciplines', 'Why XRD? Disciplines')}
+            </span>
+          </button>
+        )}
 
         {/* Welcome Page Button (Mini Rail) */}
         {onOpenWelcome && (

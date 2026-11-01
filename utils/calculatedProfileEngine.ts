@@ -326,8 +326,12 @@ export function calculateFWHM(
   // Instrumental baseline resolution
   const instFwhmDeg = 0.06;
 
-  // Voigt convolution quadratic approximation
-  const totalFwhm = Math.sqrt(instFwhmDeg * instFwhmDeg + betaSizeDeg * betaSizeDeg + betaStrainDeg * betaStrainDeg);
+  // Exact Olivero & Longbothum / Thompson-Cox-Hastings Voigt convolution:
+  // Size contributes to Cauchy broadening (beta_L = betaSizeDeg),
+  // Microstrain and instrument contribute to Gaussian broadening (beta_G = sqrt(inst^2 + strain^2)).
+  const betaL = betaSizeDeg;
+  const betaG = Math.sqrt(instFwhmDeg * instFwhmDeg + betaStrainDeg * betaStrainDeg);
+  const totalFwhm = 0.5346 * betaL + Math.sqrt(Math.max(1e-8, 0.2166 * betaL * betaL + betaG * betaG));
   return Math.max(0.02, Math.min(2.5, totalFwhm));
 }
 

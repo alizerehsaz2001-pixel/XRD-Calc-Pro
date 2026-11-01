@@ -5,48 +5,76 @@ import { useI18n } from './components/I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
 
+// Resilient helper for lazy dynamic component imports with auto-retry and flexible default/named export resolution
+function safeLazy<T extends React.ComponentType<any>>(
+  importFn: () => Promise<any>,
+  exportName?: string
+): React.LazyExoticComponent<T> {
+  return lazy(async () => {
+    try {
+      const module = await importFn();
+      const comp = (exportName && module[exportName]) || module.default || module[Object.keys(module)[0]];
+      return { default: comp };
+    } catch (err) {
+      console.warn(`[SafeLazy] Retrying dynamic import (${exportName || 'default'})...`, err);
+      for (let i = 0; i < 2; i++) {
+        await new Promise(r => setTimeout(r, 250));
+        try {
+          const module = await importFn();
+          const comp = (exportName && module[exportName]) || module.default || module[Object.keys(module)[0]];
+          return { default: comp };
+        } catch (retryErr) {
+          // Continue to next retry
+        }
+      }
+      throw err;
+    }
+  });
+}
+
 // Lazy-loaded core Bragg components to prevent initial bundle bloat
-const ResultsTable = lazy(() => import('./components/ResultsTable').then(m => ({ default: m.ResultsTable })));
-const DiffractionChart = lazy(() => import('./components/DiffractionChart').then(m => ({ default: m.DiffractionChart })));
-const BraggHistory = lazy(() => import('./components/BraggHistory').then(m => ({ default: m.BraggHistory })));
-const BraggVisualization = lazy(() => import('./components/BraggVisualization').then(m => ({ default: m.BraggVisualization })));
-const LatticeEstimator = lazy(() => import('./components/LatticeEstimator').then(m => ({ default: m.LatticeEstimator })));
+const ResultsTable = safeLazy(() => import('./components/ResultsTable'), 'ResultsTable');
+const DiffractionChart = safeLazy(() => import('./components/DiffractionChart'), 'DiffractionChart');
+const BraggHistory = safeLazy(() => import('./components/BraggHistory'), 'BraggHistory');
+const BraggVisualization = safeLazy(() => import('./components/BraggVisualization'), 'BraggVisualization');
+const LatticeEstimator = safeLazy(() => import('./components/LatticeEstimator'), 'LatticeEstimator');
 
 // Lazy-loaded modules for lightning-fast initial page load and memory optimization
-const DiffractionCompareModule = lazy(() => import('./components/DiffractionCompareModule').then(m => ({ default: m.DiffractionCompareModule })));
-const SelectionRulesModule = lazy(() => import('./components/SelectionRulesModule').then(m => ({ default: m.SelectionRulesModule })));
-const ScherrerModule = lazy(() => import('./components/ScherrerModule').then(m => ({ default: m.ScherrerModule })));
-const WilliamsonHallModule = lazy(() => import('./components/WilliamsonHallModule').then(m => ({ default: m.WilliamsonHallModule })));
-const MonshiScherrerModule = lazy(() => import('./components/MonshiScherrerModule').then(m => ({ default: m.MonshiScherrerModule })));
-const DoubleVoigtModule = lazy(() => import('./components/DoubleVoigtModule').then(m => ({ default: m.DoubleVoigtModule })));
-const IntegralBreadthModule = lazy(() => import('./components/IntegralBreadthModule').then(m => ({ default: m.IntegralBreadthModule })));
-const IntegralBreadthAdvancedModule = lazy(() => import('./components/IntegralBreadthAdvancedModule').then(m => ({ default: m.IntegralBreadthAdvancedModule })));
-const WarrenAverbachModule = lazy(() => import('./components/WarrenAverbachModule').then(m => ({ default: m.WarrenAverbachModule })));
-const MethodOfMomentsModule = lazy(() => import('./components/MethodOfMomentsModule').then(m => ({ default: m.MethodOfMomentsModule })));
-const RietveldModule = lazy(() => import('./components/RietveldModule').then(m => ({ default: m.RietveldModule })));
-const NeutronModule = lazy(() => import('./components/NeutronModule').then(m => ({ default: m.NeutronModule })));
-const MagneticNeutronModule = lazy(() => import('./components/MagneticNeutronModule').then(m => ({ default: m.MagneticNeutronModule })));
-const DeepLearningModule = lazy(() => import('./components/DeepLearningModule').then(m => ({ default: m.DeepLearningModule })));
-const FWHMModule = lazy(() => import('./components/FWHMModule').then(m => ({ default: m.FWHMModule })));
-const PreferredOrientationModule = lazy(() => import('./components/PreferredOrientationModule').then(m => ({ default: m.PreferredOrientationModule })));
-const CohenRefinementModule = lazy(() => import('./components/CohenRefinementModule').then(m => ({ default: m.CohenRefinementModule })));
-const CrystallographicMetricTensorModule = lazy(() => import('./components/CrystallographicMetricTensorModule').then(m => ({ default: m.CrystallographicMetricTensorModule })));
-const SupercellTransformationModule = lazy(() => import('./components/SupercellTransformationModule').then(m => ({ default: m.SupercellTransformationModule })));
-const PawleyLeBailDecompositionModule = lazy(() => import('./components/PawleyLeBailDecompositionModule').then(m => ({ default: m.PawleyLeBailDecompositionModule })));
-const ReferenceIntensityRatioModule = lazy(() => import('./components/ReferenceIntensityRatioModule').then(m => ({ default: m.ReferenceIntensityRatioModule })));
-const ImageAnalysisModule = lazy(() => import('./components/ImageAnalysisModule').then(m => ({ default: m.ImageAnalysisModule })));
-const ImageGenerationModule = lazy(() => import('./components/ImageGenerationModule').then(m => ({ default: m.ImageGenerationModule })));
-const XrdNanoModule = lazy(() => import('./components/XrdNanoModule').then(m => ({ default: m.XrdNanoModule })));
-const PythonExportModule = lazy(() => import('./components/PythonExportModule').then(m => ({ default: m.PythonExportModule })));
-const MaterialDatabaseExplorer = lazy(() => import('./components/MaterialDatabaseExplorer').then(m => ({ default: m.MaterialDatabaseExplorer })));
+const DiffractionCompareModule = safeLazy(() => import('./components/DiffractionCompareModule'), 'DiffractionCompareModule');
+const SelectionRulesModule = safeLazy(() => import('./components/SelectionRulesModule'), 'SelectionRulesModule');
+const ScherrerModule = safeLazy(() => import('./components/ScherrerModule'), 'ScherrerModule');
+const WilliamsonHallModule = safeLazy(() => import('./components/WilliamsonHallModule'), 'WilliamsonHallModule');
+const MonshiScherrerModule = safeLazy(() => import('./components/MonshiScherrerModule'), 'MonshiScherrerModule');
+const DoubleVoigtModule = safeLazy(() => import('./components/DoubleVoigtModule'), 'DoubleVoigtModule');
+const IntegralBreadthModule = safeLazy(() => import('./components/IntegralBreadthModule'), 'IntegralBreadthModule');
+const IntegralBreadthAdvancedModule = safeLazy(() => import('./components/IntegralBreadthAdvancedModule'), 'IntegralBreadthAdvancedModule');
+const WarrenAverbachModule = safeLazy(() => import('./components/WarrenAverbachModule'), 'WarrenAverbachModule');
+const MethodOfMomentsModule = safeLazy(() => import('./components/MethodOfMomentsModule'), 'MethodOfMomentsModule');
+const RietveldModule = safeLazy(() => import('./components/RietveldModule'), 'RietveldModule');
+const NeutronModule = safeLazy(() => import('./components/NeutronModule'), 'NeutronModule');
+const MagneticNeutronModule = safeLazy(() => import('./components/MagneticNeutronModule'), 'MagneticNeutronModule');
+const DeepLearningModule = safeLazy(() => import('./components/DeepLearningModule'), 'DeepLearningModule');
+const FWHMModule = safeLazy(() => import('./components/FWHMModule'), 'FWHMModule');
+const PreferredOrientationModule = safeLazy(() => import('./components/PreferredOrientationModule'), 'PreferredOrientationModule');
+const CohenRefinementModule = safeLazy(() => import('./components/CohenRefinementModule'), 'CohenRefinementModule');
+const CrystallographicMetricTensorModule = safeLazy(() => import('./components/CrystallographicMetricTensorModule'), 'CrystallographicMetricTensorModule');
+const SupercellTransformationModule = safeLazy(() => import('./components/SupercellTransformationModule'), 'SupercellTransformationModule');
+const PawleyLeBailDecompositionModule = safeLazy(() => import('./components/PawleyLeBailDecompositionModule'), 'PawleyLeBailDecompositionModule');
+const ReferenceIntensityRatioModule = safeLazy(() => import('./components/ReferenceIntensityRatioModule'), 'ReferenceIntensityRatioModule');
+const ImageAnalysisModule = safeLazy(() => import('./components/ImageAnalysisModule'), 'ImageAnalysisModule');
+const ImageGenerationModule = safeLazy(() => import('./components/ImageGenerationModule'), 'ImageGenerationModule');
+const XrdNanoModule = safeLazy(() => import('./components/XrdNanoModule'), 'XrdNanoModule');
+const PythonExportModule = safeLazy(() => import('./components/PythonExportModule'), 'PythonExportModule');
+const MaterialDatabaseExplorer = safeLazy(() => import('./components/MaterialDatabaseExplorer'), 'MaterialDatabaseExplorer');
 
-const SettingsModule = lazy(() => import('./components/SettingsModule').then(m => ({ default: m.SettingsModule })));
-const ProfilePage = lazy(() => import('./components/ProfilePage').then(m => ({ default: m.ProfilePage })));
-const LearnModule = lazy(() => import('./components/LearnModule').then(m => ({ default: m.LearnModule })));
-const AIChatSupport = lazy(() => import('./components/AIChatSupport').then(m => ({ default: m.AIChatSupport })));
-const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
-const RegistrationPage = lazy(() => import('./components/RegistrationPage').then(m => ({ default: m.RegistrationPage })));
-const FooterInfoModal = lazy(() => import('./components/FooterInfoModal').then(m => ({ default: m.FooterInfoModal })));
+const SettingsModule = safeLazy(() => import('./components/SettingsModule'), 'SettingsModule');
+const ProfilePage = safeLazy(() => import('./components/ProfilePage'), 'ProfilePage');
+const LearnModule = safeLazy(() => import('./components/LearnModule'), 'LearnModule');
+const AIChatSupport = safeLazy(() => import('./components/AIChatSupport'), 'AIChatSupport');
+const LandingPage = safeLazy(() => import('./components/LandingPage'), 'LandingPage');
+const RegistrationPage = safeLazy(() => import('./components/RegistrationPage'), 'RegistrationPage');
+const FooterInfoModal = safeLazy(() => import('./components/FooterInfoModal'), 'FooterInfoModal');
+const WhyXrdDisciplinePage = safeLazy(() => import('./components/WhyXrdDisciplinePage'), 'WhyXrdDisciplinePage');
 import type { FooterModalType } from './components/FooterInfoModal';
 
 import { ModuleIntro } from './components/ModuleIntro';
@@ -54,8 +82,8 @@ import { SideSeekBar } from './components/SideSeekBar';
 import LanguageSelector from './components/LanguageSelector';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext, LengthUnit } from './components/SettingsContext';
-const PeriodicTableModule = lazy(() => import('./components/PeriodicTableModule').then(m => ({ default: m.PeriodicTableModule })));
-const ScientificModuleNavigator = lazy(() => import('./components/ScientificModuleNavigator').then(m => ({ default: m.ScientificModuleNavigator })));
+const PeriodicTableModule = safeLazy(() => import('./components/PeriodicTableModule'), 'PeriodicTableModule');
+const ScientificModuleNavigator = safeLazy(() => import('./components/ScientificModuleNavigator'), 'ScientificModuleNavigator');
 import { TopAppBar } from './components/TopAppBar';
 import { QuickWorkflowRibbon, SamplePreset } from './components/QuickWorkflowRibbon';
 import { NavigationRail } from './components/NavigationRail';
@@ -87,12 +115,12 @@ import {
   AutoSyncConfig 
 } from './utils/networkUtils';
 
-const ResidualStressModule = lazy(() => import('./components/ResidualStressModule').then(m => ({ default: m.ResidualStressModule })));
-const XRRModule = lazy(() => import('./components/XRRModule').then(m => ({ default: m.XRRModule })));
-const UserActivityPlugin = lazy(() => import('./components/UserActivityPlugin').then(m => ({ default: m.UserActivityPlugin })));
+const ResidualStressModule = safeLazy(() => import('./components/ResidualStressModule'), 'ResidualStressModule');
+const XRRModule = safeLazy(() => import('./components/XRRModule'), 'XRRModule');
+const UserActivityPlugin = safeLazy(() => import('./components/UserActivityPlugin'), 'UserActivityPlugin');
 import { XRDSectionScanAnimation } from './components/XRDSectionScanAnimation';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
-const UnitCellsSection = lazy(() => import('./components/fundamentals/UnitCellsSection').then(m => ({ default: m.UnitCellsSection })));
+const UnitCellsSection = safeLazy(() => import('./components/fundamentals/UnitCellsSection'), 'UnitCellsSection');
 import { useDisplayMode } from './components/DisplayModeContext';
 import { DisplayModeSwitcher } from './components/DisplayModeSwitcher';
 import { WorkflowStageHeader } from './components/WorkflowStageHeader';
@@ -274,6 +302,10 @@ const App: React.FC = () => {
      }
   }, [user]);
 
+  const [showWhyXrdPage, setShowWhyXrdPage] = useState<boolean>(() => {
+    // Shows before welcome page on initial visit unless the user checked 'don't show again'
+    return localStorage.getItem('xrd_skip_why_xrd_intro') !== 'true';
+  });
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
   const [activeModule, setActiveModule] = useState<Module>('bragg');
@@ -1543,11 +1575,71 @@ const App: React.FC = () => {
     };
   }, [hasEntered, isRegistered]);
 
+  if (showWhyXrdPage) {
+    return (
+      <div className={theme === 'light' ? '' : theme}>
+        <Suspense fallback={<PageLoadingFallback />}>
+          <WhyXrdDisciplinePage
+            onProceedToWelcome={() => {
+              setShowWhyXrdPage(false);
+              setHasEntered(false);
+            }}
+            onEnterLabDirect={(targetModule?: string) => {
+              setShowWhyXrdPage(false);
+              setHasEntered(true);
+              const savedReg = localStorage.getItem('xrd_user_registration');
+              if (!savedReg) {
+                const defaultGuest = {
+                  name: 'Guest Crystallographer',
+                  email: 'guest@quantum-crystallography.org',
+                  organization: 'Quantum Crystallography Labs',
+                  nationality: 'American',
+                  researchRole: 'Lead Investigator',
+                  researchField: 'Condensed Matter Physics',
+                  registeredAt: new Date().toISOString()
+                };
+                localStorage.setItem('xrd_user_registration', JSON.stringify(defaultGuest));
+                setIsRegistered(true);
+              }
+              if (targetModule) {
+                setActiveModule(targetModule as Module);
+              }
+            }}
+            onOpenDisciplineModule={(modId) => {
+              setShowWhyXrdPage(false);
+              setHasEntered(true);
+              const savedReg = localStorage.getItem('xrd_user_registration');
+              if (!savedReg) {
+                const defaultGuest = {
+                  name: 'Guest Crystallographer',
+                  email: 'guest@quantum-crystallography.org',
+                  organization: 'Quantum Crystallography Labs',
+                  nationality: 'American',
+                  researchRole: 'Lead Investigator',
+                  researchField: 'Condensed Matter Physics',
+                  registeredAt: new Date().toISOString()
+                };
+                localStorage.setItem('xrd_user_registration', JSON.stringify(defaultGuest));
+                setIsRegistered(true);
+              }
+              setActiveModule(modId as Module);
+            }}
+            onBackToApp={hasEntered ? () => setShowWhyXrdPage(false) : undefined}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
   if (!hasEntered) {
     return (
       <div className={theme === 'light' ? '' : theme}>
         <Suspense fallback={<PageLoadingFallback />}>
           <LandingPage
+            onOpenWhyXrd={() => {
+              setShowWhyXrdPage(true);
+              playSynthTone('switch');
+            }}
             onEnter={(mode?: 'register' | 'login', targetModule?: Module) => {
               localStorage.setItem('xrd_has_entered', 'true');
               const savedReg = localStorage.getItem('xrd_user_registration');
@@ -1753,6 +1845,18 @@ const App: React.FC = () => {
 
               <button
                 onClick={() => {
+                  setShowWhyXrdPage(true);
+                  playSynthTone('switch');
+                }}
+                className="w-full py-1.5 px-3 rounded-lg text-[10px] font-bold text-yellow-500 dark:text-yellow-400 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-yellow-400/20"
+                title="Explore How XRD Helps in Different Disciplines (Lecture 11 Reference)"
+              >
+                <Atom className="w-3.5 h-3.5 text-yellow-400 animate-spin" style={{ animationDuration: '10s' }} />
+                <span>{t('Why XRD? Disciplines', 'Why XRD? Disciplines')}</span>
+              </button>
+
+              <button
+                onClick={() => {
                   setHasEntered(false);
                   playSynthTone('switch');
                 }}
@@ -1795,6 +1899,10 @@ const App: React.FC = () => {
             onOpenNavigator={() => setIsNavigatorOpen(true)}
             onOpenWelcome={() => {
               setHasEntered(false);
+              playSynthTone('switch');
+            }}
+            onOpenWhyXrd={() => {
+              setShowWhyXrdPage(true);
               playSynthTone('switch');
             }}
           />

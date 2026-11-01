@@ -129,9 +129,14 @@ export function calculateVonMisesFisher(alphaDeg: number, kappa: number): number
   if (kappa <= 0.01) return 1.0;
   const alphaRad = (alphaDeg * Math.PI) / 180;
   const cosA = Math.cos(alphaRad);
+  // For kappa > 50, sinh(kappa) overflows standard float. Use asymptotic form:
+  // kappa / (2 * sinh(kappa)) * exp(kappa * cosA) ~= kappa * exp(kappa * (cosA - 1))
+  if (kappa > 50) {
+    return kappa * Math.exp(kappa * (cosA - 1));
+  }
   const sinhK = Math.sinh(kappa);
-  if (sinhK === 0 || !isFinite(sinhK)) {
-    return Math.exp(kappa * (cosA - 1));
+  if (sinhK <= 1e-12 || !isFinite(sinhK)) {
+    return kappa * Math.exp(kappa * (cosA - 1));
   }
   const norm = kappa / (2 * sinhK);
   return norm * Math.exp(kappa * cosA);
