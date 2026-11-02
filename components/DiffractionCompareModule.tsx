@@ -1,13 +1,6 @@
 import React, { useState, useMemo, useCallback, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  Sparkles, 
-  GitCompare,
-  Layers,
-  Search,
-  HelpCircle,
-  FileSpreadsheet,
-  CheckCircle2,
   Check,
   X
 } from 'lucide-react';
@@ -26,9 +19,9 @@ import {
   computePeakIndexing, 
   solveMultiPhaseFractions,
   extractMaterialPeaks,
-  parseCustomPattern,
   getActivePalette,
-  optimizeAlignmentAndScale
+  optimizeAlignmentAndScale,
+  estimateMaterialRir
 } from './diffraction_compare/compareUtils';
 import { PresetScenariosRibbon } from './diffraction_compare/PresetScenariosRibbon';
 import { SampleConfigurationPanel } from './diffraction_compare/SampleConfigurationPanel';
@@ -99,6 +92,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     peakShape: 'pseudoVoigt',
     fwhm: 0.28,
     eta: 0.50,
+    pearsonM: 1.5,
     backgroundLevel: 1.0,
     noiseLevel: 0.0,
     normalizationMode: 'max100',
@@ -106,7 +100,19 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     enableGlow: true,
     areaOpacity: 0.25,
     bgTheme: 'dark-obsidian',
-    styleB: 'solid'
+    styleB: 'solid',
+    differenceMode: 'residual',
+    smoothingFilter: 'none',
+    intensityScale: 'linear',
+    stripBackground: false,
+    enableCaglioti: false,
+    cagliotiU: 0.04,
+    cagliotiV: -0.02,
+    enableKa2Doublet: false,
+    stripKa2: false,
+    rirB: 1.5,
+    rirC: 1.2,
+    rirD: 2.1
   });
 
   // Chart & Display State
@@ -123,6 +129,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   // Modals
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isSearchMatchOpen, setIsSearchMatchOpen] = useState(false);
+  const [searchMatchInitialMode, setSearchMatchInitialMode] = useState<'full' | 'residual'>('full');
 
   // Derived Active Color Palette
   const activePalette = useMemo(() => {
@@ -177,7 +184,6 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
   // Peak lists
   const targetPeaksA = useMemo(() => extractMaterialPeaks(materialA), [materialA]);
-  const refPeaksB = useMemo(() => extractMaterialPeaks(materialB), [materialB]);
   const peaksC = useMemo(() => materialC ? extractMaterialPeaks(materialC) : [], [materialC]);
   const peaksD = useMemo(() => materialD ? extractMaterialPeaks(materialD) : [], [materialD]);
 
@@ -185,7 +191,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   const deferredScaleSampleB = useDeferredValue(scaleSampleB);
   const deferredEngineSettings = useDeferredValue(engineSettings);
 
-  // Generate continuous synthetic profiles with updated engine settings
+  // Generate continuous synthetic profiles with full physics settings
   const profileSynthesis = useMemo(() => {
     return generateSynthesizedProfile(materialA, materialB, materialC, materialD, {
       shiftTwoThetaB: deferredShiftTwoTheta,
@@ -197,12 +203,20 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       step: 0.1,
       fwhm: deferredEngineSettings.fwhm,
       eta: deferredEngineSettings.eta,
+      pearsonM: deferredEngineSettings.pearsonM,
       peakShape: deferredEngineSettings.peakShape,
       noiseLevel: deferredEngineSettings.noiseLevel,
       background: deferredEngineSettings.backgroundLevel,
+      normalizationMode: deferredEngineSettings.normalizationMode,
       differenceMode: deferredEngineSettings.differenceMode,
       smoothingFilter: deferredEngineSettings.smoothingFilter,
-      stripBackground: deferredEngineSettings.stripBackground
+      stripBackground: deferredEngineSettings.stripBackground,
+      enableCaglioti: deferredEngineSettings.enableCaglioti,
+      cagliotiU: deferredEngineSettings.cagliotiU,
+      cagliotiV: deferredEngineSettings.cagliotiV,
+      cagliotiW: deferredEngineSettings.cagliotiW,
+      enableKa2Doublet: deferredEngineSettings.enableKa2Doublet,
+      stripKa2: deferredEngineSettings.stripKa2
     });
   }, [
     materialA, 
@@ -223,19 +237,58 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     return computeSpectralMetrics(profileSynthesis.points);
   }, [profileSynthesis.points]);
 
-  // Compute peak indexing & shifts
+  // Compute multi-phase peak indexing & zero-shift vs. strain regression
   const indexing = useMemo(() => {
-    return computePeakIndexing(profileSynthesis.peaksA, profileSynthesis.peaksB);
-  }, [profileSynthesis.peaksA, profileSynthesis.peaksB]);
+    const shiftedPeaksB: PeakItem[] = profileSynthesis.peaksB.map(p => ({
+      ...p,
+      twoTheta: Number((p.twoTheta + deferredShiftTwoTheta).toFixed(3))
+    }));
+    return computePeakIndexing(
+      profileSynthesis.peaksA,
+      shiftedPeaksB,
+      hasPhaseC ? peaksC : [],
+      hasPhaseD ? peaksD : [],
+      deferredEngineSettings.fwhm
+    );
+  }, [
+    profileSynthesis.peaksA,
+    profileSynthesis.peaksB,
+    deferredShiftTwoTheta,
+    hasPhaseC,
+    peaksC,
+    hasPhaseD,
+    peaksD,
+    deferredEngineSettings.fwhm
+  ]);
 
-  // Compute multi-phase NNLS fractions
+  // Unmatched PeakItems in A for Residual Search-Match
+  const unmatchedPeaksA = useMemo<PeakItem[]>(() => {
+    const extraSet = new Set(indexing.extraInA.map(v => v.toFixed(2)));
+    return targetPeaksA.filter(p => extraSet.has(p.twoTheta.toFixed(2)));
+  }, [indexing.extraInA, targetPeaksA]);
+
+  // Compute multi-phase NNLS + RIR weight fractions
   const phaseFractions = useMemo(() => {
     const arrA = profileSynthesis.points.map(p => p.intensityA);
     const arrB = profileSynthesis.points.map(p => p.intensityB);
     const arrC = hasPhaseC ? profileSynthesis.points.map(p => p.intensityC || 0) : [];
     const arrD = hasPhaseD ? profileSynthesis.points.map(p => p.intensityD || 0) : [];
-    return solveMultiPhaseFractions(arrA, arrB, arrC, arrD);
-  }, [profileSynthesis.points, hasPhaseC, hasPhaseD]);
+    return solveMultiPhaseFractions(arrA, arrB, arrC, arrD, {
+      rirB: deferredEngineSettings.rirB ?? estimateMaterialRir(materialB),
+      rirC: deferredEngineSettings.rirC ?? estimateMaterialRir(materialC),
+      rirD: deferredEngineSettings.rirD ?? estimateMaterialRir(materialD)
+    });
+  }, [
+    profileSynthesis.points,
+    hasPhaseC,
+    hasPhaseD,
+    deferredEngineSettings.rirB,
+    deferredEngineSettings.rirC,
+    deferredEngineSettings.rirD,
+    materialB,
+    materialC,
+    materialD
+  ]);
 
   // Cross-Correlation Auto-Alignment solver
   const handleAutoAlign = useCallback(() => {
@@ -250,6 +303,21 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
     }
     showToast(`Auto-Alignment applied: Shift ${opt.optimalShift > 0 ? `+${opt.optimalShift.toFixed(2)}` : opt.optimalShift.toFixed(2)}° 2θ, Scale ${(opt.optimalScale * 100).toFixed(0)}%`);
   }, [materialA, materialB]);
+
+  // Compensate Goniometer Zero-Shift directly from Regression Intercept
+  const handleApplyZeroShiftCorrection = useCallback((zeroShiftDeg: number) => {
+    const nextShift = Number((shiftTwoTheta + zeroShiftDeg).toFixed(2));
+    setShiftTwoTheta(nextShift);
+    showToast(`Compensated instrumental zero-shift (Δ2θ₀ = ${zeroShiftDeg > 0 ? `+${zeroShiftDeg.toFixed(3)}` : zeroShiftDeg.toFixed(3)}°)`);
+  }, [shiftTwoTheta]);
+
+  // Update per-phase RIR (I/Ic)
+  const handleUpdateRir = useCallback((phase: 'B' | 'C' | 'D', value: number) => {
+    setEngineSettings(prev => ({
+      ...prev,
+      ...(phase === 'B' ? { rirB: value } : phase === 'C' ? { rirC: value } : { rirD: value })
+    }));
+  }, []);
 
   // Swap Samples A and B
   const handleSwapSamples = useCallback(() => {
@@ -286,6 +354,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('25.87(30), 31.77(100), 32.19(70), 32.90(60), 34.04(25), 39.81(20), 46.71(35), 49.46(30)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      setEngineSettings(prev => ({ ...prev, rirB: 1.5 }));
       showToast('Loaded Scenario: Pure Hydroxyapatite');
     } else if (key === 'strained-ha') {
       setCustomNameA('Strained Zn-HAp (Lattice Distortion)');
@@ -297,6 +366,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('25.87(30), 31.77(100), 32.19(70), 32.90(60), 34.04(25), 39.81(20), 46.71(35), 49.46(30)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      setEngineSettings(prev => ({ ...prev, rirB: 1.5 }));
       showToast('Loaded Scenario: Lattice Strained Zn-HAp');
     } else if (key === 'biphasic-ha-tcp') {
       setCustomNameA('Biphasic Bioceramic (65% HAp / 35% β-TCP)');
@@ -309,6 +379,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setHasPhaseC(true);
       setScalePhaseC(0.5);
       setHasPhaseD(false);
+      setEngineSettings(prev => ({ ...prev, rirB: 1.5, rirC: 1.2 }));
       showToast('Loaded Scenario: Biphasic HAp / β-TCP Mixture');
     } else if (key === 'triphasic-tio2') {
       setCustomNameA('TiO2 Polymorph Mix (Anatase + Rutile + Brookite)');
@@ -322,6 +393,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setScalePhaseC(0.45);
       setHasPhaseD(true);
       setScalePhaseD(0.25);
+      setEngineSettings(prev => ({ ...prev, rirB: 3.3, rirC: 3.4, rirD: 2.1 }));
       showToast('Loaded Scenario: Tri-Phasic TiO₂ Polymorphs');
     } else if (key === 'battery-lifepo4') {
       setCustomNameA('LiFePO4 Cathode (Delithiated / FePO4)');
@@ -333,6 +405,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('17.10(20), 20.50(25), 25.40(100), 29.50(40), 32.00(25), 35.40(75), 36.30(35)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      setEngineSettings(prev => ({ ...prev, rirB: 1.8 }));
       showToast('Loaded Scenario: LiFePO₄ Battery Cathode');
     } else if (key === 'quartz') {
       setCustomNameA('Alpha-Quartz Mineral Specimen');
@@ -344,6 +417,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('20.86(22), 26.64(100), 36.54(12), 39.46(8), 40.29(7), 42.45(8), 45.79(3), 50.14(14), 59.96(9)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      setEngineSettings(prev => ({ ...prev, rirB: 3.6 }));
       showToast('Loaded Scenario: Alpha-Quartz NIST Standard');
     } else if (key === 'perovskite-batio3') {
       setCustomNameA('BaTiO3 Tetragonal Split (P4mm)');
@@ -355,6 +429,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('22.15(25), 31.55(100), 38.88(20), 45.30(90), 50.85(15), 56.20(40)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      setEngineSettings(prev => ({ ...prev, rirB: 4.8 }));
       showToast('Loaded Scenario: BaTiO₃ Tetragonal/Cubic Transition');
     } else if (key === 'graphene-intercalation') {
       setCustomNameA('Graphene Oxide (Expanded d002 Interlayer)');
@@ -366,29 +441,31 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       setCustomPatternB('26.55(100), 42.30(10), 44.55(20), 54.65(25)');
       setHasPhaseC(false);
       setHasPhaseD(false);
+      setEngineSettings(prev => ({ ...prev, rirB: 1.9 }));
       showToast('Loaded Scenario: Graphene vs Graphite Interlayer');
     }
   };
 
   // Export Comprehensive CSV Report
   const handleExportCSV = () => {
-    let csv = '# XRD DIFFRACTION COMPARISON AND RESIDUAL QUANTIFICATION REPORT\n';
+    let csv = '# XRD DIFFRACTION COMPARISON, RIR QUANTIFICATION AND STRAIN REPORT\n';
     csv += `# Generated: ${new Date().toISOString()}\n`;
     csv += `# Sample A: ${materialA.name}\n`;
-    csv += `# Reference B: ${materialB.name}\n`;
-    if (hasPhaseC && materialC) csv += `# Secondary Phase C: ${materialC.name}\n`;
-    if (hasPhaseD && materialD) csv += `# Tertiary Phase D: ${materialD.name}\n`;
-    csv += `# Profile Rp: ${metrics.rP}%, Rwp: ${metrics.rWP}%, Goodness of Fit chi2: ${metrics.chiSquared}, FOM: ${metrics.fom}\n\n`;
+    csv += `# Reference B: ${materialB.name} (Wt%: ${phaseFractions.wtPercentB}%, RIR: ${phaseFractions.rirB})\n`;
+    if (hasPhaseC && materialC) csv += `# Secondary Phase C: ${materialC.name} (Wt%: ${phaseFractions.wtPercentC}%, RIR: ${phaseFractions.rirC})\n`;
+    if (hasPhaseD && materialD) csv += `# Tertiary Phase D: ${materialD.name} (Wt%: ${phaseFractions.wtPercentD}%, RIR: ${phaseFractions.rirD})\n`;
+    csv += `# Profile Rp: ${metrics.rP}%, Rwp: ${metrics.rWP}%, Rexp: ${metrics.rExp}%, Chi2: ${metrics.chiSquared}, Cosine: ${metrics.cosineSimilarity}%, FOM: ${metrics.fom}\n`;
+    csv += `# Zero-Shift Intercept (Delta2Theta0): ${indexing.strainRegression.zeroShiftDeg} deg, True Macrostrain: ${indexing.strainRegression.trueMacrostrainPercent}%\n\n`;
 
-    csv += '2Theta,Intensity_SampleA,Intensity_ModelB,Difference_Residual\n';
+    csv += '2Theta,Intensity_SampleA,Intensity_ModelB,Difference_Residual,Caglioti_FWHM\n';
     profileSynthesis.points.forEach(p => {
-      csv += `${p.twoTheta},${p.intensityA},${p.intensityTotalModel || p.intensityB},${p.difference}\n`;
+      csv += `${p.twoTheta},${p.intensityA},${p.intensityTotalModel || p.intensityB},${p.difference},${p.cagliotiFwhm ?? ''}\n`;
     });
 
     csv += '\n--- INDEXED REFLECTIONS MATRIX ---\n';
-    csv += 'Index,2Theta_Exp,2Theta_Ref,Miller_hkl,d_Spacing_A,d_Spacing_B,Shift_Delta2Theta,Status\n';
+    csv += 'Index,2Theta_Exp,2Theta_Ref,Miller_hkl,d_Spacing_A,d_Spacing_B,Shift_Delta2Theta,Strain_Percent,Scherrer_Size_nm,Phase_Origin,Status\n';
     indexing.indexedPeaks.forEach(p => {
-      csv += `${p.id},${p.twoThetaA || ''},${p.twoThetaB || ''},"${p.hklA || p.hklB || ''}",${p.dSpacingA},${p.dSpacingB},${p.shift || ''},${p.status}\n`;
+      csv += `${p.id},${p.twoThetaA || ''},${p.twoThetaB || ''},"${p.hklA || p.hklB || ''}",${p.dSpacingA},${p.dSpacingB},${p.shift ?? ''},${p.strainPercent ?? ''},${p.scherrerSizeNm ?? ''},${p.phaseOrigin || ''},${p.status}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -420,7 +497,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
           <span>{toastMessage.text}</span>
           <button 
             onClick={() => setToastMessage(null)}
-            className="p-1 text-slate-400 hover:text-white rounded ml-2"
+            className="p-1 text-slate-400 hover:text-white rounded ml-2 cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -431,7 +508,10 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       <PresetScenariosRibbon
         onSelectScenario={handleSelectScenario}
         onOpenGuide={() => setIsGuideOpen(true)}
-        onOpenSearchMatch={() => setIsSearchMatchOpen(true)}
+        onOpenSearchMatch={() => {
+          setSearchMatchInitialMode('full');
+          setIsSearchMatchOpen(true);
+        }}
         onExportCSV={handleExportCSV}
       />
 
@@ -480,7 +560,10 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         setEngineSettings={setEngineSettings}
 
         onSwapSamples={handleSwapSamples}
-        onOpenSearchMatch={() => setIsSearchMatchOpen(true)}
+        onOpenSearchMatch={() => {
+          setSearchMatchInitialMode('full');
+          setIsSearchMatchOpen(true);
+        }}
       />
 
       {/* 3. Main Recharts Diffraction Profile Viewer */}
@@ -532,6 +615,8 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         extraInA={indexing.extraInA}
         missingInA={indexing.missingInA}
         indexedPeaks={indexing.indexedPeaks}
+        strainRegression={indexing.strainRegression}
+        phaseQuant={phaseFractions}
         materialAName={materialA.name}
         materialBName={materialB.name}
         materialCName={materialC?.name}
@@ -540,13 +625,21 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         fracC={phaseFractions.fracC}
         fracD={phaseFractions.fracD}
         onJumpToPeak={handleJumpToPeak}
+        onApplyZeroShiftCorrection={handleApplyZeroShiftCorrection}
+        onOpenResidualSearch={() => {
+          setSearchMatchInitialMode('residual');
+          setIsSearchMatchOpen(true);
+        }}
+        onUpdateRir={handleUpdateRir}
       />
 
-      {/* Auto Search-Match Modal */}
+      {/* Auto Search-Match Modal (Full Pattern & Residual Impurity Modes) */}
       <AutoSearchMatchModal
         isOpen={isSearchMatchOpen}
         onClose={() => setIsSearchMatchOpen(false)}
         targetPeaks={targetPeaksA}
+        unmatchedPeaks={unmatchedPeaksA}
+        initialSearchMode={searchMatchInitialMode}
         sampleAName={materialA.name}
         materialsDb={materialsDb}
         onSelectAsReferenceB={(mat) => {
@@ -560,6 +653,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
             setCustomPatternB(mat.pattern || '');
             setSampleBInputMode('custom');
           }
+          setEngineSettings(prev => ({ ...prev, rirB: estimateMaterialRir(mat) }));
           showToast(`Reference B set to: ${mat.name}`);
         }}
         onSelectAsPhaseC={(mat) => {
@@ -568,7 +662,17 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
             setSelectedPhaseCIndex(idx);
           }
           setHasPhaseC(true);
+          setEngineSettings(prev => ({ ...prev, rirC: estimateMaterialRir(mat) }));
           showToast(`Secondary Phase C added: ${mat.name}`);
+        }}
+        onSelectAsPhaseD={(mat) => {
+          const idx = materialsDb.findIndex(m => m.name === mat.name);
+          if (idx !== -1) {
+            setSelectedPhaseDIndex(idx);
+          }
+          setHasPhaseD(true);
+          setEngineSettings(prev => ({ ...prev, rirD: estimateMaterialRir(mat) }));
+          showToast(`Tertiary Phase D added: ${mat.name}`);
         }}
       />
 

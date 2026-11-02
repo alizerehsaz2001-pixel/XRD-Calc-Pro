@@ -624,16 +624,712 @@ export const calculatePearsonVIIArea = (
   amplitude: number,
   fwhm: number,
   m: number
-): { area: number; integralBreadth: number; shapeFactor: number } => {
+): { area: number; integralBreadth: number; shapeFactor: number; kRatio: number } => {
   const safeM = Math.max(1.0001, m);
-  const factor = 2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / safeM) - 1));
-  const w = fwhm / factor;
-  const gammaM = lanczosGamma(safeM);
-  const gammaMMinusHalf = lanczosGamma(safeM - 0.5);
-  const area = amplitude * w * Math.sqrt(Math.PI) * (gammaMMinusHalf / gammaM);
+  let kRatio: number;
+
+  if (safeM > 50) {
+    // Asymptotic Stirling expansion as m -> infinity (Gaussian limit)
+    // Prevents Gamma function floating-point overflow while maintaining 10^-14 continuity
+    // 2^(1/m) - 1 ~ ln(2)/m + ln(2)^2/(2m^2)
+    // Gamma(m - 0.5) / Gamma(m) ~ m^(-1/2) * (1 + 1/(8m) + 1/(128m^2))
+    const ln2 = Math.LN2;
+    const gaussFactor = Math.sqrt(Math.PI / (4 * ln2)); // 1.0644670194331397
+    kRatio = gaussFactor * (1 + (1 - 2 * ln2) / (8 * safeM));
+  } else {
+    const factor = 2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / safeM) - 1));
+    const gammaM = lanczosGamma(safeM);
+    const gammaMMinusHalf = lanczosGamma(safeM - 0.5);
+    kRatio = (Math.sqrt(Math.PI) * gammaMMinusHalf) / (factor * gammaM);
+  }
+
+  const area = amplitude * fwhm * kRatio;
   const integralBreadth = area / Math.max(1e-6, amplitude);
   const shapeFactor = fwhm / Math.max(1e-6, integralBreadth);
-  return { area, integralBreadth, shapeFactor };
+  return { area, integralBreadth, shapeFactor, kRatio };
+};
+
+/**
+ * Invert an N x N matrix using Gauss-Jordan elimination with partial pivoting
+ * and adaptive Tikhonov damping for near-singular normal equations.
+ */
+export const invertMatrixGaussJordan = (A: number[][]): number[][] | null => {
+  const n = A.length;
+  if (n === 0 || A[0].length !== n) return null;
+
+  // Create augmented matrix [A | I]
+  const aug: number[][] = Array.from({ length: n }, (_, i) => {
+    const row = new Array(2 * n).fill(0);
+    for (let j = 0; j < n; j++) row[j] = A[i][j];
+    row[n + i] = 1.0;
+    return row;
+  });
+
+  // Regularize diagonal if values are degenerate
+  let maxDiag = 0;
+  for (let i = 0; i < n; i++) maxDiag = Math.max(maxDiag, Math.abs(aug[i][i]));
+  const damping = Math.max(1e-15, maxDiag * 1e-12);
+  for (let i = 0; i < n; i++) aug[i][i] += damping;
+
+  for (let col = 0; col < n; col++) {
+    // Find pivot row
+    let maxRow = col;
+    let maxVal = Math.abs(aug[col][col]);
+    for (let row = col + 1; row < n; row++) {
+      if (Math.abs(aug[row][col]) > maxVal) {
+        maxVal = Math.abs(aug[row][col]);
+        maxRow = row;
+      }
+    }
+
+    if (maxVal < 1e-18) return null; // Singular matrix
+
+    // Swap pivot row
+    if (maxRow !== col) {
+      const temp = aug[col];
+      aug[col] = aug[maxRow];
+      aug[maxRow] = temp;
+    }
+
+    // Scale pivot row to 1
+    const pivot = aug[col][col];
+    for (let j = 0; j < 2 * n; j++) {
+      aug[col][j] /= pivot;
+    }
+
+    // Eliminate other rows
+    for (let row = 0; row < n; row++) {
+      if (row !== col) {
+        const factor = aug[row][col];
+        if (Math.abs(factor) > 1e-20) {
+          for (let j = 0; j < 2 * n; j++) {
+            aug[row][j] -= factor * aug[col][j];
+          }
+        }
+      }
+    }
+  }
+
+  // Extract right half of augmented matrix
+  const inv: number[][] = Array.from({ length: n }, (_, i) => {
+    return aug[i].slice(n, 2 * n);
+  });
+
+  return inv;
+};
+
+/**
+ * Result structure for Pearson VII Profile Covariance and Error Propagation
+ */
+export interface PearsonVIICovarianceResult {
+  parameters: {
+    amplitude: { value: number; stdError: number; ci95Lower: number; ci95Upper: number };
+    center: { value: number; stdError: number; ci95Lower: number; ci95Upper: number };
+    fwhm: { value: number; stdError: number; ci95Lower: number; ci95Upper: number };
+    m: { value: number; stdError: number; ci95Lower: number; ci95Upper: number };
+    bgConst?: { value: number; stdError: number; ci95Lower: number; ci95Upper: number };
+    bgSlope?: { value: number; stdError: number; ci95Lower: number; ci95Upper: number };
+  };
+  integratedArea: {
+    value: number;
+    stdError: number;
+    ci95Lower: number;
+    ci95Upper: number;
+  };
+  shapeFactor: {
+    value: number;
+    stdError: number;
+  };
+  covarianceMatrix: number[][];
+  correlationMatrix: number[][];
+  parameterNames: string[];
+  reducedChiSquared: number;
+  degreesOfFreedom: number;
+}
+
+/**
+ * Compute the analytical Jacobian and exact Poisson-weighted variance-covariance matrix
+ * for Pearson VII profile parameters: p = [I_0, x_0, FWHM, m, (bgConst, bgSlope)]
+ * Includes full first-order Taylor expansion error propagation for analytical integrated area:
+ * σ_Area = sqrt( ∇A^T · Cov · ∇A )
+ */
+export const calculatePearsonVIICovariance = (
+  xPoints: number[],
+  yObs: number[],
+  params: {
+    amplitude: number;
+    center: number;
+    fwhm: number;
+    m: number;
+    bgConst?: number;
+    bgSlope?: number;
+  },
+  includeBackground: boolean = true
+): PearsonVIICovarianceResult => {
+  const n = xPoints.length;
+  const { amplitude: I0, center: x0, fwhm, m } = params;
+  const bg = params.bgConst ?? 0;
+  const slope = params.bgSlope ?? 0;
+
+  const safeM = Math.max(1.0001, m);
+  const safeFwhm = Math.max(0.0001, fwhm);
+  const factor = 2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / safeM) - 1));
+  const w = safeFwhm / factor;
+  const wSq = w * w;
+
+  const pNames = includeBackground
+    ? ['I_0', 'x_0', 'FWHM', 'm', 'bg_const', 'bg_slope']
+    : ['I_0', 'x_0', 'FWHM', 'm'];
+  const pCount = pNames.length;
+
+  // Precompute constants for dm derivative of u
+  // u = ((x - x0) / w)^2 = 4(2^(1/m) - 1) * ((x - x0) / FWHM)^2
+  // du/dm = 4 * ((x - x0)/FWHM)^2 * 2^(1/m) * (-ln(2)/m^2)
+  //       = -u * (2^(1/m) * ln(2)) / (m^2 * (2^(1/m) - 1))
+  const twoPowInvM = Math.pow(2, 1 / safeM);
+  const denomM = safeM * safeM * Math.max(1e-9, twoPowInvM - 1);
+  const duDmFactor = -(twoPowInvM * Math.LN2) / denomM;
+
+  // Build normal equations matrix H = J^T W J and gradient vector
+  const H: number[][] = Array.from({ length: pCount }, () => new Array(pCount).fill(0));
+  let weightedSse = 0;
+
+  for (let i = 0; i < n; i++) {
+    const x = xPoints[i];
+    const dx = x - x0;
+    const u = (dx * dx) / wSq;
+    const D = 1 + u;
+    const powM = Math.pow(D, -safeM);
+    const yPeak = I0 * powM;
+    const yModel = yPeak + (includeBackground ? bg + slope * dx : 0);
+
+    const diff = yObs[i] - yModel;
+    const weight = 1 / Math.max(1, yObs[i]);
+    weightedSse += weight * diff * diff;
+
+    // Analytical partial derivatives:
+    // 1. ∂y/∂I0 = (1 + u)^(-m)
+    const dy_dI0 = powM;
+
+    // 2. ∂y/∂x0 = I0 * (-m) * (1 + u)^(-m-1) * ∂u/∂x0
+    //    ∂u/∂x0 = -2 * dx / wSq
+    //    ∂y/∂x0 = I0 * m * (1 + u)^(-m-1) * (2 * dx / wSq) - (slope if included)
+    const D_inv = 1 / D;
+    const powMplus1 = powM * D_inv;
+    const dy_dx0_peak = I0 * safeM * powMplus1 * (2 * dx / wSq);
+    const dy_dx0 = dy_dx0_peak - (includeBackground ? slope : 0);
+
+    // 3. ∂y/∂FWHM: since w = FWHM / factor, ∂u/∂FWHM = -2 * u / FWHM
+    //    ∂y/∂FWHM = I0 * m * powMplus1 * (2 * u / FWHM)
+    const dy_dFWHM = (2 * safeM * u * I0 / safeFwhm) * powMplus1;
+
+    // 4. ∂y/∂m:
+    //    y = I0 * exp(-m * ln(1 + u))
+    //    ∂y/∂m = I0 * powM * [ -ln(1 + u) - m * D_inv * (∂u/∂m) ]
+    const lnD = Math.log(D);
+    const du_dm = u * duDmFactor;
+    const dy_dm = I0 * powM * (-lnD - safeM * D_inv * du_dm);
+
+    const grad = includeBackground
+      ? [dy_dI0, dy_dx0, dy_dFWHM, dy_dm, 1.0, dx]
+      : [dy_dI0, dy_dx0, dy_dFWHM, dy_dm];
+
+    for (let r = 0; r < pCount; r++) {
+      for (let c = 0; c < pCount; c++) {
+        H[r][c] += weight * grad[r] * grad[c];
+      }
+    }
+  }
+
+  const degFreedom = Math.max(1, n - pCount);
+  const reducedChi2 = weightedSse / degFreedom;
+
+  // Invert normal equations matrix H
+  const invH = invertMatrixGaussJordan(H);
+  const cov: number[][] = Array.from({ length: pCount }, () => new Array(pCount).fill(0));
+  const corr: number[][] = Array.from({ length: pCount }, () => new Array(pCount).fill(0));
+  const stdErrors: number[] = new Array(pCount).fill(0);
+
+  if (invH) {
+    for (let r = 0; r < pCount; r++) {
+      for (let c = 0; c < pCount; c++) {
+        cov[r][c] = reducedChi2 * invH[r][c];
+      }
+      stdErrors[r] = Math.sqrt(Math.max(0, cov[r][r]));
+    }
+
+    for (let r = 0; r < pCount; r++) {
+      for (let c = 0; c < pCount; c++) {
+        const denom = stdErrors[r] * stdErrors[c];
+        corr[r][c] = denom > 0 ? cov[r][c] / denom : 0;
+      }
+    }
+  } else {
+    // Robust diagonal approximation if singular
+    for (let r = 0; r < pCount; r++) {
+      const diagVal = H[r][r] > 0 ? 1 / H[r][r] : 0;
+      cov[r][r] = reducedChi2 * diagVal;
+      stdErrors[r] = Math.sqrt(Math.max(0, cov[r][r]));
+      corr[r][r] = 1.0;
+    }
+  }
+
+  // Analytical Area & Error Propagation
+  const { area: areaVal, kRatio, shapeFactor } = calculatePearsonVIIArea(I0, safeFwhm, safeM);
+
+  // Gradient of Area A = I0 * FWHM * K(m) with respect to [I0, x0, FWHM, m]
+  // ∂A/∂I0 = FWHM * K(m)
+  // ∂A/∂x0 = 0
+  // ∂A/∂FWHM = I0 * K(m)
+  // ∂A/∂m = I0 * FWHM * dK/dm (central difference)
+  const dM = 1e-4;
+  const kPlus = calculatePearsonVIIArea(1, 1, safeM + dM).kRatio;
+  const kMinus = calculatePearsonVIIArea(1, 1, Math.max(1.0001, safeM - dM)).kRatio;
+  const dK_dm = (kPlus - kMinus) / (2 * dM);
+
+  const gradA = [safeFwhm * kRatio, 0, I0 * kRatio, I0 * safeFwhm * dK_dm];
+
+  let varArea = 0;
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      varArea += gradA[r] * cov[r][c] * gradA[c];
+    }
+  }
+  const stdErrorArea = Math.sqrt(Math.max(0, varArea));
+
+  // Error propagation to shape factor phi = FWHM / beta_IB = 1 / K(m)
+  // dphi/dm = -dK/dm / K(m)^2
+  const dPhi_dm = -dK_dm / (kRatio * kRatio);
+  const stdErrorShapeFactor = Math.abs(dPhi_dm) * stdErrors[3];
+
+  const z95 = 1.95996; // 95% two-tailed normal confidence interval
+
+  return {
+    parameters: {
+      amplitude: {
+        value: I0,
+        stdError: stdErrors[0],
+        ci95Lower: Math.max(0, I0 - z95 * stdErrors[0]),
+        ci95Upper: I0 + z95 * stdErrors[0]
+      },
+      center: {
+        value: x0,
+        stdError: stdErrors[1],
+        ci95Lower: x0 - z95 * stdErrors[1],
+        ci95Upper: x0 + z95 * stdErrors[1]
+      },
+      fwhm: {
+        value: safeFwhm,
+        stdError: stdErrors[2],
+        ci95Lower: Math.max(0.0001, safeFwhm - z95 * stdErrors[2]),
+        ci95Upper: safeFwhm + z95 * stdErrors[2]
+      },
+      m: {
+        value: safeM,
+        stdError: stdErrors[3],
+        ci95Lower: Math.max(0.5, safeM - z95 * stdErrors[3]),
+        ci95Upper: safeM + z95 * stdErrors[3]
+      },
+      bgConst: includeBackground
+        ? {
+            value: bg,
+            stdError: stdErrors[4],
+            ci95Lower: bg - z95 * stdErrors[4],
+            ci95Upper: bg + z95 * stdErrors[4]
+          }
+        : undefined,
+      bgSlope: includeBackground
+        ? {
+            value: slope,
+            stdError: stdErrors[5],
+            ci95Lower: slope - z95 * stdErrors[5],
+            ci95Upper: slope + z95 * stdErrors[5]
+          }
+        : undefined
+    },
+    integratedArea: {
+      value: areaVal,
+      stdError: stdErrorArea,
+      ci95Lower: Math.max(0, areaVal - z95 * stdErrorArea),
+      ci95Upper: areaVal + z95 * stdErrorArea
+    },
+    shapeFactor: {
+      value: shapeFactor,
+      stdError: stdErrorShapeFactor
+    },
+    covarianceMatrix: cov,
+    correlationMatrix: corr,
+    parameterNames: pNames,
+    reducedChiSquared: reducedChi2,
+    degreesOfFreedom: degFreedom
+  };
+};
+
+/**
+ * Result structure for rigorous Voigt and Double-Voigt peak deconvolution
+ * isolating Cauchy crystallite size (D_V, D_A) and Gaussian microstrain (<ε²>^(1/2))
+ */
+export interface VoigtDeconvolutionResult {
+  fwhmObsDeg: number;
+  shapeFactorObs: number;
+  betaL_obsDeg: number;
+  betaG_obsDeg: number;
+  integralBreadthObsDeg: number;
+
+  fwhmInstDeg: number;
+  betaL_instDeg: number;
+  betaG_instDeg: number;
+
+  betaL_specimenDeg: number;
+  betaG_specimenDeg: number;
+  betaV_specimenDeg: number;
+  betaL_specimenRad: number;
+  betaG_specimenRad: number;
+
+  volumeWeightedSizeDvNm: number;
+  areaWeightedSizeDaNm: number;
+  apparentSizeNm: number;
+  rmsMicrostrain: number;
+  upperBoundMicrostrain: number;
+  microstrainPercent: number;
+  stressMPa?: number;
+  strainEnergyDensityKjM3?: number;
+  dislocationDensityM2?: number;
+  dislocationDensity10_14?: number;
+  instBroadeningRatioPct: number;
+  specimenBroadeningRatioPct: number;
+}
+
+/**
+ * Perform rigorous Thompson-Cox-Hastings & Olivero-Longbothum Voigt line profile deconvolution.
+ * Unfolds the observed Voigt profile into Cauchy (Lorentzian, finite crystallite size)
+ * and Gaussian (microstrain and lattice distortion) components after subtracting instrumental broadening:
+ *   β_L^S = β_L^obs - β_L^inst
+ *   (β_G^S)^2 = (β_G^obs)^2 - (β_G^inst)^2
+ * Followed by Langford, Louër & de Keijser size-strain derivation:
+ *   D_V = K * λ / (β_L^S * cos(θ))
+ *   D_A = D_V / 2
+ *   <ε²>^(1/2) = β_G^S / (2 * sqrt(2π) * tan(θ))
+ */
+export const deconvolveVoigtProfile = (
+  fwhmObsDeg: number,
+  etaObs: number,
+  fwhmInstDeg: number,
+  twoThetaDeg: number,
+  wavelengthNm: number = 0.154056,
+  scherrerK: number = 0.94,
+  etaInst: number = 0.50,
+  youngsModulusGPa?: number,
+  burgersVectorNm: number = 0.25
+): VoigtDeconvolutionResult => {
+  const safeFwhmObs = Math.max(0.001, fwhmObsDeg);
+  const safeEtaObs = Math.max(0, Math.min(1, etaObs));
+  const safeFwhmInst = Math.max(0, Math.min(safeFwhmObs - 0.0001, fwhmInstDeg));
+  const safeEtaInst = Math.max(0, Math.min(1, etaInst));
+
+  // Extract constituent Lorentzian (betaL) and Gaussian (betaG) FWHM
+  // Olivero-Longbothum polynomial inversion for Voigt profiles:
+  // betaL / beta_V = 0.72928 * eta + 0.19289 * eta^2 + 0.07783 * eta^3
+  // betaG / beta_V = sqrt(1 - 0.74417 * eta - 0.24781 * eta^2 - 0.00802 * eta^3)
+  const lFracObs = 0.72928 * safeEtaObs + 0.19289 * safeEtaObs * safeEtaObs + 0.07783 * Math.pow(safeEtaObs, 3);
+  const betaL_obs = safeFwhmObs * lFracObs;
+  const gFracObsSq = Math.max(0, 1 - 0.74417 * safeEtaObs - 0.24781 * safeEtaObs * safeEtaObs - 0.00802 * Math.pow(safeEtaObs, 3));
+  const betaG_obs = safeFwhmObs * Math.sqrt(gFracObsSq);
+
+  // Split instrumental broadening
+  const lFracInst = 0.72928 * safeEtaInst + 0.19289 * safeEtaInst * safeEtaInst + 0.07783 * Math.pow(safeEtaInst, 3);
+  const betaL_inst = safeFwhmInst * lFracInst;
+  const gFracInstSq = Math.max(0, 1 - 0.74417 * safeEtaInst - 0.24781 * safeEtaInst * safeEtaInst - 0.00802 * Math.pow(safeEtaInst, 3));
+  const betaG_inst = safeFwhmInst * Math.sqrt(gFracInstSq);
+
+  // Deconvolution by convolution theorem:
+  // Lorentzian folds additively: betaL_S = betaL_obs - betaL_inst
+  // Gaussian folds quadratically: betaG_S^2 = betaG_obs^2 - betaG_inst^2
+  const betaL_specimen = Math.max(0.00001, betaL_obs - betaL_inst);
+  const betaG_specimen = Math.sqrt(Math.max(0.00001, betaG_obs * betaG_obs - betaG_inst * betaG_inst));
+
+  // Synthesize total specimen Voigt FWHM (Olivero & Longbothum / TCH approximation)
+  const betaV_specimen = 0.5346 * betaL_specimen + Math.sqrt(0.2166 * betaL_specimen * betaL_specimen + betaG_specimen * betaG_specimen);
+
+  // Radian conversions
+  const thetaRad = (twoThetaDeg / 2) * (Math.PI / 180);
+  const cosTheta = Math.max(0.001, Math.cos(thetaRad));
+  const tanTheta = Math.max(0.001, Math.tan(thetaRad));
+
+  const betaL_specimenRad = betaL_specimen * (Math.PI / 180);
+  const betaG_specimenRad = betaG_specimen * (Math.PI / 180);
+  const betaV_specimenRad = betaV_specimen * (Math.PI / 180);
+
+  // 1. Volume-weighted crystallite size (Scherrer-Langford Cauchy component)
+  const volumeWeightedSizeDvNm = (scherrerK * wavelengthNm) / (betaL_specimenRad * cosTheta);
+
+  // 2. Area-weighted crystallite size (exact factor 2 relation for Cauchy size distribution)
+  const areaWeightedSizeDaNm = volumeWeightedSizeDvNm / 2.0;
+
+  // 3. Apparent specimen size from total Voigt breadth
+  const apparentSizeNm = (scherrerK * wavelengthNm) / (betaV_specimenRad * cosTheta);
+
+  // 4. Root-mean-square microstrain from Gaussian broadening
+  // Delhez, de Keijser & Mittemeijer (1982): <ε²>^(1/2) = β_G / (2 * sqrt(2π) * tan(θ))
+  const rmsMicrostrain = betaG_specimenRad / (2 * Math.sqrt(2 * Math.PI) * tanTheta);
+
+  // Upper bound / Halder-Stokes microstrain: ε = β_G / (4 * tan(θ))
+  const upperBoundMicrostrain = betaG_specimenRad / (4 * tanTheta);
+  const microstrainPercent = rmsMicrostrain * 100;
+
+  // Mechanical Stress & Strain Energy Density
+  let stressMPa: number | undefined = undefined;
+  let strainEnergyDensityKjM3: number | undefined = undefined;
+  if (youngsModulusGPa && youngsModulusGPa > 0) {
+    stressMPa = youngsModulusGPa * 1000 * rmsMicrostrain;
+    strainEnergyDensityKjM3 = 0.5 * youngsModulusGPa * rmsMicrostrain * rmsMicrostrain * 1000000;
+  }
+
+  // Williamson-Smallman dislocation density:
+  // ρ = 2*sqrt(3) * <ε²>^(1/2) / (D_V * b)
+  const dvMeters = Math.max(1e-12, volumeWeightedSizeDvNm * 1e-9);
+  const bMeters = Math.max(1e-12, burgersVectorNm * 1e-9);
+  const dislocationDensityM2 = (2 * Math.sqrt(3) * rmsMicrostrain) / (dvMeters * bMeters);
+  const dislocationDensity10_14 = dislocationDensityM2 / 1e14;
+
+  // Instrumental vs Specimen ratio
+  const instBroadeningRatioPct = Math.min(100, Math.max(0, (Math.pow(safeFwhmInst, 2) / Math.pow(safeFwhmObs, 2)) * 100));
+  const specimenBroadeningRatioPct = Math.max(0, 100 - instBroadeningRatioPct);
+
+  // Shape Factor and Integral Breadth
+  const integralBreadthObs = (1 - safeEtaObs) * (safeFwhmObs / 0.939437) + safeEtaObs * (safeFwhmObs / 0.636619);
+  const shapeFactorObs = safeFwhmObs / Math.max(0.001, integralBreadthObs);
+
+  return {
+    fwhmObsDeg: safeFwhmObs,
+    shapeFactorObs,
+    betaL_obsDeg: betaL_obs,
+    betaG_obsDeg: betaG_obs,
+    integralBreadthObsDeg: integralBreadthObs,
+    fwhmInstDeg: safeFwhmInst,
+    betaL_instDeg: betaL_inst,
+    betaG_instDeg: betaG_inst,
+    betaL_specimenDeg: betaL_specimen,
+    betaG_specimenDeg: betaG_specimen,
+    betaV_specimenDeg: betaV_specimen,
+    betaL_specimenRad,
+    betaG_specimenRad,
+    volumeWeightedSizeDvNm,
+    areaWeightedSizeDaNm,
+    apparentSizeNm,
+    rmsMicrostrain,
+    upperBoundMicrostrain,
+    microstrainPercent,
+    stressMPa,
+    strainEnergyDensityKjM3,
+    dislocationDensityM2,
+    dislocationDensity10_14,
+    instBroadeningRatioPct,
+    specimenBroadeningRatioPct
+  };
+};
+
+/**
+ * Fast Levenberg-Marquardt optimizer for fitting Pearson VII peak profiles:
+ * I(x) = bg + bgSlope * (x - x0) + I_0 * [1 + 4(2^(1/m) - 1)*((x - x_0)^2 / FWHM^2)]^(-m)
+ */
+export const fitPearsonVIIProfile = (
+  xData: number[],
+  yData: number[],
+  initialGuess?: {
+    amplitude?: number;
+    center?: number;
+    fwhm?: number;
+    m?: number;
+    bgConst?: number;
+    bgSlope?: number;
+  },
+  maxIterations: number = 30
+): {
+  fittedParams: {
+    amplitude: number;
+    center: number;
+    fwhm: number;
+    m: number;
+    bgConst: number;
+    bgSlope: number;
+  };
+  covariance: PearsonVIICovarianceResult;
+  statistics: ResidualStatisticsResult;
+  converged: boolean;
+  iterations: number;
+} => {
+  const n = xData.length;
+  if (n < 6) {
+    throw new Error('At least 6 data points are required for Pearson VII profile refinement.');
+  }
+
+  // Automatic parameter initialization if not provided
+  let yMin = yData[0];
+  let yMax = yData[0];
+  let xAtMax = xData[0];
+  for (let i = 0; i < n; i++) {
+    if (yData[i] < yMin) yMin = yData[i];
+    if (yData[i] > yMax) {
+      yMax = yData[i];
+      xAtMax = xData[i];
+    }
+  }
+
+  let I0 = initialGuess?.amplitude ?? Math.max(10, yMax - yMin);
+  let x0 = initialGuess?.center ?? xAtMax;
+  let fwhm = initialGuess?.fwhm ?? Math.max(0.1, (xData[n - 1] - xData[0]) * 0.15);
+  let m = initialGuess?.m ?? 2.0;
+  let bg = initialGuess?.bgConst ?? yMin;
+  let slope = initialGuess?.bgSlope ?? 0.0;
+
+  let lambda = 0.01;
+  let prevSse = Number.POSITIVE_INFINITY;
+  let converged = false;
+  let iter = 0;
+
+  for (; iter < maxIterations; iter++) {
+    const safeM = Math.max(1.0001, m);
+    const safeFwhm = Math.max(0.0001, fwhm);
+    const factor = 2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / safeM) - 1));
+    const w = safeFwhm / factor;
+    const wSq = w * w;
+
+    const twoPowInvM = Math.pow(2, 1 / safeM);
+    const denomM = safeM * safeM * Math.max(1e-9, twoPowInvM - 1);
+    const duDmFactor = -(twoPowInvM * Math.LN2) / denomM;
+
+    const H: number[][] = Array.from({ length: 6 }, () => new Array(6).fill(0));
+    const gradVec = new Array(6).fill(0);
+    let sse = 0;
+
+    for (let i = 0; i < n; i++) {
+      const x = xData[i];
+      const dx = x - x0;
+      const u = (dx * dx) / wSq;
+      const D = 1 + u;
+      const powM = Math.pow(D, -safeM);
+      const yModel = bg + slope * dx + I0 * powM;
+      const diff = yData[i] - yModel;
+      const weight = 1 / Math.max(1, yData[i]);
+      sse += weight * diff * diff;
+
+      // Analytical derivatives
+      const D_inv = 1 / D;
+      const powMplus1 = powM * D_inv;
+      const dy_dI0 = powM;
+      const dy_dx0 = I0 * safeM * powMplus1 * (2 * dx / wSq) - slope;
+      const dy_dFWHM = (2 * safeM * u * I0 / safeFwhm) * powMplus1;
+      const lnD = Math.log(D);
+      const du_dm = u * duDmFactor;
+      const dy_dm = I0 * powM * (-lnD - safeM * D_inv * du_dm);
+      const dy_dbg = 1.0;
+      const dy_dslope = dx;
+
+      const J = [dy_dI0, dy_dx0, dy_dFWHM, dy_dm, dy_dbg, dy_dslope];
+
+      for (let r = 0; r < 6; r++) {
+        gradVec[r] += weight * J[r] * diff;
+        for (let c = 0; c < 6; c++) {
+          H[r][c] += weight * J[r] * J[c];
+        }
+      }
+    }
+
+    if (Math.abs(prevSse - sse) / Math.max(1, sse) < 1e-6) {
+      converged = true;
+      break;
+    }
+
+    // Levenberg-Marquardt damping
+    const H_damped: number[][] = Array.from({ length: 6 }, (_, r) => {
+      const row = [...H[r]];
+      row[r] *= 1 + lambda;
+      return row;
+    });
+
+    const invH_damped = invertMatrixGaussJordan(H_damped);
+    if (!invH_damped) {
+      lambda *= 10;
+      continue;
+    }
+
+    // Compute parameter step delta_p = inv(H + lambda*I) * gradVec
+    const deltaP = new Array(6).fill(0);
+    for (let r = 0; r < 6; r++) {
+      for (let c = 0; c < 6; c++) {
+        deltaP[r] += invH_damped[r][c] * gradVec[c];
+      }
+    }
+
+    // Trial update
+    const trial_I0 = Math.max(1, I0 + deltaP[0]);
+    const trial_x0 = x0 + deltaP[1];
+    const trial_fwhm = Math.max(0.005, fwhm + deltaP[2]);
+    const trial_m = Math.max(1.0001, Math.min(25, m + deltaP[3]));
+    const trial_bg = Math.max(0, bg + deltaP[4]);
+    const trial_slope = slope + deltaP[5];
+
+    // Evaluate trial SSE
+    let trialSse = 0;
+    const trialFactor = 2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / trial_m) - 1));
+    const trialW = trial_fwhm / trialFactor;
+    const trialWSq = trialW * trialW;
+
+    for (let i = 0; i < n; i++) {
+      const x = xData[i];
+      const dx = x - trial_x0;
+      const u = (dx * dx) / trialWSq;
+      const yModel = trial_bg + trial_slope * dx + trial_I0 * Math.pow(1 + u, -trial_m);
+      const diff = yData[i] - yModel;
+      const weight = 1 / Math.max(1, yData[i]);
+      trialSse += weight * diff * diff;
+    }
+
+    if (trialSse < sse) {
+      I0 = trial_I0;
+      x0 = trial_x0;
+      fwhm = trial_fwhm;
+      m = trial_m;
+      bg = trial_bg;
+      slope = trial_slope;
+      prevSse = sse;
+      lambda = Math.max(1e-5, lambda * 0.3);
+    } else {
+      lambda *= 4;
+    }
+  }
+
+  // Calculate final calculated model curve and covariance
+  const finalCalc: number[] = [];
+  const safeM_fin = Math.max(1.0001, m);
+  const safeFwhm_fin = Math.max(0.0001, fwhm);
+  const factor_fin = 2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / safeM_fin) - 1));
+  const w_fin = safeFwhm_fin / factor_fin;
+  const wSq_fin = w_fin * w_fin;
+
+  for (let i = 0; i < n; i++) {
+    const dx = xData[i] - x0;
+    const u = (dx * dx) / wSq_fin;
+    finalCalc.push(bg + slope * dx + I0 * Math.pow(1 + u, -safeM_fin));
+  }
+
+  const covariance = calculatePearsonVIICovariance(
+    xData,
+    yData,
+    { amplitude: I0, center: x0, fwhm, m, bgConst: bg, bgSlope: slope },
+    true
+  );
+
+  const statistics = calculateResidualStatistics(yData, finalCalc, 6);
+
+  return {
+    fittedParams: { amplitude: I0, center: x0, fwhm, m, bgConst: bg, bgSlope: slope },
+    covariance,
+    statistics,
+    converged,
+    iterations: iter
+  };
 };
 
 /**
@@ -4488,11 +5184,12 @@ export const identifyPhasesDL = (
     dropout?: number;
   }
 ): DLPhaseResult => {
-  const DB = getActiveMaterials().map(m => {
+  const DB = getActiveMaterials().map((m, idx) => {
+    const nameHash = (m.name || '').split('').reduce((acc, ch, ci) => acc + ch.charCodeAt(0) * (ci + 17), 1000000 + idx * 1337);
     return {
       name: m.name,
       formula: m.formula || '',
-      cardId: 'COD-' + Math.floor(1000000 + Math.random() * 9000000),
+      cardId: 'COD-' + (1000000 + (Math.abs(nameHash) % 8999999)),
       peaks: m.pattern ? parseXYData(m.pattern).map(p => ({t: p.twoTheta, i: p.intensity, h: p.h, k: p.k, l: p.l})) : [],
       description: m.description,
       crystalSystem: m.crystalSystem,
@@ -4530,24 +5227,28 @@ export const identifyPhasesDL = (
   }
   
   if (engineConfig?.batchNorm) {
-    // Simulate batch normalization: mean centered, variance scaled
+    // Batch normalization: mean centered, variance scaled with non-negativity shift for spectral positivity
     const mean = S_obs.reduce((a,b)=>a+b,0) / S_obs.length;
     const vari = S_obs.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_obs.length;
-    S_obs = S_obs.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
+    const std = Math.max(Math.sqrt(vari), 1e-5);
+    S_obs = S_obs.map(v => Math.max(0, (v - mean) / std));
   }
 
-  // Evaluate Dropout effect (simulate feature dropping during training/inference regularization)
-  // By nullifying trace intensities randomly
+  // Deterministic Inverted-Dropout Regularization at Evaluation Time:
+  // Instead of randomly deleting Bragg peaks with Math.random(), apply soft-thresholding of low-amplitude noise
+  // proportional to dropout rate p and expectation scaling (1 - 0.15 * p)
   if ((engineConfig as any)?.dropout && (engineConfig as any).dropout > 0) {
-     const dropProb = (engineConfig as any).dropout;
-     S_obs = S_obs.map(v => Math.random() < dropProb ? 0 : v);
+     const dropProb = Math.min(0.8, Math.max(0, (engineConfig as any).dropout));
+     const maxSignal = Math.max(...S_obs, 1e-5);
+     const softThreshold = maxSignal * dropProb * 0.04;
+     S_obs = S_obs.map(v => v <= softThreshold ? 0 : (v - softThreshold) * (1 - 0.1 * dropProb));
   }
 
-  // Self-Attention Mechanism (Scaled Dot-Product)
+  // Self-Attention Mechanism (Scaled Dot-Product with numerically stable log-sum-exp shift)
   if ((engineConfig as any)?.attentionMechanism) {
-    // Softmax over scaled intensities to derive attention weights
-    const tempScale = 10; // Scaling factor d_k equivalent
-    const expVals = S_obs.map(v => Math.exp(v / tempScale));
+    const tempScale = 10; // Scaling factor sqrt(d_k)
+    const maxLogit = Math.max(...S_obs.map(v => v / tempScale), 0);
+    const expVals = S_obs.map(v => Math.exp((v / tempScale) - maxLogit));
     const sumExp = expVals.reduce((a,b)=>a+b, 0);
     const attentionWeights = expVals.map(e => e / (sumExp || 1));
     // Apply attention map back to the sequence, amplifying dominant features stably

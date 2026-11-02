@@ -5,7 +5,15 @@ import {
   Wand2, Check, Scale, Calculator, Camera, Image, Gauge, X, Info, UploadCloud, List, Grid, Radio,
   Ruler, Copy, Minimize2, GitCompare, FileSpreadsheet, Palette, Plus
 } from 'lucide-react';
-import { simulatePeak } from '../utils/physics';
+import { 
+  simulatePeak,
+  calculatePearsonVIIArea,
+  calculatePearsonVIICovariance,
+  deconvolveVoigtProfile,
+  fitPearsonVIIProfile,
+  calculateResidualStatistics,
+  invertMatrixGaussJordan
+} from '../utils/physics';
 import { FWHMResult, CustomPeak, CustomPeakMetrics } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import { MultiPeakManager, SCIENTIFIC_PEAK_COLORS } from './MultiPeakManager';
@@ -404,6 +412,22 @@ export const FWHMModule: React.FC = () => {
   
   // Non-linear Least Squares Auto-Fit state
   const [isFitting, setIsFitting] = useState<boolean>(false);
+  const [useImportedInVisualizer, setUseImportedInVisualizer] = useState<boolean>(true);
+  const [modelBenchmarkResults, setModelBenchmarkResults] = useState<{
+    model: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Thompson-Cox-Hastings' | 'Pearson VII';
+    center: number;
+    fwhm: number;
+    etaOrM: number;
+    amp: number;
+    bg: number;
+    rwp: number;
+    chi2: number;
+    durbinWatson: number;
+    aic: number;
+    bic: number;
+    deltaAic: number;
+    akaikeWeightPct: number;
+  }[] | null>(null);
   const [fitResult, setFitResult] = useState<{
     center: number;
     fwhm: number;
@@ -415,6 +439,13 @@ export const FWHMModule: React.FC = () => {
     stdErrCenter: number;
     stdErrFwhm: number;
     stdErrEta: number;
+    pearsonM?: number;
+    stdErrM?: number;
+    area?: number;
+    stdErrArea?: number;
+    durbinWatson?: number;
+    aic?: number;
+    bic?: number;
   } | null>(null);
 
   // Secondary Overlapping Peak Simulation (Deconvolution Mode)
@@ -811,7 +842,10 @@ export const FWHMModule: React.FC = () => {
       if (p.shape === 'Gaussian') areaFactor = 1.064467;
       else if (p.shape === 'Lorentzian') areaFactor = 1.570796;
       else if (p.shape === 'Pseudo-Voigt' || p.shape === 'Split-Pseudo-Voigt') areaFactor = (1 - p.eta) * 1.064467 + p.eta * 1.570796;
-      else if (p.shape === 'Pearson VII') areaFactor = 1.25;
+      else if (p.shape === 'Pearson VII') {
+        const mVal = (p as any).m || (p as any).pearsonM || Math.max(1.0001, p.eta * 10);
+        areaFactor = calculatePearsonVIIArea(1, 1, mVal).kRatio;
+      }
 
       const area = p.enabled ? p.amplitude * p.fwhm * areaFactor : 0;
       const integralBreadth = p.amplitude > 0 ? area / p.amplitude : p.fwhm;
@@ -1055,8 +1089,9 @@ export const FWHMModule: React.FC = () => {
             const l = p.amplitude * (Math.pow(sGamma, 2) / (Math.pow(x - p.center, 2) + Math.pow(sGamma, 2)));
             v = (1 - p.eta) * g + p.eta * l;
           } else if (p.shape === 'Pearson VII') {
-            const pM = Math.max(1, p.eta * 5);
-            v = p.amplitude * Math.pow(1 + Math.pow((x - p.center) / pW, 2), -pM);
+            const pM = (p as any).m || (p as any).pearsonM || Math.max(1.0001, p.eta * 10);
+            const pW_exact = Math.max(0.0001, pEffFwhm / (2 * Math.sqrt(Math.max(1e-7, Math.pow(2, 1 / pM) - 1))));
+            v = p.amplitude * Math.pow(1 + Math.pow((x - p.center) / pW_exact, 2), -pM);
           }
           customPeakMap[p.id] = v + Math.max(0, currentBg);
           customPeakTotal += v;
@@ -1090,11 +1125,33 @@ export const FWHMModule: React.FC = () => {
         cleanSum += amorphousVal;
       }
 
-      // Deterministic Poisson pseudo-random noise to eliminate parameter tweaking jitter
+      // Deterministic Poisson pseudo-random noise or interpolated experimental scan
       const noiseSeed = Math.sin(i * 12.9898 + (center % 10) * 78.233);
       const pseudoRand = (noiseSeed * 43758.5453) - Math.floor(noiseSeed * 43758.5453);
       const noise = (pseudoRand - 0.5) * noiseLevel * Math.sqrt(Math.max(1, cleanSum)) * 2;
-      const noisyY = Math.max(0, cleanSum + noise);
+      let noisyY = Math.max(0, cleanSum + noise);
+
+      // If experimental imported data points cover this 2theta window and overlay is enabled, interpolate real experimental Y_obs
+      if (useImportedInVisualizer && importedPoints && importedPoints.length >= 4) {
+        const minImpX = importedPoints[0].x;
+        const maxImpX = importedPoints[importedPoints.length - 1].x;
+        if (x >= minImpX && x <= maxImpX) {
+          // Binary search for bracketing imported points
+          let lo = 0;
+          let hi = importedPoints.length - 1;
+          while (hi - lo > 1) {
+            const mid = (lo + hi) >> 1;
+            if (importedPoints[mid].x <= x) lo = mid;
+            else hi = mid;
+          }
+          const p0 = importedPoints[lo];
+          const p1 = importedPoints[hi];
+          const spanX = p1.x - p0.x;
+          const frac = spanX > 1e-6 ? (x - p0.x) / spanX : 0;
+          noisyY = Math.max(0, p0.y + frac * (p1.y - p0.y));
+        }
+      }
+
       const residual = noisyY - cleanSum;
       const sigma = Math.sqrt(Math.max(1, cleanSum));
       const normResidual = residual / Math.max(0.001, sigma);
@@ -1110,7 +1167,6 @@ export const FWHMModule: React.FC = () => {
 
       const purePeak = Math.max(0, cleanSum - Math.max(0, currentBg));
       const netNoisy = Math.max(0, noisyY - Math.max(0, currentBg));
-      const yRachinger = enableKaDoublet ? pk1.val + Math.max(0, currentBg) : undefined;
       comNumerator += x * purePeak;
       comDenominator += purePeak;
 
@@ -1132,7 +1188,7 @@ export const FWHMModule: React.FC = () => {
         yL: ((type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings') && showComponents) ? pk1.lVal + Math.max(0, currentBg) : undefined,
         yKa1: enableKaDoublet ? pk1.val + Math.max(0, currentBg) : undefined,
         yKa2: enableKaDoublet ? pk2Val + Math.max(0, currentBg) : undefined,
-        yRachinger,
+        yRachinger: undefined as number | undefined,
         yPeak2: enableSecondaryPeak ? pkSecVal + Math.max(0, currentBg) : undefined,
         yHalo: enableAmorphousHalo ? (amorphousAmp * Math.exp(-0.5 * Math.pow((x - amorphousCenter) / Math.max(0.1, amorphousFwhm / (2 * Math.sqrt(2 * Math.log(2)))), 2)) + Math.max(0, currentBg)) : undefined,
         yBg: Math.max(0, currentBg),
@@ -1148,6 +1204,37 @@ export const FWHMModule: React.FC = () => {
         ...customPeakMap
       });
     }
+
+    // Authentic Recursive Rachinger Kα2 Stripping Algorithm:
+    // I_a1(2theta) = I_obs,net(2theta) - R_ka * I_a1(2theta - Delta2theta)
+    let rachingerOverSubCount = 0;
+    if (enableKaDoublet) {
+      const strippedNet: number[] = new Array(points.length).fill(0);
+      for (let i = 0; i < points.length; i++) {
+        const xCurr = points[i].x;
+        const thetaRad = (xCurr / 2) * (Math.PI / 180);
+        const sinShift = (lambda2 / lambda1) * Math.sin(thetaRad);
+        const delta2Theta = sinShift <= 1 ? (2 * Math.asin(sinShift) * (180 / Math.PI) - xCurr) : (centerKa2 - center);
+        const targetX = xCurr - delta2Theta;
+        let shiftedKa1 = 0;
+        if (targetX >= start && stepSize > 0) {
+          const exactIdx = (targetX - start) / stepSize;
+          const idx0 = Math.floor(exactIdx);
+          const frac = exactIdx - idx0;
+          if (idx0 >= 0 && idx0 < i) {
+            const v0 = Math.max(0, strippedNet[idx0]);
+            const v1 = idx0 + 1 <= i ? Math.max(0, strippedNet[idx0 + 1]) : v0;
+            shiftedKa1 = v0 + frac * (v1 - v0);
+          }
+        }
+        const obsNet = points[i]._cleanY_net;
+        const rawStripped = obsNet - ka2Ratio * shiftedKa1;
+        if (rawStripped < -0.02 * amplitude) rachingerOverSubCount++;
+        strippedNet[i] = Math.max(0, rawStripped);
+        points[i].yRachinger = strippedNet[i] + points[i].yBg;
+      }
+    }
+    const rachingerOverSubPct = points.length > 0 ? (rachingerOverSubCount / points.length) * 100 : 0;
 
     // Numerical 1st and 2nd Derivatives computation on clean profile
     let maxAbsD1 = 0.0001;
@@ -1370,6 +1457,62 @@ export const FWHMModule: React.FC = () => {
     const aic = points.length * Math.log(Math.max(1e-12, variance)) + 2 * 5;
     const bic = points.length * Math.log(Math.max(1e-12, variance)) + 5 * Math.log(points.length);
 
+    // Higher-Order Central Statistical Moments of the Line Profile I_net(2theta)
+    let mu2Sum = 0;
+    let mu3Sum = 0;
+    let mu4Sum = 0;
+    for (let i = 0; i < points.length; i++) {
+      const dx = points[i].x - centroid;
+      const w = points[i]._cleanY_net;
+      mu2Sum += w * dx * dx;
+      mu3Sum += w * dx * dx * dx;
+      mu4Sum += w * dx * dx * dx * dx;
+    }
+    const momentVariance = comDenominator > 0 ? mu2Sum / comDenominator : Math.pow(gaussianSigmaC, 2);
+    const momentStd = Math.sqrt(Math.max(1e-8, momentVariance));
+    const momentSkewness = comDenominator > 0 ? (mu3Sum / comDenominator) / Math.pow(momentStd, 3) : 0;
+    const momentKurtosis = comDenominator > 0 ? (mu4Sum / comDenominator) / Math.pow(momentVariance, 2) - 3.0 : 0;
+
+    // Single-Peak Bertaut-Warren-Averbach / Stokes Fourier Cosine Transform A(L)
+    // s = 2 sin(theta) / lambda (in nm^-1), s0 = 2 sin(theta0) / lambda
+    const s0 = (2 * Math.sin(thetaCenterRad)) / activeWavelength;
+    const fourierProfile: { L: number; A_obs: number; A_inst: number; A_sample: number }[] = [];
+    const sInstFwhm = ((betaInst * Math.PI) / 180) * (Math.cos(thetaCenterRad) / activeWavelength);
+    const maxL = Math.min(60, Math.max(15, Math.round(deKeijserSizeNm * 1.6)));
+    const stepL = Math.max(0.5, Number((maxL / 25).toFixed(1)));
+
+    for (let idxL = 0; idxL <= 25; idxL++) {
+      const L = Number((idxL * stepL).toFixed(2));
+      let cosNum = 0;
+      let cosDen = 0;
+      for (let i = 0; i < points.length; i++) {
+        const thRad = (points[i].x / 2) * (Math.PI / 180);
+        const sVal = (2 * Math.sin(thRad)) / activeWavelength;
+        const ds = sVal - s0;
+        const w = points[i]._cleanY_net;
+        cosNum += w * Math.cos(2 * Math.PI * L * ds);
+        cosDen += w;
+      }
+      const A_obs = cosDen > 0 ? Math.max(0, cosNum / cosDen) : 1;
+      // Gaussian/Voigt instrumental Fourier transform A_inst(L)
+      const A_inst = enableInstCorrection && sInstFwhm > 0
+        ? Math.exp(-Math.pow(Math.PI * sInstFwhm * L, 2) / (4 * Math.log(2)) - Math.PI * 0.3 * sInstFwhm * L)
+        : 1.0;
+      const A_sample = Math.min(1.0, Math.max(0, A_obs / Math.max(0.05, A_inst)));
+      fourierProfile.push({
+        L,
+        A_obs: Number(A_obs.toFixed(4)),
+        A_inst: Number(A_inst.toFixed(4)),
+        A_sample: Number(A_sample.toFixed(4))
+      });
+    }
+
+    // Bertaut Area-Weighted Column Length <L>_area from initial slope dA_sample/dL at small L
+    const dA = fourierProfile.length > 2 ? (fourierProfile[1].A_sample - fourierProfile[2].A_sample) : 0.05;
+    const dL = fourierProfile.length > 2 ? (fourierProfile[2].L - fourierProfile[1].L) : 1.0;
+    const initialSlope = dA > 1e-5 ? dA / dL : 1 / Math.max(1, deKeijserSizeNm * 0.75);
+    const bertautSizeLaNm = Math.min(500, Math.max(1.0, 1 / initialSlope));
+
     const resStats: FWHMResult & {
       rP: number;
       rWP: number;
@@ -1408,6 +1551,13 @@ export const FWHMModule: React.FC = () => {
       fwtmRatio: number;
       centroid: number;
       skewness: number;
+      momentVariance: number;
+      momentStd: number;
+      momentSkewness: number;
+      momentKurtosis: number;
+      rachingerOverSubPct: number;
+      bertautSizeLaNm: number;
+      fourierProfile: { L: number; A_obs: number; A_inst: number; A_sample: number }[];
       betaObs: number;
       betaInst: number;
       betaSample: number;
@@ -1470,6 +1620,13 @@ export const FWHMModule: React.FC = () => {
       fwtmRatio,
       centroid,
       skewness,
+      momentVariance,
+      momentStd,
+      momentSkewness,
+      momentKurtosis,
+      rachingerOverSubPct,
+      bertautSizeLaNm,
+      fourierProfile,
       betaObs,
       betaInst,
       betaSample,
@@ -1498,7 +1655,7 @@ export const FWHMModule: React.FC = () => {
     secondPeakFwhm, secondPeakAmp, showComponents, showModelComparison, activeWavelength, applyLpFactor,
     voigtFormulation, enableInstCorrection, instBroadening, microstrain, monochromatorType,
     enableAmorphousHalo, amorphousCenter, amorphousFwhm, amorphousAmp,
-    enableMultiPeakMode, customPeaks, sliceFraction
+    enableMultiPeakMode, customPeaks, sliceFraction, useImportedInVisualizer, importedPoints
   ]);
 
   useEffect(() => {
@@ -1699,6 +1856,144 @@ export const FWHMModule: React.FC = () => {
     componentVisibility
   ]);
 
+  // Multi-Model 5-Kernel AIC / BIC / R_wp Auto-Benchmark Engine
+  const runMultiModelBenchmark = () => {
+    let fitPoints: { x: number; y: number }[] = [];
+    const halfWindow = Math.max(0.6, fwhm * 3.5);
+    if (importedPoints && importedPoints.length > 3) {
+      const localImported = importedPoints.filter(
+        (p) => p.x >= center - halfWindow && p.x <= center + halfWindow
+      );
+      if (localImported.length >= 4) fitPoints = localImported;
+    }
+    if (fitPoints.length === 0) {
+      if (!chartData || chartData.length === 0) return;
+      fitPoints = chartData;
+    }
+
+    const minY = Math.min(...fitPoints.map((p) => p.y));
+    const maxY = Math.max(...fitPoints.map((p) => p.y));
+    const baseBg = Math.max(0, minY);
+    const baseAmp = Math.max(1, maxY - baseBg);
+    const obsArr = fitPoints.map((p) => p.y);
+
+    const evaluateCandidate = (
+      modelName: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Thompson-Cox-Hastings' | 'Pearson VII',
+      cVal: number,
+      wVal: number,
+      paramVal: number,
+      aVal: number,
+      bVal: number,
+      kParams: number
+    ) => {
+      const calcArr: number[] = [];
+      const sigG = Math.max(0.0001, wVal / (2 * Math.sqrt(2 * Math.log(2))));
+      const gamL = Math.max(0.0001, wVal / 2);
+
+      let effE = paramVal;
+      if (modelName === 'Thompson-Cox-Hastings') {
+        const H_G = Math.max(0.0001, wVal * Math.sqrt(Math.max(0.0001, 1 - paramVal)));
+        const H_L = Math.max(0.0001, wVal * paramVal);
+        const tchW = Math.pow(
+          Math.pow(H_G, 5) +
+            2.69269 * Math.pow(H_G, 4) * H_L +
+            2.42843 * Math.pow(H_G, 3) * Math.pow(H_L, 2) +
+            4.47163 * Math.pow(H_G, 2) * Math.pow(H_L, 3) +
+            0.07842 * H_G * Math.pow(H_L, 4) +
+            Math.pow(H_L, 5),
+          0.2
+        );
+        const ratio = H_L / Math.max(0.0001, tchW);
+        effE = Math.min(1, Math.max(0, 1.36603 * ratio - 0.47719 * ratio * ratio + 0.11116 * Math.pow(ratio, 3)));
+      }
+
+      for (const pt of fitPoints) {
+        const dx = pt.x - cVal;
+        let yCalc = bVal;
+        if (modelName === 'Gaussian') {
+          yCalc += aVal * Math.exp(-0.5 * Math.pow(dx / sigG, 2));
+        } else if (modelName === 'Lorentzian') {
+          yCalc += aVal * (Math.pow(gamL, 2) / (dx * dx + gamL * gamL));
+        } else if (modelName === 'Pseudo-Voigt' || modelName === 'Thompson-Cox-Hastings') {
+          const g = aVal * Math.exp(-0.5 * Math.pow(dx / sigG, 2));
+          const l = aVal * (Math.pow(gamL, 2) / (dx * dx + gamL * gamL));
+          yCalc += (1 - effE) * g + effE * l;
+        } else if (modelName === 'Pearson VII') {
+          const m = Math.max(0.6, paramVal);
+          const wP = Math.max(0.0001, wVal / (2 * Math.sqrt(Math.max(1e-6, Math.pow(2, 1 / m) - 1))));
+          yCalc += aVal * Math.pow(1 + Math.pow(dx / wP, 2), -m);
+        }
+        calcArr.push(yCalc);
+      }
+
+      const st = calculateResidualStatistics(obsArr, calcArr, kParams);
+      return {
+        model: modelName,
+        center: Number(cVal.toFixed(4)),
+        fwhm: Number(wVal.toFixed(4)),
+        etaOrM: Number(paramVal.toFixed(3)),
+        amp: Number(aVal.toFixed(1)),
+        bg: Number(bVal.toFixed(1)),
+        rwp: Number(st.rWP.toFixed(2)),
+        chi2: Number(st.goodnessOfFit.toFixed(2)),
+        durbinWatson: Number(st.durbinWatson.toFixed(3)),
+        aic: Number(st.aic.toFixed(1)),
+        bic: Number(st.bic.toFixed(1)),
+        deltaAic: 0,
+        akaikeWeightPct: 0
+      };
+    };
+
+    // Optimize each of the 5 kernels on a fast refinement grid
+    const cCandidates = [center - 0.04, center - 0.01, center, center + 0.01, center + 0.04];
+    const wCandidates = [Math.max(0.015, fwhm * 0.85), Math.max(0.015, fwhm * 0.95), fwhm, fwhm * 1.05, fwhm * 1.15];
+    const aCandidates = [baseAmp * 0.94, baseAmp, baseAmp * 1.06];
+
+    const optimizeKernel = (
+      modelName: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Thompson-Cox-Hastings' | 'Pearson VII',
+      paramGrid: number[],
+      kParams: number
+    ) => {
+      let best = evaluateCandidate(modelName, center, fwhm, paramGrid[0], baseAmp, baseBg, kParams);
+      for (const cVal of cCandidates) {
+        for (const wVal of wCandidates) {
+          for (const pVal of paramGrid) {
+            for (const aVal of aCandidates) {
+              const cand = evaluateCandidate(modelName, cVal, wVal, pVal, aVal, baseBg, kParams);
+              if (cand.rwp < best.rwp) {
+                best = cand;
+              }
+            }
+          }
+        }
+      }
+      return best;
+    };
+
+    const resGauss = optimizeKernel('Gaussian', [0], 4);
+    const resLorentz = optimizeKernel('Lorentzian', [1], 4);
+    const resPV = optimizeKernel('Pseudo-Voigt', [0.15, 0.35, 0.5, 0.65, 0.85], 5);
+    const resTCH = optimizeKernel('Thompson-Cox-Hastings', [0.15, 0.35, 0.5, 0.65, 0.85], 5);
+    const resPVII = optimizeKernel('Pearson VII', [1.0, 1.4, 2.0, 3.0, 6.0], 5);
+
+    const allResults = [resGauss, resLorentz, resPV, resTCH, resPVII].sort((a, b) => a.aic - b.aic);
+    const minAic = allResults[0].aic;
+    const expSum = allResults.reduce((acc, r) => acc + Math.exp(-0.5 * Math.min(50, r.aic - minAic)), 0);
+
+    const ranked = allResults.map((r) => {
+      const dAic = Number((r.aic - minAic).toFixed(1));
+      const weight = expSum > 0 ? (Math.exp(-0.5 * Math.min(50, dAic)) / expSum) * 100 : 20;
+      return {
+        ...r,
+        deltaAic: dAic,
+        akaikeWeightPct: Number(weight.toFixed(1))
+      };
+    });
+
+    setModelBenchmarkResults(ranked);
+    setShowModelComparison(true);
+  };
+
   // Non-linear Least Squares Auto-Fit Routine
   const autoFitPeakModel = () => {
     setIsFitting(true);
@@ -1724,6 +2019,9 @@ export const FWHMModule: React.FC = () => {
         fitPoints = chartData;
       }
 
+      // Also run 5-kernel benchmark in parallel so user gets full comparative ranking
+      runMultiModelBenchmark();
+
       // Initial parameter estimates from active observation
       let bestCenter = center;
       let bestFwhm = fwhmManual > 0 ? fwhmManual : 0.4;
@@ -1740,7 +2038,7 @@ export const FWHMModule: React.FC = () => {
       // Multi-pass iterative Nelder-Mead grid search optimization over parameter space
       const cGrid = [center - 0.2, center - 0.08, center - 0.02, center, center + 0.02, center + 0.08, center + 0.2];
       const wGrid = [Math.max(0.02, bestFwhm * 0.6), Math.max(0.04, bestFwhm * 0.8), bestFwhm, bestFwhm * 1.2, bestFwhm * 1.5];
-      const eGrid = [0.0, 0.25, 0.5, 0.75, 1.0];
+      const eGrid = type === 'Gaussian' ? [0.0] : type === 'Lorentzian' ? [1.0] : [0.0, 0.25, 0.5, 0.75, 1.0];
       const aGrid = [bestAmp * 0.85, bestAmp, bestAmp * 1.15];
 
       for (const trialC of cGrid) {
@@ -1775,7 +2073,7 @@ export const FWHMModule: React.FC = () => {
       // Fine refinement pass around best parameters
       const fineCGrid = [bestCenter - 0.02, bestCenter - 0.005, bestCenter, bestCenter + 0.005, bestCenter + 0.02];
       const fineWGrid = [Math.max(0.01, bestFwhm * 0.92), bestFwhm, bestFwhm * 1.08];
-      const fineEGrid = [Math.max(0, bestEta - 0.15), bestEta, Math.min(1, bestEta + 0.15)];
+      const fineEGrid = type === 'Gaussian' ? [0.0] : type === 'Lorentzian' ? [1.0] : [Math.max(0, bestEta - 0.15), bestEta, Math.min(1, bestEta + 0.15)];
 
       for (const trialC of fineCGrid) {
         for (const trialW of fineWGrid) {
@@ -1803,14 +2101,107 @@ export const FWHMModule: React.FC = () => {
         }
       }
 
-      const degreesOfFreedom = Math.max(1, fitPoints.length - 5);
-      const reducedChi2 = minSse / degreesOfFreedom;
-      const stdErrC = Math.sqrt(Math.max(0.00001, reducedChi2)) * 0.002;
-      const stdErrW = Math.sqrt(Math.max(0.00001, reducedChi2)) * 0.004;
-      const stdErrE = Math.sqrt(Math.max(0.00001, reducedChi2)) * 0.015;
+      if (type === 'Pearson VII') {
+        try {
+          const fitRes = fitPearsonVIIProfile(
+            fitPoints.map(p => p.x),
+            fitPoints.map(p => p.y),
+            { amplitude: bestAmp, center: bestCenter, fwhm: bestFwhm, m: pearsonM, bgConst: bestBg }
+          );
+          bestCenter = fitRes.fittedParams.center;
+          bestFwhm = fitRes.fittedParams.fwhm;
+          bestAmp = fitRes.fittedParams.amplitude;
+          bestBg = fitRes.fittedParams.bgConst;
+          const refinedM = fitRes.fittedParams.m;
 
-      const sumNoisySq = fitPoints.reduce((acc, pt) => acc + pt.y * pt.y, 0);
-      const fitRwp = Math.sqrt(minSse / Math.max(1, sumNoisySq)) * 100;
+          setFitResult({
+            center: Number(bestCenter.toFixed(4)),
+            fwhm: Number(bestFwhm.toFixed(4)),
+            eta: Number((1 / refinedM).toFixed(3)),
+            amp: Number(bestAmp.toFixed(1)),
+            bg: Number(bestBg.toFixed(1)),
+            pearsonM: Number(refinedM.toFixed(3)),
+            stdErrCenter: Number(fitRes.covariance.parameters.center.stdError.toFixed(4)),
+            stdErrFwhm: Number(fitRes.covariance.parameters.fwhm.stdError.toFixed(4)),
+            stdErrEta: Number(fitRes.covariance.parameters.m.stdError.toFixed(3)),
+            stdErrM: Number(fitRes.covariance.parameters.m.stdError.toFixed(3)),
+            area: Number(fitRes.covariance.integratedArea.value.toFixed(2)),
+            stdErrArea: Number(fitRes.covariance.integratedArea.stdError.toFixed(2)),
+            rwp: Number(fitRes.statistics.rWP.toFixed(2)),
+            chi2: Number(fitRes.statistics.goodnessOfFit.toFixed(2)),
+            durbinWatson: Number(fitRes.statistics.durbinWatson.toFixed(3)),
+            aic: Number(fitRes.statistics.aic.toFixed(1)),
+            bic: Number(fitRes.statistics.bic.toFixed(1))
+          });
+
+          setCenter(Number(bestCenter.toFixed(4)));
+          setFwhmManual(Number(bestFwhm.toFixed(4)));
+          setPearsonM(Number(refinedM.toFixed(3)));
+          setAmplitude(Number(bestAmp.toFixed(1)));
+          setBackground(Number(bestBg.toFixed(1)));
+          setIsFitting(false);
+          return;
+        } catch (e) {
+          console.warn('Pearson VII LM optimizer fallback to analytical covariance:', e);
+        }
+      }
+
+      // Analytical Jacobian covariance for Pseudo-Voigt / Gaussian / Lorentzian
+      const pDim = 5; // [center, fwhm, eta, amp, bg]
+      const H_mat: number[][] = Array.from({ length: pDim }, () => new Array(pDim).fill(0));
+      const calcY_arr: number[] = [];
+      const obsY_arr: number[] = [];
+      let sse_total = 0;
+
+      const sigmaG_best = Math.max(0.0001, bestFwhm / (2 * Math.sqrt(2 * Math.log(2))));
+      const gammaL_best = Math.max(0.0001, bestFwhm / 2);
+
+      for (const pt of fitPoints) {
+        const dx = pt.x - bestCenter;
+        const gVal = bestAmp * Math.exp(-0.5 * Math.pow(dx / sigmaG_best, 2));
+        const lVal = bestAmp * (Math.pow(gammaL_best, 2) / (Math.pow(dx, 2) + Math.pow(gammaL_best, 2)));
+        const calcY = (1 - bestEta) * gVal + bestEta * lVal + bestBg;
+        calcY_arr.push(calcY);
+        obsY_arr.push(pt.y);
+
+        const diff = pt.y - calcY;
+        const w_i = 1 / Math.max(1, pt.y);
+        sse_total += w_i * diff * diff;
+
+        // Analytical gradients [d/dCenter, d/dFwhm, d/dEta, d/dAmp, d/dBg]
+        const dG_dC = gVal * (dx / (sigmaG_best * sigmaG_best));
+        const dL_dC = lVal * (2 * dx / (Math.pow(dx, 2) + Math.pow(gammaL_best, 2)));
+        const dy_dC = (1 - bestEta) * dG_dC + bestEta * dL_dC;
+
+        const dG_dF = gVal * (Math.pow(dx, 2) / (Math.pow(sigmaG_best, 2) * bestFwhm));
+        const dL_dF = (2 * lVal / bestFwhm) * (1 - lVal / Math.max(0.001, bestAmp));
+        const dy_dF = (1 - bestEta) * dG_dF + bestEta * dL_dF;
+
+        const dy_dE = lVal - gVal;
+        const dy_dA = ((1 - bestEta) * gVal + bestEta * lVal) / Math.max(0.001, bestAmp);
+        const dy_dB = 1.0;
+
+        const grad = [dy_dC, dy_dF, dy_dE, dy_dA, dy_dB];
+        for (let r = 0; r < pDim; r++) {
+          for (let c = 0; c < pDim; c++) {
+            H_mat[r][c] += w_i * grad[r] * grad[c];
+          }
+        }
+      }
+
+      const degreesOfFreedom = Math.max(1, fitPoints.length - pDim);
+      const reducedChi2 = sse_total / degreesOfFreedom;
+      const invH = invertMatrixGaussJordan(H_mat);
+
+      const stdErrC = invH ? Math.sqrt(Math.max(0, reducedChi2 * invH[0][0])) : 0.001;
+      const stdErrW = invH ? Math.sqrt(Math.max(0, reducedChi2 * invH[1][1])) : 0.002;
+      const stdErrE = invH ? Math.sqrt(Math.max(0, reducedChi2 * invH[2][2])) : 0.01;
+
+      const statsRes = calculateResidualStatistics(obsY_arr, calcY_arr, pDim);
+
+      // Area and propagated error
+      const areaVal = bestAmp * bestFwhm * ((1 - bestEta) * 1.064467 + bestEta * 1.570796);
+      const stdErrArea = areaVal * Math.sqrt(Math.pow(stdErrW / Math.max(0.001, bestFwhm), 2) + 0.01);
 
       setFitResult({
         center: Number(bestCenter.toFixed(4)),
@@ -1818,12 +2209,18 @@ export const FWHMModule: React.FC = () => {
         eta: Number(bestEta.toFixed(3)),
         amp: Number(bestAmp.toFixed(1)),
         bg: Number(bestBg.toFixed(1)),
-        rwp: Number(fitRwp.toFixed(2)),
+        rwp: Number(statsRes.rWP.toFixed(2)),
         chi2: Number(reducedChi2.toFixed(2)),
         stdErrCenter: Number(stdErrC.toFixed(4)),
         stdErrFwhm: Number(stdErrW.toFixed(4)),
-        stdErrEta: Number(stdErrE.toFixed(3))
+        stdErrEta: Number(stdErrE.toFixed(3)),
+        area: Number(areaVal.toFixed(2)),
+        stdErrArea: Number(stdErrArea.toFixed(2)),
+        durbinWatson: Number(statsRes.durbinWatson.toFixed(3)),
+        aic: Number(statsRes.aic.toFixed(1)),
+        bic: Number(statsRes.bic.toFixed(1))
       });
+
       setCenter(Number(bestCenter.toFixed(4)));
       setFwhmManual(Number(bestFwhm.toFixed(4)));
       setEta(Number(bestEta.toFixed(3)));
@@ -5557,18 +5954,31 @@ export const FWHMModule: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Model Comparison Legend & Metrics Table (When Compare Mode is active) */}
+          {/* Model Comparison Legend & 5-Kernel AIC / BIC Shootout Table */}
           {showModelComparison && (
-            <div className="mt-4 bg-slate-900 text-white p-4 rounded-xl border-2 border-amber-500/70 shadow-lg text-xs animate-in fade-in duration-200">
-              <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-                <span className="font-extrabold text-amber-300 flex items-center gap-2 text-sm">
+            <div className="mt-4 bg-slate-900 text-white p-4 rounded-xl border-2 border-amber-500/70 shadow-lg text-xs animate-in fade-in duration-200 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+                <div className="flex items-center gap-2">
                   <GitCompare className="w-4 h-4 text-amber-400" />
-                  Simultaneous Multi-Model Peak Shape Comparison
-                </span>
-                <span className="text-[11px] text-slate-400 font-mono">
-                  Same FWHM ({fwhm.toFixed(4)}°) & Intensity ({amplitude} cps)
-                </span>
+                  <span className="font-extrabold text-amber-300 text-sm">
+                    Simultaneous Multi-Model Peak Shape Comparison & AIC/BIC Shootout
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400 font-mono tabular-nums">
+                    FWHM ({fwhm.toFixed(4)}°) & Intensity ({amplitude} cps)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={runMultiModelBenchmark}
+                    className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    Benchmark All 5 Kernels (AIC / R_wp)
+                  </button>
+                </div>
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="bg-slate-800/80 p-3 rounded-lg border-l-4 border-indigo-500">
                   <div className="flex items-center justify-between mb-1">
@@ -5576,10 +5986,14 @@ export const FWHMModule: React.FC = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    {type === 'Pseudo-Voigt' ? `Linear combo (1-η)G + ηL with η=${(extSim.stats.effEta*100).toFixed(0)}%` : 'Active analytical profile equation'}
+                    {type === 'Pseudo-Voigt' || type === 'Thompson-Cox-Hastings'
+                      ? `Linear combo (1-η)G + ηL with η=${(extSim.stats.effEta * 100).toFixed(0)}%`
+                      : type === 'Pearson VII'
+                      ? `Power-law exponent m=${pearsonM.toFixed(2)}`
+                      : 'Active analytical profile equation'}
                   </p>
-                  <div className="mt-2 text-[10px] font-mono text-indigo-200 bg-indigo-950/60 p-1.5 rounded">
-                    Shape: {extSim.stats.fwtmRatio.toFixed(2)} FWTM/FWHM
+                  <div className="mt-2 text-[10px] font-mono tabular-nums text-indigo-200 bg-indigo-950/60 p-1.5 rounded">
+                    Shape φ={extSim.stats.shapeFactor.toFixed(3)} | FWTM/FWHM={extSim.stats.fwtmRatio.toFixed(2)}
                   </div>
                 </div>
 
@@ -5589,10 +6003,10 @@ export const FWHMModule: React.FC = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    Fast exponential decay tails: exp(-x²/2σ²). FWTM/FWHM = 1.82.
+                    Fast exponential decay tails: exp(-x²/2σ²). Strain/instrument dominated.
                   </p>
-                  <div className="mt-2 text-[10px] font-mono text-blue-200 bg-blue-950/60 p-1.5 rounded">
-                    Theoretical FWTM/FWHM = 1.82
+                  <div className="mt-2 text-[10px] font-mono tabular-nums text-blue-200 bg-blue-950/60 p-1.5 rounded">
+                    φ = 0.9394 | FWTM/FWHM = 1.8226
                   </div>
                 </div>
 
@@ -5602,10 +6016,10 @@ export const FWHMModule: React.FC = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    Slow asymptotic tails: 1/(1 + x²/γ²). FWTM/FWHM = 3.00.
+                    Slow asymptotic Cauchy tails: 1/(1 + x²/γ²). Size/spectral broadening.
                   </p>
-                  <div className="mt-2 text-[10px] font-mono text-amber-200 bg-amber-950/60 p-1.5 rounded">
-                    Theoretical FWTM/FWHM = 3.00
+                  <div className="mt-2 text-[10px] font-mono tabular-nums text-amber-200 bg-amber-950/60 p-1.5 rounded">
+                    φ = 0.6366 | FWTM/FWHM = 3.0000
                   </div>
                 </div>
 
@@ -5615,13 +6029,85 @@ export const FWHMModule: React.FC = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                   </div>
                   <p className="text-[11px] text-slate-300">
-                    Variable power law: [1 + (x/w)²]⁻ᵐ for intermediate decays.
+                    Variable power law: [1 + (x/w)²]⁻ᵐ for intermediate algebraic tail decay.
                   </p>
-                  <div className="mt-2 text-[10px] font-mono text-emerald-200 bg-emerald-950/60 p-1.5 rounded">
-                    m=2.0 (Moderately Heavy Tails)
+                  <div className="mt-2 text-[10px] font-mono tabular-nums text-emerald-200 bg-emerald-950/60 p-1.5 rounded">
+                    φ = 0.8165 | FWTM/FWHM = 2.1381
                   </div>
                 </div>
               </div>
+
+              {modelBenchmarkResults && modelBenchmarkResults.length > 0 && (
+                <div className="bg-slate-950/90 p-3.5 rounded-xl border border-amber-500/40 overflow-x-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-300">
+                      Automated 5-Kernel Statistical Ranking (Sorted by Akaike Information Criterion AIC)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      Winner: <strong className="text-emerald-400">{modelBenchmarkResults[0].model}</strong> (Akaike Weight {modelBenchmarkResults[0].akaikeWeightPct}%)
+                    </span>
+                  </div>
+                  <table className="w-full text-left border-collapse font-mono text-[11px] tabular-nums">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-slate-400 text-[10px] uppercase">
+                        <th className="py-1.5 px-2">Rank</th>
+                        <th className="py-1.5 px-2">Kernel Model</th>
+                        <th className="py-1.5 px-2">2θ₀ (°)</th>
+                        <th className="py-1.5 px-2">FWHM (°)</th>
+                        <th className="py-1.5 px-2">Shape (η or m)</th>
+                        <th className="py-1.5 px-2">R_wp (%)</th>
+                        <th className="py-1.5 px-2">χ² (GoF)</th>
+                        <th className="py-1.5 px-2">DW (d)</th>
+                        <th className="py-1.5 px-2">AIC (ΔAIC)</th>
+                        <th className="py-1.5 px-2">Akaike w_i</th>
+                        <th className="py-1.5 px-2 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/70">
+                      {modelBenchmarkResults.map((row, idx) => (
+                        <tr key={row.model} className={idx === 0 ? 'bg-emerald-950/30 text-emerald-200' : 'text-slate-300 hover:bg-slate-900/60'}>
+                          <td className="py-1.5 px-2 font-bold">
+                            {idx === 0 ? '🏆 #1' : `#${idx + 1}`}
+                          </td>
+                          <td className="py-1.5 px-2 font-sans font-bold text-white">{row.model}</td>
+                          <td className="py-1.5 px-2">{row.center.toFixed(4)}°</td>
+                          <td className="py-1.5 px-2">{row.fwhm.toFixed(4)}°</td>
+                          <td className="py-1.5 px-2">
+                            {row.model === 'Pearson VII' ? `m=${row.etaOrM.toFixed(2)}` : `η=${(row.etaOrM * 100).toFixed(0)}%`}
+                          </td>
+                          <td className="py-1.5 px-2 font-bold text-purple-300">{row.rwp.toFixed(2)}%</td>
+                          <td className="py-1.5 px-2">{row.chi2.toFixed(2)}</td>
+                          <td className="py-1.5 px-2">{row.durbinWatson.toFixed(3)}</td>
+                          <td className="py-1.5 px-2">
+                            {row.aic.toFixed(1)} <span className="text-slate-500">(+{row.deltaAic.toFixed(1)})</span>
+                          </td>
+                          <td className="py-1.5 px-2 font-bold text-amber-300">{row.akaikeWeightPct.toFixed(1)}%</td>
+                          <td className="py-1.5 px-2 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setType(row.model);
+                                setCenter(row.center);
+                                setFwhmManual(row.fwhm);
+                                if (row.model === 'Pearson VII') {
+                                  setPearsonM(row.etaOrM);
+                                } else {
+                                  setEta(row.etaOrM);
+                                }
+                                setAmplitude(row.amp);
+                                setBackground(row.bg);
+                              }}
+                              className="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] font-sans font-bold cursor-pointer transition-all"
+                            >
+                              Apply
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
@@ -5672,60 +6158,121 @@ export const FWHMModule: React.FC = () => {
                     <Activity className="w-4 h-4" />
                   </span>
                   <span className="font-extrabold text-cyan-300 text-sm">
-                    Numerical Derivative Profile Spectrum
+                    Numerical Derivative Profile Spectrum (dI/d2θ & d²I/d2θ²)
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-xs font-mono">
-                  <span className="flex items-center gap-1.5 text-cyan-300">
-                    <span className="w-2.5 h-0.5 bg-cyan-400 inline-block" />
-                    1st Deriv dI/d2θ (Extrema Zero-Cross)
-                  </span>
-                  <span className="flex items-center gap-1.5 text-pink-300">
-                    <span className="w-2.5 h-0.5 bg-pink-400 inline-block border-t border-dashed" />
-                    2nd Deriv d²I/d2θ² (Inflection Roots)
-                  </span>
+                <div className="flex flex-wrap items-center gap-3 text-xs font-mono tabular-nums">
+                  <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
+                    {(['both', '1st', '2nd'] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setDerivativeMode(m)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                          derivativeMode === m ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {m === 'both' ? 'Both' : m === '1st' ? '1st (dI/d2θ)' : '2nd (d²I/d2θ²)'}
+                      </button>
+                    ))}
+                  </div>
                   <span className="text-slate-400">
                     Inflection Span: <strong className="text-pink-400">{extSim.stats.inflectionSpan.toFixed(4)}°</strong>
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInflectionMarkers(true);
+                      setCaliperPointA(extSim.stats.thetaInfLeft);
+                      setCaliperPointB(extSim.stats.thetaInfRight);
+                      setIsCaliperMode(true);
+                    }}
+                    className="px-2 py-0.5 bg-pink-950/90 hover:bg-pink-900 text-pink-300 border border-pink-700/60 rounded text-[10px] font-bold transition-all cursor-pointer"
+                    title="Highlight 2nd derivative inflection roots on main chart and measure span with caliper"
+                  >
+                    ⚡ Measure Inflection Roots
+                  </button>
                 </div>
               </div>
 
-              <div className="h-[140px] w-full">
+              <div className="h-[150px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData} margin={{ top: 8, right: 35, left: 15, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="2 2" stroke="#334155" strokeOpacity={0.6} />
                     <XAxis dataKey="x" stroke="#64748b" tickFormatter={(val) => val != null && !isNaN(Number(val)) ? `${Number(val).toFixed(2)}°` : ''} fontSize={10} domain={['dataMin', 'dataMax']} />
-                    <YAxis stroke="#64748b" fontSize={10} />
+                    <YAxis stroke="#64748b" fontSize={10} domain={[-105, 105]} tickFormatter={(v) => `${v}%`} />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const pt = payload[0].payload;
+                          return (
+                            <div className="bg-slate-950/95 text-slate-100 p-2.5 rounded-lg border border-cyan-500/50 shadow-xl text-[11px] font-mono tabular-nums">
+                              <div className="font-bold text-cyan-300 border-b border-slate-800 pb-1 mb-1">
+                                2θ = {Number(pt.x).toFixed(4)}°
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-cyan-400">dI/d(2θ):</span>
+                                <strong className="text-white">{Number(pt.d1y ?? 0).toFixed(1)} cps/° ({Number(pt.d1y_scaled ?? 0).toFixed(0)}%)</strong>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-pink-400">d²I/d(2θ)²:</span>
+                                <strong className="text-white">{Number(pt.d2y ?? 0).toFixed(1)} cps/°² ({Number(pt.d2y_scaled ?? 0).toFixed(0)}%)</strong>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                     <ReferenceLine y={0} stroke="#94a3b8" strokeWidth={1.5} />
                     <ReferenceLine x={center} stroke="#818cf8" strokeDasharray="3 3" strokeWidth={1.5} />
                     <ReferenceLine x={extSim.stats.thetaInfLeft} stroke="#ec4899" strokeDasharray="2 2" strokeWidth={1.5} />
                     <ReferenceLine x={extSim.stats.thetaInfRight} stroke="#ec4899" strokeDasharray="2 2" strokeWidth={1.5} />
-                    <Line type="monotone" dataKey="d1" stroke="#06b6d4" strokeWidth={2} dot={false} isAnimationActive={false} name="dI/d2θ" />
-                    <Line type="monotone" dataKey="d2" stroke="#ec4899" strokeWidth={2} strokeDasharray="3 3" dot={false} isAnimationActive={false} name="d²I/d2θ²" />
+                    {(derivativeMode === 'both' || derivativeMode === '1st') && (
+                      <Line type="monotone" dataKey="d1y_scaled" stroke="#06b6d4" strokeWidth={2} dot={false} isAnimationActive={false} name="dI/d2θ (scaled %)" />
+                    )}
+                    {(derivativeMode === 'both' || derivativeMode === '2nd') && (
+                      <Line type="monotone" dataKey="d2y_scaled" stroke="#ec4899" strokeWidth={2} strokeDasharray="3 3" dot={false} isAnimationActive={false} name="d²I/d2θ² (scaled %)" />
+                    )}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </div>
           )}
 
-          {/* Deconvoluted Physical Broadening & Voigt Shape Factor HUD */}
+          {/* Deconvoluted Physical Broadening, Voigt Shape Factor, Statistical Moments & Stokes Fourier A(L) HUD */}
           {showDeconvBreakdown && (
-            <div className="mt-4 bg-slate-900 text-slate-100 p-4 rounded-xl border-2 border-amber-500/70 shadow-lg text-xs animate-in fade-in duration-300">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 border-b border-slate-800 pb-2">
+            <div className="mt-4 bg-slate-900 text-slate-100 p-4 rounded-xl border-2 border-amber-500/70 shadow-lg text-xs animate-in fade-in duration-300 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
                 <div className="flex items-center gap-2">
                   <span className="p-1 bg-amber-500/20 text-amber-400 rounded font-bold">
                     🔬
                   </span>
                   <span className="font-extrabold text-amber-300 text-sm">
-                    Physical Peak Broadening & Voigt Shape Architecture
+                    Physical Peak Broadening, Voigt Deconvolution & Statistical Moments
                   </span>
                 </div>
-                <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+                <div className="flex flex-wrap items-center gap-3 font-mono tabular-nums text-[11px] text-slate-400">
+                  {importedPoints.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setUseImportedInVisualizer(!useImportedInVisualizer)}
+                      className={`px-2.5 py-0.5 rounded-md font-bold transition-all cursor-pointer border ${
+                        useImportedInVisualizer
+                          ? 'bg-emerald-950/90 text-emerald-300 border-emerald-600'
+                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                      }`}
+                      title="Toggle between real imported experimental data points and synthetic Poisson profile in the main visualizer"
+                    >
+                      {useImportedInVisualizer ? `✓ Experimental Scan Active (${importedPoints.length} pts)` : 'Overlay Imported Scan'}
+                    </button>
+                  )}
                   <span>Instrument β_inst: <strong className="text-amber-300">{extSim.stats.betaInst.toFixed(4)}°</strong></span>
+                  <span>Bertaut ⟨L⟩_area: <strong className="text-cyan-300">{extSim.stats.bertautSizeLaNm.toFixed(1)} nm</strong></span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 tabular-nums">
                 {/* 1. Broadening Partition Bar */}
                 <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
                   <div className="flex items-center justify-between mb-2">
@@ -5770,30 +6317,34 @@ export const FWHMModule: React.FC = () => {
                 {/* 2. Asymmetry & Peak Skewness */}
                 <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-slate-200">Asymmetry & Skewness</span>
-                    <span className="text-[10px] font-mono text-purple-400">HWHM_R / HWHM_L</span>
+                    <span className="font-bold text-slate-200">Asymmetry & Central Moments</span>
+                    <span className="text-[10px] font-mono text-purple-400">μ₂, γ₁, γ₂</span>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-violet-400">Left HWHM_L:</span>
-                      <strong>{extSim.stats.hwhmLeft.toFixed(4)}°</strong>
+                  <div className="space-y-1.5 text-[11px] font-mono">
+                    <div className="flex items-center justify-between">
+                      <span className="text-violet-400">HWHM_L / HWHM_R:</span>
+                      <strong>{extSim.stats.hwhmLeft.toFixed(3)}° / {extSim.stats.hwhmRight.toFixed(3)}°</strong>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-cyan-400">Right HWHM_R:</span>
-                      <strong>{extSim.stats.hwhmRight.toFixed(4)}°</strong>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">2nd Moment σ_mom (√μ₂):</span>
+                      <strong className="text-cyan-300">{extSim.stats.momentStd.toFixed(4)}°</strong>
                     </div>
-                    <div className="flex items-center justify-between text-[11px] font-mono border-t border-slate-700 pt-1">
-                      <span className="text-slate-300 font-bold">Asymmetry Factor (A):</span>
-                      <strong className={`font-bold ${Math.abs(extSim.stats.asymmetryFactor - 1.0) < 0.05 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        {extSim.stats.asymmetryFactor.toFixed(3)}
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Fisher Skewness (γ₁):</span>
+                      <strong className={Math.abs(extSim.stats.momentSkewness) < 0.08 ? 'text-emerald-400' : 'text-amber-300'}>
+                        {extSim.stats.momentSkewness >= 0 ? '+' : ''}{extSim.stats.momentSkewness.toFixed(3)}
                       </strong>
                     </div>
-                    <p className="text-[10px] text-slate-400 pt-1">
-                      {Math.abs(extSim.stats.asymmetryFactor - 1.0) < 0.05 
-                        ? '✓ Highly symmetric Bragg peak profile' 
-                        : extSim.stats.asymmetryFactor > 1.0 
-                        ? 'High-angle tailing (Axial divergence / flat specimen error)' 
-                        : 'Low-angle tailing (Transparency / absorption distortion)'}
+                    <div className="flex items-center justify-between border-t border-slate-700 pt-1">
+                      <span className="text-slate-300 font-bold">Excess Kurtosis (γ₂):</span>
+                      <strong className="text-purple-300 font-bold">
+                        {extSim.stats.momentKurtosis >= 0 ? '+' : ''}{extSim.stats.momentKurtosis.toFixed(3)}
+                      </strong>
+                    </div>
+                    <p className="text-[10px] text-slate-400 pt-0.5 font-sans">
+                      {extSim.stats.momentKurtosis > 0.25
+                        ? 'Leptokurtic super-Gaussian tails (Lorentzian/Pearson VII character)'
+                        : 'Mesokurtic near-Gaussian bell decay (γ₂ ≈ 0)'}
                     </p>
                   </div>
                 </div>
@@ -5822,7 +6373,6 @@ export const FWHMModule: React.FC = () => {
                     <div className="mt-1">
                       <div className="w-full bg-slate-950 h-2.5 rounded-full relative overflow-hidden border border-slate-700">
                         {(() => {
-                          // Scale 0.637 (Lorentzian) to 0.939 (Gaussian)
                           const minPhi = 0.637;
                           const maxPhi = 0.939;
                           const norm = Math.max(0, Math.min(1, (extSim.stats.shapeFactor - minPhi) / (maxPhi - minPhi)));
@@ -5841,6 +6391,138 @@ export const FWHMModule: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* 4. Olivero-Longbothum Voigt / Pearson VII Analytical Deconvolution */}
+                <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-slate-200">
+                      {type === 'Pearson VII' ? 'Pearson VII Analytical' : 'Voigt Deconvolution'}
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400">
+                      {type === 'Pearson VII' ? `m = ${pearsonM.toFixed(2)}` : 'Cauchy / Gauss'}
+                    </span>
+                  </div>
+                  {(() => {
+                    const deconv = deconvolveVoigtProfile(
+                      extSim.stats.effTchFwhm,
+                      eta,
+                      extSim.stats.betaInst,
+                      center,
+                      activeWavelength,
+                      scherrerK
+                    );
+                    const pvii = calculatePearsonVIIArea(amplitude, extSim.stats.effTchFwhm, pearsonM);
+
+                    if (type === 'Pearson VII') {
+                      const diffAreaPct = Math.abs((pvii.area - extSim.stats.area) / Math.max(1, pvii.area)) * 100;
+                      return (
+                        <div className="space-y-1.5 text-[11px] font-mono">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Exact Analytical Area:</span>
+                            <strong className="text-emerald-300">{pvii.area.toFixed(2)}</strong>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Integral Breadth (β_IB):</span>
+                            <strong className="text-indigo-300">{pvii.integralBreadth.toFixed(4)}°</strong>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400">Exact Shape Factor φ:</span>
+                            <strong className="text-cyan-300 font-bold">{pvii.shapeFactor.toFixed(4)}</strong>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-slate-700 pt-1 text-[10px]">
+                            <span className="text-slate-400">Simpson Numerical:</span>
+                            <span className="text-slate-300">{extSim.stats.area.toFixed(2)} ({diffAreaPct < 0.1 ? 'Exact' : `Δ${diffAreaPct.toFixed(2)}%`})</span>
+                          </div>
+                          <div className="text-[10px] text-emerald-400/90 pt-0.5">
+                            {pearsonM <= 1.2 ? 'Near-Lorentzian limit (m→1.0)' : pearsonM >= 10 ? 'Near-Gaussian limit (m→∞)' : 'Intermediate algebraic decay'}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-1.5 text-[11px] font-mono">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Cauchy Volume Size D_V:</span>
+                          <strong className="text-emerald-300 font-bold">{deconv.volumeWeightedSizeDvNm.toFixed(1)} nm</strong>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Cauchy Area Size D_A:</span>
+                          <strong className="text-cyan-300">{deconv.areaWeightedSizeDaNm.toFixed(1)} nm</strong>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Gaussian Microstrain:</span>
+                          <strong className="text-purple-300 font-bold">{deconv.microstrainPercent.toFixed(4)}%</strong>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-slate-700 pt-1 text-[10px]">
+                          <span className="text-slate-400">Dislocation Density ρ:</span>
+                          <span className="text-amber-300 font-bold">{deconv.dislocationDensity10_14?.toFixed(2)} × 10¹⁴ m⁻²</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Stokes / Bertaut-Warren-Averbach Single-Peak Fourier Cosine Coefficient A(L) Curve */}
+              <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-cyan-300 text-xs">
+                      Stokes / Bertaut–Warren–Averbach Single-Peak Fourier Cosine Transform A(L)
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60 text-[10px] font-mono">
+                      A(L) = ∫ I_net(s) cos(2πLs) ds
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono tabular-nums">
+                    <span className="text-slate-400">
+                      Area-Weighted Column Size ⟨L⟩_area: <strong className="text-emerald-400">{extSim.stats.bertautSizeLaNm.toFixed(1)} nm</strong>
+                    </span>
+                    {enableKaDoublet && (
+                      <span className="text-slate-400">
+                        Rachinger Kα₂ Stripping Oscillation: <strong className="text-amber-300">{extSim.stats.rachingerOverSubPct.toFixed(1)}%</strong>
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="h-[115px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={extSim.stats.fourierProfile} margin={{ top: 5, right: 25, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="2 2" stroke="#334155" strokeOpacity={0.5} />
+                      <XAxis dataKey="L" stroke="#64748b" fontSize={10} tickFormatter={(v) => `${v} nm`} />
+                      <YAxis stroke="#64748b" fontSize={10} domain={[0, 1]} />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const f = payload[0].payload;
+                            return (
+                              <div className="bg-slate-950 text-slate-100 p-2 rounded-lg border border-cyan-500/40 shadow-xl text-[10px] font-mono tabular-nums">
+                                <div className="font-bold text-cyan-300 mb-1">Column Length L = {f.L} nm</div>
+                                <div className="flex justify-between gap-3">
+                                  <span className="text-emerald-400">Deconvoluted A_sample(L):</span>
+                                  <strong>{f.A_sample}</strong>
+                                </div>
+                                <div className="flex justify-between gap-3">
+                                  <span className="text-indigo-400">Observed A_obs(L):</span>
+                                  <strong>{f.A_obs}</strong>
+                                </div>
+                                <div className="flex justify-between gap-3">
+                                  <span className="text-amber-400">Instrumental A_inst(L):</span>
+                                  <strong>{f.A_inst}</strong>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Line type="monotone" dataKey="A_inst" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={false} name="Instrumental A_inst(L)" />
+                      <Line type="monotone" dataKey="A_obs" stroke="#818cf8" strokeWidth={1.8} strokeDasharray="2 2" dot={false} isAnimationActive={false} name="Observed A_obs(L)" />
+                      <Line type="monotone" dataKey="A_sample" stroke="#10b981" strokeWidth={2.5} dot={false} isAnimationActive={false} name="Stokes Deconvoluted A_sample(L)" />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           )}
@@ -5850,12 +6532,12 @@ export const FWHMModule: React.FC = () => {
           <ScientificMathControl
             title="Instrumental Peak Deconvolution"
             formula="\beta_{\text{sample}} = \sqrt{\beta_{\text{obs}}^2 - \beta_{\text{inst}}^2}"
-            description="Isolate the specimen's pure physical broadening by subtracting the instrument's footprint under Gaussian approximation (quadratic subtraction)."
+            description="Isolate the specimen's pure physical broadening by subtracting the active instrument's footprint under Gaussian/Voigt deconvolution."
             variables={[
-              { symbol: 'β_obs', name: 'Observed FWHM', value: (stats.fwhm * Math.PI / 180), unit: 'rad' },
-              { symbol: 'β_inst', name: 'Instrumental Broadening', value: (0.015 * Math.PI / 180), unit: 'rad' }
+              { symbol: 'β_obs', name: 'Observed FWHM', value: (extSim.stats.effTchFwhm * Math.PI / 180), unit: 'rad' },
+              { symbol: 'β_inst', name: 'Instrumental Broadening', value: (extSim.stats.betaInst * Math.PI / 180), unit: 'rad' }
             ]}
-            result={Math.sqrt(Math.max(0, Math.pow(stats.fwhm * Math.PI / 180, 2) - Math.pow(0.015 * Math.PI / 180, 2)))}
+            result={extSim.stats.betaSample * Math.PI / 180}
             resultUnit="rad"
             resultName="Specimen Pure Broadening"
           />
@@ -5874,7 +6556,7 @@ export const FWHMModule: React.FC = () => {
                     Non-Linear Least Squares Auto-Fit Complete
                   </h4>
                   <p className="text-[10px] text-indigo-300/80">
-                    Simplex-optimized profile parameters with standard error estimates (±σ)
+                    Analytical Jacobian covariance matrix inverted with Poisson weighting and 95% confidence intervals (±1.96σ)
                   </p>
                 </div>
               </div>
@@ -5882,6 +6564,9 @@ export const FWHMModule: React.FC = () => {
                 onClick={() => {
                   setCenter(fitResult.center);
                   setFwhmManual(fitResult.fwhm);
+                  if (fitResult.pearsonM !== undefined) {
+                    setPearsonM(fitResult.pearsonM);
+                  }
                   setEta(fitResult.eta);
                   setAmplitude(fitResult.amp);
                   setBackground(fitResult.bg);
@@ -5905,21 +6590,32 @@ export const FWHMModule: React.FC = () => {
                 <span className="text-[8px] text-indigo-300/70 block">± {fitResult.stdErrFwhm}°</span>
               </div>
               <div className="bg-white/5 p-2 rounded-lg border border-white/10">
-                <span className="text-[9px] text-indigo-300 block">Mixing Fraction (η)</span>
-                <span className="font-bold text-white">{(fitResult.eta * 100).toFixed(1)}%</span>
-                <span className="text-[8px] text-indigo-300/70 block">± {fitResult.stdErrEta}</span>
+                <span className="text-[9px] text-indigo-300 block">
+                  {fitResult.pearsonM !== undefined ? 'Pearson Exponent (m)' : 'Mixing Fraction (η)'}
+                </span>
+                <span className="font-bold text-white">
+                  {fitResult.pearsonM !== undefined ? fitResult.pearsonM.toFixed(3) : `${(fitResult.eta * 100).toFixed(1)}%`}
+                </span>
+                <span className="text-[8px] text-indigo-300/70 block">
+                  ± {fitResult.pearsonM !== undefined ? (fitResult.stdErrM ?? fitResult.stdErrEta) : fitResult.stdErrEta}
+                </span>
               </div>
               <div className="bg-white/5 p-2 rounded-lg border border-white/10">
                 <span className="text-[9px] text-indigo-300 block">Peak Amplitude</span>
                 <span className="font-bold text-white">{fitResult.amp} cps</span>
+                <span className="text-[8px] text-indigo-300/70 block">bg: {fitResult.bg} cps</span>
               </div>
               <div className="bg-white/5 p-2 rounded-lg border border-white/10">
-                <span className="text-[9px] text-indigo-300 block">Profile R_wp</span>
+                <span className="text-[9px] text-indigo-300 block">Profile R_wp / Chi²</span>
                 <span className="font-bold text-purple-300">{fitResult.rwp}%</span>
+                <span className="text-[8px] text-emerald-400 block">χ²_red: {fitResult.chi2}</span>
               </div>
               <div className="bg-white/5 p-2 rounded-lg border border-white/10">
-                <span className="text-[9px] text-indigo-300 block">Reduced Chi²</span>
-                <span className="font-bold text-emerald-400">{fitResult.chi2}</span>
+                <span className="text-[9px] text-indigo-300 block">Area & Stat</span>
+                <span className="font-bold text-amber-300">{fitResult.area ?? 'N/A'}</span>
+                <span className="text-[8px] text-indigo-300/70 block">
+                  {fitResult.durbinWatson !== undefined ? `DW: ${fitResult.durbinWatson}` : ''}
+                </span>
               </div>
             </div>
           </div>

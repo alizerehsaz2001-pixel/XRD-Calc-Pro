@@ -5,11 +5,15 @@ import {
   SpectralMetrics, 
   SearchMatchCandidate,
   DiffTheme,
-  CurveColorPalette
+  CurveColorPalette,
+  StrainRegressionAnalysis,
+  StrainRegressionPoint,
+  PhaseQuantificationResult
 } from './types';
 
-// Standard Cu-Ka X-ray wavelength in Angstroms
-export const CU_KA_WAVELENGTH = 1.5406;
+// Standard Cu-Ka1 & Cu-Ka2 X-ray wavelengths in Angstroms (NIST reference values)
+export const CU_KA_WAVELENGTH = 1.540598;
+export const CU_KA2_WAVELENGTH = 1.544426;
 
 /**
  * High-Contrast Color Theme Palettes with optimal visual contrast and accessibility
@@ -165,6 +169,59 @@ export const PRESET_COLOR_SWATCHES = [
 ];
 
 /**
+ * Estimates Reference Intensity Ratio (I/Ic relative to alpha-Al2O3 Corundum)
+ * based on phase name/formula or explicit database metadata.
+ */
+export const estimateMaterialRir = (material: any): number => {
+  if (!material) return 1.0;
+  if (typeof material.rir === 'number' && material.rir > 0) return material.rir;
+
+  const key = `${material.name || ''} ${material.formula || ''}`.toLowerCase();
+  if (key.includes('corundum') || key.includes('al2o3')) return 1.0;
+  if (key.includes('quartz') || key.includes('sio2')) return 3.6;
+  if (key.includes('anatase')) return 3.3;
+  if (key.includes('rutile')) return 3.4;
+  if (key.includes('brookite')) return 2.1;
+  if (key.includes('tio2')) return 3.3;
+  if (key.includes('hydroxyapatite') || key.includes('hap') || key.includes('ca10(po4)6')) return 1.5;
+  if (key.includes('tcp') || key.includes('ca3(po4)2')) return 1.2;
+  if (key.includes('lifepo4') || key.includes('triphylite')) return 1.8;
+  if (key.includes('fepo4') || key.includes('heterosite')) return 1.6;
+  if (key.includes('batio3') || key.includes('perovskite')) return 4.8;
+  if (key.includes('graphite') || key.includes('graphene') || key === ' c ') return 1.9;
+  if (key.includes('zno') || key.includes('zincite')) return 5.2;
+  if (key.includes('ceo2') || key.includes('ceria')) return 7.5;
+  if (key.includes('silicon') || key.includes('si ')) return 4.7;
+  if (key.includes('nacl') || key.includes('halite')) return 4.4;
+  if (key.includes('calcite') || key.includes('caco3')) return 3.1;
+  if (key.includes('fe3o4') || key.includes('magnetite')) return 4.9;
+  if (key.includes('fe2o3') || key.includes('hematite')) return 2.8;
+  return 2.0;
+};
+
+/**
+ * Caglioti Instrumental Resolution Function:
+ * FWHM^2(theta) = U * tan^2(theta) + V * tan(theta) + W
+ */
+export const computeCagliotiFwhm = (
+  twoThetaDeg: number,
+  baseFwhm: number,
+  enableCaglioti = false,
+  u = 0.04,
+  v = -0.02,
+  wOverride?: number
+): number => {
+  const safeBase = Math.max(0.04, baseFwhm);
+  if (!enableCaglioti) return safeBase;
+
+  const thetaRad = (Math.max(1, Math.min(170, twoThetaDeg)) / 2) * (Math.PI / 180);
+  const tanTheta = Math.tan(thetaRad);
+  const w = wOverride !== undefined ? wOverride : safeBase * safeBase;
+  const fwhmSq = u * tanTheta * tanTheta + v * tanTheta + w;
+  return Math.sqrt(Math.max(0.0016, fwhmSq));
+};
+
+/**
  * Robust string parser for peak lists in multiple scientific formats:
  * - "25.87(30), 31.77(100), 32.19(70)"
  * - "25.87 (002, 30); 31.77 (211, 100)"
@@ -253,6 +310,7 @@ export const parseContinuousRawData = (rawText: string): { twoTheta: number; int
 
 /**
  * Automatically extracts distinct peaks from continuous data points using local maximum detection
+ * and parabolic 3-point sub-step centroid interpolation + half-maximum FWHM estimation
  */
 export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity: number }[], maxPeaks = 30): PeakItem[] => {
   if (points.length < 5) return [];
@@ -260,14 +318,14 @@ export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity:
   const minI = Math.min(...points.map(p => p.intensity), 0);
   const normalized = points.map(p => ({
     twoTheta: p.twoTheta,
-    intensity: ((p.intensity - minI) / (maxI - minI)) * 100
+    intensity: ((p.intensity - minI) / Math.max(1e-6, maxI - minI)) * 100
   }));
 
   const peaks: PeakItem[] = [];
   const window = 3;
   for (let i = window; i < normalized.length - window; i++) {
     const curr = normalized[i];
-    if (curr.intensity < 4) continue; // Noise cutoff
+    if (curr.intensity < 3.5) continue; // Noise cutoff
 
     let isPeak = true;
     for (let j = i - window; j <= i + window; j++) {
@@ -289,8 +347,26 @@ export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity:
       let refinedTheta = x2;
       if (Math.abs(denom) > 1e-6) {
         const delta = (x3 - x1) * 0.5 * (y1 - y3) / (2 * denom);
-        if (Math.abs(delta) < 0.2) refinedTheta += delta;
+        if (Math.abs(delta) < 0.25) refinedTheta += delta;
       }
+
+      // Estimate local FWHM by walking left and right to half-max
+      const halfMax = y2 * 0.5;
+      let leftX = x2 - 0.14;
+      for (let l = i; l > Math.max(0, i - 25); l--) {
+        if (normalized[l].intensity <= halfMax) {
+          leftX = normalized[l].twoTheta;
+          break;
+        }
+      }
+      let rightX = x2 + 0.14;
+      for (let r = i; r < Math.min(normalized.length - 1, i + 25); r++) {
+        if (normalized[r].intensity <= halfMax) {
+          rightX = normalized[r].twoTheta;
+          break;
+        }
+      }
+      const estFwhm = Math.max(0.08, Math.min(1.5, rightX - leftX));
 
       const thetaRad = (refinedTheta / 2) * (Math.PI / 180);
       const dSpacing = thetaRad > 0 ? Number((CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4)) : undefined;
@@ -298,6 +374,7 @@ export const extractPeaksFromRawPoints = (points: { twoTheta: number; intensity:
       peaks.push({
         twoTheta: Number(refinedTheta.toFixed(3)),
         intensity: Number(curr.intensity.toFixed(1)),
+        fwhm: Number(estFwhm.toFixed(3)),
         dSpacing
       });
     }
@@ -319,6 +396,7 @@ export const extractMaterialPeaks = (material: any): PeakItem[] => {
         twoTheta: r.twoTheta,
         intensity: r.intensity !== undefined ? r.intensity : 100,
         hkl: r.hkl || '',
+        fwhm: r.fwhm,
         dSpacing
       };
     });
@@ -328,8 +406,57 @@ export const extractMaterialPeaks = (material: any): PeakItem[] => {
 };
 
 /**
+ * Sonneveld-Visser / SNIP iterative concave baseline estimation and stripping
+ */
+const stripConcaveBaseline = (arr: number[], iterations = 24): number[] => {
+  const n = arr.length;
+  if (n === 0) return [];
+  let bg = [...arr];
+  const nextBg = new Array(n);
+
+  for (let w = iterations; w >= 1; w--) {
+    for (let i = 0; i < n; i++) {
+      const leftIdx = Math.max(0, i - w);
+      const rightIdx = Math.min(n - 1, i + w);
+      const neighborAvg = 0.5 * (bg[leftIdx] + bg[rightIdx]);
+      nextBg[i] = Math.min(bg[i], neighborAvg);
+    }
+    bg = [...nextBg];
+  }
+
+  return arr.map((val, i) => Math.max(0, val - bg[i]));
+};
+
+/**
+ * Analytical Rachinger Cu Ka2 stripping on a uniform 2Theta grid
+ */
+const applyRachingerKa2Strip = (twoThetas: number[], intensities: number[], step: number): number[] => {
+  const n = intensities.length;
+  const stripped = [...intensities];
+  const deltaLambdaRatio = (CU_KA2_WAVELENGTH - CU_KA_WAVELENGTH) / CU_KA_WAVELENGTH; // ~0.002485
+
+  for (let i = 0; i < n; i++) {
+    const thetaRad = (twoThetas[i] / 2) * (Math.PI / 180);
+    if (thetaRad <= 0.01 || thetaRad >= 1.5) continue;
+    // Delta(2Theta) in degrees between Ka1 and Ka2
+    const deltaTwoThetaDeg = 2 * Math.tan(thetaRad) * deltaLambdaRatio * (180 / Math.PI);
+    const indexOffset = deltaTwoThetaDeg / step;
+    const prevIdx = i - indexOffset;
+    if (prevIdx >= 0 && prevIdx < n - 1) {
+      const i0 = Math.floor(prevIdx);
+      const frac = prevIdx - i0;
+      const interpAlpha1 = stripped[i0] * (1 - frac) + stripped[i0 + 1] * frac;
+      stripped[i] = Math.max(0, intensities[i] - 0.5 * interpAlpha1);
+    }
+  }
+  return stripped;
+};
+
+/**
  * Generates continuous synthetic diffraction profiles for Sample A, Sample B (with shift & scale),
  * and optional secondary phases Sample C and Sample D.
+ * Supports Caglioti (U, V, W) angle-dependent FWHM, Cu Ka1/Ka2 doublet splitting, Rachinger stripping,
+ * Sonneveld-Visser baseline stripping, and Max100 / UnitArea / Raw normalization modes.
  */
 export const generateSynthesizedProfile = (
   matA: any,
@@ -354,6 +481,12 @@ export const generateSynthesizedProfile = (
     differenceMode?: 'residual' | 'relative' | 'chi' | 'squared';
     smoothingFilter?: 'none' | 'savitzky-golay' | 'moving-avg';
     stripBackground?: boolean;
+    enableCaglioti?: boolean;
+    cagliotiU?: number;
+    cagliotiV?: number;
+    cagliotiW?: number;
+    enableKa2Doublet?: boolean;
+    stripKa2?: boolean;
   } = {}
 ) => {
   const {
@@ -370,7 +503,13 @@ export const generateSynthesizedProfile = (
     step = 0.1,
     background = 2.0,
     noiseLevel = 0.0,
-    normalizationMode = 'max100'
+    normalizationMode = 'max100',
+    enableCaglioti = false,
+    cagliotiU = 0.04,
+    cagliotiV = -0.02,
+    cagliotiW,
+    enableKa2Doublet = false,
+    stripKa2 = false
   } = options;
 
   const peaksA = extractMaterialPeaks(matA);
@@ -392,7 +531,7 @@ export const generateSynthesizedProfile = (
       const c = Math.pow(2, 1 / m) - 1;
       return height / Math.pow(1 + 4 * c * Math.pow(dx / w, 2), m);
     } else {
-      // Default: Pseudo-Voigt
+      // Thompson-Cox-Hastings / Pseudo-Voigt
       const g = Math.exp(-Math.LN2 * Math.pow(dx / halfW, 2));
       const l = 1 / (1 + Math.pow(dx / halfW, 2));
       const safeEta = Math.max(0, Math.min(1, eta));
@@ -400,19 +539,47 @@ export const generateSynthesizedProfile = (
     }
   };
 
-  const numPoints = Math.floor((maxTheta - minTheta) / step) + 1;
-  const points: ProfilePoint[] = new Array(numPoints);
+  // Evaluates a Bragg reflection including optional Cu Ka2 companion doublet
+  const evalReflectionWithDoublet = (twoTheta: number, centerTwoTheta: number, peakFwhm: number, height: number): number => {
+    let val = 0;
+    const cutoff = peakFwhm * 5.0;
+    if (Math.abs(twoTheta - centerTwoTheta) < cutoff) {
+      val += evalPeakShape(twoTheta, centerTwoTheta, peakFwhm, height);
+    }
+    if (enableKa2Doublet) {
+      const theta1Rad = (centerTwoTheta / 2) * (Math.PI / 180);
+      const sinTheta2 = (CU_KA2_WAVELENGTH / CU_KA_WAVELENGTH) * Math.sin(theta1Rad);
+      if (sinTheta2 > 0 && sinTheta2 < 0.999) {
+        const twoTheta2 = 2 * Math.asin(sinTheta2) * (180 / Math.PI);
+        if (Math.abs(twoTheta - twoTheta2) < cutoff) {
+          val += evalPeakShape(twoTheta, twoTheta2, peakFwhm, height * 0.5);
+        }
+      }
+    }
+    return val;
+  };
 
-  // Normalize reference peak heights
-  const maxIntensityA = peaksA.length > 0 ? Math.max(...peaksA.map(p => p.intensity), 1) : 100;
-  const maxIntensityB = peaksB.length > 0 ? Math.max(...peaksB.map(p => p.intensity), 1) : 100;
-  const maxIntensityC = peaksC.length > 0 ? Math.max(...peaksC.map(p => p.intensity), 1) : 100;
-  const maxIntensityD = peaksD.length > 0 ? Math.max(...peaksD.map(p => p.intensity), 1) : 100;
+  const numPoints = Math.floor((maxTheta - minTheta) / step) + 1;
+  const twoThetaGrid = new Array<number>(numPoints);
+  const rawA = new Array<number>(numPoints);
+  const rawB = new Array<number>(numPoints);
+  const rawC = new Array<number>(numPoints);
+  const rawD = new Array<number>(numPoints);
+  const cagliotiCurve = new Array<number>(numPoints);
+
+  const maxIntensityA = normalizationMode === 'raw' ? 100 : (peaksA.length > 0 ? Math.max(...peaksA.map(p => p.intensity), 1) : 100);
+  const maxIntensityB = normalizationMode === 'raw' ? 100 : (peaksB.length > 0 ? Math.max(...peaksB.map(p => p.intensity), 1) : 100);
+  const maxIntensityC = normalizationMode === 'raw' ? 100 : (peaksC.length > 0 ? Math.max(...peaksC.map(p => p.intensity), 1) : 100);
+  const maxIntensityD = normalizationMode === 'raw' ? 100 : (peaksD.length > 0 ? Math.max(...peaksD.map(p => p.intensity), 1) : 100);
 
   for (let i = 0; i < numPoints; i++) {
     const twoTheta = Number((minTheta + i * step).toFixed(2));
-    
-    // Deterministic pseudo-noise
+    twoThetaGrid[i] = twoTheta;
+
+    const localCaglioti = computeCagliotiFwhm(twoTheta, fwhm, enableCaglioti, cagliotiU, cagliotiV, cagliotiW);
+    cagliotiCurve[i] = Number(localCaglioti.toFixed(4));
+
+    // Deterministic instrumental counting noise
     const noise = noiseLevel > 0 
       ? (Math.sin(twoTheta * 97.3) * Math.cos(twoTheta * 31.7) * noiseLevel * 2) 
       : 0;
@@ -421,10 +588,8 @@ export const generateSynthesizedProfile = (
     let iA = background + noise;
     for (const p of peaksA) {
       const relH = (p.intensity / maxIntensityA) * 100;
-      const peakFwhm = p.fwhm || fwhm;
-      if (Math.abs(twoTheta - p.twoTheta) < peakFwhm * 4.5) {
-        iA += evalPeakShape(twoTheta, p.twoTheta, peakFwhm, relH);
-      }
+      const peakFwhm = p.fwhm || computeCagliotiFwhm(p.twoTheta, fwhm, enableCaglioti, cagliotiU, cagliotiV, cagliotiW);
+      iA += evalReflectionWithDoublet(twoTheta, p.twoTheta, peakFwhm, relH);
     }
 
     // Sample B continuous profile
@@ -432,10 +597,8 @@ export const generateSynthesizedProfile = (
     for (const p of peaksB) {
       const relH = (p.intensity / maxIntensityB) * 100 * scaleSampleB;
       const targetCenter = p.twoTheta + shiftTwoThetaB;
-      const peakFwhm = p.fwhm || fwhm;
-      if (Math.abs(twoTheta - targetCenter) < peakFwhm * 4.5) {
-        iB += evalPeakShape(twoTheta, targetCenter, peakFwhm, relH);
-      }
+      const peakFwhm = p.fwhm || computeCagliotiFwhm(targetCenter, fwhm, enableCaglioti, cagliotiU, cagliotiV, cagliotiW);
+      iB += evalReflectionWithDoublet(twoTheta, targetCenter, peakFwhm, relH);
     }
 
     // Phase C profile
@@ -443,10 +606,8 @@ export const generateSynthesizedProfile = (
     if (matC && scaleSampleC > 0) {
       for (const p of peaksC) {
         const relH = (p.intensity / maxIntensityC) * 100 * scaleSampleC;
-        const peakFwhm = p.fwhm || fwhm;
-        if (Math.abs(twoTheta - p.twoTheta) < peakFwhm * 4.5) {
-          iC += evalPeakShape(twoTheta, p.twoTheta, peakFwhm, relH);
-        }
+        const peakFwhm = p.fwhm || computeCagliotiFwhm(p.twoTheta, fwhm, enableCaglioti, cagliotiU, cagliotiV, cagliotiW);
+        iC += evalReflectionWithDoublet(twoTheta, p.twoTheta, peakFwhm, relH);
       }
     }
 
@@ -455,16 +616,65 @@ export const generateSynthesizedProfile = (
     if (matD && scaleSampleD > 0) {
       for (const p of peaksD) {
         const relH = (p.intensity / maxIntensityD) * 100 * scaleSampleD;
-        const peakFwhm = p.fwhm || fwhm;
-        if (Math.abs(twoTheta - p.twoTheta) < peakFwhm * 4.5) {
-          iD += evalPeakShape(twoTheta, p.twoTheta, peakFwhm, relH);
-        }
+        const peakFwhm = p.fwhm || computeCagliotiFwhm(p.twoTheta, fwhm, enableCaglioti, cagliotiU, cagliotiV, cagliotiW);
+        iD += evalReflectionWithDoublet(twoTheta, p.twoTheta, peakFwhm, relH);
       }
     }
 
-    // Composite total model
+    rawA[i] = Math.max(0, iA);
+    rawB[i] = Math.max(0, iB);
+    rawC[i] = Math.max(0, iC);
+    rawD[i] = Math.max(0, iD);
+  }
+
+  // Optional Rachinger Ka2 Stripping
+  let procA = stripKa2 ? applyRachingerKa2Strip(twoThetaGrid, rawA, step) : rawA;
+  let procB = stripKa2 ? applyRachingerKa2Strip(twoThetaGrid, rawB, step) : rawB;
+
+  // Optional Savitzky-Golay (5-pt quadratic) or Moving Average smoothing
+  if (options.smoothingFilter === 'savitzky-golay' || options.smoothingFilter === 'moving-avg') {
+    const isSg = options.smoothingFilter === 'savitzky-golay';
+    const smoothedA = [...procA];
+    for (let i = 2; i < numPoints - 2; i++) {
+      if (isSg) {
+        smoothedA[i] = Math.max(
+          0,
+          (-3 * procA[i - 2] + 12 * procA[i - 1] + 17 * procA[i] + 12 * procA[i + 1] - 3 * procA[i + 2]) / 35
+        );
+      } else {
+        smoothedA[i] = Math.max(0, (procA[i - 1] + procA[i] + procA[i + 1]) / 3);
+      }
+    }
+    procA = smoothedA;
+  }
+
+  // Optional Sonneveld-Visser / SNIP Baseline Stripping
+  if (options.stripBackground) {
+    procA = stripConcaveBaseline(procA, 22);
+    procB = stripConcaveBaseline(procB, 22);
+  }
+
+  // Apply Normalization Mode ('max100' | 'unitArea' | 'raw')
+  if (normalizationMode === 'unitArea') {
+    const areaA = procA.reduce((s, v) => s + v * step, 0);
+    const areaB = procB.reduce((s, v) => s + v * step, 0);
+    const targetArea = 100; // Normalized integrated intensity = 100
+    const factorA = areaA > 1e-6 ? targetArea / areaA : 1;
+    const factorB = areaB > 1e-6 ? (targetArea * scaleSampleB) / areaB : 1;
+    procA = procA.map(v => v * factorA);
+    procB = procB.map(v => v * factorB);
+  }
+
+  const points: ProfilePoint[] = new Array(numPoints);
+
+  for (let i = 0; i < numPoints; i++) {
+    const twoTheta = twoThetaGrid[i];
+    const iA = procA[i];
+    const iB = procB[i];
+    const iC = rawC[i];
+    const iD = rawD[i];
     const totalModel = iB + iC + iD;
-    
+
     // Difference calculation based on mode
     let diff = iA - totalModel;
     if (options.differenceMode === 'relative') {
@@ -489,7 +699,8 @@ export const generateSynthesizedProfile = (
       toleranceUpper: Number((totalModel * 1.08 + 2).toFixed(2)),
       toleranceLower: Number((totalModel * 0.92 - 2).toFixed(2)),
       derivA: 0,
-      derivB: 0
+      derivB: 0,
+      cagliotiFwhm: cagliotiCurve[i]
     };
   }
 
@@ -503,34 +714,6 @@ export const generateSynthesizedProfile = (
 
     points[i].derivA = Number(((nextA - prevA) / dx).toFixed(2));
     points[i].derivB = Number(((nextB - prevB) / dx).toFixed(2));
-  }
-
-  // Apply optional Savitzky-Golay or moving-average smoothing if requested
-  if (options.smoothingFilter === 'savitzky-golay' || options.smoothingFilter === 'moving-avg') {
-    const isSg = options.smoothingFilter === 'savitzky-golay';
-    // 5-point SG quadratic coefficients: [-3, 12, 17, 12, -3] / 35
-    for (let i = 2; i < points.length - 2; i++) {
-      if (isSg) {
-        const smoothA = (-3 * points[i - 2].intensityA + 12 * points[i - 1].intensityA + 17 * points[i].intensityA + 12 * points[i + 1].intensityA - 3 * points[i + 2].intensityA) / 35;
-        points[i].intensityA = Math.max(0, Number(smoothA.toFixed(2)));
-      } else {
-        const avgA = (points[i - 1].intensityA + points[i].intensityA + points[i + 1].intensityA) / 3;
-        points[i].intensityA = Math.max(0, Number(avgA.toFixed(2)));
-      }
-    }
-  }
-
-  // Apply optional baseline background stripping
-  if (options.stripBackground) {
-    const minA = Math.min(...points.map(p => p.intensityA));
-    const minB = Math.min(...points.map(p => p.intensityB));
-    for (let i = 0; i < points.length; i++) {
-      points[i].intensityA = Math.max(0, Number((points[i].intensityA - minA).toFixed(2)));
-      points[i].intensityB = Math.max(0, Number((points[i].intensityB - minB).toFixed(2)));
-      if (points[i].intensityTotalModel !== undefined) {
-        points[i].intensityTotalModel = Math.max(0, Number(((points[i].intensityTotalModel ?? 0) - minB).toFixed(2)));
-      }
-    }
   }
 
   return { points, peaksA, peaksB, peaksC, peaksD };
@@ -571,7 +754,45 @@ export const calculateCaliperMetrics = (p1: { twoTheta: number; intensity: numbe
 };
 
 /**
- * Computes statistical cross-correlation and Rietveld residual metrics
+ * Helper to compute Spearman rank correlation coefficient rho
+ */
+const computeSpearmanRankCorrelation = (arrX: number[], arrY: number[]): number => {
+  const n = arrX.length;
+  if (n < 3) return 0;
+
+  const rankArray = (arr: number[]) => {
+    const indexed = arr.map((v, i) => ({ v, i })).sort((a, b) => a.v - b.v);
+    const ranks = new Array<number>(n);
+    let i = 0;
+    while (i < n) {
+      let j = i;
+      while (j + 1 < n && indexed[j + 1].v === indexed[i].v) j++;
+      const avgRank = (i + j) / 2 + 1;
+      for (let k = i; k <= j; k++) ranks[indexed[k].i] = avgRank;
+      i = j + 1;
+    }
+    return ranks;
+  };
+
+  const rX = rankArray(arrX);
+  const rY = rankArray(arrY);
+
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += rX[i];
+    sumY += rY[i];
+    sumXY += rX[i] * rY[i];
+    sumX2 += rX[i] * rX[i];
+    sumY2 += rY[i] * rY[i];
+  }
+  const num = n * sumXY - sumX * sumY;
+  const den = Math.sqrt(Math.max(0, (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY)));
+  return den > 1e-9 ? Math.max(0, (num / den) * 100) : 0;
+};
+
+/**
+ * Computes statistical cross-correlation, Rietveld residual metrics, Cosine similarity,
+ * Spearman rank correlation, Bragg R-factor, and Durbin-Watson serial correlation statistic.
  */
 export const computeSpectralMetrics = (points: ProfilePoint[]): SpectralMetrics => {
   if (!points || points.length === 0) {
@@ -584,7 +805,11 @@ export const computeSpectralMetrics = (points: ProfilePoint[]): SpectralMetrics 
       fom: '0.0',
       maxDiff: '0.0',
       rmsd: '0.0',
-      goodnessOfFit: '1.00'
+      goodnessOfFit: '1.00',
+      cosineSimilarity: '0.0',
+      spearmanRho: '0.0',
+      braggR: '0.0',
+      durbinWatson: '2.00'
     };
   }
 
@@ -599,17 +824,33 @@ export const computeSpectralMetrics = (points: ProfilePoint[]): SpectralMetrics 
   let sumAA = 0;
   let sumBB = 0;
   let sumAB = 0;
+
+  // Bragg peak region intensity sums (where yObs or yCalc > 8% above floor)
+  let sumBraggDiff = 0;
+  let sumBraggObs = 0;
+
+  // Durbin-Watson serial correlation accumulators
+  let sumResidualSq = 0;
+  let sumSerialDiffSq = 0;
+  let prevRes = 0;
+
   const N = points.length;
+  const obsList = new Array<number>(N);
+  const calcList = new Array<number>(N);
 
   for (let i = 0; i < N; i++) {
     const yObs = points[i].intensityA;
     const yCalc = points[i].intensityTotalModel ?? points[i].intensityB;
-    const diff = Math.abs(yObs - yCalc);
+    obsList[i] = yObs;
+    calcList[i] = yCalc;
+
+    const rawRes = yObs - yCalc;
+    const diff = Math.abs(rawRes);
 
     sumDiff += diff;
     sumObs += Math.abs(yObs);
-    
-    // Weight w = 1 / yObs
+
+    // Poisson counting weight w_i = 1 / max(yObs, 1)
     const w = 1 / Math.max(yObs, 1);
     sumDiffSq += w * Math.pow(diff, 2);
     sumObsSq += w * Math.pow(yObs, 2);
@@ -621,6 +862,18 @@ export const computeSpectralMetrics = (points: ProfilePoint[]): SpectralMetrics 
     sumAA += yObs * yObs;
     sumBB += yCalc * yCalc;
     sumAB += yObs * yCalc;
+
+    if (yObs > 6 || yCalc > 6) {
+      sumBraggDiff += diff;
+      sumBraggObs += Math.max(yObs, 1);
+    }
+
+    sumResidualSq += rawRes * rawRes;
+    if (i > 0) {
+      const dRes = rawRes - prevRes;
+      sumSerialDiffSq += dRes * dRes;
+    }
+    prevRes = rawRes;
   }
 
   // Profile R-factor R_p = sum(|yObs - yCalc|) / sum(yObs)
@@ -636,14 +889,30 @@ export const computeSpectralMetrics = (points: ProfilePoint[]): SpectralMetrics 
   // Goodness of Fit chi^2 = (R_wp / R_exp)^2
   const chiSquared = rExp > 0 ? Math.pow(rWP / rExp, 2) : 1.0;
 
-  // Pearson correlation coefficient (r)
+  // Pearson linear correlation coefficient (r)
   const numerator = (N * sumAB) - (sumA * sumB);
-  const denom = Math.sqrt((N * sumAA - sumA * sumA) * (N * sumBB - sumB * sumB));
+  const denom = Math.sqrt(Math.max(0, (N * sumAA - sumA * sumA) * (N * sumBB - sumB * sumB)));
   const pearsonR = denom !== 0 ? Math.max(0, (numerator / denom) * 100) : 0;
 
-  // Figure of Merit (FOM) combining R_wp, Pearson, and RMSD (0-100 scale)
+  // Cosine spectral similarity = (A . B) / (||A|| ||B||)
+  const cosDenom = Math.sqrt(sumAA * sumBB);
+  const cosineSimilarity = cosDenom > 0 ? Math.max(0, Math.min(100, (sumAB / cosDenom) * 100)) : 0;
+
+  // Spearman rank correlation (rho)
+  const spearmanRho = computeSpearmanRankCorrelation(obsList, calcList);
+
+  // Bragg R-factor (R_B)
+  const braggR = sumBraggObs > 0 ? (sumBraggDiff / sumBraggObs) * 100 : rP;
+
+  // Durbin-Watson statistic d_DW in [0, 4] (2.0 = zero serial correlation)
+  const durbinWatson = sumResidualSq > 1e-6 ? (sumSerialDiffSq / sumResidualSq) : 2.0;
+
+  // Figure of Merit (FOM) combining Pearson, Cosine, R_wp, and R_p (0-100 scale)
   const rmsd = Math.sqrt(sumDiffSq / N);
-  const fom = Math.max(0, Math.min(100, (pearsonR * 0.6) + ((100 - Math.min(100, rP)) * 0.4)));
+  const fom = Math.max(
+    0,
+    Math.min(100, (pearsonR * 0.45) + (cosineSimilarity * 0.25) + ((100 - Math.min(100, rP)) * 0.30))
+  );
 
   return {
     rP: rP.toFixed(2),
@@ -654,14 +923,26 @@ export const computeSpectralMetrics = (points: ProfilePoint[]): SpectralMetrics 
     fom: fom.toFixed(1),
     maxDiff: maxDiff.toFixed(1),
     rmsd: rmsd.toFixed(2),
-    goodnessOfFit: Math.sqrt(chiSquared).toFixed(2)
+    goodnessOfFit: Math.sqrt(chiSquared).toFixed(2),
+    cosineSimilarity: cosineSimilarity.toFixed(2),
+    spearmanRho: spearmanRho.toFixed(2),
+    braggR: braggR.toFixed(2),
+    durbinWatson: durbinWatson.toFixed(2)
   };
 };
 
 /**
- * Peak-by-peak pairing, lattice displacement, and indexing
+ * Multi-phase peak-by-peak indexing (Reference B, Secondary Phase C, Tertiary Phase D)
+ * and linear-regression separation of instrumental zero-shift (Delta 2Theta_0),
+ * specimen displacement (cos Theta), and true isotropic lattice macrostrain (Delta d / d).
  */
-export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
+export const computePeakIndexing = (
+  peaksA: PeakItem[],
+  peaksB: PeakItem[],
+  peaksC: PeakItem[] = [],
+  peaksD: PeakItem[] = [],
+  baseFwhm = 0.28
+): {
   indexedPeaks: IndexedPeakMatch[];
   meanShift: number;
   avgStrain: number;
@@ -669,7 +950,17 @@ export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
   secondaryPhaseEst: number;
   extraInA: number[];
   missingInA: number[];
+  strainRegression: StrainRegressionAnalysis;
 } => {
+  const defaultRegression: StrainRegressionAnalysis = {
+    zeroShiftDeg: 0,
+    specimenDisplacementCos: 0,
+    trueMacrostrainPercent: 0,
+    apparentStrainPercent: 0,
+    regressionR2: 1,
+    pairedPoints: []
+  };
+
   if (!peaksA || !peaksB) {
     return {
       indexedPeaks: [],
@@ -678,7 +969,8 @@ export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
       primaryPhasePurity: 100,
       secondaryPhaseEst: 0,
       extraInA: [],
-      missingInA: []
+      missingInA: [],
+      strainRegression: defaultRegression
     };
   }
 
@@ -686,46 +978,113 @@ export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
   const tolerance = 0.65; // degrees 2Theta matching window
   const matchedBIndices = new Set<number>();
   const shifts: number[] = [];
+  const apparentStrains: number[] = [];
   const extraInA: number[] = [];
+  const regressionInputs: {
+    twoTheta: number;
+    tanTheta: number;
+    cosTheta: number;
+    shiftDeg: number;
+    peakStrainPercent: number;
+    weight: number;
+    hkl: string;
+    phaseOrigin: string;
+  }[] = [];
 
   peaksA.forEach((pA, idx) => {
-    let bestMatchIdx = -1;
-    let minDiff = Infinity;
+    let bestMatchBIdx = -1;
+    let minDiffB = Infinity;
 
     peaksB.forEach((pB, bIdx) => {
       const diff = Math.abs(pA.twoTheta - pB.twoTheta);
-      if (diff <= tolerance && diff < minDiff) {
-        minDiff = diff;
-        bestMatchIdx = bIdx;
+      if (diff <= tolerance && diff < minDiffB) {
+        minDiffB = diff;
+        bestMatchBIdx = bIdx;
       }
     });
 
+    // Also check Phase C and Phase D if not matched to B (or if much closer to C/D)
+    let bestMatchPhase: 'Phase B' | 'Phase C' | 'Phase D' | 'Unknown' = 'Unknown';
+    let matchedRefPeak: PeakItem | null = null;
+
+    if (bestMatchBIdx !== -1) {
+      bestMatchPhase = 'Phase B';
+      matchedRefPeak = peaksB[bestMatchBIdx];
+    }
+
+    let minDiffRef = minDiffB;
+    peaksC.forEach((pC) => {
+      const diff = Math.abs(pA.twoTheta - pC.twoTheta);
+      if (diff <= tolerance && diff < minDiffRef - 0.08) {
+        minDiffRef = diff;
+        bestMatchPhase = 'Phase C';
+        matchedRefPeak = pC;
+      }
+    });
+
+    peaksD.forEach((pD) => {
+      const diff = Math.abs(pA.twoTheta - pD.twoTheta);
+      if (diff <= tolerance && diff < minDiffRef - 0.08) {
+        minDiffRef = diff;
+        bestMatchPhase = 'Phase D';
+        matchedRefPeak = pD;
+      }
+    });
+
+    if (bestMatchPhase === 'Phase B' && bestMatchBIdx !== -1) {
+      matchedBIndices.add(bestMatchBIdx);
+    }
+
     const thetaRadA = (pA.twoTheta / 2) * (Math.PI / 180);
-    const dSpacingA = thetaRadA > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRadA))).toFixed(4) : '-';
+    const dValA = thetaRadA > 0 ? CU_KA_WAVELENGTH / (2 * Math.sin(thetaRadA)) : 0;
+    const dSpacingA = dValA > 0 ? dValA.toFixed(4) : '-';
 
-    if (bestMatchIdx !== -1) {
-      const matchedB = peaksB[bestMatchIdx];
-      matchedBIndices.add(bestMatchIdx);
-      const shift = Number((pA.twoTheta - matchedB.twoTheta).toFixed(3));
-      shifts.push(shift);
+    // Estimate Scherrer Crystallite Size D = (K * lambda) / (beta_rad * cos(theta)) in nm (1 Angstrom = 0.1 nm)
+    const fwhmRad = ((pA.fwhm || baseFwhm) * Math.PI) / 180;
+    const scherrerSizeNm = (fwhmRad > 0 && Math.cos(thetaRadA) > 0.05)
+      ? Number(((0.9 * CU_KA_WAVELENGTH) / (fwhmRad * Math.cos(thetaRadA)) * 0.1).toFixed(1))
+      : null;
 
-      const thetaRadB = (matchedB.twoTheta / 2) * (Math.PI / 180);
-      const dSpacingB = thetaRadB > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRadB))).toFixed(4) : '-';
+    if (matchedRefPeak) {
+      const shift = Number((pA.twoTheta - matchedRefPeak.twoTheta).toFixed(3));
+      const thetaRadRef = (matchedRefPeak.twoTheta / 2) * (Math.PI / 180);
+      const dValRef = thetaRadRef > 0 ? CU_KA_WAVELENGTH / (2 * Math.sin(thetaRadRef)) : 0;
+      const dSpacingB = dValRef > 0 ? dValRef.toFixed(4) : '-';
+
+      // Exact interplanar strain epsilon = (d_exp - d_ref) / d_ref * 100%
+      const peakStrain = dValRef > 0 ? Number((((dValA - dValRef) / dValRef) * 100).toFixed(4)) : 0;
+
+      if (bestMatchPhase === 'Phase B') {
+        shifts.push(shift);
+        apparentStrains.push(peakStrain);
+        regressionInputs.push({
+          twoTheta: pA.twoTheta,
+          tanTheta: Math.tan(thetaRadRef),
+          cosTheta: Math.cos(thetaRadRef),
+          shiftDeg: shift,
+          peakStrainPercent: peakStrain,
+          weight: Math.max(0.1, pA.intensity / 100),
+          hkl: pA.hkl || matchedRefPeak.hkl || `Peak #${idx + 1}`,
+          phaseOrigin: bestMatchPhase
+        });
+      }
 
       const isShifted = Math.abs(shift) > 0.05;
       indexedPeaks.push({
         id: idx + 1,
         twoThetaA: pA.twoTheta,
-        twoThetaB: matchedB.twoTheta,
+        twoThetaB: matchedRefPeak.twoTheta,
         hklA: pA.hkl,
-        hklB: matchedB.hkl,
+        hklB: matchedRefPeak.hkl,
         dSpacingA,
         dSpacingB,
         shift,
         intensityA: pA.intensity,
-        intensityB: matchedB.intensity,
+        intensityB: matchedRefPeak.intensity,
         status: isShifted ? 'shifted' : 'matched',
-        phaseOrigin: 'Phase B'
+        phaseOrigin: bestMatchPhase,
+        strainPercent: peakStrain,
+        scherrerSizeNm
       });
     } else {
       extraInA.push(pA.twoTheta);
@@ -741,7 +1100,9 @@ export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
         intensityA: pA.intensity,
         intensityB: 0,
         status: 'extra',
-        phaseOrigin: 'Unknown'
+        phaseOrigin: 'Unknown',
+        strainPercent: null,
+        scherrerSizeNm
       });
     }
   });
@@ -766,23 +1127,90 @@ export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
         intensityA: 0,
         intensityB: pB.intensity,
         status: 'missing',
-        phaseOrigin: 'Phase B'
+        phaseOrigin: 'Phase B',
+        strainPercent: null,
+        scherrerSizeNm: null
       });
     }
   });
 
   const meanShift = shifts.length > 0 ? Number((shifts.reduce((a, b) => a + b, 0) / shifts.length).toFixed(3)) : 0;
-  
-  // Microstrain estimation delta d/d = -delta Theta / tan(Theta)
-  const avgStrain = shifts.length > 0 
-    ? Number(((Math.abs(meanShift) * (Math.PI / 180)) / (2 * Math.tan((35 / 2) * (Math.PI / 180))) * 100).toFixed(3))
+  const apparentStrainPercent = apparentStrains.length > 0
+    ? Number((apparentStrains.reduce((a, b) => a + b, 0) / apparentStrains.length).toFixed(4))
     : 0;
 
+  // Perform Weighted Linear Regression of Shift(2Theta) vs tan(Theta) to separate Zero-Shift from True Lattice Strain:
+  // Model: Delta(2Theta)_deg = Delta(2Theta)_0 + slope * tan(theta)
+  // Where true macrostrain epsilon = -slope / (2 * (180 / pi))
+  let zeroShiftDeg = meanShift;
+  let trueMacrostrainPercent = apparentStrainPercent;
+  let specimenDisplacementCos = 0;
+  let regressionR2 = 1.0;
+
+  if (regressionInputs.length >= 2) {
+    let sw = 0, sx = 0, sy = 0, sxx = 0, sxy = 0, scos = 0, scosy = 0, scos2 = 0;
+    for (const pt of regressionInputs) {
+      const w = pt.weight;
+      const x = pt.tanTheta;
+      const y = pt.shiftDeg;
+      sw += w;
+      sx += w * x;
+      sy += w * y;
+      sxx += w * x * x;
+      sxy += w * x * y;
+      scos += w * pt.cosTheta;
+      scosy += w * pt.cosTheta * y;
+      scos2 += w * pt.cosTheta * pt.cosTheta;
+    }
+
+    const det = sw * sxx - sx * sx;
+    if (Math.abs(det) > 1e-7) {
+      const intercept = (sxx * sy - sx * sxy) / det;
+      const slope = (sw * sxy - sx * sy) / det;
+      zeroShiftDeg = Number(intercept.toFixed(4));
+      // Since Delta(2Theta)_deg = -2 * epsilon * (180/pi) * tan(theta), epsilon(%) = (-slope * pi / 360) * 100
+      trueMacrostrainPercent = Number(((-slope * Math.PI) / 3.6).toFixed(4));
+
+      // Estimate specimen displacement coefficient on residuals after strain removal
+      const detCos = sw * scos2 - scos * scos;
+      if (Math.abs(detCos) > 1e-7) {
+        specimenDisplacementCos = Number((((sw * scosy - scos * sy) / detCos) * 0.25).toFixed(4));
+      }
+
+      const yMean = sy / sw;
+      let ssTot = 0;
+      let ssRes = 0;
+      for (const pt of regressionInputs) {
+        const yPred = intercept + slope * pt.tanTheta;
+        ssTot += pt.weight * Math.pow(pt.shiftDeg - yMean, 2);
+        ssRes += pt.weight * Math.pow(pt.shiftDeg - yPred, 2);
+      }
+      regressionR2 = ssTot > 1e-8 ? Number(Math.max(0, Math.min(1, 1 - ssRes / ssTot)).toFixed(3)) : 1.0;
+    }
+  }
+
+  const slopeDeg = -2 * (trueMacrostrainPercent / 100) * (180 / Math.PI);
+  const pairedPoints: StrainRegressionPoint[] = regressionInputs.map(pt => ({
+    twoTheta: Number(pt.twoTheta.toFixed(2)),
+    tanTheta: Number(pt.tanTheta.toFixed(4)),
+    cosTheta: Number(pt.cosTheta.toFixed(4)),
+    observedShift: Number(pt.shiftDeg.toFixed(4)),
+    modeledShift: Number((zeroShiftDeg + slopeDeg * pt.tanTheta).toFixed(4)),
+    strainOnlyShift: Number((slopeDeg * pt.tanTheta).toFixed(4)),
+    peakStrainPercent: Number(pt.peakStrainPercent.toFixed(4)),
+    hkl: pt.hkl,
+    phaseOrigin: pt.phaseOrigin
+  }));
+
+  const avgStrain = Number(apparentStrainPercent.toFixed(3));
+
   const totalExpIntensity = peaksA.reduce((sum, p) => sum + p.intensity, 0);
-  const matchedIntensity = indexedPeaks.filter(p => p.status === 'matched' || p.status === 'shifted').reduce((sum, p) => sum + p.intensityA, 0);
+  const matchedBIntensity = indexedPeaks
+    .filter(p => (p.status === 'matched' || p.status === 'shifted') && p.phaseOrigin === 'Phase B')
+    .reduce((sum, p) => sum + p.intensityA, 0);
   
-  const primaryPhasePurity = totalExpIntensity > 0 ? Number(((matchedIntensity / totalExpIntensity) * 100).toFixed(1)) : 100;
-  const secondaryPhaseEst = Number((100 - primaryPhasePurity).toFixed(1));
+  const primaryPhasePurity = totalExpIntensity > 0 ? Number(((matchedBIntensity / totalExpIntensity) * 100).toFixed(1)) : 100;
+  const secondaryPhaseEst = Number(Math.max(0, 100 - primaryPhasePurity).toFixed(1));
 
   return {
     indexedPeaks: indexedPeaks.sort((a, b) => (a.twoThetaA || a.twoThetaB || 0) - (b.twoThetaA || b.twoThetaB || 0)),
@@ -791,70 +1219,161 @@ export const computePeakIndexing = (peaksA: PeakItem[], peaksB: PeakItem[]): {
     primaryPhasePurity,
     secondaryPhaseEst,
     extraInA,
-    missingInA
+    missingInA,
+    strainRegression: {
+      zeroShiftDeg,
+      specimenDisplacementCos,
+      trueMacrostrainPercent,
+      apparentStrainPercent,
+      regressionR2,
+      pairedPoints
+    }
   };
 };
 
 /**
- * Solves Non-Negative Least Squares (NNLS) multi-phase fraction percentages
+ * Solves Analytical Non-Negative Least Squares (NNLS) multi-phase fractions
+ * and converts spectral scale factors into RIR (I/Ic) semi-quantitative weight percentages:
+ * wt%_k = (S_k / RIR_k) / sum_j(S_j / RIR_j) * 100
  */
 export const solveMultiPhaseFractions = (
   arrA: number[], 
   arrB: number[], 
   arrC: number[] = [], 
-  arrD: number[] = []
-): { fracB: number; fracC: number; fracD: number; residualNorm: number } => {
+  arrD: number[] = [],
+  rirOptions: { rirB?: number; rirC?: number; rirD?: number } = {}
+): PhaseQuantificationResult => {
+  const rirB = Math.max(0.1, rirOptions.rirB ?? 1.8);
+  const rirC = Math.max(0.1, rirOptions.rirC ?? 1.5);
+  const rirD = Math.max(0.1, rirOptions.rirD ?? 1.2);
+
   if (arrA.length === 0 || arrB.length === 0) {
-    return { fracB: 100, fracC: 0, fracD: 0, residualNorm: 0 };
+    return {
+      fracB: 100, fracC: 0, fracD: 0,
+      wtPercentB: 100, wtPercentC: 0, wtPercentD: 0,
+      scaleFactorB: 1, scaleFactorC: 0, scaleFactorD: 0,
+      rirB, rirC, rirD,
+      residualNorm: 0
+    };
   }
 
-  // 1-phase case
-  if (arrC.length === 0 && arrD.length === 0) {
-    return { fracB: 100, fracC: 0, fracD: 0, residualNorm: 0 };
+  const hasC = arrC.length === arrA.length && arrC.some(v => v > 0);
+  const hasD = arrD.length === arrA.length && arrD.some(v => v > 0);
+
+  if (!hasC && !hasD) {
+    // 1-phase analytical least squares scale factor
+    let dotAB = 0, dotBB = 0, resSq = 0;
+    for (let i = 0; i < arrA.length; i++) {
+      dotAB += arrA[i] * arrB[i];
+      dotBB += arrB[i] * arrB[i];
+    }
+    const sB = dotBB > 1e-6 ? Math.max(0.01, dotAB / dotBB) : 1.0;
+    for (let i = 0; i < arrA.length; i++) {
+      resSq += Math.pow(arrA[i] - sB * arrB[i], 2);
+    }
+    return {
+      fracB: 100, fracC: 0, fracD: 0,
+      wtPercentB: 100, wtPercentC: 0, wtPercentD: 0,
+      scaleFactorB: Number(sB.toFixed(3)),
+      scaleFactorC: 0,
+      scaleFactorD: 0,
+      rirB, rirC, rirD,
+      residualNorm: Number(Math.sqrt(resSq / arrA.length).toFixed(2))
+    };
   }
 
-  let bestB = 1.0;
-  let bestC = 0.0;
-  let bestD = 0.0;
-  let minResidual = Infinity;
+  // Construct Normal Equations Gram Matrix G = X^T X and RHS b = X^T y
+  const cols: number[][] = [arrB];
+  if (hasC) cols.push(arrC);
+  if (hasD) cols.push(arrD);
+  const K = cols.length;
 
-  // Grid search optimization for multi-component fraction weights
-  const step = 0.02;
-  const hasD = arrD.length > 0;
+  const G: number[][] = Array.from({ length: K }, () => new Array(K).fill(0));
+  const rhs: number[] = new Array(K).fill(0);
 
-  for (let wB = 0; wB <= 1.0; wB += step) {
-    const maxWC = 1.0 - wB;
-    for (let wC = 0; wC <= maxWC; wC += step) {
-      const wD = hasD ? Math.max(0, 1.0 - wB - wC) : 0;
-      if (!hasD && Math.abs(wB + wC - 1.0) > 0.01) continue;
-
-      let resSq = 0;
-      for (let i = 0; i < arrA.length; i += 4) { // stride 4 for speed
-        const obs = arrA[i];
-        const calc = (arrB[i] * wB) + (arrC[i] ? arrC[i] * wC : 0) + (hasD && arrD[i] ? arrD[i] * wD : 0);
-        resSq += Math.pow(obs - calc, 2);
-      }
-
-      if (resSq < minResidual) {
-        minResidual = resSq;
-        bestB = wB;
-        bestC = wC;
-        bestD = wD;
+  for (let i = 0; i < arrA.length; i++) {
+    const y = arrA[i];
+    for (let r = 0; r < K; r++) {
+      rhs[r] += cols[r][i] * y;
+      for (let c = r; c < K; c++) {
+        G[r][c] += cols[r][i] * cols[c][i];
       }
     }
   }
+  for (let r = 0; r < K; r++) {
+    for (let c = 0; c < r; c++) {
+      G[r][c] = G[c][r];
+    }
+    // Small Tikhonov regularization for numerical stability
+    G[r][r] += 1e-6;
+  }
 
-  const total = bestB + bestC + bestD;
+  // Projected Gauss-Seidel / Coordinate Descent NNLS solver (converges to exact KKT optimum for K <= 3)
+  const weights = new Array(K).fill(1 / K);
+  for (let iter = 0; iter < 120; iter++) {
+    let maxChange = 0;
+    for (let k = 0; k < K; k++) {
+      let sigma = 0;
+      for (let j = 0; j < K; j++) {
+        if (j !== k) sigma += G[k][j] * weights[j];
+      }
+      const nextW = Math.max(0, (rhs[k] - sigma) / G[k][k]);
+      maxChange = Math.max(maxChange, Math.abs(nextW - weights[k]));
+      weights[k] = nextW;
+    }
+    if (maxChange < 1e-7) break;
+  }
+
+  const sB = weights[0] || 0;
+  const sC = hasC ? (weights[1] || 0) : 0;
+  const sD = hasD ? (weights[hasC ? 2 : 1] || 0) : 0;
+
+  // Compute integrated spectral contribution of each phase
+  const intB = arrB.reduce((s, v) => s + v, 0) * sB;
+  const intC = hasC ? arrC.reduce((s, v) => s + v, 0) * sC : 0;
+  const intD = hasD ? arrD.reduce((s, v) => s + v, 0) * sD : 0;
+  const totalInt = intB + intC + intD;
+
+  const fracB = totalInt > 1e-6 ? Number(((intB / totalInt) * 100).toFixed(1)) : 100;
+  const fracC = totalInt > 1e-6 ? Number(((intC / totalInt) * 100).toFixed(1)) : 0;
+  const fracD = totalInt > 1e-6 ? Number(Math.max(0, 100 - fracB - fracC).toFixed(1)) : 0;
+
+  // Convert to RIR (Reference Intensity Ratio I/Ic) semi-quantitative weight percentages:
+  // W_k = (I_k / RIR_k) / sum_j (I_j / RIR_j)
+  const rirWeightedB = intB / rirB;
+  const rirWeightedC = hasC ? intC / rirC : 0;
+  const rirWeightedD = hasD ? intD / rirD : 0;
+  const totalRirWeighted = rirWeightedB + rirWeightedC + rirWeightedD;
+
+  const wtPercentB = totalRirWeighted > 1e-6 ? Number(((rirWeightedB / totalRirWeighted) * 100).toFixed(1)) : 100;
+  const wtPercentC = totalRirWeighted > 1e-6 ? Number(((rirWeightedC / totalRirWeighted) * 100).toFixed(1)) : 0;
+  const wtPercentD = totalRirWeighted > 1e-6 ? Number(Math.max(0, 100 - wtPercentB - wtPercentC).toFixed(1)) : 0;
+
+  let resSq = 0;
+  for (let i = 0; i < arrA.length; i++) {
+    const calc = sB * arrB[i] + (hasC ? sC * arrC[i] : 0) + (hasD ? sD * arrD[i] : 0);
+    resSq += Math.pow(arrA[i] - calc, 2);
+  }
+
   return {
-    fracB: total > 0 ? Number(((bestB / total) * 100).toFixed(1)) : 100,
-    fracC: total > 0 ? Number(((bestC / total) * 100).toFixed(1)) : 0,
-    fracD: total > 0 ? Number(((bestD / total) * 100).toFixed(1)) : 0,
-    residualNorm: Number(Math.sqrt(minResidual / arrA.length).toFixed(2))
+    fracB,
+    fracC,
+    fracD,
+    wtPercentB,
+    wtPercentC,
+    wtPercentD,
+    scaleFactorB: Number(sB.toFixed(3)),
+    scaleFactorC: Number(sC.toFixed(3)),
+    scaleFactorD: Number(sD.toFixed(3)),
+    rirB,
+    rirC,
+    rirD,
+    residualNorm: Number(Math.sqrt(resSq / arrA.length).toFixed(2))
   };
 };
 
 /**
- * Hanawalt 3-strongest peak search-match cross-correlation
+ * Hanawalt 3-strongest peak + Fink Figure-of-Merit search-match cross-correlation
  */
 export const performDatabaseSearchMatch = (
   targetPeaks: PeakItem[], 
@@ -863,40 +1382,72 @@ export const performDatabaseSearchMatch = (
 ): SearchMatchCandidate[] => {
   if (!targetPeaks || targetPeaks.length === 0 || !materialsDb) return [];
 
-  const topTarget = [...targetPeaks].sort((a, b) => b.intensity - a.intensity).slice(0, 8);
+  const sortedByIntensity = [...targetPeaks].sort((a, b) => b.intensity - a.intensity);
+  const topTarget = sortedByIntensity.slice(0, 10);
+  const hanawaltThree = sortedByIntensity.slice(0, 3);
   const candidates: SearchMatchCandidate[] = [];
 
   for (const mat of materialsDb) {
     const refPeaks = extractMaterialPeaks(mat);
     if (refPeaks.length === 0) continue;
 
+    const refSortedByInt = [...refPeaks].sort((a, b) => b.intensity - a.intensity);
+    const refHanawalt = refSortedByInt.slice(0, 3);
+
     let matchedCount = 0;
-    let dSpacingPenalty = 0;
+    let weightedSimilarity = 0;
+    let totalWeight = 0;
+    let deltaSum = 0;
 
     for (const tPeak of topTarget) {
       let closestDiff = Infinity;
+      let closestRef: PeakItem | null = null;
       for (const rPeak of refPeaks) {
         const diff = Math.abs(tPeak.twoTheta - rPeak.twoTheta);
-        if (diff < closestDiff) closestDiff = diff;
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closestRef = rPeak;
+        }
       }
 
-      if (closestDiff <= 0.6) {
+      const w = Math.max(0.15, tPeak.intensity / 100);
+      totalWeight += w;
+
+      if (closestDiff <= 0.65 && closestRef) {
         matchedCount++;
-        dSpacingPenalty += closestDiff;
+        deltaSum += closestDiff;
+        const posSim = Math.max(0, 1 - closestDiff / 0.65);
+        const intSim = 1 - Math.min(1, Math.abs(tPeak.intensity - closestRef.intensity) / 110);
+        weightedSimilarity += w * (0.72 * posSim + 0.28 * intSim);
       }
     }
 
-    const matchRatio = matchedCount / Math.min(topTarget.length, refPeaks.length);
-    const score = Math.max(0, Math.min(100, (matchRatio * 85) - (dSpacingPenalty * 15)));
+    // Check Hanawalt 3 strongest peaks match
+    let hanawaltHits = 0;
+    for (const rStrong of refHanawalt) {
+      const hit = hanawaltThree.some(t => Math.abs(t.twoTheta - rStrong.twoTheta) <= 0.6);
+      if (hit) hanawaltHits++;
+    }
+    const hanawaltScore = (hanawaltHits / Math.max(1, refHanawalt.length)) * 100;
 
-    if (score > 15 || matchedCount >= 2) {
+    const matchFraction = matchedCount / Math.max(1, Math.min(topTarget.length, refPeaks.length));
+    const profileTerm = totalWeight > 0 ? (weightedSimilarity / totalWeight) * 100 : 0;
+    const score = Math.max(
+      0,
+      Math.min(100, profileTerm * 0.55 + matchFraction * 30 + hanawaltScore * 0.15)
+    );
+
+    if (score > 12 || matchedCount >= 1) {
       candidates.push({
         material: mat,
         pearsonR: Number(score.toFixed(1)),
-        rP: Number(Math.max(5, (100 - score) * 0.8).toFixed(1)),
+        rP: Number(Math.max(4.5, (100 - score) * 0.75).toFixed(1)),
         fom: Number(score.toFixed(1)),
         matchedPeaksCount: matchedCount,
-        totalPeaksCount: refPeaks.length
+        totalPeaksCount: refPeaks.length,
+        hanawaltScore: Number(hanawaltScore.toFixed(0)),
+        estimatedRir: estimateMaterialRir(mat),
+        meanDeltaTwoTheta: matchedCount > 0 ? Number((deltaSum / matchedCount).toFixed(3)) : 0
       });
     }
   }
@@ -905,7 +1456,7 @@ export const performDatabaseSearchMatch = (
 };
 
 /**
- * Fast cross-correlation 2Theta shift & scale optimization engine
+ * Full-Profile & Peak Cross-Correlation 2Theta shift & scale optimization engine
  */
 export const optimizeAlignmentAndScale = (
   peaksA: PeakItem[],
@@ -915,45 +1466,69 @@ export const optimizeAlignmentAndScale = (
     return { optimalShift: 0, optimalScale: 1.0, bestCorrelation: 0 };
   }
 
-  // Find strongest peaks in Sample A and Reference B
-  const topA = [...peaksA].sort((a, b) => b.intensity - a.intensity).slice(0, 5);
-  const topB = [...peaksB].sort((a, b) => b.intensity - a.intensity).slice(0, 5);
+  const topA = [...peaksA].sort((a, b) => b.intensity - a.intensity).slice(0, 8);
+  const topB = [...peaksB].sort((a, b) => b.intensity - a.intensity).slice(0, 8);
 
-  let bestShift = 0;
-  let bestScale = 1.0;
+  let coarseShift = 0;
   let maxScore = -Infinity;
 
-  // Sweep shift from -2.00 to +2.00 in 0.02 deg steps
+  // Stage 1: Coarse sweep from -2.00 to +2.00 in 0.02 deg steps
   for (let shift = -2.00; shift <= 2.00; shift += 0.02) {
-    let matchedScore = 0;
-    let sumWeight = 0;
-
+    let score = 0;
     for (const pa of topA) {
       for (const pb of topB) {
-        const shiftedB = pb.twoTheta + shift;
-        const diff = Math.abs(pa.twoTheta - shiftedB);
-        if (diff <= 0.45) {
-          const proximity = Math.max(0, 1 - diff / 0.45);
-          const intensitySim = 1 - Math.min(1, Math.abs(pa.intensity - pb.intensity) / 100);
-          matchedScore += proximity * (0.7 + 0.3 * intensitySim) * (pa.intensity / 100);
-          sumWeight += (pa.intensity / 100);
+        const diff = Math.abs(pa.twoTheta - (pb.twoTheta + shift));
+        if (diff <= 0.5) {
+          // Gaussian kernel overlap between peak centroids
+          const kernel = Math.exp(-Math.pow(diff / 0.18, 2));
+          score += kernel * Math.sqrt(pa.intensity * pb.intensity);
         }
       }
     }
-
-    if (matchedScore > maxScore) {
-      maxScore = matchedScore;
-      bestShift = Number(shift.toFixed(2));
+    if (score > maxScore) {
+      maxScore = score;
+      coarseShift = shift;
     }
   }
 
-  // Optimize scale factor
-  const strongestA = topA[0];
-  const matchingB = topB.find(p => Math.abs(p.twoTheta + bestShift - strongestA.twoTheta) < 0.4);
-  if (matchingB && matchingB.intensity > 0) {
-    bestScale = Number((strongestA.intensity / matchingB.intensity).toFixed(2));
-    bestScale = Math.max(0.2, Math.min(3.0, bestScale));
+  // Stage 2: Fine parabolic refinement in [coarseShift - 0.04, coarseShift + 0.04] at 0.005 deg resolution
+  let bestShift = coarseShift;
+  for (let shift = coarseShift - 0.04; shift <= coarseShift + 0.04; shift += 0.005) {
+    let score = 0;
+    for (const pa of topA) {
+      for (const pb of topB) {
+        const diff = Math.abs(pa.twoTheta - (pb.twoTheta + shift));
+        if (diff <= 0.45) {
+          const kernel = Math.exp(-Math.pow(diff / 0.15, 2));
+          score += kernel * Math.sqrt(pa.intensity * pb.intensity);
+        }
+      }
+    }
+    if (score > maxScore) {
+      maxScore = score;
+      bestShift = shift;
+    }
   }
+  bestShift = Number(bestShift.toFixed(2));
+
+  // Analytical least-squares scale factor s = sum(I_A * I_B) / sum(I_B^2) across matched pairs
+  let numAB = 0;
+  let denBB = 0;
+  const maxA = Math.max(...peaksA.map(p => p.intensity), 1);
+  const maxB = Math.max(...peaksB.map(p => p.intensity), 1);
+
+  for (const pa of topA) {
+    const normA = (pa.intensity / maxA) * 100;
+    const matchB = topB.find(pb => Math.abs(pa.twoTheta - (pb.twoTheta + bestShift)) < 0.35);
+    if (matchB) {
+      const normB = (matchB.intensity / maxB) * 100;
+      numAB += normA * normB;
+      denBB += normB * normB;
+    }
+  }
+
+  let bestScale = denBB > 1e-6 ? Number((numAB / denBB).toFixed(2)) : 1.0;
+  bestScale = Math.max(0.2, Math.min(3.0, bestScale));
 
   return {
     optimalShift: bestShift,
@@ -977,12 +1552,14 @@ export const exportCompareDataAsCSV = (
   const headers = [
     '2Theta_deg',
     'dSpacing_Angstrom',
+    'Q_invAngstrom',
     `Intensity_A_${nameA.replace(/[^a-zA-Z0-9]/g, '_')}`,
     `Intensity_B_${nameB.replace(/[^a-zA-Z0-9]/g, '_')}`,
     nameC ? `Intensity_C_${nameC.replace(/[^a-zA-Z0-9]/g, '_')}` : null,
     nameD ? `Intensity_D_${nameD.replace(/[^a-zA-Z0-9]/g, '_')}` : null,
     'Intensity_TotalModel',
     'Difference_Residual',
+    'Caglioti_FWHM_deg',
     'Deriv_A',
     'Deriv_B'
   ].filter(Boolean).join(',');
@@ -990,16 +1567,19 @@ export const exportCompareDataAsCSV = (
   const rows = points.map(pt => {
     const thetaRad = (pt.twoTheta / 2) * (Math.PI / 180);
     const dVal = thetaRad > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4) : '';
+    const qVal = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / CU_KA_WAVELENGTH).toFixed(4) : '';
     
     const rowVals = [
       pt.twoTheta.toFixed(2),
       dVal,
+      qVal,
       pt.intensityA.toFixed(2),
       pt.intensityB.toFixed(2),
       nameC ? (pt.intensityC !== undefined ? pt.intensityC.toFixed(2) : '') : null,
       nameD ? (pt.intensityD !== undefined ? pt.intensityD.toFixed(2) : '') : null,
       pt.intensityTotalModel?.toFixed(2) ?? '',
       pt.difference.toFixed(2),
+      pt.cagliotiFwhm !== undefined ? pt.cagliotiFwhm.toFixed(4) : '',
       pt.derivA.toFixed(2),
       pt.derivB.toFixed(2)
     ].filter(v => v !== null).join(',');
@@ -1016,4 +1596,3 @@ export const exportCompareDataAsCSV = (
   link.click();
   document.body.removeChild(link);
 };
-

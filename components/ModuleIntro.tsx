@@ -104,17 +104,17 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
   },
   fwhm: {
     title: "Line Profile Analytics",
-    tag: "Signal Processing",
+    tag: "Signal Processing & Deconvolution",
     icon: Layers,
     color: "from-orange-500 to-amber-500",
-    description: "Advanced analysis of diffraction peak geometry. Separates instrumental convolution from sample intrinsic properties using Pseudo-Voigt modeling.",
+    description: "Rigorous diffraction line profile synthesis, non-linear least-squares kernel benchmarking (TCH Pseudo-Voigt & Pearson VII), recursive Rachinger Kα₂ stripping, de Keijser Voigt deconvolution, and Bertaut–Warren–Averbach Fourier cosine A(L) analysis.",
     formulas: (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormulaContainer label="Pseudo-Voigt Mix">
-          <M>V</M>(<M>x</M>) = <M>ηL</M>(<M>x</M>) + (1−<M>η</M>)<M>G</M>(<M>x</M>)
+        <FormulaContainer label="Thompson-Cox-Hastings & Pearson VII">
+          <M>V</M>(<M>x</M>) = <M>ηL</M>(<M>x</M>) + (1−<M>η</M>)<M>G</M>(<M>x</M>) &nbsp;|&nbsp; [1 + (<M>x</M>/<M>w</M>)<sup>2</sup>]<sup>−<M>m</M></sup>
         </FormulaContainer>
-        <FormulaContainer label="Integral Breadth">
-          <M>β</M> = <Fraction num={<F>Area</F>} den={<><M>I</M><sub>max</sub></>} />
+        <FormulaContainer label="Integral Breadth & Stokes Fourier">
+          <M>β</M> = <Fraction num={<F>Area</F>} den={<><M>I</M><sub>max</sub></>} /> &nbsp;|&nbsp; <M>A</M>(<M>L</M>) = ⟨<F>cos</F>(2<M>πLs</M>)⟩
         </FormulaContainer>
       </div>
     )

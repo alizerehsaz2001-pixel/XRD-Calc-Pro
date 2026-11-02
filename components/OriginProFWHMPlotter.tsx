@@ -1371,11 +1371,13 @@ export const OriginProFWHMPlotter: React.FC = () => {
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                      <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Crystallite Size (D)</div>
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Crystallite Size (D_V / D_A)</div>
                       <div className="text-sm font-bold font-mono text-cyan-600 dark:text-cyan-400">
-                        {metrics.crystallite_size_nm?.toFixed(1)} nm
+                        {metrics.volume_size_dv_nm ? `${metrics.volume_size_dv_nm.toFixed(1)} nm` : `${metrics.crystallite_size_nm?.toFixed(1)} nm`}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Scherrer Domain</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {metrics.area_size_da_nm ? `D_A: ${metrics.area_size_da_nm.toFixed(1)} nm (Area)` : 'Scherrer Domain'}
+                      </div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">

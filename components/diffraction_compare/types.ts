@@ -20,6 +20,7 @@ export interface MaterialPhase {
   scale?: number;
   color?: string;
   visible?: boolean;
+  rir?: number;
 }
 
 export interface ProfilePoint {
@@ -37,6 +38,7 @@ export interface ProfilePoint {
   toleranceLower: number;
   derivA: number;
   derivB: number;
+  cagliotiFwhm?: number;
   [key: string]: number | undefined;
 }
 
@@ -53,6 +55,45 @@ export interface IndexedPeakMatch {
   intensityB: number;
   status: 'matched' | 'shifted' | 'extra' | 'missing';
   phaseOrigin?: 'Phase B' | 'Phase C' | 'Phase D' | 'Unknown';
+  strainPercent?: number | null;
+  scherrerSizeNm?: number | null;
+}
+
+export interface StrainRegressionPoint {
+  twoTheta: number;
+  tanTheta: number;
+  cosTheta: number;
+  observedShift: number;
+  modeledShift: number;
+  strainOnlyShift: number;
+  peakStrainPercent: number;
+  hkl: string;
+  phaseOrigin: string;
+}
+
+export interface StrainRegressionAnalysis {
+  zeroShiftDeg: number;
+  specimenDisplacementCos: number;
+  trueMacrostrainPercent: number;
+  apparentStrainPercent: number;
+  regressionR2: number;
+  pairedPoints: StrainRegressionPoint[];
+}
+
+export interface PhaseQuantificationResult {
+  fracB: number;
+  fracC: number;
+  fracD: number;
+  wtPercentB: number;
+  wtPercentC: number;
+  wtPercentD: number;
+  scaleFactorB: number;
+  scaleFactorC: number;
+  scaleFactorD: number;
+  rirB: number;
+  rirC: number;
+  rirD: number;
+  residualNorm: number;
 }
 
 export interface SpectralMetrics {
@@ -65,6 +106,10 @@ export interface SpectralMetrics {
   maxDiff: string;
   rmsd: string;
   goodnessOfFit: string;
+  cosineSimilarity: string;
+  spearmanRho: string;
+  braggR: string;
+  durbinWatson: string;
 }
 
 export interface SearchMatchCandidate {
@@ -74,6 +119,9 @@ export interface SearchMatchCandidate {
   fom: number;
   matchedPeaksCount: number;
   totalPeaksCount: number;
+  hanawaltScore?: number;
+  estimatedRir?: number;
+  meanDeltaTwoTheta?: number;
 }
 
 export type CompareViewMode = 'stacked' | 'unified' | 'mirrored' | 'derivative' | 'multiphase' | 'split';
@@ -127,6 +175,7 @@ export interface CaliperPoint {
   dSpacing: string;
   qVector: string;
   sourceCurve?: 'A' | 'B' | 'C' | 'D' | 'General';
+  hkl?: string;
 }
 
 export interface CaliperMeasurement {
@@ -157,6 +206,13 @@ export interface CompareEngineSettings {
   smoothingFilter?: SmoothingFilter;
   intensityScale?: IntensityScaleType;
   stripBackground?: boolean;
+  enableCaglioti?: boolean;
+  cagliotiU?: number;
+  cagliotiV?: number;
+  cagliotiW?: number;
+  enableKa2Doublet?: boolean;
+  stripKa2?: boolean;
+  rirB?: number;
+  rirC?: number;
+  rirD?: number;
 }
-
-

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, X, Activity, MoveHorizontal, Layers3, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { HelpCircle, X, Activity, MoveHorizontal, Layers3, SlidersHorizontal, Atom } from 'lucide-react';
 
 interface GuideModalProps {
   isOpen: boolean;
@@ -21,13 +21,13 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
               <HelpCircle className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">{t('How to Interpret XRD Compare & Residuals')}</h3>
-              <p className="text-xs text-slate-400 font-mono">{t('Crystallographic Match & Diagnostics User Guide')}</p>
+              <h3 className="text-base font-bold text-white">{t('Crystallographic Compare & Quantification Reference')}</h3>
+              <p className="text-xs text-slate-400 font-mono">{t('Rietveld Residuals, Caglioti Physics, RIR Weights & Strain Separation')}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors"
+            className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -37,56 +37,62 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
           <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
             <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase text-[11px]">
               <Activity className="w-4 h-4" />
-              <span>1. Quantitative Residual Metrics (Rp, Rwp, Pearson r)</span>
+              <span>01. Quantitative Residual Metrics (Rp, Rwp, χ², Cosine & Durbin-Watson)</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              • <strong className="text-rose-400">Profile Residual (Rp):</strong> Sum of absolute differences |I_A - I_B| divided by total intensity. Values below 10-15% denote excellent profile agreement.
+              · <strong className="text-rose-400">Profile Residual (Rp) & Weighted (Rwp):</strong> Measure relative discrepancy between experimental Sample A and the composite reference model using Poisson counting weights w_i = 1 / max(I_obs, 1).
               <br />
-              • <strong className="text-amber-400">Weighted Profile Residual (Rwp):</strong> Gives higher statistical weight to strong diffraction peaks.
+              · <strong className="text-emerald-400">Cosine Similarity & Spearman ρ:</strong> Evaluate vector-angle alignment and rank-order correlation across the full 2θ range.
               <br />
-              • <strong className="text-emerald-400">Pearson Cross-Correlation (r):</strong> Measure of shape and peak profile alignment. Values &gt; 95% indicate strong phase identity.
+              · <strong className="text-cyan-400">Durbin-Watson (d_DW):</strong> Detects serial correlation in the difference curve (values near 2.0 indicate uncorrelated random counting noise).
+            </p>
+          </div>
+
+          <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+            <div className="flex items-center gap-2 text-cyan-400 font-bold uppercase text-[11px]">
+              <Atom className="w-4 h-4" />
+              <span>02. Caglioti Resolution & Cu Kα₁/Kα₂ Doublet Physics</span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              · <strong className="text-cyan-300">Caglioti Dispersion:</strong> Models angle-dependent instrumental broadening via FWHM²(θ) = U·tan²θ + V·tanθ + W.
+              <br />
+              · <strong className="text-amber-300">Cu Kα₁/Kα₂ Doublet & Rachinger Strip:</strong> Synthesizes the 2:1 Kα₁ (1.540598 Å) and Kα₂ (1.544426 Å) doublet splitting at high angles, or strips Kα₂ contributions via the analytical Rachinger recursion.
             </p>
           </div>
 
           <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
             <div className="flex items-center gap-2 text-amber-400 font-bold uppercase text-[11px]">
               <MoveHorizontal className="w-4 h-4" />
-              <span>2. Position Shifts (Δ2θ) & Lattice Strain</span>
+              <span>03. Zero-Shift (Δ2θ₀) vs. Specimen Displacement vs. Lattice Strain (ε)</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              • A positive shift (+Δ2θ) indicates unit cell contraction (smaller d-spacing), often caused by smaller ionic substitutions or compressive stress.
+              · Observed peak shifts follow Δ2θ(θ) = Δ2θ₀ - (2s/R)·cos(θ) - 2ε·tan(θ)·(180/π).
               <br />
-              • A negative shift (-Δ2θ) indicates unit cell expansion (larger d-spacing).
-              <br />
-              • Click <strong className="text-amber-300">Auto Align</strong> to compensate for zero-point detector offset or sample displacement errors.
+              · The <strong className="text-amber-300">Zero-Shift & Strain</strong> tab performs weighted linear regression across all indexed reflections to separate constant goniometer zero-offset (Δ2θ₀) from true physical lattice expansion or contraction (ε = Δd/d).
             </p>
           </div>
 
           <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
-            <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase text-[11px]">
+            <div className="flex items-center gap-2 text-purple-400 font-bold uppercase text-[11px]">
               <Layers3 className="w-4 h-4" />
-              <span>3. Unindexed Reflections & Multi-Phase Deconvolution</span>
+              <span>04. Analytical NNLS + Reference Intensity Ratio (I/Ic RIR) & Residual Search</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              • Any peaks in Sample A that do not match reference Sample B appear in the <strong className="text-indigo-300">Extra / Impurity Peaks</strong> list.
+              · Converts non-negative least-squares spectral scale factors into physical weight percentages using Corundum reference intensity ratios: wt%_k = (I_k / RIR_k) / Σ(I_j / RIR_j).
               <br />
-              • Use <strong className="text-purple-300">Secondary Phase C</strong> and the <strong className="text-purple-300">Phase Fractions Solver</strong> to deconvolve biphasic mixtures (e.g. HAp + β-TCP).
+              · Use <strong className="text-amber-300">Residual Unmatched Search</strong> inside the Search-Match modal to identify secondary impurity phases (Phase C and Phase D) directly from unexplained peaks in Sample A.
             </p>
           </div>
 
           <div className="bg-[#030712] p-3.5 rounded-xl border border-slate-800 space-y-1.5">
-            <div className="flex items-center gap-2 text-cyan-400 font-bold uppercase text-[11px]">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold uppercase text-[11px]">
               <SlidersHorizontal className="w-4 h-4" />
-              <span>4. View Modes (3-Pane Stacked, Unified Overlay, Butterfly Mirror, 1st Derivative)</span>
+              <span>05. View Modes, Y-Axis Scaling & Precision Peak Caliper</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              • <strong className="text-white">3-Pane Stacked:</strong> Stacked view showing Sample A, Sample B, and the Delta Residual profile simultaneously.
+              · Switch Y-Scale between <strong className="text-white">Linear I</strong>, <strong className="text-white">Square Root √I</strong>, and <strong className="text-white">Log₁₀(I + 1)</strong> to inspect weak trace reflections (&lt;2% intensity).
               <br />
-              • <strong className="text-white">Unified Overlay:</strong> Direct overlay on single axis with filled areas.
-              <br />
-              • <strong className="text-white">Butterfly Mirror:</strong> Mirrors Reference B below zero for symmetry inspection.
-              <br />
-              • <strong className="text-white">1st Derivative:</strong> Computes dI/d2θ to identify subtle shoulders and hidden doublet peaks.
+              · Activate the <strong className="text-emerald-300">Caliper Tool</strong> to select any two reflections from dropdowns or by clicking the chart, with ±0.01° fine-stepping.
             </p>
           </div>
         </div>
@@ -94,7 +100,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ isOpen, onClose }) => {
         <div className="pt-2 border-t border-slate-800 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
           >
             {t('Got It')}
           </button>

@@ -1,134 +1,119 @@
-# Advanced Peak Profile Deconvolution & Pearson VII Fitting
+# Diffraction Compare Lab — Crystallographic Physics, Multi-Phase Quantification & Diagnostic Overhaul
 
-This plan delivers high-precision analytical mathematics for crystallographic line profile deconvolution, Pearson VII shape fitting, and rigorous covariance-based uncertainty propagation across XRD-Calc Pro.
-
----
+This upgrade transforms the Diffraction Compare Lab into a rigorous, laboratory-grade powder X-ray diffraction (PXRD) comparative workbench. It replaces heuristic approximations with analytical crystallographic physics—incorporating Caglioti angle-dependent instrumental resolution, $\text{Cu } K\alpha_1/K\alpha_2$ doublet synthesis and Rachinger stripping, analytical Non-Negative Least Squares (NNLS) phase quantification with Reference Intensity Ratio ($I/I_c$ RIR) corundum weights, and linear-regression separation of instrumental zero-shift, specimen displacement, and true lattice macrostrain ($\Delta d/d$).
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> **Confirmed Direction from Phase 1 Interview**:
-> - **Domain Focus**: Peak profile deconvolution and Pearson VII fitting.
-> - **Mathematical Methodology**: Analytical precision with exact closed-form formulations (Lanczos-gamma analytical integration, Stokes Fourier deconvolution, and covariance matrix error propagation) over heuristic approximations.
+> All core scope and mathematical depth decisions were confirmed during Phase 1 clarification. Review the architectural blueprint below and click **Proceed** to execute the upgrade across the Diffraction Compare Lab.
 
-- **Confirmed Decision 1**: Use exact analytical integration for Pearson VII profiles via the Lanczos Gamma function $\Gamma(z)$, ensuring exact analytical integral breadth $\beta_{\text{IB}}$ and shape parameter $m$ extraction without numerical quadrature discretization error.
-- **Confirmed Decision 2**: Upgrade Voigt and Double-Voigt peak profile deconvolution across the FWHM and line profile engines to the rigorous Olivero-Longbothum / Thompson-Cox-Hastings formulations, cleanly isolating Cauchy crystallite size broadening ($D_V$, $D_A$) from Gaussian microstrain ($\langle \varepsilon^2 \rangle^{1/2}$) and instrumental aberrations ($\beta_{\text{inst}}$).
-- **Confirmed Decision 3**: Provide full covariance matrix calculations, standard error bounds ($\pm 1\sigma$), confidence intervals ($95\%$), and information criteria (AIC / BIC) for peak parameter fits.
+- **Confirmed Decision 1 — Full 4-Pillar Lab Overhaul**: All four priority domains will be upgraded together:
+  1. Full mathematical and statistical profile comparison overhaul
+  2. Interactive chart, precision peak caliper, and multi-phase stick/ribbon visualization upgrades
+  3. Automated phase search-match (including residual unexplained-peak identification) and analytical NNLS quantification refinement
+  4. Peak-by-peak multi-phase indexing, lattice strain ($\Delta d/d$), and instrumental zero-shift separation analysis
+- **Confirmed Decision 2 — Rigorous Crystallographic Physics**: Profile synthesis and phase quantification will implement Caglioti angle-dependent FWHM dispersion ($\text{FWHM}^2(\theta) = U\tan^2\theta + V\tan\theta + W$), optional $\text{Cu } K\alpha_1/\alpha_2$ doublet splitting ($\lambda_1 = 1.540598\text{ \AA}, \lambda_2 = 1.544426\text{ \AA}, I_2/I_1 = 0.5$), working area/maximum/raw normalization modes, and Reference Intensity Ratio ($I/I_c$ RIR) semi-quantitative weight percent conversion.
 
 ---
 
 ## 1. Overview & Core Concept
 
-- **What It Does**: Upgrades XRD-Calc Pro's peak profile metrology suite to university-grade analytical precision. Users fitting single peaks, overlapping multiplets, or complex instrumental lines obtain mathematically exact Pearson VII parameters (amplitude $I_0$, centroid $2\theta_0$, FWHM, decay exponent $m$), Voigt Cauchy/Gaussian deconvolution, Fourier Stokes deconvolution coefficients, and publication-ready error bands.
-- **Target Audience**: Materials scientists, solid-state chemists, and diffraction metrologists characterizing nanomaterials, thin films, pharmaceutical polymorphs, and battery cathodes.
-- **Key Value**: Replaces empirical peak shape approximations with closed-form mathematical equations and full variance-covariance uncertainty propagation, guaranteeing reproducible crystallite size and microstrain extraction compliant with International Tables for Crystallography standards.
+- **What It Does**: Provides crystallographers, materials scientists, and solid-state chemists with a side-by-side and overlaid diffraction pattern comparator capable of synthesizing physically accurate multi-phase profiles, indexing reflections across up to three reference phases simultaneously (Primary B, Secondary C, Tertiary D), decomposing peak shifts into instrumental alignment errors versus physical lattice strain, and identifying unknown impurity phases directly from residual peaks.
+- **Target Audience / Persona**: Diffractionists, battery & ceramic researchers, and mineralogy analysts comparing experimental scans or active Bragg calculations against standard reference phases and multi-phase mixtures.
+- **Key Value**: Eliminates false strain readings caused by sample height displacement or goniometer zero-shift, provides true weight-percent phase quantification via $I/I_c$ RIR scaling rather than raw intensity ratios, and enables multi-stage "Residual Search-Match" to identify minor impurity peaks automatically.
 
 ---
 
 ## 2. User Experience & Visual Design
 
 - **Key User Flows**:
-  1. *Profile Fitting & Model Selection*: User inputs experimental peak data (or selects NIST SRM standard such as Si 640f, LaB6 660c, or CeO2 674b) and chooses the profile model (Pearson VII, Pseudo-Voigt, Thompson-Cox-Hastings Voigt, or Split-Pearson VII for asymmetric profiles).
-  2. *Live Deconvolution & Component Inspector*: Visualizer renders the experimental profile, fitted analytical envelope, individual deconvolved Gaussian and Lorentzian/Cauchy components, and normalized residual subplots ($(\Delta I)/\sigma$).
-  3. *Analytical Metrics Card*: Live display of exact peak area (via Lanczos Gamma $\Gamma(m-0.5)/\Gamma(m)$), integral breadth $\beta$, shape factor $\phi = \text{FWHM}/\beta$, volume-weighted domain size $D_V$, area-weighted column length $D_A$, and RMS microstrain $\langle \varepsilon^2 \rangle^{1/2}$ with $\pm \sigma$ uncertainties.
-  4. *Multi-Peak & Doublet Resolving*: Interactive toggle to resolve $K\alpha_1 / K\alpha_2$ characteristic doublets with analytical intensity ratio constraints ($2:1$) and goniometer dispersion spacing.
-
+  1. **Configure & Synthesize Physics**: Users select or upload Sample A and Reference B (plus optional Phases C and D), toggle Caglioti $(U, V, W)$ angle-dependent broadening, $\text{Cu } K\alpha_1/\alpha_2$ doublet modeling, Sonneveld-Visser baseline stripping, and normalization mode (`Max 100%`, `Unit Integrated Area`, or `Raw Counts`).
+  2. **Multi-Phase & Dual-Space Inspection**: Users inspect patterns across 6 view modes (`Overlay`, `Dual-Split`, `3-Pane Stack`, `Butterfly Mirrored`, `1st Derivative`, `Multi-Phase`) with stacked Bragg $(hkl)$ reflection tick tracks for each active phase, intensity scale switching (`Linear`, `Sqrt`, `Log10`), and interactive peak-snapping calipers.
+  3. **Zero-Shift vs. Strain Separation**: In the `Strain (Δd/d)` diagnostic tab, users inspect an interactive $\Delta 2\theta$ vs. $2\theta$ / $\tan\theta$ regression analysis that separates constant goniometer zero-shift ($\Delta 2\theta_0$), specimen displacement ($-\frac{2s}{R}\cos\theta$), and true isotropic lattice macrostrain ($\varepsilon = -\frac{\Delta d}{d}$).
+  4. **Residual Search-Match & NNLS + RIR Quantification**: Users open the Search-Match engine in either **Full Pattern** mode or **Residual (Unmatched Peaks Only)** mode to identify impurity phases from unexplained reflections, then inspect RIR-corrected weight fractions ($\text{wt\%}$) in the `Phase Solver (NNLS)` tab.
 - **Visual Identity & Theme**:
-  - *Aesthetic*: High-contrast, publication-grade scientific workbench aesthetic adhering to the DeepMind Science design system.
-  - *Color Palette*: Crisp `#F8FAFC` slate canvas with `#FFFFFF` cards, `#1A73E8` (Google Science Blue) for fitted analytical envelopes, `#0D9488` (Teal) for Gaussian components, `#E8710A` (Orange) for Cauchy/Lorentzian tails, and `#9334E6` (Purple) for Pearson VII envelope contours.
-  - *Typography*: Clean sans-serif UI typography (`Inter`) paired with tabular monospace (`JetBrains Mono` / `Roboto Mono`) for numeric values, $R_{wp}$ percentages, and parameter covariance matrices.
-
-- **Interactive Feedback & Diagnostics**:
-  - Live Durbin-Watson autocorrelation gauge to warn if profile tails suffer from systematic background mismatch.
-  - Real-time parameter confidence badges ($[m > 10 \implies \text{Gaussian limit}]$, $[m \to 1 \implies \text{Lorentzian limit}]$).
+  - *Aesthetic Direction*: High-precision laboratory instrumentation console following the 60-30-10 scientific palette discipline.
+  - *Color Palette & Mood*: Deep obsidian canvas (`#030712` / `#080d1a`) with crisp 1px structural slate borders (`#1e293b`), paired with a publication-ready High-Contrast Light mode (`#ffffff` canvas, `#e2e8f0` grid) and calibrated phosphor trace accents (Cyan `#06b6d4`, Indigo `#6366f1`, Emerald `#10b981`, Rose `#f43f5e`, Amber `#f59e0b`).
+  - *Typography & Hierarchy*: Clean neo-grotesque UI labels paired with strict tabular monospace (`font-mono tabular-nums`) for all $2\theta$, $d$-spacing ($\text{\AA}$), scattering vector $Q$ ($\text{\AA}^{-1}$ and $\text{nm}^{-1}$), $R_{wp}$, $\chi^2$, and strain readouts.
+  - *Component Styling & Layout*: Asymmetric split configuration cards, single-elevation containers with hairline borders, unboxed inline scientific metadata with typographic separators, and zero decorative pulsing dots.
+- **Interactive Feedback & Motion**:
+  - Instantaneous ($\le 150\text{ms}$) curve updates via deferred React state and Largest-Triangle-Three-Buckets (LTTB) downsampling, interactive peak-snap calipers with keyboard fine-stepping, and one-click zoom-to-reflection focusing from the indexing table.
 
 ---
 
 ## 3. Key Product Decisions & Trade-Offs
 
-- **Decision 1: Analytical Lanczos-Gamma vs. Numerical Trapezoid/Simpson Integration**
-  - *Chosen Approach*: Closed-form analytical integration of Pearson VII using Lanczos 9-term approximation of $\Gamma(m)$ and $\Gamma(m - 0.5)$.
-  - *Why*: Eliminates step-size truncation errors and grid artifacts, providing instant $O(1)$ computation for arbitrary $m \ge 1.0001$.
-  - *Alternatives Considered*: Numerical Simpson quadrature (rejected due to $O(N)$ overhead and edge tail clipping).
-
-- **Decision 2: Voigt Deconvolution via Thompson-Cox-Hastings vs. Numerical Convolution**
-  - *Chosen Approach*: Olivero-Longbothum and Thompson-Cox-Hastings analytical approximations linking Voigt FWHM to Cauchy FWHM ($H_L$) and Gaussian FWHM ($H_G$).
-  - *Why*: Delivers $< 0.02\%$ error compared to exact Faddeeva/Voigt integrals while computing in sub-millisecond execution times in the browser.
-  - *Alternatives Considered*: 1024-point discrete FFT convolution (slower, prone to wrap-around edge effects).
-
-- **Decision 3: Covariance Matrix & Standard Error Propagation**
-  - *Chosen Approach*: Invert the Jacobian normal equations matrix $J^T W J$ weighted by Poisson count statistics $w_i = 1 / \max(1, I_{\text{obs}, i})$ to yield the parameter covariance matrix $C = \sigma^2 (J^T W J)^{-1}$.
-  - *Why*: Gives researchers true physical error bars ($\pm \sigma_{2\theta}, \pm \sigma_{\text{FWHM}}, \pm \sigma_m, \pm \sigma_{\text{Area}}$) rather than arbitrary fit percentages.
+- **Decision 1: Caglioti $(U, V, W)$ Instrumental Resolution + $\text{Cu } K\alpha_1/\alpha_2$ Doublet Synthesis**
+  - *Chosen Approach*: Compute angle-dependent FWHM at every reflection using $\text{FWHM}(\theta) = \sqrt{\max(0.0004, U\tan^2\theta + V\tan\theta + W)} + \text{FWHM}_{\text{size/strain}}(\theta)$, and optionally synthesize the $\text{Cu } K\alpha_2$ companion peak at $2\arcsin\left(\frac{\lambda_2}{\lambda_1}\sin\theta_1\right)$ with $0.5\times$ intensity.
+  - *Why*: Real powder diffractometers exhibit broadening that grows non-linearly at high $2\theta$ due to wavelength dispersion ($\tan\theta$) and axial divergence, plus $K\alpha_1/K\alpha_2$ splitting at high angles. Constant-FWHM synthesis produces unrealistic high-angle profiles and inflates $R_{wp}$ residuals.
+  - *Alternatives Considered*: Keeping a single scalar FWHM slider. We retain the scalar FWHM as the baseline $W = \text{FWHM}_0^2$ while adding Caglioti $U, V$ dispersion and $K\alpha_2$ doublet controls so both simple and advanced workflows remain effortless.
+- **Decision 2: Analytical Active-Set NNLS with Reference Intensity Ratio ($I/I_c$ RIR) Weight Conversion**
+  - *Chosen Approach*: Replace the coarse 2% grid loop with an exact analytical 3-phase Non-Negative Least Squares (NNLS) solver followed by fine coordinate refinement, and convert spectral scale factors $S_k$ into true weight percentages via $\text{wt\%}_k = \frac{S_k / \text{RIR}_k}{\sum_j (S_j / \text{RIR}_j)} \times 100$ with editable per-phase $\text{RIR}$ ($I/I_{\text{corundum}}$) values.
+  - *Why*: Equal integrated intensities do not imply equal weight fractions because high-symmetry or heavy-atom phases scatter X-rays far more strongly (higher $I/I_c$). Incorporating RIR ($I/I_c$) yields physically meaningful semi-quantitative weight percentages alongside spectral area fractions.
+  - *Alternatives Considered*: Full Rietveld structure-factor calculation from atomic fractional coordinates, which is unavailable when users input custom $2\theta(I)$ peak lists. RIR bridges custom peak lists and database phases seamlessly.
+- **Decision 3: Multi-Parameter Peak Shift Decomposition (Zero-Shift vs. Specimen Displacement vs. Lattice Strain)**
+  - *Chosen Approach*: Perform weighted linear regression across all indexed peak pairs to decompose observed shift $\Delta 2\theta(\theta) = \Delta 2\theta_0 - \frac{2s}{R}\cos\theta - 2\varepsilon\tan\theta\cdot\frac{180}{\pi}$, reporting decoupled estimates for goniometer zero-error ($\Delta 2\theta_0$), sample displacement error, and true lattice strain ($\varepsilon = \Delta d/d$).
+  - *Why*: A constant goniometer zero-offset or sample height error shifts all peaks in the same direction and is frequently misdiagnosed as tensile or compressive lattice strain if evaluated at a single average angle.
 
 ---
 
-## 4. Technical Architecture & Data Strategy
+## 4. Technical Architecture & Data Strategy *(Technical Reference)*
 
-### System Architecture Diagram
+### Architecture & Component Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           XRD-Calc Pro Mathematical Engine                       │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                         │
-                   ┌─────────────────────┴─────────────────────┐
-                   ▼                                           ▼
-┌──────────────────────────────────────┐   ┌──────────────────────────────────────┐
-│       Analytical Profile Models      │   │       Instrumental Deconvolution     │
-│  (simulatePeak, Pearson VII, Voigt)  │   │   (Langford, Stokes, de Keijser)     │
-├──────────────────────────────────────┤   ├──────────────────────────────────────┤
-│ • Lanczos Gamma Function Γ(z)        │   │ • Cauchy / Gaussian Splitting        │
-│ • Exact Pearson VII Analytical Area  │   │ • Instrumental Broadening (Caglioti) │
-│ • Asymmetric Axial Divergence Skew   │   │ • Volume Size Dv & Area Size Da      │
-│ • Thompson-Cox-Hastings PV Synthesis │   │ • RMS Lattice Microstrain <ε²>½      │
-└──────────────────────────────────────┘   └──────────────────────────────────────┘
-                   │                                           │
-                   └─────────────────────┬─────────────────────┘
-                                         ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                     Least-Squares Optimization & Covariance                     │
-│  • Poisson-Weighted Normal Equations: (Jᵀ W J) Δp = Jᵀ W Δy                     │
-│  • Full Variance-Covariance Matrix: Cov(p) = s² (Jᵀ W J)⁻¹                      │
-│  • Goodness-of-Fit (GoF), Reduced χ², R_wp, R_p, Durbin-Watson, AIC, BIC        │
-└─────────────────────────────────────────────────────────────────────────────────┘
-                                         │
-                                         ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    Interactive Scientific Visualization & UI                    │
-│  • Live Diffractogram Envelope & Component Deconstruction (Recharts)            │
-│  • Residual Subplot with ±3σ Poisson Statistical Confidence Envelope            │
-│  • Publication Export (OriginPro ASCII, LaTeX Parameters, JSON Analysis)        │
-└─────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────────────┐
+│                         DiffractionCompareModule (State Host)                     │
+│  • Active/Custom/Uploaded Sample A, Reference B, Secondary C, Tertiary D          │
+│  • CompareEngineSettings (Caglioti U/V/W, Ka2 Doublet, RIR_B/C/D, Norm, Scale)    │
+└───────────────┬───────────────────────────────────┬───────────────────────────────┘
+                │                                   │
+                ▼                                   ▼
+┌───────────────────────────────────────┐ ┌─────────────────────────────────────────┐
+│     Crystallographic Math Engine      │ │     Interactive UI & Visual Stage       │
+│  • Caglioti FWHM(θ) + Ka1/Ka2 synth   │ │  • SampleConfigurationPanel             │
+│  • Normalization (Max100, Area, Raw)  │ │    (Caglioti, Ka2, RIR, Norm controls)  │
+│  • Full-Profile Cross-Corr Auto-Align │ │  • CompareChartViewer                   │
+│  • Multi-Phase Peak Indexing (B/C/D)  │ │    (6 modes, Log/Sqrt Y, Stacked hkl    │
+│  • Zero-Shift / Displacement / Strain │ │     ticks, Peak-Snap Caliper, Export)   │
+│    Regression Solver                  │ │  • DiagnosticsAndMetricsPanel           │
+│  • Analytical NNLS + RIR Wt% Solver   │ │    (Rp, Rwp, Rexp, χ², Cosine, Strain   │
+│  • Hanawalt + Residual Search-Match   │ │     Regression Plot, NNLS+RIR Table)    │
+│                                       │ │  • AutoSearchMatchModal                 │
+│                                       │ │    (Full Pattern vs Residual Impurity)  │
+└───────────────────────────────────────┘ └─────────────────────────────────────────┘
 ```
 
-### Data Model & Mathematical State Mapping
+### Data Model & State Enhancements
 
-- **Pearson VII Formulation**:
-  $$I(x) = I_{\text{bg}} + I_0 \left[ 1 + 4\left(2^{1/m} - 1\right) \frac{(x - x_0)^2}{\text{FWHM}^2} \right]^{-m}$$
-  $$\text{Area} = I_0 \cdot \text{FWHM} \cdot \frac{\sqrt{\pi} \cdot \Gamma(m - 0.5)}{2\sqrt{2^{1/m} - 1} \cdot \Gamma(m)}$$
-  $$\beta_{\text{IB}} = \frac{\text{Area}}{I_0} = \text{FWHM} \cdot \frac{\sqrt{\pi} \cdot \Gamma(m - 0.5)}{2\sqrt{2^{1/m} - 1} \cdot \Gamma(m)}$$
-  $$\text{Shape Factor } \phi = \frac{\text{FWHM}}{\beta_{\text{IB}}} = \frac{2\sqrt{2^{1/m} - 1} \cdot \Gamma(m)}{\sqrt{\pi} \cdot \Gamma(m - 0.5)}$$
+- **Extended `CompareEngineSettings`**:
+  - `cagliotiU`, `cagliotiV`, `cagliotiW`: Instrumental resolution dispersion parameters (defaults tuned so $W = \text{fwhm}^2$, with toggleable Caglioti dispersion).
+  - `enableKa2Doublet`: Boolean toggle to synthesize $\text{Cu } K\alpha_1 + K\alpha_2$ doublets ($\Delta\lambda/\lambda \approx 0.00248$).
+  - `stripKa2`: Boolean toggle for Rachinger $K\alpha_2$ stripping on experimental continuous data.
+  - `rirB`, `rirC`, `rirD`: Reference Intensity Ratio ($I/I_c$) corundum scale factors for Reference B, Phase C, and Phase D (automatically initialized from material formula/atomic weight or user-adjustable in the quantification solver).
+- **Extended `SpectralMetrics`**:
+  - Adds `cosineSimilarity` (dot-product spectral angle similarity), `spearmanRho` (rank-order correlation), `braggR` ($R_B$ integrated peak intensity residual), and `weightedDurbinWatson` ($d_{DW}$ serial correlation statistic for residual autocorrelation).
+- **ExtendedIndexing & Strain Decomposition Model**:
+  - Multi-phase indexing matches experimental Sample A peaks against Reference B, Phase C, and Phase D, tagging each reflection with `phaseOrigin: 'Phase B' | 'Phase C' | 'Phase D' | 'Unknown'` and computing per-peak interplanar $\Delta d/d$ (%) and local Scherrer crystallite size $D_{hkl}$ (nm).
+  - Strain regression output provides:
+    - `zeroShiftDeg`: Estimated constant instrumental zero-point offset ($\Delta 2\theta_0$).
+    - `specimenDisplacementCos`: Estimated $\cos\theta$ specimen displacement coefficient.
+    - `trueMacrostrainPercent`: Slope-derived lattice strain $\varepsilon = -\frac{\Delta d}{d}$ (%) after removing instrumental zero-shift.
+    - `regressionR2`: Goodness-of-fit of the strain-shift separation model.
 
-- **Voigt Deconvolution Formulations (Olivero-Longbothum / TCH)**:
-  $$f_V \approx 0.5346 \beta_L + \sqrt{0.2166 \beta_L^2 + \beta_G^2}$$
-  $$\beta_L^S = \beta_L^{\text{obs}} - \beta_L^{\text{inst}}$$
-  $$\beta_G^S = \sqrt{\max\left(0, (\beta_G^{\text{obs}})^2 - (\beta_G^{\text{inst}})^2\right)}$$
-  $$D_V = \frac{K \lambda}{\beta_L^S \cos\theta}, \quad D_A = \frac{D_V}{2}, \quad \langle \varepsilon^2 \rangle^{1/2} = \frac{\beta_G^S}{2\sqrt{2\pi} \tan\theta}$$
+### Interactive Component & State Mapping
 
-- **Statistical Metrics State**:
-  $$R_p = \frac{\sum |y_{\text{obs}} - y_{\text{calc}}|}{\sum y_{\text{obs}}} \times 100\%$$
-  $$R_{wp} = \sqrt{\frac{\sum w_i (y_{\text{obs}} - y_{\text{calc}})^2}{\sum w_i y_{\text{obs}}^2}} \times 100\%, \quad w_i = \frac{1}{\max(1, y_{\text{obs}, i})}$$
-  $$\chi^2_{\text{red}} = \frac{\sum w_i (y_{\text{obs}} - y_{\text{calc}})^2}{N - P}, \quad \text{GoF} = \sqrt{\chi^2_{\text{red}}}$$
-  $$d_{\text{DW}} = \frac{\sum_{i=2}^N (\Delta y_i - \Delta y_{i-1})^2}{\sum_{i=1}^N (\Delta y_i)^2}$$
-
----
-
-## 5. Verification & Testing Strategy
-
-1. **Analytical Benchmark Testing**:
-   - Verify Pearson VII integration matches Gaussian limit ($\text{Area} = I_0 \cdot \text{FWHM} \cdot \sqrt{\pi / (4\ln 2)} \approx 1.06447 \cdot I_0 \cdot \text{FWHM}$) as $m \to \infty$.
-   - Verify Pearson VII integration matches Lorentzian limit ($\text{Area} = I_0 \cdot \text{FWHM} \cdot \pi / 2 \approx 1.5708 \cdot I_0 \cdot \text{FWHM}$) at $m = 1.0$.
-2. **Standard Reference Materials**:
-   - Validate deconvolution against NIST SRM 640f ($Si$) and SRM 660c ($LaB_6$) peak profiles.
-3. **Compilation & Integrity**:
-   - Run `lint_applet` (`tsc --noEmit`) and `compile_applet` (`npm run build`).
+1. **Sample & Physics Configuration (`SampleConfigurationPanel`)**:
+   - Exposes `Normalization Mode` (`Max 100%`, `Unit Area`, `Raw Intensity`), `Intensity Y-Scale` (`Linear`, `Square Root √I`, `Log10`), `Caglioti Broadening (U, V, W)`, and `Cu Kα₁/Kα₂ Doublet` toggles inside the Diffraction Physics drawer.
+   - Exposes `RIR (I/Ic)` corundum factor inputs for Phases B, C, and D inside the Multi-Phase Mixture drawer.
+2. **Chart Stage & Precision Caliper (`CompareChartViewer`)**:
+   - Applies selected Y-axis scaling (`linear`, `sqrt`, `log10`) to chart data and axis formatters so weak trace impurity peaks (<2% relative intensity) are clearly visible.
+   - Renders multi-tier Bragg $(hkl)$ reflection markers for Sample A, Reference B, Phase C, and Phase D without label collisions.
+   - Upgrades the Caliper tool with Peak Selector dropdowns (allowing instant selection of any detected peak in A, B, C, or D as Marker C1 or C2) plus full-profile cross-correlation auto-alignment (`optimizeAlignmentAndScale` refined with fine $0.01^\circ$ profile residual minimization).
+3. **Diagnostics, Multi-Phase NNLS+RIR & Strain Separation (`DiagnosticsAndMetricsPanel`)**:
+   - **Overview Cards**: Displays $R_p$, $R_{wp}$, $R_{exp}$, $\chi^2$ ($S^2$), Bragg $R_B$, Cosine Similarity, Pearson $r$, and Durbin-Watson statistic.
+   - **(hkl) Indexing Table**: Shows multi-phase origin badges (`Phase B`, `Phase C`, `Phase D`, `Unindexed`), per-peak $\Delta d/d$ strain, and a direct `"Identify Unmatched Peaks"` button that launches `AutoSearchMatchModal` in Residual mode.
+   - **Phase Solver (NNLS + RIR)**: Displays both Spectral Area Fractions and RIR-Corrected Weight Fractions ($\text{wt\%}$) with interactive RIR ($I/I_c$) sliders/inputs and phase density/corundum calibration notes.
+   - **Strain ($\Delta d/d$) & Zero-Shift Separation**: Renders an interactive $\Delta 2\theta$ vs. $2\theta$ / Williamson-Hall diagnostic chart and regression breakdown card distinguishing instrumental zero-offset ($\Delta 2\theta_0$) from physical lattice expansion/contraction ($\Delta d/d$), with a `"Apply Zero-Shift Correction"` button that feeds $-\Delta 2\theta_0$ directly into the chart alignment shift.
+4. **Automated Search-Match (`AutoSearchMatchModal`)**:
+   - Adds a mode switch between **Full Pattern Search** (all Sample A peaks) and **Residual Impurity Search** (searching only the unmatched `extraInA` reflections to identify secondary Phase C or tertiary Phase D), plus a `"+ Phase D"` action button alongside `"Set Ref B"` and `"+ Phase C"`.

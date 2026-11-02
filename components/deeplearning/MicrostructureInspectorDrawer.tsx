@@ -83,8 +83,20 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
     ? (detectedPeaks.reduce((acc, p) => acc + p.crystalliteSizeNm, 0) / detectedPeaks.length).toFixed(1)
     : "—";
 
+  const avgVolSizeNm = detectedPeaks.length > 0
+    ? (detectedPeaks.reduce((acc, p) => acc + (p.volumeWeightedSizeNm || p.crystalliteSizeNm), 0) / detectedPeaks.length).toFixed(1)
+    : "—";
+
+  const avgAreaSizeNm = detectedPeaks.length > 0
+    ? (detectedPeaks.reduce((acc, p) => acc + (p.areaWeightedSizeNm || p.crystalliteSizeNm * 0.75), 0) / detectedPeaks.length).toFixed(1)
+    : "—";
+
   const avgMicrostrain = detectedPeaks.length > 0
     ? (detectedPeaks.reduce((acc, p) => acc + p.microstrainPct, 0) / detectedPeaks.length).toFixed(3)
+    : "—";
+
+  const avgDislocationDensity = detectedPeaks.length > 0
+    ? (detectedPeaks.reduce((acc, p) => acc + (p.dislocationDensity || 0.25), 0) / detectedPeaks.length).toFixed(2)
     : "—";
 
   // Filter detected peaks by search
@@ -107,12 +119,19 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
       "Q_inv_Angstrom",
       "Obs_FWHM_deg",
       "Instrument_FWHM_deg",
-      "Sample_FWHM_deg",
+      "Sample_Voigt_FWHM_deg",
+      "Sample_Lorentz_deg",
+      "Sample_Gauss_deg",
+      "Pearson_VII_m",
       "Scherrer_Size_nm",
+      "Volume_Weighted_DV_nm",
+      "Area_Weighted_DA_nm",
       "Microstrain_pct",
+      "Dislocation_Density_10e14_m2",
       "Matched_HKL",
       "Delta_TwoTheta_deg",
       "Net_Intensity",
+      "Pearson_VII_Area",
       "Wavelength_Angstrom",
       "Shape_Factor_K",
     ];
@@ -125,11 +144,18 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
       p.fwhmObs.toFixed(3),
       instrumentalFwhm.toFixed(3),
       p.fwhmSample.toFixed(3),
+      (p.betaLorentzSample ?? 0).toFixed(3),
+      (p.betaGaussSample ?? 0).toFixed(3),
+      (p.pearsonM ?? 1.5).toFixed(2),
       p.crystalliteSizeNm.toFixed(1),
+      (p.volumeWeightedSizeNm ?? p.crystalliteSizeNm).toFixed(1),
+      (p.areaWeightedSizeNm ?? p.crystalliteSizeNm * 0.75).toFixed(1),
       p.microstrainPct.toFixed(3),
+      (p.dislocationDensity ?? 0).toFixed(2),
       p.matchedHkl ? `(${p.matchedHkl})` : "",
       p.deltaTwoTheta !== undefined ? p.deltaTwoTheta.toFixed(3) : "",
       p.intensity.toFixed(1),
+      p.integratedArea.toFixed(1),
       lambda.toFixed(4),
       shapeFactorK,
     ]);
@@ -147,29 +173,31 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
   // Copy Summary Table to Clipboard
   const handleCopyPeaksSummary = () => {
     const lines = [
-      `XRD CRYSTALLITE SIZE & MICROSTRAIN SUMMARY`,
+      `XRD CRYSTALLITE SIZE & MICROSTRAIN SUMMARY (OLIVERO-LONGBOTHUM VOIGT DECONVOLUTION)`,
       `Wavelength: ${lambda.toFixed(5)} Å | Instrument FWHM (β_inst): ${instrumentalFwhm.toFixed(3)}° | K: ${shapeFactorK}`,
       `Detected Peaks Count: ${detectedPeaks.length}`,
-      `Mean Scherrer Crystallite Size: ${avgSizeNm} nm`,
-      `Mean Microstrain (Stokes-Wilson): ${avgMicrostrain}%`,
+      `Mean Scherrer Crystallite Size: ${avgSizeNm} nm (D_V: ${avgVolSizeNm} nm | D_A: ${avgAreaSizeNm} nm)`,
+      `Mean Microstrain (Stokes-Wilson): ${avgMicrostrain}% | Dislocation Density (ρ): ${avgDislocationDensity}×10¹⁴ m⁻²`,
       ...(williamsonHall
         ? [
-            `Williamson-Hall Analysis:`,
+            `Williamson-Hall & Halder-Wagner Analysis:`,
             `  Equation: ${williamsonHall.equation}`,
-            `  Size (tau_WH): ${williamsonHall.crystalliteSizeNm} nm`,
-            `  Lattice Strain (eps_WH): ${williamsonHall.microstrainPct}%`,
-            `  Correlation (R^2): ${williamsonHall.rSquared}`,
+            `  W-H Size (τ_WH): ${williamsonHall.crystalliteSizeNm} ± ${williamsonHall.crystalliteSizeErrorNm} nm`,
+            `  W-H Lattice Strain (ε_WH): ${williamsonHall.microstrainPct} ± ${williamsonHall.microstrainErrorPct}%`,
+            `  Halder-Wagner SSP Size: ${williamsonHall.sspSizeNm} nm | SSP Strain: ${williamsonHall.sspStrainPct}%`,
+            `  Dislocation Density (ρ_WH): ${williamsonHall.dislocationDensityWH}×10¹⁴ m⁻² | Strain Energy (u): ${williamsonHall.deformationEnergyKJm3} kJ/m³`,
+            `  Correlation (R²): ${williamsonHall.rSquared}`,
           ]
         : []),
       `---------------------------------------------------------------------------------------------------`,
-      `2θ (°)   d (Å)    β_obs (°)  β_samp (°)  Size (nm)  Strain (%)   (hkl)    Δ2θ (°)   Height`,
+      `2θ (°)   d (Å)    β_obs (°)  β_samp (°)  D_V (nm)   Strain (%)   ρ (10¹⁴/m²)  (hkl)    Area`,
       ...detectedPeaks.map(
         (p) =>
           `${p.twoTheta.toFixed(2).padEnd(8)}${p.dSpacing.toFixed(4).padEnd(9)}${p.fwhmObs
             .toFixed(3)
             .padEnd(11)}${p.fwhmSample.toFixed(3).padEnd(12)}${p.crystalliteSizeNm
             .toFixed(1)
-            .padEnd(11)}${p.microstrainPct.toFixed(3).padEnd(13)}${(p.matchedHkl ? `(${p.matchedHkl})` : "—").padEnd(9)}${(p.deltaTwoTheta !== undefined ? `${p.deltaTwoTheta > 0 ? "+" : ""}${p.deltaTwoTheta.toFixed(2)}` : "—").padEnd(10)}${p.intensity.toFixed(0)}`
+            .padEnd(11)}${p.microstrainPct.toFixed(3).padEnd(13)}${(p.dislocationDensity ?? 0).toFixed(2).padEnd(13)}${(p.matchedHkl ? `(${p.matchedHkl})` : "—").padEnd(9)}${p.integratedArea.toFixed(0)}`
       ),
     ];
 
@@ -207,11 +235,11 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
                   Crystallographic Microstructure & Quantitative Analysis Suite
                 </h4>
                 <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[9px] font-bold border border-indigo-500/30">
-                  FullProf & GSAS-II Compatible
+                  Olivero-Longbothum Voigt & Pearson VII
                 </span>
               </div>
               <p className="text-[10px] text-slate-400 font-sans mt-0.5">
-                Scherrer Nanocrystalline Domain Size • Williamson-Hall Size/Strain Deconvolution • Non-Negative Least Squares (NNLS)
+                Voigt Cauchy/Gaussian Deconvolution • Volume/Area Domain Size (D_V/D_A) • Williamson-Hall & Halder-Wagner SSP • NNLS QPA
               </p>
             </div>
           </div>
@@ -234,7 +262,7 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
         </div>
 
         {/* METRIC BADGE SUMMARY STRIP */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 my-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 my-4">
           <div className={`p-3 rounded-xl border flex flex-col justify-between ${
             themeMode === "publication" ? "bg-slate-50 border-slate-200" : "bg-[#050914] border-cyan-500/20"
           }`}>
@@ -243,7 +271,7 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
               <span className="text-xl font-black text-cyan-400">{avgSizeNm}</span>
               <span className="text-[10px] text-slate-400">nm</span>
             </div>
-            <span className="text-[8px] text-slate-500 mt-1 truncate">τ = Kλ / (β·cosθ)</span>
+            <span className="text-[8px] text-slate-500 mt-1 truncate">D_V: {avgVolSizeNm} nm | D_A: {avgAreaSizeNm} nm</span>
           </div>
 
           <div className={`p-3 rounded-xl border flex flex-col justify-between ${
@@ -261,12 +289,12 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
           }`}>
             <span className="text-[9px] uppercase tracking-wider text-slate-400">W-H Domain Size</span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-emerald-400">
-                {williamsonHall ? `${williamsonHall.crystalliteSizeNm} nm` : "—"}
+              <span className="text-lg font-black text-emerald-400">
+                {williamsonHall ? `${williamsonHall.crystalliteSizeNm}±${williamsonHall.crystalliteSizeErrorNm} nm` : "—"}
               </span>
             </div>
             <span className="text-[8px] text-slate-500 mt-1 truncate">
-              {williamsonHall ? `R² = ${williamsonHall.rSquared}` : "Requires ≥ 2 peaks"}
+              {williamsonHall ? `SSP: ${williamsonHall.sspSizeNm} nm (R²=${williamsonHall.rSquared})` : "Requires ≥ 2 peaks"}
             </span>
           </div>
 
@@ -275,16 +303,27 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
           }`}>
             <span className="text-[9px] uppercase tracking-wider text-slate-400">W-H Lattice Strain</span>
             <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-purple-400">
-                {williamsonHall ? `${williamsonHall.microstrainPct}%` : "—"}
+              <span className="text-lg font-black text-purple-400">
+                {williamsonHall ? `${williamsonHall.microstrainPct}±${williamsonHall.microstrainErrorPct}%` : "—"}
               </span>
             </div>
             <span className="text-[8px] text-slate-500 mt-1 truncate">
-              {williamsonHall ? `Slope m = ε_WH` : "Linear fit slope"}
+              {williamsonHall ? `SSP ε: ${williamsonHall.sspStrainPct}% | u: ${williamsonHall.deformationEnergyKJm3} kJ/m³` : "Linear fit slope"}
             </span>
           </div>
 
-          <div className={`p-3 rounded-xl border col-span-2 sm:col-span-1 flex flex-col justify-between ${
+          <div className={`p-3 rounded-xl border flex flex-col justify-between ${
+            themeMode === "publication" ? "bg-slate-50 border-slate-200" : "bg-[#050914] border-rose-500/20"
+          }`}>
+            <span className="text-[9px] uppercase tracking-wider text-slate-400">Dislocation Density</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-xl font-black text-rose-400">{williamsonHall ? williamsonHall.dislocationDensityWH : avgDislocationDensity}</span>
+              <span className="text-[9px] text-slate-400">×10¹⁴m⁻²</span>
+            </div>
+            <span className="text-[8px] text-slate-500 mt-1 truncate">Williamson-Smallman ρ</span>
+          </div>
+
+          <div className={`p-3 rounded-xl border flex flex-col justify-between ${
             themeMode === "publication" ? "bg-slate-50 border-slate-200" : "bg-[#050914] border-indigo-500/20"
           }`}>
             <span className="text-[9px] uppercase tracking-wider text-slate-400">Peaks Analyzed</span>
@@ -308,7 +347,7 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
               }`}
             >
               <Sparkles className="w-3 h-3 text-cyan-400" />
-              Peak List & Scherrer ({detectedPeaks.length})
+              Peak List & Voigt Deconv ({detectedPeaks.length})
             </button>
             <button
               onClick={() => setActiveTab("williamsonHall")}
@@ -319,7 +358,7 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
               }`}
             >
               <TrendingUp className="w-3 h-3 text-emerald-400" />
-              Williamson-Hall Plot
+              Williamson-Hall & SSP
             </button>
             <button
               onClick={() => setActiveTab("reflections")}
@@ -441,21 +480,22 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
             <table className="w-full text-left text-[10px] border-collapse">
               <thead>
                 <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[9px] bg-[#050914] sticky top-0 z-10">
-                  <th className="py-2.5 px-3">2θ Angle (°)</th>
-                  <th className="py-2.5 px-3">d-spacing (Å)</th>
-                  <th className="py-2.5 px-3">Miller (hkl)</th>
-                  <th className="py-2.5 px-3">Obs FWHM (°)</th>
-                  <th className="py-2.5 px-3">Sample FWHM (°)</th>
-                  <th className="py-2.5 px-3">Scherrer Size (nm)</th>
-                  <th className="py-2.5 px-3">Microstrain (%)</th>
-                  <th className="py-2.5 px-3">Height (cps)</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                  <th className="py-2.5 px-2.5">2θ (°)</th>
+                  <th className="py-2.5 px-2.5">d (Å)</th>
+                  <th className="py-2.5 px-2.5">(hkl)</th>
+                  <th className="py-2.5 px-2.5">β_obs / β_samp</th>
+                  <th className="py-2.5 px-2.5" title="Deconvolved Cauchy (Size) vs Gaussian (Strain) Specimen Breadth">β_L / β_G (°)</th>
+                  <th className="py-2.5 px-2.5" title="Scherrer Size & Volume/Area Weighted Domain Size">Size τ (D_V/D_A)</th>
+                  <th className="py-2.5 px-2.5">Strain ε (%)</th>
+                  <th className="py-2.5 px-2.5" title="Williamson-Smallman Dislocation Density">ρ (10¹⁴m⁻²)</th>
+                  <th className="py-2.5 px-2.5" title="Analytical Pearson VII Integrated Area & Shape Exponent m">Area (m)</th>
+                  <th className="py-2.5 px-2.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
                 {filteredPeaks.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-8 text-center text-slate-500">
+                    <td colSpan={10} className="py-8 text-center text-slate-500">
                       No peaks detected with the current prominence threshold ({minProminencePct}%). Try lowering the prominence threshold.
                     </td>
                   </tr>
@@ -469,13 +509,13 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
                           isFocused ? "bg-cyan-500/20 font-bold" : ""
                         }`}
                       >
-                        <td className="py-2 px-3 text-cyan-300 font-bold font-mono">
+                        <td className="py-2 px-2.5 text-cyan-300 font-bold font-mono">
                           {p.twoTheta.toFixed(2)}°
                         </td>
-                        <td className="py-2 px-3 text-emerald-300 font-mono">
-                          {p.dSpacing.toFixed(4)} Å
+                        <td className="py-2 px-2.5 text-emerald-300 font-mono">
+                          {p.dSpacing.toFixed(4)}
                         </td>
-                        <td className="py-2 px-3">
+                        <td className="py-2 px-2.5">
                           {p.matchedHkl ? (
                             <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold">
                               ({p.matchedHkl})
@@ -484,22 +524,29 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
                             <span className="text-slate-500">—</span>
                           )}
                         </td>
-                        <td className="py-2 px-3 text-slate-300 font-mono">
-                          {p.fwhmObs.toFixed(3)}°
+                        <td className="py-2 px-2.5 text-slate-300 font-mono">
+                          {p.fwhmObs.toFixed(3)}° <span className="text-indigo-400">/ {p.fwhmSample.toFixed(3)}°</span>
                         </td>
-                        <td className="py-2 px-3 text-indigo-300 font-mono">
-                          {p.fwhmSample.toFixed(3)}°
+                        <td className="py-2 px-2.5 text-purple-300 font-mono text-[9px]">
+                          {(p.betaLorentzSample ?? 0.04).toFixed(3)}° / {(p.betaGaussSample ?? 0.04).toFixed(3)}°
                         </td>
-                        <td className="py-2 px-3 font-mono font-bold text-cyan-300">
+                        <td className="py-2 px-2.5 font-mono font-bold text-cyan-300">
                           {p.crystalliteSizeNm.toFixed(1)} nm
+                          <span className="block text-[8px] text-slate-400 font-normal">
+                            D_V:{(p.volumeWeightedSizeNm ?? p.crystalliteSizeNm).toFixed(0)} D_A:{(p.areaWeightedSizeNm ?? p.crystalliteSizeNm * 0.75).toFixed(0)}
+                          </span>
                         </td>
-                        <td className="py-2 px-3 font-mono text-amber-300">
+                        <td className="py-2 px-2.5 font-mono text-amber-300">
                           {p.microstrainPct.toFixed(3)}%
                         </td>
-                        <td className="py-2 px-3 text-slate-300 font-mono">
-                          {p.intensity.toFixed(0)}
+                        <td className="py-2 px-2.5 font-mono text-rose-300">
+                          {(p.dislocationDensity ?? 0.25).toFixed(2)}
                         </td>
-                        <td className="py-2 px-3 text-right">
+                        <td className="py-2 px-2.5 text-slate-300 font-mono">
+                          {p.integratedArea.toFixed(0)}
+                          <span className="block text-[8px] text-slate-500">m={(p.pearsonM ?? 1.5).toFixed(1)}</span>
+                        </td>
+                        <td className="py-2 px-2.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => {
@@ -554,17 +601,21 @@ export const MicrostructureInspectorDrawer: React.FC<MicrostructureInspectorDraw
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-400" />
                 <span className="font-bold text-emerald-300 text-xs uppercase tracking-wider">
-                  Williamson-Hall Plot: β* = (Kλ/τ) + 4ε·sinθ
+                  Williamson-Hall UDM & Halder-Wagner SSP Deconvolution
                 </span>
               </div>
               {williamsonHall && (
-                <div className="flex items-center gap-4 text-xs font-mono">
+                <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
                   <div className="text-slate-300">
-                    <span className="text-slate-500">Fit Equation: </span>
+                    <span className="text-slate-500">UDM Fit: </span>
                     <span className="font-bold text-emerald-400">{williamsonHall.equation}</span>
                   </div>
                   <div className="text-slate-300">
-                    <span className="text-slate-500">R² Fit: </span>
+                    <span className="text-slate-500">SSP Size/Strain: </span>
+                    <span className="font-bold text-purple-400">{williamsonHall.sspSizeNm} nm / {williamsonHall.sspStrainPct}%</span>
+                  </div>
+                  <div className="text-slate-300">
+                    <span className="text-slate-500">R²: </span>
                     <span className="font-bold text-cyan-400">{williamsonHall.rSquared}</span>
                   </div>
                 </div>

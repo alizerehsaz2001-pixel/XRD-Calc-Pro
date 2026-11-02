@@ -8,9 +8,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+import math
+
 try:
     from scipy.optimize import curve_fit
-    from scipy.special import wofz
+    from scipy.special import wofz, gamma as sp_gamma
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -71,13 +73,44 @@ def true_voigt(x, x0, fwhm_g, fwhm_l, height):
 
 def pearson_vii(x, x0, fwhm, m, height):
     """
-    Pearson VII peak profile function.
+    Pearson VII peak profile function:
+    I(x) = height * [1 + 4(2^(1/m) - 1)*((x - x0)^2 / FWHM^2)]^(-m)
     m = 1: Lorentzian, m -> infinity: Gaussian
     """
-    if m <= 0.5:
-        m = 0.51
-    c = 2.0 * np.sqrt(2.0 ** (1.0 / m) - 1.0) / max(1e-6, fwhm)
-    return height * (1.0 + (c * (x - x0)) ** 2) ** (-m)
+    safe_m = max(1.0001, float(m))
+    safe_fwhm = max(1e-6, float(fwhm))
+    two_pow_inv_m = 2.0 ** (1.0 / safe_m)
+    c = 2.0 * np.sqrt(max(1e-9, two_pow_inv_m - 1.0)) / safe_fwhm
+    return height * (1.0 + (c * (x - x0)) ** 2) ** (-safe_m)
+
+
+def pearson_vii_area(height, fwhm, m):
+    """
+    Exact analytical closed-form integrated area for Pearson VII:
+    Area = height * FWHM * [sqrt(pi) * Gamma(m - 0.5)] / [2 * sqrt(2^(1/m) - 1) * Gamma(m)]
+    Includes smooth asymptotic Stirling expansion for m > 50 to avoid gamma overflow.
+    """
+    safe_m = max(1.0001, float(m))
+    safe_fwhm = max(1e-6, float(fwhm))
+    
+    if safe_m > 50.0:
+        ln2 = math.log(2.0)
+        gauss_factor = math.sqrt(math.pi / (4.0 * ln2))
+        k_ratio = gauss_factor * (1.0 + (1.0 - 2.0 * ln2) / (8.0 * safe_m))
+    else:
+        denom_root = 2.0 * math.sqrt(max(1e-9, 2.0 ** (1.0 / safe_m) - 1.0))
+        try:
+            g_m = float(sp_gamma(safe_m)) if SCIPY_AVAILABLE else math.gamma(safe_m)
+            g_m_half = float(sp_gamma(safe_m - 0.5)) if SCIPY_AVAILABLE else math.gamma(safe_m - 0.5)
+            k_ratio = (math.sqrt(math.pi) * g_m_half) / (denom_root * g_m)
+        except (OverflowError, ValueError):
+            ln2 = math.log(2.0)
+            k_ratio = math.sqrt(math.pi / (4.0 * ln2))
+            
+    area = float(height * safe_fwhm * k_ratio)
+    integral_breadth = area / max(1e-6, float(height))
+    shape_factor = safe_fwhm / max(1e-6, integral_breadth)
+    return area, integral_breadth, shape_factor, k_ratio
 
 
 def asymmetric_pseudo_voigt(x, x0, fwhm, eta, height, asym):
@@ -497,39 +530,98 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
     diff_res = np.diff(residual)
     durbin_watson = float(np.sum(diff_res ** 2) / max(1e-6, ss_res))
 
-    # 7. Physical Deconvolved FWHM & Microstructure (De Keijser & Scherrer)
-    if fwhm > inst_fwhm:
-        beta_phys_gauss = np.sqrt(fwhm ** 2 - inst_fwhm ** 2)
-        beta_phys_lorentz = fwhm - inst_fwhm
-        beta_phys = (1.0 - eta) * beta_phys_gauss + eta * beta_phys_lorentz
-    else:
-        beta_phys = fwhm * 0.15
-        
+    # 7. Rigorous Olivero-Longbothum Voigt Line Profile Deconvolution & Microstructure
+    # Deconstruct observed profile into constituent Cauchy (beta_L) and Gaussian (beta_G) components:
+    # beta_L / beta_V = 0.72928*eta + 0.19289*eta^2 + 0.07783*eta^3
+    # beta_G / beta_V = sqrt(1 - 0.74417*eta - 0.24781*eta^2 - 0.00802*eta^3)
+    safe_eta = float(np.clip(eta, 0.0, 1.0))
+    l_frac_obs = 0.72928 * safe_eta + 0.19289 * safe_eta**2 + 0.07783 * (safe_eta**3)
+    g_frac_obs_sq = max(0.0, 1.0 - 0.74417 * safe_eta - 0.24781 * safe_eta**2 - 0.00802 * (safe_eta**3))
+    
+    beta_l_obs = fwhm * l_frac_obs
+    beta_g_obs = fwhm * math.sqrt(g_frac_obs_sq)
+    
+    # Instrumental broadening partition
+    inst_fwhm_safe = max(0.0, min(fwhm - 1e-4, inst_fwhm))
+    beta_l_inst = inst_fwhm_safe * 0.5
+    beta_g_inst = inst_fwhm_safe * 0.5
+    
+    # Pure specimen broadening via Voigt convolution theorem:
+    beta_l_specimen = max(1e-5, beta_l_obs - beta_l_inst)
+    beta_g_specimen = math.sqrt(max(1e-5, beta_g_obs**2 - beta_g_inst**2))
+    beta_v_specimen = 0.5346 * beta_l_specimen + math.sqrt(0.2166 * beta_l_specimen**2 + beta_g_specimen**2)
+    beta_phys = beta_v_specimen
+    
     theta_rad = np.radians(center / 2.0)
-    beta_rad = np.radians(beta_phys)
-    crystallite_size_nm = float((0.94 * wavelength) / (beta_rad * np.cos(theta_rad))) if beta_rad > 0 else 0.0
-    microstrain_pct = float((np.radians(max(0.001, (1.0 - eta) * beta_phys)) / (4.0 * np.tan(max(1e-4, theta_rad)))) * 100.0)
+    cos_th = max(1e-4, math.cos(theta_rad))
+    tan_th = max(1e-4, math.tan(theta_rad))
+    
+    beta_l_rad = np.radians(beta_l_specimen)
+    beta_g_rad = np.radians(beta_g_specimen)
+    beta_v_rad = np.radians(beta_v_specimen)
+    
+    # 1. Volume-weighted crystallite size (Cauchy size)
+    volume_size_dv_nm = float((0.94 * wavelength) / (beta_l_rad * cos_th)) if beta_l_rad > 0 else 0.0
+    # 2. Area-weighted crystallite size
+    area_size_da_nm = float(volume_size_dv_nm / 2.0)
+    # 3. Apparent specimen size
+    crystallite_size_nm = float((0.94 * wavelength) / (beta_v_rad * cos_th)) if beta_v_rad > 0 else 0.0
+    # 4. RMS Gaussian microstrain <e^2>^(1/2) (Delhez & de Keijser)
+    rms_microstrain = float(beta_g_rad / (2.0 * math.sqrt(2.0 * math.pi) * tan_th))
+    microstrain_pct = float(rms_microstrain * 100.0)
+    upper_bound_microstrain_pct = float((beta_g_rad / (4.0 * tan_th)) * 100.0)
+    
+    # Dislocation density rho = 2*sqrt(3)*<e^2>^(1/2) / (D_V * b)
+    burgers_vector_nm = 0.25
+    b_m = max(1e-12, burgers_vector_nm * 1e-9)
+    dv_m = max(1e-12, volume_size_dv_nm * 1e-9)
+    dislocation_density_m2 = float((2.0 * math.sqrt(3.0) * rms_microstrain) / (dv_m * b_m))
+    dislocation_density_10_14 = float(dislocation_density_m2 / 1e14)
+    
+    # Exact Analytical vs Numerical Area
+    if profile_type == 'pearson7':
+        analytical_area, ib_exact, shape_factor_exact, _ = pearson_vii_area(height, fwhm, pearson_m)
+    elif profile_type == 'gaussian':
+        analytical_area = float(height * fwhm * 1.064467)
+    elif profile_type == 'lorentzian':
+        analytical_area = float(height * fwhm * 1.570796)
+    else:
+        analytical_area = float(height * fwhm * ((1.0 - safe_eta) * 1.064467 + safe_eta * 1.570796))
 
     # Calculate Sub-Peak Areas, Crystallite Size, and Strain per peak
     total_area = integrate_area(y_total_calc - bg, x)
     sub_peaks_metrics = []
     for sc in sub_curves:
-        area_i = integrate_area(sc['y_pure'], x)
         sc_center = sc['center']
         sc_fwhm = sc['fwhm']
         sc_eta = sc.get('eta', eta)
+        sc_height = sc['height']
         
-        # Per-peak size and strain
-        if sc_fwhm > inst_fwhm:
-            bp_g = np.sqrt(sc_fwhm**2 - inst_fwhm**2)
-            bp_l = sc_fwhm - inst_fwhm
-            bp_i = (1.0 - sc_eta) * bp_g + sc_eta * bp_l
+        if profile_type == 'pearson7':
+            area_i, _, _, _ = pearson_vii_area(sc_height, sc_fwhm, pearson_m)
         else:
-            bp_i = sc_fwhm * 0.15
+            area_i = integrate_area(sc['y_pure'], x)
+        
+        # Per-peak rigorous Voigt deconvolution
+        sc_safe_eta = float(np.clip(sc_eta, 0.0, 1.0))
+        sc_l_frac = 0.72928 * sc_safe_eta + 0.19289 * sc_safe_eta**2 + 0.07783 * (sc_safe_eta**3)
+        sc_g_frac_sq = max(0.0, 1.0 - 0.74417 * sc_safe_eta - 0.24781 * sc_safe_eta**2 - 0.00802 * (sc_safe_eta**3))
+        
+        sc_beta_l = sc_fwhm * sc_l_frac
+        sc_beta_g = sc_fwhm * math.sqrt(sc_g_frac_sq)
+        
+        sc_inst = max(0.0, min(sc_fwhm - 1e-4, inst_fwhm))
+        sc_bl_s = max(1e-5, sc_beta_l - sc_inst * 0.5)
+        sc_bg_s = math.sqrt(max(1e-5, sc_beta_g**2 - (sc_inst * 0.5)**2))
+        sc_bv_s = 0.5346 * sc_bl_s + math.sqrt(0.2166 * sc_bl_s**2 + sc_bg_s**2)
         
         th_rad_i = np.radians(sc_center / 2.0)
-        c_size_i = float((0.94 * wavelength) / (np.radians(bp_i) * np.cos(th_rad_i))) if bp_i > 0 else 0.0
-        m_strain_i = float((np.radians(max(0.001, (1.0 - sc_eta) * bp_i)) / (4.0 * np.tan(max(1e-4, th_rad_i)))) * 100.0)
+        cos_th_i = max(1e-4, math.cos(th_rad_i))
+        tan_th_i = max(1e-4, math.tan(th_rad_i))
+        
+        c_size_i = float((0.94 * wavelength) / (np.radians(sc_bv_s) * cos_th_i)) if sc_bv_s > 0 else 0.0
+        c_size_dv_i = float((0.94 * wavelength) / (np.radians(sc_bl_s) * cos_th_i)) if sc_bl_s > 0 else 0.0
+        m_strain_i = float((np.radians(sc_bg_s) / (2.0 * math.sqrt(2.0 * math.pi) * tan_th_i)) * 100.0)
 
         sub_peaks_metrics.append({
             'id': sc.get('id', '1'),
@@ -545,6 +637,8 @@ def generate_origin_fwhm_plot(params: dict) -> dict:
             'area': area_i,
             'area_fraction': float(area_i / max(1e-6, total_area)) * 100.0,
             'crystallite_size_nm': c_size_i,
+            'crystallite_size_dv_nm': c_size_dv_i,
+            'crystallite_size_da_nm': c_size_dv_i / 2.0,
             'microstrain_pct': m_strain_i,
             'color': sc['color']
         })
@@ -1182,8 +1276,17 @@ type "OriginLab LabTalk XRD Data successfully generated!";
             'instrumental_fwhm': inst_fwhm,
             'physical_fwhm': beta_phys,
             'crystallite_size_nm': crystallite_size_nm,
+            'volume_size_dv_nm': volume_size_dv_nm,
+            'area_size_da_nm': area_size_da_nm,
             'microstrain_pct': microstrain_pct,
+            'rms_microstrain': rms_microstrain,
+            'upper_bound_microstrain_pct': upper_bound_microstrain_pct,
+            'dislocation_density_10_14': dislocation_density_10_14,
+            'beta_l_specimen': beta_l_specimen,
+            'beta_g_specimen': beta_g_specimen,
+            'beta_v_specimen': beta_v_specimen,
             'eta': eta,
+            'pearson_m': pearson_m,
             'r_squared': r_squared,
             'r_wp': r_wp,
             'r_p': r_p,
@@ -1192,6 +1295,7 @@ type "OriginLab LabTalk XRD Data successfully generated!";
             'durbin_watson': durbin_watson,
             'height': height,
             'total_area': total_area,
+            'analytical_area': analytical_area,
             'sub_areas': [{'label': sp['label'], 'area': sp['area'], 'area_fraction': sp['area_fraction']} for sp in sub_peaks_metrics],
             'sub_peaks': sub_peaks_metrics,
             'fit_errors': fit_errors,

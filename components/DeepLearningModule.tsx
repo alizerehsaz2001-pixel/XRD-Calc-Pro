@@ -1089,6 +1089,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   } | null>(null);
   const [showFormatGuide, setShowFormatGuide] = useState<boolean>(false);
   const [copiedFormatTag, setCopiedFormatTag] = useState<string | null>(null);
+  const [cloudSyncFeedback, setCloudSyncFeedback] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   // AI Neural Net Training & Tutor State Variables
   const [trainEpochs, setTrainEpochs] = useState<number>(40);
@@ -1226,7 +1227,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
       const trainAcc = Number((99.8 - (78 * Math.exp(-epoch / 6.2)) - (Math.sin(epoch * 0.9) * 0.6 * decay)).toFixed(2));
       const valAcc = Number((96.4 - (74 * Math.exp(-epoch / 6.9)) - (Math.cos(epoch * 1.1) * 1.1 * decay)).toFixed(2));
       const lr = Number((0.005 * Math.pow(0.965, epoch)).toFixed(6));
-      const gradNorm = Number((2.85 * Math.exp(-epoch / 7.5) + 0.09 + (Math.random() * 0.03)).toFixed(3));
+      const gradNorm = Number((2.85 * Math.exp(-epoch / 7.5) + 0.09 + Math.abs(Math.sin(epoch * 3.7)) * 0.03).toFixed(3));
       return {
         epoch,
         loss: trainLoss,
@@ -2465,9 +2466,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       const bgAirScatter = 4.0 * Math.exp(-0.12 * x);
       const bg = bgAmorphous + bgAirScatter;
       
-      // Poisson-like noise modeling utilizing interactive inputNoiseLevel
+      // Deterministic Poisson-scaled shot noise modeling utilizing interactive inputNoiseLevel
       const baseSignal = calcInt + bg;
-      const noise = (Math.random() - 0.5) * inputNoiseLevel * 0.4;
+      const pseudoRand = ((Math.sin(x * 127.1 + inputNoiseLevel * 311.7) * 43758.5453) % 1);
+      const noise = (pseudoRand - 0.5) * inputNoiseLevel * 0.35 * Math.sqrt(Math.max(1, baseSignal) / 25);
       const finalVal = Math.max(0, baseSignal + noise);
       
       // Convolutional Attentional Saliency (Grad-CAM weight calculation)
@@ -3795,68 +3797,92 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             </div>
           </div>
           
-          {/* Cloud Synchronization Button */}
-          <div className="mt-8 pt-6 border-t border-slate-800/80/50 flex justify-end gap-3">
-             <button
-                type="button"
-                onClick={async () => {
-                   const { auth, db } = await import('../services/firebase');
-                   const { collection, query, where, getDocs } = await import('firebase/firestore');
-                   if (!auth.currentUser) {
-                      alert("You must be signed in with Google to load configurations.");
-                      return;
-                   }
-                   try {
-                      const q = query(collection(db, 'engineConfigs'), where('userId', '==', auth.currentUser.uid));
-                      const querySnapshot = await getDocs(q);
-                      if (querySnapshot.empty) {
-                         alert("No saved configurations found in the cloud.");
-                         return;
-                      }
-                      const firstDoc = querySnapshot.docs[querySnapshot.docs.length - 1]; // Get latest
-                      const data = firstDoc.data();
-                      setEngineConfig(JSON.parse(data.configData));
-                      alert(`Successfully loaded configuration: ${data.name}`);
-                   } catch (error) {
-                      console.error("Failed to load:", error);
-                      alert("Failed to load from secure cloud.");
-                   }
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md active:translate-y-0"
-             >
-                Load Latest Config
-             </button>
-             <button
-                type="button"
-                onClick={async () => {
-                   const { auth, db } = await import('../services/firebase');
-                   const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-                   if (!auth.currentUser) {
-                      alert("You must be signed in with Google to save configurations to the cloud.");
-                      return;
-                   }
-                   try {
-                      const configId = 'engine-' + Date.now();
-                      await setDoc(doc(db, 'engineConfigs', configId), {
-                         userId: auth.currentUser.uid,
-                         name: 'My Custom Engine Config',
-                         configData: JSON.stringify(engineConfig),
-                         createdAt: serverTimestamp(),
-                         updatedAt: serverTimestamp()
-                      });
-                      alert("Successfully saved configuration to secure cloud!");
-                   } catch (error) {
-                      console.error("Failed to save:", error);
-                      alert("Failed to save. You may not have proper permissions.");
-                   }
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0"
-             >
-                <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-                   <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                </div>
-                Save Config to Cloud
-             </button>
+          {/* Cloud Synchronization Button & Inline Feedback */}
+          <div className="mt-8 pt-6 border-t border-slate-800/80/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+             <div className="flex-1">
+               {cloudSyncFeedback && (
+                 <div
+                   className={`px-3.5 py-2 rounded-xl text-xs font-mono flex items-center gap-2 border ${
+                     cloudSyncFeedback.type === 'success'
+                       ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                       : cloudSyncFeedback.type === 'error'
+                       ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                       : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
+                   }`}
+                 >
+                   <span>{cloudSyncFeedback.message}</span>
+                 </div>
+               )}
+             </div>
+             <div className="flex items-center gap-3">
+               <button
+                  type="button"
+                  onClick={async () => {
+                     const { auth, db } = await import('../services/firebase');
+                     const { collection, query, where, getDocs } = await import('firebase/firestore');
+                     if (!auth.currentUser) {
+                        setCloudSyncFeedback({ type: 'info', message: "Sign in with Google to load cloud configurations." });
+                        setTimeout(() => setCloudSyncFeedback(null), 4500);
+                        return;
+                     }
+                     try {
+                        const q = query(collection(db, 'engineConfigs'), where('userId', '==', auth.currentUser.uid));
+                        const querySnapshot = await getDocs(q);
+                        if (querySnapshot.empty) {
+                           setCloudSyncFeedback({ type: 'info', message: "No saved configurations found in the cloud." });
+                           setTimeout(() => setCloudSyncFeedback(null), 4500);
+                           return;
+                        }
+                        const firstDoc = querySnapshot.docs[querySnapshot.docs.length - 1]; // Get latest
+                        const data = firstDoc.data();
+                        setEngineConfig(JSON.parse(data.configData));
+                        setCloudSyncFeedback({ type: 'success', message: `Loaded configuration: ${data.name}` });
+                        setTimeout(() => setCloudSyncFeedback(null), 4500);
+                     } catch (error) {
+                        console.error("Failed to load:", error);
+                        setCloudSyncFeedback({ type: 'error', message: "Failed to load configuration from secure cloud." });
+                        setTimeout(() => setCloudSyncFeedback(null), 4500);
+                     }
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md active:translate-y-0"
+               >
+                  Load Latest Config
+               </button>
+               <button
+                  type="button"
+                  onClick={async () => {
+                     const { auth, db } = await import('../services/firebase');
+                     const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+                     if (!auth.currentUser) {
+                        setCloudSyncFeedback({ type: 'info', message: "Sign in with Google to save configurations to the cloud." });
+                        setTimeout(() => setCloudSyncFeedback(null), 4500);
+                        return;
+                     }
+                     try {
+                        const configId = 'engine-' + Date.now();
+                        await setDoc(doc(db, 'engineConfigs', configId), {
+                           userId: auth.currentUser.uid,
+                           name: 'My Custom Engine Config',
+                           configData: JSON.stringify(engineConfig),
+                           createdAt: serverTimestamp(),
+                           updatedAt: serverTimestamp()
+                        });
+                        setCloudSyncFeedback({ type: 'success', message: "Saved configuration to secure cloud!" });
+                        setTimeout(() => setCloudSyncFeedback(null), 4500);
+                     } catch (error) {
+                        console.error("Failed to save:", error);
+                        setCloudSyncFeedback({ type: 'error', message: "Failed to save configuration. Check permissions." });
+                        setTimeout(() => setCloudSyncFeedback(null), 4500);
+                     }
+                  }}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0"
+               >
+                  <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                  </div>
+                  Save Config to Cloud
+               </button>
+             </div>
           </div>
         </div>
         )}

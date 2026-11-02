@@ -61,7 +61,7 @@ import { MicrostructureInspectorDrawer } from "./MicrostructureInspectorDrawer";
 export type CoordinateSpace = "twoTheta" | "dSpacing" | "qVector";
 export type IntensityScale = "linear" | "sqrt" | "log";
 export type ResidualViewMode = "overlay" | "split" | "hidden";
-export type ProfileShapeModel = "pseudoVoigt" | "gaussian" | "lorentzian";
+export type ProfileShapeModel = "pseudoVoigt" | "pearson7" | "gaussian" | "lorentzian";
 export type ThemeMode = "darkLab" | "publication";
 export type CurvePrecisionMode = "benchmark" | "high" | "ultra" | "synchrotron";
 export type CurveInterpolationType = "monotone" | "linear" | "natural";
@@ -132,6 +132,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   const [themeMode, setThemeMode] = useState<ThemeMode>("darkLab");
   const [profileModel, setProfileModel] = useState<ProfileShapeModel>("pseudoVoigt");
   const [lorentzianFraction, setLorentzianFraction] = useState<number>(0.35); // eta = 0.35
+  const [pearsonShapeM, setPearsonShapeM] = useState<number>(1.5); // Pearson VII exponent m
   const [enableKaDoublet, setEnableKaDoublet] = useState<boolean>(true); // Cu Ka1/Ka2 doublet splitting
   const [showIndividualPhases, setShowIndividualPhases] = useState<boolean>(true);
   const [showBraggComb, setShowBraggComb] = useState<boolean>(true);
@@ -323,7 +324,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     return getCalibratedRefPeaks(selectedCandidate);
   }, [getCalibratedRefPeaks, selectedCandidate]);
 
-  // Physical Pseudo-Voigt peak calculation with optional Cu-Ka1/Ka2 doublet splitting returning sub-components
+  // Physical Pseudo-Voigt / Pearson VII peak calculation with optional Cu-Ka1/Ka2 doublet splitting returning sub-components
   const calcPeakProfileWithComponents = useCallback(
     (
       t: number,
@@ -337,8 +338,13 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     ): { total: number; ka1: number; ka2: number } => {
       const sigmaVal = Math.max(0.005, fwhm / 2.35482);
       const sigmaSq2 = 2 * sigmaVal * sigmaVal;
+      const mVal = Math.max(0.5, pearsonShapeM);
+      const twoPowInvMMinus1 = Math.pow(2, 1 / mVal) - 1;
 
       const evalSingle = (delta: number): number => {
+        if (model === "pearson7") {
+          return Math.pow(1 + (4 * twoPowInvMMinus1 * delta * delta) / (fwhm * fwhm), -mVal);
+        }
         const g = Math.exp(-Math.pow(delta, 2) / sigmaSq2);
         const l = 1 / (1 + 4 * Math.pow(delta / fwhm, 2));
         if (model === "gaussian") return g;
@@ -371,7 +377,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
       const total = (val1 + val2) / 1.5;
       return { total, ka1: val1 / 1.5, ka2: val2 / 1.5 };
     },
-    []
+    [pearsonShapeM]
   );
 
   const calcPeakProfile = useCallback(
@@ -670,10 +676,10 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     calcQ,
   ]);
 
-  // Real-time Scientific Metrics: R_wp, R_p, Goodness-of-Fit (GOF), Cosine Similarity
+  // Real-time Scientific Metrics: R_wp, R_p, R_exp, Goodness-of-Fit (GOF), Durbin-Watson d-Stat, Cosine Similarity
   const alignmentMetrics = useMemo(() => {
     if (!chartData.length || !selectedCandidate) {
-      return { rwp: 0, rp: 0, gof: 1.0, cosine: 0, matchCount: 0 };
+      return { rwp: 0, rp: 0, rexp: 0, gof: 1.0, durbinWatson: 2.0, cosine: 0, matchCount: 0 };
     }
 
     let sumDiffSq = 0;
@@ -683,6 +689,10 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     let dotProduct = 0;
     let normObs = 0;
     let normCalc = 0;
+    let validCount = 0;
+    let sumRawResSq = 0;
+    let sumAdjResDiffSq = 0;
+    let prevRes: number | null = null;
 
     for (const d of chartData) {
       if (d.rawResidual !== null && d.rawIntensity !== null && d.rawRefIntensity !== null) {
@@ -699,19 +709,31 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
         dotProduct += obs * calc;
         normObs += obs * obs;
         normCalc += calc * calc;
+        validCount++;
+
+        sumRawResSq += diff * diff;
+        if (prevRes !== null) {
+          sumAdjResDiffSq += Math.pow(diff - prevRes, 2);
+        }
+        prevRes = diff;
       }
     }
 
     const rwp = sumObsSq > 0 ? Math.sqrt(sumDiffSq / sumObsSq) * 100 : 0;
     const rp = sumObs > 0 ? (sumAbsDiff / sumObs) * 100 : 0;
+    const dof = Math.max(1, validCount - (primaryCalibratedPeaks.length + 3));
+    const rexp = sumObsSq > 0 ? Math.sqrt(dof / sumObsSq) * 100 : 2.5;
     const normProduct = Math.sqrt(normObs * normCalc);
     const cosine = normProduct > 0 ? (dotProduct / normProduct) * 100 : 0;
-    const gof = Math.max(1.0, 1.0 + (rwp / 20));
+    const gof = rexp > 0 ? Math.max(1.0, Math.min(9.99, rwp / Math.max(1.5, rexp))) : Math.max(1.0, 1.0 + rwp / 20);
+    const durbinWatson = sumRawResSq > 1e-6 ? sumAdjResDiffSq / sumRawResSq : 2.0;
 
     return {
       rwp: Number(rwp.toFixed(2)),
       rp: Number(rp.toFixed(2)),
+      rexp: Number(rexp.toFixed(2)),
       gof: Number(gof.toFixed(2)),
+      durbinWatson: Number(durbinWatson.toFixed(2)),
       cosine: Number(cosine.toFixed(2)),
       matchCount: primaryCalibratedPeaks.length,
     };
@@ -1453,22 +1475,22 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             </div>
 
             <div className="bg-[#0A101C]/60 border border-emerald-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Residual (R_wp)</span>
+              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Residual (R_wp / R_exp)</span>
               <span className="text-xl font-black text-emerald-400 font-mono mt-0.5">
-                {alignmentMetrics.rwp}%
+                {alignmentMetrics.rwp}% <span className="text-[10px] font-normal text-slate-400">/ {alignmentMetrics.rexp}%</span>
               </span>
               <span className="text-[8px] font-mono text-slate-500 mt-1">
-                Weighted Profile Discrepancy
+                R_p = {alignmentMetrics.rp}% • Weighted Profile
               </span>
             </div>
 
             <div className="bg-[#0A101C]/60 border border-teal-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Goodness of Fit</span>
+              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Goodness of Fit (S)</span>
               <span className="text-xl font-black text-teal-300 font-mono mt-0.5">
                 {alignmentMetrics.gof}
               </span>
               <span className="text-[8px] font-mono text-slate-500 mt-1">
-                χ² Profile Ratio
+                Durbin-Watson d = {alignmentMetrics.durbinWatson}
               </span>
             </div>
 
@@ -1869,6 +1891,8 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                 <span>
                   {profileModel === "pseudoVoigt"
                     ? `P-Voigt (η=${Math.round(lorentzianFraction * 100)}%)`
+                    : profileModel === "pearson7"
+                    ? `Pearson VII (m=${pearsonShapeM.toFixed(1)})`
                     : profileModel === "gaussian"
                     ? "Gaussian"
                     : "Lorentzian"}
@@ -1895,8 +1919,8 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   <div className="space-y-3 text-[10px]">
                     <div>
                       <span className="text-slate-400 block mb-1">Profile Shape Function</span>
-                      <div className="grid grid-cols-3 gap-1">
-                        {(["pseudoVoigt", "gaussian", "lorentzian"] as ProfileShapeModel[]).map((m) => (
+                      <div className="grid grid-cols-2 gap-1">
+                        {(["pseudoVoigt", "pearson7", "gaussian", "lorentzian"] as ProfileShapeModel[]).map((m) => (
                           <button
                             key={m}
                             onClick={() => setProfileModel(m)}
@@ -1908,7 +1932,13 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                                 : "bg-black/30 text-slate-400 border-slate-800"
                             }`}
                           >
-                            {m === "pseudoVoigt" ? "P-Voigt" : m === "gaussian" ? "Gauss" : "Lorentz"}
+                            {m === "pseudoVoigt"
+                              ? "Pseudo-Voigt"
+                              : m === "pearson7"
+                              ? "Pearson VII"
+                              : m === "gaussian"
+                              ? "Gaussian"
+                              : "Lorentzian"}
                           </button>
                         ))}
                       </div>
@@ -1932,6 +1962,29 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                         <div className="flex justify-between text-[8px] text-slate-500 mt-0.5 font-mono">
                           <span>0% (Instrumental Gauss)</span>
                           <span>100% (Crystallite Lorentz)</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {profileModel === "pearson7" && (
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-slate-400">Shape Exponent (m)</span>
+                          <span className="font-bold text-cyan-400 font-mono">m = {pearsonShapeM.toFixed(2)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.8"
+                          max="8.0"
+                          step="0.1"
+                          value={pearsonShapeM}
+                          onChange={(e) => setPearsonShapeM(parseFloat(e.target.value))}
+                          className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                        />
+                        <div className="flex justify-between text-[8px] text-slate-500 mt-0.5 font-mono">
+                          <span>m=1.0 (Cauchy)</span>
+                          <span>m=2.0 (Mod-Lorentz)</span>
+                          <span>m→8 (Gauss)</span>
                         </div>
                       </div>
                     )}

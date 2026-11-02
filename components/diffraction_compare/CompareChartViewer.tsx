@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect, useDeferredValue } from 'react';
+import React, { useState, useRef, useMemo, useDeferredValue } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ResponsiveContainer,
@@ -28,17 +28,12 @@ import {
   Sparkle,
   Download,
   Check,
-  Zap,
   X,
   Compass,
-  CheckCircle2,
   CircleDot,
-  SplitSquareVertical,
   FlaskConical,
   Ruler,
-  Camera,
   ArrowLeftRight,
-  SlidersHorizontal,
   Wand2,
   Scissors
 } from 'lucide-react';
@@ -54,7 +49,8 @@ import {
   CurveVisibilityFilter,
   CaliperPoint,
   DifferenceMode,
-  SmoothingFilter
+  SmoothingFilter,
+  IntensityScaleType
 } from './types';
 import { 
   getActivePalette, 
@@ -140,8 +136,8 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   materialDName,
   peaksA,
   peaksB,
-  peaksC,
-  peaksD,
+  peaksC = [],
+  peaksD = [],
   hasPhaseC,
   hasPhaseD,
   onSwapSamples
@@ -152,15 +148,12 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isColorStudioOpen, setIsColorStudioOpen] = useState(false);
   const [selectedColorTarget, setSelectedColorTarget] = useState<keyof CurveColorPalette>('colorA');
-  const [curveInterpolation, setCurveInterpolation] = useState<'monotone' | 'linear'>('monotone');
+  const [curveInterpolation] = useState<'monotone' | 'linear'>('monotone');
   
   // Interactive Peak Caliper / Delta Measurement State
   const [isCaliperActive, setIsCaliperActive] = useState(false);
   const [caliperP1, setCaliperP1] = useState<CaliperPoint | null>(null);
   const [caliperP2, setCaliperP2] = useState<CaliperPoint | null>(null);
-  const [isFigureExportOpen, setIsFigureExportOpen] = useState(false);
-  const [exportBgTheme, setExportBgTheme] = useState<'light' | 'dark'>('light');
-  const [exportDpi, setExportDpi] = useState<number>(2);
 
   // Curve Visibility State
   const [visibleCurves, setVisibleCurves] = useState<CurveVisibilityState>({
@@ -183,20 +176,47 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const miniMapRef = useRef<HTMLDivElement>(null);
-  const [isDraggingMiniMap, setIsDraggingMiniMap] = useState(false);
 
   const deferredPoints = useDeferredValue(points);
+  const intensityScale = engineSettings.intensityScale || 'linear';
 
-  // High-performance LTTB downsampling for smooth 60fps ComposedChart rendering
+  // Transform intensity according to selected Y-Scale ('linear' | 'sqrt' | 'log10')
+  const scaleTransform = (val: number | undefined): number | undefined => {
+    if (val === undefined) return undefined;
+    const v = Math.max(0, val);
+    if (intensityScale === 'sqrt') return Number((Math.sqrt(v) * 10).toFixed(2));
+    if (intensityScale === 'log10') return Number((Math.log10(v + 1) * 50).toFixed(2));
+    return v;
+  };
+
+  // High-performance LTTB downsampling + Y-axis scale transformation
   const chartPoints = useMemo(() => {
-    return downsampleDiffractionPoints(
+    const downsampled = downsampleDiffractionPoints(
       deferredPoints,
       850,
       'twoTheta',
       'intensityA',
       'intensityB'
     );
-  }, [deferredPoints]);
+    if (intensityScale === 'linear') return downsampled;
+
+    return downsampled.map(pt => {
+      const sA = scaleTransform(pt.intensityA) ?? 0;
+      const sB = scaleTransform(pt.intensityB) ?? 0;
+      const sC = scaleTransform(pt.intensityC);
+      const sD = scaleTransform(pt.intensityD);
+      const sTot = scaleTransform(pt.intensityTotalModel);
+      return {
+        ...pt,
+        intensityA: sA,
+        intensityB: sB,
+        intensityC: sC,
+        intensityD: sD,
+        intensityTotalModel: sTot,
+        mirroredB: -sB
+      };
+    });
+  }, [deferredPoints, intensityScale]);
 
   // Compute active colors with full fallback & custom color override support
   const pal = getActivePalette(diffTheme, customPalette);
@@ -320,6 +340,21 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
   const bgStyle = getChartBgStyle();
 
+  const buildCaliperPoint = (twoThetaVal: number, intensityVal?: number, sourceCurve: CaliperPoint['sourceCurve'] = 'General', hkl?: string): CaliperPoint => {
+    const pt = points.find(p => Math.abs(p.twoTheta - twoThetaVal) < 0.15) || points[0];
+    const thetaRad = (twoThetaVal / 2) * (Math.PI / 180);
+    const dSpacing = thetaRad > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4) : '-';
+    const qVector = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / CU_KA_WAVELENGTH).toFixed(4) : '-';
+    return {
+      twoTheta: Number(twoThetaVal.toFixed(3)),
+      intensity: intensityVal !== undefined ? intensityVal : (pt ? (pt.intensityA || pt.intensityB || 50) : 50),
+      dSpacing,
+      qVector,
+      sourceCurve,
+      hkl
+    };
+  };
+
   // Zoom handling
   const handleZoom = () => {
     if (refAreaLeft === refAreaRight || refAreaRight === null || refAreaLeft === null) {
@@ -340,19 +375,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
     if (isNaN(val)) return;
 
     if (isCaliperActive) {
-      // Find intensity at this theta
-      const pt = points.find(p => Math.abs(p.twoTheta - val) < 0.15) || points[0];
-      const thetaRad = (val / 2) * (Math.PI / 180);
-      const dSpacing = thetaRad > 0 ? (CU_KA_WAVELENGTH / (2 * Math.sin(thetaRad))).toFixed(4) : '-';
-      const qVector = thetaRad > 0 ? ((4 * Math.PI * Math.sin(thetaRad)) / CU_KA_WAVELENGTH).toFixed(4) : '-';
-
-      const calPoint: CaliperPoint = {
-        twoTheta: val,
-        intensity: pt ? (pt.intensityA || pt.intensityB || 50) : 50,
-        dSpacing,
-        qVector
-      };
-
+      const calPoint = buildCaliperPoint(val);
       if (!caliperP1 || (caliperP1 && caliperP2)) {
         setCaliperP1(calPoint);
         setCaliperP2(null);
@@ -391,36 +414,81 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
     }
   };
 
+  // Combined peak catalog for Caliper dropdown selection
+  const caliperPeakOptions = useMemo(() => {
+    const list: { label: string; twoTheta: number; intensity: number; source: 'A' | 'B' | 'C' | 'D'; hkl?: string }[] = [];
+    peaksA.forEach(p => {
+      list.push({
+        label: `A: ${p.twoTheta.toFixed(2)}° ${p.hkl ? `(${p.hkl})` : ''} [${p.intensity.toFixed(0)}%]`,
+        twoTheta: p.twoTheta,
+        intensity: p.intensity,
+        source: 'A',
+        hkl: p.hkl
+      });
+    });
+    peaksB.forEach(p => {
+      const shifted = Number((p.twoTheta + shiftTwoTheta).toFixed(3));
+      list.push({
+        label: `B: ${shifted.toFixed(2)}° ${p.hkl ? `[${p.hkl}]` : ''} [${p.intensity.toFixed(0)}%]`,
+        twoTheta: shifted,
+        intensity: p.intensity,
+        source: 'B',
+        hkl: p.hkl
+      });
+    });
+    if (hasPhaseC) {
+      peaksC.forEach(p => {
+        list.push({
+          label: `C: ${p.twoTheta.toFixed(2)}° ${p.hkl ? `(${p.hkl})` : ''}`,
+          twoTheta: p.twoTheta,
+          intensity: p.intensity,
+          source: 'C',
+          hkl: p.hkl
+        });
+      });
+    }
+    if (hasPhaseD) {
+      peaksD.forEach(p => {
+        list.push({
+          label: `D: ${p.twoTheta.toFixed(2)}° ${p.hkl ? `(${p.hkl})` : ''}`,
+          twoTheta: p.twoTheta,
+          intensity: p.intensity,
+          source: 'D',
+          hkl: p.hkl
+        });
+      });
+    }
+    return list;
+  }, [peaksA, peaksB, peaksC, peaksD, shiftTwoTheta, hasPhaseC, hasPhaseD]);
+
   // Compute live caliper metrics when both markers are placed
   const caliperMetrics = useMemo(() => {
     if (!caliperP1 || !caliperP2) return null;
     return calculateCaliperMetrics(caliperP1, caliperP2);
   }, [caliperP1, caliperP2]);
 
-  // Snap Caliper to nearest detected peaks
+  // Snap Caliper to strongest Sample A peak and closest Reference B peak
   const handleSnapCaliperToPeaks = () => {
     if (!peaksA.length && !peaksB.length) return;
+    if (peaksA.length > 0 && peaksB.length > 0) {
+      const strongestA = [...peaksA].sort((a, b) => b.intensity - a.intensity)[0];
+      let closestB = peaksB[0];
+      let minDiff = Infinity;
+      peaksB.forEach(pb => {
+        const d = Math.abs((pb.twoTheta + shiftTwoTheta) - strongestA.twoTheta);
+        if (d < minDiff) {
+          minDiff = d;
+          closestB = pb;
+        }
+      });
+      setCaliperP1(buildCaliperPoint(strongestA.twoTheta, strongestA.intensity, 'A', strongestA.hkl));
+      setCaliperP2(buildCaliperPoint(closestB.twoTheta + shiftTwoTheta, closestB.intensity, 'B', closestB.hkl));
+      return;
+    }
     const allPeaks = [...peaksA, ...peaksB].sort((a, b) => a.twoTheta - b.twoTheta);
     if (allPeaks.length >= 2) {
-      const p1 = allPeaks[0];
-      const p2 = allPeaks[1];
-      const theta1Rad = (p1.twoTheta / 2) * (Math.PI / 180);
-      const theta2Rad = (p2.twoTheta / 2) * (Math.PI / 180);
-
-      setCaliperP1({
-        twoTheta: p1.twoTheta,
-        intensity: p1.intensity,
-        dSpacing: (CU_KA_WAVELENGTH / (2 * Math.sin(theta1Rad))).toFixed(4),
-        qVector: ((4 * Math.PI * Math.sin(theta1Rad)) / CU_KA_WAVELENGTH).toFixed(4),
-        sourceCurve: 'A'
-      });
-      setCaliperP2({
-        twoTheta: p2.twoTheta,
-        intensity: p2.intensity,
-        dSpacing: (CU_KA_WAVELENGTH / (2 * Math.sin(theta2Rad))).toFixed(4),
-        qVector: ((4 * Math.PI * Math.sin(theta2Rad)) / CU_KA_WAVELENGTH).toFixed(4),
-        sourceCurve: 'B'
-      });
+      setCaliperP1(buildCaliperPoint(allPeaks[0].twoTheta, allPeaks[0].intensity, 'A', allPeaks[0].hkl));
+      setCaliperP2(buildCaliperPoint(allPeaks[1].twoTheta, allPeaks[1].intensity, 'B', allPeaks[1].hkl));
     }
   };
 
@@ -428,7 +496,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
     exportCompareDataAsCSV(points, materialAName, materialBName, hasPhaseC ? materialCName : undefined, hasPhaseD ? materialDName : undefined);
   };
 
-  // Mini-map click/drag handler
+  // Mini-map click handler
   const handleMiniMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!miniMapRef.current) return;
     const rect = miniMapRef.current.getBoundingClientRect();
@@ -457,57 +525,54 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
       const valDiff = payload.find((p: any) => p.dataKey === 'difference')?.value ?? '-';
 
       return (
-        <div className="bg-[#030712]/98 border-2 border-indigo-500/50 p-3.5 rounded-xl shadow-2xl backdrop-blur-xl text-xs font-mono min-w-[260px] pointer-events-none z-50 ring-1 ring-white/15">
+        <div className="bg-[#030712]/98 border border-indigo-500/50 p-3.5 rounded-xl shadow-2xl backdrop-blur-xl text-xs font-mono tabular-nums min-w-[260px] pointer-events-none z-50">
           <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
-            <span className="font-bold text-slate-100 flex items-center gap-1.5 text-xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+            <span className="font-bold text-slate-100 text-xs">
               2θ = {theta.toFixed(2)}°
             </span>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-cyan-300 font-bold px-1.5 py-0.5 bg-cyan-950/80 border border-cyan-700/50 rounded">
-                d = {dSpacing} Å
-              </span>
-            </div>
+            <span className="text-[11px] text-cyan-300 font-bold">
+              d = {dSpacing} Å
+            </span>
           </div>
 
           <div className="space-y-1.5 text-[11px]">
             {visibleCurves.showA && (
-              <div className="flex justify-between items-center py-0.5 px-1 rounded bg-slate-900/60" style={{ borderLeft: `3px solid ${pal.colorA}` }}>
-                <span className="flex items-center gap-1.5 ml-1 text-slate-200">
-                  <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: pal.colorA }} />
+              <div className="flex justify-between items-center py-0.5 px-1.5 rounded bg-slate-900/60 border border-slate-800">
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorA }} />
                   <span className="font-semibold truncate max-w-[130px]">{materialAName} (A):</span>
                 </span>
-                <span className="font-bold text-white pr-1">{typeof valA === 'number' ? valA.toFixed(1) : valA}%</span>
+                <span className="font-bold text-white">{typeof valA === 'number' ? valA.toFixed(1) : valA}%</span>
               </div>
             )}
 
             {visibleCurves.showB && (
-              <div className="flex justify-between items-center py-0.5 px-1 rounded bg-slate-900/60" style={{ borderLeft: `3px solid ${pal.colorB}` }}>
-                <span className="flex items-center gap-1.5 ml-1 text-slate-200">
-                  <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: pal.colorB }} />
+              <div className="flex justify-between items-center py-0.5 px-1.5 rounded bg-slate-900/60 border border-slate-800">
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorB }} />
                   <span className="font-semibold truncate max-w-[130px]">{materialBName} (B):</span>
                 </span>
-                <span className="font-bold text-white pr-1">{typeof valB === 'number' ? valB.toFixed(1) : valB}%</span>
+                <span className="font-bold text-white">{typeof valB === 'number' ? valB.toFixed(1) : valB}%</span>
               </div>
             )}
 
             {hasPhaseC && visibleCurves.showC && valC !== undefined && (
-              <div className="flex justify-between items-center py-0.5 px-1 rounded bg-slate-900/60" style={{ borderLeft: `3px solid ${pal.colorC}` }}>
-                <span className="flex items-center gap-1.5 ml-1 text-slate-200">
-                  <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: pal.colorC }} />
+              <div className="flex justify-between items-center py-0.5 px-1.5 rounded bg-slate-900/60 border border-slate-800">
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorC }} />
                   <span className="font-semibold truncate max-w-[130px]">{materialCName || 'Phase C'}:</span>
                 </span>
-                <span className="font-bold text-white pr-1">{typeof valC === 'number' ? valC.toFixed(1) : valC}%</span>
+                <span className="font-bold text-white">{typeof valC === 'number' ? valC.toFixed(1) : valC}%</span>
               </div>
             )}
 
             {hasPhaseD && visibleCurves.showD && valD !== undefined && (
-              <div className="flex justify-between items-center py-0.5 px-1 rounded bg-slate-900/60" style={{ borderLeft: `3px solid ${pal.colorD}` }}>
-                <span className="flex items-center gap-1.5 ml-1 text-slate-200">
-                  <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: pal.colorD }} />
+              <div className="flex justify-between items-center py-0.5 px-1.5 rounded bg-slate-900/60 border border-slate-800">
+                <span className="flex items-center gap-1.5 text-slate-200">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: pal.colorD }} />
                   <span className="font-semibold truncate max-w-[130px]">{materialDName || 'Phase D'}:</span>
                 </span>
-                <span className="font-bold text-white pr-1">{typeof valD === 'number' ? valD.toFixed(1) : valD}%</span>
+                <span className="font-bold text-white">{typeof valD === 'number' ? valD.toFixed(1) : valD}%</span>
               </div>
             )}
 
@@ -523,9 +588,9 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </div>
             )}
 
-            <div className="text-[10px] text-slate-400 pt-1 text-right font-mono flex items-center justify-between border-t border-slate-850">
+            <div className="text-[10px] text-slate-400 pt-1 text-right font-mono flex items-center justify-between border-t border-slate-800/80">
               <span className="text-slate-500">Scattering Vector Q:</span>
-              <span className="text-indigo-300 font-semibold">{qVector} nm⁻¹</span>
+              <span className="text-indigo-300 font-semibold">{qVector} Å⁻¹</span>
             </div>
           </div>
         </div>
@@ -540,7 +605,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
   return (
     <div 
       ref={chartContainerRef}
-      className={`bg-[#080d1a] border-2 border-slate-800/90 rounded-2xl shadow-2xl flex flex-col transition-all relative ${
+      className={`bg-[#080d1a] border border-slate-800/90 rounded-2xl shadow-2xl flex flex-col transition-all relative ${
         isFullscreen ? 'fixed inset-3 z-50 p-6 bg-[#080d1a]/98 backdrop-blur-2xl' : 'p-5'
       }`}
     >
@@ -566,9 +631,9 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 key={id}
                 id={`btn-viewmode-${id}`}
                 onClick={() => setViewMode(id as CompareViewMode)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-mono font-bold capitalize transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-[11px] font-mono font-bold capitalize transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   viewMode === id
-                    ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md'
+                    ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
                 }`}
               >
@@ -582,17 +647,16 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             id="btn-toggle-caliper"
             onClick={() => {
               setIsCaliperActive(!isCaliperActive);
-              if (isCaliperActive) {
-                setCaliperP1(null);
-                setCaliperP2(null);
+              if (!isCaliperActive && !caliperP1 && !caliperP2) {
+                handleSnapCaliperToPeaks();
               }
             }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer whitespace-nowrap shrink-0 ${
               isCaliperActive 
-                ? 'bg-emerald-600 text-white border-emerald-400 shadow-md ring-2 ring-emerald-400/40 animate-pulse' 
+                ? 'bg-emerald-600 text-white border-emerald-400 shadow-md' 
                 : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white'
             }`}
-            title="Click two peaks or points on chart to measure peak shift, lattice strain, intensity ratio, and d-spacing delta"
+            title="Measure peak shift, lattice strain, intensity ratio, and d-spacing delta between any two reflections"
           >
             <Ruler className="w-3.5 h-3.5 text-emerald-300" />
             <span>{isCaliperActive ? 'Caliper Active' : 'Caliper Tool'}</span>
@@ -603,7 +667,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             <button
               id="btn-swap-samples-toolbar"
               onClick={onSwapSamples}
-              className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+              className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono transition-all cursor-pointer shadow-sm active:scale-95 whitespace-nowrap shrink-0"
               title="Swap Sample A and Reference B roles"
             >
               <ArrowLeftRight className="w-3 h-3 text-cyan-400" />
@@ -614,7 +678,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           <button
             id="btn-reset-zoom"
             onClick={onResetZoom}
-            className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg text-xs font-mono transition-all cursor-pointer shadow-sm active:scale-95 whitespace-nowrap shrink-0"
             title="Reset 2Theta Zoom Domain (10° - 90°)"
           >
             <RotateCcw className="w-3 h-3 text-slate-400" />
@@ -624,6 +688,20 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
         {/* Right Toolbar Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Y-Scale Selector */}
+          <div className="flex items-center bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-lg text-xs font-mono">
+            <span className="text-[10px] text-slate-400 mr-1.5 font-bold">Y-Scale:</span>
+            <select
+              value={engineSettings.intensityScale || 'linear'}
+              onChange={(e) => setEngineSettings(prev => ({ ...prev, intensityScale: e.target.value as IntensityScaleType }))}
+              className="bg-slate-800 text-indigo-300 text-[11px] font-mono rounded px-1.5 py-0.5 border border-slate-700 outline-none cursor-pointer"
+            >
+              <option value="linear">Linear I</option>
+              <option value="sqrt">Square Root √I</option>
+              <option value="log10">Log₁₀(I + 1)</option>
+            </select>
+          </div>
+
           {/* Difference Mode Selector */}
           <div className="flex items-center bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-lg text-xs font-mono">
             <span className="text-[10px] text-slate-400 mr-1.5 font-bold">Δ Mode:</span>
@@ -634,7 +712,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             >
               <option value="residual">Residual (IA - Icalc)</option>
               <option value="relative">Relative Discrepancy %</option>
-              <option value="chi">Chi Standardized χ</option>
+              <option value="chi">Poisson Normalized χ</option>
               <option value="squared">Square Error (Δ²)</option>
             </select>
           </div>
@@ -643,10 +721,10 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           <button
             id="btn-open-color-studio"
             onClick={() => setIsColorStudioOpen(!isColorStudioOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer shadow-sm ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer shadow-sm whitespace-nowrap shrink-0 ${
               isColorStudioOpen 
-                ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400 shadow-md ring-1 ring-cyan-400/40' 
-                : 'bg-gradient-to-r from-indigo-900/70 to-purple-900/70 text-indigo-200 border-indigo-500/40 hover:border-indigo-400'
+                ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400 shadow-md' 
+                : 'bg-slate-900 text-indigo-200 border-indigo-500/40 hover:border-indigo-400'
             }`}
             title="Customize Curve Colors, Contrast, Glow, Line Width, and Background Theme"
           >
@@ -662,7 +740,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           <button
             id="btn-toggle-diff-fill"
             onClick={() => setShowDiffArea(!showDiffArea)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer whitespace-nowrap shrink-0 ${
               showDiffArea 
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm' 
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
@@ -677,7 +755,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           <button
             id="btn-toggle-peak-markers"
             onClick={() => setShowPeakMarkers(!showPeakMarkers)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer whitespace-nowrap shrink-0 ${
               showPeakMarkers 
                 ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-sm' 
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
@@ -736,9 +814,9 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           <button
             id="btn-curve-both"
             onClick={() => handleSelectCurveFilter('both')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
               currentFilterPreset === 'both'
-                ? 'bg-indigo-600/30 text-indigo-200 border-indigo-400 shadow-md ring-1 ring-indigo-400/40'
+                ? 'bg-indigo-600/30 text-indigo-200 border-indigo-400 shadow-sm'
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
             }`}
           >
@@ -752,9 +830,9 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           <button
             id="btn-curve-only-a"
             onClick={() => handleSelectCurveFilter('only_a')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
               currentFilterPreset === 'only_a'
-                ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400 shadow-md ring-1 ring-cyan-400/40'
+                ? 'bg-cyan-500/25 text-cyan-200 border-cyan-400 shadow-sm'
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
             }`}
           >
@@ -765,9 +843,9 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
           <button
             id="btn-curve-only-b"
             onClick={() => handleSelectCurveFilter('only_b')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
               currentFilterPreset === 'only_b'
-                ? 'bg-indigo-500/25 text-indigo-200 border-indigo-400 shadow-md ring-1 ring-indigo-400/40'
+                ? 'bg-indigo-500/25 text-indigo-200 border-indigo-400 shadow-sm'
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
             }`}
           >
@@ -779,9 +857,9 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             <button
               id="btn-curve-all"
               onClick={() => handleSelectCurveFilter('all')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
                 currentFilterPreset === 'all'
-                  ? 'bg-purple-600/30 text-purple-200 border-purple-400 shadow-md ring-1 ring-purple-400/40'
+                  ? 'bg-purple-600/30 text-purple-200 border-purple-400 shadow-sm'
                   : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
               }`}
             >
@@ -855,6 +933,21 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             </button>
           )}
 
+          {(hasPhaseC || hasPhaseD) && (
+            <button
+              id="toggle-curve-total-model"
+              onClick={() => toggleCurve('showTotalModel')}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
+                visibleCurves.showTotalModel
+                  ? 'bg-slate-800 border-slate-400/60 text-slate-100 shadow-sm'
+                  : 'bg-slate-950/80 border-slate-850 text-slate-600 line-through'
+              }`}
+            >
+              {visibleCurves.showTotalModel ? <Eye className="w-3 h-3 text-white" /> : <EyeOff className="w-3 h-3 text-slate-600" />}
+              <span>Σ Model</span>
+            </button>
+          )}
+
           <button
             id="toggle-curve-diff"
             onClick={() => toggleCurve('showDiff')}
@@ -873,34 +966,64 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
       {/* CALIPER LIVE MEASUREMENT FLOATING HUD */}
       {isCaliperActive && (
-        <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900/95 to-cyan-950/90 border-2 border-emerald-500/60 rounded-xl p-3 my-2 shadow-2xl backdrop-blur-xl text-xs font-mono ring-1 ring-emerald-500/30 animate-in fade-in duration-200">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-slate-800 pb-2 mb-2">
-            <div className="flex items-center gap-2">
+        <div className="bg-[#04091a] border border-emerald-500/60 rounded-xl p-3.5 my-2 shadow-2xl text-xs font-mono tabular-nums space-y-3 animate-in fade-in duration-200">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="p-1 rounded-md bg-emerald-500/20 text-emerald-400">
                 <Ruler className="w-4 h-4" />
               </span>
               <span className="font-bold text-white uppercase tracking-wider">
-                Precision Peak Caliper & Strain Analyzer
+                Precision Peak Caliper & Interplanar Strain Analyzer
               </span>
-              <span className="text-[10px] text-emerald-300 bg-emerald-950/80 border border-emerald-700/50 px-2 py-0.5 rounded-full">
-                {!caliperP1 ? 'Click chart to set Point 1' : !caliperP2 ? 'Click chart to set Point 2' : '2 Points Anchored'}
+              <span className="text-[11px] text-emerald-300">
+                · {!caliperP1 ? 'Click chart or select Peak 1' : !caliperP2 ? 'Click chart or select Peak 2' : '2 Reflections Anchored'}
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Peak Selector Dropdown 1 */}
+              <select
+                value={caliperP1 ? caliperP1.twoTheta : ''}
+                onChange={(e) => {
+                  const opt = caliperPeakOptions[parseInt(e.target.value)];
+                  if (opt) setCaliperP1(buildCaliperPoint(opt.twoTheta, opt.intensity, opt.source, opt.hkl));
+                }}
+                className="bg-slate-900 border border-cyan-500/40 text-cyan-200 rounded px-2 py-1 text-[11px] outline-none cursor-pointer"
+              >
+                <option value="">Set C1 from Peak...</option>
+                {caliperPeakOptions.map((opt, idx) => (
+                  <option key={`c1-${idx}`} value={idx}>{opt.label}</option>
+                ))}
+              </select>
+
+              {/* Peak Selector Dropdown 2 */}
+              <select
+                value={caliperP2 ? caliperP2.twoTheta : ''}
+                onChange={(e) => {
+                  const opt = caliperPeakOptions[parseInt(e.target.value)];
+                  if (opt) setCaliperP2(buildCaliperPoint(opt.twoTheta, opt.intensity, opt.source, opt.hkl));
+                }}
+                className="bg-slate-900 border border-pink-500/40 text-pink-200 rounded px-2 py-1 text-[11px] outline-none cursor-pointer"
+              >
+                <option value="">Set C2 from Peak...</option>
+                {caliperPeakOptions.map((opt, idx) => (
+                  <option key={`c2-${idx}`} value={idx}>{opt.label}</option>
+                ))}
+              </select>
+
               <button
                 onClick={handleSnapCaliperToPeaks}
                 className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded border border-slate-700 cursor-pointer shadow-sm active:scale-95"
               >
                 <Wand2 className="w-3 h-3 text-cyan-400" />
-                <span>Snap to Peaks</span>
+                <span>Auto-Pair Strongest Peak</span>
               </button>
               <button
                 onClick={() => { setCaliperP1(null); setCaliperP2(null); }}
                 className="flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 cursor-pointer shadow-sm"
               >
                 <RotateCcw className="w-3 h-3 text-slate-400" />
-                <span>Clear Markers</span>
+                <span>Clear</span>
               </button>
               <button
                 onClick={() => setIsCaliperActive(false)}
@@ -913,20 +1036,48 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-[11px]">
             <div className="p-2 rounded-lg bg-slate-900/80 border border-cyan-500/40">
-              <span className="text-[10px] text-cyan-400 font-bold block">Marker 1 (C1)</span>
-              <span className="font-bold text-white text-xs">{caliperP1 ? `${caliperP1.twoTheta.toFixed(2)}°` : '—'}</span>
-              <span className="text-[10px] text-slate-400 block">d: {caliperP1 ? `${caliperP1.dSpacing} Å` : '—'}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-cyan-400 font-bold">Marker 1 (C1)</span>
+                {caliperP1 && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => setCaliperP1(buildCaliperPoint(caliperP1.twoTheta - 0.01, caliperP1.intensity, caliperP1.sourceCurve, caliperP1.hkl))}
+                      className="px-1 bg-slate-800 hover:bg-slate-700 rounded text-[9px] text-slate-300 cursor-pointer"
+                    >-</button>
+                    <button
+                      onClick={() => setCaliperP1(buildCaliperPoint(caliperP1.twoTheta + 0.01, caliperP1.intensity, caliperP1.sourceCurve, caliperP1.hkl))}
+                      className="px-1 bg-slate-800 hover:bg-slate-700 rounded text-[9px] text-slate-300 cursor-pointer"
+                    >+</button>
+                  </div>
+                )}
+              </div>
+              <span className="font-bold text-white text-xs block mt-0.5">{caliperP1 ? `${caliperP1.twoTheta.toFixed(3)}°` : '—'}</span>
+              <span className="text-[10px] text-slate-400 block">d₁: {caliperP1 ? `${caliperP1.dSpacing} Å` : '—'}</span>
             </div>
 
             <div className="p-2 rounded-lg bg-slate-900/80 border border-pink-500/40">
-              <span className="text-[10px] text-pink-400 font-bold block">Marker 2 (C2)</span>
-              <span className="font-bold text-white text-xs">{caliperP2 ? `${caliperP2.twoTheta.toFixed(2)}°` : '—'}</span>
-              <span className="text-[10px] text-slate-400 block">d: {caliperP2 ? `${caliperP2.dSpacing} Å` : '—'}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-pink-400 font-bold">Marker 2 (C2)</span>
+                {caliperP2 && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => setCaliperP2(buildCaliperPoint(caliperP2.twoTheta - 0.01, caliperP2.intensity, caliperP2.sourceCurve, caliperP2.hkl))}
+                      className="px-1 bg-slate-800 hover:bg-slate-700 rounded text-[9px] text-slate-300 cursor-pointer"
+                    >-</button>
+                    <button
+                      onClick={() => setCaliperP2(buildCaliperPoint(caliperP2.twoTheta + 0.01, caliperP2.intensity, caliperP2.sourceCurve, caliperP2.hkl))}
+                      className="px-1 bg-slate-800 hover:bg-slate-700 rounded text-[9px] text-slate-300 cursor-pointer"
+                    >+</button>
+                  </div>
+                )}
+              </div>
+              <span className="font-bold text-white text-xs block mt-0.5">{caliperP2 ? `${caliperP2.twoTheta.toFixed(3)}°` : '—'}</span>
+              <span className="text-[10px] text-slate-400 block">d₂: {caliperP2 ? `${caliperP2.dSpacing} Å` : '—'}</span>
             </div>
 
             <div className="p-2 rounded-lg bg-slate-900/80 border border-amber-500/40">
-              <span className="text-[10px] text-amber-400 font-bold block">Δ2θ Shift</span>
-              <span className="font-bold text-white text-xs">
+              <span className="text-[10px] text-amber-400 font-bold block">Δ2θ Angular Shift</span>
+              <span className="font-bold text-white text-xs block mt-0.5">
                 {caliperMetrics ? `${caliperMetrics.deltaTwoTheta > 0 ? `+${caliperMetrics.deltaTwoTheta}` : caliperMetrics.deltaTwoTheta}°` : '—'}
               </span>
               <span className="text-[10px] text-slate-400 block">
@@ -936,29 +1087,29 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
             <div className="p-2 rounded-lg bg-slate-900/80 border border-emerald-500/40">
               <span className="text-[10px] text-emerald-400 font-bold block">Δd Interplanar</span>
-              <span className="font-bold text-white text-xs">
+              <span className="font-bold text-white text-xs block mt-0.5">
                 {caliperMetrics ? `${caliperMetrics.deltaD > 0 ? `+${caliperMetrics.deltaD}` : caliperMetrics.deltaD} Å` : '—'}
               </span>
-              <span className="text-[10px] text-slate-400 block">d2 - d1</span>
+              <span className="text-[10px] text-slate-400 block">d₂ - d₁</span>
             </div>
 
             <div className="p-2 rounded-lg bg-slate-900/80 border border-purple-500/40">
               <span className="text-[10px] text-purple-400 font-bold block">Lattice Strain ε</span>
-              <span className="font-bold text-white text-xs">
+              <span className="font-bold text-white text-xs block mt-0.5">
                 {caliperMetrics ? `${caliperMetrics.strainPercent > 0 ? `+${caliperMetrics.strainPercent}` : caliperMetrics.strainPercent}%` : '—'}
               </span>
               <span className="text-[10px] text-slate-400 block">
-                {caliperMetrics ? (caliperMetrics.strainPercent > 0 ? 'Tensile (+)' : 'Compressive (-)') : '—'}
+                {caliperMetrics ? (caliperMetrics.strainPercent > 0 ? 'Tensile (+)' : caliperMetrics.strainPercent < 0 ? 'Compressive (-)' : 'Zero Strain') : '—'}
               </span>
             </div>
 
             <div className="p-2 rounded-lg bg-slate-900/80 border border-indigo-500/40">
-              <span className="text-[10px] text-indigo-400 font-bold block">Intensity Ratio (I2/I1)</span>
-              <span className="font-bold text-white text-xs">
+              <span className="text-[10px] text-indigo-400 font-bold block">Intensity Ratio (I₂/I₁)</span>
+              <span className="font-bold text-white text-xs block mt-0.5">
                 {caliperMetrics ? `${caliperMetrics.intensityRatio.toFixed(2)}x` : '—'}
               </span>
               <span className="text-[10px] text-slate-400 block">
-                ΔQ: {caliperMetrics ? `${caliperMetrics.deltaQ} nm⁻¹` : '—'}
+                ΔQ: {caliperMetrics ? `${caliperMetrics.deltaQ} Å⁻¹` : '—'}
               </span>
             </div>
           </div>
@@ -967,7 +1118,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
       {/* COLOR & CONTRAST STUDIO POPOVER PANEL */}
       {isColorStudioOpen && (
-        <div className="bg-[#030712] border-2 border-indigo-500/40 rounded-xl p-4 my-2 shadow-2xl space-y-4 animate-in fade-in duration-200 z-30 ring-1 ring-indigo-500/20">
+        <div className="bg-[#030712] border border-indigo-500/40 rounded-xl p-4 my-2 shadow-2xl space-y-4 animate-in fade-in duration-200 z-30">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <div className="flex items-center gap-2">
               <Palette className="w-4 h-4 text-cyan-400" />
@@ -1133,7 +1284,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               <div className="flex items-center justify-between bg-slate-900/90 p-1.5 rounded-lg border border-slate-800">
                 <span className="text-[11px] text-slate-300 flex items-center gap-1">
                   <Scissors className="w-3 h-3 text-cyan-400" />
-                  Strip Baseline:
+                  Sonneveld Baseline:
                 </span>
                 <button
                   onClick={() => setEngineSettings(prev => ({ ...prev, stripBackground: !prev.stripBackground }))}
@@ -1167,15 +1318,15 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
       )}
 
       {/* Alignment & Scale Fine-Tuning Bar & Quick Zoom Presets */}
-      <div className="flex flex-col xl:flex-row items-center justify-between gap-3 py-2 px-3.5 bg-[#030712] rounded-xl border border-slate-800/80 my-1.5 text-xs font-mono">
+      <div className="flex flex-col xl:flex-row items-center justify-between gap-3 py-2 px-3.5 bg-[#030712] rounded-xl border border-slate-800/80 my-1.5 text-xs font-mono tabular-nums">
         <div className="flex items-center gap-4 flex-wrap w-full xl:w-auto">
           {/* Shift 2Theta Control */}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-400 font-bold">Δ2θ Shift:</span>
             <button
-              onClick={() => setShiftTwoTheta(Number((shiftTwoTheta - 0.05).toFixed(2)))}
+              onClick={() => setShiftTwoTheta(Number((shiftTwoTheta - 0.02).toFixed(2)))}
               className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 cursor-pointer shadow-sm"
-              title="Shift -0.05° 2Theta"
+              title="Shift -0.02° 2Theta"
             >
               <Minus className="w-3 h-3" />
             </button>
@@ -1183,9 +1334,9 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               {shiftTwoTheta > 0 ? `+${shiftTwoTheta.toFixed(2)}` : shiftTwoTheta.toFixed(2)}°
             </span>
             <button
-              onClick={() => setShiftTwoTheta(Number((shiftTwoTheta + 0.05).toFixed(2)))}
+              onClick={() => setShiftTwoTheta(Number((shiftTwoTheta + 0.02).toFixed(2)))}
               className="p-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 cursor-pointer shadow-sm"
-              title="Shift +0.05° 2Theta"
+              title="Shift +0.02° 2Theta"
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -1231,7 +1382,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               <button
                 key={preset.label}
                 onClick={() => onZoomChange(preset.l, preset.r)}
-                className={`px-2 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer ${
+                className={`px-2 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                   left === preset.l && right === preset.r
                     ? 'bg-cyan-600 text-white font-bold shadow-sm'
                     : 'bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800'
@@ -1246,7 +1397,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
         <button
           id="btn-auto-align"
           onClick={onAutoAlign}
-          className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-cyan-600/30 to-indigo-600/30 hover:from-cyan-600/40 hover:to-indigo-600/40 text-cyan-300 border border-cyan-500/50 rounded-lg font-bold transition-all cursor-pointer active:scale-95 shadow-sm hover:border-cyan-400 shrink-0"
+          className="flex items-center gap-1.5 px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/50 rounded-lg font-bold transition-all cursor-pointer active:scale-95 shadow-sm hover:border-cyan-400 shrink-0 whitespace-nowrap"
         >
           <Sparkle className="w-3.5 h-3.5 text-cyan-400" />
           <span>Auto Cross-Correlation Align</span>
@@ -1271,32 +1422,39 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
         {/* Real-time Scientific Cursor HUD */}
         {liveCursorData && (
-          <div className="absolute top-2 right-4 z-20 hidden md:flex items-center gap-2.5 px-3 py-1 rounded-lg bg-[#030712]/90 border border-slate-700/80 backdrop-blur-md text-[11px] font-mono shadow-xl pointer-events-none">
+          <div className="absolute top-2 right-4 z-20 hidden md:flex items-center gap-2.5 px-3 py-1 rounded-lg bg-[#030712]/90 border border-slate-700/80 backdrop-blur-md text-[11px] font-mono tabular-nums shadow-xl pointer-events-none">
             <span className="flex items-center gap-1 font-bold text-slate-200">
               <Compass className="w-3 h-3 text-cyan-400" />
               2θ: <strong className="text-cyan-300">{liveCursorData.twoTheta.toFixed(2)}°</strong>
             </span>
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-600">·</span>
             <span className="text-slate-300">
               d: <strong className="text-emerald-300">{liveCursorData.dSpacing} Å</strong>
             </span>
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-600">·</span>
+            <span className="text-slate-300">
+              Q: <strong className="text-indigo-300">{liveCursorData.qVector} Å⁻¹</strong>
+            </span>
             {visibleCurves.showA && liveCursorData.intensityA !== null && (
-              <span className="flex items-center gap-1 font-bold" style={{ color: pal.colorA }}>
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pal.colorA }} />
-                A: {liveCursorData.intensityA.toFixed(1)}%
-              </span>
+              <>
+                <span className="text-slate-600">·</span>
+                <span className="flex items-center gap-1 font-bold" style={{ color: pal.colorA }}>
+                  A: {liveCursorData.intensityA.toFixed(1)}%
+                </span>
+              </>
             )}
             {visibleCurves.showB && liveCursorData.intensityB !== null && (
-              <span className="flex items-center gap-1 font-bold" style={{ color: pal.colorB }}>
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pal.colorB }} />
-                B: {liveCursorData.intensityB.toFixed(1)}%
-              </span>
+              <>
+                <span className="text-slate-600">·</span>
+                <span className="flex items-center gap-1 font-bold" style={{ color: pal.colorB }}>
+                  B: {liveCursorData.intensityB.toFixed(1)}%
+                </span>
+              </>
             )}
           </div>
         )}
 
-        {/* VIEW 1: UNIFIED OVERLAY */}
+        {/* VIEW 1: UNIFIED OVERLAY & MULTI-PHASE */}
         {(viewMode === 'unified' || viewMode === 'multiphase') && (
           <div className={`w-full h-[480px] ${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 relative flex flex-col shadow-inner transition-colors`}>
             {/* Interactive Clickable Legend Header */}
@@ -1352,7 +1510,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
               </div>
 
               <div className="text-[11px] font-mono text-slate-500 hidden sm:block">
-                Drag on chart to Zoom • Click in Caliper mode to measure
+                Drag on chart to Zoom · Click in Caliper mode to measure
               </div>
             </div>
 
@@ -1378,7 +1536,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                   <YAxis
                     stroke={bgStyle.axisLine}
                     tick={{ fill: bgStyle.axisText, fontSize: 11, fontFamily: 'monospace' }}
-                    unit="%"
+                    unit={intensityScale === 'linear' ? '%' : ''}
                     domain={['auto', 'auto']}
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -1391,6 +1549,19 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                       fill={pal.colorDiff}
                       fillOpacity={engineSettings.areaOpacity || 0.25}
                       stroke="none"
+                      isAnimationActive={false}
+                    />
+                  )}
+
+                  {/* Composite Total Model (when multi-phase C or D active) */}
+                  {(hasPhaseC || hasPhaseD) && visibleCurves.showTotalModel && (
+                    <Line
+                      type={curveInterpolation}
+                      dataKey="intensityTotalModel"
+                      stroke={pal.colorTotalModel}
+                      strokeWidth={1.6}
+                      strokeDasharray="6 3"
+                      dot={false}
                       isAnimationActive={false}
                     />
                   )}
@@ -1460,8 +1631,8 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                     />
                   )}
 
-                  {/* Bragg Reflection Stick Markers */}
-                  {showPeakMarkers && peaksA.map((pk, idx) => (
+                  {/* Bragg Reflection Stick Markers (A, B, C, D) */}
+                  {showPeakMarkers && visibleCurves.showA && peaksA.map((pk, idx) => (
                     pk.twoTheta >= left && pk.twoTheta <= right && (
                       <ReferenceLine
                         key={`pkA-${idx}`}
@@ -1480,7 +1651,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                     )
                   ))}
 
-                  {showPeakMarkers && peaksB.map((pk, idx) => {
+                  {showPeakMarkers && visibleCurves.showB && peaksB.map((pk, idx) => {
                     const shiftedPos = pk.twoTheta + shiftTwoTheta;
                     return shiftedPos >= left && shiftedPos <= right && (
                       <ReferenceLine
@@ -1499,6 +1670,44 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                       />
                     );
                   })}
+
+                  {showPeakMarkers && hasPhaseC && visibleCurves.showC && peaksC.map((pk, idx) => (
+                    pk.twoTheta >= left && pk.twoTheta <= right && (
+                      <ReferenceLine
+                        key={`pkC-${idx}`}
+                        x={pk.twoTheta}
+                        stroke={pal.colorC}
+                        strokeDasharray="3 3"
+                        strokeWidth={1.0}
+                        label={{
+                          value: pk.hkl ? `C(${pk.hkl})` : `C:${pk.twoTheta.toFixed(1)}°`,
+                          position: 'insideTopRight',
+                          fill: pal.colorC,
+                          fontSize: 8,
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    )
+                  ))}
+
+                  {showPeakMarkers && hasPhaseD && visibleCurves.showD && peaksD.map((pk, idx) => (
+                    pk.twoTheta >= left && pk.twoTheta <= right && (
+                      <ReferenceLine
+                        key={`pkD-${idx}`}
+                        x={pk.twoTheta}
+                        stroke={pal.colorD}
+                        strokeDasharray="3 3"
+                        strokeWidth={1.0}
+                        label={{
+                          value: pk.hkl ? `D(${pk.hkl})` : `D:${pk.twoTheta.toFixed(1)}°`,
+                          position: 'insideBottomRight',
+                          fill: pal.colorD,
+                          fontSize: 8,
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                    )
+                  ))}
 
                   {/* Caliper Reference Markers & Highlight Area */}
                   {caliperP1 && (
@@ -1576,7 +1785,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                   <ComposedChart data={chartPoints} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
                     <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
-                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="%" />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit={intensityScale === 'linear' ? '%' : ''} />
                     <Tooltip content={<CustomTooltip />} />
                     <Line type={curveInterpolation} dataKey="intensityA" stroke={pal.colorA} strokeWidth={strokeW} dot={false} isAnimationActive={false} />
                   </ComposedChart>
@@ -1597,7 +1806,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                   <ComposedChart data={chartPoints} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
                     <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="°" />
-                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit="%" />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 10 }} unit={intensityScale === 'linear' ? '%' : ''} />
                     <Tooltip content={<CustomTooltip />} />
                     <Line type={curveInterpolation} dataKey="intensityB" stroke={pal.colorB} strokeWidth={strokeW} strokeDasharray={dashB} dot={false} isAnimationActive={false} />
                   </ComposedChart>
@@ -1613,14 +1822,14 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             {/* Row 1: Sample A */}
             <div className={`${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 flex flex-col shadow-inner`}>
               <span className="text-[11px] font-mono font-bold px-2" style={{ color: pal.colorA }}>
-                (1) Sample A: {materialAName}
+                01. Sample A: {materialAName}
               </span>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartPoints} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
                     <XAxis dataKey="twoTheta" domain={[left, right]} hide />
-                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit={intensityScale === 'linear' ? '%' : ''} />
                     <Line type={curveInterpolation} dataKey="intensityA" stroke={pal.colorA} strokeWidth={2.4} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -1630,14 +1839,14 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             {/* Row 2: Reference B */}
             <div className={`${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 flex flex-col shadow-inner`}>
               <span className="text-[11px] font-mono font-bold px-2" style={{ color: pal.colorB }}>
-                (2) Reference B: {materialBName}
+                02. Reference B: {materialBName}
               </span>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartPoints} margin={{ top: 5, right: 15, bottom: 5, left: 5 }}>
                     {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.5} />}
                     <XAxis dataKey="twoTheta" domain={[left, right]} hide />
-                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit="%" />
+                    <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 9 }} unit={intensityScale === 'linear' ? '%' : ''} />
                     <Line type={curveInterpolation} dataKey="intensityB" stroke={pal.colorB} strokeWidth={2.4} strokeDasharray={dashB} dot={false} isAnimationActive={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -1647,7 +1856,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
             {/* Row 3: Difference Residual */}
             <div className={`${bgStyle.bg} rounded-xl border ${bgStyle.border} p-2 flex flex-col shadow-inner`}>
               <span className="text-[11px] font-mono font-bold px-2" style={{ color: pal.colorDiff }}>
-                (3) Difference Residual (A - B)
+                03. Difference Residual (A - B)
               </span>
               <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1679,7 +1888,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
                 <ComposedChart data={chartPoints} margin={{ top: 15, right: 20, bottom: 20, left: 10 }}>
                   {showGrid && <CartesianGrid stroke={bgStyle.grid} strokeDasharray="3 3" opacity={0.6} />}
                   <XAxis dataKey="twoTheta" type="number" domain={[left, right]} stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} unit="°" />
-                  <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} domain={[-100, 100]} unit="%" />
+                  <YAxis stroke={bgStyle.axisLine} tick={{ fill: bgStyle.axisText, fontSize: 11 }} domain={[-100, 100]} unit={intensityScale === 'linear' ? '%' : ''} />
                   <ReferenceLine y={0} stroke="#64748b" strokeWidth={1.5} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type={curveInterpolation} dataKey="intensityA" fill={pal.colorA} fillOpacity={0.3} stroke={pal.colorA} strokeWidth={2.2} dot={false} />
@@ -1720,7 +1929,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
       {/* MINI-MAP SPECTRUM NAVIGATION STRIP (BRUSH OVERVIEW) */}
       <div className="mt-3 pt-2 border-t border-slate-800">
-        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1">
+        <div className="flex items-center justify-between text-[10px] font-mono tabular-nums text-slate-400 mb-1">
           <span className="font-bold flex items-center gap-1">
             <Compass className="w-3 h-3 text-cyan-400" />
             Full Spectrum Domain Overview (10° - 90° 2θ)
@@ -1748,7 +1957,7 @@ export const CompareChartViewer: React.FC<CompareChartViewerProps> = ({
 
           {/* Active Viewport Shaded Window Indicator */}
           <div 
-            className="absolute top-0 bottom-0 bg-cyan-500/20 border-x-2 border-cyan-400 pointer-events-none shadow-[0_0_12px_rgba(6,182,212,0.3)] flex items-center justify-between px-1"
+            className="absolute top-0 bottom-0 bg-cyan-500/20 border-x-2 border-cyan-400 pointer-events-none flex items-center justify-between px-1"
             style={{
               left: `${((left - 10) / (90 - 10)) * 100}%`,
               width: `${((right - left) / (90 - 10)) * 100}%`
