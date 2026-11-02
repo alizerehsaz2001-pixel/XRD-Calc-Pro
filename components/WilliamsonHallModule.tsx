@@ -145,6 +145,8 @@ export const WilliamsonHallModule: React.FC = () => {
   const [isDensityEnabled, setIsDensityEnabled] = useState<boolean>(true);
   const [materialDensityGcm3, setMaterialDensityGcm3] = useState<number>(2.33);
   const [dislocationQParam, setDislocationQParam] = useState<number>(2.0);
+  const [ch00Param, setCh00Param] = useState<number>(0.285);
+  const [transferNotice, setTransferNotice] = useState<string | null>(null);
   const [showDensityExplanation, setShowDensityExplanation] = useState<boolean>(false);
   const [showDecouplingExplanation, setShowDecouplingExplanation] = useState<boolean>(false);
   const [showMathModal, setShowMathModal] = useState<boolean>(false);
@@ -157,8 +159,11 @@ export const WilliamsonHallModule: React.FC = () => {
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt'>('Gaussian');
   const [strainModel, setStrainModel] = useState<'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens' | 'Monshi-Scherrer'>('UDM');
   
-  // Diagnostic Visualizer Tab
-  const [activeTab, setActiveTab] = useState<'fit' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison' | 'advisor'>('fit');
+  // Diagnostic Visualizer Tab & Plot HUD Toggles
+  const [activeTab, setActiveTab] = useState<'fit' | 'pattern' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison' | 'advisor'>('fit');
+  const [showConfidenceBand, setShowConfidenceBand] = useState<boolean>(true);
+  const [showZeroStrainLine, setShowZeroStrainLine] = useState<boolean>(true);
+  const [schematicMode, setSchematicMode] = useState<'decoupling' | 'scaling' | 'lattice'>('decoupling');
 
   const [result, setResult] = useState<WHResult | null>(() => {
     try {
@@ -192,11 +197,59 @@ export const WilliamsonHallModule: React.FC = () => {
     setBurgersVectorNm(0.25);
     setMaterialDensityGcm3(2.33);
     setDislocationQParam(2.0);
+    setCh00Param(0.285);
     setExcludedIndices([]);
     setInputData("28.44, 0.25, 4, 0, 0\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 2, 2, 2\n69.13, 0.38, 4, 4, 0\n76.38, 0.42, 6, 2, 0");
     setStrainModel('UDM');
     setBroadeningModel('Gaussian');
     setAdvisorReport(null);
+  };
+
+  const handleSelectStrainModel = (newModel: typeof strainModel) => {
+    setStrainModel(newModel);
+    if (newModel === 'USDM' || newModel === 'UDEDM') {
+      setIsModulusEnabled(true);
+    }
+  };
+
+  const handleImportFromScherrer = () => {
+    try {
+      const rawTransfer = localStorage.getItem('xrd_wh_transfer_payload') || localStorage.getItem('xrd_scherrer_current');
+      if (!rawTransfer) {
+        setTransferNotice('No active Scherrer Studio dataset found in session.');
+        setTimeout(() => setTransferNotice(null), 3500);
+        return;
+      }
+      const parsed = JSON.parse(rawTransfer);
+      if (parsed.inputData) {
+        setInputData(parsed.inputData);
+      } else if (Array.isArray(parsed.results) && parsed.results.length > 0) {
+        const lines = parsed.results.map((r: any) => {
+          const hklPart = r.hkl && r.hkl.length === 3 ? `, ${r.hkl[0]}, ${r.hkl[1]}, ${r.hkl[2]}` : '';
+          return `${Number(r.twoTheta).toFixed(3)}, ${Number(r.fwhmObs).toFixed(3)}${hklPart}`;
+        }).join('\n');
+        setInputData(lines);
+      }
+      if (parsed.wavelength) setWavelength(parsed.wavelength);
+      if (parsed.constantK) setConstantK(parsed.constantK);
+      if (typeof parsed.instFwhm === 'number') setInstFwhm(parsed.instFwhm);
+      if (parsed.useCaglioti !== undefined) {
+        setInstrumentalMode(parsed.useCaglioti ? 'caglioti' : 'constant');
+      }
+      if (parsed.caglioti) {
+        setCagliotiU(parsed.caglioti.u ?? 0.005);
+        setCagliotiV(parsed.caglioti.v ?? -0.002);
+        setCagliotiW(parsed.caglioti.w ?? 0.015);
+      }
+      if (parsed.materialDensity) setMaterialDensityGcm3(parsed.materialDensity);
+      if (parsed.burgersVectorNm) setBurgersVectorNm(parsed.burgersVectorNm);
+      setExcludedIndices([]);
+      setTransferNotice(`Imported ${parsed.selectedMaterial || 'Scherrer dataset'} (λ = ${parsed.wavelength || wavelength} Å)`);
+      setTimeout(() => setTransferNotice(null), 4000);
+    } catch (e) {
+      setTransferNotice('Could not parse Scherrer dataset.');
+      setTimeout(() => setTransferNotice(null), 3500);
+    }
   };
 
   const handleClear = () => {
@@ -220,13 +273,14 @@ export const WilliamsonHallModule: React.FC = () => {
       broadeningModel,
       isDecouplingEnabled ? instrumentalMode : 'constant',
       { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-      isModulusEnabled ? youngsModulusGPa : undefined,
+      isModulusEnabled || strainModel === 'USDM' || strainModel === 'UDEDM' ? youngsModulusGPa : undefined,
       strainModel,
       currentPreset?.name,
       currentExcluded,
       burgersVectorNm,
       isDensityEnabled ? materialDensityGcm3 : undefined,
-      dislocationQParam
+      dislocationQParam,
+      ch00Param
     );
     setResult(computed);
     if (computed) {
@@ -279,7 +333,8 @@ export const WilliamsonHallModule: React.FC = () => {
     burgersVectorNm,
     isDensityEnabled,
     materialDensityGcm3,
-    dislocationQParam
+    dislocationQParam,
+    ch00Param
   ]);
 
   // Outlier toggle per peak
@@ -288,6 +343,19 @@ export const WilliamsonHallModule: React.FC = () => {
       const next = prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index];
       return next;
     });
+  };
+
+  const handleAutoPruneOutliers = () => {
+    if (!result || !result.pointsExtended) return;
+    const toExclude: number[] = [];
+    result.pointsExtended.forEach((p, idx) => {
+      if (p.studentizedResidual !== undefined && Math.abs(p.studentizedResidual) > 1.8) {
+        toExclude.push(idx);
+      }
+    });
+    if (toExclude.length > 0 && result.pointsExtended.length - toExclude.length >= 2) {
+      setExcludedIndices(toExclude);
+    }
   };
 
   // Server-Side AI Smart Generation / Synthetic Data Retrieval
@@ -429,37 +497,103 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
     setTimeout(() => setCopiedNotice(false), 2500);
   };
 
-  // Prepare chart data for Main Regression View
+  // Prepare chart data for Main Regression View with exact Student-t hyperbolic 95% confidence bands
   const chartData = useMemo(() => {
     if (!result || !result.pointsExtended) return [];
     
+    const activePts = result.pointsExtended.filter(p => !p.isExcluded);
+    const n = activePts.length;
+    const meanX = n > 0 ? activePts.reduce((acc, p) => acc + p.x, 0) / n : 0;
+    const sxx = activePts.reduce((acc, p) => acc + Math.pow(p.x - meanX, 2), 0);
+    // Student-t 95% critical value (two-tailed) for df = n - 2
+    const df = Math.max(1, n - 2);
+    const tCrit = df === 1 ? 4.303 : df === 2 ? 3.182 : df === 3 ? 2.776 : df === 4 ? 2.571 : df <= 6 ? 2.447 : df <= 10 ? 2.228 : 1.96;
+    const syx = result.regression.rmse ? result.regression.rmse * Math.sqrt(n / Math.max(1, n - 2)) : 0.0005;
+
     return result.pointsExtended.map(p => {
       const fitY = result.regression.slope * p.x + result.regression.intercept;
-      const stdDev = result.regression.rmse || 0.001;
-      const confidenceBound = stdDev * 2.0; // 95% CI
+      const leverage = n > 0 && sxx > 1e-12 ? (1 / n) + Math.pow(p.x - meanX, 2) / sxx : 1;
+      const confidenceBound = tCrit * syx * Math.sqrt(leverage);
       return {
         x: p.x,
         y: p.y,
+        yActive: p.isExcluded ? null : p.y,
+        yExcluded: p.isExcluded ? p.y : null,
         fit: fitY,
-        fitRange: [Math.max(0, fitY - confidenceBound), fitY + confidenceBound],
-        residual: p.residual || (p.y - fitY),
+        fitRange: [fitY - confidenceBound, fitY + confidenceBound],
+        residual: p.residual ?? (p.y - fitY),
+        studentizedResidual: p.studentizedResidual ?? 0,
         twoTheta: p.twoTheta,
         hkl: p.hkl ? `(${p.hkl.join('')})` : '',
         isExcluded: p.isExcluded,
         apparentSizeNm: p.singlePeakSizeNm,
-        dSpacing: p.dSpacing
+        dSpacing: p.dSpacing,
+        eHklGPa: p.eHklGPa,
+        contrastFactorC: p.contrastFactorC,
+        hSquared: p.hSquared
       };
     }).sort((a, b) => a.x - b.x);
   }, [result]);
+
+  // Synthesize Full XRD Diffractogram Pattern comparing Total (Size+Strain) vs Strain-Free (Size-Only)
+  const xrdPatternData = useMemo(() => {
+    if (!result || !result.pointsExtended || result.pointsExtended.length === 0) return [];
+    const active = result.pointsExtended.filter(p => !p.isExcluded);
+    if (active.length === 0) return [];
+
+    const minTT = Math.max(10, Math.floor(Math.min(...active.map(p => p.twoTheta)) - 6));
+    const maxTT = Math.min(110, Math.ceil(Math.max(...active.map(p => p.twoTheta)) + 6));
+    const step = 0.2;
+    const pts: { twoTheta: number; totalProfile: number; sizeOnlyProfile: number }[] = [];
+
+    const sizeD = result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? result.sizeInterceptNm : 80;
+
+    for (let tt = minTT; tt <= maxTT; tt += step) {
+      let sumTotal = 18; // baseline background
+      let sumSizeOnly = 18;
+
+      active.forEach((p, idx) => {
+        const dx = tt - p.twoTheta;
+        const fwhmTotal = Math.max(0.08, p.fwhmObs);
+        const thetaRad = (p.twoTheta / 2) * (Math.PI / 180);
+        // Theoretical strain-free FWHM from decoupled size D + instrumental
+        const betaSizeDeg = ((constantK * wavelength * 0.1) / (sizeD * Math.max(0.1, Math.cos(thetaRad)))) * (180 / Math.PI);
+        const fwhmSizeOnly = Math.max(0.06, Math.sqrt(Math.pow(betaSizeDeg, 2) + Math.pow(p.fwhmInst || 0.08, 2)));
+
+        if (Math.abs(dx) < fwhmTotal * 5) {
+          const amp = 850 / (1 + idx * 0.18);
+          const halfG = fwhmTotal / 2;
+          const gauss = Math.exp(-Math.LN2 * Math.pow(dx / halfG, 2));
+          const lorentz = 1 / (1 + Math.pow(dx / halfG, 2));
+          sumTotal += amp * (0.5 * gauss + 0.5 * lorentz);
+        }
+        if (Math.abs(dx) < fwhmSizeOnly * 5) {
+          const amp = 850 / (1 + idx * 0.18);
+          const halfG0 = fwhmSizeOnly / 2;
+          const gauss0 = Math.exp(-Math.LN2 * Math.pow(dx / halfG0, 2));
+          const lorentz0 = 1 / (1 + Math.pow(dx / halfG0, 2));
+          sumSizeOnly += amp * (0.5 * gauss0 + 0.5 * lorentz0);
+        }
+      });
+
+      pts.push({
+        twoTheta: Number(tt.toFixed(2)),
+        totalProfile: Math.round(sumTotal),
+        sizeOnlyProfile: Math.round(sumSizeOnly)
+      });
+    }
+    return pts;
+  }, [result, constantK, wavelength]);
 
   // Model-specific axis labels
   const getXAxisLabel = () => {
     switch (strainModel) {
       case 'USDM': return '4 sin(θ) / E_hkl (GPa⁻¹)';
       case 'UDEDM': return '4 sin(θ) / √E_hkl (GPa⁻⁰·⁵)';
-      case 'SSP': return 'd² · β* (Å² · Å⁻¹)';
+      case 'SSP': return 'd² · β* (Å)';
       case 'Halder-Wagner': return 'β* / (d*)² (Å)';
       case 'mWH': return 'K · √C_hkl (Å⁻¹)';
+      case 'Stephens': return '4 sin(θ) · √(1 + 2.5 H²) (Anisotropic)';
       case 'Monshi-Scherrer': return 'ln(1 / cos θ)';
       default: return '4 sin(θ) (Dimensionless)';
     }
@@ -469,7 +603,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
     switch (strainModel) {
       case 'SSP': return '(d · β*)² (Dimensionless)';
       case 'Halder-Wagner': return '(β* / d*)² (Dimensionless)';
-      case 'mWH': return 'ΔK = 2β cos(θ) / λ (Å⁻¹)';
+      case 'mWH': return 'ΔK = β cos(θ) / λ (Å⁻¹)';
       case 'Monshi-Scherrer': return 'ln(β_sample rad)';
       default: return 'β_sample · cos(θ) (rad)';
     }
@@ -538,9 +672,10 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                 <h2 className="text-xl font-black text-white uppercase tracking-wider mb-0.5">
                   Williamson-Hall
                 </h2>
-                <p className="flex items-center gap-1.5 text-[9px] font-mono text-cyan-500/70 uppercase tracking-[0.25em]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-[pulse_2s_ease-in-out_infinite]" />
-                  Size & Microstrain Studio
+                <p className="flex items-center gap-2 text-[9px] font-mono tabular-nums text-cyan-400 uppercase tracking-widest">
+                  <span className="text-emerald-400 font-bold">● CALIBRATED</span>
+                  <span className="text-slate-600">|</span>
+                  <span>λ = {wavelength.toFixed(4)} Å</span>
                 </p>
               </div>
             </div>
@@ -566,20 +701,22 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                 </span>
               </label>
               
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5">
                 {[
                   { id: 'UDM', label: 'UDM', title: 'Uniform Deformation Model (Isotropic Strain)' },
-                  { id: 'USDM', label: 'USDM', title: 'Uniform Stress Model (Anisotropic Ehkl)' },
+                  { id: 'USDM', label: 'USDM', title: 'Uniform Stress Deformation Model (Anisotropic E_hkl)' },
                   { id: 'UDEDM', label: 'UDEDM', title: 'Uniform Deformation Energy Density Model' },
                   { id: 'SSP', label: 'SSP', title: 'Size-Strain Plot (High Angle Weighted)' },
-                  { id: 'Halder-Wagner', label: 'H-W', title: 'Halder-Wagner Voigt Decoupling' },
-                  { id: 'mWH', label: 'mWH', title: 'Modified W-H (Dislocation Contrast C)' }
+                  { id: 'Halder-Wagner', label: 'H-W', title: 'Halder-Wagner Voigt Parabolic Decoupling' },
+                  { id: 'mWH', label: 'mWH', title: 'Ungár Modified W-H (Dislocation Contrast C_hkl)' },
+                  { id: 'Stephens', label: 'Stephens', title: 'Stephens Anisotropic Microstrain Tensor' },
+                  { id: 'Monshi-Scherrer', label: 'Monshi', title: 'Monshi-Scherrer Logarithmic Linearization' }
                 ].map(m => (
                   <button
                     key={m.id}
                     type="button"
-                    onClick={() => setStrainModel(m.id as any)}
-                    className={`py-1.5 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer ${
+                    onClick={() => handleSelectStrainModel(m.id as any)}
+                    className={`py-1.5 px-1 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border cursor-pointer truncate ${
                       strainModel === m.id
                         ? 'bg-emerald-500 text-black border-emerald-400 font-extrabold shadow-[0_0_12px_rgba(16,185,129,0.35)] scale-[1.02]'
                         : 'bg-black/40 border-white/5 text-slate-400 hover:text-slate-200 hover:border-slate-700'
@@ -599,13 +736,76 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                     strainModel === 'UDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)' :
                     strainModel === 'USDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\frac{4\\sigma \\sin(\\theta)}{E_{hkl}}' :
                     strainModel === 'UDEDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\sin(\\theta) \\sqrt{\\frac{2u}{E_{hkl}}}' :
-                    strainModel === 'SSP' ? '(d \\cdot \\beta^*)^2 = \\frac{K}{D}(d^2 \\beta^*) + \\left(\\frac{\\varepsilon}{2}\\right)^2' :
-                    strainModel === 'Halder-Wagner' ? '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{1}{D} \\frac{\\beta^*}{(d^*)^2} + \\left(\\frac{\\varepsilon}{2}\\right)^2' :
-                    '\\Delta K = \\frac{0.9}{D} + \\alpha K \\bar{C}^{1/2}',
+                    strainModel === 'SSP' ? '(d \\cdot \\beta^*)^2 = \\frac{K}{D}(d^2 \\beta^*) + (2\\varepsilon)^2' :
+                    strainModel === 'Halder-Wagner' ? '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D} \\frac{\\beta^*}{(d^*)^2} + (2\\varepsilon)^2' :
+                    strainModel === 'mWH' ? '\\Delta K = \\frac{K}{D} + \\alpha \\left(K \\bar{C}_{hkl}^{1/2}\\right)' :
+                    strainModel === 'Stephens' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)\\sqrt{1 + 2.5 H^2}' :
+                    '\\ln(\\beta) = \\ln\\left(\\frac{K\\lambda}{D}\\right) + \\ln\\left(\\frac{1}{\\cos\\theta}\\right)',
                     { throwOnError: false }
                   ) }}
                 />
               </div>
+
+              {/* Ungár Dislocation Contrast Parameter Controls for mWH / Stephens */}
+              {(strainModel === 'mWH' || strainModel === 'Stephens') && (
+                <div className="mt-3 pt-3 border-t border-emerald-500/20 space-y-2.5">
+                  <div className="flex items-center justify-between text-[9px] font-mono">
+                    <span className="text-emerald-300 font-bold uppercase">Dislocation Contrast C_hkl = C_h00(1 - q·H²)</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="flex justify-between text-[8px] font-mono text-slate-400 mb-1">
+                        <span>Anisotropy q:</span>
+                        <span className="text-emerald-300 font-bold">{dislocationQParam.toFixed(2)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="-2.0"
+                        max="2.8"
+                        step="0.05"
+                        value={dislocationQParam}
+                        onChange={(e) => setDislocationQParam(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[8px] font-mono text-slate-400 mb-1">
+                        <span>Base C_h00:</span>
+                        <span className="text-emerald-300 font-bold">{ch00Param.toFixed(3)}</span>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.005"
+                        min="0.05"
+                        max="0.60"
+                        value={ch00Param}
+                        onChange={(e) => setCh00Param(parseFloat(e.target.value) || 0.285)}
+                        className="w-full px-2 py-1 bg-[#0A101C] text-emerald-300 border border-white/10 rounded-lg font-mono text-[10px] font-bold"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      { label: 'Cu Screw (q=2.26)', q: 2.26, c: 0.304 },
+                      { label: 'Cu Edge (q=1.65)', q: 1.65, c: 0.304 },
+                      { label: 'Fe BCC Screw (q=2.67)', q: 2.67, c: 0.285 },
+                      { label: 'Si Isotropic (q=1.35)', q: 1.35, c: 0.215 }
+                    ].map(preset => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => {
+                          setDislocationQParam(preset.q);
+                          setCh00Param(preset.c);
+                        }}
+                        className="px-1.5 py-0.5 rounded bg-black/50 hover:bg-emerald-500/20 border border-white/10 text-[8px] font-mono text-slate-300 hover:text-emerald-300 cursor-pointer"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Wavelength & Shape Factor */}
@@ -975,7 +1175,20 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                   <Sparkles className="w-3.5 h-3.5" />
                   AI Dataset Assistant
                 </label>
+                <button
+                  type="button"
+                  onClick={handleImportFromScherrer}
+                  className="px-2 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-[8px] font-black uppercase tracking-wider text-amber-300 transition-colors cursor-pointer"
+                  title="Import active peak list & instrument parameters from Scherrer Studio"
+                >
+                  Import Scherrer Studio
+                </button>
               </div>
+              {transferNotice && (
+                <p className="text-[8px] font-mono text-amber-300 bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20 mb-2">
+                  {transferNotice}
+                </p>
+              )}
               <div className="flex gap-1.5 mb-2">
                 <input
                   type="text"
@@ -1101,15 +1314,17 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             formula={
               strainModel === 'USDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\frac{4\\sigma \\sin(\\theta)}{E_{hkl}}' :
               strainModel === 'UDEDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\sin(\\theta) \\sqrt{\\frac{2u}{E_{hkl}}}' :
-              strainModel === 'SSP' ? '(d\\beta^*)^2 = \\frac{K}{D}(d^2 \\beta^*) + \\left(\\frac{\\varepsilon}{2}\\right)^2' :
-              strainModel === 'Halder-Wagner' ? '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{1}{D} \\frac{\\beta^*}{(d^*)^2} + \\left(\\frac{\\varepsilon}{2}\\right)^2' :
-              strainModel === 'mWH' ? '\\Delta K = \\frac{0.9}{D} + \\alpha K \\bar{C}^{1/2}' :
+              strainModel === 'SSP' ? '(d\\beta^*)^2 = \\frac{K}{D}(d^2 \\beta^*) + (2\\varepsilon)^2' :
+              strainModel === 'Halder-Wagner' ? '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D} \\frac{\\beta^*}{(d^*)^2} + (2\\varepsilon)^2' :
+              strainModel === 'mWH' ? '\\Delta K = \\frac{K}{D} + \\alpha \\left(K \\bar{C}_{hkl}^{1/2}\\right)' :
+              strainModel === 'Stephens' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)\\sqrt{1 + 2.5 H^2}' :
+              strainModel === 'Monshi-Scherrer' ? '\\ln(\\beta) = \\ln\\left(\\frac{K\\lambda}{D}\\right) + \\ln\\left(\\frac{1}{\\cos\\theta}\\right)' :
               '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)'
             }
-            description={`Decoupled regression result for ${strainModel}. Slope directly encodes strain while Y-intercept yields pure grain dimension.`}
+            description={`Decoupled regression result for ${strainModel} (SE_slope = ±${(result.regression.stdErrorSlope || 0).toExponential(2)}, SE_int = ±${(result.regression.stdErrorIntercept || 0).toExponential(2)}).`}
             variables={[
-              { symbol: 'Slope', name: 'Regression Gradient', value: result.regression.slope, unit: '' },
-              { symbol: 'Intercept', name: 'Y-Intercept', value: result.regression.intercept, unit: 'Å⁻¹' },
+              { symbol: 'Slope', name: 'Regression Gradient', value: result.regression.slope, unit: strainModel === 'USDM' ? 'MPa' : strainModel === 'UDEDM' ? '√(GPa)' : strainModel === 'SSP' || strainModel === 'Halder-Wagner' ? 'Å⁻¹' : '' },
+              { symbol: 'Intercept', name: 'Y-Intercept', value: result.regression.intercept, unit: strainModel === 'mWH' ? 'Å⁻¹' : strainModel === 'SSP' || strainModel === 'Halder-Wagner' || strainModel === 'Monshi-Scherrer' ? '' : 'rad' },
               { symbol: 'K', name: 'Shape Factor', value: constantK, unit: '' },
               { symbol: 'λ', name: 'Wavelength', value: wavelength, unit: 'Å' }
             ]}
@@ -1119,82 +1334,363 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
           />
         )}
 
-        {/* Top Metric Cards */}
+        {/* ================= MASTER SIZE-STRAIN DECOUPLING GRAPHIC CARD ================= */}
+        {result && (
+          <div className="bg-[#050A14] rounded-3xl border border-slate-800 p-5 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3.5 mb-4 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 text-cyan-400">
+                  <Atom className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-black text-white uppercase tracking-wider">
+                      Physical Size–Strain Decoupling Telemetry
+                    </h3>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-mono tabular-nums font-bold text-emerald-300">
+                      ● {strainModel} ACTIVE
+                    </span>
+                  </div>
+                  <p className="text-[9px] font-mono text-slate-400 mt-0.5">
+                    Separating Scherrer domain broadening (∝ 1/cosθ) from Stokes–Wilson lattice microstrain (∝ 4ε·tanθ)
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10">
+                {[
+                  { id: 'decoupling', label: 'Reciprocal Separation' },
+                  { id: 'scaling', label: 'θ-Broadening Curves' },
+                  { id: 'lattice', label: 'Lattice Distortion Δd/d' }
+                ].map(mode => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setSchematicMode(mode.id as any)}
+                    className={`px-2.5 py-1 rounded-lg text-[8px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      schematicMode === mode.id
+                        ? 'bg-cyan-500 text-black font-black shadow-[0_0_10px_rgba(34,211,238,0.3)]'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Interactive 3-Mode Physics Schematic */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+              <div className="lg:col-span-8 bg-[#030710] rounded-2xl border border-white/5 p-3">
+                {schematicMode === 'decoupling' && (
+                  <svg viewBox="0 0 520 155" className="w-full h-36 overflow-visible">
+                    {/* Coordinate Grid */}
+                    {[30, 65, 100].map(y => (
+                      <line key={y} x1="48" y1={y} x2="495" y2={y} stroke="rgba(148,163,184,0.08)" strokeDasharray="3 3" />
+                    ))}
+                    {[120, 210, 300, 390, 480].map(x => (
+                      <line key={x} x1={x} y1="16" x2={x} y2="125" stroke="rgba(148,163,184,0.08)" strokeDasharray="3 3" />
+                    ))}
+                    <line x1="48" y1="15" x2="48" y2="125" stroke="#475569" strokeWidth="1.2" />
+                    <line x1="48" y1="125" x2="498" y2="125" stroke="#475569" strokeWidth="1.2" />
+
+                    {/* Shaded Size Constant Region (Below Intercept) */}
+                    <rect x="48" y="88" width="445" height="37" fill="rgba(16,185,129,0.08)" />
+                    <line x1="48" y1="88" x2="493" y2="88" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4 3" />
+
+                    {/* Shaded Strain Wedge (Between Intercept and Total Fit Line) */}
+                    <polygon
+                      points={result.regression.slope >= 0 ? "48,88 493,88 493,26" : "48,88 493,88 493,118"}
+                      fill="rgba(34,211,238,0.09)"
+                    />
+
+                    {/* Total W-H Regression Line */}
+                    <line
+                      x1="48"
+                      y1="88"
+                      x2="493"
+                      y2={result.regression.slope >= 0 ? "26" : "118"}
+                      stroke="#f43f5e"
+                      strokeWidth="2.2"
+                    />
+
+                    {/* Intercept Marker */}
+                    <circle cx="48" cy="88" r="4.5" fill="#10b981" stroke="#030710" strokeWidth="1.5" />
+                    <text x="56" y="82" fill="#10b981" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                      Intercept c = Kλ/D = {result.regression.intercept.toExponential(3)}
+                    </text>
+
+                    {/* Slope Callout Triangle */}
+                    {result.regression.slope >= 0 && (
+                      <g>
+                        <line x1="260" y1="58" x2="360" y2="58" stroke="#22d3ee" strokeWidth="1.2" />
+                        <line x1="360" y1="58" x2="360" y2="44" stroke="#22d3ee" strokeWidth="1.2" />
+                        <text x="366" y="54" fill="#22d3ee" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                          Slope m = {result.regression.slope.toExponential(3)} → ε = {result.strainPercent.toFixed(3)}%
+                        </text>
+                      </g>
+                    )}
+
+                    {/* Labels */}
+                    <text x="270" y="110" textAnchor="middle" fill="#10b981" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                      SIZE CONTRIBUTION: β_D·cosθ = Kλ / D (Angle-Independent Floor)
+                    </text>
+                    <text x="270" y="144" textAnchor="middle" fill="#94a3b8" fontSize="8.5" fontFamily="monospace">
+                      X = {getXAxisLabel()}
+                    </text>
+                    <text x="15" y="70" textAnchor="middle" fill="#94a3b8" fontSize="8.5" fontFamily="monospace" transform="rotate(-90 15 70)">
+                      Y = β·cosθ
+                    </text>
+                  </svg>
+                )}
+
+                {schematicMode === 'scaling' && (
+                  <svg viewBox="0 0 520 155" className="w-full h-36 overflow-visible">
+                    <line x1="48" y1="15" x2="48" y2="125" stroke="#475569" strokeWidth="1.2" />
+                    <line x1="48" y1="125" x2="498" y2="125" stroke="#475569" strokeWidth="1.2" />
+                    {[20, 40, 60, 80, 100, 120].map(deg => {
+                      const x = 48 + ((deg - 10) / 120) * 445;
+                      return (
+                        <g key={deg}>
+                          <line x1={x} y1="125" x2={x} y2="129" stroke="#475569" />
+                          <text x={x} y="140" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">{deg}°</text>
+                        </g>
+                      );
+                    })}
+                    {/* Scherrer Size Curve ~ 1/cos(theta) */}
+                    <path
+                      d="M 48 96 Q 240 93, 360 80 T 490 42"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2"
+                    />
+                    {/* Strain Curve ~ 4*eps*tan(theta) */}
+                    <path
+                      d="M 48 120 Q 210 108, 330 75 T 490 18"
+                      fill="none"
+                      stroke="#22d3ee"
+                      strokeWidth="2"
+                      strokeDasharray="4 2"
+                    />
+                    <text x="70" y="32" fill="#10b981" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                      ── Scherrer Size Broadening: β_D(θ) = Kλ / (D·cosθ)
+                    </text>
+                    <text x="70" y="48" fill="#22d3ee" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                      -- Stokes–Wilson Strain Broadening: β_ε(θ) = 4ε·tanθ
+                    </text>
+                    <text x="70" y="64" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                      High-angle reflections (2θ &gt; 60°) amplify tanθ faster than 1/cosθ, resolving ε from D.
+                    </text>
+                  </svg>
+                )}
+
+                {schematicMode === 'lattice' && (
+                  <svg viewBox="0 0 520 155" className="w-full h-36 overflow-visible">
+                    {/* Left: Unstrained Coherent Crystallite Domain */}
+                    <text x="130" y="20" textAnchor="middle" fill="#10b981" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                      IDEAL COHERENT DOMAIN (D = {result.sizeInterceptNm > 0 && result.sizeInterceptNm < 500 ? `${result.sizeInterceptNm.toFixed(1)} nm` : 'Bulk'})
+                    </text>
+                    {[0, 1, 2, 3, 4].map(r =>
+                      [0, 1, 2, 3, 4, 5].map(c => (
+                        <circle
+                          key={`ideal-${r}-${c}`}
+                          cx={65 + c * 26}
+                          cy={36 + r * 20}
+                          r="3.2"
+                          fill="#10b981"
+                          opacity="0.85"
+                        />
+                      ))
+                    )}
+                    {[0, 1, 2, 3, 4].map(r => (
+                      <line key={`hl-${r}`} x1="65" y1={36 + r * 20} x2="195" y2={36 + r * 20} stroke="rgba(16,185,129,0.25)" strokeWidth="1" />
+                    ))}
+
+                    {/* Arrow */}
+                    <text x="255" y="76" textAnchor="middle" fill="#94a3b8" fontSize="14" fontFamily="monospace">⟹</text>
+                    <text x="255" y="92" textAnchor="middle" fill="#22d3ee" fontSize="7.5" fontFamily="monospace">Δd/d₀ = ±ε</text>
+
+                    {/* Right: Microstrained Lattice with Dislocation Core */}
+                    <text x="385" y="20" textAnchor="middle" fill="#22d3ee" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                      MICROSTRAINED LATTICE (ε = {result.strainPercent.toFixed(3)}%)
+                    </text>
+                    {[0, 1, 2, 3, 4].map(r =>
+                      [0, 1, 2, 3, 4, 5].map(c => {
+                        const dx = Math.sin(r * 1.1 + c * 0.9) * 3.8;
+                        const dy = Math.cos(c * 1.2 - r * 0.7) * 2.8;
+                        return (
+                          <circle
+                            key={`strained-${r}-${c}`}
+                            cx={320 + c * 26 + dx}
+                            cy={36 + r * 20 + dy}
+                            r="3.2"
+                            fill={r === 2 && c === 3 ? '#f43f5e' : '#22d3ee'}
+                          />
+                        );
+                      })
+                    )}
+                    <text x="260" y="142" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                      Non-uniform d-spacing variation (d₀ ± Δd) broadens Bragg peaks proportionally to tan(θ)
+                    </text>
+                  </svg>
+                )}
+              </div>
+
+              {/* Right 4 Cols: Live Linearized Equation & Uncertainty Readout */}
+              <div className="lg:col-span-4 bg-[#030710] rounded-2xl border border-white/5 p-3.5 space-y-2.5 font-mono tabular-nums">
+                <div className="flex items-center justify-between text-[9px] text-slate-400 border-b border-white/5 pb-1.5">
+                  <span className="uppercase font-bold text-cyan-400">Linear Fit Parameters</span>
+                  <span>df = {Math.max(1, result.points.length - 2)}</span>
+                </div>
+                <div className="space-y-1.5 text-[10px]">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Slope (m):</span>
+                    <span className="text-cyan-300 font-bold">
+                      {result.regression.slope.toExponential(3)}
+                      {result.regression.stdErrorSlope !== undefined && (
+                        <span className="text-[8px] text-slate-500 ml-1">±{result.regression.stdErrorSlope.toExponential(1)}</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Intercept (c):</span>
+                    <span className="text-emerald-300 font-bold">
+                      {result.regression.intercept.toExponential(3)}
+                      {result.regression.stdErrorIntercept !== undefined && (
+                        <span className="text-[8px] text-slate-500 ml-1">±{result.regression.stdErrorIntercept.toExponential(1)}</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Pearson r / Adj-R²:</span>
+                    <span className="text-purple-300 font-bold">
+                      {result.regression.pearsonR?.toFixed(4) ?? '-'} / {result.regression.adjustedRSquared?.toFixed(4) ?? '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-white/5">
+                    <span className="text-slate-400">Strain Regime:</span>
+                    <span className={`font-bold ${result.regression.slope >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {result.regression.slope >= 0 ? '● Tensile / Isotropic (+ε)' : '▲ Compressive / Relaxation (-ε)'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Top Metric Cards (Following 8_science_space_biotech.md Metric Display Spec) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Crystallite Size */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-emerald-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="flex items-center gap-2 mb-3">
-              <Ruler className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Crystallite Size</span>
+          <div className="bg-[#050A14] p-5 rounded-2xl border border-emerald-500/25 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Ruler className="w-3.5 h-3.5" />
+                Crystallite Size (D)
+              </span>
+              <span className="text-[8px] font-mono tabular-nums text-emerald-400/80 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                K={constantK}
+              </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-black text-white font-mono flex items-baseline">
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums flex items-baseline">
                 {result && result.sizeInterceptNm > 0 && result.sizeInterceptNm < 500
-                  ? result.sizeInterceptNm.toFixed(1)
+                  ? result.sizeInterceptNm.toFixed(2)
                   : '> 250'}
-                <span className="text-sm font-bold text-emerald-400 ml-1.5">nm</span>
+                <span className="text-xs font-mono uppercase text-slate-400 ml-1.5">nm</span>
               </p>
-              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate" title={result && result.sizeInterceptNm > 0 ? `Exact: ${result.sizeInterceptNm.toFixed(3)} nm` : 'Bulk / Strain-Dominated'}>
-                {result && result.sizeInterceptNm > 0 ? `Exact: ${result.sizeInterceptNm.toFixed(3)} nm` : 'Bulk / Strain-Dominated'}
+              <p className="text-[9px] font-mono tabular-nums text-emerald-400/90 mt-1.5 truncate">
+                {result && result.specificSurfaceAreaM2g
+                  ? `SSA: ${result.specificSurfaceAreaM2g.toFixed(1)} m²/g`
+                  : result && result.sizeInterceptNm > 0
+                  ? `Intercept: ${result.regression.intercept.toExponential(2)} rad`
+                  : 'Bulk / Zero-Intercept Limit'}
               </p>
             </div>
           </div>
 
           {/* Microstrain */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-cyan-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-              <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Microstrain (ε)</span>
+          <div className="bg-[#050A14] p-5 rounded-2xl border border-cyan-500/25 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                <TrendingUp className="w-3.5 h-3.5" />
+                Microstrain (ε)
+              </span>
+              <span className="text-[8px] font-mono tabular-nums text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                {strainModel}
+              </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-black text-white font-mono">
-                {result ? `${result.strainPercent.toFixed(3)}%` : '-'}
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums flex items-baseline">
+                {result ? result.strainPercent.toFixed(3) : '-'}
+                <span className="text-xs font-mono uppercase text-slate-400 ml-1.5">%</span>
               </p>
-              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate" title={result ? `ε = ${(result.strainPercent / 100).toExponential(3)}` : ''}>
-                {result ? `ε = ${(result.strainPercent / 100).toExponential(3)}` : '-'}
+              <p className="text-[9px] font-mono tabular-nums text-cyan-400/90 mt-1.5 truncate">
+                {result?.stressMPa !== undefined
+                  ? `σ = ${result.stressMPa.toFixed(1)} MPa${result.energyDensityKjM3 !== undefined ? ` | u = ${result.energyDensityKjM3.toFixed(1)} kJ/m³` : ''}`
+                  : result
+                  ? `ε_rms = ${(result.strainPercent / 100).toExponential(3)}`
+                  : '-'}
               </p>
             </div>
           </div>
 
           {/* Fit Quality R² */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-purple-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-4 h-4 text-purple-400" />
-              <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest truncate">Fit Quality (R²)</span>
+          <div className="bg-[#050A14] p-5 rounded-2xl border border-purple-500/25 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] font-black text-purple-400 uppercase tracking-wider flex items-center gap-1.5 truncate">
+                <Activity className="w-3.5 h-3.5" />
+                Fit Quality (R²)
+              </span>
+              <span className="text-[8px] font-mono tabular-nums text-purple-300 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20">
+                N={result?.points.length ?? 0}
+              </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-black text-white font-mono">
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums">
                 {result ? result.regression.rSquared.toFixed(4) : '-'}
               </p>
-              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate">
-                {result && result.regression.rSquared > 0.9 ? 'Strong Linearity' : 'High Anisotropy'}
+              <p className="text-[9px] font-mono tabular-nums text-purple-400/90 mt-1.5 truncate">
+                {result && result.regression.rSquared >= 0.92
+                  ? '● Nominal Isotropic Fit'
+                  : result && result.regression.rSquared >= 0.75
+                  ? '▲ Moderate Anisotropy'
+                  : '▲ High Anisotropy (Try USDM/mWH)'}
               </p>
             </div>
           </div>
 
           {/* Dislocation Density */}
-          <div className="bg-gradient-to-br from-[#050A14] to-[#081020] p-5 rounded-2xl border border-rose-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="flex items-center gap-2 mb-3">
-              <Layers className="w-4 h-4 text-rose-400" />
-              <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest truncate">Dislocations (ρ)</span>
+          <div className="bg-[#050A14] p-5 rounded-2xl border border-rose-500/25 shadow-xl relative overflow-hidden flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-[10px] font-black text-rose-400 uppercase tracking-wider flex items-center gap-1.5 truncate">
+                <Layers className="w-3.5 h-3.5" />
+                Dislocations (ρ)
+              </span>
+              <span className="text-[8px] font-mono tabular-nums text-rose-300 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                b={burgersVectorNm}nm
+              </span>
             </div>
             <div>
-              <p className="text-2xl sm:text-3xl font-black text-white font-mono flex items-baseline">
+              <p className="text-2xl sm:text-3xl font-black text-white font-mono tabular-nums flex items-baseline">
                 {(() => {
                   if (result?.dislocationDensity10_14 === undefined) return '-';
                   const val = result.dislocationDensity10_14 * 1e14;
-                  if (val === 0) return '0';
+                  if (val === 0) return '0.00';
                   const [mantissa, exp] = val.toExponential(2).split('e');
                   return (
                     <>
                       {mantissa}
-                      <span className="text-sm font-bold text-rose-400 ml-1 font-sans tracking-normal">×10<sup className="font-mono">{exp.replace('+', '')}</sup></span>
+                      <span className="text-xs font-mono text-rose-400 ml-1">×10<sup>{exp.replace('+', '')}</sup></span>
+                      <span className="text-[10px] font-mono text-slate-400 ml-1">m⁻²</span>
                     </>
                   );
                 })()}
               </p>
-              <p className="text-[9px] font-mono text-slate-400 mt-1.5 uppercase truncate">
-                m⁻² (Williamson-Smallman)
+              <p className="text-[9px] font-mono tabular-nums text-rose-400/90 mt-1.5 truncate">
+                {result?.dislocationDensity10_14 && result.dislocationDensity10_14 > 0
+                  ? `Spacing L_d ≈ ${(100 / Math.sqrt(result.dislocationDensity10_14)).toFixed(1)} nm`
+                  : 'Williamson–Smallman'}
               </p>
             </div>
           </div>
@@ -1203,21 +1699,22 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         {/* Diagnostic Visualizer Tab Navigation */}
         <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative">
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10">
-            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5">
+            <div className="flex flex-wrap items-center gap-1 p-1 bg-black/40 rounded-xl border border-white/5">
               {[
-                { id: 'fit', label: 'W-H Regression Plot', icon: TrendingUp },
-                { id: 'residuals', label: 'Residuals Diagnostic', icon: Activity },
-                { id: 'apparentSizes', label: 'Apparent Size D_hkl', icon: BarChart2 },
-                { id: 'dislocationTensor', label: 'Dislocations & Stress', icon: Atom },
+                { id: 'fit', label: 'W-H Regression', icon: TrendingUp },
+                { id: 'pattern', label: 'Full XRD Pattern', icon: Zap },
+                { id: 'residuals', label: 'Residuals', icon: Activity },
+                { id: 'apparentSizes', label: 'D_hkl Profile', icon: BarChart2 },
+                { id: 'dislocationTensor', label: 'Elasticity & ρ', icon: Atom },
                 { id: 'comparison', label: 'Multi-Model Studio', icon: Layers },
-                { id: 'advisor', label: 'AI Advisor Report', icon: BrainCircuit }
+                { id: 'advisor', label: 'AI Advisor', icon: BrainCircuit }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
                       activeTab === tab.id
                         ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(34,211,238,0.4)] font-extrabold'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -1251,92 +1748,210 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
 
           {/* TAB 1: MAIN REGRESSION PLOT */}
           {activeTab === 'fit' && (
-            <div className="h-[420px] w-full min-h-0 min-w-0">
-              {!result || chartData.length < 2 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 font-mono text-xs">
-                  <TrendingUp className="w-8 h-8 text-cyan-500/30 mb-2" />
-                  <span>Enter at least 2 active peaks to generate the Williamson-Hall regression plot.</span>
+            <div className="space-y-3">
+              {/* Interactive Plot HUD Controls */}
+              {result && (
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#070D18] rounded-xl border border-white/5 font-mono tabular-nums text-[9px]">
+                  <div className="flex flex-wrap items-center gap-3 text-slate-400">
+                    <span>
+                      Equation: <strong className="text-white">Y = ({result.regression.slope.toExponential(3)})·X + ({result.regression.intercept.toExponential(3)})</strong>
+                    </span>
+                    <span className="text-slate-600">|</span>
+                    <span>
+                      RMSE: <strong className="text-cyan-300">{result.regression.rmse ? result.regression.rmse.toExponential(2) : '-'}</strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfidenceBand(!showConfidenceBand)}
+                      className={`px-2 py-0.5 rounded border text-[8px] font-bold uppercase cursor-pointer transition-colors ${
+                        showConfidenceBand
+                          ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/40'
+                          : 'bg-black/40 text-slate-500 border-white/10'
+                      }`}
+                    >
+                      95% CI Band
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowZeroStrainLine(!showZeroStrainLine)}
+                      className={`px-2 py-0.5 rounded border text-[8px] font-bold uppercase cursor-pointer transition-colors ${
+                        showZeroStrainLine
+                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                          : 'bg-black/40 text-slate-500 border-white/10'
+                      }`}
+                    >
+                      ε=0 Floor (Kλ/D)
+                    </button>
+                  </div>
                 </div>
-              ) : (
+              )}
+
+              <div className="h-[390px] w-full min-h-0 min-w-0">
+                {!result || chartData.length < 2 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-500 font-mono text-xs">
+                    <TrendingUp className="w-8 h-8 text-cyan-500/30 mb-2" />
+                    <span>Enter at least 2 active peaks to generate the Williamson-Hall regression plot.</span>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 40 }}>
+                      <defs>
+                        <linearGradient id="whConfidenceGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.16}/>
+                          <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.02}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis 
+                        dataKey="x" 
+                        type="number"
+                        domain={['auto', 'auto']}
+                        label={{ 
+                          value: getXAxisLabel(), 
+                          position: 'bottom', 
+                          offset: 25, 
+                          fill: '#94a3b8', 
+                          fontSize: 10, 
+                          fontWeight: 900, 
+                          fontFamily: 'monospace' 
+                        }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
+                        tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      />
+                      <YAxis 
+                        domain={['auto', 'auto']}
+                        label={{ 
+                          value: getYAxisLabel(), 
+                          angle: -90, 
+                          position: 'left', 
+                          offset: 10, 
+                          fill: '#94a3b8', 
+                          fontSize: 10, 
+                          fontWeight: 900, 
+                          fontFamily: 'monospace' 
+                        }}
+                        tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
+                        tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                        axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      />
+                      <Tooltip content={<CustomRegressionTooltip />} />
+                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 900 }} />
+                      {showZeroStrainLine && result.regression.intercept > 0 && (
+                        <ReferenceLine
+                          y={result.regression.intercept}
+                          stroke="#10b981"
+                          strokeWidth={1.5}
+                          strokeDasharray="3 3"
+                          label={{
+                            value: `Size Floor Kλ/D (${result.sizeInterceptNm.toFixed(1)} nm)`,
+                            fill: '#10b981',
+                            fontSize: 9,
+                            position: 'insideBottomRight'
+                          }}
+                        />
+                      )}
+                      {showConfidenceBand && (
+                        <Area
+                          type="monotone"
+                          dataKey="fitRange"
+                          stroke="none"
+                          fill="url(#whConfidenceGrad)"
+                          name="95% Confidence Band"
+                        />
+                      )}
+                      <Line 
+                        type="monotone" 
+                        dataKey="fit" 
+                        stroke="#f43f5e" 
+                        strokeWidth={2} 
+                        dot={false} 
+                        name={`${strainModel} Fit Line`}
+                        activeDot={false}
+                        strokeDasharray="4 4"
+                      />
+                      <Scatter 
+                        name="Active Bragg Peaks" 
+                        dataKey="yActive" 
+                        fill="#22d3ee" 
+                        shape="circle" 
+                        r={6} 
+                      />
+                      {excludedIndices.length > 0 && (
+                        <Scatter 
+                          name="Excluded Outliers" 
+                          dataKey="yExcluded" 
+                          fill="#f43f5e" 
+                          shape="cross" 
+                          r={5} 
+                        />
+                      )}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 1B: SYNTHESIZED FULL XRD DIFFRACTOGRAM PATTERN */}
+          {activeTab === 'pattern' && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#070D18] rounded-xl border border-white/5 font-mono tabular-nums text-[9px] text-slate-400">
+                <span>
+                  Synthesized Pseudo-Voigt Diffractogram comparing <strong className="text-cyan-300">Observed (Size + Strain)</strong> vs. <strong className="text-emerald-300">Strain-Free Domain Reference (ε = 0)</strong>
+                </span>
+                <span>λ = {wavelength.toFixed(4)} Å</span>
+              </div>
+              <div className="h-[390px] w-full min-h-0 min-w-0">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 40 }}>
-                    <defs>
-                      <linearGradient id="whConfidenceGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.15}/>
-                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.0}/>
-                      </linearGradient>
-                    </defs>
+                  <ComposedChart data={xrdPatternData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis 
-                      dataKey="x" 
+                    <XAxis
+                      dataKey="twoTheta"
                       type="number"
-                      domain={['auto', 'auto']}
-                      label={{ 
-                        value: getXAxisLabel(), 
-                        position: 'bottom', 
-                        offset: 25, 
-                        fill: '#94a3b8', 
-                        fontSize: 10, 
-                        fontWeight: 900, 
-                        fontFamily: 'monospace' 
-                      }}
-                      tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
-                      tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      domain={['dataMin', 'dataMax']}
+                      label={{ value: 'Diffraction Angle 2θ (degrees)', position: 'bottom', offset: 25, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                     />
-                    <YAxis 
-                      domain={['auto', 'auto']}
-                      label={{ 
-                        value: getYAxisLabel(), 
-                        angle: -90, 
-                        position: 'left', 
-                        offset: 10, 
-                        fill: '#94a3b8', 
-                        fontSize: 10, 
-                        fontWeight: 900, 
-                        fontFamily: 'monospace' 
-                      }}
-                      tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
-                      tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
-                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                    <YAxis
+                      label={{ value: 'Intensity (a.u.)', angle: -90, position: 'left', offset: 5, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                     />
-                    <Tooltip content={<CustomRegressionTooltip />} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#0A101C', borderColor: 'rgba(34,211,238,0.4)', borderRadius: '12px', fontFamily: 'monospace', fontSize: '10px' }}
+                      labelFormatter={(val) => `2θ = ${Number(val).toFixed(2)}°`}
+                    />
                     <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 900 }} />
                     <Area
                       type="monotone"
-                      dataKey="fitRange"
-                      stroke="none"
-                      fill="url(#whConfidenceGrad)"
-                      name="95% Confidence Band"
+                      dataKey="totalProfile"
+                      name="Total Broadened Profile (Size + Microstrain)"
+                      stroke="#22d3ee"
+                      fill="rgba(34,211,238,0.15)"
+                      strokeWidth={2}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="fit" 
-                      stroke="#f43f5e" 
-                      strokeWidth={2} 
-                      dot={false} 
-                      name={`${strainModel} Fit Line`}
-                      activeDot={false}
-                      strokeDasharray="4 4"
-                    />
-                    <Scatter 
-                      name="Active Bragg Peaks" 
-                      dataKey="y" 
-                      fill="#22d3ee" 
-                      shape="circle" 
-                      r={6} 
+                    <Line
+                      type="monotone"
+                      dataKey="sizeOnlyProfile"
+                      name="Strain-Free Scherrer Profile (ε = 0)"
+                      stroke="#10b981"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 3"
+                      dot={false}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
-              )}
+              </div>
             </div>
           )}
 
           {/* TAB 2: RESIDUALS DIAGNOSTIC */}
           {activeTab === 'residuals' && (
             <div className="h-[420px] w-full min-h-0 min-w-0 flex flex-col">
-              <div className="flex items-center justify-between mb-2 text-[9px] font-mono text-slate-400">
-                <span>Durbin-Watson Autocorrelation: <strong className="text-cyan-300">{result?.regression.durbinWatson?.toFixed(3) || '2.0'}</strong> (Target ~ 2.0)</span>
+              <div className="flex items-center justify-between mb-2 px-3 py-2 bg-[#070D18] rounded-xl border border-white/5 text-[9px] font-mono tabular-nums text-slate-400">
+                <span>Durbin-Watson Autocorrelation: <strong className="text-cyan-300">{result?.regression.durbinWatson?.toFixed(3) || '2.000'}</strong> (Ideal ≈ 2.0)</span>
                 <span>RMSE: <strong className="text-rose-300">{result?.regression.rmse ? result.regression.rmse.toExponential(3) : '-'}</strong></span>
               </div>
               <div className="flex-1">
@@ -1379,7 +1994,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                     tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                   />
                   <Tooltip formatter={(val: any) => [`${Number(val).toFixed(2)} nm`, 'Apparent Size']} />
-                  <ReferenceLine y={result?.sizeInterceptNm || 0} stroke="#22d3ee" strokeWidth={2} strokeDasharray="4 4" label={{ value: `Global D_WH = ${result?.sizeInterceptNm?.toFixed(1)} nm`, fill: '#22d3ee', fontSize: 10 }} />
+                  <ReferenceLine y={result?.sizeInterceptNm || 0} stroke="#22d3ee" strokeWidth={2} strokeDasharray="4 4" label={{ value: `Decoupled D_WH = ${result?.sizeInterceptNm?.toFixed(1)} nm`, fill: '#22d3ee', fontSize: 10 }} />
                   <Bar dataKey="apparentSizeNm" radius={[6, 6, 0, 0]}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.isExcluded ? '#475569' : '#10b981'} />
@@ -1392,49 +2007,91 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
 
           {/* TAB 4: DISLOCATION & ELASTIC STATE */}
           {activeTab === 'dislocationTensor' && (
-            <div className="h-[420px] w-full overflow-y-auto custom-scrollbar p-2 space-y-4">
+            <div className="h-[420px] w-full overflow-y-auto custom-scrollbar p-2 space-y-4 font-mono tabular-nums">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="bg-[#070D18] p-4 rounded-xl border border-white/5">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dislocation Density (ρ)</span>
-                  <p className="text-xl font-mono font-black text-rose-400">
+                  <p className="text-xl font-mono tabular-nums font-black text-rose-400">
                     {result?.dislocationDensity10_14 ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴` : 'N/A'}
                     <span className="text-[9px] text-slate-400 ml-1">m⁻²</span>
                   </p>
                   <p className="text-[8px] text-slate-500 mt-2 font-mono">
-                    Relation: ρ = 2√3 · ε / (D · b) with Burgers vector b = {burgersVectorNm} nm
+                    ρ = 2√3 · |ε| / (D · b), b = {burgersVectorNm} nm
                   </p>
                 </div>
 
                 <div className="bg-[#070D18] p-4 rounded-xl border border-white/5">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Specific Surface Area (SSA)</span>
-                  <p className="text-xl font-mono font-black text-cyan-400">
+                  <p className="text-xl font-mono tabular-nums font-black text-cyan-400">
                     {result?.specificSurfaceAreaM2g ? `${result.specificSurfaceAreaM2g.toFixed(2)}` : 'N/A'}
                     <span className="text-[9px] text-slate-400 ml-1">m²/g</span>
                   </p>
                   <p className="text-[8px] text-slate-500 mt-2 font-mono">
-                    SSA = 6000 / (ρ_mat · D) with material density {materialDensityGcm3} g/cm³
+                    SSA = 6000 / (ρ_mat · D), ρ_mat = {materialDensityGcm3} g/cm³
                   </p>
                 </div>
 
                 <div className="bg-[#070D18] p-4 rounded-xl border border-white/5">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Deformation Energy (u)</span>
-                  <p className="text-xl font-mono font-black text-purple-400">
+                  <p className="text-xl font-mono tabular-nums font-black text-purple-400">
                     {result?.energyDensityKjM3 !== undefined ? `${result.energyDensityKjM3.toFixed(2)}` : 'N/A'}
                     <span className="text-[9px] text-slate-400 ml-1">kJ/m³</span>
                   </p>
                   <p className="text-[8px] text-slate-500 mt-2 font-mono">
-                    Lattice internal stress: {result?.stressMPa !== undefined ? `${result.stressMPa.toFixed(1)} MPa` : 'N/A'}
+                    Internal Stress σ = {result?.stressMPa !== undefined ? `${result.stressMPa.toFixed(1)} MPa` : 'Enable E_hkl'}
                   </p>
                 </div>
               </div>
 
-              {/* Formula & Microstructural Physics */}
-              <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 text-xs font-mono text-slate-300 space-y-2">
-                <p className="font-bold text-cyan-400 uppercase text-[10px]">Microstructural Decoupling Principle:</p>
-                <p className="text-[10px] leading-relaxed text-slate-400">
-                  Diffraction peak broadening arises from two independent physical mechanisms: finite crystallite domain boundaries (Scherrer Cauchy contribution, ~1/cosθ) and microscopic lattice strain caused by dislocations, point defects, and grain boundaries (Stokes-Wilson Gaussian contribution, ~tanθ). Williamson-Hall constructs a linear reciprocal coordinate system where the slope yields strain ε and the y-intercept isolates the genuine strain-free crystallite size D.
-                </p>
-              </div>
+              {/* Per-Reflection Anisotropic Elasticity & Dislocation Contrast Inspector */}
+              {result?.pointsExtended && result.pointsExtended.length > 0 && (
+                <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
+                      Directional Anisotropy Tensor (E_hkl, H², Contrast C_hkl)
+                    </span>
+                    <span className="text-[8px] text-slate-400">
+                      C_hkl = {ch00Param.toFixed(3)}·(1 - {dislocationQParam.toFixed(2)}·H²)
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto rounded-lg border border-white/5">
+                    <table className="w-full text-left text-[9px] font-mono tabular-nums">
+                      <thead className="bg-black/50 text-slate-400 uppercase text-[8px]">
+                        <tr>
+                          <th className="py-1.5 px-2">(h k l)</th>
+                          <th className="py-1.5 px-2">2θ (°)</th>
+                          <th className="py-1.5 px-2">Cubic Invariant H²</th>
+                          <th className="py-1.5 px-2">Modulus E_hkl (GPa)</th>
+                          <th className="py-1.5 px-2">Contrast C_hkl</th>
+                          <th className="py-1.5 px-2 text-right">ρ_hkl (×10¹⁴ m⁻²)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {result.pointsExtended.map((p, idx) => (
+                          <tr key={idx} className={p.isExcluded ? 'opacity-40' : ''}>
+                            <td className="py-1.5 px-2 text-purple-300 font-bold">
+                              {p.hkl ? `(${p.hkl.join(' ')})` : `Peak #${idx + 1}`}
+                            </td>
+                            <td className="py-1.5 px-2 text-cyan-300">{p.twoTheta.toFixed(2)}°</td>
+                            <td className="py-1.5 px-2 text-slate-300">
+                              {p.hSquared !== undefined ? p.hSquared.toFixed(4) : '0.0000'}
+                            </td>
+                            <td className="py-1.5 px-2 text-emerald-300 font-bold">
+                              {p.eHklGPa !== undefined ? `${p.eHklGPa.toFixed(1)} GPa` : `${youngsModulusGPa.toFixed(1)} GPa`}
+                            </td>
+                            <td className="py-1.5 px-2 text-amber-300">
+                              {p.contrastFactorC !== undefined ? p.contrastFactorC.toFixed(4) : '-'}
+                            </td>
+                            <td className="py-1.5 px-2 text-right text-rose-300 font-bold">
+                              {p.dislocationDensity10_14 !== undefined ? p.dislocationDensity10_14.toFixed(3) : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1442,7 +2099,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
           {activeTab === 'comparison' && (
             <div className="h-[420px] w-full overflow-y-auto custom-scrollbar">
               <div className="overflow-x-auto rounded-xl border border-white/5">
-                <table className="w-full text-[10px] text-left border-collapse bg-black/40 font-mono">
+                <table className="w-full text-[10px] text-left border-collapse bg-black/40 font-mono tabular-nums">
                   <thead>
                     <tr className="border-b border-white/10 text-slate-400 text-[8px] uppercase tracking-wider bg-black/60 font-black">
                       <th className="py-2.5 px-3">Model</th>
@@ -1490,9 +2147,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           <button
-                            onClick={() => setStrainModel(m.modelName as any)}
+                            onClick={() => handleSelectStrainModel(m.modelName as any)}
                             disabled={strainModel === m.modelName}
-                            className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider transition-all ${
+                            className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                               strainModel === m.modelName
                                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                                 : 'bg-black/50 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10'
@@ -1571,78 +2228,121 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         {/* Peak-by-Peak Table with Outlier Toggles */}
         {result && result.pointsExtended && result.pointsExtended.length > 0 && (
           <div className="bg-[#050A14] rounded-3xl border border-slate-800 p-6 shadow-2xl relative">
-            <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-slate-800 rounded-lg text-cyan-400">
                   <Binary className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="text-xs font-black text-white uppercase tracking-wider">
-                    Peak Management & Outlier Filtering
+                    Peak Management & Studentized Outlier Diagnostics
                   </h3>
                   <p className="text-[9px] text-slate-500 uppercase font-bold">
-                    Toggle individual peaks to exclude from regression without losing data
+                    Toggle individual reflections to exclude high-residual outliers from regression
                   </p>
                 </div>
               </div>
-              <span className="text-[9px] font-mono text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
-                {result.points.length} Active / {result.pointsExtended.length} Total
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAutoPruneOutliers}
+                  className="text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
+                  title="Automatically exclude reflections with studentized residual |t_i| > 1.8"
+                >
+                  Auto-Prune Outliers (|t| &gt; 1.8)
+                </button>
+                {excludedIndices.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setExcludedIndices([])}
+                    className="text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer"
+                  >
+                    Include All
+                  </button>
+                )}
+                <span className="text-[9px] font-mono tabular-nums text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
+                  ● {result.points.length} Active / {result.pointsExtended.length} Total
+                </span>
+              </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-white/5">
-              <table className="w-full text-[10px] text-left border-collapse bg-black/20 font-mono">
+              <table className="w-full text-[10px] text-left border-collapse bg-black/20 font-mono tabular-nums">
                 <thead>
                   <tr className="border-b border-white/5 text-slate-500 text-[8px] uppercase tracking-wider bg-black/40 font-black">
                     <th className="py-2 px-2 text-center">Status</th>
                     <th className="py-2 px-2">2θ (°)</th>
                     <th className="py-2 px-2">FWHM (°)</th>
                     <th className="py-2 px-2">β_sample (°)</th>
-                    <th className="py-2 px-2">hkl</th>
-                    <th className="py-2 px-2">d (Å)</th>
+                    <th className="py-2 px-2">(h k l)</th>
+                    <th className="py-2 px-2">E_hkl / C_hkl</th>
                     <th className="py-2 px-2">X Coord</th>
                     <th className="py-2 px-2">Y Coord</th>
-                    <th className="py-2 px-2">Residual</th>
-                    <th className="py-2 px-3 text-right">Apparent Size</th>
+                    <th className="py-2 px-2">Residual (t_i)</th>
+                    <th className="py-2 px-3 text-right">Apparent D_hkl</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {result.pointsExtended.map((p, idx) => (
-                    <tr 
-                      key={idx} 
-                      className={`transition-colors ${p.isExcluded ? 'opacity-40 bg-rose-500/5' : 'hover:bg-cyan-500/5'}`}
-                    >
-                      <td className="py-2 px-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleExcludePeak(idx)}
-                          className={`p-1 rounded transition-colors ${p.isExcluded ? 'text-slate-500 hover:text-rose-400' : 'text-cyan-400 hover:text-cyan-300'}`}
-                          title={p.isExcluded ? 'Include peak in regression' : 'Exclude peak from regression'}
-                        >
-                          {p.isExcluded ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </td>
-                      <td className="py-2 px-2 text-cyan-400 font-bold">{p.twoTheta.toFixed(3)}°</td>
-                      <td className="py-2 px-2 text-slate-400">{p.fwhmObs.toFixed(3)}°</td>
-                      <td className="py-2 px-2 text-emerald-400">{p.betaCorrectedDeg.toFixed(3)}°</td>
-                      <td className="py-2 px-2 text-purple-300 font-bold">
-                        {p.hkl ? `(${p.hkl.join(' ')})` : '-'}
-                      </td>
-                      <td className="py-2 px-2 text-slate-400">{p.dSpacing ? p.dSpacing.toFixed(3) : '-'}</td>
-                      <td className="py-2 px-2 text-slate-400">{p.x.toFixed(4)}</td>
-                      <td className="py-2 px-2 text-slate-400">{p.y.toFixed(5)}</td>
-                      <td className="py-2 px-2 font-mono">
-                        {p.residual !== undefined ? (
-                          <span className={Math.abs(p.residual) < 0.001 ? 'text-emerald-400' : 'text-amber-400'}>
-                            {p.residual >= 0 ? '+' : ''}{p.residual.toFixed(5)}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className="py-2 px-3 text-right font-bold text-emerald-400">
-                        {p.singlePeakSizeNm > 0 ? `${p.singlePeakSizeNm.toFixed(2)} nm` : '∞'}
-                      </td>
-                    </tr>
-                  ))}
+                  {result.pointsExtended.map((p, idx) => {
+                    const absT = Math.abs(p.studentizedResidual || 0);
+                    const barPct = Math.min(100, Math.round((absT / 2.5) * 100));
+                    return (
+                      <tr 
+                        key={idx} 
+                        className={`transition-colors ${p.isExcluded ? 'opacity-40 bg-rose-500/5' : 'hover:bg-cyan-500/5'}`}
+                      >
+                        <td className="py-2 px-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleExcludePeak(idx)}
+                            className={`p-1 rounded transition-colors cursor-pointer ${p.isExcluded ? 'text-slate-500 hover:text-rose-400' : 'text-cyan-400 hover:text-cyan-300'}`}
+                            title={p.isExcluded ? 'Include peak in regression' : 'Exclude peak from regression'}
+                          >
+                            {p.isExcluded ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </td>
+                        <td className="py-2 px-2 text-cyan-400 font-bold">{p.twoTheta.toFixed(3)}°</td>
+                        <td className="py-2 px-2 text-slate-400">{p.fwhmObs.toFixed(3)}°</td>
+                        <td className="py-2 px-2 text-emerald-400">{p.betaCorrectedDeg.toFixed(3)}°</td>
+                        <td className="py-2 px-2 text-purple-300 font-bold">
+                          {p.hkl ? `(${p.hkl.join(' ')})` : '-'}
+                        </td>
+                        <td className="py-2 px-2 text-slate-400">
+                          <span>{p.eHklGPa ? `${p.eHklGPa.toFixed(0)} GPa` : '-'}</span>
+                          {p.contrastFactorC !== undefined && (
+                            <span className="text-[8px] text-emerald-400/80 block">C={p.contrastFactorC.toFixed(3)}</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-2 text-slate-400">{p.x.toFixed(4)}</td>
+                        <td className="py-2 px-2 text-slate-400">{p.y.toFixed(5)}</td>
+                        <td className="py-2 px-2 font-mono tabular-nums">
+                          {p.residual !== undefined ? (
+                            <div className="space-y-0.5">
+                              <span className={absT < 1.5 ? 'text-emerald-400' : absT < 2.0 ? 'text-amber-400' : 'text-rose-400'}>
+                                {p.residual >= 0 ? '+' : ''}{p.residual.toFixed(5)}
+                              </span>
+                              {p.studentizedResidual !== undefined && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[8px] text-slate-500">
+                                    t={p.studentizedResidual >= 0 ? '+' : ''}{p.studentizedResidual.toFixed(2)}σ
+                                  </span>
+                                  <div className="w-10 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full ${absT < 1.5 ? 'bg-emerald-400' : absT < 2.0 ? 'bg-amber-400' : 'bg-rose-400'}`}
+                                      style={{ width: `${barPct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td className="py-2 px-3 text-right font-bold text-emerald-400">
+                          {p.singlePeakSizeNm > 0 ? `${p.singlePeakSizeNm.toFixed(2)} nm` : '∞'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

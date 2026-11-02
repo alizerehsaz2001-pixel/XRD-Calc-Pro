@@ -50,7 +50,6 @@ const IntegralBreadthModule = safeLazy(() => import('./components/IntegralBreadt
 const IntegralBreadthAdvancedModule = safeLazy(() => import('./components/IntegralBreadthAdvancedModule'), 'IntegralBreadthAdvancedModule');
 const WarrenAverbachModule = safeLazy(() => import('./components/WarrenAverbachModule'), 'WarrenAverbachModule');
 const MethodOfMomentsModule = safeLazy(() => import('./components/MethodOfMomentsModule'), 'MethodOfMomentsModule');
-const RietveldModule = safeLazy(() => import('./components/RietveldModule'), 'RietveldModule');
 const NeutronModule = safeLazy(() => import('./components/NeutronModule'), 'NeutronModule');
 const MagneticNeutronModule = safeLazy(() => import('./components/MagneticNeutronModule'), 'MagneticNeutronModule');
 const DeepLearningModule = safeLazy(() => import('./components/DeepLearningModule'), 'DeepLearningModule');
@@ -84,9 +83,15 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext, LengthUnit } from './components/SettingsContext';
 const PeriodicTableModule = safeLazy(() => import('./components/PeriodicTableModule'), 'PeriodicTableModule');
 const ScientificModuleNavigator = safeLazy(() => import('./components/ScientificModuleNavigator'), 'ScientificModuleNavigator');
-import { TopAppBar } from './components/TopAppBar';
+import { TopAppBar, CrystallographicBrandEmblem } from './components/TopAppBar';
 import { QuickWorkflowRibbon, SamplePreset } from './components/QuickWorkflowRibbon';
 import { NavigationRail } from './components/NavigationRail';
+import {
+  renderScientificModuleIcon,
+  getModuleScientificMeta,
+  getCategoryMeta,
+  SidebarGoniometerTelemetryCard
+} from './components/LeftSidebarGraphics';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, RotateCcw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal, Box, Search } from 'lucide-react';
@@ -126,7 +131,7 @@ import { DisplayModeSwitcher } from './components/DisplayModeSwitcher';
 import { WorkflowStageHeader } from './components/WorkflowStageHeader';
 import { HalfScreenStageNavigator } from './components/HalfScreenStageNavigator';
 
-type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
+type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
 const ModuleLoadingFallback: React.FC = () => (
   <div className="flex flex-col items-center justify-center p-12 min-h-[380px] rounded-3xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/60 dark:border-white/5 animate-pulse">
@@ -147,85 +152,8 @@ const PageLoadingFallback: React.FC = () => (
   </div>
 );
 
-const getModuleIcon = (id: Module, active: boolean) => {
-  const iconProps = {
-    className: `w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${
-      active ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
-    }`
-  };
-
-  switch (id) {
-    case 'unit_cells':
-      return <Box {...iconProps} />;
-    case 'bragg':
-      return <Activity {...iconProps} />;
-    case 'fwhm':
-      return <Sliders {...iconProps} />;
-    case 'selection':
-      return <Hash {...iconProps} />;
-    case 'compare':
-      return <Layers {...iconProps} />;
-    case 'scherrer':
-      return <Microscope {...iconProps} />;
-    case 'wh':
-      return <TrendingUp {...iconProps} />;
-    case 'monshi_scherrer':
-      return <Activity {...iconProps} />;
-    case 'double_voigt':
-      return <Layers {...iconProps} />;
-    case 'integral':
-      return <Infinity {...iconProps} />;
-    case 'integral_adv':
-      return <Sliders {...iconProps} />;
-    case 'wa':
-      return <Network {...iconProps} />;
-    case 'method_of_moments':
-      return <Activity {...iconProps} />;
-    case 'preferred_orientation':
-      return <Compass {...iconProps} />;
-    case 'residual_stress':
-      return <Activity {...iconProps} />;
-    case 'xrr':
-      return <Activity {...iconProps} />;
-    case 'cohen':
-      return <Grid {...iconProps} />;
-    case 'metric_tensor':
-      return <Sparkles {...iconProps} />;
-    case 'supercell_transform':
-      return <Grid {...iconProps} />;
-    case 'pawley_lebail':
-      return <Activity {...iconProps} />;
-    case 'rir':
-      return <Layers {...iconProps} />;
-    case 'rietveld':
-      return <Sliders {...iconProps} />;
-    case 'neutron':
-      return <Orbit {...iconProps} />;
-    case 'magnetic':
-      return <Magnet {...iconProps} />;
-    case 'dl':
-      return <Brain {...iconProps} />;
-    case 'image_analysis':
-      return <ImageIcon {...iconProps} />;
-    case 'image_gen':
-      return <Sparkles {...iconProps} />;
-    case 'xrd_nano':
-      return <Wand2 {...iconProps} />;
-    case 'python_export':
-      return <Terminal {...iconProps} />;
-    case 'learn':
-      return <BookOpen {...iconProps} />;
-    case 'periodic_table':
-      return <Grid {...iconProps} />;
-    case 'database':
-      return <Database {...iconProps} />;
-    case 'profile':
-      return <User {...iconProps} />;
-    case 'settings':
-      return <Settings2 {...iconProps} />;
-    default:
-      return <Activity {...iconProps} />;
-  }
+const getModuleIcon = (id: Module, active: boolean = false) => {
+  return renderScientificModuleIcon(id, active);
 };
 
 const App: React.FC = () => {
@@ -315,6 +243,7 @@ const App: React.FC = () => {
     return saved !== null ? saved === 'true' : true; // Default pinned for clean orientation
   });
   const [sidebarSearch, setSidebarSearch] = useState<string>('');
+  const [collapsedSidebarGroups, setCollapsedSidebarGroups] = useState<Record<string, boolean>>({});
   const [isActivityLedgerOpen, setIsActivityLedgerOpen] = useState<boolean>(false);
   const prevModuleRef = useRef<Module>(activeModule);
 
@@ -1444,7 +1373,6 @@ const App: React.FC = () => {
       { id: 'supercell_transform', label: t("Supercell & Matrix Engine"), group: t('Advanced Refinement') },
       { id: 'pawley_lebail', label: t("Pawley & Le Bail Fitting"), group: t('Advanced Refinement') },
       { id: 'rir', label: t("Reference Intensity Ratio (RIR)"), group: t('Advanced Refinement') },
-      { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
       { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
       { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
       { id: 'xrd_nano', label: t('Nano-Crystallite Simulator'), group: t('Advanced Sim') },
@@ -1518,7 +1446,7 @@ const App: React.FC = () => {
           'selection',
           'scherrer',
           'wh',
-          'rietveld',
+          'pawley_lebail',
           'dl',
           'database',
           'settings'
@@ -1712,177 +1640,332 @@ const App: React.FC = () => {
         
         {/* Responsive Sidebar Navigation: Full Sidebar or Compact Mini Rail */}
         {isSidebarPinned ? (
-          <aside className="hidden md:flex w-72 flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 h-full shrink-0 z-20 shadow-2xl relative transition-all duration-300">
-            <div className={`p-4 border-b ${theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black' : 'border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50'} flex items-center justify-between gap-3 backdrop-blur-md group`}>
-               <div className="flex items-center gap-3">
-                 <div className={`w-9 h-9 ${theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_15px_rgba(255,0,255,0.5)]' : 'bg-gradient-to-tr from-indigo-600 to-violet-500 shadow-lg shadow-indigo-500/20'} rounded-xl flex items-center justify-center text-white font-bold text-lg border border-white/10 group-hover:scale-105 transition-transform duration-300 relative overflow-hidden`}>
-                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent_70%)]" />
-                   <span className="relative z-10">λ</span>
-                 </div>
-                 <div>
-                   <span className={`font-black text-xl italic tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} block leading-none`}>
-                     XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
-                   </span>
-                   <span className="text-[8.5px] text-slate-400 font-mono font-bold uppercase tracking-wider block mt-0.5">
-                     v2.5 Lab Suite
-                   </span>
-                 </div>
-               </div>
+          <aside className="hidden md:flex w-72 flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 h-full shrink-0 z-20 shadow-2xl relative transition-all duration-300 select-none">
+            {/* Subtle Vertical Goniometer 2θ Scale SVG along right border */}
+            <svg
+              viewBox="0 0 8 400"
+              fill="none"
+              preserveAspectRatio="none"
+              className="w-2 h-full absolute right-0 top-0 pointer-events-none opacity-20 dark:opacity-30"
+              aria-hidden="true"
+            >
+              {Array.from({ length: 41 }).map((_, idx) => {
+                const y = idx * 10;
+                const isMajor = idx % 5 === 0;
+                return (
+                  <line
+                    key={idx}
+                    x1={isMajor ? 2 : 5}
+                    y1={y}
+                    x2="8"
+                    y2={y}
+                    stroke="currentColor"
+                    strokeWidth={isMajor ? '1.1' : '0.6'}
+                    className="text-slate-400 dark:text-slate-600"
+                  />
+                );
+              })}
+            </svg>
 
-               {/* Collapse to Mini Rail Button */}
-               <button
-                 onClick={() => {
-                   setIsSidebarPinned(false);
-                   playSynthTone('switch');
-                 }}
-                 className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
-                 title={t('Collapse to Mini Rail', 'Collapse to Mini Rail')}
-               >
-                 <PanelLeftClose className="w-4 h-4" />
-               </button>
-            </div>
+            {/* Brand & Instrument Header */}
+            <div className={`px-3.5 py-3 border-b ${theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black' : 'border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80'} flex items-center justify-between gap-2.5 backdrop-blur-md group z-10`}>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <CrystallographicBrandEmblem size="lg" theme={theme} />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`font-black text-base tracking-tight ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} leading-none truncate`}>
+                      XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
+                    </span>
+                    <span className="text-[8.5px] font-mono font-bold text-slate-400 dark:text-slate-500 tabular-nums">
+                      v2.5
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono tabular-nums font-bold uppercase tracking-wider block mt-0.5 truncate">
+                    2θ · d · (hkl) Diffractometry
+                  </span>
+                </div>
+              </div>
 
-            {/* Direct Link to Welcome Page & Showcase */}
-            <div className="px-4 pt-3 shrink-0">
+              {/* Collapse to Mini Rail Button */}
               <button
                 onClick={() => {
-                  setHasEntered(false);
+                  setIsSidebarPinned(false);
                   playSynthTone('switch');
                 }}
-                className="w-full px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-violet-500/10 to-indigo-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 cursor-pointer shadow-xs active:scale-95 group"
-                title={t('Return to Welcome Page & Scientific Tour', 'Return to Welcome Page & Scientific Tour')}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-white/5 border border-transparent hover:border-slate-200 dark:hover:border-slate-800 transition-all cursor-pointer shrink-0"
+                title={t('Collapse to Compact Instrument Rail', 'Collapse to Compact Instrument Rail')}
               >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500 animate-pulse group-hover:rotate-12 transition-transform" />
-                  <span>{t('Welcome Page & Tour', 'Welcome Page & Tour')}</span>
-                </div>
-                <span className="text-[9px] font-mono uppercase bg-amber-500/20 text-amber-600 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">Home</span>
+                <PanelLeftClose className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Quick Search / Filter Bar */}
-            <div className="px-4 pt-2 pb-1 shrink-0">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            {/* Interactive Ewald Sphere & Bragg Goniometer Telemetry Card + Dual Portals */}
+            <SidebarGoniometerTelemetryCard
+              activeModule={activeModule}
+              wavelength={wavelength}
+              goniometerRadius={goniometerRadius}
+              peaksCount={results.length}
+              crystalSystem={crystalSystem}
+              theme={theme}
+              onOpenWelcome={() => {
+                setHasEntered(false);
+                playSynthTone('switch');
+              }}
+              onOpenWhyXrd={() => {
+                setShowWhyXrdPage(true);
+                playSynthTone('switch');
+              }}
+            />
+
+            {/* Quick Search / Filter Bar with Ctrl+K Palette Trigger */}
+            <div className="px-3.5 pt-2 pb-1.5 shrink-0 z-10">
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
                   value={sidebarSearch}
                   onChange={(e) => setSidebarSearch(e.target.value)}
-                  placeholder={t('Filter 30+ modules...', 'Filter 30+ modules...')}
-                  className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-colors"
+                  placeholder={t('Filter modules or equations...', 'Filter modules or equations...')}
+                  className="w-full pl-8 pr-14 py-1.5 text-xs bg-slate-100/90 dark:bg-slate-950/70 border border-slate-200/90 dark:border-slate-800 rounded-lg outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-colors"
                 />
-                {sidebarSearch && (
+                {sidebarSearch ? (
                   <button
                     onClick={() => setSidebarSearch('')}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsNavigatorOpen(true);
+                      playSynthTone('switch');
+                    }}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-indigo-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded cursor-pointer transition-colors"
+                    title={t('Open Full Scientific Command Palette (Ctrl+K)', 'Open Command Palette (Ctrl+K)')}
+                  >
+                    ⌘K
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-              {Array.from(new Set(
-                (sidebarSearch.trim()
-                  ? modules.filter(m => m.label.toLowerCase().includes(sidebarSearch.toLowerCase()) || (m.group && m.group.toLowerCase().includes(sidebarSearch.toLowerCase())))
-                  : modules
-                ).map(m => m.group || '')
-              )).map((group) => {
+            {/* Scrollable Categorized Module List */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-4 z-10">
+              {Array.from(
+                new Set(
+                  (sidebarSearch.trim()
+                    ? modules.filter((m) => {
+                        const q = sidebarSearch.toLowerCase();
+                        const meta = getModuleScientificMeta(m.id);
+                        return (
+                          m.label.toLowerCase().includes(q) ||
+                          (m.group && m.group.toLowerCase().includes(q)) ||
+                          meta.formula.toLowerCase().includes(q) ||
+                          meta.symbol.toLowerCase().includes(q)
+                        );
+                      })
+                    : modules
+                  ).map((m) => m.group || '')
+                )
+              ).map((group) => {
                 const groupFiltered = (sidebarSearch.trim()
-                  ? modules.filter(m => m.label.toLowerCase().includes(sidebarSearch.toLowerCase()) || (m.group && m.group.toLowerCase().includes(sidebarSearch.toLowerCase())))
+                  ? modules.filter((m) => {
+                      const q = sidebarSearch.toLowerCase();
+                      const meta = getModuleScientificMeta(m.id);
+                      return (
+                        m.label.toLowerCase().includes(q) ||
+                        (m.group && m.group.toLowerCase().includes(q)) ||
+                        meta.formula.toLowerCase().includes(q) ||
+                        meta.symbol.toLowerCase().includes(q)
+                      );
+                    })
                   : modules
-                ).filter(m => m.group === group);
-                
+                ).filter((m) => m.group === group);
+
                 if (groupFiltered.length === 0) return null;
 
+                const catMeta = getCategoryMeta(group);
+                const isCollapsed = !sidebarSearch.trim() && !!collapsedSidebarGroups[group];
+                const hasActiveChild = groupFiltered.some((m) => m.id === activeModule);
+
                 return (
-                  <div key={group} className="space-y-2">
-                    <h3 className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">
-                      {group}
-                    </h3>
-                    <div className="space-y-1">
-                      {groupFiltered.map((m) => (
-                        <button
-                          key={m.id}
-                          onClick={() => {
-                            setActiveModule(m.id);
-                            playSynthTone('xrd_scan');
-                          }}
-                          className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group relative flex items-center gap-3 cursor-pointer ${
-                            activeModule === m.id
-                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25'
-                              : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5'
+                  <div key={group} className="space-y-1">
+                    {/* Interactive Category Header */}
+                    <button
+                      onClick={() =>
+                        setCollapsedSidebarGroups((prev) => ({
+                          ...prev,
+                          [group]: !prev[group]
+                        }))
+                      }
+                      className={`w-full px-2 py-1 rounded-md flex items-center justify-between gap-2 text-left transition-colors cursor-pointer group/cat ${
+                        hasActiveChild
+                          ? 'bg-slate-100/80 dark:bg-slate-800/40'
+                          : 'hover:bg-slate-100/50 dark:hover:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {catMeta.svg}
+                        <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-[0.14em] truncate">
+                          {group}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[9px] font-mono font-bold ${catMeta.color}`}>
+                          {catMeta.symbol}
+                        </span>
+                        <span className="text-slate-300 dark:text-slate-700 text-[9px]">·</span>
+                        <span className="text-[9px] font-mono tabular-nums text-slate-400 dark:text-slate-500">
+                          {groupFiltered.length}
+                        </span>
+                        <ChevronDown
+                          className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
+                            isCollapsed ? '-rotate-90' : 'rotate-0'
                           }`}
-                        >
-                          {activeModule === m.id && (
-                            <span className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />
-                          )}
-                          {getModuleIcon(m.id, activeModule === m.id)}
-                          <span className="truncate">{m.label}</span>
-                        </button>
-                      ))}
-                    </div>
+                        />
+                      </div>
+                    </button>
+
+                    {/* Category Modules */}
+                    {!isCollapsed && (
+                      <div className="space-y-0.5 pl-1 border-l border-slate-200/70 dark:border-slate-800/80 ml-2.5">
+                        {groupFiltered.map((m) => {
+                          const isActive = activeModule === m.id;
+                          const modMeta = getModuleScientificMeta(m.id);
+                          const isCyber = theme === 'cyberpunk';
+
+                          return (
+                            <button
+                              key={m.id}
+                              onClick={() => {
+                                setActiveModule(m.id);
+                                playSynthTone('xrd_scan');
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 group relative flex items-center justify-between gap-2 cursor-pointer ${
+                                isActive
+                                  ? isCyber
+                                    ? 'bg-cyber-accent/20 text-cyber-accent border border-cyber-accent/50 shadow-[0_0_12px_rgba(0,255,159,0.2)]'
+                                    : 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/25'
+                                  : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100/90 dark:hover:bg-slate-800/60'
+                              }`}
+                              title={`${m.label} — ${modMeta.formula}`}
+                            >
+                              {isActive && (
+                                <span
+                                  className={`absolute -left-[5px] w-1 h-4 rounded-r-full ${
+                                    isCyber ? 'bg-cyber-accent shadow-[0_0_6px_#00ff9f]' : 'bg-indigo-500 dark:bg-indigo-400'
+                                  }`}
+                                />
+                              )}
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div
+                                  className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                                    isActive
+                                      ? isCyber
+                                        ? 'bg-cyber-accent/20'
+                                        : 'bg-white/15'
+                                      : 'bg-slate-100 dark:bg-slate-800/90 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/50'
+                                  }`}
+                                >
+                                  {getModuleIcon(m.id, isActive)}
+                                </div>
+                                <span className="truncate leading-tight">{m.label}</span>
+                              </div>
+
+                              <span
+                                className={`text-[9px] font-mono tabular-nums shrink-0 transition-colors ${
+                                  isActive
+                                    ? isCyber
+                                      ? 'text-cyber-accent font-bold'
+                                      : 'text-indigo-100 font-bold'
+                                    : 'text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+                                }`}
+                              >
+                                {modMeta.symbol}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
-            
-            <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm space-y-2.5">
+
+            {/* Consolidated Lab Report Compiler & Instrument Telemetry Footer */}
+            <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-sm space-y-2 z-10">
               <button
                 id="export-pdf-report-btn"
                 onClick={handleGeneratePdf}
-                className={`w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border ${
+                className={`w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-between gap-2 cursor-pointer transition-all active:scale-98 border group ${
                   theme === 'cyberpunk'
-                    ? 'bg-cyber-pink hover:bg-cyber-pink/85 border-cyber-accent text-white shadow-[0_0_15px_rgba(255,0,255,0.3)]'
-                    : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 border-emerald-500 dark:border-emerald-400 text-white shadow-md'
+                    ? 'bg-cyber-pink/90 hover:bg-cyber-pink border-cyber-accent text-white shadow-[0_0_15px_rgba(255,0,255,0.25)]'
+                    : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 border-emerald-500/80 text-white shadow-xs'
                 }`}
                 title="Compile and download consolidated XRD Lab Report (PDF)"
               >
-                <FileDown className="w-4 h-4 animate-bounce" />
-                {t('Export PDF Report', 'Export PDF Report')}
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowWhyXrdPage(true);
-                  playSynthTone('switch');
-                }}
-                className="w-full py-1.5 px-3 rounded-lg text-[10px] font-bold text-yellow-500 dark:text-yellow-400 hover:text-yellow-400 hover:bg-yellow-400/10 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-yellow-400/20"
-                title="Explore How XRD Helps in Different Disciplines (Lecture 11 Reference)"
-              >
-                <Atom className="w-3.5 h-3.5 text-yellow-400 animate-spin" style={{ animationDuration: '10s' }} />
-                <span>{t('Why XRD? Disciplines', 'Why XRD? Disciplines')}</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setHasEntered(false);
-                  playSynthTone('switch');
-                }}
-                className="w-full py-1.5 px-3 rounded-lg text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-transparent hover:border-slate-200 dark:hover:border-white/10"
-                title="View interactive 3D hero showcase and tutorial workflows"
-              >
-                <Compass className="w-3.5 h-3.5 text-indigo-500" />
-                <span>{t('Product Showcase & Tour', 'Product Showcase & Tour')}</span>
-              </button>
-              <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center space-y-1">
-                <div className="font-bold uppercase tracking-widest">v2.5.0 • {t('Lab Active')}</div>
-                <div 
-                  onClick={() => setAppFooterModal('about-creator')}
-                  className="opacity-80 hover:opacity-100 hover:text-violet-400 transition-all cursor-pointer font-medium"
-                >
-                  {t('Designed by')} Ali Zerehsaz
+                <div className="flex items-center gap-2 min-w-0">
+                  {/* Custom SVG Diffractogram Report Icon */}
+                  <svg
+                    viewBox="0 0 18 18"
+                    fill="none"
+                    className="w-4 h-4 shrink-0 transition-transform group-hover:-translate-y-0.5"
+                  >
+                    <rect x="3" y="2" width="12" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+                    <path
+                      d="M5 12H7L8.5 7.5L10 12H11.5L12.5 9.5L13.5 12"
+                      stroke="currentColor"
+                      strokeWidth="1.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <line x1="6" y1="5" x2="11" y2="5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                  </svg>
+                  <span className="truncate uppercase tracking-wider text-[11px] font-extrabold">
+                    {t('Export PDF Report', 'Export PDF Report')}
+                  </span>
                 </div>
-                <div className="flex items-center justify-center gap-2.5 pt-1">
-                  <a href="mailto:alizerehsaz2001@gmail.com" title="Gmail: alizerehsaz2001@gmail.com" className="hover:text-rose-400 transition-colors">
-                    <Mail className="w-3.5 h-3.5" />
+                <span className="text-[9px] font-mono tabular-nums opacity-90 shrink-0">
+                  {results.length} pk · PDF
+                </span>
+              </button>
+
+              {/* Compact Instrument & Creator Metadata Strip */}
+              <div className="pt-0.5 flex items-center justify-between text-[9.5px] text-slate-400 dark:text-slate-500 font-mono">
+                <button
+                  onClick={() => setAppFooterModal('about-creator')}
+                  className="hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate font-sans font-medium"
+                  title="About Creator & Scientific Architecture"
+                >
+                  Ali Zerehsaz <span className="text-slate-300 dark:text-slate-700">·</span> IUCr Lab
+                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href="mailto:alizerehsaz2001@gmail.com"
+                    title="Gmail: alizerehsaz2001@gmail.com"
+                    className="hover:text-rose-400 transition-colors"
+                  >
+                    <Mail className="w-3 h-3" />
                   </a>
-                  <a href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" target="_blank" rel="noopener noreferrer" title="LinkedIn: ali-zerehsaz-60818b249" className="hover:text-blue-400 transition-colors">
-                    <LinkedinIcon className="w-3.5 h-3.5" />
+                  <a
+                    href="https://www.linkedin.com/in/ali-zerehsaz-60818b249"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="LinkedIn: ali-zerehsaz-60818b249"
+                    className="hover:text-blue-400 transition-colors"
+                  >
+                    <LinkedinIcon className="w-3 h-3" />
                   </a>
-                  <a href="https://github.com/alizerehsaz2001-pixel" target="_blank" rel="noopener noreferrer" title="GitHub: alizerehsaz2001-pixel" className="hover:text-purple-400 transition-colors">
-                    <GithubIcon className="w-3.5 h-3.5" />
+                  <a
+                    href="https://github.com/alizerehsaz2001-pixel"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="GitHub: alizerehsaz2001-pixel"
+                    className="hover:text-purple-400 transition-colors"
+                  >
+                    <GithubIcon className="w-3 h-3" />
                   </a>
                 </div>
               </div>
@@ -2464,7 +2547,6 @@ const App: React.FC = () => {
                       <PawleyLeBailDecompositionModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
                     )}
                     {activeModule === 'rir' && <ReferenceIntensityRatioModule />}
-                    {activeModule === 'rietveld' && <RietveldModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                     {activeModule === 'neutron' && <NeutronModule />}
                     {activeModule === 'magnetic' && <MagneticNeutronModule />}
                     {activeModule === 'dl' && <DeepLearningModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
@@ -2650,7 +2732,7 @@ const App: React.FC = () => {
                         { key: 'Alt+3', name: t('Selection Rules') },
                         { key: 'Alt+4', name: t('Scherrer Method') },
                         { key: 'Alt+5', name: t('Williamson-Hall') },
-                        { key: 'Alt+6', name: t('Rietveld Setup') },
+                        { key: 'Alt+6', name: t('Pawley & Le Bail Fitting') },
                         { key: 'Alt+7', name: t('PhaseID Neural Net') },
                         { key: 'Alt+8', name: t('Material Registry') },
                         { key: 'Alt+9', name: t('Laboratory Settings') },

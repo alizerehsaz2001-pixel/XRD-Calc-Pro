@@ -192,17 +192,6 @@ export const SCIENTIFIC_MODULES: ScientificModuleItem[] = [
 
   // 3. Phase & Refinement
   {
-    id: 'rietveld',
-    title: 'Rietveld Refinement Lab',
-    category: 'refinement',
-    categoryLabel: 'Refinement',
-    description: 'Full powder diffraction pattern least-squares fitting, atomic coordinate refinement, R_wp minimization, and difference plots.',
-    icon: Cpu,
-    badge: 'Full Pattern',
-    formula: 'χ² = ∑ wᵢ (yᵢᵒᵇˢ - yᵢᶜᵃˡᶜ)²',
-    highlight: true
-  },
-  {
     id: 'pawley_lebail',
     title: 'Pawley & Le Bail Extraction',
     category: 'refinement',

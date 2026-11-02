@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
-import { X, Layers } from 'lucide-react';
+import { X } from 'lucide-react';
 import { playSynthTone } from '../utils/sound';
 
 export type WorkflowCategory = 'all' | 'fundamentals' | 'size_strain' | 'refinement' | 'simulation_ai' | 'intelligence';
@@ -112,26 +112,26 @@ export const QuickWorkflowRibbon: React.FC<QuickWorkflowRibbonProps> = ({
   const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState<WorkflowCategory>('all');
 
-  const categories: { id: WorkflowCategory; label: string; groupMatches: string[] }[] = [
-    { id: 'all', label: t('All Tools', 'All Tools'), groupMatches: [] },
-    { id: 'fundamentals', label: t('Fundamentals', 'Fundamentals'), groupMatches: ['Fundamentals'] },
-    { id: 'size_strain', label: t('Size & Strain', 'Size & Strain'), groupMatches: ['Size & Strain'] },
-    { id: 'refinement', label: t('Refinement', 'Refinement'), groupMatches: ['Advanced Refinement'] },
-    { id: 'simulation_ai', label: t('Simulation & AI', 'Simulation & AI'), groupMatches: ['Advanced Sim', 'AI Tools'] },
-    { id: 'intelligence', label: t('Registry & Learn', 'Registry & Learn'), groupMatches: ['Intelligence'] }
+  const categories: { id: WorkflowCategory; label: string; symbol: string; groupMatches: string[] }[] = [
+    { id: 'all', label: t('Core Pipeline', 'Core Pipeline'), symbol: '∑', groupMatches: [] },
+    { id: 'fundamentals', label: t('Fundamentals', 'Fundamentals'), symbol: '2θ', groupMatches: ['Fundamentals'] },
+    { id: 'size_strain', label: t('Size & Strain', 'Size & Strain'), symbol: 'β·ε', groupMatches: ['Size & Strain'] },
+    { id: 'refinement', label: t('Refinement', 'Refinement'), symbol: 'Gᵢⱼ', groupMatches: ['Advanced Refinement'] },
+    { id: 'simulation_ai', label: t('Simulation & AI', 'Simulation & AI'), symbol: 'Ψ', groupMatches: ['Advanced Sim', 'AI Tools'] },
+    { id: 'intelligence', label: t('Registry & Learn', 'Registry & Learn'), symbol: 'Z', groupMatches: ['Intelligence'] }
   ];
 
   const filteredModules = React.useMemo(() => {
     if (selectedCategory === 'all') {
       const priorityIds = [
-        'bragg', 'scherrer', 'wh', 'rir', 'pawley_lebail', 'cohen', 
-        'rietveld', 'fwhm', 'compare', 'periodic_table', 'database', 'settings'
+        'bragg', 'scherrer', 'wh', 'rir', 'pawley_lebail', 'cohen',
+        'fwhm', 'compare', 'periodic_table', 'database', 'settings'
       ];
-      return modules.filter(m => priorityIds.includes(m.id));
+      return modules.filter((m) => priorityIds.includes(m.id));
     }
-    const catObj = categories.find(c => c.id === selectedCategory);
+    const catObj = categories.find((c) => c.id === selectedCategory);
     if (!catObj) return modules;
-    return modules.filter(m => m.group && catObj.groupMatches.includes(m.group));
+    return modules.filter((m) => m.group && catObj.groupMatches.includes(m.group));
   }, [selectedCategory, modules]);
 
   return (
@@ -139,36 +139,52 @@ export const QuickWorkflowRibbon: React.FC<QuickWorkflowRibbonProps> = ({
       initial={{ height: 0, opacity: 0 }}
       animate={{ height: 'auto', opacity: 1 }}
       exit={{ height: 0, opacity: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.18 }}
       className={`w-full border-b select-none overflow-hidden z-10 shrink-0 ${
         theme === 'cyberpunk'
           ? 'bg-black/95 border-cyber-accent/30 text-cyber-accent'
-          : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200'
+          : 'bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-md border-slate-200/90 dark:border-slate-800/90 text-slate-800 dark:text-slate-200'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-2 flex items-center justify-between gap-3 overflow-x-auto custom-scrollbar">
-        {/* Left: Category Filter Pills */}
-        <div className="flex items-center gap-1 shrink-0 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/5">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setSelectedCategory(cat.id);
-                playSynthTone('switch');
-              }}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                selectedCategory === cat.id
-                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-xs'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
+      <div className="max-w-[1850px] mx-auto px-4 lg:px-6 py-1.5 flex items-center justify-between gap-3 overflow-x-auto custom-scrollbar">
+        {/* Left: Category Filter Segmented Control */}
+        <div className="flex items-center gap-0.5 shrink-0 p-0.5 rounded-lg bg-slate-200/70 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60">
+          {categories.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  playSynthTone('switch');
+                }}
+                className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                  isSelected
+                    ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-300 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+              >
+                <span className={`font-mono text-[10px] ${isSelected ? 'text-cyan-600 dark:text-cyan-400 font-bold' : 'text-slate-400'}`}>
+                  {cat.symbol}
+                </span>
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Center: Module Chips */}
-        <div className="flex items-center gap-1.5 shrink-0 overflow-x-auto py-0.5">
+        {/* Subtle SVG Wave Vector Divider */}
+        <svg viewBox="0 0 24 14" className="w-6 h-3.5 shrink-0 hidden xl:block text-slate-300 dark:text-slate-700" aria-hidden="true">
+          <path
+            d="M 1 7 Q 4 1, 7 7 T 13 7 T 19 7 L 23 7"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.2"
+          />
+        </svg>
+
+        {/* Center: Module Buttons */}
+        <div className="flex items-center gap-1.5 shrink-0 overflow-x-auto py-0.5 flex-1">
           {filteredModules.map((m) => {
             const isActive = activeModule === m.id;
             return (
@@ -178,10 +194,10 @@ export const QuickWorkflowRibbon: React.FC<QuickWorkflowRibbonProps> = ({
                   setActiveModule(m.id);
                   playSynthTone('xrd_scan');
                 }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap border ${
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap border ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
-                    : 'bg-white/80 dark:bg-slate-800/50 hover:bg-indigo-50 dark:hover:bg-slate-800 border-slate-200/70 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white'
+                    : 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white'
                 }`}
               >
                 {getModuleIcon(m.id, isActive)}
@@ -198,7 +214,7 @@ export const QuickWorkflowRibbon: React.FC<QuickWorkflowRibbonProps> = ({
               onClose();
               playSynthTone('switch');
             }}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+            className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
             title={t('Close Quick Ribbon', 'Close Quick Ribbon')}
           >
             <X className="w-3.5 h-3.5" />

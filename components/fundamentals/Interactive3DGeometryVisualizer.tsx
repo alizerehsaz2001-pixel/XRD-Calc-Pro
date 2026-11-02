@@ -119,6 +119,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
   const [showCenterings, setShowCenterings] = useState<boolean>(true);
   const [showBonds, setShowBonds] = useState<boolean>(true);
   const [showAngleArcs, setShowAngleArcs] = useState<boolean>(true);
+  const [showSymmetryAxes, setShowSymmetryAxes] = useState<boolean>(true);
+  const [showCoordinationPolyhedron, setShowCoordinationPolyhedron] = useState<boolean>(false);
   const [hexPrismMode, setHexPrismMode] = useState<boolean>(true);
 
   // Miller Plane (hkl) Slicing Overlay
@@ -295,6 +297,23 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     const cStar = (a * b * Math.sin(gR)) / V;
     return { aStar, bStar, cStar };
   }, [params, cellVolume]);
+
+  // Direct Metric Tensor G_ij (3x3 symmetric tensor: g_ij = e_i · e_j)
+  const metricTensor = useMemo(() => {
+    const { a, b, c, alpha, beta, gamma } = params;
+    const toRad = Math.PI / 180;
+    const g11 = a * a;
+    const g22 = b * b;
+    const g33 = c * c;
+    const g12 = a * b * Math.cos(gamma * toRad);
+    const g13 = a * c * Math.cos(beta * toRad);
+    const g23 = b * c * Math.cos(alpha * toRad);
+    return [
+      [g11, g12, g13],
+      [g12, g22, g23],
+      [g13, g23, g33]
+    ];
+  }, [params]);
 
   // Live d-spacing and Bragg 2θ calculation
   const dSpacingResult = useMemo(() => {
@@ -666,6 +685,112 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       }
     }
 
+    // 3D Crystallographic Symmetry Axes & Operations
+    interface SymmetryAxisLine {
+      p1: { px: number; py: number };
+      p2: { px: number; py: number };
+      label: string;
+      color: string;
+      order: 2 | 3 | 4 | 6 | -1;
+    }
+    const symmetryAxes: SymmetryAxisLine[] = [];
+
+    const addSymAxis = (
+      u1: number, v1: number, w1: number,
+      u2: number, v2: number, w2: number,
+      label: string,
+      color: string,
+      order: 2 | 3 | 4 | 6 | -1
+    ) => {
+      const c1 = fracToCart(u1, v1, w1);
+      const c2 = fracToCart(u2, v2, w2);
+      symmetryAxes.push({
+        p1: project(c1.x, c1.y, c1.z),
+        p2: project(c2.x, c2.y, c2.z),
+        label,
+        color,
+        order
+      });
+    };
+
+    if (activeSystem.id === 'cubic') {
+      // Four <111> 3-fold body diagonal triad axes
+      addSymAxis(-0.08, -0.08, -0.08, 1.08, 1.08, 1.08, '3-fold [111]', '#f59e0b', 3);
+      addSymAxis(1.08, -0.08, -0.08, -0.08, 1.08, 1.08, '3-fold [1̄11]', '#f59e0b', 3);
+      addSymAxis(1.08, 1.08, -0.08, -0.08, -0.08, 1.08, '3-fold [1̄1̄1]', '#f59e0b', 3);
+      addSymAxis(-0.08, 1.08, -0.08, 1.08, -0.08, 1.08, '3-fold [11̄1]', '#f59e0b', 3);
+    } else if (activeSystem.id === 'tetragonal') {
+      // Principal 4-fold [001] tetrad axis
+      addSymAxis(0.5, 0.5, -0.15, 0.5, 0.5, 1.15, '4-fold [001]', '#f97316', 4);
+    } else if (activeSystem.id === 'hexagonal') {
+      // Principal 6-fold [0001] hexad axis
+      addSymAxis(0.5, 0.5, -0.15, 0.5, 0.5, 1.15, '6-fold [0001]', '#10b981', 6);
+    } else if (activeSystem.id === 'trigonal') {
+      // Principal 3-fold [111] rhombohedral triad axis
+      addSymAxis(-0.1, -0.1, -0.1, 1.1, 1.1, 1.1, '3-fold [111]', '#f43f5e', 3);
+    } else if (activeSystem.id === 'orthorhombic') {
+      // Three orthogonal 2-fold axes
+      addSymAxis(0.5, 0.5, -0.14, 0.5, 0.5, 1.14, '2-fold [001]', '#84cc16', 2);
+      addSymAxis(0.5, -0.14, 0.5, 0.5, 1.14, 0.5, '2-fold [010]', '#22c55e', 2);
+      addSymAxis(-0.14, 0.5, 0.5, 1.14, 0.5, 0.5, '2-fold [100]', '#10b981', 2);
+    } else if (activeSystem.id === 'monoclinic') {
+      // Unique 2-fold axis along b [010]
+      addSymAxis(0.5, -0.16, 0.5, 0.5, 1.16, 0.5, 'Unique 2-fold [010]', '#38bdf8', 2);
+    } else if (activeSystem.id === 'triclinic') {
+      // Inversion center -1 at (1/2, 1/2, 1/2)
+      addSymAxis(0, 0, 0, 1, 1, 1, 'Inversion 1̄ (½,½,½)', '#06b6d4', -1);
+    }
+
+    // 3D Coordination Polyhedron Facets (Octahedral / Cubic / Basal cage)
+    const coordinationPolygons: string[] = [];
+    if (showCoordinationPolyhedron) {
+      if (activeCentering === 'F' && centeredPoints.length >= 6) {
+        // Internal Octahedron formed by the 6 face-centered atoms
+        const fc = centeredPoints; // [bot(0), top(1), front(2), back(3), left(4), right(5)]
+        const octFaces = [
+          [1, 2, 5], [1, 5, 3], [1, 3, 4], [1, 4, 2],
+          [0, 2, 5], [0, 5, 3], [0, 3, 4], [0, 4, 2]
+        ];
+        octFaces.forEach(tri => {
+          const pts = tri.map(idx => `${fc[idx].px.toFixed(1)},${fc[idx].py.toFixed(1)}`).join(' ');
+          coordinationPolygons.push(pts);
+        });
+      } else {
+        // Coordination polyhedron linking central point (½,½,½) to vertices
+        const centerPt = project(0, 0, 0);
+        const tetIndices = [
+          [0, 1, 2], [4, 5, 6], [0, 4, 5], [2, 3, 7]
+        ];
+        tetIndices.forEach(tri => {
+          const pts = [
+            `${centerPt.px.toFixed(1)},${centerPt.py.toFixed(1)}`,
+            ...tri.map(i => `${corners[i].px.toFixed(1)},${corners[i].py.toFixed(1)}`)
+          ].join(' ');
+          coordinationPolygons.push(pts);
+        });
+      }
+    }
+
+    // 3D Orientation Gizmo (Bottom-Left HUD Triad)
+    const gizmoOrigin = { x: 48, y: 374 };
+    const gizmoLen = 26;
+    const projectGizmoVec = (vx: number, vy: number, vz: number) => {
+      const mag = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
+      const nx = (vx / mag) * gizmoLen;
+      const ny = (vy / mag) * gizmoLen;
+      const nz = (vz / mag) * gizmoLen;
+      const x1 = nx * Math.cos(yawRad) - ny * Math.sin(yawRad);
+      const y1 = nx * Math.sin(yawRad) + ny * Math.cos(yawRad);
+      const y2 = y1 * Math.cos(pitchRad) - nz * Math.sin(pitchRad);
+      return { x: gizmoOrigin.x + x1, y: gizmoOrigin.y - y2 };
+    };
+    const gizmoVectors = {
+      origin: gizmoOrigin,
+      a: projectGizmoVec(ax, ay, az),
+      b: projectGizmoVec(bx, by, bz),
+      c: projectGizmoVec(cx, cy, cz)
+    };
+
     return {
       corners,
       edges,
@@ -679,9 +804,12 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       aEnd,
       bEnd,
       cEnd,
-      millerPlanePolygon
+      millerPlanePolygon,
+      symmetryAxes,
+      coordinationPolygons,
+      gizmoVectors
     };
-  }, [params, yaw, pitch, zoom, activeCentering, hexPrismMode, showMillerPlane, hklH, hklK, hklL, activeSystem.id]);
+  }, [params, yaw, pitch, zoom, activeCentering, hexPrismMode, showMillerPlane, hklH, hklK, hklL, activeSystem.id, showCoordinationPolyhedron]);
 
   // Handle Export SVG vector graphic
   const handleExportSVG = () => {
@@ -844,6 +972,32 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 </button>
 
                 <div className="w-[1px] h-4 bg-slate-800 mx-1" />
+
+                <button
+                  onClick={() => { playSynthTone('tick'); setShowSymmetryAxes(!showSymmetryAxes); }}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all ${
+                    showSymmetryAxes
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="Toggle 3D Crystallographic Symmetry Axes"
+                >
+                  Symmetry
+                </button>
+
+                <button
+                  onClick={() => { playSynthTone('tick'); setShowCoordinationPolyhedron(!showCoordinationPolyhedron); }}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all ${
+                    showCoordinationPolyhedron
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="Toggle 3D Coordination Polyhedron Cage"
+                >
+                  Polyhedron
+                </button>
+
+                <div className="w-[1px] h-4 bg-slate-800 mx-0.5" />
 
                 <button
                   onClick={() => setZoom(prev => Math.min(2.5, prev + 0.15))}
@@ -1026,6 +1180,88 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                         ))}
                       </g>
                     )}
+
+                    {/* 3D Coordination Polyhedron Overlay */}
+                    {showCoordinationPolyhedron && projection.coordinationPolygons.map((pts, idx) => (
+                      <polygon
+                        key={`coord-poly-${idx}`}
+                        points={pts}
+                        fill="#06b6d4"
+                        fillOpacity="0.18"
+                        stroke="#22d3ee"
+                        strokeWidth="1.2"
+                        strokeLinejoin="round"
+                      />
+                    ))}
+
+                    {/* 3D Crystallographic Symmetry Axes Overlay */}
+                    {showSymmetryAxes && projection.symmetryAxes.map((ax, idx) => (
+                      <g key={`sym-axis-${idx}`}>
+                        <line
+                          x1={ax.p1.px}
+                          y1={ax.p1.py}
+                          x2={ax.p2.px}
+                          y2={ax.p2.py}
+                          stroke={ax.color}
+                          strokeWidth="1.8"
+                          strokeDasharray="5 3"
+                          opacity="0.88"
+                        />
+                        {/* Symmetry Glyph at Endpoint */}
+                        {ax.order === 3 && (
+                          <polygon
+                            points={`${ax.p2.px},${ax.p2.py - 5} ${ax.p2.px - 4.5},${ax.p2.py + 3.5} ${ax.p2.px + 4.5},${ax.p2.py + 3.5}`}
+                            fill={ax.color}
+                          />
+                        )}
+                        {ax.order === 4 && (
+                          <rect
+                            x={ax.p2.px - 4}
+                            y={ax.p2.py - 4}
+                            width="8"
+                            height="8"
+                            fill={ax.color}
+                            transform={`rotate(45 ${ax.p2.px} ${ax.p2.py})`}
+                          />
+                        )}
+                        {ax.order === 6 && (
+                          <circle cx={ax.p2.px} cy={ax.p2.py} r="5" fill={ax.color} stroke="#ecfdf5" strokeWidth="1" />
+                        )}
+                        {ax.order === 2 && (
+                          <ellipse cx={ax.p2.px} cy={ax.p2.py} rx="5" ry="2.6" fill={ax.color} />
+                        )}
+                        {ax.order === -1 && (
+                          <g>
+                            <circle
+                              cx={(ax.p1.px + ax.p2.px) / 2}
+                              cy={(ax.p1.py + ax.p2.py) / 2}
+                              r="6"
+                              fill="none"
+                              stroke={ax.color}
+                              strokeWidth="2"
+                            />
+                            <circle
+                              cx={(ax.p1.px + ax.p2.px) / 2}
+                              cy={(ax.p1.py + ax.p2.py) / 2}
+                              r="2"
+                              fill={ax.color}
+                            />
+                          </g>
+                        )}
+                        {idx === 0 && (
+                          <text
+                            x={ax.p2.px + 8}
+                            y={ax.p2.py + 3}
+                            fill={ax.color}
+                            fontSize="9.5"
+                            fontFamily="monospace"
+                            fontWeight="bold"
+                          >
+                            {ax.label}
+                          </text>
+                        )}
+                      </g>
+                    ))}
 
                     {/* Struts (BCC/FCC Bonds) */}
                     {showBonds && projection.struts.map((s, idx) => (
@@ -1226,6 +1462,85 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     </text>
                   </g>
                 )}
+
+                {/* 3D Crystallographic Orientation Gizmo (Bottom-Left Corner Triad) */}
+                <g>
+                  <circle
+                    cx={projection.gizmoVectors.origin.x}
+                    cy={projection.gizmoVectors.origin.y}
+                    r="32"
+                    fill="#020617"
+                    fillOpacity="0.75"
+                    stroke="#1e293b"
+                    strokeWidth="1.2"
+                  />
+                  {/* Gizmo a-axis */}
+                  <line
+                    x1={projection.gizmoVectors.origin.x}
+                    y1={projection.gizmoVectors.origin.y}
+                    x2={projection.gizmoVectors.a.x}
+                    y2={projection.gizmoVectors.a.y}
+                    stroke="#f43f5e"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <text
+                    x={projection.gizmoVectors.a.x + 3}
+                    y={projection.gizmoVectors.a.y + 3}
+                    fill="#f43f5e"
+                    fontSize="9"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    a
+                  </text>
+                  {/* Gizmo b-axis */}
+                  <line
+                    x1={projection.gizmoVectors.origin.x}
+                    y1={projection.gizmoVectors.origin.y}
+                    x2={projection.gizmoVectors.b.x}
+                    y2={projection.gizmoVectors.b.y}
+                    stroke="#10b981"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <text
+                    x={projection.gizmoVectors.b.x + 3}
+                    y={projection.gizmoVectors.b.y + 3}
+                    fill="#10b981"
+                    fontSize="9"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    b
+                  </text>
+                  {/* Gizmo c-axis */}
+                  <line
+                    x1={projection.gizmoVectors.origin.x}
+                    y1={projection.gizmoVectors.origin.y}
+                    x2={projection.gizmoVectors.c.x}
+                    y2={projection.gizmoVectors.c.y}
+                    stroke="#06b6d4"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                  <text
+                    x={projection.gizmoVectors.c.x - 3}
+                    y={projection.gizmoVectors.c.y - 4}
+                    fill="#06b6d4"
+                    fontSize="9"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    c
+                  </text>
+                  <circle
+                    cx={projection.gizmoVectors.origin.x}
+                    cy={projection.gizmoVectors.origin.y}
+                    r="2.5"
+                    fill="#e2e8f0"
+                  />
+                </g>
               </svg>
 
               {/* Hover Tooltip Overlay */}
@@ -1502,6 +1817,32 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   </span>
                 </div>
               </div>
+
+              {/* Direct Metric Tensor G_ij 3x3 Matrix Readout */}
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 font-mono">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-indigo-400 font-bold uppercase tracking-wider">
+                    Direct Metric Tensor G_ij (Å²)
+                  </span>
+                  <span className="text-slate-500">det(G) = V² = {(cellVolume * cellVolume).toFixed(1)}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 text-center text-[11px]">
+                  {metricTensor.map((row, rIdx) =>
+                    row.map((val, cIdx) => (
+                      <div
+                        key={`g-${rIdx}-${cIdx}`}
+                        className={`py-1 px-1.5 rounded bg-slate-900 border ${
+                          rIdx === cIdx
+                            ? 'border-indigo-500/30 text-indigo-200 font-bold'
+                            : 'border-slate-800/80 text-slate-400'
+                        }`}
+                      >
+                        {Math.abs(val) < 0.005 ? '0.00' : val.toFixed(2)}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -1627,6 +1968,26 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     className="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0"
                   />
                   <span>Vertex Labels [uvw]</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-amber-300">
+                  <input
+                    type="checkbox"
+                    checked={showSymmetryAxes}
+                    onChange={(e) => setShowSymmetryAxes(e.target.checked)}
+                    className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0"
+                  />
+                  <span>Symmetry Axes</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-cyan-300">
+                  <input
+                    type="checkbox"
+                    checked={showCoordinationPolyhedron}
+                    onChange={(e) => setShowCoordinationPolyhedron(e.target.checked)}
+                    className="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0"
+                  />
+                  <span>Coord. Polyhedron</span>
                 </label>
               </div>
 

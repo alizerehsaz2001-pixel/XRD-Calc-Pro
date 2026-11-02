@@ -177,24 +177,46 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
     const s3 = d3 ? 1 / d3 : undefined;
     const s4 = d4 ? 1 / d4 : undefined;
 
+    const sigmaLn = 0.42;
+    const muLn = Math.log(Math.max(2, gridSizeNm)) - 0.5 * sigmaLn * sigmaLn;
+    const dStep = Math.max(0.25, gridSizeNm / 60);
+    const maxD = gridSizeNm * 4.5;
+
     for (let L = gridStartL; L <= gridEndL; L += gridStepL) {
-      const sizeCoeff = Math.max(0.01, 1 - L / gridSizeNm);
-      const decay1 = Math.exp(-2 * Math.PI * Math.PI * (L ** 2) * (gridStrain ** 2) * (s1 ** 2));
-      const decay2 = Math.exp(-2 * Math.PI * Math.PI * (L ** 2) * (gridStrain ** 2) * (s2 ** 2));
+      // Exact log-normal column-length size coefficient with initial slope -1 / gridSizeNm and positive curvature d²A_S/dL² > 0
+      let sumNum = 0;
+      let sumDen = 0;
+      for (let D = dStep; D <= maxD; D += dStep) {
+        const pdf = (1 / (D * sigmaLn * Math.sqrt(2 * Math.PI))) * Math.exp(-Math.pow(Math.log(D) - muLn, 2) / (2 * sigmaLn * sigmaLn));
+        sumDen += D * pdf * dStep;
+        if (D > L) {
+          sumNum += (D - L) * pdf * dStep;
+        }
+      }
+      const sizeCoeff = Math.max(0.005, sumDen > 0 ? sumNum / sumDen : Math.exp(-L / gridSizeNm));
+
+      // Convert L from nm to Angstroms (L_A = 10 * L) to match s = 1/d in Angstrom^-1
+      const L_A = L * 10.0;
+      const Re = Math.max(35, gridSizeNm * 1.8);
+      const strainScale = Math.max(0.15, Math.log(Math.max(1.15, Re / L)) / Math.log(Math.max(1.15, Re / 5)));
+      const effStrainSq = (gridStrain ** 2) * strainScale;
+
+      const decay1 = Math.exp(-2 * Math.PI * Math.PI * (L_A ** 2) * effStrainSq * (s1 ** 2));
+      const decay2 = Math.exp(-2 * Math.PI * Math.PI * (L_A ** 2) * effStrainSq * (s2 ** 2));
       
       const pt: WAInputPoint = {
         L_nm: L,
-        A1: Math.max(0.005, Math.min(1.0, sizeCoeff * decay1)),
-        A2: Math.max(0.005, Math.min(1.0, sizeCoeff * decay2))
+        A1: Math.max(0.001, Math.min(1.0, sizeCoeff * decay1)),
+        A2: Math.max(0.001, Math.min(1.0, sizeCoeff * decay2))
       };
 
       if (s3 !== undefined) {
-        const decay3 = Math.exp(-2 * Math.PI * Math.PI * (L ** 2) * (gridStrain ** 2) * (s3 ** 2));
-        pt.A3 = Math.max(0.005, Math.min(1.0, sizeCoeff * decay3));
+        const decay3 = Math.exp(-2 * Math.PI * Math.PI * (L_A ** 2) * effStrainSq * (s3 ** 2));
+        pt.A3 = Math.max(0.0005, Math.min(1.0, sizeCoeff * decay3));
       }
       if (s4 !== undefined) {
-        const decay4 = Math.exp(-2 * Math.PI * Math.PI * (L ** 2) * (gridStrain ** 2) * (s4 ** 2));
-        pt.A4 = Math.max(0.005, Math.min(1.0, sizeCoeff * decay4));
+        const decay4 = Math.exp(-2 * Math.PI * Math.PI * (L_A ** 2) * effStrainSq * (s4 ** 2));
+        pt.A4 = Math.max(0.0005, Math.min(1.0, sizeCoeff * decay4));
       }
 
       generated.push(pt);
@@ -202,6 +224,32 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
 
     updatePoints(generated);
     setGridGeneratorOpen(false);
+  };
+
+  const handleInjectTestHookArtifact = () => {
+    if (points.length < 3) return;
+    const hooked = points.map((p, idx) => {
+      if (idx === 0) {
+        return {
+          ...p,
+          A1: Math.max(0.01, p.A1 * 0.91),
+          A2: Math.max(0.01, p.A2 * 0.90),
+          A3: p.A3 !== undefined ? Math.max(0.01, p.A3 * 0.89) : undefined,
+          A4: p.A4 !== undefined ? Math.max(0.01, p.A4 * 0.88) : undefined
+        };
+      }
+      if (idx === 1) {
+        return {
+          ...p,
+          A1: Math.max(0.01, p.A1 * 0.96),
+          A2: Math.max(0.01, p.A2 * 0.95),
+          A3: p.A3 !== undefined ? Math.max(0.01, p.A3 * 0.95) : undefined,
+          A4: p.A4 !== undefined ? Math.max(0.01, p.A4 * 0.94) : undefined
+        };
+      }
+      return p;
+    });
+    updatePoints(hooked);
   };
 
   const handleCopy = () => {
@@ -303,6 +351,14 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
           >
             <Sparkles className="w-3.5 h-3.5 text-rose-400" />
             Generate Grid
+          </button>
+          <button
+            onClick={handleInjectTestHookArtifact}
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg border border-amber-500/20 transition-all"
+            title="Simulate background over-subtraction / tail truncation at L ≤ 2 nm to test automatic Hook-effect tangent correction"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            Test Hook Artifact
           </button>
         </div>
 

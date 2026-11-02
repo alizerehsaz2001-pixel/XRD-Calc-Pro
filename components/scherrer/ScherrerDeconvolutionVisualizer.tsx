@@ -2,22 +2,35 @@ import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { Sliders, Activity, Info, Sparkles, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
 import { motion } from 'motion/react';
+import { ScherrerResult } from '../../types';
 
 interface DeconvolutionVisualizerProps {
   wavelength: number;
   kFactor: number;
   currentInstFwhm: number;
+  results?: ScherrerResult[];
 }
 
 export const ScherrerDeconvolutionVisualizer: React.FC<DeconvolutionVisualizerProps> = ({
   wavelength,
   kFactor,
-  currentInstFwhm
+  currentInstFwhm,
+  results = []
 }) => {
-  const [simSizeNm, setSimSizeNm] = useState<number>(25);
-  const [simCenter2Theta, setSimCenter2Theta] = useState<number>(38.2);
+  const validPeaks = useMemo(
+    () => results.filter(r => !r.excluded && !r.error && r.sizeNm > 0),
+    [results]
+  );
+
+  const [simSizeNm, setSimSizeNm] = useState<number>(() =>
+    validPeaks.length > 0 ? parseFloat(validPeaks[0].sizeNm.toFixed(1)) : 25
+  );
+  const [simCenter2Theta, setSimCenter2Theta] = useState<number>(() =>
+    validPeaks.length > 0 ? parseFloat(validPeaks[0].twoTheta.toFixed(2)) : 38.2
+  );
   const [simInstFwhm, setSimInstFwhm] = useState<number>(currentInstFwhm || 0.10);
   const [simEta, setSimEta] = useState<number>(0.5);
+  const [selectedPeakIdx, setSelectedPeakIdx] = useState<number>(0);
 
   const profileData = useMemo(() => {
     const thetaRad = (simCenter2Theta / 2) * (Math.PI / 180);
@@ -127,6 +140,37 @@ export const ScherrerDeconvolutionVisualizer: React.FC<DeconvolutionVisualizerPr
             {regime.label}
           </div>
         </div>
+
+        {/* Active Reflections Quick Loader */}
+        {validPeaks.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-800/70">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+              Load Experimental Peak:
+            </span>
+            {validPeaks.map((pk, idx) => {
+              const hklStr = pk.hkl ? `(${pk.hkl.join('')})` : `#${idx + 1}`;
+              const isSelected = selectedPeakIdx === idx && Math.abs(simCenter2Theta - pk.twoTheta) < 0.2;
+              return (
+                <button
+                  key={`${pk.twoTheta}-${idx}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPeakIdx(idx);
+                    setSimCenter2Theta(parseFloat(pk.twoTheta.toFixed(2)));
+                    setSimSizeNm(Math.max(2, Math.min(150, parseFloat(pk.sizeNm.toFixed(1)))));
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 shadow-sm'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  {hklStr} @ {pk.twoTheta.toFixed(1)}° ({pk.sizeNm.toFixed(1)} nm)
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Sliders Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 xl:gap-4 pt-2">

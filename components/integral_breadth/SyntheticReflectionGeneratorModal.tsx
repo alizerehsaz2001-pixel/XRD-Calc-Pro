@@ -133,29 +133,38 @@ export const SyntheticReflectionGeneratorModal: React.FC<SyntheticReflectionGene
       const cosTheta = Math.cos(thetaRad);
       const tanTheta = Math.tan(thetaRad);
 
-      // Scherrer broadening in radians: beta_size = (K * lambda) / (D * cosTheta)
+      // Scherrer Cauchy broadening in radians: beta_C = (K * lambda) / (D * cosTheta)
       const K = 1.0;
       const betaSizeRad = (K * wavelength * 1e-1) / (targetSizeNm * cosTheta); // lambda in A (10^-1 nm), D in nm
       
-      // Strain broadening in radians: beta_strain = 4 * epsilon * tanTheta
+      // Stokes-Wilson Gaussian strain broadening in radians: beta_G = 4 * epsilon * tanTheta
       const epsilon = targetStrainPercent / 100.0;
       const betaStrainRad = 4.0 * epsilon * tanTheta;
 
-      // Total Voigt/Integral Breadth in radians: approx parabolic or Voigt combination
-      const betaTotalRad = Math.sqrt(betaSizeRad ** 2 + betaStrainRad ** 2);
+      // Halder-Wagner / Langford Voigt Integral Breadth in radians
+      const betaTotalRad = 0.5 * betaSizeRad + Math.sqrt(0.25 * betaSizeRad ** 2 + betaStrainRad ** 2);
       const betaTotalDeg = (betaTotalRad * 180) / Math.PI;
 
-      // FWHM approximation (using pseudo-Voigt relation): FWHM ~ beta * shapeFactor phi
-      // For size dominant, phi ~ 0.65. For strain dominant, phi ~ 0.90.
-      const fractionStrain = betaStrainRad / (betaSizeRad + betaStrainRad + 1e-9);
-      const phi = 0.64 + 0.29 * fractionStrain; // ranges from 0.64 to 0.93
-      const fwhmDeg = betaTotalDeg * phi;
+      // Exact component FWHMs: Gamma_C = (2/pi)*beta_C, Gamma_G = 2*sqrt(ln2/pi)*beta_G
+      const gammaC = (2.0 / Math.PI) * betaSizeRad;
+      const gammaG = 2.0 * Math.sqrt(Math.LN2 / Math.PI) * betaStrainRad;
+      // Thompson-Cox-Hastings (1987) exact Voigt FWHM
+      const fwhmRad = Math.pow(
+        Math.pow(gammaG, 5) +
+        2.69269 * Math.pow(gammaG, 4) * gammaC +
+        2.42843 * Math.pow(gammaG, 3) * Math.pow(gammaC, 2) +
+        4.47163 * Math.pow(gammaG, 2) * Math.pow(gammaC, 3) +
+        0.07842 * gammaG * Math.pow(gammaC, 4) +
+        Math.pow(gammaC, 5),
+        0.2
+      );
+      const fwhmDeg = (fwhmRad * 180) / Math.PI;
 
       const iMax = ref.relativeI;
       const area = betaTotalDeg * iMax;
 
       generatedRows.push(
-        `${twoThetaDeg.toFixed(2)}, ${fwhmDeg.toFixed(3)}, ${area.toFixed(1)}, ${iMax.toFixed(0)}, ${ref.h} ${ref.k} ${ref.l}`
+        `${twoThetaDeg.toFixed(3)}, ${fwhmDeg.toFixed(4)}, ${area.toFixed(2)}, ${iMax.toFixed(0)}, ${ref.h} ${ref.k} ${ref.l}`
       );
     }
 

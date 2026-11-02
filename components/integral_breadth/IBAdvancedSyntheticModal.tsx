@@ -133,22 +133,23 @@ export const IBAdvancedSyntheticModal: React.FC<IBAdvancedSyntheticModalProps> =
       const cosTheta = Math.cos(thetaRad);
       const tanTheta = Math.tan(thetaRad);
 
-      // Scherrer size broadening: beta_size (rad) = K * lambda / (D * cosTheta)
+      // Scherrer Cauchy size broadening: beta_C (rad) = K * lambda / (D * cosTheta)
       const betaSizeRad = (1.0 * (wavelength * 1e-10)) / ((targetSizeNm * 1e-9) * cosTheta);
 
-      // Microstrain broadening: beta_strain (rad) = 4 * epsilon * tanTheta
+      // Stokes-Wilson Gaussian microstrain broadening: beta_G (rad) = 4 * epsilon * tanTheta
       const eps = targetStrainPercent / 100;
       const betaStrainRad = 4 * eps * tanTheta;
 
-      // Voigt-like integral breadth combining Cauchy size + Gaussian strain
-      const betaTotalRad = Math.sqrt(betaSizeRad * betaSizeRad + betaStrainRad * betaStrainRad);
+      // Exact Halder-Wagner Voigt convolution: beta^2 = beta * beta_C + beta_G^2
+      // => beta = 0.5 * beta_C + sqrt(0.25 * beta_C^2 + beta_G^2)
+      const betaTotalRad = 0.5 * betaSizeRad + Math.sqrt(0.25 * betaSizeRad * betaSizeRad + betaStrainRad * betaStrainRad);
       const betaTotalDeg = betaTotalRad * (180 / Math.PI);
 
       // Calculate peak Area & Imax: Area = betaTotalDeg * Imax
       const peakImax = Math.round((ref.relativeI / 1000) * baseImax);
-      const peakArea = parseFloat((betaTotalDeg * peakImax).toFixed(1));
+      const peakArea = parseFloat((betaTotalDeg * peakImax).toFixed(3));
 
-      rows.push(`${twoThetaDeg.toFixed(2)}, ${peakArea}, ${peakImax}, ${ref.h} ${ref.k} ${ref.l}`);
+      rows.push(`${twoThetaDeg.toFixed(3)}, ${peakArea}, ${peakImax}, ${ref.h} ${ref.k} ${ref.l}`);
     });
 
     onGenerate(rows.join('\n'), materialTitle, materialDensity, youngsModulus);

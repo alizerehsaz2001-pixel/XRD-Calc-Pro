@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { parseWAInput, calculateWarrenAverbach } from '../utils/physics';
+import { parseWAInput, calculateWarrenAverbach, synthesizeWAHarmonicsFromPeaks } from '../utils/physics';
 import { WAResult, WAMetrics } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
@@ -282,15 +282,37 @@ export const WarrenAverbachModule: React.FC = () => {
   const [cutoffRadiusValue, setCutoffRadiusValue] = useState<number>(50.0); // nm
 
   // Visualization toggles
-  const [showHookComparison, setShowHookComparison] = useState<boolean>(false);
+  const [showHookComparison, setShowHookComparison] = useState<boolean>(true);
+  const [showTangentLine, setShowTangentLine] = useState<boolean>(true);
   const [showNumberWeighted, setShowNumberWeighted] = useState<boolean>(true);
   const [showLogNormalFit, setShowLogNormalFit] = useState<boolean>(true);
   const [wilkensPlotMode, setWilkensPlotMode] = useState<'linearized' | 'rms_decay'>('linearized');
+
+  // Interactive Hook-Effect Fit Window [L_min, L_max] (nm)
+  const [hookMinL, setHookMinL] = useState<number>(2.0);
+  const [hookMaxL, setHookMaxL] = useState<number>(8.0);
+
+  // User-friendly Direct Peak FWHM Workflow Mode
+  const [inputWorkflowMode, setInputWorkflowMode] = useState<'fourier_table' | 'direct_peaks'>('fourier_table');
+  const [directPeak1Pos, setDirectPeak1Pos] = useState<number>(38.18);
+  const [directPeak1Fwhm, setDirectPeak1Fwhm] = useState<number>(0.42);
+  const [directPeak1Eta, setDirectPeak1Eta] = useState<number>(0.62);
+  const [directPeak2Pos, setDirectPeak2Pos] = useState<number>(81.72);
+  const [directPeak2Fwhm, setDirectPeak2Fwhm] = useState<number>(0.88);
+  const [directPeak2Eta, setDirectPeak2Eta] = useState<number>(0.45);
+  const [directInstFwhm, setDirectInstFwhm] = useState<number>(0.07);
+  const [directHookStrength, setDirectHookStrength] = useState<number>(0.03);
+  const [directComparativeMetrics, setDirectComparativeMetrics] = useState<{
+    apparentScherrerSizeNm: number;
+    williamsonHallSizeNm: number;
+    williamsonHallStrain: number;
+  } | null>(null);
 
   // AI Crystallographic Advisor State
   const [aiReport, setAiReport] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState<boolean>(false);
   const [reportError, setReportError] = useState<string | null>(null);
+  const [copiedAiReport, setCopiedAiReport] = useState<boolean>(false);
 
   // Python Code Export State
   const [copiedPython, setCopiedPython] = useState<boolean>(false);
@@ -300,7 +322,7 @@ export const WarrenAverbachModule: React.FC = () => {
   const [burgersVector, setBurgersVector] = useState<number>(MATERIAL_PRESETS[0].burgersVector);
   const [youngsModulus, setYoungsModulus] = useState<number>(MATERIAL_PRESETS[0].youngsModulus);
 
-  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'harmonics_editor' | 'size_pv' | 'strain_wilkens' | 'order_plots' | 'defect_topography' | 'metrics_report' | 'ai_advisor' | 'python_export'>('harmonics_editor');
+  const [activeAnalysisTab, setActiveAnalysisTab] = useState<'harmonics_editor' | 'size_pv' | 'strain_wilkens' | 'order_plots' | 'defect_topography' | 'metrics_report' | 'ai_advisor' | 'python_export'>('size_pv');
   const [isConverterOpen, setIsConverterOpen] = useState(false);
   const [isDEstimatorOpen, setIsDEstimatorOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -367,47 +389,117 @@ export const WarrenAverbachModule: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleCalculate = () => {
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      const points = parseWAInput(inputData);
-      const computed = calculateWarrenAverbach(
-        d1, 
-        d2, 
-        points, 
-        shapeFactor, 
-        strainModel,
-        instrumentalCorrection,
-        backgroundModel,
-        instrumentalFactor,
-        backgroundOffset,
-        cutoffRadiusValue,
-        hookCorrectionMode,
-        showOrder3 ? d3 : undefined,
-        showOrder4 ? d4 : undefined,
-        burgersVector,
-        youngsModulus,
-        contrastFactorC
-      );
-      setResult(computed);
-      setIsAnalyzing(false);
-      
-      // Auto-set selected order plot point if available
-      if (computed.orderPlots && computed.orderPlots.length > 0) {
+  // Synchronize Direct Peak FWHM sliders -> Fourier Harmonics table when in direct_peaks mode
+  useEffect(() => {
+    if (inputWorkflowMode !== 'direct_peaks') return;
+    const synth = synthesizeWAHarmonicsFromPeaks({
+      peaks: [
+        { order: 1, twoTheta: directPeak1Pos, fwhmObs: directPeak1Fwhm, etaObs: directPeak1Eta },
+        { order: 2, twoTheta: directPeak2Pos, fwhmObs: directPeak2Fwhm, etaObs: directPeak2Eta }
+      ],
+      fwhmInst: directInstFwhm,
+      wavelength: calcLambda,
+      maxL_nm: 25,
+      simulateHookStrength: directHookStrength
+    });
+    setInputData(synth.dataString);
+    setD1(synth.d1);
+    setD2(synth.d2);
+    setShowOrder3(false);
+    setShowOrder4(false);
+    setDirectComparativeMetrics({
+      apparentScherrerSizeNm: synth.apparentScherrerSizeNm,
+      williamsonHallSizeNm: synth.williamsonHallSizeNm,
+      williamsonHallStrain: synth.williamsonHallStrain
+    });
+  }, [
+    inputWorkflowMode,
+    calcLambda,
+    directPeak1Pos,
+    directPeak1Fwhm,
+    directPeak1Eta,
+    directPeak2Pos,
+    directPeak2Fwhm,
+    directPeak2Eta,
+    directInstFwhm,
+    directHookStrength
+  ]);
+
+  const runWarrenAverbachCalculation = (scrollToResults = false) => {
+    const points = parseWAInput(inputData);
+    if (points.length < 2) return;
+    const computed = calculateWarrenAverbach(
+      d1,
+      d2,
+      points,
+      shapeFactor,
+      strainModel,
+      instrumentalCorrection,
+      backgroundModel,
+      instrumentalFactor,
+      backgroundOffset,
+      cutoffRadiusValue,
+      hookCorrectionMode,
+      showOrder3 ? d3 : undefined,
+      showOrder4 ? d4 : undefined,
+      burgersVector,
+      youngsModulus,
+      contrastFactorC,
+      { minL: hookMinL, maxL: hookMaxL },
+      inputWorkflowMode === 'direct_peaks' && directComparativeMetrics ? directComparativeMetrics : undefined
+    );
+    setResult(computed);
+
+    if (computed.orderPlots && computed.orderPlots.length > 0) {
+      const hasCurrent = computed.orderPlots.some(p => Math.abs(p.L_nm - selectedOrderPlotL) < 0.1);
+      if (!hasCurrent) {
         const defaultPt = computed.orderPlots.find(p => p.L_nm >= 4) || computed.orderPlots[0];
         setSelectedOrderPlotL(defaultPt.L_nm);
       }
+    }
 
+    if (scrollToResults) {
       setTimeout(() => {
         document.getElementById('wa-results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
-    }, 300);
+    }
   };
 
-  // Run calculation on mount once
+  const handleCalculate = () => {
+    setIsAnalyzing(true);
+    setTimeout(() => {
+      runWarrenAverbachCalculation(true);
+      setIsAnalyzing(false);
+    }, 150);
+  };
+
+  // Live auto-reactive calculation whenever parameters or harmonic table change
   useEffect(() => {
-    handleCalculate();
-  }, []);
+    runWarrenAverbachCalculation(false);
+  }, [
+    inputData,
+    d1,
+    d2,
+    d3,
+    d4,
+    showOrder3,
+    showOrder4,
+    shapeFactor,
+    strainModel,
+    instrumentalCorrection,
+    backgroundModel,
+    instrumentalFactor,
+    backgroundOffset,
+    cutoffRadiusValue,
+    hookCorrectionMode,
+    burgersVector,
+    youngsModulus,
+    contrastFactorC,
+    hookMinL,
+    hookMaxL,
+    inputWorkflowMode,
+    directComparativeMetrics
+  ]);
 
   const handleSmartLoad = async () => {
     if (!searchQuery.trim()) return;
@@ -620,12 +712,13 @@ plt.show()
         <PhysicalMeaningSummary
           title="Warren-Averbach Physical Microstructure Verdict"
           tone={result.metrics.dislocationDensityM2 > 5e15 ? 'warning' : 'success'}
-          statement={`Sample exhibits an area-weighted column length ⟨D⟩_A of ${result.metrics.areaWeightedColumnLengthNm.toFixed(1)} nm with a dislocation density of ${(result.metrics.dislocationDensityM2).toExponential(2)} m⁻² and strain energy of ${result.metrics.apparentStrainEnergyKJm3.toFixed(2)} kJ/m³.`}
-          contextNote={`Crystallite size distribution peaks at a mode diameter of ${result.metrics.crystalliteSizeDistributionModeNm.toFixed(1)} nm. ${result.metrics.dislocationDensityM2 > 1e15 ? 'High dislocation density indicates severe plastic strain / work hardening.' : 'Low dislocation density indicates well-annealed, low-defect crystallites.'}`}
+          statement={`Sample exhibits an area-weighted column length ⟨D⟩_A of ${result.metrics.areaWeightedColumnLengthNm.toFixed(1)} nm and volume-weighted ⟨D⟩_V of ${result.metrics.volumeWeightedColumnLengthNm.toFixed(1)} nm (PDI = ${(result.metrics.polydispersityIndex || (result.metrics.volumeWeightedColumnLengthNm / Math.max(0.1, result.metrics.areaWeightedColumnLengthNm))).toFixed(2)}), with a dislocation density of ${(result.metrics.dislocationDensityM2).toExponential(2)} m⁻² and RMS microstrain at L=5nm of ${((result.metrics.rmsStrainAt5nm || 0) * 100).toFixed(3)}%.`}
+          contextNote={`Crystallite size distribution peaks at a mode diameter of ${result.metrics.crystalliteSizeDistributionModeNm.toFixed(1)} nm. ${(result.metrics.hookEffectParameter ?? 0) > 0.5 ? `Hook effect artifact (${(result.metrics.hookEffectParameter ?? 0).toFixed(1)}%) automatically corrected via linear tangent over [${(result.metrics.hookFitWindowMinNm ?? hookMinL).toFixed(1)}, ${(result.metrics.hookFitWindowMaxNm ?? hookMaxL).toFixed(1)}] nm.` : 'Minimal low-L Hook truncation artifact detected.'}`}
           metrics={[
             { label: '⟨D⟩_A Area Size', value: result.metrics.areaWeightedColumnLengthNm.toFixed(1), unit: 'nm' },
             { label: '⟨D⟩_V Vol Size', value: result.metrics.volumeWeightedColumnLengthNm.toFixed(1), unit: 'nm' },
-            { label: 'Wilkens Re', value: result.metrics.wilkensCutoffRadiusNm.toFixed(1), unit: 'nm' },
+            { label: 'PDI (⟨D⟩_V/⟨D⟩_A)', value: (result.metrics.polydispersityIndex || (result.metrics.volumeWeightedColumnLengthNm / Math.max(0.1, result.metrics.areaWeightedColumnLengthNm))).toFixed(2), unit: '' },
+            { label: 'Strain @ 5nm', value: ((result.metrics.rmsStrainAt5nm || 0) * 100).toFixed(3), unit: '%' },
             { label: 'Dislocation ρ', value: result.metrics.dislocationDensityM2.toExponential(2), unit: 'm⁻²' }
           ]}
         />
@@ -965,56 +1058,255 @@ plt.show()
                   </select>
                 </div>
               </div>
+              {hookCorrectionMode === 'linear_tangent' && (
+                <div className="pt-2 border-t border-white/5 space-y-2">
+                  <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+                    <span className="uppercase text-rose-300 font-bold">Hook Linear Tangent Window [L_min, L_max]</span>
+                    <span className="text-emerald-400 font-bold">[{hookMinL.toFixed(1)}, {hookMaxL.toFixed(1)}] nm</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <div className="flex justify-between text-[9px] font-mono text-slate-500 mb-0.5">
+                        <span>L_min (skip hook)</span>
+                        <span className="text-slate-300">{hookMinL.toFixed(1)} nm</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="6.0"
+                        step="0.5"
+                        value={hookMinL}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setHookMinL(Math.min(v, hookMaxL - 1.0));
+                        }}
+                        className="w-full accent-rose-500 h-1 bg-black/60 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[9px] font-mono text-slate-500 mb-0.5">
+                        <span>L_max (tangent end)</span>
+                        <span className="text-slate-300">{hookMaxL.toFixed(1)} nm</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="3.0"
+                        max="15.0"
+                        step="0.5"
+                        value={hookMaxL}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setHookMaxL(Math.max(v, hookMinL + 1.0));
+                        }}
+                        className="w-full accent-rose-500 h-1 bg-black/60 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Fourier Array Text Input & Quick Controls */}
-            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2.5">
+            {/* Workflow Input Switcher: Fourier Table vs Direct Peak FWHM Sliders */}
+            <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Binary className="w-4 h-4 text-rose-400" />
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-                    Fourier Harmonics Input
+                  <label className="text-[9px] font-bold text-slate-300 uppercase tracking-widest font-mono">
+                    Input Mode
                   </label>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex bg-black/60 p-0.5 rounded-lg border border-white/10 text-[9px] font-mono">
                   <button
-                    onClick={() => setActiveAnalysisTab('harmonics_editor')}
-                    className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 flex items-center gap-1 uppercase"
-                    title="Open Full Harmonics Spreadsheet Manager"
+                    onClick={() => setInputWorkflowMode('fourier_table')}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      inputWorkflowMode === 'fourier_table'
+                        ? 'bg-rose-500 text-white font-bold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
                   >
-                    <Sliders className="w-3 h-3" /> Grid Mode
+                    Fourier A(L)
                   </button>
                   <button
-                    onClick={handleClear}
-                    className="text-[9px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 uppercase"
+                    onClick={() => {
+                      setInputWorkflowMode('direct_peaks');
+                      setSelectedMaterial('Live Peak Deconvolution');
+                    }}
+                    className={`px-2.5 py-1 rounded-md transition-all ${
+                      inputWorkflowMode === 'direct_peaks'
+                        ? 'bg-emerald-500 text-slate-950 font-bold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
                   >
-                    <Trash2 className="w-3 h-3" /> Clear
+                    Direct Peaks (FWHM)
                   </button>
                 </div>
               </div>
 
-              <textarea
-                value={inputData}
-                onChange={(e) => {
-                  setInputData(e.target.value);
-                  setSelectedMaterial('Custom');
-                }}
-                className="w-full h-32 px-3.5 py-2.5 bg-black/60 text-rose-400 border border-white/10 rounded-xl font-mono text-xs leading-relaxed resize-none focus:outline-none focus:border-rose-500/40 custom-scrollbar shadow-inner"
-                spellCheck={false}
-                placeholder="# L[nm], A(d1), A(d2)&#10;1, 0.985, 0.952"
-              />
+              {inputWorkflowMode === 'direct_peaks' ? (
+                <div className="space-y-3 pt-1">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-mono leading-relaxed">
+                    Adjust observed Bragg peak positions & FWHMs directly. Stokes Fourier coefficients $A_1(L), A_2(L)$ update live!
+                  </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  onClick={() => setIsConverterOpen(true)}
-                  className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-mono"
-                >
-                  <Wand2 className="w-3 h-3" /> Stokes Synthesizer
-                </button>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  Prefix <code className="text-rose-400">!</code> to exclude row
-                </span>
-              </div>
+                  {/* Peak 1 Controls */}
+                  <div className="p-3 rounded-xl bg-black/50 border border-sky-500/20 space-y-2">
+                    <div className="flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-sky-400 font-bold uppercase">Order 1 Peak (2θ₁ = {directPeak1Pos.toFixed(2)}°)</span>
+                      <span className="text-slate-400">d₁ = {d1.toFixed(4)} Å</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                          <span>FWHM₁</span>
+                          <span className="text-sky-300 font-bold">{directPeak1Fwhm.toFixed(3)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.10"
+                          max="1.50"
+                          step="0.01"
+                          value={directPeak1Fwhm}
+                          onChange={(e) => setDirectPeak1Fwhm(parseFloat(e.target.value))}
+                          className="w-full accent-sky-400 h-1 bg-black/60 rounded-lg cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                          <span>Lorentz η₁</span>
+                          <span className="text-sky-300 font-bold">{directPeak1Eta.toFixed(2)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="0.95"
+                          step="0.05"
+                          value={directPeak1Eta}
+                          onChange={(e) => setDirectPeak1Eta(parseFloat(e.target.value))}
+                          className="w-full accent-sky-400 h-1 bg-black/60 rounded-lg cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Peak 2 Controls */}
+                  <div className="p-3 rounded-xl bg-black/50 border border-purple-500/20 space-y-2">
+                    <div className="flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-purple-400 font-bold uppercase">Order 2 Peak (2θ₂ = {directPeak2Pos.toFixed(2)}°)</span>
+                      <span className="text-slate-400">d₂ = {d2.toFixed(4)} Å</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                          <span>FWHM₂</span>
+                          <span className="text-purple-300 font-bold">{directPeak2Fwhm.toFixed(3)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.15"
+                          max="2.50"
+                          step="0.01"
+                          value={directPeak2Fwhm}
+                          onChange={(e) => setDirectPeak2Fwhm(parseFloat(e.target.value))}
+                          className="w-full accent-purple-400 h-1 bg-black/60 rounded-lg cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                          <span>Lorentz η₂</span>
+                          <span className="text-purple-300 font-bold">{directPeak2Eta.toFixed(2)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.05"
+                          max="0.95"
+                          step="0.05"
+                          value={directPeak2Eta}
+                          onChange={(e) => setDirectPeak2Eta(parseFloat(e.target.value))}
+                          className="w-full accent-purple-400 h-1 bg-black/60 rounded-lg cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Instrumental & Hook Sliders */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                      <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                        <span>Inst. FWHM</span>
+                        <span className="text-emerald-400 font-bold">{directInstFwhm.toFixed(3)}°</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.00"
+                        max="0.20"
+                        step="0.005"
+                        value={directInstFwhm}
+                        onChange={(e) => setDirectInstFwhm(parseFloat(e.target.value))}
+                        className="w-full accent-emerald-400 h-1 bg-black/60 rounded-lg cursor-pointer mt-1"
+                      />
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                      <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                        <span>Hook Drop</span>
+                        <span className="text-amber-400 font-bold">{(directHookStrength * 100).toFixed(1)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.00"
+                        max="0.12"
+                        step="0.005"
+                        value={directHookStrength}
+                        onChange={(e) => setDirectHookStrength(parseFloat(e.target.value))}
+                        className="w-full accent-amber-400 h-1 bg-black/60 rounded-lg cursor-pointer mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono text-slate-500">Format: L[nm], A(d₁), A(d₂)...</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveAnalysisTab('harmonics_editor')}
+                        className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 flex items-center gap-1 uppercase"
+                        title="Open Full Harmonics Spreadsheet Manager"
+                      >
+                        <Sliders className="w-3 h-3" /> Grid Editor
+                      </button>
+                      <button
+                        onClick={handleClear}
+                        className="text-[9px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 uppercase"
+                      >
+                        <Trash2 className="w-3 h-3" /> Clear
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    value={inputData}
+                    onChange={(e) => {
+                      setInputData(e.target.value);
+                      setSelectedMaterial('Custom');
+                    }}
+                    className="w-full h-32 px-3.5 py-2.5 bg-black/60 text-rose-400 border border-white/10 rounded-xl font-mono text-xs leading-relaxed resize-none focus:outline-none focus:border-rose-500/40 custom-scrollbar shadow-inner"
+                    spellCheck={false}
+                    placeholder="# L[nm], A(d1), A(d2)&#10;1, 0.985, 0.952"
+                  />
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      onClick={() => setIsConverterOpen(true)}
+                      className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-mono"
+                    >
+                      <Wand2 className="w-3 h-3" /> Stokes Synthesizer Modal
+                    </button>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Prefix <code className="text-rose-400">!</code> to exclude row
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Analyze Action Button */}
@@ -1023,16 +1315,10 @@ plt.show()
                 onClick={handleCalculate}
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-4 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-[0_10px_25px_rgba(244,63,94,0.25)] hover:shadow-[0_15px_35px_rgba(244,63,94,0.4)] transition-all flex items-center justify-center gap-3 relative overflow-hidden group cursor-pointer"
+                className="w-full py-3.5 bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white font-black text-xs uppercase tracking-[0.18em] rounded-2xl shadow-[0_10px_25px_rgba(244,63,94,0.25)] hover:shadow-[0_15px_35px_rgba(244,63,94,0.4)] transition-all flex items-center justify-center gap-2.5 relative overflow-hidden group cursor-pointer"
               >
-                <motion.div 
-                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '200%' }}
-                  transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
-                />
-                <FlaskConical className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="relative z-10 text-shadow-sm">Execute Warren-Averbach Analysis</span>
+                <FlaskConical className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="relative z-10 text-shadow-sm">Re-Center & Focus Results</span>
               </motion.button>
             ) : (
               <div className="bg-[#070D18] p-4 rounded-2xl border border-rose-500/40 text-center">
@@ -1069,13 +1355,13 @@ plt.show()
         {/* Verification Control */}
         {result && (
           <ScientificMathControl
-            title="Warren-Averbach Microstrain Harmonic Verification"
-            formula="\langle \varepsilon_L^2 \rangle^{1/2} = \sqrt{\frac{\ln(A_1 / A_2)}{2 \pi^2 L^2 (1/d_2^2 - 1/d_1^2)}}"
-            description="Deconvolve domain particle size from lattice microstrains across reflection orders."
+            title="Warren-Averbach Microstrain Harmonic Verification (Unit-Consistent L in Å)"
+            formula="\langle \varepsilon_L^2 \rangle^{1/2} = \sqrt{\frac{\ln(A_1 / A_2)}{2 \pi^2 (10 \cdot L_{\text{nm}})^2 (1/d_2^2 - 1/d_1^2)}}"
+            description="Deconvolve domain particle size from lattice microstrains across reflection orders with L converted from nm to Å to match d-spacings in Å."
             variables={[
               { symbol: 'A_1', name: 'Order 1 Harmonic', value: parsedPointsForMath.A1, unit: '' },
               { symbol: 'A_2', name: 'Order 2 Harmonic', value: parsedPointsForMath.A2, unit: '' },
-              { symbol: 'L', name: 'Fourier Length', value: parsedPointsForMath.L_nm, unit: 'nm' },
+              { symbol: 'L', name: 'Fourier Length', value: parsedPointsForMath.L_nm, unit: 'nm (=10 Å)' },
               { symbol: 'd_1', name: 'd-spacing (Order 1)', value: d1, unit: 'Å' },
               { symbol: 'd_2', name: 'd-spacing (Order 2)', value: d2, unit: 'Å' }
             ]}
@@ -1083,13 +1369,14 @@ plt.show()
               (() => {
                 const s1 = 1 / d1;
                 const s2 = 1 / d2;
+                const L_Angstrom = parsedPointsForMath.L_nm * 10.0;
                 const num = Math.log(parsedPointsForMath.A1 / parsedPointsForMath.A2);
-                const den = 2 * Math.PI * Math.PI * parsedPointsForMath.L_nm * parsedPointsForMath.L_nm * (s2*s2 - s1*s1);
+                const den = 2 * Math.PI * Math.PI * (L_Angstrom * L_Angstrom) * (s2 * s2 - s1 * s1);
                 return den !== 0 && num / den > 0 ? Math.sqrt(num / den) : 0;
               })()
             }
             resultUnit=""
-            resultName="Calculated RMS Microstrain ⟨ε²⟩¹/²"
+            resultName="Calculated RMS Microstrain ⟨ε_L²⟩¹/²"
           />
         )}
 
@@ -1284,12 +1571,32 @@ plt.show()
                     Size Deconvolution & Column Length Distributions
                   </h3>
                   <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
-                    Area-weighted ⟨D⟩_A = {result?.metrics?.areaWeightedColumnLengthNm.toFixed(1)} nm · Number-weighted ⟨D⟩_N = {result?.metrics?.numberWeightedColumnLengthNm ? result.metrics.numberWeightedColumnLengthNm.toFixed(1) : '—'} nm
+                    Area-weighted ⟨D⟩_A = {result?.metrics?.areaWeightedColumnLengthNm.toFixed(1)} nm · Volume-weighted ⟨D⟩_V = {result?.metrics?.volumeWeightedColumnLengthNm.toFixed(1)} nm · PDI = {result?.metrics?.polydispersityIndex ? result.metrics.polydispersityIndex.toFixed(2) : '—'}
                   </p>
                 </div>
 
                 {/* Display Toggles */}
-                <div className="flex flex-wrap items-center gap-2 bg-black/40 p-1.5 rounded-xl border border-white/10 text-[10px] font-mono">
+                <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1.5 rounded-xl border border-white/10 text-[10px] font-mono">
+                  <button
+                    onClick={() => setShowTangentLine(!showTangentLine)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 ${
+                      showTangentLine ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                    ⟨D⟩_A Tangent
+                  </button>
+
+                  <button
+                    onClick={() => setShowHookComparison(!showHookComparison)}
+                    className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 ${
+                      showHookComparison ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Pre-Hook Raw A_S
+                  </button>
+
                   <button
                     onClick={() => setShowNumberWeighted(!showNumberWeighted)}
                     className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 ${
@@ -1297,7 +1604,7 @@ plt.show()
                     }`}
                   >
                     <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                    P_N(L) Number-Weighted
+                    P_N(L) Number Dist.
                   </button>
 
                   <button
@@ -1314,10 +1621,14 @@ plt.show()
 
               {/* Metrics Highlights Row */}
               {result?.metrics && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 p-3 bg-black/30 rounded-xl border border-white/5 font-mono text-[11px] relative z-10">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4 p-3 bg-black/30 rounded-xl border border-white/5 font-mono text-[11px] relative z-10">
                   <div>
                     <span className="text-slate-500 block text-[9px] uppercase">Area-Weighted ⟨D⟩_A:</span>
                     <span className="text-rose-400 font-bold">{result.metrics.areaWeightedColumnLengthNm.toFixed(2)} nm</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px] uppercase">Volume-Weighted ⟨D⟩_V:</span>
+                    <span className="text-sky-400 font-bold">{result.metrics.volumeWeightedColumnLengthNm.toFixed(2)} nm</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-[9px] uppercase">Number-Weighted ⟨D⟩_N:</span>
@@ -1328,8 +1639,8 @@ plt.show()
                     <span className="text-purple-400 font-bold">{result.metrics.logNormalMedianNm ? `${result.metrics.logNormalMedianNm.toFixed(2)} nm` : '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-[9px] uppercase">Log-Normal Variance σ:</span>
-                    <span className="text-emerald-400 font-bold">{result.metrics.logNormalSigma ? result.metrics.logNormalSigma.toFixed(3) : '—'}</span>
+                    <span className="text-slate-500 block text-[9px] uppercase">Polydispersity (⟨D⟩_V/⟨D⟩_A):</span>
+                    <span className="text-emerald-400 font-bold">{result.metrics.polydispersityIndex ? result.metrics.polydispersityIndex.toFixed(2) : '—'}</span>
                   </div>
                 </div>
               )}
@@ -1356,6 +1667,8 @@ plt.show()
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
                       <XAxis 
                         dataKey="L_nm" 
+                        type="number"
+                        domain={[0, 'dataMax']}
                         label={{ value: 'Column Length L [nm]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                         tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                       />
@@ -1379,6 +1692,21 @@ plt.show()
                       />
                       <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
                       
+                      {result.metrics?.areaWeightedColumnLengthNm && (
+                        <ReferenceLine
+                          yAxisId="left"
+                          x={Number(result.metrics.areaWeightedColumnLengthNm.toFixed(2))}
+                          stroke="#fb7185"
+                          strokeDasharray="3 3"
+                          label={{
+                            value: `⟨D⟩_A = ${result.metrics.areaWeightedColumnLengthNm.toFixed(1)}nm`,
+                            fill: '#fb7185',
+                            fontSize: 10,
+                            position: 'top'
+                          }}
+                        />
+                      )}
+
                       <Area
                         yAxisId="left"
                         type="monotone"
@@ -1386,9 +1714,35 @@ plt.show()
                         stroke="#f43f5e"
                         strokeWidth={3}
                         fill="url(#sizeGrad)"
-                        name="A_S(L) (Fourier Size Coeff)"
+                        name="A_S(L) (Hook-Corrected Size)"
                         activeDot={{ r: 6, fill: '#fff', stroke: '#f43f5e', strokeWidth: 2 }}
                       />
+
+                      {showTangentLine && (
+                        <Line
+                          yAxisId="left"
+                          type="linear"
+                          dataKey="A_size_tangent"
+                          stroke="#fda4af"
+                          strokeWidth={2}
+                          strokeDasharray="6 4"
+                          dot={false}
+                          name="Initial Tangent → ⟨D⟩_A"
+                        />
+                      )}
+
+                      {showHookComparison && (
+                        <Line
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey="A_size_raw"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          strokeDasharray="3 3"
+                          dot={{ r: 3, fill: '#10b981' }}
+                          name="Raw Pre-Hook A_S(L)"
+                        />
+                      )}
 
                       <Area
                         yAxisId="right"
@@ -1418,9 +1772,9 @@ plt.show()
                         <Line
                           yAxisId="right"
                           type="monotone"
-                          dataKey="logNormalFit"
+                          dataKey="logNormal_fit"
                           stroke="#c084fc"
-                          strokeWidth={2}
+                          strokeWidth={2.5}
                           dot={false}
                           name="Analytical Log-Normal Fit"
                         />
@@ -1444,7 +1798,7 @@ plt.show()
                     Microstrain Field & Wilkens Dislocation Model
                   </h3>
                   <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
-                    Dislocation density ρ = {result?.metrics?.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻² · Wilkens R² = {result?.metrics?.wilkensR2 !== undefined ? result.metrics.wilkensR2.toFixed(4) : '—'}
+                    Dislocation density ρ = {result?.metrics?.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻² · Strain @ 5nm = {result?.metrics?.rmsStrainAt5nm !== undefined ? `${(result.metrics.rmsStrainAt5nm * 100).toFixed(3)}%` : '—'} · Wilkens R² = {result?.metrics?.wilkensR2 !== undefined ? result.metrics.wilkensR2.toFixed(4) : '—'}
                   </p>
                 </div>
 
@@ -1458,7 +1812,7 @@ plt.show()
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    Wilkens Linear Plot (⟨ε²⟩ vs ln 1/L)
+                    Wilkens Linear Plot (⟨ε_L²⟩ vs ln 1/L)
                   </button>
                   <button
                     onClick={() => setWilkensPlotMode('rms_decay')}
@@ -1468,16 +1822,20 @@ plt.show()
                         : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    RMS Strain Decay ⟨ε²⟩¹/² vs L
+                    RMS Strain Decay ⟨ε_L²⟩¹/² vs L
                   </button>
                 </div>
               </div>
 
               {/* Wilkens Formalism Box */}
-              <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-[11px] mb-4 relative z-10">
+              <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono text-[11px] mb-4 relative z-10">
                 <div>
                   <span className="text-slate-500 block text-[9px] uppercase">Dislocation Density ρ:</span>
                   <span className="text-cyan-400 font-bold">{result?.metrics?.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block text-[9px] uppercase">RMS Strain (L=5nm):</span>
+                  <span className="text-sky-400 font-bold">{result?.metrics?.rmsStrainAt5nm !== undefined ? `${(result.metrics.rmsStrainAt5nm * 100).toFixed(3)}%` : '—'}</span>
                 </div>
                 <div>
                   <span className="text-slate-500 block text-[9px] uppercase">Wilkens Parameter M:</span>
@@ -1506,8 +1864,7 @@ plt.show()
                         .filter(d => d.L_nm > 0 && d.ms_strain > 0)
                         .map(d => ({
                           ...d,
-                          ln_inv_L: Math.log(1 / d.L_nm),
-                          fit_ms_strain: Math.max(0, (result.metrics?.dislocationDensity10_14 || 1) * 1e14 * (contrastFactorC || 0.3) * (burgersVector * 1e-9) ** 2 / (4 * Math.PI) * Math.log(result.metrics?.wilkensCutoffRadiusNm || 50 / d.L_nm))
+                          ln_inv_L: Math.log(1 / d.L_nm)
                         }))}
                       margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
                     >
@@ -1515,7 +1872,8 @@ plt.show()
                       <XAxis 
                         dataKey="ln_inv_L" 
                         type="number"
-                        domain={['dataMin - 0.2', 'dataMax + 0.2']}
+                        domain={['dataMin - 0.15', 'dataMax + 0.15']}
+                        tickFormatter={(val) => Number(val).toFixed(2)}
                         label={{ value: 'ln(1 / L) [ln(nm⁻¹)]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                         tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                       />
@@ -1532,11 +1890,11 @@ plt.show()
                       <Scatter dataKey="ms_strain" fill="#06b6d4" name="Observed ⟨ε_L²⟩" />
                       <Line
                         type="linear"
-                        dataKey="fit_ms_strain"
+                        dataKey="wilkens_fit_ms"
                         stroke="#f43f5e"
                         strokeWidth={2.5}
                         dot={false}
-                        name="Wilkens Linear Regression Fit"
+                        name="Wilkens Logarithmic Regression Fit"
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -1544,7 +1902,7 @@ plt.show()
               ) : (
                 <div className="h-[400px] w-full relative z-10">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={result.strainDistribution} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                    <ComposedChart data={result.strainDistribution} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                       <defs>
                         <linearGradient id="strainGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.5} />
@@ -1554,17 +1912,26 @@ plt.show()
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
                       <XAxis 
                         dataKey="L_nm" 
+                        type="number"
+                        domain={[0, 'dataMax']}
                         label={{ value: 'Column Length L [nm]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                         tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                       />
                       <YAxis 
                         tickFormatter={(val) => Number(val).toExponential(1)}
-                        label={{ value: 'RMS Strain ⟨ε²⟩¹/²', angle: -90, position: 'insideLeft', fill: '#06b6d4', fontSize: 10, fontFamily: 'monospace' }}
+                        label={{ value: 'RMS Strain ⟨ε_L²⟩¹/²', angle: -90, position: 'insideLeft', fill: '#06b6d4', fontSize: 10, fontFamily: 'monospace' }}
                         tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                       />
                       <Tooltip
                         contentStyle={{ backgroundColor: '#0b1120', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '12px' }}
                         formatter={(val: any) => Number(val).toExponential(4)}
+                      />
+                      <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                      <ReferenceLine
+                        x={5}
+                        stroke="#38bdf8"
+                        strokeDasharray="3 3"
+                        label={{ value: 'L = 5nm Benchmark', fill: '#38bdf8', fontSize: 10, position: 'top' }}
                       />
                       <Area 
                         type="monotone" 
@@ -1572,10 +1939,19 @@ plt.show()
                         stroke="#06b6d4" 
                         strokeWidth={3} 
                         fill="url(#strainGrad)" 
-                        name="RMS Strain ⟨ε²⟩¹/²" 
+                        name="Observed RMS Strain ⟨ε_L²⟩¹/²" 
                         activeDot={{ r: 6, fill: '#fff', stroke: '#06b6d4', strokeWidth: 2 }}
                       />
-                    </AreaChart>
+                      <Line
+                        type="monotone"
+                        dataKey="wilkens_fit_rms"
+                        stroke="#f43f5e"
+                        strokeWidth={2}
+                        strokeDasharray="5 3"
+                        dot={false}
+                        name="Wilkens Dislocation Strain Fit"
+                      />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               )}
@@ -1594,13 +1970,27 @@ plt.show()
                     Multi-Reflection Order Regression: ln A(L) vs 1/d²
                   </h3>
                   <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">
-                    Isolate Size (intercept at 1/d² → 0) and Microstrain (slope) for specific column length L
+                    Isolate Size (intercept at 1/d² → 0) and Microstrain (slope) across column length L
                   </p>
                 </div>
 
                 {result?.orderPlots && result.orderPlots.length > 0 && (
-                  <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10">
-                    <span className="text-[10px] font-mono text-slate-400">Select L:</span>
+                  <div className="flex items-center gap-3 bg-black/60 px-4 py-2 rounded-xl border border-white/10">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase">Scrub L:</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={result.orderPlots.length - 1}
+                      step={1}
+                      value={Math.max(0, result.orderPlots.findIndex(op => Math.abs(op.L_nm - selectedOrderPlotL) < 0.1))}
+                      onChange={(e) => {
+                        const idx = parseInt(e.target.value, 10);
+                        if (result.orderPlots[idx]) {
+                          setSelectedOrderPlotL(result.orderPlots[idx].L_nm);
+                        }
+                      }}
+                      className="w-28 accent-rose-500 h-1 bg-slate-800 rounded-lg cursor-pointer"
+                    />
                     <select
                       value={selectedOrderPlotL}
                       onChange={(e) => setSelectedOrderPlotL(parseFloat(e.target.value))}
@@ -1618,17 +2008,21 @@ plt.show()
 
               {activeOrderPlot ? (
                 <div className="space-y-4 relative z-10">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-black/40 rounded-2xl border border-white/5 font-mono text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 bg-black/40 rounded-2xl border border-white/5 font-mono text-xs">
+                    <div>
+                      <span className="text-slate-500 block text-[10px] uppercase">Column Length L:</span>
+                      <span className="text-slate-100 font-bold text-sm">{activeOrderPlot.L_nm.toFixed(1)} nm ({(activeOrderPlot.L_nm * 10).toFixed(0)} Å)</span>
+                    </div>
                     <div>
                       <span className="text-slate-500 block text-[10px] uppercase">Size Intercept A_S(L):</span>
                       <span className="text-rose-400 font-bold text-sm">{activeOrderPlot.A_size.toFixed(4)}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px] uppercase">RMS Microstrain:</span>
-                      <span className="text-cyan-400 font-bold text-sm">{activeOrderPlot.rms_strain.toExponential(3)}</span>
+                      <span className="text-slate-500 block text-[10px] uppercase">RMS Microstrain ⟨ε_L²⟩¹/²:</span>
+                      <span className="text-cyan-400 font-bold text-sm">{activeOrderPlot.rms_strain.toExponential(3)} ({(activeOrderPlot.rms_strain * 100).toFixed(3)}%)</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px] uppercase">Regression R²:</span>
+                      <span className="text-slate-500 block text-[10px] uppercase">Linearity R²:</span>
                       <span className="text-emerald-400 font-bold text-sm">{activeOrderPlot.r2.toFixed(4)}</span>
                     </div>
                   </div>
@@ -1640,26 +2034,27 @@ plt.show()
                         <XAxis 
                           dataKey="s2" 
                           type="number"
-                          domain={['dataMin - 0.1', 'dataMax + 0.1']}
-                          label={{ value: '1 / d² [Å⁻²]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                          domain={[0, 'dataMax + 0.1']}
+                          tickFormatter={(val) => Number(val).toFixed(2)}
+                          label={{ value: 's² = 1 / d² [Å⁻²]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                           tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                         />
                         <YAxis 
-                          dataKey="lnA" 
                           label={{ value: 'ln A(L, s)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                           tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                         />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#0b1120', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '10px' }}
                         />
-                        <Scatter dataKey="lnA" fill="#f43f5e" name="Observed Harmonic Point" />
+                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                        <Scatter dataKey="lnA" fill="#f43f5e" name="Observed Harmonic ln A(L, s_n)" />
                         <Line
                           type="linear"
-                          dataKey="lnA"
+                          dataKey="fittedLnA"
                           stroke="#a855f7"
-                          strokeWidth={2}
+                          strokeWidth={2.5}
                           dot={false}
-                          name="Order Regression Line"
+                          name="Linear Order Regression Fit"
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
@@ -1848,12 +2243,13 @@ plt.show()
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(aiReport);
-                        alert('Crystallographic report copied to clipboard!');
+                        setCopiedAiReport(true);
+                        setTimeout(() => setCopiedAiReport(false), 2500);
                       }}
                       className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono font-bold rounded-xl border border-white/10 flex items-center gap-2 transition-all"
                     >
-                      <Copy className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Copy Full Report</span>
+                      {copiedAiReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-rose-400" />}
+                      <span>{copiedAiReport ? 'Copied to Clipboard!' : 'Copy Full Report'}</span>
                     </button>
                   </div>
                 </div>

@@ -43,7 +43,6 @@ const SECTION_METADATA: Record<string, { name: string; group: string; formula: s
   cohen: { name: 'Cohen Least-Squares', group: 'Refinement', formula: 'Σ δ² = min [λ²(h²+k²+l²)/4a²]', twoTheta: 32.70, hkl: '(110)' },
   pawley_lebail: { name: 'Pawley & Le Bail Profile', group: 'Refinement', formula: 'y_ci = Σ I_k S_k(2θ_i - 2θ_k) + b_i', twoTheta: 45.20, hkl: '(211)' },
   rir: { name: 'RIR Quantitative Phase', group: 'Refinement', formula: 'W_a = (I_a / RIR_a) / Σ (I_i / RIR_i)', twoTheta: 25.58, hkl: '(012)' },
-  rietveld: { name: 'Rietveld Refinement', group: 'Refinement', formula: 'R_wp = √[Σ w_i (y_oi - y_ci)² / Σ w_i y_oi²]', twoTheta: 38.45, hkl: '(111)' },
   unit_cells: { name: 'Unit Cells & Lattices 3D', group: 'Simulation', formula: 'V = abc√(1 - cos²α - ...)', twoTheta: 28.44, hkl: '(111)' },
   xrr: { name: 'X-Ray Reflectivity (XRR)', group: 'Simulation', formula: 'R(q) = |r_Fresnel|² · e⁻⁴q²σ²', twoTheta: 2.15, hkl: 'Kiessig' },
   compare: { name: 'Diffraction Pattern Compare', group: 'Analysis', formula: 'Experimental vs Standard COD', twoTheta: 35.15, hkl: '(104)' },

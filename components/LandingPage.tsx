@@ -1507,12 +1507,6 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
       module: 'database'
     },
     {
-      title: "Rietveld Refinement Lab",
-      description: "Hardware-accelerated least-squares refinement with real-time parameter optimization and visual difference plot monitoring.",
-      icon: Cpu,
-      module: 'rietveld'
-    },
-    {
       title: "Multi-peak Bragg Spacing",
       description: "Standard structural d-spacing, Bragg angle solvers, custom X-ray source targets, and synthesized acoustic tone reflections.",
       icon: Beaker,

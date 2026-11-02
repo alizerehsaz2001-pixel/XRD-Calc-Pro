@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
-import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS } from '../utils/physics';
+import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS, ScherrerMorphologyKMode } from '../utils/physics';
 import { 
   Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, 
   Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, 
@@ -109,6 +109,11 @@ export const ScherrerModule: React.FC = () => {
   const [breadthType, setBreadthType] = useState<'fwhm' | 'integral_breadth'>('fwhm');
   const [pseudoVoigtEta, setPseudoVoigtEta] = useState<number>(0.5);
   const [burgersVectorNm, setBurgersVectorNm] = useState<number>(0.256);
+  const [morphologyKMode, setMorphologyKMode] = useState<ScherrerMorphologyKMode>('Isotropic');
+  const [kAlpha2Correction, setKAlpha2Correction] = useState<boolean>(false);
+  const [zeroShiftDeg, setZeroShiftDeg] = useState<number>(0);
+  const [selectedMathPeakIdx, setSelectedMathPeakIdx] = useState<number>(0);
+  const [transferredToWH, setTransferredToWH] = useState<boolean>(false);
   const [inputMode, setInputMode] = useState<'table' | 'csv'>('table');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   
@@ -118,8 +123,8 @@ export const ScherrerModule: React.FC = () => {
 
   // Active visualization tab for right panel charts
   const [chartViewMode, setChartViewMode] = useState<
-    'histogram' | 'trend' | 'microstructure' | 'anisotropy' | 'models' | 'monshi' | 'simulator' | 'advisor'
-  >('histogram');
+    'diffractogram' | 'histogram' | 'trend' | 'microstructure' | 'anisotropy' | 'models' | 'monshi' | 'simulator' | 'advisor'
+  >('diffractogram');
 
   // Derivation interactive simulator parameters
   const [simPlaneCount, setSimPlaneCount] = useState<number>(25);
@@ -555,16 +560,35 @@ export const ScherrerModule: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const handleTransferToWilliamsonHall = () => {
+    const payload = {
+      inputData,
+      wavelength,
+      constantK,
+      instFwhm,
+      useCaglioti,
+      caglioti,
+      broadeningModel: broadeningModel === 'Lorentzian' || broadeningModel === 'Pseudo-Voigt' ? broadeningModel : 'Gaussian',
+      materialDensity,
+      selectedMaterial,
+      burgersVectorNm,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('xrd_wh_transfer_payload', JSON.stringify(payload));
+    setTransferredToWH(true);
+    setTimeout(() => setTransferredToWH(false), 3500);
+  };
+
   const handleCalculate = () => {
     if (isSimulationRunning) return;
     
     setIsSimulationRunning(true);
     setSimulationStep(1);
     
-    setTimeout(() => setSimulationStep(2), 500);
-    setTimeout(() => setSimulationStep(3), 1100);
-    setTimeout(() => setSimulationStep(4), 1800);
-    setTimeout(() => setSimulationStep(5), 2500);
+    setTimeout(() => setSimulationStep(2), 100);
+    setTimeout(() => setSimulationStep(3), 220);
+    setTimeout(() => setSimulationStep(4), 340);
+    setTimeout(() => setSimulationStep(5), 460);
     
     setTimeout(() => {
       setIsSimulationRunning(false);
@@ -584,7 +608,8 @@ export const ScherrerModule: React.FC = () => {
             materialDensity,
             pseudoVoigtEta,
             breadthType,
-            burgersVectorNm
+            burgersVectorNm,
+            { kAlpha2Correction, zeroShiftDeg, morphologyKMode }
           );
         })
         .filter((r): r is ScherrerResult => r !== null); 
@@ -599,6 +624,9 @@ export const ScherrerModule: React.FC = () => {
       logCalculation('Scherrer', 'Scherrer Crystallite Size Calculation', {
         wavelength,
         constantK,
+        morphologyKMode,
+        kAlpha2Correction,
+        zeroShiftDeg,
         instFwhm,
         broadeningModel,
         breadthType,
@@ -614,6 +642,9 @@ export const ScherrerModule: React.FC = () => {
       localStorage.setItem('xrd_scherrer_current', JSON.stringify({
         wavelength,
         constantK,
+        morphologyKMode,
+        kAlpha2Correction,
+        zeroShiftDeg,
         instFwhm,
         useCaglioti,
         caglioti,
@@ -627,7 +658,7 @@ export const ScherrerModule: React.FC = () => {
         materialDensity,
         selectedMaterial
       }));
-    }, 3200);
+    }, 600);
   };
 
   useEffect(() => {
@@ -653,7 +684,8 @@ export const ScherrerModule: React.FC = () => {
           materialDensity,
           pseudoVoigtEta,
           breadthType,
-          burgersVectorNm
+          burgersVectorNm,
+          { kAlpha2Correction, zeroShiftDeg, morphologyKMode }
         );
       })
       .filter((r): r is ScherrerResult => r !== null);
@@ -662,7 +694,7 @@ export const ScherrerModule: React.FC = () => {
     const valid = computed.filter(r => !r.excluded && !r.error && r.sizeNm > 0);
     const calculatedAvg = computeAverageSize(valid, averageType);
     setAvgSize(calculatedAvg);
-  }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel, materialDensity, pseudoVoigtEta, breadthType, burgersVectorNm, averageType]);
+  }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel, materialDensity, pseudoVoigtEta, breadthType, burgersVectorNm, averageType, kAlpha2Correction, zeroShiftDeg, morphologyKMode]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
@@ -689,8 +721,7 @@ export const ScherrerModule: React.FC = () => {
                 Scherrer Studio
               </h2>
               <p className="flex items-center gap-2 text-[10px] font-mono text-amber-500/80 uppercase tracking-[0.25em]">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-[pulse_2s_ease-in-out_infinite]" />
-                Physics Sizing Engine
+                <span>● Physics Sizing Engine</span>
               </p>
             </div>
           </div>
@@ -706,8 +737,7 @@ export const ScherrerModule: React.FC = () => {
                   </label>
                 </div>
                 <div className="flex items-center gap-1.5">
-                   <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Source</span>
+                   <span className="text-[10px] font-mono font-bold text-amber-400/90 uppercase tracking-widest">● Active Source</span>
                 </div>
               </div>
               <div className="space-y-4">
@@ -837,6 +867,41 @@ export const ScherrerModule: React.FC = () => {
                        {K_FACTORS.find(k => k.label.includes(selectedKType) || k.label === selectedKType)?.desc || 'Dimensionless shape factor.'}
                     </span>
                   </div>
+                </div>
+
+                {/* Langford & Wilson (1978) Directional Shape Factor K_hkl */}
+                <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Compass className="w-3.5 h-3.5 text-amber-400" />
+                      Langford-Wilson Directional K(hkl)
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      {morphologyKMode}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                    {(['Isotropic', 'Cube', 'Octahedron', 'Tetrahedron', 'HexagonalRod'] as ScherrerMorphologyKMode[]).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setMorphologyKMode(mode)}
+                        className={`py-1.5 px-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-tight transition-all cursor-pointer truncate ${
+                          morphologyKMode === mode
+                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm'
+                            : 'bg-slate-950/50 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                        }`}
+                        title={`Langford & Wilson (1978) ${mode} K_hkl tensor`}
+                      >
+                        {mode === 'HexagonalRod' ? 'Hex Rod' : mode}
+                      </button>
+                    ))}
+                  </div>
+                  {morphologyKMode !== 'Isotropic' && (
+                    <p className="text-[10px] font-mono text-amber-300/80 bg-amber-950/20 p-2 rounded-lg border border-amber-500/20 leading-relaxed">
+                      Computing exact direction-dependent K_hkl per (hkl) reflection (e.g. Cube K₁₀₀=0.890, K₁₁₁=0.855).
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1063,6 +1128,47 @@ export const ScherrerModule: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* K-Alpha-2 Rachinger Stripping & Zero-Shift Goniometer Calibration */}
+              <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                      Kα₂ Rachinger Doublet Stripping
+                    </span>
+                    <span className="text-[9px] text-slate-500 font-mono">
+                      Subtracts Δ(2θ) = (2Δλ/λ)·tan(θ) splitting
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setKAlpha2Correction(!kAlpha2Correction)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                      kAlpha2Correction
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-sm'
+                        : 'bg-slate-950/60 border-slate-800 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {kAlpha2Correction ? 'Kα₂ Stripped' : 'Off'}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                    Goniometer Zero-Shift (Δ2θ₀):
+                  </span>
+                  <div className="relative w-32">
+                    <input
+                      type="number"
+                      step="0.005"
+                      value={String(zeroShiftDeg) === 'NaN' ? '' : zeroShiftDeg}
+                      onChange={(e) => setZeroShiftDeg(parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-1.5 bg-slate-950/80 text-amber-400 border border-slate-700/60 rounded-lg font-mono text-xs font-bold outline-none focus:border-amber-500/50 text-right pr-7"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 pointer-events-none">°</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Material Density Preset for SSA Calculation */}
@@ -1186,6 +1292,9 @@ export const ScherrerModule: React.FC = () => {
                     materialDensity={materialDensity}
                     pseudoVoigtEta={pseudoVoigtEta}
                     breadthType={breadthType}
+                    kAlpha2Correction={kAlpha2Correction}
+                    zeroShiftDeg={zeroShiftDeg}
+                    morphologyKMode={morphologyKMode}
                   />
                 </div>
               ) : (
@@ -1259,14 +1368,14 @@ export const ScherrerModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Master Formula Context Card */}
-        <div className="bg-[#050A14] p-6 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+        {/* Interactive Master Scherrer Law & Physical Schematic Card */}
+        <div className="bg-[#050A14] p-6 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
             <div className="flex items-center gap-3">
               <BookOpen className="w-5 h-5 text-emerald-400" />
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider">Theory & Formula</h3>
-                <p className="text-[9px] text-slate-500 font-mono uppercase tracking-widest">Master Scherrer Law</p>
+                <h3 className="text-sm font-black uppercase tracking-wider">Theory & Physical Graphic</h3>
+                <p className="text-[9px] text-slate-500 font-mono uppercase tracking-widest">Master Scherrer Diffraction Law</p>
               </div>
             </div>
             <button
@@ -1278,18 +1387,94 @@ export const ScherrerModule: React.FC = () => {
             </button>
           </div>
 
-          <div className="bg-[#0a0f16] p-3.5 rounded-2xl font-mono text-sm text-emerald-300 border border-emerald-900/40 text-center font-bold">
+          <div className="bg-[#0a0f16] p-3 rounded-2xl font-mono text-sm text-emerald-300 border border-emerald-900/40 text-center font-bold tabular-nums">
             D = (K · λ) / (β_sample · cosθ)
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-4 text-[10px] font-mono">
-            <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-slate-500 block font-sans uppercase font-bold text-[8px]">Dislocation (δ):</span>
-              <span className="text-amber-300 font-bold">δ = 1 / D²</span>
+          {/* Live SVG Schematic of Finite-Domain Bragg Broadening & FWHM Deconvolution */}
+          <svg viewBox="0 0 340 124" className="w-full h-32 bg-slate-950/90 rounded-2xl border border-slate-800/90 select-none overflow-visible">
+            {/* Left Side: Coherent Lattice Domain D = N * d */}
+            <g transform="translate(12, 12)">
+              <rect x="0" y="0" width="146" height="100" rx="8" fill="#080e1c" stroke="#1e293b" strokeWidth="1" />
+              <text x="73" y="13" fill="#94a3b8" fontSize="7" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                COHERENT DOMAIN D = N·d
+              </text>
+              {[26, 38, 50, 62, 74].map((yPos, idx) => (
+                <g key={idx}>
+                  <line x1="20" y1={yPos} x2="112" y2={yPos} stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 2" opacity="0.8" />
+                  {[28, 48, 68, 88, 106].map((xPos, cIdx) => (
+                    <circle key={cIdx} cx={xPos} cy={yPos} r="1.9" fill="#38bdf8" />
+                  ))}
+                </g>
+              ))}
+              {/* Incident & Diffracted X-rays */}
+              <line x1="10" y1="16" x2="66" y2="38" stroke="#f59e0b" strokeWidth="1.4" />
+              <line x1="66" y1="38" x2="122" y2="16" stroke="#10b981" strokeWidth="1.4" />
+              {/* Domain Thickness Caliper */}
+              <line x1="124" y1="26" x2="124" y2="74" stroke="#f59e0b" strokeWidth="1.2" />
+              <line x1="120" y1="26" x2="128" y2="26" stroke="#f59e0b" strokeWidth="1.2" />
+              <line x1="120" y1="74" x2="128" y2="74" stroke="#f59e0b" strokeWidth="1.2" />
+              <text x="135" y="52" fill="#fbbf24" fontSize="7" fontFamily="monospace" fontWeight="bold" textAnchor="middle" transform="rotate(-90 135 52)">
+                D≈{avgSize > 0 ? avgSize.toFixed(1) : '25.0'}nm
+              </text>
+              <text x="73" y="92" fill="#38bdf8" fontSize="7.2" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                N ≈ {stats.avgCoherentPlanes || 80} Coherent Planes
+              </text>
+            </g>
+
+            {/* Right Side: Peak Broadening Bell Curve & Calipers */}
+            <g transform="translate(168, 12)">
+              <rect x="0" y="0" width="160" height="100" rx="8" fill="#080e1c" stroke="#1e293b" strokeWidth="1" />
+              <text x="80" y="13" fill="#94a3b8" fontSize="7" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                PEAK BROADENING β_sample
+              </text>
+              <line x1="14" y1="80" x2="146" y2="80" stroke="#334155" strokeWidth="1" />
+              {/* Observed Profile Bell */}
+              <path
+                d="M 18 80 Q 52 80 62 48 Q 80 16 98 48 Q 108 80 142 80"
+                fill="rgba(99, 102, 241, 0.16)"
+                stroke="#818cf8"
+                strokeWidth="1.4"
+              />
+              {/* Narrower Instrumental Resolution Profile */}
+              <path
+                d="M 46 80 Q 68 80 73 54 Q 80 28 87 54 Q 92 80 114 80"
+                fill="none"
+                stroke="#f59e0b"
+                strokeWidth="1.1"
+                strokeDasharray="2 2"
+              />
+              {/* FWHM Caliper */}
+              <line x1="60" y1="48" x2="100" y2="48" stroke="#10b981" strokeWidth="1.4" />
+              <circle cx="60" cy="48" r="1.8" fill="#10b981" />
+              <circle cx="100" cy="48" r="1.8" fill="#10b981" />
+              <text x="80" y="43" fill="#34d399" fontSize="7" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                FWHM β
+              </text>
+              <text x="80" y="92" fill="#cbd5e1" fontSize="7" fontFamily="monospace" textAnchor="middle">
+                K={constantK} · λ={wavelength.toFixed(4)}Å
+              </text>
+            </g>
+          </svg>
+
+          <div className="grid grid-cols-2 gap-2 text-[10px] font-mono tabular-nums">
+            <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-slate-500 block font-sans uppercase font-bold text-[8px]">Dislocation (δ):</span>
+                <span className="text-amber-300 font-bold">δ = 1 / D²</span>
+              </div>
+              <span className="text-amber-400 font-bold text-[11px]">
+                {stats.avgDislocation10_14.toFixed(2)}×10¹⁴
+              </span>
             </div>
-            <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-slate-500 block font-sans uppercase font-bold text-[8px]">Specific Surface Area:</span>
-              <span className="text-indigo-300 font-bold">SSA = 6000 / (ρ·D)</span>
+            <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-slate-500 block font-sans uppercase font-bold text-[8px]">Specific Surface:</span>
+                <span className="text-indigo-300 font-bold">6000 / (ρ·D)</span>
+              </div>
+              <span className="text-cyan-300 font-bold text-[11px]">
+                {stats.avgSSA.toFixed(1)} m²/g
+              </span>
             </div>
           </div>
         </div>
@@ -1298,22 +1483,59 @@ export const ScherrerModule: React.FC = () => {
       {/* Right Column: Results, Multi-View Charts, and Microstructural Databank */}
       <div className="lg:col-span-8 space-y-6">
         
-        {results && results.length > 0 && results[0] && !results[0].error && (
-          <ScientificMathControl
-            title="Scherrer Equation Verification"
-            formula="D = \frac{K \cdot \lambda}{\beta_{\text{sample}} \cdot \cos(\theta)}"
-            description="Scientific mathematical verification showing exact values calculated for the primary resolved diffraction reflection."
-            variables={[
-              { symbol: 'K', name: 'Shape Factor', value: constantK, unit: '' },
-              { symbol: 'λ', name: 'Wavelength', value: convertLength(wavelength, lengthUnit), unit: lengthUnit },
-              { symbol: 'β', name: 'Corrected Sample Broadening', value: (results[0].betaCorrected * Math.PI / 180), unit: 'rad' },
-              { symbol: 'θ', name: 'Bragg Angle', value: ((results[0].twoTheta / 2) * Math.PI / 180), unit: 'rad' }
-            ]}
-            result={results[0].sizeNm}
-            resultUnit="nm"
-            resultName="Crystallite Size (D)"
-          />
-        )}
+        {results && results.length > 0 && (() => {
+          const safeIdx = selectedMathPeakIdx < results.length && !results[selectedMathPeakIdx]?.error
+            ? selectedMathPeakIdx
+            : Math.max(0, results.findIndex(r => !r.error));
+          const activeMathPeak = results[safeIdx] || results[0];
+          if (!activeMathPeak || activeMathPeak.error) return null;
+          return (
+            <div className="space-y-2">
+              {results.length > 1 && (
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-[#050A14] px-4 py-2.5 rounded-2xl border border-slate-800">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Atom className="w-3.5 h-3.5 text-amber-400" />
+                    Inspect Reflection Math:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {results.map((r, idx) => {
+                      if (r.error) return null;
+                      const isSel = idx === safeIdx;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedMathPeakIdx(idx)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer border ${
+                            isSel
+                              ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm'
+                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          {r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`} @ {r.twoTheta.toFixed(2)}°
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <ScientificMathControl
+                title={`Scherrer Equation Verification — ${activeMathPeak.hkl ? `(${activeMathPeak.hkl.join('')})` : `Peak #${safeIdx + 1}`} @ ${activeMathPeak.twoTheta.toFixed(2)}°`}
+                formula="D_{hkl} = \frac{K_{hkl} \cdot \lambda}{\beta_{\text{sample}} \cdot \cos(\theta)}"
+                description={`Step-by-step crystallographic evaluation using ${morphologyKMode === 'Isotropic' ? 'isotropic' : `Langford-Wilson ${morphologyKMode}`} shape factor and ${broadeningModel} instrumental deconvolution.`}
+                variables={[
+                  { symbol: 'K_hkl', name: `Shape Factor (${morphologyKMode})`, value: activeMathPeak.effectiveK ?? constantK, unit: '' },
+                  { symbol: 'λ', name: 'Wavelength', value: convertLength(wavelength, lengthUnit), unit: lengthUnit },
+                  { symbol: 'β_s', name: 'Corrected Sample Broadening', value: (activeMathPeak.betaCorrected * Math.PI / 180), unit: 'rad' },
+                  { symbol: 'θ', name: 'Bragg Angle', value: ((activeMathPeak.twoTheta / 2) * Math.PI / 180), unit: 'rad' }
+                ]}
+                result={activeMathPeak.sizeNm}
+                resultUnit="nm"
+                resultName="Crystallite Size (D_hkl)"
+              />
+            </div>
+          );
+        })()}
 
         {/* Enhanced Mean Crystallite Sizing Card */}
         <MeanCrystalliteSizingCard
@@ -1361,6 +1583,7 @@ export const ScherrerModule: React.FC = () => {
               {/* Tab Selector Buttons */}
               <div className="flex flex-wrap items-center bg-slate-950/60 p-1.5 rounded-2xl border border-slate-800 gap-1.5 text-xs">
                 {[
+                  { id: 'diffractogram', label: 'Full XRD Pattern', icon: Layers },
                   { id: 'histogram', label: 'Distribution & PDF', icon: BarChart2 },
                   { id: 'trend', label: 'Size vs 2θ & Limit', icon: TrendingUp },
                   { id: 'microstructure', label: 'Dislocation & SSA', icon: Zap },
@@ -1376,7 +1599,7 @@ export const ScherrerModule: React.FC = () => {
                     <button
                       key={tab.id}
                       onClick={() => setChartViewMode(tab.id as any)}
-                      className={`flex-1 min-w-[140px] px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      className={`flex-1 min-w-[130px] px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         isActive
                           ? 'bg-indigo-600 text-white shadow-md'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/80'
@@ -1389,6 +1612,146 @@ export const ScherrerModule: React.FC = () => {
                 })}
               </div>
             </div>
+
+            {/* TAB 0: Full-Pattern Synthesized XRD Diffractogram Graphic */}
+            {chartViewMode === 'diffractogram' && (() => {
+              const minDeg = Math.max(10, Math.floor(Math.min(...validResults.map(r => r.twoTheta)) - 6));
+              const maxDeg = Math.min(120, Math.ceil(Math.max(...validResults.map(r => r.twoTheta)) + 6));
+              const maxInt = Math.max(...validResults.map(r => r.intensity || 100), 1);
+
+              // Synthesize continuous full-pattern profile across [minDeg, maxDeg]
+              const stepCount = 240;
+              const stepDeg = (maxDeg - minDeg) / stepCount;
+              const patternPoints = Array.from({ length: stepCount + 1 }, (_, i) => {
+                const x = minDeg + i * stepDeg;
+                let obsSum = 2.0; // subtle background baseline
+                let instSum = 2.0;
+                validResults.forEach(pk => {
+                  const amp = ((pk.intensity || 100) / maxInt) * 100;
+                  const wObs = Math.max(0.08, pk.fwhmObs);
+                  const wInst = Math.max(0.04, instFwhm);
+                  const dx = x - pk.twoTheta;
+                  const hwhmObs = wObs / 2;
+                  const hwhmInst = wInst / 2;
+                  const pvObs = 0.5 * Math.exp(-Math.LN2 * Math.pow(dx / hwhmObs, 2)) + 0.5 / (1 + Math.pow(dx / hwhmObs, 2));
+                  const pvInst = 0.5 * Math.exp(-Math.LN2 * Math.pow(dx / hwhmInst, 2)) + 0.5 / (1 + Math.pow(dx / hwhmInst, 2));
+                  obsSum += amp * pvObs;
+                  instSum += amp * 0.82 * pvInst;
+                });
+                return {
+                  twoTheta: parseFloat(x.toFixed(2)),
+                  observedProfile: parseFloat(Math.min(115, obsSum).toFixed(2)),
+                  instrumentalBaseline: parseFloat(Math.min(115, instSum).toFixed(2))
+                };
+              });
+
+              return (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 font-mono tabular-nums">
+                    <span>
+                      Synthesized Multi-Peak Powder Diffractogram (<strong className="text-amber-400">λ = {wavelength.toFixed(4)} Å</strong>)
+                    </span>
+                    <span>
+                      Mean Coherent Domain: <strong className="text-emerald-400">{avgSize.toFixed(2)} nm</strong> · {validResults.length} Bragg Reflections
+                    </span>
+                  </div>
+
+                  <div className="h-68 w-full bg-slate-950/70 rounded-2xl border border-slate-800/80 p-3">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={patternPoints} margin={{ top: 18, right: 15, left: -20, bottom: 15 }}>
+                        <defs>
+                          <linearGradient id="fullXrdObsGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.42} />
+                            <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.02} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis
+                          dataKey="twoTheta"
+                          type="number"
+                          domain={[minDeg, maxDeg]}
+                          tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                          unit="°"
+                          label={{ value: 'Diffraction Angle 2θ [°]', position: 'insideBottom', offset: -8, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                        />
+                        <YAxis
+                          domain={[0, 118]}
+                          tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                          label={{ value: 'Rel. Intensity [a.u.]', angle: -90, position: 'insideLeft', offset: 15, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                        />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', fontFamily: 'monospace' }}
+                          formatter={(val: any, name: string) => [
+                            `${Number(val).toFixed(1)} a.u.`,
+                            name === 'observedProfile' ? 'Broadened Sample Profile I_obs(2θ)' : 'Instrumental Baseline I_inst(2θ)'
+                          ]}
+                          labelFormatter={(l) => `2θ = ${Number(l).toFixed(2)}°`}
+                        />
+                        <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 'bold' }} />
+                        {validResults.map((pk, idx) => (
+                          <ReferenceLine
+                            key={idx}
+                            x={parseFloat(pk.twoTheta.toFixed(2))}
+                            stroke="rgba(99, 102, 241, 0.35)"
+                            strokeDasharray="2 2"
+                            label={{
+                              value: pk.hkl ? `(${pk.hkl.join('')})` : `#${idx + 1}`,
+                              position: 'top',
+                              fill: '#a5b4fc',
+                              fontSize: 9,
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                        ))}
+                        <Area
+                          type="monotone"
+                          dataKey="observedProfile"
+                          name="observedProfile"
+                          stroke="#f59e0b"
+                          strokeWidth={2}
+                          fill="url(#fullXrdObsGrad)"
+                          isAnimationActive={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="instrumentalBaseline"
+                          name="instrumentalBaseline"
+                          stroke="#38bdf8"
+                          strokeWidth={1.3}
+                          strokeDasharray="3 3"
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Interactive Reflection Badges Strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                    {validResults.map((pk, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setSelectedMathPeakIdx(idx)}
+                        className="bg-slate-950/80 hover:bg-slate-900 border border-slate-800/90 hover:border-amber-500/40 rounded-xl p-2.5 font-mono tabular-nums transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-bold text-indigo-300">
+                            {pk.hkl ? `(${pk.hkl.join('')})` : `Peak #${idx + 1}`}
+                          </span>
+                          <span className="text-slate-400">{pk.twoTheta.toFixed(2)}°</span>
+                        </div>
+                        <div className="text-sm font-black text-amber-400 mt-1">
+                          {pk.sizeNm.toFixed(1)} <span className="text-[10px] font-normal text-slate-500">nm</span>
+                        </div>
+                        <div className="text-[9px] text-slate-500 mt-0.5">
+                          β_s = {pk.betaCorrected.toFixed(3)}° · I={pk.intensity ?? 100}%
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* TAB 1: Size Distribution with Fitted Log-Normal PDF */}
             {chartViewMode === 'histogram' && (
@@ -1624,7 +1987,8 @@ export const ScherrerModule: React.FC = () => {
                 <ScherrerDeconvolutionVisualizer 
                   wavelength={wavelength} 
                   kFactor={constantK} 
-                  currentInstFwhm={instFwhm} 
+                  currentInstFwhm={instFwhm}
+                  results={results}
                 />
               </motion.div>
             )}
@@ -1659,12 +2023,22 @@ export const ScherrerModule: React.FC = () => {
         {results.length > 0 && validResults.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Morphological 3D Visualizer */}
-            <div className="bg-[#050b14] border border-blue-900/30 rounded-3xl p-6 shadow-2xl relative flex flex-col h-60 overflow-hidden group">
-              <h3 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2 relative z-10">
-                <Atom className="w-3.5 h-3.5" /> Morphological Simulation
+            <div className="bg-[#050b14] border border-blue-900/30 rounded-3xl p-5 shadow-2xl relative flex flex-col min-h-[320px] overflow-hidden group">
+              <h3 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.2em] mb-3 flex items-center justify-between relative z-10">
+                <span className="flex items-center gap-2">
+                  <Atom className="w-3.5 h-3.5" /> 3D Crystallite Morphology & Lattice Planes
+                </span>
+                <span className="text-[9px] font-mono text-slate-400 tabular-nums">
+                  {selectedKType} (K = {constantK})
+                </span>
               </h3>
-              <div className="flex-1 w-full relative z-10 border border-blue-900/40 rounded-xl bg-black/40 overflow-hidden">
-                <MorphologyVisualizer kType={selectedKType} sizeNm={avgSize} />
+              <div className="flex-1 w-full relative z-10 rounded-2xl bg-black/40 overflow-hidden">
+                <MorphologyVisualizer
+                  kType={selectedKType}
+                  sizeNm={avgSize}
+                  constantK={constantK}
+                  dSpacing={validResults[0]?.dSpacing || 3.135}
+                />
               </div>
             </div>
 
@@ -1689,21 +2063,41 @@ export const ScherrerModule: React.FC = () => {
               </div>
               
               {whStrainTriage.slope > 0.0002 ? (
-                <div className="relative z-10 bg-black/30 p-3.5 rounded-xl border border-rose-900/30 space-y-2">
+                <div className="relative z-10 bg-black/30 p-3.5 rounded-xl border border-rose-900/30 space-y-2.5">
                   <p className="text-xs text-rose-200/80 font-medium leading-relaxed">
                     Lattice microstrain detected (<span className="font-mono text-rose-400 font-bold">ε ≈ {(whStrainTriage.slope * 100).toPrecision(2)}%</span>). Scherrer model may underestimate true crystallite dimensions due to uncoupled microstrain.
                   </p>
-                  <div className="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5">
-                     <Zap className="w-3 h-3" /> Deconvolution Model Recommended
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5">
+                      <Zap className="w-3 h-3" /> Deconvolution Model Recommended
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTransferToWilliamsonHall}
+                      className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Share2 className="w-3 h-3" />
+                      {transferredToWH ? 'Staged for W-H Studio!' : 'Send to Williamson-Hall'}
+                    </button>
                   </div>
                 </div>
               ) : (
-                <div className="relative z-10 bg-black/30 p-3.5 rounded-xl border border-emerald-900/30 space-y-2">
+                <div className="relative z-10 bg-black/30 p-3.5 rounded-xl border border-emerald-900/30 space-y-2.5">
                   <p className="text-xs text-emerald-200/80 font-medium leading-relaxed">
                     Microstrain is negligible (<span className="font-mono text-emerald-400 font-bold">ε &lt; 0.02%</span>). Pure size-broadening assumption is physically sound with high confidence.
                   </p>
-                  <div className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5">
-                     <Check className="w-3 h-3" /> High Physical Validity
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1.5">
+                      <Check className="w-3 h-3" /> High Physical Validity
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTransferToWilliamsonHall}
+                      className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Share2 className="w-3 h-3" />
+                      {transferredToWH ? 'Staged for W-H Studio!' : 'Send to Williamson-Hall'}
+                    </button>
                   </div>
                 </div>
               )}
@@ -1764,6 +2158,7 @@ export const ScherrerModule: React.FC = () => {
                   <tr>
                     <th scope="col" className="px-4 py-4 font-black">2θ [deg]</th>
                     <th scope="col" className="px-4 py-4 font-black">(hkl)</th>
+                    <th scope="col" className="px-4 py-4 font-black">K_hkl</th>
                     <th scope="col" className="px-4 py-4 font-black">d-Spacing</th>
                     <th scope="col" className="px-4 py-4 font-black">β_obs [°]</th>
                     <th scope="col" className="px-4 py-4 font-black">β_phys [°]</th>
@@ -1780,11 +2175,19 @@ export const ScherrerModule: React.FC = () => {
                       <td className="px-4 py-3.5 font-mono font-bold text-indigo-400">
                         {row.hkl ? `(${row.hkl.join('')})` : <span className="text-slate-600">-</span>}
                       </td>
+                      <td className="px-4 py-3.5 font-mono text-amber-300/90">
+                        {(row.effectiveK ?? constantK).toFixed(3)}
+                      </td>
                       <td className="px-4 py-3.5 font-mono text-slate-300">
                         {row.dSpacing ? `${row.dSpacing.toFixed(3)} Å` : <span className="text-slate-600">-</span>}
                       </td>
                       <td className="px-4 py-3.5 font-mono text-slate-400">{row.fwhmObs.toFixed(precision)}°</td>
-                      <td className="px-4 py-3.5 font-mono text-slate-300 font-semibold">{row.betaCorrected.toFixed(precision)}°</td>
+                      <td className="px-4 py-3.5 font-mono text-slate-300 font-semibold">
+                        <div>{row.betaCorrected.toFixed(precision)}°</div>
+                        {row.kAlpha2BroadeningDeg !== undefined && row.kAlpha2BroadeningDeg > 0 && (
+                          <div className="text-[9px] text-emerald-400 font-normal">-Kα₂: {row.kAlpha2BroadeningDeg.toFixed(4)}°</div>
+                        )}
+                      </td>
                       <td className="px-4 py-3.5 font-mono text-amber-300">
                         <div>{row.dislocationDensity10_14 ? `${row.dislocationDensity10_14.toFixed(2)} ×10¹⁴` : '-'}</div>
                         {row.dislocationDensityWilliamsonSmallman && (

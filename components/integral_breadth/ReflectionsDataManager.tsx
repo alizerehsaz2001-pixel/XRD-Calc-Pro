@@ -13,15 +13,13 @@ import {
   Sparkles, 
   RefreshCw, 
   HelpCircle, 
-  Eye, 
-  EyeOff, 
-  Sliders, 
-  Layers, 
   Zap, 
-  Database,
-  ChevronDown,
   Info,
-  Maximize2
+  Maximize2,
+  Activity,
+  BarChart2,
+  Target,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { IntegralBreadthInput, IntegralBreadthResult } from '../../types';
@@ -52,6 +50,10 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
 }) => {
   // Mode state: 'table' vs 'raw'
   const [viewMode, setViewMode] = useState<'table' | 'raw'>('table');
+  const [graphicMode, setGraphicMode] = useState<'spectrum' | 'shape' | 'geometry'>('spectrum');
+  const [selectedPeakIdx, setSelectedPeakIdx] = useState<number>(0);
+  const [hoveredPeakIdx, setHoveredPeakIdx] = useState<number | null>(null);
+
   const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
   const [showFormatHelp, setShowFormatHelp] = useState<boolean>(false);
   const [showSyntheticModal, setShowSyntheticModal] = useState<boolean>(false);
@@ -75,9 +77,42 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
     return parseIntegralBreadthInput(inputData);
   }, [inputData]);
 
+  const activeSelectedIdx = useMemo(() => {
+    if (parsedPeaks.length === 0) return 0;
+    return Math.min(selectedPeakIdx, parsedPeaks.length - 1);
+  }, [parsedPeaks.length, selectedPeakIdx]);
+
+  const enrichedPeaks = useMemo(() => {
+    if (parsedPeaks.length === 0) return [];
+    const maxI = Math.max(...parsedPeaks.map(p => p.iMax), 1);
+    return parsedPeaks.map((p, idx) => {
+      const betaObs = p.iMax > 0 ? p.area / p.iMax : 0;
+      const phi = betaObs > 0 ? p.fwhm / betaObs : 0.78;
+      const thetaRad = (p.twoTheta / 2) * (Math.PI / 180);
+      const dSpacing = Math.sin(thetaRad) > 1e-6 ? wavelength / (2 * Math.sin(thetaRad)) : 0;
+      const hklVal = p.hkl || [1, 1, 1];
+      const hklLabel = `(${hklVal[0]}${hklVal[1]}${hklVal[2]})`;
+      let shapeType: 'Cauchy' | 'Voigt' | 'Gauss' = 'Voigt';
+      if (phi <= 0.67) shapeType = 'Cauchy';
+      else if (phi >= 0.88) shapeType = 'Gauss';
+
+      return {
+        ...p,
+        idx,
+        betaObs,
+        phi,
+        dSpacing,
+        hklVal,
+        hklLabel,
+        shapeType,
+        relIntensity: (p.iMax / maxI) * 100
+      };
+    });
+  }, [parsedPeaks, wavelength]);
+
   // Syntax validation for raw mode
   const validationInfo = useMemo(() => {
-    if (!inputData.trim()) return { errors: ['Dataset is empty. Add reflections to begin analysis.'], warnings: [] };
+    if (!inputData.trim()) return { errors: ['Dataset is empty. Add reflections to begin analysis.'], warnings: [], validCount: 0 };
     const lines = inputData.split('\n');
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -131,36 +166,36 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
 
   // Aggregate statistics across current reflection set
   const reflectionStats = useMemo(() => {
-    if (parsedPeaks.length === 0) return null;
-    const ttValues = parsedPeaks.map(p => p.twoTheta);
+    if (enrichedPeaks.length === 0) return null;
+    const ttValues = enrichedPeaks.map(p => p.twoTheta);
     const minTT = Math.min(...ttValues);
     const maxTT = Math.max(...ttValues);
     const spreadTT = maxTT - minTT;
 
-    const betaValues = parsedPeaks.map(p => p.area / p.iMax);
-    const phiValues = parsedPeaks.map(p => p.fwhm / (p.area / p.iMax));
-    const avgPhi = phiValues.reduce((a, b) => a + b, 0) / phiValues.length;
+    const avgBeta = enrichedPeaks.reduce((a, b) => a + b.betaObs, 0) / enrichedPeaks.length;
+    const avgPhi = enrichedPeaks.reduce((a, b) => a + b.phi, 0) / enrichedPeaks.length;
 
     let profileNature = 'Voigt (Mixed Size & Microstrain)';
     let natureColor = 'text-purple-400 bg-purple-500/10 border-purple-500/30';
     if (avgPhi <= 0.68) {
-      profileNature = 'Cauchy / Lorentzian (Size-Broadening Dominant)';
+      profileNature = 'Cauchy / Lorentzian (Size Dominant)';
       natureColor = 'text-blue-400 bg-blue-500/10 border-blue-500/30';
     } else if (avgPhi >= 0.88) {
-      profileNature = 'Gaussian (Microstrain / Defect Dominant)';
+      profileNature = 'Gaussian (Microstrain Dominant)';
       natureColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';
     }
 
     return {
-      count: parsedPeaks.length,
+      count: enrichedPeaks.length,
       minTT,
       maxTT,
       spreadTT,
+      avgBeta,
       avgPhi,
       profileNature,
       natureColor
     };
-  }, [parsedPeaks]);
+  }, [enrichedPeaks]);
 
   // Convert parsed peaks list back to string format
   const serializePeaks = (peaks: IntegralBreadthInput[]): string => {
@@ -201,7 +236,7 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
     const peak = parsedPeaks[index];
     const duplicated: IntegralBreadthInput = {
       ...peak,
-      twoTheta: peak.twoTheta + 1.0 // offset slightly so it doesn't overlap identically
+      twoTheta: parseFloat((peak.twoTheta + 0.5).toFixed(2))
     };
     const updated = [...parsedPeaks.slice(0, index + 1), duplicated, ...parsedPeaks.slice(index + 1)];
     onInputChange(serializePeaks(updated));
@@ -215,7 +250,6 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
 
     if (isNaN(tt) || tt <= 0 || tt >= 180 || isNaN(a) || a <= 0 || isNaN(imax) || imax <= 0) return;
 
-    // If FWHM is omitted or 0, estimate from area and imax
     const calculatedBeta = a / imax;
     const finalFwhm = !isNaN(f) && f > 0 ? f : calculatedBeta * 0.8;
 
@@ -238,7 +272,6 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
     const updated = [...parsedPeaks, newPeak];
     onInputChange(serializePeaks(updated));
 
-    // Reset form
     setNewTwoTheta('');
     setNewFwhm('');
     setNewArea('');
@@ -247,6 +280,7 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
     setNewK('');
     setNewL('');
     setIsAddFormOpen(false);
+    setSelectedPeakIdx(updated.length - 1);
   };
 
   const handleSortAscending = () => {
@@ -262,8 +296,8 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
     const factor = 1000 / maxI;
     const normalized = parsedPeaks.map(p => ({
       ...p,
-      iMax: 1000,
-      area: p.area * factor
+      iMax: Math.round(p.iMax * factor),
+      area: parseFloat((p.area * factor).toFixed(1))
     }));
     onInputChange(serializePeaks(normalized));
   };
@@ -282,12 +316,12 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
 
   const handleDownloadCSV = () => {
     if (parsedPeaks.length === 0) return;
-    const header = "2Theta_deg,FWHM_deg,Area_counts_deg,Imax_counts,h,k,l\n";
-    const rows = parsedPeaks.map(p => {
+    const header = "2Theta_deg,FWHM_deg,Area_counts_deg,Imax_counts,Beta_obs_deg,Shape_phi,h,k,l\n";
+    const rows = enrichedPeaks.map(p => {
       const h = p.hkl ? p.hkl[0] : '';
       const k = p.hkl ? p.hkl[1] : '';
       const l = p.hkl ? p.hkl[2] : '';
-      return `${p.twoTheta},${p.fwhm},${p.area},${p.iMax},${h},${k},${l}`;
+      return `${p.twoTheta},${p.fwhm},${p.area},${p.iMax},${p.betaObs.toFixed(4)},${p.phi.toFixed(4)},${h},${k},${l}`;
     }).join('\n');
 
     const blob = new Blob([header + rows], { type: 'text/csv' });
@@ -307,145 +341,482 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
     reader.onload = (event) => {
       const content = event.target?.result as string;
       if (content) {
-        // Attempt parsing
-        const peaks = parseIntegralBreadthInput(content);
-        if (peaks.length > 0) {
-          onInputChange(content);
-        } else {
-          // If raw, try splitting lines
-          onInputChange(content);
-        }
+        onInputChange(content);
       }
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const activeInspectPeak = enrichedPeaks[hoveredPeakIdx !== null ? hoveredPeakIdx : activeSelectedIdx] || enrichedPeaks[0];
+
   return (
-    <div className="bg-[#070D18] p-4 sm:p-5 rounded-3xl border border-white/10 shadow-xl space-y-4">
+    <div className="bg-[#070D18] rounded-3xl border border-white/10 shadow-xl overflow-hidden">
       {/* Header & Mode Switcher Ribbon */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
-            <FileText className="w-4 h-4" />
+      <div className="p-4 border-b border-white/5 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-purple-950/25 via-indigo-950/15 to-[#070D18]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-inner">
+            <Layers className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">Reflections Dataset</h3>
-              <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[10px] font-mono font-bold text-purple-300">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-xs font-black text-white uppercase tracking-wider">
+                Reflections Data (2θ, Area, I_max [, h k l])
+              </h3>
+              <span className="px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-[9px] font-mono tabular-nums font-bold text-purple-300">
                 {parsedPeaks.length} Peak{parsedPeaks.length === 1 ? '' : 's'}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 font-mono">
-              2θ (deg), FWHM (deg), Area (counts·°), I_max (counts), [h k l]
+            <p className="text-[9px] text-slate-400 font-mono mt-0.5">
+              2θ (°), FWHM (°), Area (cts·°), I_max (cts) • β_obs = Area / I_max
             </p>
           </div>
         </div>
 
         {/* View Switcher: Table vs Raw Text */}
-        <div className="flex items-center gap-1.5 bg-[#050A14] p-1 rounded-xl border border-white/10">
+        <div className="flex items-center gap-1 bg-[#050A14] p-1 rounded-xl border border-white/10">
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
               viewMode === 'table'
-                ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Table className="w-3.5 h-3.5" />
-            <span>Interactive Grid</span>
+            <Table className="w-3 h-3" />
+            <span>Interactive</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode('raw')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
               viewMode === 'raw'
-                ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Raw CSV Text</span>
+            <FileText className="w-3 h-3" />
+            <span>Raw CSV</span>
           </button>
         </div>
       </div>
 
+      {/* INTERACTIVE SCIENTIFIC GRAPHIC CANVAS */}
+      {enrichedPeaks.length > 0 && (
+        <div className="bg-[#040811] border-b border-white/5 p-3 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1 bg-[#091122] p-0.5 rounded-lg border border-white/5">
+              <button
+                type="button"
+                onClick={() => setGraphicMode('spectrum')}
+                className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+                  graphicMode === 'spectrum'
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <Activity className="w-2.5 h-2.5" />
+                XRD Stick Spectrum
+              </button>
+              <button
+                type="button"
+                onClick={() => setGraphicMode('shape')}
+                className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+                  graphicMode === 'shape'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <BarChart2 className="w-2.5 h-2.5" />
+                Voigt Shape φ Map
+              </button>
+              <button
+                type="button"
+                onClick={() => setGraphicMode('geometry')}
+                className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
+                  graphicMode === 'geometry'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <Target className="w-2.5 h-2.5" />
+                β = Area/I_max Box
+              </button>
+            </div>
+
+            {activeInspectPeak && (
+              <div className="flex items-center gap-2 text-[9px] font-mono tabular-nums">
+                <span className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 font-bold">
+                  #{activeInspectPeak.idx + 1} {activeInspectPeak.hklLabel}
+                </span>
+                <span className="text-white font-bold">{activeInspectPeak.twoTheta.toFixed(2)}°</span>
+                <span className="text-amber-300 font-bold">β={activeInspectPeak.betaObs.toFixed(3)}°</span>
+                <span className="text-cyan-300 font-bold">φ={activeInspectPeak.phi.toFixed(3)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="relative bg-[#060B16] rounded-xl border border-white/5 p-2 overflow-hidden">
+            {graphicMode === 'spectrum' && (() => {
+              const svgW = 480;
+              const svgH = 142;
+              const padL = 32;
+              const padR = 18;
+              const padT = 22;
+              const padB = 24;
+              const plotW = svgW - padL - padR;
+              const plotH = svgH - padT - padB;
+
+              const min2T = Math.max(5, Math.floor((reflectionStats?.minTT || 20) - 8));
+              const max2T = Math.min(165, Math.ceil((reflectionStats?.maxTT || 90) + 8));
+              const span2T = Math.max(10, max2T - min2T);
+
+              const xOf = (tt: number) => padL + ((tt - min2T) / span2T) * plotW;
+              const yOf = (relI: number) => padT + plotH - (Math.min(100, Math.max(0, relI)) / 100) * plotH;
+
+              const numSamples = 170;
+              const profilePts: string[] = [];
+              const fillPts: string[] = [`${padL},${padT + plotH}`];
+              for (let i = 0; i <= numSamples; i++) {
+                const tt = min2T + (i / numSamples) * span2T;
+                let intensity = 0;
+                enrichedPeaks.forEach(p => {
+                  const visSigma = Math.max(0.45, p.betaObs * 1.4);
+                  const dx = (tt - p.twoTheta) / visSigma;
+                  if (Math.abs(dx) < 6) {
+                    const gauss = Math.exp(-dx * dx);
+                    const cauchy = 1 / (1 + dx * dx * 1.5);
+                    intensity += p.relIntensity * (0.5 * gauss + 0.5 * cauchy);
+                  }
+                });
+                const px = padL + (i / numSamples) * plotW;
+                const py = yOf(Math.min(100, intensity));
+                profilePts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+                fillPts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+              }
+              fillPts.push(`${padL + plotW},${padT + plotH}`);
+
+              const ticks = [0, 0.25, 0.5, 0.75, 1].map(f => min2T + f * span2T);
+
+              return (
+                <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-34 select-none overflow-visible">
+                  <defs>
+                    <linearGradient id="stdSpectrumGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#a855f7" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  {[0.25, 0.5, 0.75, 1].map((g, idx) => {
+                    const gy = padT + plotH * (1 - g);
+                    return (
+                      <g key={idx}>
+                        <line x1={padL} y1={gy} x2={padL + plotW} y2={gy} stroke="rgba(255,255,255,0.05)" strokeDasharray="2 3" />
+                        <text x={padL - 5} y={gy + 3} textAnchor="end" className="fill-slate-600 font-mono text-[7px]">
+                          {Math.round(g * 100)}%
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  <line x1={padL} y1={padT + plotH} x2={padL + plotW} y2={padT + plotH} stroke="rgba(255,255,255,0.18)" />
+
+                  {ticks.map((t, i) => {
+                    const tx = xOf(t);
+                    return (
+                      <g key={i}>
+                        <line x1={tx} y1={padT + plotH} x2={tx} y2={padT + plotH + 4} stroke="rgba(255,255,255,0.25)" />
+                        <text x={tx} y={svgH - 5} textAnchor="middle" className="fill-slate-400 font-mono text-[8px]">
+                          {t.toFixed(0)}°
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  <polygon points={fillPts.join(' ')} fill="url(#stdSpectrumGrad)" />
+                  <polyline fill="none" stroke="#c084fc" strokeWidth="1.25" strokeOpacity="0.7" points={profilePts.join(' ')} />
+
+                  {enrichedPeaks.map((p) => {
+                    const cx = xOf(p.twoTheta);
+                    const topY = yOf(p.relIntensity);
+                    const baseY = padT + plotH;
+                    const isSelected = p.idx === (hoveredPeakIdx !== null ? hoveredPeakIdx : activeSelectedIdx);
+                    const rectHalfW = Math.max(3, (p.betaObs / span2T) * plotW * 4.5);
+
+                    return (
+                      <g
+                        key={p.idx}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedPeakIdx(p.idx)}
+                        onMouseEnter={() => setHoveredPeakIdx(p.idx)}
+                        onMouseLeave={() => setHoveredPeakIdx(null)}
+                      >
+                        <rect
+                          x={cx - rectHalfW}
+                          y={topY}
+                          width={rectHalfW * 2}
+                          height={baseY - topY}
+                          fill={isSelected ? 'rgba(34,211,238,0.18)' : 'rgba(168,85,247,0.08)'}
+                          stroke={isSelected ? '#22d3ee' : 'rgba(168,85,247,0.35)'}
+                          strokeWidth={isSelected ? 1 : 0.6}
+                          strokeDasharray={isSelected ? 'none' : '2 1'}
+                          rx={1.5}
+                        />
+                        <line
+                          x1={cx}
+                          y1={baseY}
+                          x2={cx}
+                          y2={topY}
+                          stroke={isSelected ? '#22d3ee' : '#c084fc'}
+                          strokeWidth={isSelected ? 2.2 : 1.5}
+                        />
+                        <circle
+                          cx={cx}
+                          cy={topY}
+                          r={isSelected ? 3.5 : 2.3}
+                          fill={isSelected ? '#22d3ee' : '#c084fc'}
+                          stroke="#050A14"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={cx}
+                          y={Math.max(10, topY - 5)}
+                          textAnchor="middle"
+                          className={`font-mono text-[8px] font-bold ${isSelected ? 'fill-cyan-300' : 'fill-purple-300'}`}
+                        >
+                          {p.hklLabel}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              );
+            })()}
+
+            {graphicMode === 'shape' && (() => {
+              const svgW = 480;
+              const svgH = 142;
+              const padL = 42;
+              const padR = 16;
+              const padT = 20;
+              const padB = 24;
+              const plotW = svgW - padL - padR;
+              const plotH = svgH - padT - padB;
+
+              const minPhi = 0.55;
+              const maxPhi = 1.02;
+              const yOfPhi = (phi: number) => {
+                const clamped = Math.min(maxPhi, Math.max(minPhi, phi));
+                return padT + plotH - ((clamped - minPhi) / (maxPhi - minPhi)) * plotH;
+              };
+
+              const yCauchy = yOfPhi(0.6366);
+              const yGauss = yOfPhi(0.9394);
+              const colW = plotW / Math.max(1, enrichedPeaks.length);
+
+              return (
+                <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-34 select-none overflow-visible">
+                  {/* Gaussian limit line (0.939) */}
+                  <line x1={padL} y1={yGauss} x2={padL + plotW} y2={yGauss} stroke="#10b981" strokeDasharray="3 3" strokeOpacity="0.6" />
+                  <text x={padL - 4} y={yGauss + 3} textAnchor="end" className="fill-emerald-400 font-mono text-[7px]">0.939 (G)</text>
+
+                  {/* Cauchy limit line (0.637) */}
+                  <line x1={padL} y1={yCauchy} x2={padL + plotW} y2={yCauchy} stroke="#3b82f6" strokeDasharray="3 3" strokeOpacity="0.6" />
+                  <text x={padL - 4} y={yCauchy + 3} textAnchor="end" className="fill-blue-400 font-mono text-[7px]">0.637 (C)</text>
+
+                  <line x1={padL} y1={padT + plotH} x2={padL + plotW} y2={padT + plotH} stroke="rgba(255,255,255,0.18)" />
+
+                  {enrichedPeaks.map((p, idx) => {
+                    const cx = padL + (idx + 0.5) * colW;
+                    const cy = yOfPhi(p.phi);
+                    const isSelected = p.idx === (hoveredPeakIdx !== null ? hoveredPeakIdx : activeSelectedIdx);
+                    const dotColor = p.shapeType === 'Cauchy' ? '#60a5fa' : p.shapeType === 'Gauss' ? '#34d399' : '#c084fc';
+
+                    return (
+                      <g
+                        key={p.idx}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedPeakIdx(p.idx)}
+                        onMouseEnter={() => setHoveredPeakIdx(p.idx)}
+                        onMouseLeave={() => setHoveredPeakIdx(null)}
+                      >
+                        <line x1={cx} y1={padT + plotH} x2={cx} y2={cy} stroke={dotColor} strokeWidth={isSelected ? 2 : 1.2} strokeOpacity="0.6" />
+                        <circle cx={cx} cy={cy} r={isSelected ? 4.5 : 3.2} fill={dotColor} stroke="#050A14" strokeWidth="1" />
+                        <text x={cx} y={cy - 6} textAnchor="middle" className="fill-white font-mono text-[7.5px] font-bold">
+                          {p.phi.toFixed(2)}
+                        </text>
+                        <text x={cx} y={svgH - 6} textAnchor="middle" className="fill-slate-400 font-mono text-[7.5px]">
+                          {p.hklLabel}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              );
+            })()}
+
+            {graphicMode === 'geometry' && activeInspectPeak && (() => {
+              const svgW = 480;
+              const svgH = 142;
+              const padL = 28;
+              const padR = 165;
+              const padT = 20;
+              const padB = 22;
+              const plotW = svgW - padL - padR;
+              const plotH = svgH - padT - padB;
+              const cx = padL + plotW / 2;
+              const baseY = padT + plotH;
+              const peakTopY = padT + 6;
+              const peakH = baseY - peakTopY;
+
+              const eqRectW = plotW * 0.44;
+              const fwhmW = eqRectW * Math.min(1.05, Math.max(0.55, activeInspectPeak.phi));
+
+              const curvePts: string[] = [];
+              const fillPts: string[] = [`${padL},${baseY}`];
+              const steps = 80;
+              for (let i = 0; i <= steps; i++) {
+                const normX = (i / steps) - 0.5;
+                const px = padL + (i / steps) * plotW;
+                const u = (normX * plotW) / (eqRectW / 2);
+                const g = Math.exp(-0.785 * u * u);
+                const c = 1 / (1 + 0.65 * u * u);
+                const yVal = 0.5 * g + 0.5 * c;
+                const py = baseY - yVal * peakH;
+                curvePts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+                fillPts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+              }
+              fillPts.push(`${padL + plotW},${baseY}`);
+
+              return (
+                <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-34 select-none overflow-visible">
+                  <line x1={padL} y1={baseY} x2={padL + plotW} y2={baseY} stroke="rgba(255,255,255,0.2)" />
+                  <polygon points={fillPts.join(' ')} fill="rgba(168,85,247,0.2)" />
+                  <polyline fill="none" stroke="#c084fc" strokeWidth="1.8" points={curvePts.join(' ')} />
+
+                  <rect
+                    x={cx - eqRectW / 2}
+                    y={peakTopY}
+                    width={eqRectW}
+                    height={peakH}
+                    fill="rgba(34,211,238,0.12)"
+                    stroke="#22d3ee"
+                    strokeWidth="1.3"
+                    strokeDasharray="4 2"
+                    rx="2"
+                  />
+
+                  <line x1={cx - eqRectW / 2} y1={peakTopY + peakH * 0.3} x2={cx + eqRectW / 2} y2={peakTopY + peakH * 0.3} stroke="#22d3ee" strokeWidth="1.5" />
+                  <text x={cx} y={peakTopY + peakH * 0.3 - 4} textAnchor="middle" className="fill-cyan-200 font-mono text-[8px] font-bold">
+                    β_obs = {activeInspectPeak.betaObs.toFixed(4)}°
+                  </text>
+
+                  <line x1={cx - fwhmW / 2} y1={peakTopY + peakH * 0.5} x2={cx + fwhmW / 2} y2={peakTopY + peakH * 0.5} stroke="#fbbf24" strokeWidth="1.3" />
+                  <text x={cx} y={peakTopY + peakH * 0.5 + 9} textAnchor="middle" className="fill-amber-300 font-mono text-[7.5px] font-bold">
+                    FWHM = {activeInspectPeak.fwhm.toFixed(3)}°
+                  </text>
+
+                  <g transform={`translate(${padL + plotW + 12}, ${padT})`}>
+                    <rect x="0" y="0" width="148" height={plotH} rx="6" fill="#091122" stroke="rgba(255,255,255,0.08)" />
+                    <text x="8" y="15" className="fill-cyan-300 font-mono text-[8px] font-bold uppercase">
+                      Peak #{activeInspectPeak.idx + 1} {activeInspectPeak.hklLabel}
+                    </text>
+                    <text x="8" y="29" className="fill-slate-400 font-mono text-[7.5px]">
+                      Area = {activeInspectPeak.area.toFixed(1)} cts·°
+                    </text>
+                    <text x="8" y="42" className="fill-slate-400 font-mono text-[7.5px]">
+                      I_max = {activeInspectPeak.iMax.toFixed(0)} cts
+                    </text>
+                    <text x="8" y="56" className="fill-amber-300 font-mono text-[8px] font-bold">
+                      β_obs = {activeInspectPeak.betaObs.toFixed(4)}°
+                    </text>
+                    <text x="8" y="70" className="fill-purple-300 font-mono text-[8px] font-bold">
+                      φ = FWHM/β = {activeInspectPeak.phi.toFixed(3)}
+                    </text>
+                    <text x="8" y="84" className="fill-emerald-300 font-mono text-[8px] font-bold">
+                      d_hkl = {activeInspectPeak.dSpacing.toFixed(3)} Å
+                    </text>
+                  </g>
+                </svg>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Dataset Health & Physical Summary Strip */}
       {reflectionStats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-[#0A101C] p-3 rounded-2xl border border-white/5 text-xs font-mono">
+        <div className="px-4 py-2 bg-[#050A14] border-b border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono tabular-nums">
           <div>
-            <span className="text-[9px] text-slate-500 uppercase tracking-wider block font-sans font-bold">2θ Range</span>
-            <span className="text-white font-bold">{reflectionStats.minTT.toFixed(2)}° – {reflectionStats.maxTT.toFixed(2)}°</span>
-            <span className="text-[9px] text-slate-500 block">Δ2θ = {reflectionStats.spreadTT.toFixed(1)}°</span>
+            <span className="text-[8px] text-slate-500 uppercase tracking-wider block font-sans font-bold">2θ Range</span>
+            <span className="text-white font-bold">{reflectionStats.minTT.toFixed(1)}°–{reflectionStats.maxTT.toFixed(1)}°</span>
           </div>
 
           <div>
-            <span className="text-[9px] text-slate-500 uppercase tracking-wider block font-sans font-bold">Mean Shape (φ)</span>
-            <span className="text-amber-300 font-bold">{reflectionStats.avgPhi.toFixed(3)}</span>
-            <span className="text-[9px] text-slate-500 block">FWHM / β_obs</span>
+            <span className="text-[8px] text-slate-500 uppercase tracking-wider block font-sans font-bold">Mean β_obs</span>
+            <span className="text-amber-300 font-bold">{reflectionStats.avgBeta.toFixed(3)}°</span>
           </div>
 
-          <div className="col-span-2">
-            <span className="text-[9px] text-slate-500 uppercase tracking-wider block font-sans font-bold">Profile Diagnosis</span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold truncate ${reflectionStats.natureColor}`}>
-                {reflectionStats.profileNature}
-              </span>
-            </div>
+          <div>
+            <span className="text-[8px] text-slate-500 uppercase tracking-wider block font-sans font-bold">Mean Shape (φ)</span>
+            <span className="text-cyan-300 font-bold">{reflectionStats.avgPhi.toFixed(3)}</span>
+          </div>
+
+          <div>
+            <span className="text-[8px] text-slate-500 uppercase tracking-wider block font-sans font-bold">Regime</span>
+            <span className={`px-1.5 py-0.5 rounded border text-[8.5px] font-bold inline-block truncate max-w-full ${reflectionStats.natureColor}`}>
+              {reflectionStats.profileNature.split(' ')[0]}
+            </span>
           </div>
         </div>
       )}
 
       {/* ACTION TOOLBAR */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/5">
+      <div className="p-2.5 border-b border-white/5 flex flex-wrap items-center justify-between gap-2 bg-[#060C18]">
         <div className="flex flex-wrap items-center gap-1.5">
-          {/* Add Reflection button */}
           <button
             type="button"
             onClick={() => setIsAddFormOpen(!isAddFormOpen)}
-            className="px-2.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3 h-3" />
             <span>Add Peak</span>
           </button>
 
-          {/* Sort by 2theta */}
           <button
             type="button"
             onClick={handleSortAscending}
-            className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
             title="Sort reflections in ascending 2θ order"
           >
-            <ArrowUpDown className="w-3.5 h-3.5 text-purple-400" />
+            <ArrowUpDown className="w-3 h-3 text-purple-400" />
             <span>Sort 2θ</span>
           </button>
 
-          {/* Normalize Intensities */}
           <button
             type="button"
             onClick={handleNormalizeIntensities}
-            className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
             title="Scale peak areas such that maximum peak I_max = 1000 counts"
           >
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            <Zap className="w-3 h-3 text-amber-400" />
             <span>Normalize</span>
           </button>
 
-          {/* Synthetic Generator */}
           <button
             type="button"
             onClick={() => setShowSyntheticModal(true)}
-            className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-pink-500/20 to-purple-500/20 hover:from-pink-500/30 hover:to-purple-500/30 border border-pink-500/40 text-pink-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Generate synthetic Bragg reflections for FCC, BCC, Diamond or Hexagonal structures"
+            className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-pink-500/20 to-purple-500/20 hover:from-pink-500/30 hover:to-purple-500/30 border border-pink-500/40 text-pink-300 text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+            title="Generate synthetic Bragg reflections"
           >
-            <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+            <Sparkles className="w-3 h-3 text-pink-400" />
             <span>Synthetic Lab</span>
           </button>
         </div>
 
         {/* Right Action Group: Upload, Copy, Download */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <input
             type="file"
             ref={fileInputRef}
@@ -456,37 +827,37 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Import reflections from CSV, TXT, or XY file"
           >
-            <Upload className="w-3.5 h-3.5" />
+            <Upload className="w-3 h-3" />
           </button>
 
           <button
             type="button"
             onClick={handleDownloadCSV}
-            className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Download reflections as CSV"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3 h-3" />
           </button>
 
           <button
             type="button"
             onClick={handleCopyClipboard}
-            className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Copy reflections to clipboard"
           >
-            {copiedNotification ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            {copiedNotification ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           </button>
 
           <button
             type="button"
             onClick={() => setShowFormatHelp(!showFormatHelp)}
-            className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
             title="Show formatting help"
           >
-            <HelpCircle className="w-3.5 h-3.5 text-slate-400" />
+            <HelpCircle className="w-3 h-3 text-slate-400" />
           </button>
         </div>
       </div>
@@ -498,108 +869,104 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden bg-[#0A101C] p-4 rounded-2xl border border-purple-500/30 space-y-3"
+            className="overflow-hidden bg-[#050A14] p-3.5 border-b border-purple-500/30 space-y-2.5"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
                 <Plus className="w-3.5 h-3.5" /> Add New Reflection
               </span>
-              <span className="text-[10px] font-mono text-slate-500">Live Integral Breadth = Area / I_max</span>
+              {parseFloat(newArea) > 0 && parseFloat(newImax) > 0 && (
+                <span className="text-[10px] font-mono tabular-nums text-cyan-300 font-bold">
+                  β_obs = {(parseFloat(newArea) / parseFloat(newImax)).toFixed(4)}°
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 font-mono text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
               <div>
-                <label className="text-[9px] text-slate-400 block mb-1">2θ (deg)*</label>
+                <label className="text-[8px] text-slate-400 uppercase block mb-1">2θ (deg)*</label>
                 <input
                   type="number"
                   step="0.01"
-                  placeholder="e.g. 28.44"
+                  placeholder="28.44"
                   value={newTwoTheta}
                   onChange={(e) => setNewTwoTheta(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-[#050A14] text-white border border-white/10 rounded-xl focus:border-purple-500/50 outline-none"
+                  className="w-full px-2 py-1.5 bg-[#0A101C] text-white border border-white/10 rounded-lg focus:border-purple-500/50 outline-none tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="text-[9px] text-slate-400 block mb-1">FWHM (deg)</label>
+                <label className="text-[8px] text-slate-400 uppercase block mb-1">FWHM (deg)</label>
                 <input
                   type="number"
                   step="0.005"
-                  placeholder="e.g. 0.22"
+                  placeholder="0.22"
                   value={newFwhm}
                   onChange={(e) => setNewFwhm(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-[#050A14] text-white border border-white/10 rounded-xl focus:border-purple-500/50 outline-none"
+                  className="w-full px-2 py-1.5 bg-[#0A101C] text-white border border-white/10 rounded-lg focus:border-purple-500/50 outline-none tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="text-[9px] text-slate-400 block mb-1">Area (counts·°)*</label>
+                <label className="text-[8px] text-slate-400 uppercase block mb-1">Area (cts·°)*</label>
                 <input
                   type="number"
                   step="1"
-                  placeholder="e.g. 230"
+                  placeholder="230"
                   value={newArea}
                   onChange={(e) => setNewArea(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-[#050A14] text-white border border-white/10 rounded-xl focus:border-purple-500/50 outline-none"
+                  className="w-full px-2 py-1.5 bg-[#0A101C] text-white border border-white/10 rounded-lg focus:border-purple-500/50 outline-none tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="text-[9px] text-slate-400 block mb-1">I_max (counts)*</label>
+                <label className="text-[8px] text-slate-400 uppercase block mb-1">I_max (cts)*</label>
                 <input
                   type="number"
                   step="1"
-                  placeholder="e.g. 1000"
+                  placeholder="1000"
                   value={newImax}
                   onChange={(e) => setNewImax(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-[#050A14] text-white border border-white/10 rounded-xl focus:border-purple-500/50 outline-none"
+                  className="w-full px-2 py-1.5 bg-[#0A101C] text-white border border-white/10 rounded-lg focus:border-purple-500/50 outline-none tabular-nums"
                 />
               </div>
             </div>
 
-            {/* Optional Miller Indices HKL */}
-            <div className="flex items-center gap-3 pt-1">
-              <span className="text-[10px] font-bold text-slate-400 font-sans uppercase">Miller (h k l):</span>
-              <div className="flex gap-1.5 w-40">
-                <input
-                  type="number"
-                  placeholder="h"
-                  value={newH}
-                  onChange={(e) => setNewH(e.target.value)}
-                  className="w-12 px-2 py-1 bg-[#050A14] text-purple-300 border border-white/10 rounded-lg text-center font-mono text-xs outline-none"
-                />
-                <input
-                  type="number"
-                  placeholder="k"
-                  value={newK}
-                  onChange={(e) => setNewK(e.target.value)}
-                  className="w-12 px-2 py-1 bg-[#050A14] text-purple-300 border border-white/10 rounded-lg text-center font-mono text-xs outline-none"
-                />
-                <input
-                  type="number"
-                  placeholder="l"
-                  value={newL}
-                  onChange={(e) => setNewL(e.target.value)}
-                  className="w-12 px-2 py-1 bg-[#050A14] text-purple-300 border border-white/10 rounded-lg text-center font-mono text-xs outline-none"
-                />
+            <div className="flex items-center justify-between gap-2 pt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-bold text-slate-400 uppercase">Miller (h k l):</span>
+                <div className="flex gap-1">
+                  <input
+                    type="number"
+                    placeholder="h"
+                    value={newH}
+                    onChange={(e) => setNewH(e.target.value)}
+                    className="w-9 px-1.5 py-1 bg-[#0A101C] text-purple-300 border border-white/10 rounded-md text-center font-mono tabular-nums text-xs outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="k"
+                    value={newK}
+                    onChange={(e) => setNewK(e.target.value)}
+                    className="w-9 px-1.5 py-1 bg-[#0A101C] text-purple-300 border border-white/10 rounded-md text-center font-mono tabular-nums text-xs outline-none"
+                  />
+                  <input
+                    type="number"
+                    placeholder="l"
+                    value={newL}
+                    onChange={(e) => setNewL(e.target.value)}
+                    className="w-9 px-1.5 py-1 bg-[#0A101C] text-purple-300 border border-white/10 rounded-md text-center font-mono tabular-nums text-xs outline-none"
+                  />
+                </div>
               </div>
 
-              <div className="flex-1 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddFormOpen(false)}
-                  className="px-3 py-1 rounded-xl text-slate-400 hover:text-white text-xs cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddPeak}
-                  className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/30 cursor-pointer"
-                >
-                  Insert Reflection
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleAddPeak}
+                className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-black uppercase tracking-wider text-[10px] shadow-md shadow-purple-600/30 cursor-pointer"
+              >
+                Insert Peak
+              </button>
             </div>
           </motion.div>
         )}
@@ -612,213 +979,189 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden bg-[#0A101C] p-4 rounded-2xl border border-white/10 space-y-2 text-xs text-slate-300 font-mono"
+            className="overflow-hidden bg-[#050A14] p-3.5 border-b border-white/10 space-y-2 text-xs text-slate-300 font-mono"
           >
-            <div className="flex justify-between items-center text-white font-bold font-sans">
-              <span>Supported Input Formats:</span>
+            <div className="flex justify-between items-center text-white font-bold font-sans text-[11px]">
+              <span>Supported Reflection Formats:</span>
               <button onClick={() => setShowFormatHelp(false)} className="text-slate-500 hover:text-white">✕</button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
-              <div className="bg-[#050A14] p-2.5 rounded-xl border border-white/5">
-                <span className="text-purple-400 font-bold block mb-1">Standard (5 Columns):</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+              <div className="bg-[#0A101C] p-2 rounded-xl border border-white/5">
+                <span className="text-purple-400 font-bold block mb-0.5">Standard (with FWHM):</span>
                 <code>28.44, 0.22, 230, 1000, 1 1 1</code>
-                <p className="text-[9px] text-slate-500 mt-1 font-sans">2θ, FWHM, Area, I_max, Miller (h k l)</p>
               </div>
-              <div className="bg-[#050A14] p-2.5 rounded-xl border border-white/5">
-                <span className="text-purple-400 font-bold block mb-1">Minimal (3 Columns):</span>
-                <code>28.44, 230, 1000</code>
-                <p className="text-[9px] text-slate-500 mt-1 font-sans">2θ, Area, I_max (auto-computes FWHM)</p>
+              <div className="bg-[#0A101C] p-2 rounded-xl border border-white/5">
+                <span className="text-purple-400 font-bold block mb-0.5">Integral Breadth (Area &amp; I_max):</span>
+                <code>28.44, 230, 1000, 1 1 1</code>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* MAIN VIEW: Interactive Table Grid vs Raw Text Editor */}
+      {/* MAIN VIEW: Interactive Reflection Cards vs Raw CSV Editor */}
       {viewMode === 'table' ? (
-        <div className="space-y-2">
-          {parsedPeaks.length === 0 ? (
-            <div className="p-8 text-center rounded-2xl bg-[#050A14] border border-dashed border-white/10 space-y-3">
-              <AlertCircle className="w-8 h-8 text-purple-400/60 mx-auto" />
-              <p className="text-sm font-bold text-slate-300">No reflections loaded in dataset</p>
-              <p className="text-xs text-slate-500 font-mono">
-                Click &quot;Add Peak&quot;, upload a CSV, or choose a standard material preset above.
-              </p>
+        <div className="max-h-[410px] overflow-y-auto custom-scrollbar p-2.5 space-y-2">
+          {enrichedPeaks.length === 0 ? (
+            <div className="p-8 text-center rounded-2xl bg-[#050A14] border border-dashed border-white/10 space-y-2">
+              <AlertCircle className="w-7 h-7 text-purple-400/60 mx-auto" />
+              <p className="text-xs font-bold text-slate-300">No reflections loaded in dataset</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#050A14]">
-              <table className="w-full text-left text-xs font-mono">
-                <thead>
-                  <tr className="border-b border-white/10 text-slate-400 uppercase text-[10px] tracking-wider bg-[#070D18]">
-                    <th className="py-2.5 px-3 w-10">#</th>
-                    <th className="py-2.5 px-3">2θ (°)</th>
-                    <th className="py-2.5 px-3">FWHM (°)</th>
-                    <th className="py-2.5 px-3">Area (cts·°)</th>
-                    <th className="py-2.5 px-3">I_max</th>
-                    <th className="py-2.5 px-3">β_Obs (°)</th>
-                    <th className="py-2.5 px-3">Shape φ</th>
-                    <th className="py-2.5 px-3">h k l</th>
-                    <th className="py-2.5 px-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {parsedPeaks.map((peak, idx) => {
-                    const betaObs = peak.area / peak.iMax;
-                    const phi = peak.fwhm / betaObs;
-                    
-                    let shapeBadge = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-                    let shapeLabel = 'Voigt';
-                    if (phi <= 0.67) {
-                      shapeBadge = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-                      shapeLabel = 'Cauchy';
-                    } else if (phi >= 0.88) {
-                      shapeBadge = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
-                      shapeLabel = 'Gauss';
-                    }
+            enrichedPeaks.map((peak) => {
+              const isSelected = peak.idx === (hoveredPeakIdx !== null ? hoveredPeakIdx : activeSelectedIdx);
+              const matchingResult = results[peak.idx];
 
-                    const matchingResult = results[idx];
+              let shapeBadge = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+              if (peak.shapeType === 'Cauchy') shapeBadge = 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+              else if (peak.shapeType === 'Gauss') shapeBadge = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
 
-                    return (
-                      <tr key={idx} className="hover:bg-purple-500/10 transition-colors group">
-                        {/* Index */}
-                        <td className="py-2.5 px-3 text-slate-500 font-bold">
-                          {idx + 1}
-                        </td>
+              return (
+                <div
+                  key={peak.idx}
+                  onClick={() => setSelectedPeakIdx(peak.idx)}
+                  onMouseEnter={() => setHoveredPeakIdx(peak.idx)}
+                  onMouseLeave={() => setHoveredPeakIdx(null)}
+                  className={`rounded-xl border p-2.5 transition-all font-mono tabular-nums ${
+                    isSelected
+                      ? 'bg-[#0C1526] border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.12)]'
+                      : 'bg-[#09101E] border-white/5 hover:border-white/15'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1.5 mb-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-black text-slate-400 bg-black/40 px-1.5 py-0.5 rounded border border-white/5">
+                        #{peak.idx + 1}
+                      </span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        β_obs = {peak.betaObs.toFixed(3)}°
+                      </span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${shapeBadge}`}>
+                        φ = {peak.phi.toFixed(2)} ({peak.shapeType})
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
+                        d = {peak.dSpacing.toFixed(3)} Å
+                      </span>
+                    </div>
 
-                        {/* 2Theta */}
-                        <td className="py-2.5 px-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={peak.twoTheta}
-                            onChange={(e) => handleUpdateRow(idx, 'twoTheta', e.target.value)}
-                            className="w-20 px-2 py-1 bg-[#0A101C] text-white font-bold border border-transparent hover:border-white/10 focus:border-purple-500/50 rounded-lg outline-none"
-                          />
-                        </td>
+                    <div className="flex items-center gap-0.5">
+                      {matchingResult && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedInspectPeak({ result: matchingResult, index: peak.idx });
+                          }}
+                          className="p-1 rounded hover:bg-purple-500/20 text-slate-400 hover:text-purple-300 transition-colors cursor-pointer"
+                          title="Inspect single-line Voigt derivation"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicateRow(peak.idx);
+                        }}
+                        className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                        title="Duplicate reflection"
+                      >
+                        <Copy className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRow(peak.idx);
+                        }}
+                        className="p-1 rounded hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                        title="Delete reflection"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
 
-                        {/* FWHM */}
-                        <td className="py-2.5 px-2">
-                          <input
-                            type="number"
-                            step="0.005"
-                            value={peak.fwhm}
-                            onChange={(e) => handleUpdateRow(idx, 'fwhm', e.target.value)}
-                            className="w-18 px-2 py-1 bg-[#0A101C] text-slate-300 border border-transparent hover:border-white/10 focus:border-purple-500/50 rounded-lg outline-none"
-                          />
-                        </td>
-
-                        {/* Area */}
-                        <td className="py-2.5 px-2">
-                          <input
-                            type="number"
-                            step="1"
-                            value={peak.area}
-                            onChange={(e) => handleUpdateRow(idx, 'area', e.target.value)}
-                            className="w-20 px-2 py-1 bg-[#0A101C] text-slate-300 border border-transparent hover:border-white/10 focus:border-purple-500/50 rounded-lg outline-none"
-                          />
-                        </td>
-
-                        {/* Imax */}
-                        <td className="py-2.5 px-2">
-                          <input
-                            type="number"
-                            step="1"
-                            value={peak.iMax}
-                            onChange={(e) => handleUpdateRow(idx, 'iMax', e.target.value)}
-                            className="w-20 px-2 py-1 bg-[#0A101C] text-slate-300 border border-transparent hover:border-white/10 focus:border-purple-500/50 rounded-lg outline-none"
-                          />
-                        </td>
-
-                        {/* Live Calculated Beta_Obs */}
-                        <td className="py-2.5 px-3 font-bold text-amber-300">
-                          {betaObs.toFixed(3)}°
-                        </td>
-
-                        {/* Live Shape Factor Phi */}
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-white">{phi.toFixed(2)}</span>
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${shapeBadge}`}>
-                              {shapeLabel}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* HKL */}
-                        <td className="py-2.5 px-2">
-                          <div className="flex gap-1 w-24">
-                            <input
-                              type="number"
-                              placeholder="h"
-                              value={peak.hkl ? peak.hkl[0] : ''}
-                              onChange={(e) => handleUpdateRow(idx, 'h', e.target.value)}
-                              className="w-7 px-1 py-1 bg-[#0A101C] text-purple-300 text-center rounded border border-transparent hover:border-white/10 focus:border-purple-500/50 outline-none text-xs"
-                            />
-                            <input
-                              type="number"
-                              placeholder="k"
-                              value={peak.hkl ? peak.hkl[1] : ''}
-                              onChange={(e) => handleUpdateRow(idx, 'k', e.target.value)}
-                              className="w-7 px-1 py-1 bg-[#0A101C] text-purple-300 text-center rounded border border-transparent hover:border-white/10 focus:border-purple-500/50 outline-none text-xs"
-                            />
-                            <input
-                              type="number"
-                              placeholder="l"
-                              value={peak.hkl ? peak.hkl[2] : ''}
-                              onChange={(e) => handleUpdateRow(idx, 'l', e.target.value)}
-                              className="w-7 px-1 py-1 bg-[#0A101C] text-purple-300 text-center rounded border border-transparent hover:border-white/10 focus:border-purple-500/50 outline-none text-xs"
-                            />
-                          </div>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-2.5 px-3 text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                            {matchingResult && (
-                              <button
-                                type="button"
-                                onClick={() => setSelectedInspectPeak({ result: matchingResult, index: idx })}
-                                className="p-1 rounded-lg hover:bg-purple-500/20 text-slate-400 hover:text-purple-300 transition-colors cursor-pointer"
-                                title="Inspect detailed single-line Voigt derivation"
-                              >
-                                <Maximize2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDuplicateRow(idx)}
-                              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                              title="Duplicate reflection row"
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteRow(idx)}
-                              className="p-1 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
-                              title="Delete reflection"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  <div className="grid grid-cols-12 gap-1.5 items-center">
+                    <div className="col-span-3">
+                      <label className="text-[7.5px] font-sans font-bold text-slate-500 uppercase block mb-0.5">2θ (°)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={peak.twoTheta}
+                        onChange={(e) => handleUpdateRow(peak.idx, 'twoTheta', e.target.value)}
+                        className="w-full px-1.5 py-1 bg-[#050A14] text-white font-bold border border-white/10 focus:border-purple-500/60 rounded-lg text-xs outline-none tabular-nums"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[7.5px] font-sans font-bold text-slate-500 uppercase block mb-0.5">FWHM (°)</label>
+                      <input
+                        type="number"
+                        step="0.005"
+                        value={peak.fwhm}
+                        onChange={(e) => handleUpdateRow(peak.idx, 'fwhm', e.target.value)}
+                        className="w-full px-1.5 py-1 bg-[#050A14] text-amber-300 font-bold border border-white/10 focus:border-amber-500/60 rounded-lg text-xs outline-none tabular-nums"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[7.5px] font-sans font-bold text-slate-500 uppercase block mb-0.5">Area</label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={peak.area}
+                        onChange={(e) => handleUpdateRow(peak.idx, 'area', e.target.value)}
+                        className="w-full px-1.5 py-1 bg-[#050A14] text-emerald-300 font-bold border border-white/10 focus:border-emerald-500/60 rounded-lg text-xs outline-none tabular-nums"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-[7.5px] font-sans font-bold text-slate-500 uppercase block mb-0.5">I_max</label>
+                      <input
+                        type="number"
+                        step="50"
+                        value={peak.iMax}
+                        onChange={(e) => handleUpdateRow(peak.idx, 'iMax', e.target.value)}
+                        className="w-full px-1.5 py-1 bg-[#050A14] text-cyan-300 font-bold border border-white/10 focus:border-cyan-500/60 rounded-lg text-xs outline-none tabular-nums"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <label className="text-[7.5px] font-sans font-bold text-slate-500 uppercase block mb-0.5 text-center">(h k l)</label>
+                      <div className="grid grid-cols-3 gap-1">
+                        <input
+                          type="number"
+                          value={peak.hklVal[0]}
+                          onChange={(e) => handleUpdateRow(peak.idx, 'h', e.target.value)}
+                          className="w-full py-1 bg-[#050A14] text-purple-300 text-center rounded-md border border-white/10 focus:border-purple-500/60 outline-none text-[11px] font-bold tabular-nums"
+                        />
+                        <input
+                          type="number"
+                          value={peak.hklVal[1]}
+                          onChange={(e) => handleUpdateRow(peak.idx, 'k', e.target.value)}
+                          className="w-full py-1 bg-[#050A14] text-purple-300 text-center rounded-md border border-white/10 focus:border-purple-500/60 outline-none text-[11px] font-bold tabular-nums"
+                        />
+                        <input
+                          type="number"
+                          value={peak.hklVal[2]}
+                          onChange={(e) => handleUpdateRow(peak.idx, 'l', e.target.value)}
+                          className="w-full py-1 bg-[#050A14] text-purple-300 text-center rounded-md border border-white/10 focus:border-purple-500/60 outline-none text-[11px] font-bold tabular-nums"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       ) : (
         /* RAW CSV / TSV TEXT EDITOR */
-        <div className="space-y-2">
+        <div className="p-3 space-y-2">
           <div className="relative">
             <textarea
               value={inputData}
               onChange={(e) => onInputChange(e.target.value)}
               rows={7}
-              className="w-full px-3 py-2.5 bg-[#050A14] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-2xl focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-xs leading-relaxed"
+              className="w-full px-3 py-2.5 bg-[#050A14] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-2xl focus:ring-1 focus:ring-purple-500/20 outline-none font-mono tabular-nums text-xs leading-relaxed"
               placeholder="28.44, 0.22, 230, 1000, 1 1 1"
             />
           </div>
@@ -837,7 +1180,6 @@ export const ReflectionsDataManager: React.FC<ReflectionsDataManagerProps> = ({
             </span>
           </div>
 
-          {/* Syntax Validation Error & Warning Banners */}
           {validationInfo.errors.length > 0 && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl space-y-1">
               <span className="text-[11px] font-bold text-red-400 flex items-center gap-1.5">

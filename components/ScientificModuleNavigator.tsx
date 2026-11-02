@@ -82,7 +82,6 @@ export type ModuleId =
   | 'supercell_transform' 
   | 'pawley_lebail' 
   | 'rir' 
-  | 'rietveld' 
   | 'neutron' 
   | 'magnetic' 
   | 'dl' 
@@ -164,9 +163,9 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   const [favorites, setFavorites] = useState<ModuleId[]>(() => {
     try {
       const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : ['bragg', 'scherrer', 'wh', 'rietveld', 'xrd_nano'];
+      return saved ? JSON.parse(saved).filter((id: string) => id !== 'rietveld') : ['bragg', 'scherrer', 'wh', 'pawley_lebail', 'xrd_nano'];
     } catch {
-      return ['bragg', 'scherrer', 'wh', 'rietveld', 'xrd_nano'];
+      return ['bragg', 'scherrer', 'wh', 'pawley_lebail', 'xrd_nano'];
     }
   });
 
@@ -320,7 +319,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'مدل‌سازی بافت و ناهمسانگردی جهت‌گیری دانه‌ها در لایه‌های نازک یا پودرهای فشرده.'
           : 'Mathematical texture model to correct intensity aberrations caused by plate-like or needle-like crystallite orientations.',
-        suggestedNext: ['residual_stress', 'xrr', 'rietveld']
+        suggestedNext: ['residual_stress', 'xrr', 'pawley_lebail']
       },
       {
         id: 'xrr',
@@ -567,7 +566,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'استخراج تجربی شدت‌های منفرد برای حل ساختارهای مجهول بلوری بدون داشتن موقعیت‌های اتمی.'
           : 'Extracts structural factors and individual reflection intensities without an initial atomic model, ideal for ab initio indexing.',
-        suggestedNext: ['rietveld', 'rir']
+        suggestedNext: ['rir', 'cohen']
       },
       {
         id: 'rir',
@@ -585,28 +584,10 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'تعیین سریع کسر وزنی فازهای موجود در مخلوط‌های چندفازی با استفاده از نسبت شدت استاندارد کوراندوم.'
           : 'Calculates weight percentages in multiphase mineral mixtures using relative corundum scale factors (I/I_c).',
-        suggestedNext: ['compare', 'rietveld', 'dl']
+        suggestedNext: ['compare', 'pawley_lebail', 'dl']
       },
 
-      // Category 4: Rietveld & Quantum Sim
-      {
-        id: 'rietveld',
-        label: t('Rietveld Full Profile Setup', 'Rietveld Setup'),
-        category: t('Rietveld & Quantum Sim', 'Rietveld & Quantum Sim'),
-        categoryIcon: <Orbit className="w-4 h-4 text-amber-400" />,
-        subtitle: t('Crystal structure refinement, atomic positions & fit quality R_wp', 'Crystal structure refinement, atomic positions & fit quality R_wp'),
-        formula: 'S(y) = Σ w_i (y_o - y_c)²',
-        tags: ['Rietveld', 'Refinement', 'Atomic Coordinates', 'Rwp', 'Chi2', 'Background', 'Occupancy'],
-        icon: <Sliders className={`${defaultIconClass} text-amber-400`} />,
-        inputs: ['Experimental Profile y_o', 'Structural Model CIF', 'Instrument Profile Parameters (U, V, W)'],
-        outputs: ['Calculated Pattern y_c', 'Difference Curve (y_o - y_c)', 'R_wp, R_exp, GOF (χ²)', 'Refined Atom Sites'],
-        complexity: 'Expert',
-        isPopular: true,
-        descriptionDetail: isRTL
-          ? 'پالایش کامل پروفایل ریتولد برای تعیین دقیق ساختار سه‌بعدی اتمی، ضرایب اشغال، کرنش ناهمسانگرد و درصد فازی.'
-          : 'Full-profile whole pattern least-squares refinement modeling atomic coordinates, thermal factors, and instrument geometry.',
-        suggestedNext: ['neutron', 'magnetic', 'python_export']
-      },
+      // Category 4: Quantum Sim & Scripting
       {
         id: 'neutron',
         label: t('Neutron Diffraction Physics', 'Neutron Diffraction'),
@@ -622,7 +603,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'پراکندگی نوترونی برای تشخیص موقعیت اتم‌های بسیار سبک نظیر هیدروژن و لیتیوم که در اشعه ایکس نامرئی هستند.'
           : 'Nuclear scattering physics utilizing Fermi scattering lengths b_i to localize light atoms in battery and biological materials.',
-        suggestedNext: ['magnetic', 'rietveld']
+        suggestedNext: ['magnetic', 'python_export']
       },
       {
         id: 'magnetic',
@@ -639,7 +620,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'محاسبه پیک‌های فرعی مغناطیسی در ساختارهای آنتی‌فرومغناطیس، فریمغناطیس و امواج چگالی اسپین.'
           : 'Calculates magnetic interaction vectors and magnetic structure factors for spin-ordered topological materials.',
-        suggestedNext: ['neutron', 'rietveld']
+        suggestedNext: ['neutron', 'python_export']
       },
       {
         id: 'python_export',
@@ -765,7 +746,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'مجموعه معتبر استانداردهای بلوری کالیبراسیون و فازهای پرکاربرد سرامیکی، فلزی، اکسیدی و کوانتومی.'
           : 'Extensive library of verified standard CIF structures and reference peak profiles for instant calibration and lookup.',
-        suggestedNext: ['compare', 'selection', 'rietveld']
+        suggestedNext: ['compare', 'selection', 'pawley_lebail']
       },
       {
         id: 'learn',
@@ -782,7 +763,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'مرجع آموزشی جامع حاوی اثبات‌های ریاضی فرمول‌ها، شیوه‌نامه‌های آماده‌سازی نمونه و راهنماهای گام به گام.'
           : 'Interactive academic textbook containing deep mathematical derivations, experimental SOPs, and troubleshooting guides.',
-        suggestedNext: ['bragg', 'scherrer', 'rietveld']
+        suggestedNext: ['bragg', 'scherrer', 'wh']
       },
       {
         id: 'profile',
@@ -866,12 +847,12 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       id: 'phase-id-quant',
       title: 'Multiphase ID & Quantitative Composition',
       titleFa: 'شناسایی فاز و تعیین کمی درصدهای وزنی',
-      description: 'Rapid AI deep learning classification, spectral overlay, RIR corundum ratios, and full Rietveld refinement.',
-      descriptionFa: 'تشخیص فاز با هوش مصنوعی، انطباق طیفی و پالایش کامل ریتولد.',
+      description: 'Rapid AI deep learning classification, spectral overlay, RIR corundum ratios, and Pawley/Le Bail extraction.',
+      descriptionFa: 'تشخیص فاز با هوش مصنوعی، انطباق طیفی و استخراج الگوی پاولی.',
       icon: <Brain className="w-4 h-4 text-pink-400" />,
-      moduleIds: ['dl', 'compare', 'rir', 'pawley_lebail', 'rietveld'],
-      stepLabels: ['1. AI PhaseID Neural Scan', '2. Spectral Pattern Overlay', '3. RIR Quantitative wt%', '4. Pawley Pattern Extraction', '5. Rietveld Whole-Profile Fit'],
-      stepLabelsFa: ['۱. اسکن شبکه عصبی PhaseID', '۲. انطباق طیفی چندگانه', '۳. وزن درصدی RIR کوراندوم', '۴. استخراج الگوی پاولی', '۵. پالایش کامل ریتولد'],
+      moduleIds: ['dl', 'compare', 'rir', 'pawley_lebail'],
+      stepLabels: ['1. AI PhaseID Neural Scan', '2. Spectral Pattern Overlay', '3. RIR Quantitative wt%', '4. Pawley Pattern Extraction'],
+      stepLabelsFa: ['۱. اسکن شبکه عصبی PhaseID', '۲. انطباق طیفی چندگانه', '۳. وزن درصدی RIR کوراندوم', '۴. استخراج الگوی پاولی'],
       tag: 'Quantitative Phase',
       color: 'from-pink-600 to-rose-500'
     },
@@ -882,9 +863,9 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       description: 'Locate light elements (H, Li) via nuclear scattering lengths and determine magnetic moment vectors.',
       descriptionFa: 'ردیابی عناصر سبک (H, Li) و ساختارهای مغناطیسی با فاکتورهای فرم اسپین.',
       icon: <Magnet className="w-4 h-4 text-cyan-400" />,
-      moduleIds: ['neutron', 'magnetic', 'rietveld'],
-      stepLabels: ['1. Nuclear Scattering Lengths', '2. Magnetic Form Factor & Superlattices', '3. Combined Nuclear-Magnetic Rietveld'],
-      stepLabelsFa: ['۱. طول پراکندگی هسته‌ای', '۲. فاکتور فرم و ابرشبکه مغناطیسی', '۳. پالایش توأم هسته‌ای-مغناطیسی'],
+      moduleIds: ['neutron', 'magnetic'],
+      stepLabels: ['1. Nuclear Scattering Lengths', '2. Magnetic Form Factor & Superlattices'],
+      stepLabelsFa: ['۱. طول پراکندگی هسته‌ای', '۲. فاکتور فرم و ابرشبکه مغناطیسی'],
       tag: 'Quantum Physics',
       color: 'from-cyan-600 to-blue-500'
     }
@@ -893,7 +874,6 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   // Quick Preset Search Tags
   const quickSearchTags = useMemo(() => [
     { label: t('Size & Strain', 'Size & Strain'), tag: 'Microstrain' },
-    { label: t('Rietveld', 'Rietveld'), tag: 'Rietveld' },
     { label: t('Thin Films & XRR', 'Thin Films & XRR'), tag: 'XRR' },
     { label: t('AI & Vision', 'AI & Vision'), tag: 'AI' },
     { label: t('Lattice Parameters', 'Lattice Parameters'), tag: 'Cohen' },

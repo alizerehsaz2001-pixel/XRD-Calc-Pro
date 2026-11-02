@@ -33,6 +33,11 @@ import { CrystalSystemsGallery } from './CrystalSystemsGallery';
 import { PythonCrystallographyStudio } from './PythonCrystallographyStudio';
 import { APFMathematicsSection } from './APFMathematicsSection';
 import { Interactive3DGeometryVisualizer } from './Interactive3DGeometryVisualizer';
+import {
+  CrystalSystemMiniSchematic,
+  BravaisCenteringSchematic,
+  UnitCellHeroSchematic
+} from './UnitCellGraphics';
 
 export type CrystalSystemId = 
   | 'cubic' 
@@ -403,198 +408,280 @@ export const UnitCellsSection: React.FC = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       
-      {/* Textbook Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950/80 to-slate-900 border border-slate-800 p-8 shadow-2xl">
+      {/* High-Precision Laboratory Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/90 border border-slate-800 p-6 sm:p-8 shadow-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
         <div className="absolute -right-12 -top-12 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-8 bottom-4 opacity-5 pointer-events-none">
-          <Box className="w-64 h-64 text-white" />
+
+        <div className="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6 items-center">
+          <div className="xl:col-span-7 space-y-3">
+            {/* Zero-Pill Typographic Metadata Line */}
+            <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold">
+              <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span>Fundamentals of Crystallography</span>
+              <span className="text-slate-600">·</span>
+              <span className="text-amber-300">7 Crystal Systems</span>
+              <span className="text-slate-600">·</span>
+              <span className="text-emerald-300">14 Bravais Lattices</span>
+              <span className="text-slate-600">·</span>
+              <span className="text-cyan-300">230 Space Groups</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+              Unit Cells & Crystal Systems
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
+              Explore three-dimensional crystal periodicity through translational basis vectors{' '}
+              <span className="font-mono text-indigo-300">T = ua + vb + wc</span>, direct and reciprocal metric tensors{' '}
+              <span className="font-mono text-cyan-300">G_ij</span>, Bravais centering multiplicities, and the 7 canonical holohedral symmetry classes.
+            </p>
+          </div>
+
+          {/* Right Live Hero Schematic Card */}
+          <div className="xl:col-span-5">
+            <UnitCellHeroSchematic
+              systemId={activeSystem.id}
+              centering={activeCentering}
+              systemName={activeSystem.name}
+              axialRelation={activeSystem.axialRelation}
+              angleRelation={activeSystem.angleRelation}
+              spaceGroupsCount={activeSystem.spaceGroupsCount}
+              pointsPerCell={
+                activeSystem.bravaisLattices.find(b => b.type === activeCentering)?.pointsPerCell || 1
+              }
+            />
+          </div>
         </div>
 
-        <div className="relative z-10 space-y-4 max-w-4xl">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
-              Fundamentals of Crystallography • Chapter 1
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
-              Textbook Standard Reference
-            </span>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-              14 Bravais Lattices & 7 Systems
-            </span>
-          </div>
+        {/* Interactive Mode Switcher Ribbon */}
+        <div className="relative z-10 flex items-center gap-1.5 pt-5 mt-5 border-t border-slate-800/80 flex-wrap text-xs">
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('3d'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === '3d'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <Rotate3d className="w-4 h-4 text-cyan-400" />
+            <span>3D Unit Cell & Symmetry</span>
+          </button>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-            Unit Cells & Crystal Systems
-          </h1>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('miller'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'miller'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <Layers className="w-4 h-4 text-emerald-400" />
+            <span>Miller Planes (hkl)</span>
+          </button>
 
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
-            The fundamental architecture of solid-state matter. Discover how infinite three-dimensional crystal periodicity is completely described by translational basis vectors, axial parameters, centering symmetry operators, and the 7 canonical crystal systems.
-          </p>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('metallic'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'metallic'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <Atom className="w-4 h-4 text-rose-400" />
+            <span>Metallic (BCC/FCC/HCP)</span>
+          </button>
 
-          <div className="flex items-center gap-2 pt-2 flex-wrap text-xs">
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('3d'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === '3d'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
-              }`}
-            >
-              <Rotate3d className="w-4 h-4 text-cyan-400" />
-              <span>Interactive 3D Geometry</span>
-            </button>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('apf'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'apf'
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
+                : 'bg-slate-900/90 text-emerald-300 hover:bg-slate-800 border border-emerald-500/30'
+            }`}
+          >
+            <Calculator className="w-4 h-4 text-emerald-400" />
+            <span>APF Exact Math</span>
+          </button>
 
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('miller'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'miller'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
-              }`}
-            >
-              <Layers className="w-4 h-4 text-emerald-400" />
-              <span>Miller Planes (hkl)</span>
-            </button>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('gallery'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'gallery'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <Grid className="w-4 h-4 text-amber-400" />
+            <span>7 Systems & Minerals</span>
+          </button>
 
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('metallic'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'metallic'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
-              }`}
-            >
-              <Atom className="w-4 h-4 text-rose-400" />
-              <span>Metallic (BCC/FCC/HCP)</span>
-            </button>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('python'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'python'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
+                : 'bg-slate-900/90 text-purple-300 hover:bg-slate-800 border border-purple-500/30'
+            }`}
+          >
+            <Terminal className="w-4 h-4 text-purple-400" />
+            <span>Python Studio</span>
+          </button>
 
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('apf'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'apf'
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
-                  : 'bg-slate-800/80 text-emerald-300 hover:bg-slate-700/80 border border-emerald-500/30'
-              }`}
-            >
-              <Calculator className="w-4 h-4 text-emerald-400" />
-              <span>APF Exact Math Formulas</span>
-            </button>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('theory'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'theory'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-amber-400" />
+            <span>Theory & Tensors</span>
+          </button>
 
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('gallery'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'gallery'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
-              }`}
-            >
-              <Grid className="w-4 h-4 text-amber-400" />
-              <span>7 Systems & Minerals</span>
-            </button>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('materials'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'materials'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-blue-400" />
+            <span>Material Catalog</span>
+          </button>
 
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('python'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'python'
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/25'
-                  : 'bg-slate-800/80 text-purple-300 hover:bg-slate-700/80 border border-purple-500/30'
-              }`}
-            >
-              <Terminal className="w-4 h-4 text-purple-400" />
-              <span>Python (Matplotlib/OpenCV)</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('theory'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'theory'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
-              }`}
-            >
-              <BookOpen className="w-4 h-4 text-amber-400" />
-              <span>Theory Breakdown</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('materials'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'materials'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
-              <span>Material Catalog</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setViewMode('quiz'); }}
-              className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
-                viewMode === 'quiz'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
-                  : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700'
-              }`}
-            >
-              <HelpCircle className="w-4 h-4 text-purple-400" />
-              <span>Knowledge Quiz</span>
-            </button>
-          </div>
+          <button
+            onClick={() => { playSynthTone('tick'); setViewMode('quiz'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'quiz'
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25'
+                : 'bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-800'
+            }`}
+          >
+            <HelpCircle className="w-4 h-4 text-purple-400" />
+            <span>Knowledge Quiz</span>
+          </button>
         </div>
       </div>
 
-      {/* Crystal System Selector Navigation Bar */}
+      {/* Crystal System Selector Navigation Bar with Custom Isometric Wireframes */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Compass className="w-4 h-4 text-indigo-400" />
-            The 7 Crystal Systems (Arranged by Symmetry Level)
+            <span>The 7 Crystal Systems · Ordered by Holohedral Symmetry Rank</span>
           </span>
-          <span className="text-[11px] font-mono text-indigo-400 font-semibold">
-            Rank #{activeSystem.orderRank}: {activeSystem.name}
+          <span className="text-[11px] font-mono text-slate-400">
+            Active: <strong className="text-indigo-400">#{activeSystem.orderRank} {activeSystem.name}</strong> ·{' '}
+            <span className="text-cyan-400">{activeSystem.pointGroups[activeSystem.pointGroups.length - 1]}</span> ·{' '}
+            <span className="text-amber-300">{activeSystem.spaceGroupRange}</span>
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
           {CRYSTAL_SYSTEMS_CATALOG.map((sys) => {
             const isSelected = sys.id === selectedSystemId;
+            const displayCentering =
+              isSelected && sys.bravaisLattices.some(b => b.type === activeCentering)
+                ? activeCentering
+                : sys.bravaisLattices[0].type;
+
             return (
               <button
                 key={sys.id}
                 onClick={() => handleSelectSystem(sys.id)}
-                className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between group ${
                   isSelected
-                    ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-500/10'
-                    : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                    ? 'bg-indigo-950/40 border-indigo-500 text-white shadow-lg shadow-indigo-500/15'
+                    : 'bg-slate-900/70 border-slate-800/90 text-slate-400 hover:bg-slate-900 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
+                <div className="flex items-center justify-between text-[10px] font-mono mb-1">
+                  <span className={isSelected ? 'text-indigo-400 font-bold' : 'text-slate-500'}>
+                    #{sys.orderRank} · {sys.spaceGroupsCount} SG
+                  </span>
+                  <span className="text-[10px] font-mono text-amber-400/90 font-bold">
+                    {sys.bravaisLattices.map(b => b.type).join('·')}
+                  </span>
+                </div>
+
+                {/* Isometric Crystal System Vector Schematic */}
+                <div className="my-1.5 py-1 flex items-center justify-center bg-slate-950/70 rounded-xl border border-slate-800/60 group-hover:border-slate-700/80 transition-colors">
+                  <CrystalSystemMiniSchematic
+                    systemId={sys.id}
+                    centering={displayCentering}
+                    isSelected={isSelected}
+                    size="md"
+                  />
+                </div>
+
                 <div>
-                  <div className="flex items-center justify-between text-[10px] font-mono mb-1">
-                    <span className={isSelected ? 'text-indigo-400 font-bold' : 'text-slate-500'}>
-                      #{sys.orderRank}
-                    </span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800/80 text-slate-300">
-                      {sys.bravaisLattices.length} BL
-                    </span>
-                  </div>
-                  <div className="text-xs font-extrabold truncate text-slate-200">
+                  <div className="text-xs font-extrabold truncate text-slate-100">
                     {sys.name.split(' ')[0]}
                   </div>
-                  <div className="text-[10px] font-mono text-slate-400 truncate mt-0.5">
+                  <div className="text-[10px] font-mono text-indigo-300/90 truncate mt-0.5">
                     {sys.axialRelation}
+                  </div>
+                  <div className="text-[9px] font-mono text-slate-400 truncate">
+                    {sys.angleRelation.split('(')[0].trim()}
                   </div>
                 </div>
 
                 {isSelected && (
                   <motion.div
                     layoutId="crystalSystemUnderline"
-                    className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-400"
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400"
                   />
                 )}
               </button>
             );
           })}
+        </div>
+
+        {/* Interactive Bravais Lattice Centering & Multiplicity Strip */}
+        <div className="bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold">
+              Allowed Bravais Lattices for {activeSystem.name} ({activeSystem.bravaisLattices.length} of 14)
+            </div>
+            <p className="text-xs text-slate-400">
+              Select a Bravais centering mode to update the 3D unit cell nodes, coordination bonds, and multiplicity factor.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap w-full lg:w-auto">
+            {activeSystem.bravaisLattices.map((bl) => {
+              const isBravaisActive = activeCentering === bl.type;
+              return (
+                <button
+                  key={bl.type}
+                  onClick={() => {
+                    playSynthTone('tick');
+                    setActiveCentering(bl.type);
+                  }}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border text-left transition-all ${
+                    isBravaisActive
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-md shadow-indigo-500/10'
+                      : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <BravaisCenteringSchematic type={bl.type} isSelected={isBravaisActive} />
+                  <div className="font-mono">
+                    <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <span>{bl.type}-Centered</span>
+                      <span className="text-slate-600">·</span>
+                      <span className="text-emerald-400">Z = {bl.pointsPerCell}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 max-w-[180px] truncate">
+                      {bl.name}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -697,54 +784,66 @@ export const UnitCellsSection: React.FC = () => {
               </h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-indigo-400 text-sm">Primitive (P)</span>
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">N = 1 pt</span>
+                    <div>
+                      <span className="font-bold text-indigo-400 text-sm block">Primitive (P)</span>
+                      <span className="font-mono text-[10px] text-indigo-300">Multiplicity Z = 1 pt</span>
+                    </div>
+                    <BravaisCenteringSchematic type="P" isSelected={true} />
                   </div>
                   <p className="text-slate-400 leading-relaxed">
                     Lattice points reside <strong className="text-slate-200">only at the 8 vertices</strong>. Each corner is shared by 8 adjacent cells:
                   </p>
-                  <div className="font-mono text-indigo-300 bg-slate-950 p-1.5 rounded text-center">
+                  <div className="font-mono text-indigo-300 bg-slate-950 p-1.5 rounded text-center border border-slate-800/80">
                     8 × (⅛) = 1 net point
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-rose-400 text-sm">Body-Centered (I)</span>
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold">N = 2 pts</span>
+                    <div>
+                      <span className="font-bold text-rose-400 text-sm block">Body-Centered (I)</span>
+                      <span className="font-mono text-[10px] text-rose-300">Multiplicity Z = 2 pts</span>
+                    </div>
+                    <BravaisCenteringSchematic type="I" isSelected={true} />
                   </div>
                   <p className="text-slate-400 leading-relaxed">
                     Points at 8 vertices + <strong className="text-slate-200">1 central point</strong> at (½, ½, ½) entirely contained in the cell:
                   </p>
-                  <div className="font-mono text-rose-300 bg-slate-950 p-1.5 rounded text-center">
+                  <div className="font-mono text-rose-300 bg-slate-950 p-1.5 rounded text-center border border-slate-800/80">
                     [8 × (⅛)] + 1 = 2 net points
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-cyan-400 text-sm">Face-Centered (F)</span>
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold">N = 4 pts</span>
+                    <div>
+                      <span className="font-bold text-cyan-400 text-sm block">Face-Centered (F)</span>
+                      <span className="font-mono text-[10px] text-cyan-300">Multiplicity Z = 4 pts</span>
+                    </div>
+                    <BravaisCenteringSchematic type="F" isSelected={true} />
                   </div>
                   <p className="text-slate-400 leading-relaxed">
                     Points at 8 vertices + <strong className="text-slate-200">6 face centers</strong>. Each face atom is shared by 2 adjoining cells:
                   </p>
-                  <div className="font-mono text-cyan-300 bg-slate-950 p-1.5 rounded text-center">
+                  <div className="font-mono text-cyan-300 bg-slate-950 p-1.5 rounded text-center border border-slate-800/80">
                     [8 × (⅛)] + [6 × (½)] = 4 net points
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-emerald-400 text-sm">Base-Centered (C)</span>
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">N = 2 pts</span>
+                    <div>
+                      <span className="font-bold text-emerald-400 text-sm block">Base-Centered (C)</span>
+                      <span className="font-mono text-[10px] text-emerald-300">Multiplicity Z = 2 pts</span>
+                    </div>
+                    <BravaisCenteringSchematic type="C" isSelected={true} />
                   </div>
                   <p className="text-slate-400 leading-relaxed">
                     Points at 8 vertices + <strong className="text-slate-200">2 face centers</strong> on one pair of parallel pinacoidal faces:
                   </p>
-                  <div className="font-mono text-emerald-300 bg-slate-950 p-1.5 rounded text-center">
+                  <div className="font-mono text-emerald-300 bg-slate-950 p-1.5 rounded text-center border border-slate-800/80">
                     [8 × (⅛)] + [2 × (½)] = 2 net points
                   </div>
                 </div>
@@ -914,13 +1013,17 @@ export const UnitCellsSection: React.FC = () => {
                 className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-4 hover:border-slate-700 transition-all flex flex-col justify-between"
               >
                 <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-                      {mat.category}
+                  <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider">
+                    <span className="text-slate-400 font-bold">
+                      {mat.category} <span className="text-slate-600">·</span>{' '}
+                      <span className="text-indigo-400">{mat.spaceGroup}</span>
                     </span>
-                    <span className="text-[10px] font-mono text-indigo-400 font-bold">
-                      {mat.spaceGroup}
-                    </span>
+                    <CrystalSystemMiniSchematic
+                      systemId={activeSystem.id}
+                      centering={activeCentering}
+                      isSelected={true}
+                      size="sm"
+                    />
                   </div>
 
                   <div>

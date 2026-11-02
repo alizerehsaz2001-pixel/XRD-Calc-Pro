@@ -39,9 +39,9 @@ export const WorkflowsSection: React.FC<WorkflowsSectionProps> = ({
         { name: 'Diffraction Compare', id: 'compare', desc: 'Overlay experimental XY/CSV data with COD crystal standards' },
         { name: 'Scherrer Domain Sizing', id: 'scherrer', desc: 'Determine mean crystallite dimensions via line broadening' },
         { name: 'Williamson-Hall Plot', id: 'wh', desc: 'Disentangle size broadening from lattice microstrain' },
-        { name: 'Rietveld Refinement', id: 'rietveld', desc: 'Full-pattern profile fitting & structural parameter minimization' }
+        { name: 'Pawley & Le Bail Fitting', id: 'pawley_lebail', desc: 'Whole-pattern profile decomposition & intensity extraction' }
       ],
-      primaryModule: 'rietveld'
+      primaryModule: 'compare'
     },
     {
       id: 'crystal_modeling',

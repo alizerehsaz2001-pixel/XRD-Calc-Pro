@@ -173,18 +173,18 @@ export const CrystalSystemsGallery: React.FC = () => {
 
     switch (sys.shapeType) {
       case 'cube':
-        // Isometric Cube: equal sides, right angles
+        // Isometric Cube: equal sides, right angles + <111> triad axis
         return (
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24 mx-auto">
-            {/* Faces */}
-            <polygon points="35,75 80,75 80,35 35,35" fill="none" stroke="#60a5fa" strokeWidth="1.5" />
+            <polygon points="35,35 80,35 100,15 55,15" fill="rgba(96, 165, 250, 0.12)" />
+            <polygon points="35,75 80,75 80,35 35,35" fill="rgba(96, 165, 250, 0.08)" stroke="#60a5fa" strokeWidth="1.5" />
             <polygon points="55,55 100,55 100,15 55,15" fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="3 2" />
-            {/* Connectors */}
             <line x1="35" y1="75" x2="55" y2="55" stroke="#3b82f6" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="80" y1="75" x2="100" y2="55" stroke="#60a5fa" strokeWidth="1.5" />
             <line x1="80" y1="35" x2="100" y2="15" stroke="#60a5fa" strokeWidth="1.5" />
             <line x1="35" y1="35" x2="55" y2="15" stroke="#60a5fa" strokeWidth="1.5" />
-            {/* Lattice points */}
+            {/* <111> 3-fold triad axis */}
+            <line x1="35" y1="75" x2="100" y2="15" stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="2 2" />
             <circle cx="35" cy="75" r="3" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
             <circle cx="80" cy="75" r="3" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
             <circle cx="80" cy="35" r="3" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
@@ -192,22 +192,22 @@ export const CrystalSystemsGallery: React.FC = () => {
             <circle cx="100" cy="55" r="3" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
             <circle cx="100" cy="15" r="3" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
             <circle cx="55" cy="15" r="3" fill="#1e293b" stroke="#38bdf8" strokeWidth="1.5" />
+            <text x="54" y="90" fill="#93c5fd" fontSize="9" fontFamily="monospace">a=b=c</text>
           </svg>
         );
 
       case 'tetragonal':
-        // Elongated square prism (c > a)
+        // Elongated square prism (c > a) + 4-fold [001] axis
         return (
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24 mx-auto">
-            {/* Front rectangle */}
-            <polygon points="40,88 80,88 80,22 40,22" fill="none" stroke="#f97316" strokeWidth="1.5" />
-            {/* Back rectangle */}
+            <polygon points="40,22 80,22 96,6 56,6" fill="rgba(249, 115, 22, 0.14)" />
+            <polygon points="40,88 80,88 80,22 40,22" fill="rgba(249, 115, 22, 0.08)" stroke="#f97316" strokeWidth="1.5" />
             <polygon points="56,72 96,72 96,6 56,6" fill="none" stroke="#ea580c" strokeWidth="1" strokeDasharray="3 2" />
-            {/* Connectors */}
             <line x1="40" y1="88" x2="56" y2="72" stroke="#ea580c" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="80" y1="88" x2="96" y2="72" stroke="#f97316" strokeWidth="1.5" />
             <line x1="80" y1="22" x2="96" y2="6" stroke="#f97316" strokeWidth="1.5" />
             <line x1="40" y1="22" x2="56" y2="6" stroke="#f97316" strokeWidth="1.5" />
+            <line x1="68" y1="80" x2="68" y2="14" stroke="#fdba74" strokeWidth="1.1" strokeDasharray="2 2" />
             <text x="83" y="55" fill="#fdba74" fontSize="9" fontFamily="monospace">c</text>
             <text x="56" y="98" fill="#fdba74" fontSize="9" fontFamily="monospace">a</text>
           </svg>
@@ -217,12 +217,14 @@ export const CrystalSystemsGallery: React.FC = () => {
         // Rectangular brick: a != b != c
         return (
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24 mx-auto">
-            <polygon points="30,82 85,82 85,38 30,38" fill="none" stroke="#84cc16" strokeWidth="1.5" />
+            <polygon points="30,38 85,38 103,22 48,22" fill="rgba(132, 204, 22, 0.14)" />
+            <polygon points="30,82 85,82 85,38 30,38" fill="rgba(132, 204, 22, 0.08)" stroke="#84cc16" strokeWidth="1.5" />
             <polygon points="48,66 103,66 103,22 48,22" fill="none" stroke="#65a30d" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="30" y1="82" x2="48" y2="66" stroke="#65a30d" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="85" y1="82" x2="103" y2="66" stroke="#84cc16" strokeWidth="1.5" />
             <line x1="85" y1="38" x2="103" y2="22" stroke="#84cc16" strokeWidth="1.5" />
             <line x1="30" y1="38" x2="48" y2="22" stroke="#84cc16" strokeWidth="1.5" />
+            <polyline points="30,74 38,74 38,82" fill="none" stroke="#bef264" strokeWidth="1.2" />
             <text x="55" y="93" fill="#bef264" fontSize="9" fontFamily="monospace">b</text>
             <text x="89" y="60" fill="#bef264" fontSize="9" fontFamily="monospace">c</text>
             <text x="28" y="72" fill="#bef264" fontSize="9" fontFamily="monospace">a</text>
@@ -230,43 +232,36 @@ export const CrystalSystemsGallery: React.FC = () => {
         );
 
       case 'hexagonal_prism':
-        // Full hexagonal prism as shown in Image 2!
+        // Full hexagonal prism with shaded top basal plane
         return (
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24 mx-auto">
-            {/* Top hexagon */}
-            <polygon points="65,10 90,20 90,36 65,46 40,36 40,20" fill="none" stroke="#10b981" strokeWidth="1.5" />
-            {/* Bottom hexagon */}
+            <polygon points="65,10 90,20 90,36 65,46 40,36 40,20" fill="rgba(16, 185, 129, 0.14)" stroke="#10b981" strokeWidth="1.5" />
             <polygon points="65,58 90,68 90,84 65,94 40,84 40,68" fill="none" stroke="#059669" strokeWidth="1.2" />
-            {/* Vertical pillars */}
             <line x1="40" y1="20" x2="40" y2="68" stroke="#10b981" strokeWidth="1.5" />
             <line x1="40" y1="36" x2="40" y2="84" stroke="#10b981" strokeWidth="1.5" />
             <line x1="65" y1="46" x2="65" y2="94" stroke="#10b981" strokeWidth="1.5" />
             <line x1="90" y1="36" x2="90" y2="84" stroke="#10b981" strokeWidth="1.5" />
             <line x1="90" y1="20" x2="90" y2="68" stroke="#10b981" strokeWidth="1.5" />
             <line x1="65" y1="10" x2="65" y2="58" stroke="#059669" strokeWidth="1" strokeDasharray="3 2" />
-            {/* Inner rhombic lines */}
             <line x1="65" y1="46" x2="65" y2="28" stroke="#6ee7b7" strokeWidth="1" strokeDasharray="2 2" />
             <line x1="40" y1="36" x2="65" y2="28" stroke="#6ee7b7" strokeWidth="1" strokeDasharray="2 2" />
             <line x1="90" y1="36" x2="65" y2="28" stroke="#6ee7b7" strokeWidth="1" strokeDasharray="2 2" />
             <text x="94" y="60" fill="#6ee7b7" fontSize="9" fontFamily="monospace">c</text>
-            <text x="46" y="98" fill="#6ee7b7" fontSize="9" fontFamily="monospace">a</text>
+            <text x="46" y="98" fill="#6ee7b7" fontSize="9" fontFamily="monospace">120°</text>
           </svg>
         );
 
       case 'rhombohedron':
-        // Sheared cube with equal sides a=b=c and oblique angle alpha (Image 2)
+        // Sheared cube with equal sides a=b=c and oblique angle alpha
         return (
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24 mx-auto">
-            {/* Sheared front rhombus */}
-            <polygon points="35,80 82,80 95,38 48,38" fill="none" stroke="#f43f5e" strokeWidth="1.5" />
-            {/* Sheared back rhombus */}
+            <polygon points="48,38 95,38 110,18 63,18" fill="rgba(244, 63, 94, 0.14)" />
+            <polygon points="35,80 82,80 95,38 48,38" fill="rgba(244, 63, 94, 0.08)" stroke="#f43f5e" strokeWidth="1.5" />
             <polygon points="50,60 97,60 110,18 63,18" fill="none" stroke="#e11d48" strokeWidth="1" strokeDasharray="3 2" />
-            {/* Connectors */}
             <line x1="35" y1="80" x2="50" y2="60" stroke="#e11d48" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="82" y1="80" x2="97" y2="60" stroke="#f43f5e" strokeWidth="1.5" />
             <line x1="95" y1="38" x2="110" y2="18" stroke="#f43f5e" strokeWidth="1.5" />
             <line x1="48" y1="38" x2="63" y2="18" stroke="#f43f5e" strokeWidth="1.5" />
-            {/* Angle alpha arc */}
             <path d="M 45,80 A 10 10 0 0 1 40,70" fill="none" stroke="#fda4af" strokeWidth="1.5" />
             <text x="44" y="73" fill="#fda4af" fontSize="8" fontFamily="monospace">α</text>
             <text x="56" y="92" fill="#fda4af" fontSize="9" fontFamily="monospace">a</text>
@@ -274,19 +269,16 @@ export const CrystalSystemsGallery: React.FC = () => {
         );
 
       case 'monoclinic':
-        // Leaning along b, beta > 90° (Image 2)
+        // Leaning along b, beta > 90°
         return (
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24 mx-auto">
-            {/* Front parallelogram */}
-            <polygon points="30,80 80,80 98,34 48,34" fill="none" stroke="#3b82f6" strokeWidth="1.5" />
-            {/* Back parallelogram */}
+            <polygon points="48,34 98,34 113,20 63,20" fill="rgba(59, 130, 246, 0.14)" />
+            <polygon points="30,80 80,80 98,34 48,34" fill="rgba(59, 130, 246, 0.08)" stroke="#3b82f6" strokeWidth="1.5" />
             <polygon points="45,66 95,66 113,20 63,20" fill="none" stroke="#2563eb" strokeWidth="1" strokeDasharray="3 2" />
-            {/* Connectors */}
             <line x1="30" y1="80" x2="45" y2="66" stroke="#2563eb" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="80" y1="80" x2="95" y2="66" stroke="#3b82f6" strokeWidth="1.5" />
             <line x1="98" y1="34" x2="113" y2="20" stroke="#3b82f6" strokeWidth="1.5" />
             <line x1="48" y1="34" x2="63" y2="20" stroke="#3b82f6" strokeWidth="1.5" />
-            {/* Beta angle marker */}
             <path d="M 72,80 A 12 12 0 0 1 84,68" fill="none" stroke="#93c5fd" strokeWidth="1.5" />
             <text x="80" y="72" fill="#93c5fd" fontSize="9" fontFamily="monospace">β</text>
             <text x="50" y="92" fill="#93c5fd" fontSize="9" fontFamily="monospace">b</text>
@@ -295,10 +287,11 @@ export const CrystalSystemsGallery: React.FC = () => {
         );
 
       case 'triclinic':
-        // All angles skewed (Image 2)
+        // All angles skewed
         return (
           <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24 mx-auto">
-            <polygon points="32,82 78,82 102,36 56,36" fill="none" stroke="#06b6d4" strokeWidth="1.5" />
+            <polygon points="56,36 102,36 114,18 68,18" fill="rgba(6, 182, 212, 0.14)" />
+            <polygon points="32,82 78,82 102,36 56,36" fill="rgba(6, 182, 212, 0.08)" stroke="#06b6d4" strokeWidth="1.5" />
             <polygon points="44,64 90,64 114,18 68,18" fill="none" stroke="#0891b2" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="32" y1="82" x2="44" y2="64" stroke="#0891b2" strokeWidth="1" strokeDasharray="3 2" />
             <line x1="78" y1="82" x2="90" y2="64" stroke="#06b6d4" strokeWidth="1.5" />
@@ -323,11 +316,10 @@ export const CrystalSystemsGallery: React.FC = () => {
       {/* Top Banner */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              ScienceNotes Master Chart • Image 2
-            </span>
-            <span className="text-xs text-slate-400 font-mono">Mineralogy & Symmetry Gallery</span>
+          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold">
+            <span>Crystallographic System Atlas</span>
+            <span className="text-slate-600">·</span>
+            <span className="text-slate-400">Mineralogy & Symmetry Gallery</span>
           </div>
           <h2 className="text-2xl font-black text-white tracking-tight">
             The 7 Crystal Systems & Representative Minerals

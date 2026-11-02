@@ -74,13 +74,16 @@ export const ReflectionInspectionDrawer: React.FC<ReflectionInspectionDrawerProp
   const betaObs = reflection.betaObsDeg || reflection.integralBreadthDeg;
   const fwhm = reflection.fwhmObs || (betaObs * reflection.shapeFactorPhi);
   const phi = reflection.shapeFactorPhi;
-  const eta = reflection.pseudoVoigtEta ?? Math.max(0, Math.min(1, (0.9394 - phi) / (0.9394 - 0.6366)));
+  const eta = reflection.pseudoVoigtEta ?? Math.max(0, Math.min(1, ((1 / phi) - (1 / 0.93943728)) / ((1 / 0.63661977) - (1 / 0.93943728))));
+  const voigtK = reflection.voigtParamK ?? 0;
+  const fc = reflection.cauchyFractionBcOverB ?? 0;
+  const fg = reflection.gaussFractionBgOverB ?? 0;
   const betaL = reflection.cauchyBetaL_deg || 0;
   const betaG = reflection.gaussianBetaG_deg || 0;
   const dv = reflection.volumeWeightedSizeDvNm || reflection.calcSizeNm;
   const da = reflection.areaWeightedSizeDaNm || (dv / 2);
   const eRms = reflection.apparentRmsStrain || 0;
-  const dislocation = reflection.dislocationDensity10_14 || (dv > 0 ? 1 / ((dv * 1e-9) ** 2) / 1e14 : 0);
+  const dislocation = reflection.williamsonSmallmanDislocation10_14 || reflection.dislocationDensity10_14 || (dv > 0 ? 1 / ((dv * 1e-9) ** 2) / 1e14 : 0);
   const ssa = reflection.specificSurfaceAreaM2g || (dv > 0 ? 6000 / (materialDensity * dv) : 0);
   const layersN = reflection.coherencePlanesN || (dv > 0 && dSpacing > 0 ? (dv * 10) / dSpacing : 0);
 
@@ -148,7 +151,7 @@ export const ReflectionInspectionDrawer: React.FC<ReflectionInspectionDrawerProp
           </div>
 
           <div className="bg-[#0A101C] p-3 rounded-2xl border border-white/5">
-            <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Dislocation (δ)</span>
+            <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500 block">Dislocation (ρ_WS)</span>
             <span className="text-lg font-black text-emerald-400 font-mono">{dislocation.toFixed(2)}</span>
             <span className="text-[9px] text-slate-500 block font-mono">×10¹⁴ lines/m²</span>
           </div>
@@ -194,7 +197,7 @@ export const ReflectionInspectionDrawer: React.FC<ReflectionInspectionDrawerProp
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-amber-300 flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-[10px] font-mono font-bold">2</span>
-                Integral Breadth & Apparent Shape Factor (φ)
+                Integral Breadth & Exact Shape Factor (φ = 2w/β)
               </span>
               <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-bold ${shapeBadgeColor}`}>
                 {shapeDesc}
@@ -217,7 +220,7 @@ export const ReflectionInspectionDrawer: React.FC<ReflectionInspectionDrawerProp
               <div className="bg-[#050A14] p-2.5 rounded-xl border border-white/5">
                 <span className="text-[9px] text-slate-500 block">Shape Factor φ = 2w / β</span>
                 <span className="text-purple-300 font-bold">{phi.toFixed(4)}</span>
-                <span className="text-[9px] text-slate-500 block">Cauchy: 0.637 | Gauss: 0.939</span>
+                <span className="text-[9px] text-slate-500 block">2/π (0.6366) ≤ φ ≤ 0.9394</span>
               </div>
             </div>
 
@@ -225,7 +228,7 @@ export const ReflectionInspectionDrawer: React.FC<ReflectionInspectionDrawerProp
             <div className="pt-2">
               <div className="flex justify-between text-[9px] font-mono text-slate-400 mb-1">
                 <span>Pure Cauchy (0.6366)</span>
-                <span className="text-purple-300 font-bold">Current φ = {phi.toFixed(3)} (η = {eta.toFixed(3)})</span>
+                <span className="text-purple-300 font-bold">φ = {phi.toFixed(4)} | η(φ) = {eta.toFixed(3)} | Voigt k = {voigtK.toFixed(3)}</span>
                 <span>Pure Gauss (0.9394)</span>
               </div>
               <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-white/10 relative">
@@ -235,7 +238,7 @@ export const ReflectionInspectionDrawer: React.FC<ReflectionInspectionDrawerProp
                 />
                 <div 
                   className="absolute top-0 bottom-0 w-2 bg-white rounded-full shadow-md -ml-1"
-                  style={{ left: `${Math.max(0, Math.min(100, ((phi - 0.6366) / (0.9394 - 0.6366)) * 100))}%` }}
+                  style={{ left: `${Math.max(0, Math.min(100, ((phi - 0.63661977) / (0.93943728 - 0.63661977)) * 100))}%` }}
                 />
               </div>
             </div>
@@ -245,20 +248,20 @@ export const ReflectionInspectionDrawer: React.FC<ReflectionInspectionDrawerProp
           <div className="bg-[#0A101C] p-4 rounded-2xl border border-white/5 space-y-2">
             <span className="font-bold text-pink-300 flex items-center gap-1.5 text-xs">
               <span className="w-5 h-5 rounded-full bg-pink-500/20 text-pink-300 flex items-center justify-center text-[10px] font-mono font-bold">3</span>
-              de Keijser Single-Line Analytical Voigt Separation
+              de Keijser (1982) & Langford (1978) Exact Voigt Separation
             </span>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Using the Langford & de Keijser polynomial approximations, the total Voigt profile is split into pure Cauchy component <span className="font-mono text-pink-300">β_L</span> (crystallite size) and Gaussian component <span className="font-mono text-cyan-300">β_G</span> (lattice microstrain):
+              Using de Keijser et al. (1982) Eqs. (9a) & (9b) normalized with Langford's <span className="font-mono text-purple-300">β_V = β_G / erfcx(k)</span>, the Voigt profile is deconvolved into pure Cauchy breadth <span className="font-mono text-pink-300">β_C</span> (crystallite size) and Gaussian breadth <span className="font-mono text-cyan-300">β_G</span> (microstrain):
             </p>
             <div className="grid grid-cols-2 gap-2.5 font-mono text-xs pt-1">
               <div className="bg-[#050A14] p-3 rounded-xl border border-pink-500/20">
-                <span className="text-[10px] text-pink-400 font-bold block mb-0.5">Cauchy Breadth β_L (Size)</span>
-                <span className="text-base text-pink-300 font-bold">{betaL.toFixed(4)}°</span>
-                <span className="text-[9px] text-slate-500 block mt-1">D_v = (K·λ) / (β_L · cos θ)</span>
+                <span className="text-[10px] text-pink-400 font-bold block mb-0.5">Cauchy Breadth β_C (Size)</span>
+                <span className="text-base text-pink-300 font-bold">{betaL.toFixed(4)}° <span className="text-[10px] text-slate-400">({(fc * 100).toFixed(1)}% of β)</span></span>
+                <span className="text-[9px] text-slate-500 block mt-1">D_v = (K·λ) / (β_C · cos θ)</span>
               </div>
               <div className="bg-[#050A14] p-3 rounded-xl border border-cyan-500/20">
                 <span className="text-[10px] text-cyan-400 font-bold block mb-0.5">Gaussian Breadth β_G (Strain)</span>
-                <span className="text-base text-cyan-300 font-bold">{betaG.toFixed(4)}°</span>
+                <span className="text-base text-cyan-300 font-bold">{betaG.toFixed(4)}° <span className="text-[10px] text-slate-400">({(fg * 100).toFixed(1)}% of β)</span></span>
                 <span className="text-[9px] text-slate-500 block mt-1">e_rms = β_G / (2√(2π)·tan θ)</span>
               </div>
             </div>

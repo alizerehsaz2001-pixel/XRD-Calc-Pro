@@ -71,6 +71,8 @@ export const MeanCrystalliteCalculationTrace: React.FC<MeanCrystalliteCalculatio
     const weightPct = totalIntensity > 0 ? (intensity / totalIntensity) * 100 : 0;
     const hklStr = activePeak.hkl ? `(${activePeak.hkl.join(' ')})` : `Peak #${selectedPeakIdx + 1}`;
     const disloc10_14 = 100 / Math.pow(activePeak.sizeNm, 2);
+    const effectiveK = activePeak.effectiveK ?? constantK;
+    const ka2Deg = activePeak.kAlpha2BroadeningDeg ?? 0;
 
     return {
       hklStr,
@@ -83,13 +85,15 @@ export const MeanCrystalliteCalculationTrace: React.FC<MeanCrystalliteCalculatio
       betaCorrDeg,
       betaCorrRad,
       sizeNm: activePeak.sizeNm,
+      effectiveK,
+      ka2Deg,
       dSpacing: activePeak.dSpacing || (wavelength / (2 * Math.sin(thetaRad))),
       planesN: activePeak.coherencePlanesN || Math.round((activePeak.sizeNm * 10) / (activePeak.dSpacing || 1)),
       intensity,
       weightPct,
       disloc10_14
     };
-  }, [activePeak, selectedPeakIdx, totalIntensity, wavelength, instFwhm]);
+  }, [activePeak, selectedPeakIdx, totalIntensity, wavelength, instFwhm, constantK]);
 
   return (
     <div className="mt-6 pt-6 border-t border-slate-800/80 bg-slate-950/80 rounded-3xl p-5 sm:p-7 border border-amber-500/20 shadow-2xl relative">
@@ -181,16 +185,26 @@ export const MeanCrystalliteCalculationTrace: React.FC<MeanCrystalliteCalculatio
               <span className="font-black text-amber-400 uppercase tracking-wider text-[11px]">
                 Step 1: Instrumental Line Broadening Deconvolution
               </span>
-              <span className="text-[10px] font-mono text-slate-400">Model: {broadeningModel}</span>
+              <span className="text-[10px] font-mono text-slate-400">
+                Model: {broadeningModel}{peakTrace.ka2Deg > 0 ? ` · Δ2θ(Kα₂) = ${peakTrace.ka2Deg.toFixed(4)}°` : ''}
+              </span>
             </div>
             <p className="text-slate-300 text-xs leading-relaxed">
-              Real diffractometers possess finite slit widths, X-ray tube focal spot size, and axial beam divergence that broaden diffraction peaks independently of the specimen. We subtract instrumental broadening to isolate pure sample broadening (β):
+              Real diffractometers possess finite slit widths, X-ray tube focal spot size, and axial beam divergence that broaden diffraction peaks independently of the specimen. We deconvolve instrumental broadening using the selected <strong>{broadeningModel}</strong> profile rule:
             </p>
             <div 
               className="bg-slate-950 p-3 rounded-xl border border-slate-800/90 text-center text-cyan-300 font-mono overflow-x-auto text-xs"
               dangerouslySetInnerHTML={{
                 __html: renderTex(
-                  `\\beta = \\sqrt{\\beta_{obs}^2 - \\beta_{inst}^2} = \\sqrt{(${peakTrace.fwhmObs.toFixed(4)}^\\circ)^2 - (${peakTrace.instFwhm.toFixed(4)}^\\circ)^2} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`,
+                  broadeningModel === 'Lorentzian'
+                    ? `\\beta = \\beta_{obs} - \\beta_{inst} = ${peakTrace.fwhmObs.toFixed(4)}^\\circ - ${peakTrace.instFwhm.toFixed(4)}^\\circ = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
+                    : broadeningModel === 'Pseudo-Voigt'
+                    ? `\\beta = \\beta_{obs}\\left(1 - \\left(\\frac{\\beta_{inst}}{\\beta_{obs}}\\right)^2\\right) = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
+                    : broadeningModel === 'Halder-Wagner'
+                    ? `\\beta = \\beta_{obs}\\sqrt{1 - \\left(\\frac{\\beta_{inst}}{\\beta_{obs}}\\right)^2} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
+                    : broadeningModel === 'de Keijser'
+                    ? `\\beta_L^{sample} = \\beta_L^{obs} - \\beta_L^{inst}, \\quad \\beta_{eff} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
+                    : `\\beta = \\sqrt{\\beta_{obs}^2 - \\beta_{inst}^2} = \\sqrt{(${peakTrace.fwhmObs.toFixed(4)}^\\circ)^2 - (${peakTrace.instFwhm.toFixed(4)}^\\circ)^2} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`,
                   true
                 )
               }}
@@ -234,13 +248,13 @@ export const MeanCrystalliteCalculationTrace: React.FC<MeanCrystalliteCalculatio
               Step 3: Scherrer Sizing Equation Evaluation
             </span>
             <p className="text-slate-300 text-xs leading-relaxed">
-              Substituting the shape factor (K = {constantK}), X-ray probe wavelength (λ = {wavelength} Å = {(wavelength / 10).toFixed(5)} nm), sample broadening in radians, and cos θ yields the crystallite dimension perpendicular to the {peakTrace.hklStr} plane:
+              Substituting the effective shape factor (K_hkl = {peakTrace.effectiveK.toFixed(3)}), X-ray probe wavelength (λ = {wavelength} Å = {(wavelength / 10).toFixed(5)} nm), sample broadening in radians, and cos θ yields the crystallite dimension perpendicular to the {peakTrace.hklStr} plane:
             </p>
             <div 
               className="bg-slate-950 p-3 rounded-xl border border-slate-800/90 text-center text-emerald-300 font-mono overflow-x-auto text-xs"
               dangerouslySetInnerHTML={{
                 __html: renderTex(
-                  `D_{${peakTrace.hklStr}} = \\frac{K \\cdot \\lambda}{\\beta \\cdot \\cos\\theta} = \\frac{${constantK} \\times ${(wavelength / 10).toFixed(5)}\\text{ nm}}{${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad} \\times ${peakTrace.cosTheta.toFixed(4)}} = \\mathbf{${peakTrace.sizeNm.toFixed(precision)}\\text{ nm}}`,
+                  `D_{${peakTrace.hklStr}} = \\frac{K_{hkl} \\cdot \\lambda}{\\beta \\cdot \\cos\\theta} = \\frac{${peakTrace.effectiveK.toFixed(3)} \\times ${(wavelength / 10).toFixed(5)}\\text{ nm}}{${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad} \\times ${peakTrace.cosTheta.toFixed(4)}} = \\mathbf{${peakTrace.sizeNm.toFixed(precision)}\\text{ nm}}`,
                   true
                 )
               }}

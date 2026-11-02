@@ -366,6 +366,10 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
 
   const handleCopyPublicationSummary = () => {
     if (!result) return;
+    const sizeErrStr = result.sizeErrorNm ? ` ± ${result.sizeErrorNm.toFixed(2)}` : '';
+    const strainErrStr = result.strainErrorPercent ? ` ± ${result.strainErrorPercent.toFixed(4)}` : '';
+    const stressErrStr = result.stressErrorMPa ? ` ± ${result.stressErrorMPa.toFixed(2)}` : '';
+    const energyErrStr = result.energyErrorKjM3 ? ` ± ${result.energyErrorKjM3.toFixed(3)}` : '';
     const summary = `Crystallite Size and Lattice Microstrain Analysis (Integral Breadth Method)
 ================================================================================
 Material / Sample: ${selectedMaterial}
@@ -374,17 +378,20 @@ Instrumental Mode: ${instrumentalMode === 'constant' ? `Constant β_inst = ${ins
 Decoupling Mode: ${decouplingMethod.toUpperCase()}
 Separation Model: ${separationMethod.toUpperCase()}
 --------------------------------------------------------------------------------
-Apparent Crystallite Size (D): ${result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? `${result.sizeInterceptNm.toFixed(2)} nm` : '> 250 nm'}
-Lattice Microstrain (ε): ${(result.strainPercent / 100 * 1000).toFixed(3)} × 10⁻³ (${result.strainPercent.toFixed(4)} %)
-Young's Modulus (E): ${youngsModulusGPa} GPa
-Lattice Stress (σ): ${result.stressMPa !== undefined ? `${result.stressMPa.toFixed(2)} MPa` : 'N/A'}
-Strain Energy Density (u): ${result.energyDensityKjM3 !== undefined ? `${result.energyDensityKjM3.toFixed(3)} kJ/m³` : 'N/A'}
-Dislocation Density (ρ_d): ${result.dislocationDensity10_14 !== undefined ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²` : 'N/A'}
+Volume-Weighted Size (D_v): ${result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? `${result.sizeInterceptNm.toFixed(2)}${sizeErrStr} nm` : '> 250 nm'}
+Area-Weighted Size (D_a): ${result.areaWeightedSizeNm && result.areaWeightedSizeNm < 500 ? `${result.areaWeightedSizeNm.toFixed(2)} nm` : 'N/A'}
+Apparent Microstrain (ε): ${(result.strainPercent / 100 * 1000).toFixed(3)} × 10⁻³ (${result.strainPercent.toFixed(4)}${strainErrStr} %)
+Stokes-Wilson RMS Strain ⟨ε²⟩½: ${result.rmsStrainPercent !== undefined ? `${result.rmsStrainPercent.toFixed(4)} %` : 'N/A'}
+Young's Modulus (E_0): ${youngsModulusGPa} GPa (Anisotropic E_hkl applied in USDM/UDEDM)
+Lattice Stress (σ): ${result.stressMPa !== undefined ? `${result.stressMPa.toFixed(2)}${stressErrStr} MPa` : 'N/A'}
+Strain Energy Density (u): ${result.energyDensityKjM3 !== undefined ? `${result.energyDensityKjM3.toFixed(3)}${energyErrStr} kJ/m³` : 'N/A'}
+Dislocation Density (Williamson-Smallman ρ_WS): ${result.williamsonDollarDislocation10_14 !== undefined ? `${result.williamsonDollarDislocation10_14.toFixed(3)} × 10¹⁴ m⁻²` : result.dislocationDensity10_14 !== undefined ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²` : 'N/A'}
 Specific Surface Area (SSA): ${result.specificSurfaceAreaM2g !== undefined ? `${result.specificSurfaceAreaM2g.toFixed(2)} m²/g` : 'N/A'} (Density = ${materialDensityGcm3} g/cm³)
 --------------------------------------------------------------------------------
-Goodness of Fit:
+Goodness of Fit & Regression Statistics:
   R² = ${result.regression.rSquared.toFixed(5)}
   Adjusted R² = ${result.regression.adjustedRSquared?.toFixed(5) || 'N/A'}
+  F-Statistic = ${result.regression.fStatistic?.toFixed(2) || 'N/A'} (t_0.975 = ${result.regression.tCritical95?.toFixed(3) || 'N/A'})
   Pearson r = ${result.regression.pearsonR?.toFixed(5) || 'N/A'}
   RMSE = ${result.regression.rmse?.toExponential(3) || 'N/A'}
   Durbin-Watson = ${result.regression.durbinWatson?.toFixed(3) || 'N/A'}
@@ -402,26 +409,24 @@ Goodness of Fit:
     setTimeout(() => setCopiedNotification(false), 2000);
   };
 
-  // Prepare chart data with inclusion/exclusion status
+  // Prepare chart data with exact Student-t 95% confidence band and inclusion/exclusion status
   const chartData = useMemo(() => {
     if (!result) return [];
-    const stdDev = Math.sqrt(
-      result.points.reduce((sum, pt) => {
-        const yPred = result.regression.slope * pt.x + result.regression.intercept;
-        return sum + Math.pow(pt.y - yPred, 2);
-      }, 0) / Math.max(1, result.points.length - 2)
-    );
-    const confidenceBound = stdDev * 2.0;
+    const fallbackBound = (result.regression.rmse || 0) * (result.regression.tCritical95 || 2.0);
 
     return (result.pointsExtended || []).map((pe, idx) => {
       const fitY = result.regression.slope * pe.x + result.regression.intercept;
+      const ciHalf = pe.ci95HalfWidth !== undefined && pe.ci95HalfWidth > 0 ? pe.ci95HalfWidth : fallbackBound;
       return {
         originalIndex: idx,
         x: pe.x,
         y: pe.y,
         fit: fitY,
-        fitRange: [Math.max(0, fitY - confidenceBound), fitY + confidenceBound],
+        fitRange: [Math.max(0, fitY - ciHalf), fitY + ciHalf],
         residual: pe.residual !== undefined ? pe.residual : pe.y - fitY,
+        studentizedResidual: pe.studentizedResidual || 0,
+        eHklGPa: pe.eHklGPa,
+        contrastFactorC: pe.contrastFactorC,
         twoTheta: pe.twoTheta,
         betaSample: pe.betaSampleDeg,
         singleSize: pe.singlePeakSizeNm || 0,
@@ -488,13 +493,13 @@ Goodness of Fit:
       case 'hw':
         return "\\left(\\frac{\\beta}{\\tan\\theta}\\right)^2 = \\frac{K\\lambda}{D} \\left(\\frac{\\beta}{\\tan\\theta \\sin\\theta}\\right) + 16\\varepsilon^2";
       case 'ssp':
-        return "\\left(d_{hkl} \\beta \\cos\\theta\\right)^2 = \\frac{K\\lambda}{D} \\left(d_{hkl}^2 \\beta \\cos\\theta\\right) + \\frac{\\varepsilon^2}{4}";
+        return "\\left(d_{hkl} \\beta \\cos\\theta\\right)^2 = \\frac{K\\lambda}{D} \\left(d_{hkl}^2 \\beta \\cos\\theta\\right) + (2\\varepsilon\\lambda)^2";
       case 'udedm':
-        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4 \\sin\\theta \\sqrt{\\frac{2u}{E}}";
+        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4 \\sin\\theta \\sqrt{\\frac{2u}{E_{hkl}}}";
       case 'usdm':
-        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + \\frac{4\\sigma}{E} \\sin\\theta";
+        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + \\frac{4\\sigma}{E_{hkl}} \\sin\\theta";
       case 'mwh':
-        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + \\alpha s \\sqrt{C_{hkl}}";
+        return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin\\theta \\sqrt{\\frac{\\bar{C}_{hkl}}{\\bar{C}_0}}";
       case 'udm':
       default:
         return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4 \\varepsilon \\sin\\theta";
@@ -506,9 +511,9 @@ Goodness of Fit:
       case 'linear':
         return "\\beta_{\\text{sample}} = \\beta_{\\text{obs}} - \\beta_{\\text{inst}} \\quad \\text{(Lorentzian/Cauchy)}";
       case 'squared':
-        return "\\beta_{\\text{sample}}^2 = \\beta_{\\text{obs}}^2 - \\beta_{\\text{inst}}^2 \\quad \\text{(Gaussian)}";
+        return "\\beta_{\\text{sample}} = \\sqrt{\\beta_{\\text{obs}}^2 - \\beta_{\\text{inst}}^2} \\quad \\text{(Gaussian)}";
       case 'hw_voigt':
-        return "\\beta_{\\text{sample}} = \\beta_{\\text{obs}} \\sqrt{1 - (\\beta_{\\text{inst}}/\\beta_{\\text{obs}})^2} \\quad \\text{(Halder-Wagner Voigt)}";
+        return "\\beta_{\\text{sample}} = \\beta_{\\text{obs}} \\left[1 - \\left(\\frac{\\beta_{\\text{inst}}}{\\beta_{\\text{obs}}}\\right)^2\\right] \\quad \\text{(Halder-Wagner Parabolic Voigt)}";
       case 'none':
       default:
         return "\\beta_{\\text{sample}} = \\beta_{\\text{obs}} \\quad \\text{(Raw Instrumental Bypass)}";
@@ -533,28 +538,29 @@ inst_beta = ${instBetaIB}  # degrees
 youngs_modulus_GPa = ${youngsModulusGPa}
 density_g_cm3 = ${materialDensityGcm3}
 
-# Raw reflections: (2theta, area, imax)
+# Active reflections: [2theta (deg), beta_obs (deg), E_hkl (GPa), C_hkl]
 raw_data = np.array([
-${(result?.pointsExtended || []).map(p => `    [${p.twoTheta}, ${p.betaObsDeg * 1000}, 1000]`).join(',\n')}
+${(result?.pointsExtended || []).filter(p => !p.isExcluded).map(p => `    [${p.twoTheta.toFixed(4)}, ${p.betaObsDeg.toFixed(6)}, ${(p.eHklGPa || youngsModulusGPa).toFixed(3)}, ${(p.contrastFactorC || 0.16).toFixed(4)}]`).join(',\n')}
 ])
 
 two_theta = raw_data[:, 0]
-area = raw_data[:, 1]
-i_max = raw_data[:, 2]
+beta_obs_deg = raw_data[:, 1]
+e_hkl_GPa = raw_data[:, 2]
+c_hkl = raw_data[:, 3]
 
 # Instrumental deconvolution
-beta_obs_rad = (area / i_max) * (np.pi / 180.0)
-beta_inst_rad = inst_beta * (np.pi / 180.0)
+beta_obs_rad = np.radians(beta_obs_deg)
+beta_inst_rad = np.radians(inst_beta)
 
 ${decouplingMethod === 'squared' 
-  ? 'beta_sample_rad = np.sqrt(np.maximum(0, beta_obs_rad**2 - beta_inst_rad**2))'
+  ? 'beta_sample_rad = np.sqrt(np.maximum(0.0, beta_obs_rad**2 - beta_inst_rad**2))'
   : decouplingMethod === 'hw_voigt'
-  ? 'beta_sample_rad = beta_obs_rad * np.sqrt(np.maximum(1e-6, 1.0 - (beta_inst_rad / beta_obs_rad)**2))'
+  ? '# True Halder-Wagner (1966) parabolic Voigt subtraction: beta_s = beta_obs * (1 - (beta_inst/beta_obs)^2)\nbeta_sample_rad = beta_obs_rad * np.maximum(1e-6, 1.0 - (beta_inst_rad / beta_obs_rad)**2)'
   : decouplingMethod === 'none'
   ? 'beta_sample_rad = beta_obs_rad'
-  : 'beta_sample_rad = np.maximum(0, beta_obs_rad - beta_inst_rad)'}
+  : 'beta_sample_rad = np.maximum(0.0, beta_obs_rad - beta_inst_rad)'}
 
-theta_rad = (two_theta / 2.0) * (np.pi / 180.0)
+theta_rad = np.radians(two_theta / 2.0)
 cos_t = np.cos(theta_rad)
 sin_t = np.sin(theta_rad)
 tan_t = np.tan(theta_rad)
@@ -565,38 +571,43 @@ ${separationMethod === 'hw'
   : separationMethod === 'ssp'
   ? 'd_spacing = wavelength / (2.0 * sin_t)\nx = (d_spacing**2) * beta_sample_rad * cos_t\ny = (d_spacing * beta_sample_rad * cos_t)**2'
   : separationMethod === 'udedm'
-  ? `E_Pa = youngs_modulus_GPa * 1e9\nx = 4.0 * sin_t * np.sqrt(2.0 / E_Pa)\ny = beta_sample_rad * cos_t`
+  ? 'E_hkl_Pa = e_hkl_GPa * 1e9\nx = 4.0 * sin_t * np.sqrt(2.0 / E_hkl_Pa)\ny = beta_sample_rad * cos_t'
   : separationMethod === 'usdm'
-  ? `E_Pa = youngs_modulus_GPa * 1e9\nx = 4.0 * sin_t / E_Pa\ny = beta_sample_rad * cos_t`
-  : `x = 4.0 * sin_t\ny = beta_sample_rad * cos_t`}
+  ? 'E_hkl_Pa = e_hkl_GPa * 1e9\nx = 4.0 * sin_t / E_hkl_Pa\ny = beta_sample_rad * cos_t'
+  : separationMethod === 'mwh'
+  ? 'x = 4.0 * sin_t * np.sqrt(c_hkl / 0.16)\ny = beta_sample_rad * cos_t'
+  : 'x = 4.0 * sin_t\ny = beta_sample_rad * cos_t'}
 
-# Linear Regression
-slope, intercept, r_val, p_val, std_err = stats.linregress(x, y)
+# Linear Regression & Student-t 95% Confidence Intervals
+res = stats.linregress(x, y)
+slope, intercept, r_val, p_val, se_slope = res.slope, res.intercept, res.rvalue, res.pvalue, res.stderr
+se_intercept = res.intercept_stderr
 r_squared = r_val**2
 
-# Derive Physical Parameters
+# Derive Physical Parameters & Propagated Uncertainties
 ${separationMethod === 'hw'
-  ? 'D_nm = (K * wavelength) / slope / 10.0 if slope > 0 else 0\nstrain = np.sqrt(np.abs(intercept)) / 4.0'
+  ? 'D_nm = (K * wavelength) / slope / 10.0 if slope > 0 else 0\nD_err_nm = D_nm * (se_slope / slope) if slope > 0 else 0\nstrain = np.sqrt(max(0.0, intercept)) / 4.0'
   : separationMethod === 'ssp'
-  ? 'D_nm = (K * wavelength) / slope / 10.0 if slope > 0 else 0\nstrain = np.sqrt(np.abs(intercept)) / 2.0'
+  ? '# Exact SSP relation: 2*d*sin(theta) = lambda => Intercept = (2*epsilon*lambda)^2\nD_nm = (K * wavelength) / slope / 10.0 if slope > 0 else 0\nD_err_nm = D_nm * (se_slope / slope) if slope > 0 else 0\nstrain = np.sqrt(max(0.0, intercept)) / (2.0 * wavelength)'
   : separationMethod === 'udedm'
-  ? 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nu_density = slope**2\nstrain = np.sqrt((2.0 * u_density) / E_Pa)'
+  ? 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nu_density_J_m3 = max(0.0, slope)**2\nstrain = np.sqrt((2.0 * u_density_J_m3) / (youngs_modulus_GPa * 1e9))'
   : separationMethod === 'usdm'
-  ? 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nstress_MPa = slope / 1e6\nstrain = slope / E_Pa'
-  : 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nstrain = slope'}
+  ? 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nstress_MPa = max(0.0, slope) / 1e6\nstrain = max(0.0, slope) / (youngs_modulus_GPa * 1e9)'
+  : 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nstrain = max(0.0, slope)'}
 
 print("==================================================")
 print(f"Integral Breadth ${separationMethod.toUpperCase()} Regression")
 print(f"R-squared: {r_squared:.5f}")
-print(f"Unified Crystallite Size (D): {D_nm:.2f} nm")
+print(f"Volume-Weighted Crystallite Size (D_v): {D_nm:.2f} +/- {D_err_nm:.2f} nm")
 print(f"Lattice Microstrain (epsilon): {strain * 1000:.3f} x 10^-3 ({strain * 100:.4f} %)")
 print("==================================================")
 
-# Plot
+# Plot with 95% Student-t Confidence Band
 plt.figure(figsize=(7, 5), dpi=120)
 plt.scatter(x, y, color='crimson', label='Reflections (IB)', zorder=3)
 x_fit = np.linspace(np.min(x), np.max(x), 100)
-plt.plot(x_fit, slope * x_fit + intercept, 'b--', label=f'Fit (R^2={r_squared:.4f})')
+y_fit = slope * x_fit + intercept
+plt.plot(x_fit, y_fit, 'b--', label=f'Fit (R^2={r_squared:.4f})')
 plt.title('Integral Breadth Advanced Analysis (${separationMethod.toUpperCase()})')
 plt.grid(True, linestyle=':', alpha=0.6)
 plt.legend()
@@ -1139,7 +1150,7 @@ plt.show()
                 <div className="p-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
                   <Box className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Unified Size (D)</span>
+                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Volume Size (Dv)</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-black text-white font-mono">
@@ -1148,8 +1159,8 @@ plt.show()
                 <span className="text-xs font-black text-emerald-400 uppercase">nm</span>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono">
-              Model Intercept
+            <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono truncate">
+              {result?.sizeErrorNm ? `± ${result.sizeErrorNm.toFixed(1)} nm` : 'Model Intercept'} &bull; Da = {result && result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? (result.sizeInterceptNm / 2).toFixed(1) : '-'} nm
             </div>
           </div>
 
@@ -1171,7 +1182,7 @@ plt.show()
               </div>
             </div>
             <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono truncate">
-              {result ? `${result.strainPercent.toFixed(3)}% strain` : '-'}
+              {result ? `${result.strainPercent.toFixed(3)}${result.strainErrorPercent ? ` ±${result.strainErrorPercent.toFixed(3)}` : ''}%` : '-'}
             </div>
           </div>
 
@@ -1193,7 +1204,7 @@ plt.show()
               </div>
             </div>
             <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono truncate">
-              u = {result?.energyDensityKjM3?.toFixed(2) || '-'} kJ/m³
+              {result?.stressErrorMPa ? `±${result.stressErrorMPa.toFixed(1)} MPa • ` : ''}u = {result?.energyDensityKjM3?.toFixed(2) || '-'} kJ/m³
             </div>
           </div>
 
@@ -1205,11 +1216,11 @@ plt.show()
                 <div className="p-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400">
                   <Atom className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Dislocation (ρ_d)</span>
+                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Dislocation (ρ_WS)</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-black text-white font-mono">
-                  {result?.dislocationDensity10_14 !== undefined ? result.dislocationDensity10_14.toFixed(2) : '-'}
+                  {result?.williamsonDollarDislocation10_14 !== undefined ? result.williamsonDollarDislocation10_14.toFixed(2) : result?.dislocationDensity10_14 !== undefined ? result.dislocationDensity10_14.toFixed(2) : '-'}
                 </span>
                 <span className="text-[9px] font-bold text-amber-400">×10¹⁴ m⁻²</span>
               </div>
@@ -1237,7 +1248,7 @@ plt.show()
             </div>
             <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono flex items-center justify-between">
               <span>Adj: {result?.regression.adjustedRSquared ? result.regression.adjustedRSquared.toFixed(3) : '-'}</span>
-              <span>r={result?.regression.pearsonR ? result.regression.pearsonR.toFixed(3) : '-'}</span>
+              <span>F={result?.regression.fStatistic ? result.regression.fStatistic.toFixed(1) : '-'}</span>
             </div>
           </div>
         </div>
@@ -1467,24 +1478,34 @@ plt.show()
                 </h4>
                 <div className="space-y-2 text-xs font-mono">
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Young's Modulus (E):</span>
-                    <span className="text-white font-bold">{youngsModulusGPa} GPa</span>
+                    <span className="text-slate-400">Reference Young's Modulus (E₀):</span>
+                    <span className="text-white font-bold">{youngsModulusGPa} GPa (Anisotropic E_hkl)</span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Microstrain (ε):</span>
-                    <span className="text-cyan-300 font-bold">{result ? (result.strainPercent / 100).toExponential(3) : '-'}</span>
+                    <span className="text-slate-400">Apparent Microstrain (ε ± Δε):</span>
+                    <span className="text-cyan-300 font-bold">
+                      {result ? `${(result.strainPercent / 100).toExponential(3)}${result.strainErrorPercent ? ` ± ${(result.strainErrorPercent / 100).toExponential(2)}` : ''}` : '-'}
+                    </span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Lattice Stress (σ = ε·E):</span>
-                    <span className="text-pink-300 font-bold">{result?.stressMPa?.toFixed(2) || '-'} MPa</span>
+                    <span className="text-slate-400">Stokes-Wilson RMS Strain ⟨ε²⟩½:</span>
+                    <span className="text-cyan-400 font-bold">{result?.rmsStrainPercent ? `${(result.rmsStrainPercent / 100).toExponential(3)} (${result.rmsStrainPercent.toFixed(3)}%)` : '-'}</span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Strain Energy Density (u = ½·ε²·E):</span>
-                    <span className="text-amber-300 font-bold">{result?.energyDensityKjM3?.toFixed(3) || '-'} kJ/m³</span>
+                    <span className="text-slate-400">Lattice Stress (σ ± Δσ):</span>
+                    <span className="text-pink-300 font-bold">
+                      {result?.stressMPa !== undefined ? `${result.stressMPa.toFixed(2)}${result.stressErrorMPa ? ` ± ${result.stressErrorMPa.toFixed(2)}` : ''} MPa` : '-'}
+                    </span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Dislocation Line Density (ρ_d):</span>
-                    <span className="text-amber-300 font-bold">{result?.dislocationDensity10_14?.toFixed(3) || '-'} × 10¹⁴ m⁻²</span>
+                    <span className="text-slate-400">Strain Energy Density (u ± Δu):</span>
+                    <span className="text-amber-300 font-bold">
+                      {result?.energyDensityKjM3 !== undefined ? `${result.energyDensityKjM3.toFixed(3)}${result.energyErrorKjM3 ? ` ± ${result.energyErrorKjM3.toFixed(3)}` : ''} kJ/m³` : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Williamson-Smallman Dislocation (ρ_WS):</span>
+                    <span className="text-amber-300 font-bold">{(result?.williamsonDollarDislocation10_14 ?? result?.dislocationDensity10_14)?.toFixed(3) || '-'} × 10¹⁴ m⁻²</span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
                     <span className="text-slate-400">Specific Surface Area (SSA):</span>
@@ -1507,8 +1528,10 @@ plt.show()
                     <span className="text-purple-300 font-bold">{result?.regression.adjustedRSquared?.toFixed(5) || '-'}</span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Pearson Correlation (r):</span>
-                    <span className="text-emerald-300 font-bold">{result?.regression.pearsonR?.toFixed(5) || '-'}</span>
+                    <span className="text-slate-400">Fisher F-Statistic (t_0.975):</span>
+                    <span className="text-emerald-300 font-bold">
+                      {result?.regression.fStatistic ? `${result.regression.fStatistic.toFixed(2)} (t=${result.regression.tCritical95?.toFixed(3)})` : '-'}
+                    </span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
                     <span className="text-slate-400">Root Mean Square Error (RMSE):</span>
@@ -1519,12 +1542,12 @@ plt.show()
                     <span className="text-cyan-300 font-bold">{result?.regression.durbinWatson?.toFixed(3) || '-'}</span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Slope Std Error:</span>
-                    <span className="text-slate-300 font-bold">{result?.regression.stdErrorSlope?.toExponential(3) || '-'}</span>
+                    <span className="text-slate-400">Slope ± Std Error:</span>
+                    <span className="text-slate-300 font-bold">{result ? `${result.regression.slope.toExponential(3)} ± ${result.regression.stdErrorSlope?.toExponential(2) || 0}` : '-'}</span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
-                    <span className="text-slate-400">Intercept Std Error:</span>
-                    <span className="text-slate-300 font-bold">{result?.regression.stdErrorIntercept?.toExponential(3) || '-'}</span>
+                    <span className="text-slate-400">Intercept ± Std Error:</span>
+                    <span className="text-slate-300 font-bold">{result ? `${result.regression.intercept.toExponential(3)} ± ${result.regression.stdErrorIntercept?.toExponential(2) || 0}` : '-'}</span>
                   </div>
                 </div>
               </div>
@@ -1535,7 +1558,7 @@ plt.show()
           {activeChartTab === 'modelMatrix' && (
             <div className="flex flex-col h-[400px] overflow-y-auto custom-scrollbar">
               <div className="mb-3 text-[10px] font-mono text-slate-400 flex justify-between items-center">
-                <span>Multi-Model Comparative Matrix across all 6 Size-Strain separation formalisms</span>
+                <span>Multi-Model Comparative Matrix across all 6 Size-Strain separation formalisms (with propagated 1σ errors)</span>
                 <span className="text-emerald-400 font-bold text-[9px]">★ HIGHEST R² IDENTIFIES BEST-FIT PHYSICAL MODEL</span>
               </div>
               <div className="overflow-x-auto rounded-xl border border-white/5 bg-[#070D18]">
@@ -1543,8 +1566,8 @@ plt.show()
                   <thead>
                     <tr className="border-b border-white/5 bg-white/5 text-[9px] text-slate-400 font-sans uppercase tracking-widest font-black">
                       <th className="px-3 py-3">Model</th>
-                      <th className="px-3 py-3 text-emerald-400">Size D (nm)</th>
-                      <th className="px-3 py-3 text-cyan-400">Strain (×10⁻³)</th>
+                      <th className="px-3 py-3 text-emerald-400">Size D ± ΔD (nm)</th>
+                      <th className="px-3 py-3 text-cyan-400">Strain ± Δε (×10⁻³)</th>
                       <th className="px-3 py-3 text-pink-400">Stress (MPa)</th>
                       <th className="px-3 py-3 text-purple-400">R²</th>
                       <th className="px-3 py-3">RMSE</th>
@@ -1571,10 +1594,10 @@ plt.show()
                             )}
                           </td>
                           <td className="px-3 py-3 font-bold text-emerald-300">
-                            {m.sizeNm > 0 && m.sizeNm < 1000 ? `${m.sizeNm.toFixed(1)} nm` : '> 250 nm'}
+                            {m.sizeNm > 0 && m.sizeNm < 1000 ? `${m.sizeNm.toFixed(1)}${m.sizeErrorNm ? ` ± ${m.sizeErrorNm.toFixed(1)}` : ''} nm` : '> 250 nm'}
                           </td>
                           <td className="px-3 py-3 font-bold text-cyan-300">
-                            {(m.strainPercent / 100 * 1000).toFixed(2)}
+                            {(m.strainPercent / 100 * 1000).toFixed(2)}{m.strainErrorPercent ? ` ± ${(m.strainErrorPercent / 100 * 1000).toFixed(2)}` : ''}
                           </td>
                           <td className="px-3 py-3 text-pink-300">
                             {m.stressMPa !== undefined ? m.stressMPa.toFixed(1) : '-'}

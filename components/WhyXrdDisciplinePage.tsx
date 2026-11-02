@@ -122,7 +122,7 @@ const DISCIPLINES: DisciplineInfo[] = [
     detailedWhy: 'In materials engineering, macroscopic mechanical, thermal, and electronic properties stem directly from microscopic crystal structure. XRD enables full-profile Rietveld refinement to determine atomic coordinates, site occupancies, thermal Debye-Waller factors, and quantitative multi-phase fraction analysis.',
     keyParameters: ['Rietveld R-factors (Rwp, Rexp, GoF)', 'Atomic Fractional Coordinates', 'Site Occupancies & Vacancies', 'Quantitative Phase Abundance (wt%)'],
     typicalSamples: ['High-Entropy Alloys (HEA)', 'Advanced Ceramics (Al2O3, ZrO2)', 'Battery Anodes & Cathodes', 'Shape-Memory Alloys (Nitinol)'],
-    targetModule: 'rietveld',
+    targetModule: 'pawley_lebail',
     samplePresetName: 'Corundum / Alumina (NIST 676a)',
     spectrumData: [
       { angle: 25.58, intensity: 65, hkl: '(012)' },

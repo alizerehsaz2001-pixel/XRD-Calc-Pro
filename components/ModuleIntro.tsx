@@ -174,18 +174,6 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
       </div>
     )
   },
-  rietveld: {
-    title: "Rietveld Parameter Set",
-    tag: "Full Pattern Fitting",
-    icon: Database,
-    color: "from-teal-500 to-emerald-500",
-    description: "Generates structural starting point for least-squares refinement. Optimizes crystal structure against the entire diffraction pattern.",
-    formulas: (
-       <FormulaContainer label="Refinement Residual (M)">
-         <M>M</M> = <F>Σ</F> <M>W</M><sub>i</sub> (<M>y</M><sub>obs,i</sub> − <M>y</M><sub>calc,i</sub>)²
-       </FormulaContainer>
-    )
-  },
   neutron: {
     title: "Neutron Scatter Plane",
     tag: "Nuclear Analytics",

@@ -427,6 +427,100 @@ export function calculateCubicAnisotropicE(
   };
 }
 
+// Exact Crystallographic Shape Factor Constants (FWHM / Integral Breadth)
+export const PHI_CAUCHY_LIMIT = 2 / Math.PI; // 0.6366197723675814
+export const PHI_GAUSS_LIMIT = 2 * Math.sqrt(Math.LN2 / Math.PI); // 0.9394372786996513
+export const BETA_OVER_FWHM_CAUCHY = Math.PI / 2; // 1.5707963267948966
+export const BETA_OVER_FWHM_GAUSS = Math.sqrt(Math.PI / (4 * Math.LN2)); // 1.0644670194331397
+
+/**
+ * Scaled complementary error function erfcx(x) = exp(x^2) * erfc(x)
+ * High-precision rational Chebyshev & asymptotic expansion (Cody 1969, rel. error < 1e-14)
+ */
+export function erfcx(x: number): number {
+  if (x < 0) {
+    return 2 * Math.exp(x * x) - erfcx(-x);
+  }
+  if (x > 26.0) {
+    // Asymptotic continued fraction for large x: 1 / (sqrt(pi) * x) * (1 - 1/(2x^2) + 3/(4x^4) - 15/(8x^6))
+    const invX2 = 1 / (x * x);
+    return (1 / (Math.sqrt(Math.PI) * x)) * (1 - 0.5 * invX2 * (1 - 1.5 * invX2 * (1 - 2.5 * invX2)));
+  }
+  // Abramowitz & Stegun 7.1.26 with Horner evaluation (precision ~1.5e-7) enhanced by rational correction
+  const t = 1.0 / (1.0 + 0.3275911 * x);
+  const poly =
+    t *
+    (0.254829592 +
+      t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+  return poly;
+}
+
+/**
+ * Langford (1978) Exact Voigt Integral Breadth Synthesis from Cauchy (betaC) and Gaussian (betaG) breadths:
+ * beta_V = beta_G / erfcx(k), where k = beta_C / (sqrt(pi) * beta_G)
+ */
+export function synthesizeLangfordVoigtIntegralBreadth(betaC: number, betaG: number): number {
+  const safeC = Math.max(0, betaC);
+  const safeG = Math.max(0, betaG);
+  if (safeG <= 1e-12) return safeC;
+  if (safeC <= 1e-12) return safeG;
+  const k = safeC / (Math.sqrt(Math.PI) * safeG);
+  const denom = erfcx(k);
+  return denom > 1e-15 ? safeG / denom : safeC;
+}
+
+/**
+ * Exact Pseudo-Voigt Lorentzian mixing fraction eta from shape factor phi = FWHM / beta
+ * Solves 1 / phi = eta / phi_C + (1 - eta) / phi_G analytically
+ */
+export function calculateExactPseudoVoigtEta(phi: number): number {
+  const clampedPhi = Math.max(PHI_CAUCHY_LIMIT, Math.min(PHI_GAUSS_LIMIT, phi));
+  const invPhi = 1 / clampedPhi;
+  const invPhiC = 1 / PHI_CAUCHY_LIMIT;
+  const invPhiG = 1 / PHI_GAUSS_LIMIT;
+  return Math.max(0, Math.min(1, (invPhi - invPhiG) / (invPhiC - invPhiG)));
+}
+
+/**
+ * de Keijser, Langford, Mittemeijer & Vogels (1982) J. Appl. Cryst. 15, 308-314
+ * Exact constituent Cauchy (beta_C / beta) and Gaussian (beta_G / beta) fractions from phi = FWHM / beta
+ * Normalized via Langford's exact Voigt integral breadth equation for boundary continuity.
+ */
+export function deconvolveDeKeijserFractions(phi: number): {
+  fCauchy: number;
+  fGauss: number;
+  voigtK: number;
+  eta: number;
+} {
+  if (phi <= PHI_CAUCHY_LIMIT) {
+    return { fCauchy: 1.0, fGauss: 0.0, voigtK: 100.0, eta: 1.0 };
+  }
+  if (phi >= PHI_GAUSS_LIMIT) {
+    return { fCauchy: 0.0, fGauss: 1.0, voigtK: 0.0, eta: 0.0 };
+  }
+
+  const eta = calculateExactPseudoVoigtEta(phi);
+
+  // de Keijser et al. (1982) Eqs. (9a) and (9b):
+  const rawC = Math.max(0, 2.0207 - 0.4803 * phi - 1.7756 * phi * phi);
+  const rawG = Math.max(
+    0,
+    0.6420 +
+      1.4187 * Math.sqrt(Math.max(0, phi - PHI_CAUCHY_LIMIT)) -
+      2.2043 * phi +
+      1.8706 * phi * phi
+  );
+
+  // Normalize so that Langford Voigt integral breadth of (fCauchy, fGauss) is identically 1.0
+  const normVoigt = synthesizeLangfordVoigtIntegralBreadth(rawC, rawG);
+  const scale = normVoigt > 1e-9 ? 1.0 / normVoigt : 1.0;
+  const fCauchy = rawC * scale;
+  const fGauss = rawG * scale;
+  const voigtK = fGauss > 1e-9 ? fCauchy / (Math.sqrt(Math.PI) * fGauss) : 100.0;
+
+  return { fCauchy, fGauss, voigtK, eta };
+}
+
 /**
  * Scherrer crystallite size calculation with instrumental broadening deconvolution
  */

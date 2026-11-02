@@ -56,7 +56,6 @@ export type ResumeModuleId =
   | 'supercell_transform' 
   | 'pawley_lebail' 
   | 'rir' 
-  | 'rietveld' 
   | 'neutron' 
   | 'magnetic' 
   | 'dl' 
@@ -444,22 +443,7 @@ export const ResumeSectionPickerModal: React.FC<ResumeSectionPickerModalProps> =
         tags: ['RIR', 'Quantitative Analysis', 'Chung Method', 'Corundum Standard']
       },
 
-      // 4. Advanced Simulation & Core Engines (5 sections)
-      {
-        id: 'rietveld',
-        label: 'Rietveld Whole-Pattern Setup',
-        labelFa: 'تنظیمات و بهینه‌سازی ریتولد',
-        category: 'simulation',
-        categoryLabel: 'Advanced Simulation',
-        categoryLabelFa: 'شبیه‌سازی پیشرفته و کدنویسی',
-        subtitle: 'Full crystal structural refinement, background models, scale factors & R_wp metrics',
-        subtitleFa: 'پالایش کامل ساختار بلوری، مدلسازی زمینه و شاخص‌های آماری Rwp',
-        formula: 'R_wp = √[ ∑ w_i (y_i - y_ci)² / ∑ w_i y_i² ]',
-        badge: 'Rietveld Refinement',
-        icon: <Sliders className={`${iconClass} text-indigo-400`} />,
-        accentColor: 'from-indigo-500/20 to-violet-500/20 text-indigo-400 border-indigo-500/30',
-        tags: ['Rietveld', 'Full Pattern', 'R_wp', 'Scale Factor', 'Background']
-      },
+      // 4. Advanced Simulation & Core Engines (4 sections)
       {
         id: 'neutron',
         label: 'Neutron Powder Diffraction',
