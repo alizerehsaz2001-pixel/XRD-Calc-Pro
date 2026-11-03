@@ -33,6 +33,7 @@ import { CrystalSystemsGallery } from './CrystalSystemsGallery';
 import { PythonCrystallographyStudio } from './PythonCrystallographyStudio';
 import { APFMathematicsSection } from './APFMathematicsSection';
 import { Interactive3DGeometryVisualizer } from './Interactive3DGeometryVisualizer';
+import { StereographicWulffExplorer } from './StereographicWulffExplorer';
 import {
   CrystalSystemMiniSchematic,
   BravaisCenteringSchematic,
@@ -52,6 +53,7 @@ export type CenteringType = 'P' | 'I' | 'F' | 'C' | 'R';
 
 export type UnitCellsViewMode = 
   | '3d' 
+  | 'stereo'
   | 'miller' 
   | 'metallic' 
   | 'apf'
@@ -517,6 +519,18 @@ export const UnitCellsSection: React.FC = () => {
           </button>
 
           <button
+            onClick={() => { playSynthTone('tick'); setViewMode('stereo'); }}
+            className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+              viewMode === 'stereo'
+                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/25'
+                : 'bg-slate-900/90 text-cyan-300 hover:bg-slate-800 border border-cyan-500/30'
+            }`}
+          >
+            <Compass className="w-4 h-4 text-cyan-400" />
+            <span>Wulff Net & Extinctions</span>
+          </button>
+
+          <button
             onClick={() => { playSynthTone('tick'); setViewMode('python'); }}
             className={`px-3.5 py-2 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
               viewMode === 'python'
@@ -691,6 +705,16 @@ export const UnitCellsSection: React.FC = () => {
           selectedSystemId={selectedSystemId}
           onSelectSystem={handleSelectSystem}
           activeCentering={activeCentering}
+          setActiveCentering={setActiveCentering}
+        />
+      )}
+
+      {/* TAB: STEREOGRAPHIC WULFF NET & RECIPROCAL SPACE EXTINCTIONS */}
+      {viewMode === 'stereo' && (
+        <StereographicWulffExplorer
+          selectedSystemId={selectedSystemId}
+          activeCentering={activeCentering}
+          onSelectSystem={handleSelectSystem}
           setActiveCentering={setActiveCentering}
         />
       )}

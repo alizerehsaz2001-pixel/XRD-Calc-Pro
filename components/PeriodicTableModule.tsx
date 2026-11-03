@@ -27,6 +27,11 @@ import { COMPLETE_PERIODIC_TABLE } from './periodic/elementsData';
 import { PeriodicFilterToolbar } from './periodic/PeriodicFilterToolbar';
 import { PeriodicHeatmapLegend } from './periodic/PeriodicHeatmapLegend';
 import { PeriodicTableGrid } from './periodic/PeriodicTableGrid';
+import {
+  PeriodicSuiteHeroGraphic,
+  MicroLatticeGlyph,
+  ElectronShellRingGraphic
+} from './periodic/PeriodicGraphics';
 import { HeatmapMode, ColorMode, QuickPreset, CrystalElement, FamousCompound } from './periodic/types';
 
 export type { FamousCompound, CrystalElement };
@@ -2930,7 +2935,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
   return (
     <div id="crystallography-periodic-table-suite" className="space-y-4">
-      {/* Sleek, organized suite header */}
+      {/* Sleek, organized suite header with Custom Crystallography Block Schematic */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0B0F19] border border-slate-800/80 px-5 py-3.5 rounded-2xl shadow-lg">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
@@ -2947,8 +2952,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
           </p>
         </div>
 
-        {/* Quick layout toggle */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Custom Vector Schematic + Quick layout toggle */}
+        <div className="flex items-center gap-3 shrink-0">
+          <PeriodicSuiteHeroGraphic />
           <button
             type="button"
             onClick={() => { setLayoutMode(layoutMode === 'split' ? 'expanded' : 'split'); playSynthTone('tick'); }}
@@ -3070,6 +3076,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             mode={heatmapMode}
             onSelectMode={setHeatmapMode}
             elements={fullElementsGrid}
+            selectedElement={selectedElement || 14}
+            onSelectElement={(num) => {
+              setSelectedElement(num);
+              playSynthTone('switch');
+            }}
           />
 
           {/* Quiet status line */}
@@ -3130,30 +3141,44 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                 className="bg-[#0B0F19]/80 backdrop-blur-2xl border border-white/5 rounded-[24px] p-6 space-y-5 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative overflow-hidden ring-1 ring-white/5"
               >
                 {/* Element Profiler Ribbon Header */}
-                <div className="flex items-start justify-between border-b border-white/5 pb-5 relative">
+                <div className="flex items-center justify-between border-b border-white/5 pb-5 relative gap-2">
                   <div className="absolute inset-x-0 -top-10 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none" />
                   
-                  <div className="space-y-1.5 max-w-[65%] relative z-10">
+                  <div className="space-y-1.5 max-w-[52%] relative z-10">
                     <span className={`inline-block text-[8px] px-2 py-0.5 rounded-full uppercase tracking-widest font-black leading-none ${activeBadgeColor(activeElementInfo.category)}`}>
                       {activeElementInfo.category.replace('_', ' ')}
                     </span>
                     <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400 tracking-tight">{activeElementInfo.name}</h3>
-                    <p className="text-[9.5px] font-mono text-slate-500 font-bold uppercase tracking-wider">
-                      At. Weight: {activeElementInfo.weight.toFixed(4)} u
+                    <p className="text-[9.5px] font-mono text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <span>{activeElementInfo.weight.toFixed(4)} u</span>
+                      <span>·</span>
+                      <span className="text-cyan-300">{activeElementInfo.spaceGroup}</span>
                     </p>
                   </div>
 
-                  {/* Large Element Logo Plate */}
-                  <div className="relative w-16 h-16 bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl flex flex-col items-center justify-center p-1.5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)] z-10">
-                    <span className="text-[8px] font-black font-mono text-slate-400 self-start leading-none absolute top-1.5 left-1.5">
-                      {activeElementInfo.number}
-                    </span>
-                    <span className="text-2xl font-black text-white leading-none tracking-tight mt-1">
-                      {activeElementInfo.symbol}
-                    </span>
-                    <span className={`text-[6.5px] px-1 py-0.1 select-none font-bold scale-90 uppercase tracking-widest rounded mt-1 text-center ${getStructLabelColor(activeElementInfo.crystalStructure)}`}>
-                      {activeElementInfo.crystalStructure}
-                    </span>
+                  {/* Concentric Bohr Shell Diagram + Element Logo Plate */}
+                  <div className="flex items-center gap-2.5 z-10 shrink-0">
+                    <ElectronShellRingGraphic
+                      atomicNumber={activeElementInfo.number}
+                      symbol={activeElementInfo.symbol}
+                      size={68}
+                    />
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl flex flex-col items-center justify-center p-1.5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]">
+                      <span className="text-[8px] font-black font-mono text-slate-400 self-start leading-none absolute top-1.5 left-1.5">
+                        {activeElementInfo.number}
+                      </span>
+                      <MicroLatticeGlyph
+                        structure={activeElementInfo.crystalStructure}
+                        size={11}
+                        className="text-cyan-400 absolute top-1.5 right-1.5"
+                      />
+                      <span className="text-2xl font-black text-white leading-none tracking-tight mt-1.5">
+                        {activeElementInfo.symbol}
+                      </span>
+                      <span className={`text-[6.5px] px-1 py-0.1 select-none font-bold scale-90 uppercase tracking-widest rounded mt-1 text-center ${getStructLabelColor(activeElementInfo.crystalStructure)}`}>
+                        {activeElementInfo.crystalStructure}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

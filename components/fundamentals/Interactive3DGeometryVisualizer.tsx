@@ -1674,6 +1674,68 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 </button>
               </div>
 
+              {/* Quick Literature Prototype Presets */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                  Literature Crystal Presets ({activeSystem.name.split(' ')[0]}):
+                </span>
+                <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
+                  {(activeSystem.id === 'cubic'
+                    ? [
+                        { label: 'Cu (cF)', a: 3.615, b: 3.615, c: 3.615, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType },
+                        { label: 'α-Fe (cI)', a: 2.866, b: 2.866, c: 2.866, alpha: 90, beta: 90, gamma: 90, cent: 'I' as CenteringType },
+                        { label: 'Si (cF)', a: 5.431, b: 5.431, c: 5.431, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType },
+                        { label: 'SrTiO₃ (cP)', a: 3.905, b: 3.905, c: 3.905, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType }
+                      ]
+                    : activeSystem.id === 'hexagonal'
+                    ? [
+                        { label: 'Mg (hP)', a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType },
+                        { label: 'α-Ti (hP)', a: 2.951, b: 2.951, c: 4.683, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType },
+                        { label: 'ZnO (hP)', a: 3.250, b: 3.250, c: 5.207, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType }
+                      ]
+                    : activeSystem.id === 'trigonal'
+                    ? [
+                        { label: 'α-Quartz', a: 4.913, b: 4.913, c: 5.405, alpha: 90, beta: 90, gamma: 120, cent: 'R' as CenteringType },
+                        { label: 'Corundum', a: 4.759, b: 4.759, c: 12.991, alpha: 90, beta: 90, gamma: 120, cent: 'R' as CenteringType }
+                      ]
+                    : activeSystem.id === 'tetragonal'
+                    ? [
+                        { label: 'Rutile TiO₂ (tP)', a: 4.593, b: 4.593, c: 2.959, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType },
+                        { label: 'β-Sn (tI)', a: 5.832, b: 5.832, c: 3.182, alpha: 90, beta: 90, gamma: 90, cent: 'I' as CenteringType },
+                        { label: 'BaTiO₃ (tP)', a: 3.992, b: 3.992, c: 4.036, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType }
+                      ]
+                    : activeSystem.id === 'orthorhombic'
+                    ? [
+                        { label: 'Forsterite (oP)', a: 4.75, b: 10.20, c: 5.98, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType },
+                        { label: 'α-Sulfur (oF)', a: 10.46, b: 12.87, c: 24.49, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType }
+                      ]
+                    : activeSystem.id === 'monoclinic'
+                    ? [
+                        { label: 'Orthoclase (mC)', a: 8.56, b: 12.96, c: 7.21, alpha: 90, beta: 116.0, gamma: 90, cent: 'C' as CenteringType },
+                        { label: 'm-ZrO₂ (mP)', a: 5.15, b: 5.21, c: 5.31, alpha: 90, beta: 99.2, gamma: 90, cent: 'P' as CenteringType }
+                      ]
+                    : [
+                        { label: 'Albite (aP)', a: 8.14, b: 12.78, c: 7.16, alpha: 94.3, beta: 116.6, gamma: 87.7, cent: 'P' as CenteringType },
+                        { label: 'CuSO₄·5H₂O', a: 6.12, b: 10.70, c: 5.97, alpha: 82.3, beta: 107.3, gamma: 102.6, cent: 'P' as CenteringType }
+                      ]
+                  ).map(p => (
+                    <button
+                      key={p.label}
+                      onClick={() => {
+                        playSynthTone('tick');
+                        setParams({ a: p.a, b: p.b, c: p.c, alpha: p.alpha, beta: p.beta, gamma: p.gamma });
+                        if (activeSystem.bravaisLattices.some(b => b.type === p.cent)) {
+                          setActiveCentering(p.cent);
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-indigo-950/60 border border-slate-800 hover:border-indigo-500/40 text-slate-300 hover:text-indigo-200 transition-all"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Axial Lengths Sliders: a, b, c */}
               <div className="space-y-3 text-xs font-mono">
                 {/* a slider */}
@@ -2123,6 +2185,83 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   </span>
                 </div>
               </div>
+
+              {/* Live Bravais Systematic Absence & Axial Intercepts Diagnostic */}
+              {(() => {
+                const h = hklH;
+                const k = hklK;
+                const l = hklL;
+                const isZero = h === 0 && k === 0 && l === 0;
+                let allowed = true;
+                let conditionText = 'All (hkl) allowed';
+                let fSqValue = '1 · f²';
+
+                if (activeCentering === 'I') {
+                  allowed = ((h + k + l) % 2 + 2) % 2 === 0;
+                  conditionText = 'h + k + l = 2n';
+                  fSqValue = allowed ? '4 · f²' : '0 (Destructive)';
+                } else if (activeCentering === 'F') {
+                  const pH = (h % 2 + 2) % 2;
+                  const pK = (k % 2 + 2) % 2;
+                  const pL = (l % 2 + 2) % 2;
+                  allowed = pH === pK && pK === pL;
+                  conditionText = 'h, k, l unmixed parity';
+                  fSqValue = allowed ? '16 · f²' : '0 (Destructive)';
+                } else if (activeCentering === 'C') {
+                  allowed = ((h + k) % 2 + 2) % 2 === 0;
+                  conditionText = 'h + k = 2n';
+                  fSqValue = allowed ? '4 · f²' : '0 (Destructive)';
+                } else if (activeCentering === 'R') {
+                  allowed = ((-h + k + l) % 3 + 3) % 3 === 0;
+                  conditionText = '-h + k + l = 3n';
+                  fSqValue = allowed ? '9 · f²' : '0 (Destructive)';
+                }
+
+                const intA = h === 0 ? '∞ (∥ a)' : `1/${h} a (${(params.a / h).toFixed(2)} Å)`;
+                const intB = k === 0 ? '∞ (∥ b)' : `1/${k} b (${(params.b / k).toFixed(2)} Å)`;
+                const intC = l === 0 ? '∞ (∥ c)' : `1/${l} c (${(params.c / l).toFixed(2)} Å)`;
+
+                return (
+                  <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800/90 space-y-2 font-mono text-[11px]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">
+                        {activeCentering}-Lattice Extinction Check
+                      </span>
+                      {isZero ? (
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-bold">
+                          (000) Origin
+                        </span>
+                      ) : allowed ? (
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
+                          ✓ Allowed ({fSqValue})
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-bold">
+                          ✕ Systematic Absence
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span>Rule: <strong className="text-indigo-300">{conditionText}</strong></span>
+                      <span>h+k+l = {h + k + l}</span>
+                    </div>
+                    <div className="pt-1.5 border-t border-slate-800/80 grid grid-cols-3 gap-1.5 text-[10px]">
+                      <div className="bg-slate-900/80 px-2 py-1 rounded border border-slate-800/60">
+                        <span className="text-rose-400 font-bold block">x-int</span>
+                        <span className="text-slate-300 truncate block">{intA}</span>
+                      </div>
+                      <div className="bg-slate-900/80 px-2 py-1 rounded border border-slate-800/60">
+                        <span className="text-emerald-400 font-bold block">y-int</span>
+                        <span className="text-slate-300 truncate block">{intB}</span>
+                      </div>
+                      <div className="bg-slate-900/80 px-2 py-1 rounded border border-slate-800/60">
+                        <span className="text-blue-400 font-bold block">z-int</span>
+                        <span className="text-slate-300 truncate block">{intC}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Radiation source picker */}
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1">

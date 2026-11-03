@@ -6,6 +6,7 @@ interface PeriodicHeatmapLegendProps {
   mode: HeatmapMode;
   onSelectMode: (mode: HeatmapMode) => void;
   elements: CrystalElement[];
+  selectedElement?: number;
   onSelectElement?: (num: number) => void;
 }
 
@@ -155,12 +156,15 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
   mode,
   onSelectMode,
   elements,
+  selectedElement,
   onSelectElement
 }) => {
   const config = HEATMAP_CONFIGS[mode];
   if (!config) return null;
 
-  const validPairs = elements
+  const sortedElements = [...elements].sort((a, b) => a.number - b.number);
+
+  const validPairs = sortedElements
     .map(el => ({ el, val: config.getValue(el) }))
     .filter(p => p.val !== undefined && !isNaN(p.val) && p.val !== 0);
 
@@ -178,7 +182,7 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-cyan-400" />
           <span className="text-xs font-mono font-bold uppercase text-white tracking-wider">
-            Property Heatmap: {config.label}
+            Property Heatmap & Periodic Spectrum: {config.label}
           </span>
           <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/40">
             [{config.unit}]
@@ -199,9 +203,40 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
         {config.description}
       </p>
 
+      {/* Interactive 118-Element Periodic Trend Sparkbar Spectrum (Z = 1..118) */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-[9px] font-mono text-slate-500">
+          <span>PERIODIC WAVE PROFILE (Z = 1 → 118 · CLICK ANY ELEMENT BAR TO INSPECT)</span>
+          <span>ACTIVE: Z = {selectedElement || 14}</span>
+        </div>
+        <div className="h-12 w-full bg-[#060911] border border-slate-800/90 rounded-lg px-1.5 pt-2 pb-1 flex items-end gap-[1.5px] overflow-x-auto">
+          {sortedElements.map(el => {
+            const val = config.getValue(el);
+            const norm = Math.max(0.08, Math.min(1, (val - min) / (max - min || 1)));
+            const color = getHeatmapColor(val, min, max);
+            const isSel = selectedElement === el.number;
+            return (
+              <button
+                key={`spark-${el.number}`}
+                type="button"
+                onClick={() => onSelectElement && onSelectElement(el.number)}
+                title={`${el.number} ${el.symbol} (${el.name}): ${config.format(val)}`}
+                className={`flex-1 min-w-[3px] rounded-t-[1.5px] transition-all cursor-pointer relative group ${
+                  isSel ? 'ring-1 ring-white z-10 scale-y-105' : 'opacity-85 hover:opacity-100'
+                }`}
+                style={{
+                  height: `${Math.round(norm * 100)}%`,
+                  backgroundColor: isSel ? '#ffffff' : color
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
       {/* Gradient Color Bar */}
-      <div className="space-y-2 pt-1">
-        <div className="h-3 w-full rounded-md border border-slate-700/80 shadow-inner overflow-hidden bg-gradient-to-r from-[rgb(20,60,180)] via-[rgb(30,200,220)] via-[rgb(240,150,30)] to-[rgb(255,40,50)]" />
+      <div className="space-y-2 pt-0.5">
+        <div className="h-2.5 w-full rounded-md border border-slate-700/80 shadow-inner overflow-hidden bg-gradient-to-r from-[rgb(20,60,180)] via-[rgb(30,200,220)] via-[rgb(240,150,30)] to-[rgb(255,40,50)]" />
         <div className="grid grid-cols-3 items-center text-[10px] font-mono text-slate-300 font-bold tabular-nums">
           <div className="text-left flex items-center gap-2">
             <div>
