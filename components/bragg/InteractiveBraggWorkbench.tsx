@@ -368,6 +368,14 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
   };
 
   const handleAddRow = (twoThetaVal: number, hklStr: string, intensityVal = 50) => {
+    const existingIdx = results.findIndex(
+      r => Math.abs(r.twoTheta - twoThetaVal) < 0.005 && (r.hkl || '') === hklStr
+    );
+    if (existingIdx !== -1) {
+      setActivePeakIndex(existingIdx);
+      playSynthTone('tick');
+      return;
+    }
     const currentPeakTokens = results.map(
       r => `${r.twoTheta.toFixed(3)}:${Math.round(r.intensity ?? 100)}`
     );

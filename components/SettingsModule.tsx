@@ -93,9 +93,45 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     cpuUsage: number;
     memoryAllocatedMB: number;
     memoryTotalMB: number;
+    rssMB?: number;
     uptimeSeconds: number;
     nodeVersion: string;
     platform: string;
+    cpuCores?: number;
+    cpuModel?: string;
+    loadAverage?: number[];
+    cache?: {
+      entries: number;
+      maxEntries: number;
+      hits: number;
+      misses: number;
+      evictions: number;
+      hitRatePct: number;
+    };
+    traffic?: {
+      totalRequests: number;
+      activeRequests: number;
+      errorCount: number;
+      avgLatencyMs: number;
+      topRoutes: Array<{
+        method: string;
+        path: string;
+        hits: number;
+        errors: number;
+        avgLatencyMs: number;
+        lastLatencyMs: number;
+        lastStatus: number;
+      }>;
+    };
+    python?: {
+      ready: boolean;
+      verified: boolean;
+      totalRuns: number;
+      activeSubprocesses: number;
+      failedRuns: number;
+      avgExecTimeMs: number;
+      lastScript: string;
+    };
   } | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState(false);
 
@@ -144,12 +180,19 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         const data = await res.json();
         if (data && data.success) {
           setSystemTelemetry({
-            cpuUsage: data.cpuUsage || 2.4,
-            memoryAllocatedMB: data.memory?.heapUsedMB || 128,
-            memoryTotalMB: data.memory?.heapTotalMB || 512,
-            uptimeSeconds: data.uptime || 3600,
+            cpuUsage: typeof data.cpuUsage === 'number' ? data.cpuUsage : 2.4,
+            memoryAllocatedMB: data.memory?.heapUsedMB ?? (data.processMemory ? Math.round(data.processMemory / (1024 * 1024)) : 128),
+            memoryTotalMB: data.memory?.heapTotalMB ?? 512,
+            rssMB: data.memory?.rssMB ?? (data.processMemory ? Math.round(data.processMemory / (1024 * 1024)) : 165),
+            uptimeSeconds: Math.round(data.uptime || 3600),
             nodeVersion: data.nodeVersion || 'v20.x',
             platform: data.platform || 'Linux Container',
+            cpuCores: data.cpuCores || 4,
+            cpuModel: data.cpuModel || 'Cloud Container vCPU',
+            loadAverage: Array.isArray(data.loadAverage) ? data.loadAverage : [0.12, 0.08, 0.05],
+            cache: data.cache,
+            traffic: data.traffic,
+            python: data.python,
           });
         }
       } else {
@@ -158,6 +201,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           cpuUsage: 1.8 + Math.random() * 2.5,
           memoryAllocatedMB: 135 + Math.random() * 10,
           memoryTotalMB: 512,
+          rssMB: 178,
           uptimeSeconds: 84200,
           nodeVersion: 'Node.js v20.18',
           platform: 'Linux x86_64 (Cloud Run)',
@@ -168,6 +212,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         cpuUsage: 2.1,
         memoryAllocatedMB: 140,
         memoryTotalMB: 512,
+        rssMB: 180,
         uptimeSeconds: 84200,
         nodeVersion: 'Node.js v20.18',
         platform: 'Linux x86_64',

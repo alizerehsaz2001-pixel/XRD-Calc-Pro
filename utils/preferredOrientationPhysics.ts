@@ -55,6 +55,9 @@ export interface RefinementFitMetrics {
   refinedR2?: number;
   refinedFraction1: number;
   refinedFraction2?: number;
+  refinedC2?: number;
+  refinedC4?: number;
+  refinedKappa?: number;
   uncertaintyR1?: number;
   uncertaintyFraction1?: number;
 }
@@ -469,7 +472,16 @@ export function calculateTextureMetrics(
 export function refinePreferredOrientation(
   reflections: PreferredOrientationReflection[],
   model: TextureModelType,
-  currentParams: { r1: number; r2?: number; f1: number; f2?: number; c2?: number; c4?: number; kappa?: number; g?: number },
+  currentParams: {
+    r1: number;
+    r2?: number;
+    f1: number;
+    f2?: number;
+    c2?: number;
+    c4?: number;
+    kappa?: number;
+    g?: number;
+  },
   habitType: 'Platelet' | 'Needle' | 'Bimodal' = 'Platelet'
 ): RefinementFitMetrics {
   if (reflections.length === 0) {
@@ -483,145 +495,185 @@ export function refinePreferredOrientation(
       iterations: 0,
       converged: false,
       refinedR1: currentParams.r1,
-      refinedFraction1: currentParams.f1
+      refinedFraction1: currentParams.f1,
+      refinedC2: currentParams.c2 ?? 0.6,
+      refinedC4: currentParams.c4 ?? -0.2,
+      refinedKappa: currentParams.kappa ?? 2.5
     };
   }
 
   let bestR1 = currentParams.r1;
-  let bestR2 = currentParams.r2 ?? 1.0;
+  let bestR2 = currentParams.r2 ?? 1.85;
   let bestF1 = currentParams.f1;
-  let bestF2 = currentParams.f2 ?? 0.0;
+  let bestF2 = currentParams.f2 ?? 0.25;
+  let bestC2 = currentParams.c2 ?? 0.6;
+  let bestC4 = currentParams.c4 ?? -0.2;
+  let bestKappa = currentParams.kappa ?? 2.5;
   let minRwp = Infinity;
   let bestScale = 1.0;
   let iterations = 0;
 
+  const evaluateCandidate = (cfg: {
+    model: TextureModelType;
+    r1: number;
+    r2: number;
+    f1: number;
+    f2: number;
+    c2: number;
+    c4: number;
+    kappa: number;
+  }) => {
+    iterations++;
+    let sNum = 0;
+    let sDen = 0;
+    for (const refl of reflections) {
+      const corr = calculateCombinedTextureFactor(
+        refl.angleAlpha,
+        refl.angleAlpha2 ?? 0,
+        cfg
+      );
+      const iCalc = refl.iStandard * corr;
+      sNum += refl.iMeasured * iCalc;
+      sDen += iCalc * iCalc;
+    }
+    const scale = sDen > 0 ? sNum / sDen : 1.0;
+    let sumDiffSq = 0;
+    let sumMeasSq = 0;
+    for (const refl of reflections) {
+      const corr = calculateCombinedTextureFactor(
+        refl.angleAlpha,
+        refl.angleAlpha2 ?? 0,
+        cfg
+      );
+      const iCalc = refl.iStandard * corr;
+      const diff = refl.iMeasured - scale * iCalc;
+      sumDiffSq += diff * diff;
+      sumMeasSq += refl.iMeasured * refl.iMeasured;
+    }
+    const rwp = sumMeasSq > 0 ? Math.sqrt(sumDiffSq / sumMeasSq) * 100 : 0;
+    if (rwp < minRwp) {
+      minRwp = rwp;
+      bestR1 = cfg.r1;
+      bestR2 = cfg.r2;
+      bestF1 = cfg.f1;
+      bestF2 = cfg.f2;
+      bestC2 = cfg.c2;
+      bestC4 = cfg.c4;
+      bestKappa = cfg.kappa;
+      bestScale = scale;
+    }
+  };
+
   if (model === 'March-Dollase') {
     const rMin = habitType === 'Platelet' ? 0.05 : 1.01;
-    const rMax = habitType === 'Platelet' ? 0.99 : 5.00;
+    const rMax = habitType === 'Platelet' ? 0.99 : 4.50;
     const rStep = (rMax - rMin) / 80;
 
     for (let r = rMin; r <= rMax; r += rStep) {
       for (let f = 0.05; f <= 1.0; f += 0.05) {
-        iterations++;
-        let sNum = 0;
-        let sDen = 0;
-
-        for (const refl of reflections) {
-          const p = calculateMarchDollase(refl.angleAlpha, r);
-          const corr = f * p + (1.0 - f);
-          const iCalc = refl.iStandard * corr;
-          sNum += refl.iMeasured * iCalc;
-          sDen += iCalc * iCalc;
-        }
-
-        const scale = sDen > 0 ? sNum / sDen : 1.0;
-        let sumDiffSq = 0;
-        let sumMeasSq = 0;
-
-        for (const refl of reflections) {
-          const p = calculateMarchDollase(refl.angleAlpha, r);
-          const corr = f * p + (1.0 - f);
-          const iCalc = refl.iStandard * corr;
-          const diff = refl.iMeasured - scale * iCalc;
-          sumDiffSq += diff * diff;
-          sumMeasSq += refl.iMeasured * refl.iMeasured;
-        }
-
-        const rwp = sumMeasSq > 0 ? Math.sqrt(sumDiffSq / sumMeasSq) * 100 : 0;
-        if (rwp < minRwp) {
-          minRwp = rwp;
-          bestR1 = r;
-          bestF1 = f;
-          bestScale = scale;
-        }
+        evaluateCandidate({
+          model,
+          r1: r,
+          r2: bestR2,
+          f1: f,
+          f2: 0,
+          c2: bestC2,
+          c4: bestC4,
+          kappa: bestKappa
+        });
       }
     }
 
-    // Gradient refinement polishing around best grid point
-    let polishedR = bestR1;
-    let polishedF = bestF1;
-    for (let deltaR of [-0.01, 0, 0.01]) {
-      for (let deltaF of [-0.02, 0, 0.02]) {
-        const testR = Math.max(0.01, polishedR + deltaR);
-        const testF = Math.min(1.0, Math.max(0.01, polishedF + deltaF));
-
-        let sNum = 0, sDen = 0;
-        for (const refl of reflections) {
-          const p = calculateMarchDollase(refl.angleAlpha, testR);
-          const corr = testF * p + (1.0 - testF);
-          const iCalc = refl.iStandard * corr;
-          sNum += refl.iMeasured * iCalc;
-          sDen += iCalc * iCalc;
-        }
-        const scale = sDen > 0 ? sNum / sDen : 1.0;
-        let sumDiffSq = 0, sumMeasSq = 0;
-        for (const refl of reflections) {
-          const p = calculateMarchDollase(refl.angleAlpha, testR);
-          const corr = testF * p + (1.0 - testF);
-          const iCalc = refl.iStandard * corr;
-          const diff = refl.iMeasured - scale * iCalc;
-          sumDiffSq += diff * diff;
-          sumMeasSq += refl.iMeasured * refl.iMeasured;
-        }
-        const rwp = sumMeasSq > 0 ? Math.sqrt(sumDiffSq / sumMeasSq) * 100 : 0;
-        if (rwp < minRwp) {
-          minRwp = rwp;
-          bestR1 = testR;
-          bestF1 = testF;
-          bestScale = scale;
-        }
+    // Fine polish
+    const seedR = bestR1;
+    const seedF = bestF1;
+    for (let dR = -0.02; dR <= 0.02; dR += 0.004) {
+      for (let dF = -0.04; dF <= 0.04; dF += 0.01) {
+        evaluateCandidate({
+          model,
+          r1: Math.max(0.02, seedR + dR),
+          r2: bestR2,
+          f1: Math.min(1.0, Math.max(0.01, seedF + dF)),
+          f2: 0,
+          c2: bestC2,
+          c4: bestC4,
+          kappa: bestKappa
+        });
       }
     }
   } else if (model === 'Bimodal-March-Dollase') {
-    // Dual parameter grid search
-    for (let r1 = 0.2; r1 <= 0.9; r1 += 0.1) {
-      for (let r2 = 1.2; r2 <= 3.5; r2 += 0.3) {
-        for (let f1 = 0.2; f1 <= 0.8; f1 += 0.15) {
-          for (let f2 = 0.1; f2 <= (1.0 - f1); f2 += 0.15) {
-            iterations++;
-            let sNum = 0, sDen = 0;
-            for (const refl of reflections) {
-              const p1 = calculateMarchDollase(refl.angleAlpha, r1);
-              const p2 = calculateMarchDollase(refl.angleAlpha2 || 0, r2);
-              const corr = f1 * p1 + f2 * p2 + Math.max(0, 1.0 - f1 - f2);
-              const iCalc = refl.iStandard * corr;
-              sNum += refl.iMeasured * iCalc;
-              sDen += iCalc * iCalc;
-            }
-            const scale = sDen > 0 ? sNum / sDen : 1.0;
-            let sumDiffSq = 0, sumMeasSq = 0;
-            for (const refl of reflections) {
-              const p1 = calculateMarchDollase(refl.angleAlpha, r1);
-              const p2 = calculateMarchDollase(refl.angleAlpha2 || 0, r2);
-              const corr = f1 * p1 + f2 * p2 + Math.max(0, 1.0 - f1 - f2);
-              const iCalc = refl.iStandard * corr;
-              const diff = refl.iMeasured - scale * iCalc;
-              sumDiffSq += diff * diff;
-              sumMeasSq += refl.iMeasured * refl.iMeasured;
-            }
-            const rwp = sumMeasSq > 0 ? Math.sqrt(sumDiffSq / sumMeasSq) * 100 : 0;
-            if (rwp < minRwp) {
-              minRwp = rwp;
-              bestR1 = r1;
-              bestR2 = r2;
-              bestF1 = f1;
-              bestF2 = f2;
-              bestScale = scale;
-            }
+    for (let r1 = 0.15; r1 <= 0.95; r1 += 0.1) {
+      for (let r2 = 1.15; r2 <= 3.55; r2 += 0.3) {
+        for (let f1 = 0.15; f1 <= 0.85; f1 += 0.15) {
+          for (let f2 = 0.05; f2 <= Math.max(0.05, 1.0 - f1); f2 += 0.15) {
+            evaluateCandidate({
+              model,
+              r1,
+              r2,
+              f1,
+              f2,
+              c2: bestC2,
+              c4: bestC4,
+              kappa: bestKappa
+            });
           }
         }
       }
     }
+  } else if (model === 'Jarvinen-Harmonics') {
+    for (let c2 = -1.5; c2 <= 3.0; c2 += 0.15) {
+      for (let c4 = -1.5; c4 <= 2.5; c4 += 0.15) {
+        for (let f1 = 0.2; f1 <= 1.0; f1 += 0.2) {
+          evaluateCandidate({
+            model,
+            r1: bestR1,
+            r2: bestR2,
+            f1,
+            f2: 0,
+            c2,
+            c4,
+            kappa: bestKappa
+          });
+        }
+      }
+    }
+  } else if (model === 'Von-Mises-Fisher') {
+    for (let kappa = 0.1; kappa <= 12.0; kappa += 0.25) {
+      for (let f1 = 0.1; f1 <= 1.0; f1 += 0.05) {
+        evaluateCandidate({
+          model,
+          r1: bestR1,
+          r2: bestR2,
+          f1,
+          f2: 0,
+          c2: bestC2,
+          c4: bestC4,
+          kappa
+        });
+      }
+    }
   }
 
-  // Calculate final goodness of fit
+  // Calculate final goodness of fit using the optimal model parameters
   let sumDiff = 0;
   let sumMeas = 0;
   let chiSq = 0;
 
   for (const refl of reflections) {
-    const p = calculateMarchDollase(refl.angleAlpha, bestR1);
-    const corr = bestF1 * p + (1.0 - bestF1);
+    const corr = calculateCombinedTextureFactor(
+      refl.angleAlpha,
+      refl.angleAlpha2 ?? 0,
+      {
+        model,
+        r1: bestR1,
+        r2: bestR2,
+        f1: bestF1,
+        f2: bestF2,
+        c2: bestC2,
+        c4: bestC4,
+        kappa: bestKappa
+      }
+    );
     const iCalc = refl.iStandard * corr;
     const diff = Math.abs(refl.iMeasured - bestScale * iCalc);
     sumDiff += diff;
@@ -631,7 +683,7 @@ export function refinePreferredOrientation(
   }
 
   const rp = sumMeas > 0 ? (sumDiff / sumMeas) * 100 : 0;
-  const dof = Math.max(1, reflections.length - 2);
+  const dof = Math.max(1, reflections.length - (model === 'Bimodal-March-Dollase' ? 4 : 2));
   const redChiSq = chiSq / dof;
 
   return {
@@ -647,6 +699,9 @@ export function refinePreferredOrientation(
     refinedR2: parseFloat(bestR2.toFixed(3)),
     refinedFraction1: parseFloat(bestF1.toFixed(3)),
     refinedFraction2: parseFloat(bestF2.toFixed(3)),
+    refinedC2: parseFloat(bestC2.toFixed(3)),
+    refinedC4: parseFloat(bestC4.toFixed(3)),
+    refinedKappa: parseFloat(bestKappa.toFixed(3)),
     uncertaintyR1: parseFloat((0.015 * Math.sqrt(redChiSq)).toFixed(4)),
     uncertaintyFraction1: parseFloat((0.02 * Math.sqrt(redChiSq)).toFixed(4))
   };

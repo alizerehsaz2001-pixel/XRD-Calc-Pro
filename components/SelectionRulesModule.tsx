@@ -1147,8 +1147,8 @@ export const SelectionRulesModule: React.FC = () => {
   const [filter, setFilter] = useState<"All" | "Allowed" | "Forbidden">("All");
   const [maxIndex, setMaxIndex] = useState<number>(3);
   const [resultsGraphicTab, setResultsGraphicTab] = useState<
-    "DIFFRACTION_RINGS" | "PHASOR_ARGAND" | "VALIDATION_MATRIX"
-  >("DIFFRACTION_RINGS");
+    "DIFFRACTION_RINGS" | "PHASOR_ARGAND" | "VALIDATION_MATRIX" | "CROSS_LATTICE_MATRIX"
+  >("VALIDATION_MATRIX");
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [symmetryTab, setSymmetryTab] = useState<
@@ -1160,80 +1160,119 @@ export const SelectionRulesModule: React.FC = () => {
   const [showInversionCenter, setShowInversionCenter] = useState(true);
   const [showBasisAtoms, setShowBasisAtoms] = useState(true);
   const [showCoordinationBonds, setShowCoordinationBonds] = useState(true);
-  const [showMillerPlane, setShowMillerPlane] = useState(false);
+  const [showMillerPlane, setShowMillerPlane] = useState(true);
   const [visualizerH, setVisualizerH] = useState(1);
   const [visualizerK, setVisualizerK] = useState(1);
   const [visualizerL, setVisualizerL] = useState(1);
 
   const [sandboxH, setSandboxH] = useState(1);
   const [sandboxK, setSandboxK] = useState(1);
-  const [sandboxL, setSandboxL] = useState(0);
+  const [sandboxL, setSandboxL] = useState(1);
 
-  // Reciprocal space 3D visualizer states
-  const [recipRotation, setRecipRotation] = useState({ x: 25, y: -45 });
-  const [recipZoom, setRecipZoom] = useState<number>(1.0);
-  const [recipPan, setRecipPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isRecipDragging, setIsRecipDragging] = useState(false);
-  const [recipDragStart, setRecipDragStart] = useState({ x: 0, y: 0 });
-  const recipCanvasRef = useRef<HTMLCanvasElement>(null);
-  const clickStartPos = useRef({ x: 0, y: 0 });
-  const [hoveredNode, setHoveredNode] = useState<
-    [number, number, number] | null
-  >(null);
-  const [manualProbe, setManualProbe] = useState<[number, number, number]>([1, 1, 0]);
-
-  // Custom states to improve 3D Reciprocal Space Probe
-  const [isOrbiting, setIsOrbiting] = useState<boolean>(false);
-  const [projectionMode, setProjectionMode] = useState<"ortho" | "perspective">(
-    "perspective",
-  );
-  const [showEwaldSphere, setShowEwaldSphere] = useState<boolean>(true);
-  const [showLimitingSphere, setShowLimitingSphere] = useState<boolean>(false);
-  const [showBrillouinZone, setShowBrillouinZone] = useState<boolean>(false);
-  const [showRecipVectors, setShowRecipVectors] = useState<boolean>(true);
-  const [filterAllowedOnly, setFilterAllowedOnly] = useState<boolean>(false);
-  const [laueZoneFilter, setLaueZoneFilter] = useState<"ALL" | "ZOLZ" | "FOLZ">("ALL");
-  const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka wavelength in Angstroms
-  const [latticeParameter, setLatticeParameter] = useState<number>(4.07); // Custom lattice constant 'a' in Angstroms
-  const [beamRotationTheta, setBeamRotationTheta] = useState<number>(0); // Incident beam angle offset (deg)
-
-  // Helper to get true reciprocal space coordinates based on crystal system
-  const getReciprocalBasisCoord = (h: number, k: number, l: number, currentSystem: string) => {
-    let rx_basis = h;
-    let ry_basis = k;
-    let rz_basis = l;
-
-    if (currentSystem === "Hexagonal") {
-      rx_basis = h + k * 0.5;
-      ry_basis = k * (Math.sqrt(3) / 2);
-      rz_basis = l / 1.633;
-    } else if (currentSystem.startsWith("Tetragonal")) {
-      rz_basis = l / 1.35;
-    } else if (currentSystem.startsWith("Orthorhombic")) {
-      ry_basis = k / 1.15;
-      rz_basis = l / 1.45;
-    }
-    return { x: rx_basis, y: ry_basis, z: rz_basis };
-  };
+  const [manualProbe, setManualProbe] = useState<[number, number, number]>([1, 1, 1]);
+  const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka1 wavelength in Angstroms
+  const [latticeParameter, setLatticeParameter] = useState<number>(4.05); // Lattice constant 'a' in Angstroms
 
   // Quick addition indices state
   const [quickH, setQuickH] = useState(1);
   const [quickK, setQuickK] = useState(1);
   const [quickL, setQuickL] = useState(1);
 
-  // Toggle index in the array list
-  const toggleHKLNode = (h: number, k: number, l: number) => {
-    const parsed = parseHKLString(hklInput);
-    const exists = parsed.some((p) => p[0] === h && p[1] === k && p[2] === l);
-    let newParsed: [number, number, number][];
-    if (exists) {
-      newParsed = parsed.filter(
-        (p) => !(p[0] === h && p[1] === k && p[2] === l),
-      );
-    } else {
-      newParsed = [...parsed, [h, k, l]];
+  const syncActiveProbe = (h: number, k: number, l: number, openPhasor = false) => {
+    setManualProbe([h, k, l]);
+    setVisualizerH(h);
+    setVisualizerK(k);
+    setVisualizerL(l);
+    setShowMillerPlane(true);
+    setSandboxH(h);
+    setSandboxK(k);
+    setSandboxL(l);
+    if (openPhasor) {
+      setResultsGraphicTab("PHASOR_ARGAND");
     }
-    setHklInput(newParsed.map((p) => `${p[0]} ${p[1]} ${p[2]}`).join(", "));
+  };
+
+  // Exact structure factor |F_hkl|/f and |F_hkl|^2/f^2 calculator from fractional basis coordinates
+  const computeStructureFactorMetrics = (
+    sys: CrystalSystem,
+    h: number,
+    k: number,
+    l: number,
+  ): {
+    re: number;
+    im: number;
+    mag: number;
+    magSq: number;
+    symbolic: string;
+    phaseDeg: number;
+  } => {
+    let basis: [number, number, number][] = [[0, 0, 0]];
+    if (sys === "BCC" || sys === "Tetragonal_I") {
+      basis = [
+        [0, 0, 0],
+        [0.5, 0.5, 0.5],
+      ];
+    } else if (sys === "FCC" || sys === "Orthorhombic_F") {
+      basis = [
+        [0, 0, 0],
+        [0.5, 0.5, 0],
+        [0.5, 0, 0.5],
+        [0, 0.5, 0.5],
+      ];
+    } else if (sys === "Diamond") {
+      const fcc: [number, number, number][] = [
+        [0, 0, 0],
+        [0.5, 0.5, 0],
+        [0.5, 0, 0.5],
+        [0, 0.5, 0.5],
+      ];
+      basis = [
+        ...fcc,
+        ...fcc.map(
+          ([x, y, z]): [number, number, number] => [x + 0.25, y + 0.25, z + 0.25],
+        ),
+      ];
+    } else if (sys === "Hexagonal") {
+      basis = [
+        [0, 0, 0],
+        [2 / 3, 1 / 3, 0.5],
+      ];
+    } else if (sys === "Orthorhombic_C") {
+      basis = [
+        [0, 0, 0],
+        [0.5, 0.5, 0],
+      ];
+    }
+
+    let re = 0;
+    let im = 0;
+    for (const [x, y, z] of basis) {
+      const phi = 2 * Math.PI * (h * x + k * y + l * z);
+      re += Math.cos(phi);
+      im += Math.sin(phi);
+    }
+
+    const cleanRe = Math.abs(re) < 1e-6 ? 0 : re;
+    const cleanIm = Math.abs(im) < 1e-6 ? 0 : im;
+    const magSq = cleanRe * cleanRe + cleanIm * cleanIm;
+    const mag = Math.sqrt(magSq);
+    const phaseDeg =
+      mag < 1e-5 ? 0 : ((Math.atan2(cleanIm, cleanRe) * 180) / Math.PI + 360) % 360;
+
+    let symbolic = "0";
+    if (mag < 1e-4) {
+      symbolic = "0 (Extinct)";
+    } else if (Math.abs(mag - Math.round(mag)) < 1e-3) {
+      symbolic = `${Math.round(mag)}f`;
+    } else if (Math.abs(magSq - 32) < 1e-2) {
+      symbolic = "4√2 f (5.66f)";
+    } else if (Math.abs(magSq - 3) < 1e-2) {
+      symbolic = "√3 f (1.73f)";
+    } else {
+      symbolic = `${mag.toFixed(2)}f`;
+    }
+
+    return { re: cleanRe, im: cleanIm, mag, magSq, symbolic, phaseDeg };
   };
 
   const addQuickHKL = () => {
@@ -1245,6 +1284,7 @@ export const SelectionRulesModule: React.FC = () => {
       const newParsed = [...parsed, [quickH, quickK, quickL]];
       setHklInput(newParsed.map((p) => `${p[0]} ${p[1]} ${p[2]}`).join(", "));
     }
+    syncActiveProbe(quickH, quickK, quickL);
   };
 
   const removeHKLAtIndex = (index: number) => {
@@ -1258,914 +1298,8 @@ export const SelectionRulesModule: React.FC = () => {
   };
 
   const loadLowIndexPresets = () => {
-    setHklInput("1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 1 1, 2 2 0, 3 1 1");
+    setHklInput("1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 1 1, 2 2 0, 2 2 2, 3 1 1");
   };
-
-  // Orbit animation loop
-  useEffect(() => {
-    if (!isOrbiting) return;
-    let animId: number;
-    const animate = () => {
-      setRecipRotation((prev) => ({ ...prev, y: (prev.y + 0.4) % 360 }));
-      animId = requestAnimationFrame(animate);
-    };
-    animId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animId);
-  }, [isOrbiting]);
-
-  // 3D Reciprocal visualizer event handlers
-  const handleRecipMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsRecipDragging(true);
-    setRecipDragStart({ x: e.clientX, y: e.clientY });
-    clickStartPos.current = { x: e.clientX, y: e.clientY };
-  };
-
-  const handleRecipMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = recipCanvasRef.current;
-    if (!canvas) return;
-
-    if (isRecipDragging) {
-      if (e.shiftKey || e.button === 1) {
-        // Pan mode with Shift key
-        const dx = e.clientX - recipDragStart.x;
-        const dy = e.clientY - recipDragStart.y;
-        setRecipPan((prev) => ({ x: prev.x + dx * 0.8, y: prev.y + dy * 0.8 }));
-        setRecipDragStart({ x: e.clientX, y: e.clientY });
-        return;
-      }
-
-      const dx = e.clientX - recipDragStart.x;
-      const dy = e.clientY - recipDragStart.y;
-      setRecipRotation((prev) => ({
-        x: Math.max(-95, Math.min(95, prev.x - dy * 0.5)),
-        y: prev.y + dx * 0.5,
-      }));
-      setRecipDragStart({ x: e.clientX, y: e.clientY });
-      return;
-    }
-
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    let found: [number, number, number] | null = null;
-    let mindist = 18;
-
-    const cx = rect.width / 2 + recipPan.x;
-    const cy = rect.height / 2 + recipPan.y;
-    const maxBound = maxIndex;
-    const scaleBase = Math.min(rect.width, rect.height) * 0.42 * recipZoom;
-    const scale = scaleBase / (maxBound + 0.5);
-    const rx = (recipRotation.x * Math.PI) / 180;
-    const ry = (recipRotation.y * Math.PI) / 180;
-
-    for (let h = -maxBound; h <= maxBound; h++) {
-      for (let k = -maxBound; k <= maxBound; k++) {
-        for (let l = -maxBound; l <= maxBound; l++) {
-          if (h === 0 && k === 0 && l === 0) continue; // skip center
-
-          const basis = getReciprocalBasisCoord(h, k, l, system);
-          const x1 = basis.x * Math.cos(ry) - basis.z * Math.sin(ry);
-          const z1 = basis.x * Math.sin(ry) + basis.z * Math.cos(ry);
-          const y2 = basis.y * Math.cos(rx) - z1 * Math.sin(rx);
-          const z2 = basis.y * Math.sin(rx) + z1 * Math.cos(rx);
-
-          let projX = cx + x1 * scale;
-          let projY = cy + y2 * scale;
-
-          if (projectionMode === "perspective") {
-            const cameraDistance = (maxBound + 1.2) * 1.5;
-            const depthFactor = Math.max(0.1, 1 - z2 / cameraDistance);
-            projX = cx + (x1 * scale) / depthFactor;
-            projY = cy + (y2 * scale) / depthFactor;
-          }
-
-          const dist = Math.sqrt((mouseX - projX) ** 2 + (mouseY - projY) ** 2);
-          if (dist < mindist) {
-            mindist = dist;
-            found = [h, k, l];
-          }
-        }
-      }
-    }
-    setHoveredNode(found);
-    if (found) {
-      setManualProbe(found);
-    }
-  };
-
-  const handleRecipWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
-    setRecipZoom((prev) => Math.max(0.4, Math.min(3.0, prev * zoomFactor)));
-  };
-
-  const handleRecipMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    setIsRecipDragging(false);
-
-    if (
-      Math.abs(e.clientX - clickStartPos.current.x) < 5 &&
-      Math.abs(e.clientY - clickStartPos.current.y) < 5
-    ) {
-      const canvas = recipCanvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-
-      let closest: { h: number; k: number; l: number; dist: number } | null =
-        null;
-      const cx = rect.width / 2 + recipPan.x;
-      const cy = rect.height / 2 + recipPan.y;
-      const maxBound = maxIndex;
-      const scaleBase = Math.min(rect.width, rect.height) * 0.42 * recipZoom;
-      const scale = scaleBase / (maxBound + 0.5);
-      const rx = (recipRotation.x * Math.PI) / 180;
-      const ry = (recipRotation.y * Math.PI) / 180;
-
-      for (let h = -maxBound; h <= maxBound; h++) {
-        for (let k = -maxBound; k <= maxBound; k++) {
-          for (let l = -maxBound; l <= maxBound; l++) {
-            if (h === 0 && k === 0 && l === 0) continue;
-
-            const basis = getReciprocalBasisCoord(h, k, l, system);
-            const x1 = basis.x * Math.cos(ry) - basis.z * Math.sin(ry);
-            const z1 = basis.x * Math.sin(ry) + basis.z * Math.cos(ry);
-            const y2 = basis.y * Math.cos(rx) - z1 * Math.sin(rx);
-            const z2 = basis.y * Math.sin(rx) + z1 * Math.cos(rx);
-
-            let projX = cx + x1 * scale;
-            let projY = cy + y2 * scale;
-
-            if (projectionMode === "perspective") {
-              const cameraDistance = (maxBound + 1.2) * 1.5;
-              const depthFactor = Math.max(0.1, 1 - z2 / cameraDistance);
-              projX = cx + (x1 * scale) / depthFactor;
-              projY = cy + (y2 * scale) / depthFactor;
-            }
-
-            const dist = Math.sqrt(
-              (clickX - projX) ** 2 + (clickY - projY) ** 2,
-            );
-            if (dist < 18) {
-              if (!closest || dist < closest.dist) {
-                closest = { h, k, l, dist };
-              }
-            }
-          }
-        }
-      }
-
-      if (closest) {
-        toggleHKLNode(closest.h, closest.k, closest.l);
-        setManualProbe([closest.h, closest.k, closest.l]);
-      }
-    }
-  };
-
-  // Drawing reciprocal space nodes in 3D
-  useEffect(() => {
-    const canvas = recipCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    const width = rect.width;
-    const height = rect.height;
-
-    ctx.clearRect(0, 0, width, height);
-
-    // Subtle background grid
-    ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.015)";
-    ctx.lineWidth = 1;
-    const gridSize = 32;
-    for (let x = 0; x < width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    const cx = width / 2 + recipPan.x;
-    const cy = height / 2 + recipPan.y;
-
-    const rx = (recipRotation.x * Math.PI) / 180;
-    const ry = (recipRotation.y * Math.PI) / 180;
-
-    const maxBound = maxIndex;
-    const activeNode = hoveredNode || manualProbe;
-
-    const projectPhysical = (x: number, y: number, z: number) => {
-      // Dynamic scale based on extent and user zoom
-      const scaleBase = Math.min(width, height) * 0.42 * recipZoom;
-      const scale = scaleBase / (maxBound + 0.5);
-      
-      const x1 = x * Math.cos(ry) - z * Math.sin(ry);
-      const z1 = x * Math.sin(ry) + z * Math.cos(ry);
-      const y2 = y * Math.cos(rx) - z1 * Math.sin(rx);
-      const z2 = y * Math.sin(rx) + z1 * Math.cos(rx);
-
-      if (projectionMode === "perspective") {
-        const cameraDistance = (maxBound + 1.2) * 1.5;
-        const depthFactor = Math.max(0.1, 1 - z2 / cameraDistance);
-        return {
-          x: cx + (x1 * scale) / depthFactor,
-          y: cy + (y2 * scale) / depthFactor,
-          z: z2,
-        };
-      } else {
-        return { x: cx + x1 * scale, y: cy + y2 * scale, z: z2 };
-      }
-    };
-
-    const project = (h: number, k: number, l: number) => {
-      const basis = getReciprocalBasisCoord(h, k, l, system);
-      return projectPhysical(basis.x, basis.y, basis.z);
-    };
-
-    const parsedHKLs = parseHKLString(hklInput);
-    const elements: any[] = [];
-
-    // Axis projections
-    const origin = project(0, 0, 0);
-    const axH = project(maxBound + 0.6, 0, 0);
-    const axK = project(0, maxBound + 0.6, 0);
-    const axL = project(0, 0, maxBound + 0.6);
-
-    const isNodeVisible = (h: number, k: number, l: number) => {
-      if (laueZoneFilter === "ZOLZ" && l !== 0) return false;
-      if (laueZoneFilter === "FOLZ" && Math.abs(l) !== 1) return false;
-      if (filterAllowedOnly) {
-        if (h === 0 && k === 0 && l === 0) return true; // Keep origin visible always
-        const val = validateSelectionRule(system, [h, k, l]);
-        if (val.status !== "Allowed") return false;
-      }
-      return true;
-    };
-
-    // Calculate incident wave vector direction considering beam tilt theta
-    const beamRad = (beamRotationTheta * Math.PI) / 180;
-    const xc_val = (-latticeParameter / wavelength) * Math.cos(beamRad);
-    const yc_val = (-latticeParameter / wavelength) * Math.sin(beamRad);
-    const zc_val = 0;
-    const r_val = latticeParameter / wavelength;
-
-    // Grid edges and nodes
-    for (let h = -maxBound; h <= maxBound; h++) {
-      for (let k = -maxBound; k <= maxBound; k++) {
-        for (let l = -maxBound; l <= maxBound; l++) {
-          if (!isNodeVisible(h, k, l)) continue;
-
-          const p1 = project(h, k, l);
-
-          // Render edges
-          if (h < maxBound && isNodeVisible(h + 1, k, l)) {
-            const p2 = project(h + 1, k, l);
-            elements.push({
-              type: "edge",
-              p1,
-              p2,
-              h1: h,
-              k1: k,
-              l1: l,
-              h2: h + 1,
-              k2: k,
-              l2: l,
-              z: (p1.z + p2.z) / 2,
-            });
-          }
-          if (k < maxBound && isNodeVisible(h, k + 1, l)) {
-            const p2 = project(h, k + 1, l);
-            elements.push({
-              type: "edge",
-              p1,
-              p2,
-              h1: h,
-              k1: k,
-              l1: l,
-              h2: h,
-              k2: k + 1,
-              l2: l,
-              z: (p1.z + p2.z) / 2,
-            });
-          }
-          if (l < maxBound && isNodeVisible(h, k, l + 1)) {
-            const p2 = project(h, k, l + 1);
-            elements.push({
-              type: "edge",
-              p1,
-              p2,
-              h1: h,
-              k1: k,
-              l1: l,
-              h2: h,
-              k2: k,
-              l2: l + 1,
-              z: (p1.z + p2.z) / 2,
-            });
-          }
-
-          if (h === 0 && k === 0 && l === 0) continue;
-
-          const isSelected = parsedHKLs.some(
-            (p) => p[0] === h && p[1] === k && p[2] === l,
-          );
-
-          const val = validateSelectionRule(system, [h, k, l]);
-          const status = val.status;
-          const reason = val.reason;
-
-          // Ewald Sphere intersection check inside dimensionless space
-          const basis = getReciprocalBasisCoord(h, k, l, system);
-          const distToCenter = Math.sqrt((basis.x - xc_val) ** 2 + (basis.y - yc_val) ** 2 + (basis.z - zc_val) ** 2);
-          const isEwaldIntersecting =
-            showEwaldSphere && Math.abs(distToCenter - r_val) < 0.28;
-
-          elements.push({
-            type: "node",
-            h,
-            k,
-            l,
-            p: p1,
-            isSelected,
-            status,
-            reason,
-            isEwaldIntersecting,
-            z: p1.z,
-          });
-        }
-      }
-    }
-
-    // 1st Brillouin Zone Wireframe Box (around origin ±0.5)
-    if (showBrillouinZone) {
-      const bzPoints = [
-        [-0.5, -0.5, -0.5],
-        [0.5, -0.5, -0.5],
-        [0.5, 0.5, -0.5],
-        [-0.5, 0.5, -0.5],
-        [-0.5, -0.5, 0.5],
-        [0.5, -0.5, 0.5],
-        [0.5, 0.5, 0.5],
-        [-0.5, 0.5, 0.5],
-      ].map(([x, y, z]) => project(x, y, z));
-
-      const bzEdges = [
-        [0, 1], [1, 2], [2, 3], [3, 0], // bottom
-        [4, 5], [5, 6], [6, 7], [7, 4], // top
-        [0, 4], [1, 5], [2, 6], [3, 7], // pillars
-      ];
-
-      bzEdges.forEach(([i1, i2]) => {
-        const p1 = bzPoints[i1];
-        const p2 = bzPoints[i2];
-        elements.push({
-          type: "bz-wire",
-          p1,
-          p2,
-          color: "rgba(14, 165, 233, 0.65)",
-          z: (p1.z + p2.z) / 2,
-        });
-      });
-    }
-
-    // Limiting Sphere (Radius = 2/λ, centered at origin)
-    if (showLimitingSphere) {
-      const r_limit = (2 * latticeParameter) / wavelength;
-      const limRings = [
-        { plane: "xy", color: "rgba(244, 63, 94, 0.25)" },
-        { plane: "xz", color: "rgba(244, 63, 94, 0.25)" },
-        { plane: "yz", color: "rgba(244, 63, 94, 0.25)" },
-      ];
-
-      limRings.forEach((ring) => {
-        const ringPoints: any[] = [];
-        const divisions = 48;
-        for (let i = 0; i <= divisions; i++) {
-          const phi = (i / divisions) * 2 * Math.PI;
-          let x = 0, y = 0, z = 0;
-          if (ring.plane === "xy") {
-            x = r_limit * Math.cos(phi);
-            y = r_limit * Math.sin(phi);
-          } else if (ring.plane === "xz") {
-            x = r_limit * Math.cos(phi);
-            z = r_limit * Math.sin(phi);
-          } else if (ring.plane === "yz") {
-            y = r_limit * Math.cos(phi);
-            z = r_limit * Math.sin(phi);
-          }
-          ringPoints.push(projectPhysical(x, y, z));
-        }
-
-        for (let i = 0; i < divisions; i++) {
-          const p1 = ringPoints[i];
-          const p2 = ringPoints[i + 1];
-          elements.push({
-            type: "limiting-sphere-wire",
-            p1,
-            p2,
-            color: ring.color,
-            z: (p1.z + p2.z) / 2,
-          });
-        }
-      });
-    }
-
-    // Add Ewald Sphere wireframe
-    if (showEwaldSphere) {
-      const rings = [
-        { plane: "xy", color: "rgba(56, 189, 248, 0.35)" },
-        { plane: "xz", color: "rgba(56, 189, 248, 0.35)" },
-        { plane: "yz", color: "rgba(56, 189, 248, 0.35)" },
-      ];
-
-      rings.forEach((ring) => {
-        const ringPoints: any[] = [];
-        const divisions = 48; // smoother rings
-        for (let i = 0; i <= divisions; i++) {
-          const phi = (i / divisions) * 2 * Math.PI;
-          let x = xc_val,
-            y = yc_val,
-            z = zc_val;
-          if (ring.plane === "xy") {
-            x = xc_val + r_val * Math.cos(phi);
-            y = yc_val + r_val * Math.sin(phi);
-          } else if (ring.plane === "xz") {
-            x = xc_val + r_val * Math.cos(phi);
-            z = zc_val + r_val * Math.sin(phi);
-          } else if (ring.plane === "yz") {
-            y = yc_val + r_val * Math.cos(phi);
-            z = zc_val + r_val * Math.sin(phi);
-          }
-          ringPoints.push(projectPhysical(x, y, z));
-        }
-
-        for (let i = 0; i < divisions; i++) {
-          const p1 = ringPoints[i];
-          const p2 = ringPoints[i + 1];
-          elements.push({
-            type: "sphere-wire",
-            p1,
-            p2,
-            color: ring.color,
-            z: (p1.z + p2.z) / 2,
-          });
-        }
-      });
-    }
-
-    // Add Laue Zone plane representation (for l=0 plane)
-    if (laueZoneFilter === "ALL" || laueZoneFilter === "ZOLZ") {
-      const s = maxBound + 0.8;
-      const p1 = project(-s, -s, 0);
-      const p2 = project(s, -s, 0);
-      const p3 = project(s, s, 0);
-      const p4 = project(-s, s, 0);
-      
-      elements.push({
-        type: "laue-plane",
-        p1, p2, p3, p4,
-        z: (p1.z + p2.z + p3.z + p4.z) / 4,
-        label: "ZOLZ (l=0 Plane)",
-        color: "rgba(168, 85, 247, 0.06)" // very faint purple
-      });
-    }
-
-    elements.push({
-      type: "axis",
-      p1: origin,
-      p2: axH,
-      label: "a* [100]",
-      color: "#ff4d4d",
-      z: origin.z + 0.1,
-    });
-    elements.push({
-      type: "axis",
-      p1: origin,
-      p2: axK,
-      label: "b* [010]",
-      color: "#10b981",
-      z: origin.z + 0.1,
-    });
-    elements.push({
-      type: "axis",
-      p1: origin,
-      p2: axL,
-      label: "c* [001]",
-      color: "#0fbcf9",
-      z: origin.z + 0.1,
-    });
-    elements.push({ type: "origin", p: origin, z: origin.z });
-
-    // Add Ewald Sphere Center & Wave vectors if sphere is visible
-    if (showEwaldSphere && showRecipVectors) {
-      const c = projectPhysical(xc_val, yc_val, zc_val);
-
-      elements.push({ type: "ewald-center", p: c, z: c.z });
-
-      // Incident wave vector k0 (from Center to Origin)
-      elements.push({
-        type: "k-vector",
-        p1: c,
-        p2: origin,
-        color: "#38bdf8", // sky-400
-        label: "k₀ (Incident)",
-        z: (c.z + origin.z) / 2 + 0.1,
-      });
-
-      // Diffracted wave vector k (from Center to active node)
-      if (activeNode) {
-        const p_hover = project(activeNode[0], activeNode[1], activeNode[2]);
-        elements.push({
-          type: "k-vector",
-          p1: c,
-          p2: p_hover,
-          color: "#c084fc", // violet-400
-          label: "k (Diffracted)",
-          z: (c.z + p_hover.z) / 2 + 0.1,
-        });
-      }
-    }
-
-    // Draw reciprocal standard vector (g*) for active node from origin (0,0,0) to node
-    if (activeNode && showRecipVectors) {
-      const p_hover = project(activeNode[0], activeNode[1], activeNode[2]);
-      elements.push({
-        type: "recip-vector",
-        p1: origin,
-        p2: p_hover,
-        color: "#fbbf24", // golden yellow
-        label: `g* (${activeNode[0]} ${activeNode[1]} ${activeNode[2]})`,
-        z: (origin.z + p_hover.z) / 2 + 0.2,
-      });
-    }
-
-    elements.sort((a, b) => b.z - a.z);
-
-    elements.forEach((el) => {
-      if (el.type === "edge") {
-        const isHoveredEdge =
-          activeNode &&
-          ((activeNode[0] === el.h1 &&
-            activeNode[1] === el.k1 &&
-            activeNode[2] === el.l1) ||
-            (activeNode[0] === el.h2 &&
-              activeNode[1] === el.k2 &&
-              activeNode[2] === el.l2));
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = isHoveredEdge
-          ? "rgba(52, 211, 153, 0.6)"
-          : "rgba(148, 163, 184, 0.12)";
-        ctx.lineWidth = isHoveredEdge ? 1.6 : 0.8;
-        ctx.stroke();
-      } else if (el.type === "bz-wire") {
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = el.color;
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-      } else if (el.type === "limiting-sphere-wire") {
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = el.color;
-        ctx.lineWidth = 1.0;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      } else if (el.type === "sphere-wire") {
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = el.color;
-        ctx.lineWidth = 1.2;
-        ctx.setLineDash([3, 3]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      } else if (el.type === "laue-plane") {
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.lineTo(el.p3.x, el.p3.y);
-        ctx.lineTo(el.p4.x, el.p4.y);
-        ctx.closePath();
-        ctx.fillStyle = el.color;
-        ctx.fill();
-        ctx.strokeStyle = "rgba(168, 85, 247, 0.25)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        
-        ctx.fillStyle = "rgba(168, 85, 247, 0.8)";
-        ctx.font = "bold 9px monospace";
-        ctx.fillText(el.label, el.p4.x + 5, el.p4.y - 5);
-      } else if (el.type === "recip-vector") {
-        // Draw standard vector
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = el.color;
-        ctx.lineWidth = 2.2;
-        ctx.stroke();
-
-        // Draw arrow head
-        const angle = Math.atan2(el.p2.y - el.p1.y, el.p2.x - el.p1.x);
-        ctx.beginPath();
-        ctx.moveTo(el.p2.x, el.p2.y);
-        ctx.lineTo(
-          el.p2.x - 7 * Math.cos(angle - Math.PI / 6),
-          el.p2.y - 7 * Math.sin(angle - Math.PI / 6),
-        );
-        ctx.lineTo(
-          el.p2.x - 7 * Math.cos(angle + Math.PI / 6),
-          el.p2.y - 7 * Math.sin(angle + Math.PI / 6),
-        );
-        ctx.closePath();
-        ctx.fillStyle = el.color;
-        ctx.fill();
-
-        if (el.label) {
-          ctx.fillStyle = el.color;
-          ctx.font = "bold 9.5px monospace";
-          ctx.fillText(el.label, el.p2.x + 8, el.p2.y - 6);
-        }
-      } else if (el.type === "axis") {
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = el.color;
-        ctx.lineWidth = 2.0;
-        ctx.stroke();
-
-        ctx.fillStyle = el.color;
-        ctx.font = "bold 9.5px monospace";
-        ctx.fillText(el.label, el.p2.x + 5, el.p2.y + 4);
-      } else if (el.type === "origin") {
-        ctx.beginPath();
-        ctx.rect(el.p.x - 3.5, el.p.y - 3.5, 7, 7);
-        ctx.fillStyle = "#facc15";
-        ctx.fill();
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-        ctx.fillStyle = "#facc15";
-        ctx.font = "bold 9px monospace";
-        ctx.textAlign = "center";
-        ctx.fillText("000", el.p.x, el.p.y - 8);
-      } else if (el.type === "ewald-center") {
-        ctx.beginPath();
-        // Draw a crisp cross for Ewald center
-        ctx.moveTo(el.p.x - 5, el.p.y);
-        ctx.lineTo(el.p.x + 5, el.p.y);
-        ctx.moveTo(el.p.x, el.p.y - 5);
-        ctx.lineTo(el.p.x, el.p.y + 5);
-        ctx.strokeStyle = "#38bdf8";
-        ctx.lineWidth = 2.0;
-        ctx.stroke();
-        ctx.fillStyle = "#38bdf8";
-        ctx.font = "bold 9px monospace";
-        ctx.textAlign = "center";
-        ctx.fillText("C (Ewald Center)", el.p.x, el.p.y - 8);
-      } else if (el.type === "k-vector") {
-        // Draw dashed wave vector
-        ctx.beginPath();
-        ctx.moveTo(el.p1.x, el.p1.y);
-        ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = el.color;
-        ctx.lineWidth = 1.8;
-        ctx.setLineDash([4, 3]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Draw arrow head
-        const angle = Math.atan2(el.p2.y - el.p1.y, el.p2.x - el.p1.x);
-        const headX = el.p2.x - 5 * Math.cos(angle);
-        const headY = el.p2.y - 5 * Math.sin(angle);
-        ctx.beginPath();
-        ctx.moveTo(headX, headY);
-        ctx.lineTo(
-          headX - 7 * Math.cos(angle - Math.PI / 6),
-          headY - 7 * Math.sin(angle - Math.PI / 6),
-        );
-        ctx.lineTo(
-          headX - 7 * Math.cos(angle + Math.PI / 6),
-          headY - 7 * Math.sin(angle + Math.PI / 6),
-        );
-        ctx.closePath();
-        ctx.fillStyle = el.color;
-        ctx.fill();
-
-        // Draw label
-        const midX = (el.p1.x + el.p2.x) / 2;
-        const midY = (el.p1.y + el.p2.y) / 2;
-        ctx.fillStyle = el.color;
-        ctx.font = "bold 9px monospace";
-        ctx.fillText(el.label, midX, midY - 6);
-      } else if (el.type === "node") {
-        const isHovered =
-          hoveredNode &&
-          hoveredNode[0] === el.h &&
-          hoveredNode[1] === el.k &&
-          hoveredNode[2] === el.l;
-        const isManual =
-          manualProbe &&
-          manualProbe[0] === el.h &&
-          manualProbe[1] === el.k &&
-          manualProbe[2] === el.l;
-        const isProbeActive = isHovered || isManual;
-
-        const baseRadius = el.isSelected
-          ? isProbeActive
-            ? 9.0
-            : 7.0
-          : isProbeActive
-            ? 6.5
-            : 4.0;
-        const radius = baseRadius * Math.min(1.5, Math.max(0.6, recipZoom));
-
-        // If node satisfies Ewald Sphere reflection, add a sharp highlight box
-        if (el.isEwaldIntersecting) {
-          ctx.beginPath();
-          ctx.rect(
-            el.p.x - (radius + 3),
-            el.p.y - (radius + 3),
-            (radius + 3) * 2,
-            (radius + 3) * 2
-          );
-          ctx.strokeStyle = "#fbbf24"; // sharp yellow
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-
-        // Draw selection halo/pointer ring for hovered or manually focused probe
-        if (isProbeActive) {
-          ctx.beginPath();
-          ctx.rect(el.p.x - (radius + 5), el.p.y - (radius + 5), (radius + 5) * 2, (radius + 5) * 2);
-          ctx.strokeStyle = isHovered ? "#10b981" : "#a855f7"; // sharp green or purple
-          ctx.lineWidth = 1.2;
-          ctx.setLineDash([2, 2]);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-
-        ctx.beginPath();
-        if (el.status === "Allowed") {
-          const grad = ctx.createRadialGradient(
-            el.p.x - radius * 0.35,
-            el.p.y - radius * 0.35,
-            radius * 0.1,
-            el.p.x,
-            el.p.y,
-            radius
-          );
-          if (el.isEwaldIntersecting) {
-            grad.addColorStop(0, "#fef08a");
-            grad.addColorStop(0.5, "#f59e0b");
-            grad.addColorStop(1, "#78350f");
-          } else if (el.isSelected) {
-            grad.addColorStop(0, "#a7f3d0");
-            grad.addColorStop(0.5, "#10b981");
-            grad.addColorStop(1, "#064e3b");
-          } else {
-            grad.addColorStop(0, "#6ee7b7");
-            grad.addColorStop(0.6, "#059669");
-            grad.addColorStop(1, "#022c22");
-          }
-          ctx.arc(el.p.x, el.p.y, radius, 0, 2 * Math.PI);
-          ctx.fillStyle = grad;
-          ctx.strokeStyle = el.isSelected ? "#34d399" : el.isEwaldIntersecting ? "#fcd34d" : "#047857";
-          ctx.lineWidth = el.isSelected || isProbeActive ? 1.5 : 0.8;
-        } else {
-          // Forbidden node - draw sleek ruby diamond with crossed extinction diagonals
-          ctx.moveTo(el.p.x - radius, el.p.y);
-          ctx.lineTo(el.p.x, el.p.y - radius);
-          ctx.lineTo(el.p.x + radius, el.p.y);
-          ctx.lineTo(el.p.x, el.p.y + radius);
-          ctx.closePath();
-          
-          const fgrad = ctx.createRadialGradient(
-            el.p.x,
-            el.p.y,
-            0,
-            el.p.x,
-            el.p.y,
-            radius
-          );
-          fgrad.addColorStop(0, el.isSelected ? "#fca5a5" : "#7f1d1d");
-          fgrad.addColorStop(1, el.isSelected ? "#b91c1c" : "#300505");
-          ctx.fillStyle = fgrad;
-          ctx.strokeStyle = el.isSelected ? "#f87171" : "rgba(225, 29, 72, 0.4)";
-          ctx.lineWidth = el.isSelected || isProbeActive ? 1.2 : 0.6;
-        }
-        
-        ctx.globalAlpha = el.isSelected || isProbeActive || el.isEwaldIntersecting ? 1.0 : 0.65;
-        ctx.fill();
-        ctx.stroke();
-        ctx.globalAlpha = 1.0;
-        ctx.shadowBlur = 0;
-
-        if (el.isSelected || isProbeActive) {
-          ctx.fillStyle = el.isSelected ? "#ffffff" : isHovered ? "#34d399" : "#a855f7";
-          ctx.font = isProbeActive ? "bold 9px monospace" : "8px monospace";
-          ctx.textAlign = "center";
-          ctx.fillText(
-            `(${el.h},${el.k},${el.l})`,
-            el.p.x,
-            el.p.y - radius - (isProbeActive ? 7 : 5),
-          );
-        }
-      }
-    });
-
-    // Draw 3D Orientation Gimbal in bottom-left
-    const gx = 45;
-    const gy = height - 45;
-    const gLen = 24;
-    const gProject = (vx: number, vy: number, vz: number) => {
-      const x1 = vx * Math.cos(ry) - vz * Math.sin(ry);
-      const z1 = vx * Math.sin(ry) + vz * Math.cos(ry);
-      const y2 = vy * Math.cos(rx) - z1 * Math.sin(rx);
-      return { x: gx + x1 * gLen, y: gy + y2 * gLen };
-    };
-    const ga = gProject(1, 0, 0);
-    const gb = gProject(0, 1, 0);
-    const gc = gProject(0, 0, 1);
-
-    ctx.beginPath();
-    ctx.arc(gx, gy, 28, 0, 2 * Math.PI);
-    ctx.fillStyle = "rgba(5, 11, 20, 0.88)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    const gAxes = [
-      { p: ga, color: "#ef4444", label: "a*" },
-      { p: gb, color: "#22c55e", label: "b*" },
-      { p: gc, color: "#38bdf8", label: "c*" },
-    ];
-    gAxes.forEach((axis) => {
-      ctx.beginPath();
-      ctx.moveTo(gx, gy);
-      ctx.lineTo(axis.p.x, axis.p.y);
-      ctx.strokeStyle = axis.color;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(axis.p.x, axis.p.y, 2.5, 0, 2 * Math.PI);
-      ctx.fillStyle = axis.color;
-      ctx.fill();
-      ctx.fillStyle = axis.color;
-      ctx.font = "bold 8.5px monospace";
-      ctx.fillText(axis.label, axis.p.x + (axis.p.x > gx ? 5 : -11), axis.p.y + (axis.p.y > gy ? 6 : -3));
-    });
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(148, 163, 184, 0.7)";
-    ctx.font = "bold 8.5px monospace";
-    ctx.textAlign = "left";
-    ctx.fillText(
-      `ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}° | ZOOM: ${(recipZoom * 100).toFixed(0)}%`,
-      10,
-      15,
-    );
-    ctx.fillText("DRAG ROTATE | SHIFT+DRAG PAN | SCROLL ZOOM | CLICK NODE TO TOGGLE", 10, 27);
-  }, [
-    hklInput,
-    recipRotation,
-    recipZoom,
-    recipPan,
-    system,
-    hoveredNode,
-    manualProbe,
-    maxIndex,
-    projectionMode,
-    showEwaldSphere,
-    showLimitingSphere,
-    showBrillouinZone,
-    showRecipVectors,
-    wavelength,
-    latticeParameter,
-    beamRotationTheta,
-    laueZoneFilter,
-    filterAllowedOnly,
-  ]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -2292,12 +1426,19 @@ export const SelectionRulesModule: React.FC = () => {
   const handleSave = () => {
     if (results.length === 0) return;
 
-    const csvHeader = "Reflection (h k l),Status,Reason\n";
+    const csvHeader =
+      "Reflection (h k l),Status,|F_hkl|/f,|F_hkl|^2/f^2,Multiplicity p,d_hkl (Angstrom),2Theta (deg),Reason\n";
     const csvRows = results
-      .map(
-        (res) =>
-          `"(${res.hkl.join(" ")})","${res.status}","${res.reason.replace(/"/g, '""')}"`,
-      )
+      .map((res) => {
+        const [h, k, l] = res.hkl;
+        const sf = computeStructureFactorMetrics(system, h, k, l);
+        const mult = generateEquivalentPlanes(h, k, l, system).length;
+        const dVal = calculateDSpacingForProbe(h, k, l, system, latticeParameter);
+        const sinTheta = dVal > 0 ? wavelength / (2 * dVal) : 2;
+        const twoThetaStr =
+          sinTheta <= 1 ? ((2 * Math.asin(sinTheta) * 180) / Math.PI).toFixed(2) : "Out of Ewald";
+        return `"(${res.hkl.join(" ")})","${res.status}","${sf.symbolic}","${sf.magSq.toFixed(2)}","${mult}","${dVal.toFixed(4)}","${twoThetaStr}","${res.reason.replace(/"/g, '""')}"`;
+      })
       .join("\n");
 
     const blob = new Blob([csvHeader + csvRows], {
@@ -3469,31 +2610,94 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             </div>
 
+            {/* Lattice Constant a & X-ray Wavelength Controls for Live d_hkl and 2Theta */}
+            <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                  Kinematic Parameters (d & 2θ)
+                </span>
+                <span className="text-[9px] font-mono text-emerald-400 font-bold">
+                  a = {latticeParameter.toFixed(2)} Å | λ = {wavelength.toFixed(4)} Å
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#050B14] p-2.5 border border-[#1e293b]">
+                  <label className="block text-[8px] font-mono font-bold text-slate-500 uppercase mb-1">
+                    Lattice Parameter a (Å)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="2.0"
+                    max="15.0"
+                    value={latticeParameter}
+                    onChange={(e) =>
+                      setLatticeParameter(
+                        Math.max(1.5, Math.min(20, parseFloat(e.target.value) || 4.05)),
+                      )
+                    }
+                    className="w-full bg-transparent font-mono font-bold text-xs text-emerald-400 outline-none tabular-nums"
+                  />
+                </div>
+                <div className="bg-[#050B14] p-2.5 border border-[#1e293b]">
+                  <label className="block text-[8px] font-mono font-bold text-slate-500 uppercase mb-1">
+                    X-Ray Anode λ (Å)
+                  </label>
+                  <select
+                    value={wavelength}
+                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                    className="w-full bg-[#050B14] font-mono font-bold text-xs text-sky-400 outline-none tabular-nums"
+                  >
+                    <option value={1.5406}>Cu Kα₁ (1.5406 Å)</option>
+                    <option value={1.78897}>Co Kα₁ (1.7890 Å)</option>
+                    <option value={0.7093}>Mo Kα₁ (0.7093 Å)</option>
+                    <option value={2.2897}>Cr Kα₁ (2.2897 Å)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             {/* Chip tag group representation */}
             {parseHKLString(hklInput).length > 0 && (
               <div className="space-y-2 p-4 bg-[#050B14]/30 rounded-none border border-[#1e293b] text-left">
-                <div className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest pl-0.5 mb-1">
-                  Active Coordinates ({parseHKLString(hklInput).length} planes)
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest pl-0.5">
+                    Active Coordinates ({parseHKLString(hklInput).length} planes)
+                  </div>
+                  <span className="text-[8px] font-mono text-sky-400">
+                    Click chip to probe 3D & Phasor
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1 pt-1">
                   {parseHKLString(hklInput).map((pt, i) => {
                     const ruleResult = validateSelectionRule(system, pt);
                     const isAllowed = ruleResult.status === "Allowed";
+                    const isProbed =
+                      manualProbe[0] === pt[0] &&
+                      manualProbe[1] === pt[1] &&
+                      manualProbe[2] === pt[2];
                     return (
                       <div
                         key={`${pt.join("-")}-${i}`}
-                        className={`pl-2 pr-1 py-1 rounded-none border flex items-center gap-1.5 text-[10px] font-mono select-none transition-colors
+                        onClick={() => syncActiveProbe(pt[0], pt[1], pt[2])}
+                        className={`pl-2 pr-1 py-1 rounded-none border flex items-center gap-1.5 text-[10px] font-mono select-none transition-all cursor-pointer
                           ${
-                            isAllowed
-                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                              : "bg-red-500/10 border-red-500/20 text-red-300"
+                            isProbed
+                              ? "ring-1 ring-sky-400 bg-sky-500/20 border-sky-400 text-white"
+                              : isAllowed
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:border-emerald-400/50"
+                                : "bg-red-500/10 border-red-500/20 text-red-300 hover:border-red-400/50"
                           }
                         `}
+                        title="Click to inspect reflection in 3D Miller Slicer & Phasor Diagram"
                       >
                         <span className="font-black">({pt.join(" ")})</span>
                         <button
                           type="button"
-                          onClick={() => removeHKLAtIndex(i)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeHKLAtIndex(i);
+                          }}
                           className="p-0.5 rounded-none hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
                           title="Remove reflection"
                         >
@@ -3677,11 +2881,86 @@ export const SelectionRulesModule: React.FC = () => {
                   ))}
               </div>
             </div>
-            {/* Symmetry Intelligence Card */}
-            <div className="bg-[#050B14]/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative group/symmetry hover:border-sky-500/40 transition-all duration-700">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-[80px] pointer-events-none group-hover/symmetry:bg-sky-500/15 transition-all duration-1000 -translate-y-20 translate-x-10" />
 
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 relative z-10 border-b border-[#1e293b] pb-6">
+            {/* Active Reflection Quick Telemetry Card */}
+            {(() => {
+              const [ph, pk, pl] = manualProbe;
+              const probeRule = validateSelectionRule(system, [ph, pk, pl]);
+              const probeSf = computeStructureFactorMetrics(system, ph, pk, pl);
+              const probeMult = generateEquivalentPlanes(ph, pk, pl, system).length;
+              const probeD = calculateDSpacingForProbe(ph, pk, pl, system, latticeParameter);
+              const sinTheta = probeD > 0 ? wavelength / (2 * probeD) : 2;
+              const twoTheta =
+                sinTheta <= 1 ? (2 * Math.asin(sinTheta) * 180) / Math.PI : null;
+
+              return (
+                <div className="bg-[#0B1221] p-4 rounded-none border border-sky-500/30 space-y-3">
+                  <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                      <span className="text-[10px] font-black text-sky-300 uppercase tracking-widest font-mono">
+                        Active Probe Telemetry: ({ph} {pk} {pl})
+                      </span>
+                    </div>
+                    <span
+                      className={`text-[9px] font-mono font-black uppercase px-2 py-0.5 border ${
+                        probeRule.status === "Allowed"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                          : "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                      }`}
+                    >
+                      {probeRule.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-center">
+                    <div className="bg-[#050B14] p-2 border border-[#1e293b]">
+                      <span className="text-[8px] text-slate-500 block uppercase">
+                        |F_hkl| / f
+                      </span>
+                      <span className="text-xs font-black text-emerald-400 tabular-nums">
+                        {probeSf.symbolic}
+                      </span>
+                    </div>
+                    <div className="bg-[#050B14] p-2 border border-[#1e293b]">
+                      <span className="text-[8px] text-slate-500 block uppercase">
+                        |F_hkl|² / f²
+                      </span>
+                      <span className="text-xs font-black text-sky-300 tabular-nums">
+                        {probeSf.magSq.toFixed(1)}
+                      </span>
+                    </div>
+                    <div className="bg-[#050B14] p-2 border border-[#1e293b]">
+                      <span className="text-[8px] text-slate-500 block uppercase">
+                        Multiplicity p
+                      </span>
+                      <span className="text-xs font-black text-amber-400 tabular-nums">
+                        {probeMult}
+                      </span>
+                    </div>
+                    <div className="bg-[#050B14] p-2 border border-[#1e293b]">
+                      <span className="text-[8px] text-slate-500 block uppercase">
+                        d_hkl / 2θ
+                      </span>
+                      <span className="text-xs font-black text-purple-300 tabular-nums">
+                        {probeD > 0 ? `${probeD.toFixed(2)}Å` : "—"}{" "}
+                        {twoTheta !== null ? `/ ${twoTheta.toFixed(1)}°` : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono leading-relaxed">
+                    {probeRule.reason}
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Symmetry Intelligence Card */}
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 sm:p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative group/symmetry hover:border-sky-500/40 transition-all duration-700">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/5 rounded-full blur-[80px] pointer-events-none group-hover/symmetry:bg-sky-500/15 transition-all duration-1000 -translate-y-20 translate-x-10" />
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 relative z-10 border-b border-[#1e293b] pb-5">
                 <div className="flex items-center gap-6">
                   <div className="relative group/sym-icon cursor-default">
                     <div className="absolute inset-0 bg-sky-600/20 blur-xl rounded-full group-hover/sym-icon:bg-sky-500/30 transition-all duration-700 pointer-events-none" />
@@ -4160,8 +3439,13 @@ export const SelectionRulesModule: React.FC = () => {
 
                 {symmetryTab === "reciprocal" && (() => {
                   const rd = reciprocalDetails[system] || reciprocalDetails["FCC"];
-                  const sampleA = 4.05; // sample lattice constant in Angstrom
-                  const sampleD = calculateDSpacingForProbe(visualizerH, visualizerK, visualizerL, system, sampleA);
+                  const sampleD = calculateDSpacingForProbe(
+                    visualizerH,
+                    visualizerK,
+                    visualizerL,
+                    system,
+                    latticeParameter,
+                  );
                   const sampleQ = sampleD > 0 ? (2 * Math.PI) / sampleD : 0;
 
                   return (
@@ -4202,16 +3486,16 @@ export const SelectionRulesModule: React.FC = () => {
                             <Zap className="w-3.5 h-3.5 text-emerald-400" />
                             Reciprocal Vector |Q| for ({visualizerH} {visualizerK} {visualizerL})
                           </span>
-                          <span className="text-[8px] text-slate-500">a = {sampleA} Å</span>
+                          <span className="text-[8px] text-slate-500">a = {latticeParameter.toFixed(2)} Å</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-center">
                           <div className="bg-[#050B14] p-3 rounded-none border border-[#1e293b]">
                             <span className="text-[8px] text-slate-500 block uppercase tracking-wider">Interplanar d_{visualizerH}{visualizerK}{visualizerL}</span>
-                            <span className="text-base font-black text-emerald-400">{sampleD > 0 ? sampleD.toFixed(4) : "0.0000"} Å</span>
+                            <span className="text-base font-black text-emerald-400 tabular-nums">{sampleD > 0 ? sampleD.toFixed(4) : "0.0000"} Å</span>
                           </div>
                           <div className="bg-[#050B14] p-3 rounded-none border border-[#1e293b]">
                             <span className="text-[8px] text-slate-500 block uppercase tracking-wider">Scattering Vector |Q| = 2π/d</span>
-                            <span className="text-base font-black text-sky-300">{sampleQ > 0 ? sampleQ.toFixed(4) : "0.0000"} Å⁻¹</span>
+                            <span className="text-base font-black text-sky-300 tabular-nums">{sampleQ > 0 ? sampleQ.toFixed(4) : "0.0000"} Å⁻¹</span>
                           </div>
                         </div>
                       </div>
@@ -4305,14 +3589,14 @@ export const SelectionRulesModule: React.FC = () => {
                         <div className="bg-[#0B1221] p-3.5 rounded-none border border-[#1e293b] flex justify-between items-center">
                           <div>
                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                              Peak Multiplicity (m)
+                              Peak Multiplicity (p_hkl)
                             </span>
                             <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">
-                              Diffraction peak intensity factor
+                              Number of symmetry-equivalent planes contributing to powder ring
                             </p>
                           </div>
                           <div className="bg-sky-500/15 text-sky-400 px-3 py-1 font-black font-mono text-xs rounded border border-sky-500/30">
-                            {multiplicity} Peaks
+                            {multiplicity} Planes
                           </div>
                         </div>
 
@@ -4336,271 +3620,550 @@ export const SelectionRulesModule: React.FC = () => {
                   })()}
               </div>
             </div>
-          </div>
         </div>
-      </div>
 
-      {/* Results Section */}
-      <div className="space-y-6">
-        
-        {/* Graphic Suite Mode Selection Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#050B14]/90 p-2.5 rounded-2xl border border-[#1e293b] backdrop-blur-md">
-          <div className="flex items-center gap-1.5 overflow-x-auto p-1">
-            <button
-              onClick={() => setResultsGraphicTab("DIFFRACTION_RINGS")}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                resultsGraphicTab === "DIFFRACTION_RINGS"
-                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <Radio className="w-3.5 h-3.5" />
-              <span>2D Detector & Ring Graphic</span>
-            </button>
+        {/* Results Section (Properly housed inside lg:col-span-8 for full desktop width) */}
+        <div className="space-y-6">
+          {/* Graphic Suite Mode Selection Tabs */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#050B14]/90 p-2.5 rounded-2xl border border-[#1e293b] backdrop-blur-md">
+            <div className="flex flex-wrap items-center gap-1.5 p-1">
+              <button
+                onClick={() => setResultsGraphicTab("VALIDATION_MATRIX")}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                  resultsGraphicTab === "VALIDATION_MATRIX"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Systematic Absences & |F_hkl| Table</span>
+                <span className="text-[10px] bg-black/40 px-1.5 py-0.5 rounded text-slate-200 font-mono">
+                  {results.length}
+                </span>
+              </button>
 
-            <button
-              onClick={() => setResultsGraphicTab("PHASOR_ARGAND")}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                resultsGraphicTab === "PHASOR_ARGAND"
-                  ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-lg shadow-sky-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>F(hkl) Phasor Argand Diagram</span>
-            </button>
+              <button
+                onClick={() => setResultsGraphicTab("PHASOR_ARGAND")}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                  resultsGraphicTab === "PHASOR_ARGAND"
+                    ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-lg shadow-sky-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>F(hkl) Phasor Argand Diagram</span>
+              </button>
 
-            <button
-              onClick={() => setResultsGraphicTab("VALIDATION_MATRIX")}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                resultsGraphicTab === "VALIDATION_MATRIX"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Systematic Absences Table</span>
-              <span className="text-[10px] bg-black/40 px-1.5 py-0.5 rounded text-slate-300">
-                {results.length}
+              <button
+                onClick={() => setResultsGraphicTab("DIFFRACTION_RINGS")}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                  resultsGraphicTab === "DIFFRACTION_RINGS"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span>2D Detector & Debye Rings</span>
+              </button>
+
+              <button
+                onClick={() => setResultsGraphicTab("CROSS_LATTICE_MATRIX")}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                  resultsGraphicTab === "CROSS_LATTICE_MATRIX"
+                    ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Cross-Lattice Extinction Matrix</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 px-3">
+              <span className="flex items-center gap-1 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {results.filter((r) => r.status === "Allowed").length} Allowed
               </span>
-            </button>
+              <span className="text-slate-600">|</span>
+              <span className="flex items-center gap-1 text-rose-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                {results.filter((r) => r.status === "Forbidden").length} Forbidden
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 px-3">
-            <span className="flex items-center gap-1 text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {results.filter((r) => r.status === "Allowed").length} Allowed
-            </span>
-            <span className="text-slate-600">|</span>
-            <span className="flex items-center gap-1 text-rose-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-              {results.filter((r) => r.status === "Forbidden").length} Forbidden
-            </span>
-          </div>
-        </div>
-
-        {/* Dynamic Graphic View based on selected tab */}
-        {resultsGraphicTab === "DIFFRACTION_RINGS" && (
-          <DiffractionRingVisualizer
-            results={results}
-            system={system}
-            latticeParameter={latticeParameter}
-            onSelectHkl={(h, k, l) => {
-              setManualProbe([h, k, l]);
-              setSandboxH(h);
-              setSandboxK(k);
-              setSandboxL(l);
-            }}
-          />
-        )}
-
-        {resultsGraphicTab === "PHASOR_ARGAND" && (
-          <StructureFactorPhasorDiagram
-            system={system}
-            initialH={results[0]?.hkl[0] ?? 1}
-            initialK={results[0]?.hkl[1] ?? 1}
-            initialL={results[0]?.hkl[2] ?? 1}
-            onSelectHkl={(h, k, l) => {
-              setManualProbe([h, k, l]);
-              setSandboxH(h);
-              setSandboxK(k);
-              setSandboxL(l);
-            }}
-          />
-        )}
-
-        {resultsGraphicTab === "VALIDATION_MATRIX" && (
-          <>
-            <ScientificMathControl
-              title={`${system} Structure Factor & Systematic Absences`}
-              formula={systemDetails[system as keyof typeof systemDetails]?.formula || "F_{hkl} = \\sum f_j e^{2\\pi i (h x_j + k y_j + l z_j)}"}
-              description={`Verify selection rules and systematic absences for ${systemDetails[system as keyof typeof systemDetails]?.title || system}. ${systemDetails[system as keyof typeof systemDetails]?.rule || ""}`}
-              variables={[
-                { symbol: 'h', name: 'Miller index h', value: (results[0]?.hkl[0] !== undefined ? results[0].hkl[0] : 1), unit: '' },
-                { symbol: 'k', name: 'Miller index k', value: (results[0]?.hkl[1] !== undefined ? results[0].hkl[1] : 1), unit: '' },
-                { symbol: 'l', name: 'Miller index l', value: (results[0]?.hkl[2] !== undefined ? results[0].hkl[2] : 1), unit: '' },
-                { symbol: 'f', name: 'Scattering Factor f', value: 1.0, unit: '' }
-              ]}
-              result={
-                (() => {
-                  const first = results[0];
-                  if (!first) return 0;
-                  return first.status === "Allowed" ? 4.0 : 0.0;
-                })()
-              }
-              resultUnit=""
-              resultName="Structure Factor |F|"
+          {/* Dynamic Graphic View based on selected tab */}
+          {resultsGraphicTab === "DIFFRACTION_RINGS" && (
+            <DiffractionRingVisualizer
+              results={results}
+              system={system}
+              latticeParameter={latticeParameter}
+              onSelectHkl={(h, k, l) => {
+                syncActiveProbe(h, k, l);
+              }}
             />
+          )}
 
-            <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[500px] relative">
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
-              <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-                <div>
-                  <h3 className="text-lg font-bold text-white">
-                    Validation Results
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium mt-1">
-                    Systematic absences for{" "}
-                    {systemDetails[system as keyof typeof systemDetails].title}
-                  </p>
-                </div>
+          {resultsGraphicTab === "PHASOR_ARGAND" && (
+            <StructureFactorPhasorDiagram
+              system={system}
+              initialH={manualProbe[0]}
+              initialK={manualProbe[1]}
+              initialL={manualProbe[2]}
+              onSelectHkl={(h, k, l) => {
+                syncActiveProbe(h, k, l);
+              }}
+            />
+          )}
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-none border border-[#1e293b]">
-                    {(["All", "Allowed", "Forbidden"] as const).map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-4 py-1.5 text-xs font-bold rounded-none transition-all ${
-                          filter === f
-                            ? "bg-emerald-600 text-white shadow-md"
-                            : "text-slate-400 hover:text-white hover:bg-slate-700"
-                        }`}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
+          {resultsGraphicTab === "CROSS_LATTICE_MATRIX" && (() => {
+            const benchmarkReflections: [number, number, number][] = [
+              [1, 0, 0],
+              [1, 1, 0],
+              [1, 1, 1],
+              [2, 0, 0],
+              [2, 1, 0],
+              [2, 1, 1],
+              [2, 2, 0],
+              [2, 2, 1],
+              [3, 1, 0],
+              [3, 1, 1],
+              [2, 2, 2],
+              [4, 0, 0],
+              [0, 0, 1],
+              [0, 0, 2],
+            ];
+            const comparisonSystems: {
+              id: CrystalSystem;
+              short: string;
+              sg: string;
+              ruleSummary: string;
+            }[] = [
+              { id: "SC", short: "SC (P)", sg: "Pm-3m", ruleSummary: "All h,k,l allowed" },
+              { id: "BCC", short: "BCC (I)", sg: "Im-3m", ruleSummary: "h+k+l = 2n" },
+              { id: "FCC", short: "FCC (F)", sg: "Fm-3m", ruleSummary: "h,k,l unmixed" },
+              { id: "Diamond", short: "Diamond", sg: "Fd-3m", ruleSummary: "FCC + even sum=4n" },
+              { id: "Hexagonal", short: "HCP", sg: "P6₃/mmc", ruleSummary: "!(l odd & h+2k=3n)" },
+              { id: "Orthorhombic_C", short: "Base-C", sg: "Cmmm", ruleSummary: "h+k = 2n" },
+            ];
 
-                  <button
-                    onClick={handleSave}
-                    disabled={results.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black rounded-none transition-all border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save uppercase tracking-widest"
-                  >
-                    <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-                    Save CSV
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-auto">
-                {results.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 p-12 text-center border-t border-[#1e293b]/50">
-                    <div className="relative group/empty mb-6">
-                      <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-xl group-hover/empty:bg-emerald-500/20 transition-all duration-700" />
-                      <div className="w-20 h-20 rounded-none bg-[#0B1221] border border-[#1e293b] flex items-center justify-center relative z-10 group-hover/empty:border-emerald-500/30 transition-colors">
-                        <Hexagon className="w-10 h-10 text-slate-600 group-hover/empty:text-emerald-500/50 transition-colors" />
-                      </div>
+            return (
+              <div className="bg-[#050B14]/90 backdrop-blur-md rounded-[2rem] border border-[#1e293b] overflow-hidden shadow-xl">
+                <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-amber-400" />
+                      <h3 className="text-lg font-bold text-white">
+                        Cross-Lattice Diagnostic Extinction Matrix
+                      </h3>
                     </div>
-                    <h4 className="text-lg font-black text-white mb-2 tracking-wide">
-                      Awaiting Lattice Vectors
-                    </h4>
-                    <p className="text-sm font-medium text-slate-500 max-w-sm leading-relaxed">
-                      Enter custom HKL indices in the configuration panel or use the
-                      Index Synthesis engine to generate a theoretical reflection
-                      dataset.
+                    <p className="text-xs text-slate-400 mt-1">
+                      Compare how identical Miller indices (h k l) diffract or extinguish across Bravais centering & glide/screw space groups. Click any cell to switch lattice & inspect phasor interference.
                     </p>
-                    <div className="mt-8 flex gap-2 items-center">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500/50 animate-pulse" />
-                      <span className="text-[10px] font-mono text-emerald-400/70 uppercase tracking-widest">
-                        Engine Ready
-                      </span>
-                    </div>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-[#0B1221] border-b border-[#1e293b]">
-                        <tr>
-                          <th className="px-8 py-4 font-bold">
-                            Reflection (h k l)
+                  <div className="flex items-center gap-3 text-[10px] font-mono">
+                    <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold">
+                      ● Allowed (|F| &gt; 0)
+                    </span>
+                    <span className="px-2.5 py-1 bg-rose-500/10 border border-rose-500/30 text-rose-400 font-bold">
+                      ✕ Extinct (|F| = 0)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse font-mono text-xs">
+                    <thead>
+                      <tr className="bg-[#0B1221] border-b border-[#1e293b] text-[10px] uppercase text-slate-400">
+                        <th className="py-3.5 px-4 font-black text-white border-r border-[#1e293b]">
+                          Reflection (h k l)
+                        </th>
+                        <th className="py-3.5 px-3 font-bold text-slate-400 border-r border-[#1e293b] text-center">
+                          h²+k²+l²
+                        </th>
+                        {comparisonSystems.map((cs) => (
+                          <th
+                            key={cs.id}
+                            onClick={() => setSystem(cs.id)}
+                            className={`py-3 px-3 text-center cursor-pointer transition-colors border-r border-[#1e293b] last:border-r-0 ${
+                              system === cs.id
+                                ? "bg-sky-500/15 text-sky-300"
+                                : "hover:bg-white/5 text-slate-300"
+                            }`}
+                          >
+                            <div className="font-black text-[11px]">{cs.short}</div>
+                            <div className="text-[9px] text-slate-500 font-normal">{cs.sg}</div>
+                            <div className="text-[8px] text-amber-400/80 mt-0.5">{cs.ruleSummary}</div>
                           </th>
-                          <th className="px-8 py-4 font-bold">Status</th>
-                          <th className="px-8 py-4 font-bold">Physical Reason</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#1e293b]">
-                        <AnimatePresence mode="popLayout">
-                          {filteredResults.map((res, index) => (
-                            <motion.tr
-                              layout
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              key={`${res.hkl.join("-")}-${index}`}
-                              className="group hover:bg-[#0B1221] transition-colors"
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1e293b]">
+                      {benchmarkReflections.map(([bh, bk, bl]) => {
+                        const qSq = bh * bh + bk * bk + bl * bl;
+                        const isCurrentProbe =
+                          manualProbe[0] === bh &&
+                          manualProbe[1] === bk &&
+                          manualProbe[2] === bl;
+
+                        return (
+                          <tr
+                            key={`mat-${bh}-${bk}-${bl}`}
+                            className={`transition-colors ${
+                              isCurrentProbe ? "bg-sky-500/10" : "hover:bg-[#0B1221]/80"
+                            }`}
+                          >
+                            <td
+                              onClick={() => syncActiveProbe(bh, bk, bl)}
+                              className="py-3 px-4 font-black text-white border-r border-[#1e293b] cursor-pointer hover:text-sky-300"
                             >
-                              <td className="px-8 py-5">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    className={`w-2 h-2 rounded-full ${res.status === "Allowed" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
-                                  />
-                                  <span className="font-mono font-bold text-white text-base">
-                                    ({res.hkl.join(" ")})
+                              <div className="flex items-center justify-between">
+                                <span>
+                                  ({bh} {bk} {bl})
+                                </span>
+                                {isCurrentProbe && (
+                                  <span className="text-[8px] px-1.5 py-0.5 bg-sky-500/20 border border-sky-400/40 text-sky-300 uppercase">
+                                    Active
                                   </span>
-                                </div>
-                              </td>
-                              <td className="px-8 py-5">
-                                <div
-                                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-none text-[10px] font-black uppercase tracking-tighter border ${
-                                    res.status === "Allowed"
-                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                      : "bg-red-500/10 text-red-400 border-red-500/20"
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 text-center text-slate-400 border-r border-[#1e293b] tabular-nums">
+                              {qSq}
+                            </td>
+                            {comparisonSystems.map((cs) => {
+                              const check = validateSelectionRule(cs.id, [bh, bk, bl]);
+                              const sf = computeStructureFactorMetrics(cs.id, bh, bk, bl);
+                              const allowed = check.status === "Allowed";
+                              const isSelectedCell = system === cs.id && isCurrentProbe;
+
+                              return (
+                                <td
+                                  key={`${cs.id}-${bh}-${bk}-${bl}`}
+                                  onClick={() => {
+                                    setSystem(cs.id);
+                                    syncActiveProbe(bh, bk, bl, true);
+                                  }}
+                                  title={`${cs.short} (${bh} ${bk} ${bl}): ${check.reason} — Click to open Phasor Diagram`}
+                                  className={`py-2.5 px-3 text-center cursor-pointer border-r border-[#1e293b] last:border-r-0 transition-all ${
+                                    isSelectedCell
+                                      ? "ring-1 ring-inset ring-sky-400 bg-sky-500/20"
+                                      : "hover:bg-white/5"
                                   }`}
                                 >
-                                  {res.status === "Allowed" ? (
-                                    <CheckCircle2 className="w-3 h-3" />
+                                  {allowed ? (
+                                    <div className="inline-flex flex-col items-center">
+                                      <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/30">
+                                        {sf.symbolic}
+                                      </span>
+                                      <span className="text-[8px] text-slate-500 mt-0.5 tabular-nums">
+                                        |F|²={sf.magSq.toFixed(0)}f²
+                                      </span>
+                                    </div>
                                   ) : (
-                                    <XCircle className="w-3 h-3" />
+                                    <div className="inline-flex flex-col items-center">
+                                      <span className="text-[10px] font-bold text-rose-400/80 bg-rose-500/10 px-2 py-0.5 border border-rose-500/20">
+                                        Extinct
+                                      </span>
+                                      <span className="text-[8px] text-slate-600 mt-0.5">
+                                        |F| = 0
+                                      </span>
+                                    </div>
                                   )}
-                                  {res.status}
-                                </div>
-                              </td>
-                              <td className="px-8 py-5">
-                                <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-full group-hover:text-slate-300 transition-colors">
-                                  {res.reason}
-                                </p>
-                              </td>
-                            </motion.tr>
-                          ))}
-                        </AnimatePresence>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+            );
+          })()}
 
-              <div className="p-4 bg-[#0B1221] border-t border-[#1e293b] flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <div className="flex gap-6">
-                  <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-none border border-emerald-500/20 text-emerald-400">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    Allowed: {results.filter((r) => r.status === "Allowed").length}
-                  </span>
-                  <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-none border border-red-500/20 text-red-400">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    Forbidden:{" "}
-                    {results.filter((r) => r.status === "Forbidden").length}
+          {resultsGraphicTab === "VALIDATION_MATRIX" && (
+            <>
+              <ScientificMathControl
+                title={`${system} Structure Factor & Systematic Absences`}
+                formula={
+                  systemDetails[system as keyof typeof systemDetails]?.formula ||
+                  "F_{hkl} = \\sum f_j e^{2\\pi i (h x_j + k y_j + l z_j)}"
+                }
+                description={`Verify selection rules and systematic absences for ${systemDetails[system as keyof typeof systemDetails]?.title || system}. ${systemDetails[system as keyof typeof systemDetails]?.rule || ""}`}
+                variables={[
+                  {
+                    symbol: "h",
+                    name: "Miller index h",
+                    value: manualProbe[0],
+                    unit: "",
+                  },
+                  {
+                    symbol: "k",
+                    name: "Miller index k",
+                    value: manualProbe[1],
+                    unit: "",
+                  },
+                  {
+                    symbol: "l",
+                    name: "Miller index l",
+                    value: manualProbe[2],
+                    unit: "",
+                  },
+                  { symbol: "f", name: "Scattering Factor f", value: 1.0, unit: "" },
+                ]}
+                result={
+                  computeStructureFactorMetrics(
+                    system,
+                    manualProbe[0],
+                    manualProbe[1],
+                    manualProbe[2],
+                  ).mag
+                }
+                resultUnit="f"
+                resultName={`Structure Factor |F(${manualProbe.join("")})|`}
+              />
+
+              <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[500px] relative">
+                <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">
+                      Systematic Absences & Quantitative Structure Factor Table
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium mt-1">
+                      {systemDetails[system as keyof typeof systemDetails].title} • Click any row to synchronize 3D Miller Plane & Argand Phasor
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-none border border-[#1e293b]">
+                      {(["All", "Allowed", "Forbidden"] as const).map((f) => (
+                        <button
+                          key={f}
+                          onClick={() => setFilter(f)}
+                          className={`px-3.5 py-1.5 text-xs font-bold rounded-none transition-all ${
+                            filter === f
+                              ? "bg-emerald-600 text-white shadow-md"
+                              : "text-slate-400 hover:text-white hover:bg-slate-700"
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={handleSave}
+                      disabled={results.length === 0}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black rounded-none transition-all border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save uppercase tracking-widest whitespace-nowrap"
+                    >
+                      <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                      Save CSV
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-auto">
+                  {results.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 p-12 text-center border-t border-[#1e293b]/50">
+                      <div className="relative group/empty mb-6">
+                        <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-xl group-hover/empty:bg-emerald-500/20 transition-all duration-700" />
+                        <div className="w-20 h-20 rounded-none bg-[#0B1221] border border-[#1e293b] flex items-center justify-center relative z-10 group-hover/empty:border-emerald-500/30 transition-colors">
+                          <Hexagon className="w-10 h-10 text-slate-600 group-hover/empty:text-emerald-500/50 transition-colors" />
+                        </div>
+                      </div>
+                      <h4 className="text-lg font-black text-white mb-2 tracking-wide">
+                        Awaiting Lattice Vectors
+                      </h4>
+                      <p className="text-sm font-medium text-slate-500 max-w-sm leading-relaxed">
+                        Enter custom HKL indices in the configuration panel or use the
+                        Index Synthesis engine to generate a theoretical reflection
+                        dataset.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={loadLowIndexPresets}
+                        className="mt-6 px-4 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider"
+                      >
+                        Load Standard Low-Index Set
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-[#0B1221] border-b border-[#1e293b] font-mono">
+                          <tr>
+                            <th className="px-5 py-3.5 font-bold whitespace-nowrap">
+                              Reflection (h k l)
+                            </th>
+                            <th className="px-4 py-3.5 font-bold whitespace-nowrap">
+                              Status
+                            </th>
+                            <th className="px-4 py-3.5 font-bold whitespace-nowrap text-right">
+                              |F_hkl| / f
+                            </th>
+                            <th className="px-4 py-3.5 font-bold whitespace-nowrap text-right">
+                              Mult (p)
+                            </th>
+                            <th className="px-4 py-3.5 font-bold whitespace-nowrap text-right">
+                              d_hkl (Å)
+                            </th>
+                            <th className="px-4 py-3.5 font-bold whitespace-nowrap text-right">
+                              2θ (°)
+                            </th>
+                            <th className="px-5 py-3.5 font-bold">
+                              Physical Mechanism & Symmetry Rule
+                            </th>
+                            <th className="px-4 py-3.5 font-bold text-right">
+                              Inspect
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#1e293b]">
+                          <AnimatePresence mode="popLayout">
+                            {filteredResults.map((res, index) => {
+                              const [rh, rk, rl] = res.hkl;
+                              const sf = computeStructureFactorMetrics(system, rh, rk, rl);
+                              const mult = generateEquivalentPlanes(rh, rk, rl, system).length;
+                              const dVal = calculateDSpacingForProbe(
+                                rh,
+                                rk,
+                                rl,
+                                system,
+                                latticeParameter,
+                              );
+                              const sinTheta = dVal > 0 ? wavelength / (2 * dVal) : 2;
+                              const twoTheta =
+                                sinTheta <= 1
+                                  ? (2 * Math.asin(sinTheta) * 180) / Math.PI
+                                  : null;
+                              const isActiveRow =
+                                manualProbe[0] === rh &&
+                                manualProbe[1] === rk &&
+                                manualProbe[2] === rl;
+
+                              return (
+                                <motion.tr
+                                  layout
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95 }}
+                                  key={`${res.hkl.join("-")}-${index}`}
+                                  onClick={() => syncActiveProbe(rh, rk, rl)}
+                                  className={`group transition-colors cursor-pointer ${
+                                    isActiveRow
+                                      ? "bg-sky-500/10"
+                                      : "hover:bg-[#0B1221]"
+                                  }`}
+                                >
+                                  <td className="px-5 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2.5">
+                                      <div
+                                        className={`w-2 h-2 rounded-full ${
+                                          res.status === "Allowed"
+                                            ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                            : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                                        }`}
+                                      />
+                                      <span className="font-mono font-bold text-white text-sm tabular-nums">
+                                        ({res.hkl.join(" ")})
+                                      </span>
+                                      {isActiveRow && (
+                                        <span className="text-[8px] font-mono font-black uppercase px-1.5 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                                          Probed
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap">
+                                    <div
+                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[10px] font-black uppercase tracking-tighter border ${
+                                        res.status === "Allowed"
+                                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                          : "bg-red-500/10 text-red-400 border-red-500/20"
+                                      }`}
+                                    >
+                                      {res.status === "Allowed" ? (
+                                        <CheckCircle2 className="w-3 h-3" />
+                                      ) : (
+                                        <XCircle className="w-3 h-3" />
+                                      )}
+                                      {res.status}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap text-right font-mono tabular-nums">
+                                    <span
+                                      className={`text-xs font-black ${
+                                        res.status === "Allowed"
+                                          ? "text-emerald-400"
+                                          : "text-slate-500"
+                                      }`}
+                                    >
+                                      {sf.symbolic}
+                                    </span>
+                                    <span className="block text-[9px] text-slate-500">
+                                      |F|² = {sf.magSq.toFixed(0)}f²
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap text-right font-mono text-xs text-amber-400 font-bold tabular-nums">
+                                    {mult}
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap text-right font-mono text-xs text-slate-300 tabular-nums">
+                                    {dVal > 0 ? dVal.toFixed(3) : "—"}
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap text-right font-mono text-xs text-sky-300 tabular-nums">
+                                    {twoTheta !== null ? `${twoTheta.toFixed(2)}°` : "Out"}
+                                  </td>
+                                  <td className="px-5 py-4">
+                                    <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-md group-hover:text-slate-300 transition-colors">
+                                      {res.reason}
+                                    </p>
+                                  </td>
+                                  <td className="px-4 py-4 whitespace-nowrap text-right">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        syncActiveProbe(rh, rk, rl, true);
+                                      }}
+                                      className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors"
+                                      title="Inspect complex phasor vector sum in Argand Diagram"
+                                    >
+                                      Phasor →
+                                    </button>
+                                  </td>
+                                </motion.tr>
+                              );
+                            })}
+                          </AnimatePresence>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-[#0B1221] border-t border-[#1e293b] flex flex-wrap justify-between items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <div className="flex flex-wrap gap-3">
+                    <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-none border border-emerald-500/20 text-emerald-400">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                      Allowed: {results.filter((r) => r.status === "Allowed").length}
+                    </span>
+                    <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-none border border-red-500/20 text-red-400">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      Forbidden:{" "}
+                      {results.filter((r) => r.status === "Forbidden").length}
+                    </span>
+                  </div>
+                  <span className="bg-slate-800 px-3 py-1.5 rounded-none border border-slate-700 text-slate-300">
+                    Total Evaluated: {results.length}
                   </span>
                 </div>
-                <span className="bg-slate-800 px-3 py-1.5 rounded-none border border-slate-700 text-slate-300">
-                  Total: {results.length}
-                </span>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
 };

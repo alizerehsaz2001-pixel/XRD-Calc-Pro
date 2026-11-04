@@ -76,7 +76,7 @@ function getOrCreateGeminiClient(customKey?: string): GoogleGenAI {
       apiKey: key,
       httpOptions: {
         headers: {
-          'User-Agent': 'aistudio-build-high-speed',
+          'User-Agent': 'aistudio-build',
         }
       }
     });
@@ -100,26 +100,86 @@ function getGeminiClient() {
 interface CacheEntry {
   data: any;
   timestamp: number;
+  hits: number;
 }
 const apiCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 Hour High Speed TTL
+const CACHE_MAX_ENTRIES = 300;
+
+let cacheHits = 0;
+let cacheMisses = 0;
+let cacheEvictions = 0;
+
+interface RouteMetric {
+  path: string;
+  method: string;
+  hits: number;
+  errors: number;
+  totalDurationMs: number;
+  lastDurationMs: number;
+  lastStatus: number;
+  lastCalledAt: string;
+}
+
+const routeTelemetryMap = new Map<string, RouteMetric>();
+const serverTrafficMetrics = {
+  totalRequests: 0,
+  activeRequests: 0,
+  errorCount: 0,
+  totalLatencyMs: 0,
+  startedAt: new Date().toISOString()
+};
+
+const pythonExecutionMetrics = {
+  totalRuns: 0,
+  activeSubprocesses: 0,
+  failedRuns: 0,
+  totalExecTimeMs: 0,
+  lastScript: "none",
+  lastRunAt: null as string | null
+};
+
+function recordPythonRunStart(scriptName: string): number {
+  pythonExecutionMetrics.totalRuns++;
+  pythonExecutionMetrics.activeSubprocesses++;
+  pythonExecutionMetrics.lastScript = scriptName;
+  pythonExecutionMetrics.lastRunAt = new Date().toISOString();
+  return Date.now();
+}
+
+function recordPythonRunEnd(startTimeMs: number, success: boolean) {
+  pythonExecutionMetrics.activeSubprocesses = Math.max(0, pythonExecutionMetrics.activeSubprocesses - 1);
+  pythonExecutionMetrics.totalExecTimeMs += Math.max(0, Date.now() - startTimeMs);
+  if (!success) {
+    pythonExecutionMetrics.failedRuns++;
+  }
+}
 
 function getFromApiCache(key: string): any | null {
   const entry = apiCache.get(key);
-  if (!entry) return null;
-  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
-    apiCache.delete(key);
+  if (!entry) {
+    cacheMisses++;
     return null;
   }
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    apiCache.delete(key);
+    cacheMisses++;
+    return null;
+  }
+  entry.hits++;
+  cacheHits++;
   return entry.data;
 }
 
 function setToApiCache(key: string, data: any) {
-  if (apiCache.size > 300) {
+  if (apiCache.size >= CACHE_MAX_ENTRIES && !apiCache.has(key)) {
     const oldestKey = apiCache.keys().next().value;
-    if (oldestKey) apiCache.delete(oldestKey);
+    if (oldestKey) {
+      apiCache.delete(oldestKey);
+      cacheEvictions++;
+    }
   }
-  apiCache.set(key, { data, timestamp: Date.now() });
+  apiCache.set(key, { data, timestamp: Date.now(), hits: 0 });
 }
 
 let pythonDepsReady = true;
@@ -413,12 +473,58 @@ async function startServer() {
   app.use('/api/register', authLimiter);
   app.use('/api/gemini', aiLimiter);
 
-  // 6. High-Performance HTTP Request Latency Logging
+  // 6. High-Performance HTTP Request Latency Logging & Telemetry Collector
   app.use((req, res, next) => {
     const start = Date.now();
+    const isApi = req.path.startsWith("/api");
+    if (isApi) {
+      serverTrafficMetrics.totalRequests++;
+      serverTrafficMetrics.activeRequests++;
+    }
+
+    const origWriteHead = res.writeHead;
+    (res as any).writeHead = function (statusCode: number, ...args: any[]) {
+      if (!res.headersSent) {
+        res.setHeader("X-Response-Time", `${Date.now() - start}ms`);
+      }
+      return origWriteHead.apply(this, [statusCode, ...args] as any);
+    };
+
     res.on("finish", () => {
       const duration = Date.now() - start;
-      if (req.path.startsWith("/api")) {
+      if (isApi) {
+        serverTrafficMetrics.activeRequests = Math.max(0, serverTrafficMetrics.activeRequests - 1);
+        serverTrafficMetrics.totalLatencyMs += duration;
+        if (res.statusCode >= 400) {
+          serverTrafficMetrics.errorCount++;
+        }
+
+        const routeKey = `${req.method} ${req.path}`;
+        const existing = routeTelemetryMap.get(routeKey);
+        if (existing) {
+          existing.hits++;
+          if (res.statusCode >= 400) existing.errors++;
+          existing.totalDurationMs += duration;
+          existing.lastDurationMs = duration;
+          existing.lastStatus = res.statusCode;
+          existing.lastCalledAt = new Date().toISOString();
+        } else {
+          if (routeTelemetryMap.size > 100) {
+            const firstKey = routeTelemetryMap.keys().next().value;
+            if (firstKey) routeTelemetryMap.delete(firstKey);
+          }
+          routeTelemetryMap.set(routeKey, {
+            path: req.path,
+            method: req.method,
+            hits: 1,
+            errors: res.statusCode >= 400 ? 1 : 0,
+            totalDurationMs: duration,
+            lastDurationMs: duration,
+            lastStatus: res.statusCode,
+            lastCalledAt: new Date().toISOString()
+          });
+        }
+
         const color = res.statusCode >= 400 ? "\x1b[31m" : "\x1b[32m";
         console.log(`[HTTP] ${color}${res.statusCode}\x1b[0m ${req.method} ${req.originalUrl || req.url} - ${duration}ms`);
       }
@@ -436,15 +542,33 @@ async function startServer() {
       return;
     }
     const mem = process.memoryUsage();
+    const totalCacheOps = cacheHits + cacheMisses;
     res.json({
       status: "ok",
       timestamp: new Date().toISOString(),
       uptime: Math.round(process.uptime()),
       pythonReady: pythonDepsReady,
+      pythonVerified: pythonVerificationStarted,
+      hasGeminiKey: !!process.env.GEMINI_API_KEY,
       memory: {
         rssMb: Math.round(mem.rss / (1024 * 1024)),
         heapUsedMb: Math.round(mem.heapUsed / (1024 * 1024)),
         heapTotalMb: Math.round(mem.heapTotal / (1024 * 1024)),
+      },
+      cache: {
+        entries: apiCache.size,
+        maxEntries: CACHE_MAX_ENTRIES,
+        hits: cacheHits,
+        misses: cacheMisses,
+        hitRatePct: totalCacheOps > 0 ? Math.round((cacheHits / totalCacheOps) * 1000) / 10 : 0
+      },
+      traffic: {
+        totalRequests: serverTrafficMetrics.totalRequests,
+        activeRequests: serverTrafficMetrics.activeRequests,
+        errorCount: serverTrafficMetrics.errorCount,
+        avgLatencyMs: serverTrafficMetrics.totalRequests > 0
+          ? Math.round(serverTrafficMetrics.totalLatencyMs / serverTrafficMetrics.totalRequests)
+          : 0
       },
       env: process.env.NODE_ENV || "development"
     });
@@ -789,7 +913,45 @@ async function startServer() {
     res.json({
       ready: pythonDepsReady,
       verified: pythonVerificationStarted,
-      logs: pythonInstallLog.slice(-50)
+      logs: pythonInstallLog.slice(-50),
+      metrics: {
+        totalRuns: pythonExecutionMetrics.totalRuns,
+        activeSubprocesses: pythonExecutionMetrics.activeSubprocesses,
+        failedRuns: pythonExecutionMetrics.failedRuns,
+        avgExecTimeMs: pythonExecutionMetrics.totalRuns > 0
+          ? Math.round(pythonExecutionMetrics.totalExecTimeMs / pythonExecutionMetrics.totalRuns)
+          : 0,
+        lastScript: pythonExecutionMetrics.lastScript,
+        lastRunAt: pythonExecutionMetrics.lastRunAt
+      }
+    });
+  });
+
+  app.get("/api/cache/stats", (req, res) => {
+    res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    const totalOps = cacheHits + cacheMisses;
+    res.json({
+      success: true,
+      entries: apiCache.size,
+      maxEntries: CACHE_MAX_ENTRIES,
+      ttlMinutes: Math.round(CACHE_TTL_MS / 60000),
+      hits: cacheHits,
+      misses: cacheMisses,
+      evictions: cacheEvictions,
+      hitRatePct: totalOps > 0 ? Math.round((cacheHits / totalOps) * 1000) / 10 : 0,
+      keys: Array.from(apiCache.keys()).slice(0, 25)
+    });
+  });
+
+  app.post("/api/cache/clear", (req, res) => {
+    const purgedCount = apiCache.size;
+    apiCache.clear();
+    lastStatsData = null;
+    lastStatsTime = 0;
+    res.json({
+      success: true,
+      purgedEntries: purgedCount,
+      message: `Cleared ${purgedCount} cached server entries.`
     });
   });
 
@@ -820,7 +982,7 @@ async function startServer() {
       };
 
       const start = getCpuTicks();
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      await new Promise((resolve) => setTimeout(resolve, 60));
       const end = getCpuTicks();
 
       const idleDiff = end.idle - start.idle;
@@ -832,7 +994,22 @@ async function startServer() {
       const usedMemory = totalMemory - freeMemory;
       const memoryPercentage = totalMemory === 0 ? 0 : Math.round((usedMemory / totalMemory) * 100);
 
-      const processMemory = process.memoryUsage().rss;
+      const memUsage = process.memoryUsage();
+      const processMemory = memUsage.rss;
+      const totalCacheOps = cacheHits + cacheMisses;
+
+      const topRoutes = Array.from(routeTelemetryMap.values())
+        .sort((a, b) => b.hits - a.hits)
+        .slice(0, 8)
+        .map((r) => ({
+          method: r.method,
+          path: r.path,
+          hits: r.hits,
+          errors: r.errors,
+          avgLatencyMs: r.hits > 0 ? Math.round(r.totalDurationMs / r.hits) : 0,
+          lastLatencyMs: r.lastDurationMs,
+          lastStatus: r.lastStatus
+        }));
 
       const statsPayload = {
         success: true,
@@ -842,11 +1019,45 @@ async function startServer() {
         usedMemory,
         memoryPercentage,
         processMemory,
+        memory: {
+          rssMB: Math.round((memUsage.rss / (1024 * 1024)) * 10) / 10,
+          heapUsedMB: Math.round((memUsage.heapUsed / (1024 * 1024)) * 10) / 10,
+          heapTotalMB: Math.round((memUsage.heapTotal / (1024 * 1024)) * 10) / 10,
+          externalMB: Math.round(((memUsage.external || 0) / (1024 * 1024)) * 10) / 10
+        },
+        cache: {
+          entries: apiCache.size,
+          maxEntries: CACHE_MAX_ENTRIES,
+          hits: cacheHits,
+          misses: cacheMisses,
+          evictions: cacheEvictions,
+          hitRatePct: totalCacheOps > 0 ? Math.round((cacheHits / totalCacheOps) * 1000) / 10 : 0
+        },
+        traffic: {
+          totalRequests: serverTrafficMetrics.totalRequests,
+          activeRequests: serverTrafficMetrics.activeRequests,
+          errorCount: serverTrafficMetrics.errorCount,
+          avgLatencyMs: serverTrafficMetrics.totalRequests > 0
+            ? Math.round(serverTrafficMetrics.totalLatencyMs / serverTrafficMetrics.totalRequests)
+            : 0,
+          topRoutes
+        },
+        python: {
+          ready: pythonDepsReady,
+          verified: pythonVerificationStarted,
+          totalRuns: pythonExecutionMetrics.totalRuns,
+          activeSubprocesses: pythonExecutionMetrics.activeSubprocesses,
+          failedRuns: pythonExecutionMetrics.failedRuns,
+          avgExecTimeMs: pythonExecutionMetrics.totalRuns > 0
+            ? Math.round(pythonExecutionMetrics.totalExecTimeMs / pythonExecutionMetrics.totalRuns)
+            : 0,
+          lastScript: pythonExecutionMetrics.lastScript
+        },
         cpuCores: os.cpus().length,
         cpuModel: os.cpus()[0]?.model || "Unknown CPU",
         platform: os.platform(),
         nodeVersion: process.version,
-        uptime: process.uptime(),
+        uptime: Math.round(process.uptime()),
         loadAverage: os.loadavg()
       };
 
@@ -864,6 +1075,10 @@ async function startServer() {
         usedMemory: 0,
         memoryPercentage: 0,
         processMemory: 0,
+        memory: { rssMB: 140, heapUsedMB: 96, heapTotalMB: 256, externalMB: 12 },
+        cache: { entries: apiCache.size, maxEntries: CACHE_MAX_ENTRIES, hits: cacheHits, misses: cacheMisses, evictions: cacheEvictions, hitRatePct: 0 },
+        traffic: { totalRequests: serverTrafficMetrics.totalRequests, activeRequests: 0, errorCount: serverTrafficMetrics.errorCount, avgLatencyMs: 0, topRoutes: [] },
+        python: { ready: pythonDepsReady, verified: pythonVerificationStarted, totalRuns: 0, activeSubprocesses: 0, failedRuns: 0, avgExecTimeMs: 0, lastScript: "none" },
         cpuCores: 1,
         cpuModel: "Unavailable",
         platform: "unknown",
@@ -884,6 +1099,7 @@ async function startServer() {
       "gemini-3.6-flash": "gemini-3.8-flash",
       "gemini-3.7-flash": "gemini-3.8-flash",
       "gemini-1.5-pro": "gemini-2.5-pro",
+      "gemini-3.1-flash-image": "gemini-nano-banana-2.1"
     };
     const deduplicated: string[] = [];
     for (const raw of inputModels) {
@@ -2554,7 +2770,7 @@ CRITICAL RULES:
         apiKey: keyToUse,
         httpOptions: {
           headers: {
-            'User-Agent': 'aistudio-build-verifier',
+            'User-Agent': 'aistudio-build',
           }
         }
       });
@@ -2592,109 +2808,13 @@ CRITICAL RULES:
     });
   });
 
-  // Machine Learning Python Neural Network Training Endpoint
-  app.post("/api/gemini/train-neural-net", async (req, res) => {
-    const { 
-      epochs, 
-      learningRate, 
-      batchSize, 
-      optimizer, 
-      architecture, 
-      noiseLevel, 
-      backgroundDrift, 
-      strainRange, 
-      broadeningRange,
-      dropout,
-      activation,
-      lrScheduler,
-      labelSmoothing,
-      weightDecay,
-      lossFunction
-    } = req.body;
-    
-    try {
-      const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
-      
-      const epochsVal = Number(epochs) || 40;
-      const lrVal = Number(learningRate) || 0.005;
-      const bsVal = Number(batchSize) || 32;
-      const optVal = String(optimizer) || "AdamW";
-      const archVal = String(architecture) || "Deep MLP";
-      const noiseVal = (Number(noiseLevel) || 10) / 100.0;
-      const bgVal = Number(backgroundDrift) || 5.0;
-      const strainVal = (Number(strainRange) || 2) / 100.0;
-      const broadVal = Number(broadeningRange) || 0.25;
-      const dropVal = Number(dropout) || 0.0;
-      const actVal = String(activation) || "GELU";
-      const schedVal = String(lrScheduler || "CosineAnnealing");
-      const smoothVal = labelSmoothing !== undefined ? Number(labelSmoothing) : 0.1;
-      const decayVal = weightDecay !== undefined ? Number(weightDecay) : 0.0001;
-      const lossVal = String(lossFunction || "LabelSmoothedCE");
-
-      const cmd = `python3 "${scriptPath}" --epochs=${epochsVal} --lr=${lrVal} --batch_size=${bsVal} --optimizer="${optVal}" --architecture="${archVal}" --noise_level=${noiseVal} --background_drift=${bgVal} --strain_range=${strainVal} --broadening_range=${broadVal} --dropout=${dropVal} --activation="${actVal}" --lr_scheduler="${schedVal}" --label_smoothing=${smoothVal} --weight_decay=${decayVal} --loss_function="${lossVal}"`;
-
-      const { exec } = await import("child_process");
-      
-      exec(cmd, { timeout: 120000 }, (error, stdout, stderr) => {
-        if (error) {
-          console.error("Python Training Execution Error:", error, stderr);
-          res.status(500).json({ success: false, error: "Error executing Python Neural Net Training: " + stderr });
-          return;
-        }
-
-        try {
-          const results = JSON.parse(stdout.trim());
-          res.json(results);
-        } catch (parseError) {
-          console.error("Failed to parse Python Training output:", stdout, parseError);
-          res.status(500).json({ success: false, error: "Failed to parse Python Training output: " + stdout });
-        }
-      });
-      
-    } catch (error: any) {
-      console.error("Neural Net Training Endpoint Error:", error);
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
-  // Machine Learning Python Neural Network Direct Prediction Endpoint
-  app.post("/api/gemini/predict-neural-net", async (req, res) => {
-    const { peaks } = req.body;
-    try {
-      if (!peaks || !Array.isArray(peaks)) {
-        res.status(400).json({ success: false, error: "Peak array is required for inference" });
-        return;
-      }
-      const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
-      const normalizedPeaks = peaks.map((p: any) => ({
-        two_theta: Number(p.twoTheta !== undefined ? p.twoTheta : p.two_theta),
-        intensity: Number(p.intensity)
-      })).filter(p => !isNaN(p.two_theta) && !isNaN(p.intensity));
-
-      const { execFile } = await import("child_process");
-      execFile("python3", [scriptPath, "--mode=predict", `--predict_peaks=${JSON.stringify(normalizedPeaks)}`], (error, stdout, stderr) => {
-        if (error) {
-          console.error("Python Neural Net Inference Error:", error, stderr);
-          res.status(500).json({ success: false, error: "Error executing Neural Net Inference: " + stderr });
-          return;
-        }
-        try {
-          const results = JSON.parse(stdout.trim());
-          res.json(results);
-        } catch (parseError) {
-          res.status(500).json({ success: false, error: "Failed to parse inference output: " + stdout });
-        }
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
   // Machine Learning Python RAG Analysis Endpoint
   app.post("/api/gemini/rag-analysis", async (req, res) => {
     const { experimental_peaks, customKey } = req.body;
+    const pyStart = recordPythonRunStart("phaseIdValidator.py");
     try {
       if (!experimental_peaks || !Array.isArray(experimental_peaks)) {
+        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "A valid array of experimental peaks is required." });
         return;
       }
@@ -2712,12 +2832,11 @@ CRITICAL RULES:
       });
 
       const scriptPath = path.join(__dirname, "utils", "phaseIdValidator.py");
-      
-      // Pass the payload directly without shell escaping since we use execFile
       const { execFile } = await import("child_process");
-      
-      execFile("python3", [scriptPath, "--json=" + payloadString], (error, stdout, stderr) => {
+
+      execFile("python3", [scriptPath, "--json=" + payloadString], { timeout: 25000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
         if (error) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Python RAG Execution Error:", error, stdout, stderr);
           res.status(500).json({ success: false, error: "Error executing Python RAG engine: " + (stderr || stdout || "exit code " + error.code) });
           return;
@@ -2725,14 +2844,17 @@ CRITICAL RULES:
 
         try {
           const results = JSON.parse(stdout);
+          recordPythonRunEnd(pyStart, true);
           res.json({ success: true, ...results });
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Python RAG output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse Python RAG output" });
         }
       });
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Gemini RAG Analysis Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -2741,8 +2863,10 @@ CRITICAL RULES:
   // Machine Learning Python + Pandas Rietveld Solver Endpoint
   app.post("/api/rietveld/refine", async (req, res) => {
     const payload = req.body;
+    const pyStart = recordPythonRunStart("rietveldRefinement.py");
     try {
       if (!payload || typeof payload !== "object") {
+        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "Valid JSON payload is required for Rietveld refinement." });
         return;
       }
@@ -2759,10 +2883,17 @@ CRITICAL RULES:
       const timeout = setTimeout(() => {
         if (!responded) {
           responded = true;
+          recordPythonRunEnd(pyStart, false);
           try { child.kill("SIGKILL"); } catch (e) {}
           res.status(504).json({ success: false, error: "Rietveld refinement solver timed out (maximum 30s limit reached)." });
         }
       }, 30000);
+
+      req.on("close", () => {
+        if (!responded) {
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
+      });
 
       child.stdout.on("data", (data) => {
         stdout += data.toString();
@@ -2776,6 +2907,7 @@ CRITICAL RULES:
         clearTimeout(timeout);
         if (!responded) {
           responded = true;
+          recordPythonRunEnd(pyStart, false);
           console.error("Python Rietveld Process Error:", err);
           res.status(500).json({ success: false, error: "Failed to spawn Python Rietveld process: " + err.message });
         }
@@ -2787,6 +2919,7 @@ CRITICAL RULES:
         responded = true;
 
         if (exitCode !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Python Rietveld Solver Execution Error:", stderr);
           res.status(500).json({ success: false, error: "Error executing Python Rietveld Solver: " + (stderr || "Exit code " + exitCode) });
           return;
@@ -2794,8 +2927,10 @@ CRITICAL RULES:
 
         try {
           const results = JSON.parse(stdout.trim());
+          recordPythonRunEnd(pyStart, true);
           res.json({ success: true, ...results });
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Python Rietveld output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse Python Rietveld output: " + (stderr || stdout.slice(0, 300)) });
         }
@@ -2806,6 +2941,7 @@ CRITICAL RULES:
       child.stdin.end();
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Rietveld Refinement Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -2814,17 +2950,18 @@ CRITICAL RULES:
   // Python + Matplotlib Scientific Illustrator Script Execution Endpoint
   app.post("/api/image/matplotlib", async (req, res) => {
     const { code, dpi, theme, transparent, format } = req.body;
+    const pyStart = recordPythonRunStart("matplotlibGenerator.py");
     try {
       if (!code || typeof code !== "string") {
+        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "Python matplotlib script is required." });
         return;
       }
 
       const scriptPath = path.join(__dirname, "utils", "matplotlibGenerator.py");
       const { spawn } = await import("child_process");
-      
       const child = spawn("python3", [scriptPath]);
-      
+
       let stdout = "";
       let stderr = "";
       let responded = false;
@@ -2833,25 +2970,43 @@ CRITICAL RULES:
       const timeout = setTimeout(() => {
         if (!responded) {
           responded = true;
+          recordPythonRunEnd(pyStart, false);
           try { child.kill("SIGKILL"); } catch (e) {}
           res.status(504).json({ success: false, error: "Matplotlib execution timed out (maximum 25s limit reached)." });
         }
       }, 25000);
-      
+
+      req.on("close", () => {
+        if (!responded) {
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
+      });
+
       child.stdout.on("data", (data) => {
         stdout += data.toString();
       });
-      
+
       child.stderr.on("data", (data) => {
         stderr += data.toString();
       });
-      
+
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          console.error("Python Matplotlib Process Error:", err);
+          res.status(500).json({ success: false, error: "Failed to spawn Python Matplotlib process: " + err.message });
+        }
+      });
+
       child.on("close", (exitCode) => {
         clearTimeout(timeout);
         if (responded) return;
         responded = true;
 
         if (exitCode !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Python Matplotlib Generator Error:", stderr);
           res.status(500).json({ success: false, error: "Error executing Python Matplotlib script: " + (stderr || "exit code " + exitCode) });
           return;
@@ -2859,13 +3014,15 @@ CRITICAL RULES:
 
         try {
           const results = JSON.parse(stdout.trim());
+          recordPythonRunEnd(pyStart, true);
           res.json(results);
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Python Matplotlib output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse Python Matplotlib output: " + (stderr || stdout.slice(0, 300)) });
         }
       });
-      
+
       // Feed python code & settings payload to standard input
       child.stdin.write(JSON.stringify({
         code,
@@ -2877,6 +3034,7 @@ CRITICAL RULES:
       child.stdin.end();
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Matplotlib Generator Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -2885,30 +3043,62 @@ CRITICAL RULES:
   // Machine Learning Python + OpenCV Image Solver Endpoint
   app.post("/api/image/analyze-cv", async (req, res) => {
     const { image, params } = req.body;
+    const pyStart = recordPythonRunStart("imageAnalysis.py");
     try {
       if (!image) {
+        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "A valid base64 image is required." });
         return;
       }
 
       const scriptPath = path.join(__dirname, "utils", "imageAnalysis.py");
       const { spawn } = await import("child_process");
-      
       const child = spawn("python3", [scriptPath]);
-      
+
       let stdout = "";
       let stderr = "";
-      
+      let responded = false;
+
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          try { child.kill("SIGKILL"); } catch (e) {}
+          res.status(504).json({ success: false, error: "OpenCV image analysis timed out after 25s." });
+        }
+      }, 25000);
+
+      req.on("close", () => {
+        if (!responded) {
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
+      });
+
       child.stdout.on("data", (data) => {
         stdout += data.toString();
       });
-      
+
       child.stderr.on("data", (data) => {
         stderr += data.toString();
       });
-      
+
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          console.error("Python CV Spawn Error:", err);
+          res.status(500).json({ success: false, error: "Failed to spawn Python CV process: " + err.message });
+        }
+      });
+
       child.on("close", (code) => {
-        if (code !== 0) {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (code !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Python CV Analyzer Error:", stderr);
           res.status(500).json({ success: false, error: "Error executing Python CV: " + (stderr || "exit code " + code) });
           return;
@@ -2916,18 +3106,21 @@ CRITICAL RULES:
 
         try {
           const results = JSON.parse(stdout.trim());
+          recordPythonRunEnd(pyStart, true);
           res.json(results);
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Python CV output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse Python CV output." });
         }
       });
-      
+
       // Feed base64 string to python over standard input (avoids CLI ARG_MAX shell errors)
       child.stdin.write(JSON.stringify({ image, params: params || {} }));
       child.stdin.end();
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Image Analysis CV Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -2936,17 +3129,18 @@ CRITICAL RULES:
   // Machine Learning Python RAG Database Search Endpoint
   app.post("/api/gemini/rag-database", async (req, res) => {
     const { query, customKey, experimentalPeaks } = req.body;
+    const pyStart = recordPythonRunStart("dbRagAgent.py");
     try {
       if (!query || typeof query !== "string") {
+        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "A valid search query is required." });
         return;
       }
 
       const apiKeyToUse = customKey || process.env.GEMINI_API_KEY || "";
       const scriptPath = path.join(__dirname, "utils", "dbRagAgent.py");
-      
       const { execFile } = await import("child_process");
-      
+
       const args = ["--query", query];
       if (apiKeyToUse) {
         args.push("--api_key", apiKeyToUse);
@@ -2954,19 +3148,20 @@ CRITICAL RULES:
       if (experimentalPeaks && Array.isArray(experimentalPeaks) && experimentalPeaks.length > 0) {
         args.push("--peaks", JSON.stringify(experimentalPeaks));
       }
-      
-      execFile("python3", [scriptPath, ...args], (error, stdout, stderr) => {
+
+      execFile("python3", [scriptPath, ...args], { timeout: 25000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
         if (error) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Python DB RAG Execution Error:", error, stdout, stderr);
           res.status(500).json({ success: false, error: "Error executing Python DB RAG: " + (stderr || stdout || "exit code " + error.code) });
           return;
         }
 
         try {
-          // Parse JSON output safely
           const rawOut = stdout.trim();
           const jsonStart = rawOut.indexOf('{');
           const jsonEnd = rawOut.lastIndexOf('}');
+          recordPythonRunEnd(pyStart, true);
           if (jsonStart !== -1 && jsonEnd !== -1) {
             const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
             res.json(results);
@@ -2974,12 +3169,14 @@ CRITICAL RULES:
             res.json({ success: true, answer: rawOut });
           }
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Python DB RAG output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse Python DB RAG output" });
         }
       });
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Gemini RAG Database Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -2987,6 +3184,7 @@ CRITICAL RULES:
 
   // OriginPro Python Matplotlib FWHM & Curve Deconvolution Endpoint
   app.post("/api/python/origin-fwhm-plot", async (req, res) => {
+    const pyStart = recordPythonRunStart("originFwhmPlotter.py");
     try {
       if (!pythonVerificationStarted) {
         ensurePythonDependenciesDeferred("origin_plot_call");
@@ -2998,6 +3196,22 @@ CRITICAL RULES:
       const child = spawn("python3", [scriptPath]);
       let stdout = "";
       let stderr = "";
+      let responded = false;
+
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          try { child.kill("SIGKILL"); } catch (e) {}
+          res.status(504).json({ success: false, error: "Origin FWHM Plotter timed out after 25s." });
+        }
+      }, 25000);
+
+      req.on("close", () => {
+        if (!responded) {
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
+      });
 
       child.stdout.on("data", (data) => {
         stdout += data.toString();
@@ -3007,8 +3221,23 @@ CRITICAL RULES:
         stderr += data.toString();
       });
 
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          console.error("Origin FWHM Plotter Spawn Error:", err);
+          res.status(500).json({ success: false, error: "Failed to spawn Origin FWHM Plotter: " + err.message });
+        }
+      });
+
       child.on("close", (code) => {
-        if (code !== 0) {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (code !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Origin FWHM Plotter Error:", stderr);
           res.status(500).json({ success: false, error: "Error running Origin FWHM Plotter: " + (stderr || "exit code " + code) });
           return;
@@ -3020,11 +3249,14 @@ CRITICAL RULES:
           const jsonEnd = rawOut.lastIndexOf('}');
           if (jsonStart !== -1 && jsonEnd !== -1) {
             const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            recordPythonRunEnd(pyStart, true);
             res.json(results);
           } else {
+            recordPythonRunEnd(pyStart, false);
             res.status(500).json({ success: false, error: "Invalid JSON response from Origin Plotter: " + rawOut });
           }
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Origin FWHM Plotter output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse plotter output." });
         }
@@ -3035,13 +3267,15 @@ CRITICAL RULES:
       child.stdin.end();
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Origin FWHM Plot Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  // Machine Learning Neural Network Training & Optimization Endpoint
+  // Unified Machine Learning Neural Network Training & Optimization Endpoint
   app.post("/api/gemini/train-neural-net", async (req, res) => {
+    const pyStart = recordPythonRunStart("trainNeuralNet.py (train)");
     try {
       const {
         epochs = 40,
@@ -3061,27 +3295,33 @@ CRITICAL RULES:
         lossFunction = "LabelSmoothedCE"
       } = req.body;
 
+      // Support both percentage (e.g. 10 -> 0.10, 2 -> 0.02) and decimal (0.10, 0.02) inputs seamlessly
+      const rawNoise = Number(noiseLevel);
+      const normalizedNoise = !isNaN(rawNoise) ? (rawNoise > 1.0 ? rawNoise / 100.0 : rawNoise) : 0.1;
+      const rawStrain = Number(strainRange);
+      const normalizedStrain = !isNaN(rawStrain) ? (rawStrain > 0.5 ? rawStrain / 100.0 : rawStrain) : 0.02;
+
       const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
       const { spawn } = await import("child_process");
 
       const child = spawn("python3", [
         scriptPath,
         "--mode", "train",
-        "--epochs", String(epochs),
-        "--lr", String(learningRate),
-        "--batch_size", String(batchSize),
-        "--optimizer", optimizer,
-        "--architecture", architecture,
-        "--noise_level", String(noiseLevel),
-        "--background_drift", String(backgroundDrift),
-        "--strain_range", String(strainRange),
-        "--broadening_range", String(broadeningRange),
-        "--dropout", String(dropout),
-        "--activation", activation,
-        "--lr_scheduler", lrScheduler,
-        "--label_smoothing", String(labelSmoothing),
-        "--weight_decay", String(weightDecay),
-        "--loss_function", lossFunction
+        "--epochs", String(Number(epochs) || 40),
+        "--lr", String(Number(learningRate) || 0.005),
+        "--batch_size", String(Number(batchSize) || 32),
+        "--optimizer", String(optimizer || "AdamW"),
+        "--architecture", String(architecture || "Deep MLP"),
+        "--noise_level", String(normalizedNoise),
+        "--background_drift", String(Number(backgroundDrift) || 5.0),
+        "--strain_range", String(normalizedStrain),
+        "--broadening_range", String(Number(broadeningRange) || 0.25),
+        "--dropout", String(Number(dropout) || 0.0),
+        "--activation", String(activation || "GELU"),
+        "--lr_scheduler", String(lrScheduler || "CosineAnnealing"),
+        "--label_smoothing", String(labelSmoothing !== undefined ? Number(labelSmoothing) : 0.1),
+        "--weight_decay", String(weightDecay !== undefined ? Number(weightDecay) : 0.0001),
+        "--loss_function", String(lossFunction || "LabelSmoothedCE")
       ]);
 
       let stdout = "";
@@ -3091,10 +3331,17 @@ CRITICAL RULES:
       const timeout = setTimeout(() => {
         if (!responded) {
           responded = true;
+          recordPythonRunEnd(pyStart, false);
           try { child.kill("SIGKILL"); } catch (e) {}
-          res.status(504).json({ success: false, error: "Neural network training execution timed out after 35 seconds." });
+          res.status(504).json({ success: false, error: "Neural network training execution timed out after 45 seconds." });
         }
-      }, 35000);
+      }, 45000);
+
+      req.on("close", () => {
+        if (!responded) {
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
+      });
 
       child.stdout.on("data", (data) => {
         stdout += data.toString();
@@ -3104,12 +3351,23 @@ CRITICAL RULES:
         stderr += data.toString();
       });
 
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          console.error("Neural Net Training Spawn Error:", err);
+          res.status(500).json({ success: false, error: "Failed to spawn Neural Net trainer: " + err.message });
+        }
+      });
+
       child.on("close", (code) => {
         clearTimeout(timeout);
         if (responded) return;
         responded = true;
 
         if (code !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Neural Net Training Error:", stderr);
           res.status(500).json({ success: false, error: "Error during neural network training: " + (stderr || "exit code " + code) });
           return;
@@ -3121,28 +3379,45 @@ CRITICAL RULES:
           const jsonEnd = rawOut.lastIndexOf('}');
           if (jsonStart !== -1 && jsonEnd !== -1) {
             const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            recordPythonRunEnd(pyStart, true);
             res.json(results);
           } else {
+            recordPythonRunEnd(pyStart, false);
             res.status(500).json({ success: false, error: "Failed to parse training output: " + rawOut });
           }
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Neural Net output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse model training JSON: " + (stderr || stdout.slice(0, 300)) });
         }
       });
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Neural Net Training Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  // Machine Learning Fast Neural Inference Predictor Endpoint
+  // Unified Machine Learning Fast Neural Inference Predictor Endpoint
   app.post("/api/gemini/predict-neural-net", async (req, res) => {
+    const pyStart = recordPythonRunStart("trainNeuralNet.py (predict)");
     try {
       const { peaks } = req.body;
       if (!peaks || !Array.isArray(peaks) || peaks.length === 0) {
+        recordPythonRunEnd(pyStart, false);
         return res.status(400).json({ success: false, error: "Diffraction peaks array is required for inference." });
+      }
+
+      // Normalize both camelCase (twoTheta) and snake_case (two_theta) peak schemas
+      const normalizedPeaks = peaks.map((p: any) => ({
+        two_theta: Number(p.twoTheta !== undefined ? p.twoTheta : p.two_theta),
+        intensity: Number(p.intensity ?? 100)
+      })).filter(p => !isNaN(p.two_theta) && !isNaN(p.intensity));
+
+      if (normalizedPeaks.length === 0) {
+        recordPythonRunEnd(pyStart, false);
+        return res.status(400).json({ success: false, error: "No valid numeric (twoTheta, intensity) peaks provided for inference." });
       }
 
       const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
@@ -3151,7 +3426,7 @@ CRITICAL RULES:
       const child = spawn("python3", [
         scriptPath,
         "--mode", "predict",
-        "--predict_peaks", JSON.stringify(peaks)
+        "--predict_peaks", JSON.stringify(normalizedPeaks)
       ]);
 
       let stdout = "";
@@ -3161,10 +3436,17 @@ CRITICAL RULES:
       const timeout = setTimeout(() => {
         if (!responded) {
           responded = true;
+          recordPythonRunEnd(pyStart, false);
           try { child.kill("SIGKILL"); } catch (e) {}
-          res.status(504).json({ success: false, error: "Inference timed out after 12s." });
+          res.status(504).json({ success: false, error: "Inference timed out after 15s." });
         }
-      }, 12000);
+      }, 15000);
+
+      req.on("close", () => {
+        if (!responded) {
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
+      });
 
       child.stdout.on("data", (data) => {
         stdout += data.toString();
@@ -3174,12 +3456,23 @@ CRITICAL RULES:
         stderr += data.toString();
       });
 
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          console.error("Neural Predict Spawn Error:", err);
+          res.status(500).json({ success: false, error: "Failed to spawn neural predictor: " + err.message });
+        }
+      });
+
       child.on("close", (code) => {
         clearTimeout(timeout);
         if (responded) return;
         responded = true;
 
         if (code !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Neural Predict Error:", stderr);
           res.status(500).json({ success: false, error: "Error during neural inference: " + (stderr || "exit code " + code) });
           return;
@@ -3191,17 +3484,21 @@ CRITICAL RULES:
           const jsonEnd = rawOut.lastIndexOf('}');
           if (jsonStart !== -1 && jsonEnd !== -1) {
             const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            recordPythonRunEnd(pyStart, true);
             res.json(results);
           } else {
+            recordPythonRunEnd(pyStart, false);
             res.status(500).json({ success: false, error: "Invalid prediction JSON output: " + rawOut });
           }
         } catch (parseError) {
+          recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse prediction output:", stdout, parseError);
           res.status(500).json({ success: false, error: "Failed to parse prediction output." });
         }
       });
 
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Neural Net Predict Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -3209,12 +3506,14 @@ CRITICAL RULES:
 
   // Generic Python Code Execution Endpoint
   app.post("/api/python/run", async (req, res) => {
+    const pyStart = recordPythonRunStart("inline_script");
     try {
       if (!pythonVerificationStarted) {
         ensurePythonDependenciesDeferred("python_run_call");
       }
       const { code } = req.body;
       if (!code || typeof code !== "string") {
+        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "Python code string is required." });
         return;
       }
@@ -3230,6 +3529,7 @@ CRITICAL RULES:
       const timeout = setTimeout(() => {
         if (!responded) {
           responded = true;
+          recordPythonRunEnd(pyStart, false);
           try { child.kill("SIGKILL"); } catch (e) {}
           res.status(504).json({
             success: false,
@@ -3258,6 +3558,7 @@ CRITICAL RULES:
         clearTimeout(timeout);
         if (!responded) {
           responded = true;
+          recordPythonRunEnd(pyStart, false);
           console.error("Python Spawn Error:", err);
           res.status(500).json({ success: false, error: "Failed to spawn Python process: " + err.message });
         }
@@ -3267,6 +3568,7 @@ CRITICAL RULES:
         clearTimeout(timeout);
         if (responded) return;
         responded = true;
+        recordPythonRunEnd(pyStart, exitCode === 0);
         res.json({
           success: exitCode === 0,
           exitCode,
@@ -3275,6 +3577,7 @@ CRITICAL RULES:
         });
       });
     } catch (error: any) {
+      recordPythonRunEnd(pyStart, false);
       console.error("Python Execution Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -3412,7 +3715,7 @@ Use clear Markdown headers, bullet points, and clean mathematical formulations.`
     }
   });
 
-  // Nano Banana 2 (gemini-3.1-flash-image) Scientific Image Generation Endpoint
+  // Nano Banana 2.1 (gemini-nano-banana-2.1) Scientific Image Generation Endpoint
   app.post("/api/gemini/generate-scientific-image", async (req, res) => {
     const { prompt, size, styleLabel, aspectRatio, customKey } = req.body;
     try {
@@ -3427,10 +3730,10 @@ Use clear Markdown headers, bullet points, and clean mathematical formulations.`
       const validAspect = ['1:1', '3:4', '4:3', '9:16', '16:9', '1:4', '1:8', '4:1', '8:1'].includes(aspectRatio) ? aspectRatio : '1:1';
       const validSize = ['512px', '1K', '2K', '4K'].includes(size) ? size : '1K';
 
-      // Primary: gemini-3.1-flash-image (Nano Banana 2)
+      // Primary: gemini-nano-banana-2.1 (Nano Banana 2.1)
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-image',
+          model: 'gemini-nano-banana-2.1',
           contents: {
             parts: [{ text: fullPrompt }],
           },
@@ -3450,14 +3753,14 @@ Use clear Markdown headers, bullet points, and clean mathematical formulations.`
               res.json({
                 success: true,
                 imageUrl: dataUrl,
-                modelUsed: 'gemini-3.1-flash-image (Nano Banana 2)',
+                modelUsed: 'gemini-nano-banana-2.1 (Nano Banana 2.1)',
               });
               return;
             }
           }
         }
       } catch (nanoErr: any) {
-        console.warn("Nano Banana 2 generation attempt error:", nanoErr?.message || nanoErr);
+        console.warn("Nano Banana 2.1 generation attempt error:", nanoErr?.message || nanoErr);
         
         // Fallback 1: gemini-3.1-flash-lite-image
         try {
@@ -3524,7 +3827,7 @@ Use clear Markdown headers, bullet points, and clean mathematical formulations.`
     }
   });
 
-  // Nano Banana 2 (gemini-3.1-flash-image) Multimodal Scientific Image Editing Endpoint
+  // Nano Banana 2.1 (gemini-nano-banana-2.1) Multimodal Scientific Image Editing Endpoint
   app.post("/api/gemini/edit-scientific-image", async (req, res) => {
     const { image, prompt, customKey, aspectRatio, size } = req.body;
     try {
@@ -3546,7 +3849,7 @@ Use clear Markdown headers, bullet points, and clean mathematical formulations.`
         }
       }
 
-      const editPrompt = `You are Nano Banana 2 (gemini-3.1-flash-image) specializing in crystallography, electron microscopy, and XRD scientific illustration editing.
+      const editPrompt = `You are Nano Banana 2.1 (gemini-nano-banana-2.1) specializing in crystallography, electron microscopy, and XRD scientific illustration editing.
 Edit and modify the provided input scientific image according to this instruction: "${prompt}".
 Maintain crystallographic accuracy, clean contrast, crisp labels, and professional academic standards.`;
 
@@ -3555,7 +3858,7 @@ Maintain crystallographic accuracy, clean contrast, crisp labels, and profession
 
       try {
         const response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-image',
+          model: 'gemini-nano-banana-2.1',
           contents: {
             parts: [
               {
@@ -3596,12 +3899,12 @@ Maintain crystallographic accuracy, clean contrast, crisp labels, and profession
             success: true,
             imageUrl: editedImageUrl,
             explanation: explanationText.trim(),
-            modelUsed: 'gemini-3.1-flash-image (Nano Banana 2 Editor)',
+            modelUsed: 'gemini-nano-banana-2.1 (Nano Banana 2.1 Editor)',
           });
           return;
         }
       } catch (nanoEditErr: any) {
-        console.warn("Nano Banana 2 image editing error:", nanoEditErr?.message);
+        console.warn("Nano Banana 2.1 image editing error:", nanoEditErr?.message);
 
         // Fallback: gemini-3.1-flash-lite-image
         try {

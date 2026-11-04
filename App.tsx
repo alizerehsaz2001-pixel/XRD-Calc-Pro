@@ -1517,7 +1517,19 @@ const App: React.FC = () => {
                 setActiveModule(targetModule as Module);
               }
             }}
-            onOpenDisciplineModule={(modId) => {
+            onOpenDisciplineModule={(modId, samplePayload) => {
+              if (samplePayload) {
+                setSampleId(samplePayload.sampleId);
+                setMaterialName(samplePayload.materialName);
+                setRawPeaks(samplePayload.rawPeaks);
+                setRawHKL(samplePayload.rawHKL);
+                if (samplePayload.wavelength) {
+                  setWavelength(samplePayload.wavelength);
+                }
+                if (samplePayload.crystalSystem) {
+                  setCrystalSystem(samplePayload.crystalSystem);
+                }
+              }
               setShowWhyXrdPage(false);
               setHasEntered(true);
               const savedReg = localStorage.getItem('xrd_user_registration');

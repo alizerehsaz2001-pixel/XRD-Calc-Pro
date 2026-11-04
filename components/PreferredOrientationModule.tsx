@@ -164,6 +164,62 @@ export const PreferredOrientationModule: React.FC = () => {
     return { rwp: valRwp, chiSquared: chiSq };
   }, [reflections]);
 
+  // Chart View Mode: 'bars' (Intensity Bar Comparison) or 'odf_curve' (P(alpha) vs Interplanar Angle alpha 0-90°)
+  const [chartViewMode, setChartViewMode] = useState<'bars' | 'odf_curve'>('bars');
+
+  // Quick-add reflection row state
+  const [newH, setNewH] = useState<number>(1);
+  const [newK, setNewK] = useState<number>(0);
+  const [newL, setNewL] = useState<number>(2);
+  const [newIStd, setNewIStd] = useState<number>(50);
+  const [newIObs, setNewIObs] = useState<number>(45);
+
+  // Continuous P(alpha) ODF Curve Data (0° to 90°) + active reflection scatter overlay
+  const odfCurveData = useMemo(() => {
+    const pts: {
+      alpha: number;
+      pModel: number;
+      pIsotropic: number;
+    }[] = [];
+    for (let a = 0; a <= 90; a += 2) {
+      let pVal = 1.0;
+      const rad = (a * Math.PI) / 180;
+      const cosA = Math.cos(rad);
+      const sinA = Math.sin(rad);
+
+      if (textureModel === 'March-Dollase' || textureModel === 'Bimodal-March-Dollase') {
+        const term1 = rValue * rValue * cosA * cosA + (sinA * sinA) / Math.max(0.01, rValue);
+        const md1 = term1 > 0 ? Math.pow(term1, -1.5) : 1.0;
+        if (textureModel === 'Bimodal-March-Dollase') {
+          const term2 = r2Value * r2Value * cosA * cosA + (sinA * sinA) / Math.max(0.01, r2Value);
+          const md2 = term2 > 0 ? Math.pow(term2, -1.5) : 1.0;
+          const fRand = Math.max(0, 1.0 - fraction - fraction2);
+          pVal = fraction * md1 + fraction2 * md2 + fRand;
+        } else {
+          pVal = fraction * md1 + (1.0 - fraction);
+        }
+      } else if (textureModel === 'Jarvinen-Harmonics') {
+        const x2 = cosA * cosA;
+        const x4 = x2 * x2;
+        const p2 = 0.5 * (3 * x2 - 1);
+        const p4 = 0.125 * (35 * x4 - 30 * x2 + 3);
+        const harm = Math.max(0.01, 1.0 + c2Value * p2 + c4Value * p4);
+        pVal = fraction * harm + (1.0 - fraction);
+      } else if (textureModel === 'Von-Mises-Fisher') {
+        const k = Math.max(0.01, vmfKappa);
+        const vmf = k > 50 ? k * Math.exp(k * (cosA - 1)) : (k / (2 * Math.sinh(k))) * Math.exp(k * cosA);
+        pVal = fraction * vmf + (1.0 - fraction);
+      }
+
+      pts.push({
+        alpha: a,
+        pModel: parseFloat(pVal.toFixed(4)),
+        pIsotropic: 1.0
+      });
+    }
+    return pts;
+  }, [textureModel, rValue, r2Value, fraction, fraction2, c2Value, c4Value, vmfKappa]);
+
   // Handle Preset Selection
   const applyPreset = (preset: MaterialPreset) => {
     setTextureModel(preset.model);
@@ -184,13 +240,47 @@ export const PreferredOrientationModule: React.FC = () => {
   };
 
   // Handle Refinement Application
-  const handleApplyRefinedParams = (r1: number, f1: number, r2?: number, f2?: number) => {
-    setRValue(r1);
-    setFraction(f1);
-    if (r2 !== undefined) setR2Value(r2);
-    if (f2 !== undefined) setFraction2(f2);
-    if (r1 < 1.0) setHabitModel('Platelet');
-    else if (r1 > 1.0) setHabitModel('Needle');
+  const handleApplyRefinedParams = (params: {
+    r1: number;
+    f1: number;
+    r2?: number;
+    f2?: number;
+    c2?: number;
+    c4?: number;
+    kappa?: number;
+  }) => {
+    setRValue(params.r1);
+    setFraction(params.f1);
+    if (params.r2 !== undefined) setR2Value(params.r2);
+    if (params.f2 !== undefined) setFraction2(params.f2);
+    if (params.c2 !== undefined) setC2Value(params.c2);
+    if (params.c4 !== undefined) setC4Value(params.c4);
+    if (params.kappa !== undefined) setVmfKappa(params.kappa);
+    if (params.r1 < 1.0) setHabitModel('Platelet');
+    else if (params.r1 > 1.0) setHabitModel('Needle');
+  };
+
+  const handleAddReflectionRow = () => {
+    const newLine = `${newH}, ${newK}, ${newL}, ${newIStd}, ${newIObs}`;
+    setInputData((prev) => (prev.trim() ? `${prev.trim()}\n${newLine}` : newLine));
+  };
+
+  const handleExportReflectionsCSV = () => {
+    if (reflections.length === 0) return;
+    const header = "Plane (hkl),2Theta (deg),d-spacing (A),Interplanar Angle alpha (deg),Correction P(alpha),I_std,I_obs,I_calc,Residual,Harris TC\n";
+    const rows = reflections
+      .map((r) =>
+        `"${r.hkl}",${(r.twoTheta ?? 0).toFixed(2)},${(r.dSpacing ?? 0).toFixed(4)},${r.angleAlpha.toFixed(2)},${r.correctionFactor.toFixed(4)},${r.iStandard},${r.iMeasured},${r.iScaled.toFixed(2)},${r.residual.toFixed(2)},${r.harrisTC.toFixed(3)}`
+      )
+      .join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `preferred_orientation_${crystalSystem}_${primaryAxis.replace(/[,\s]+/g, '')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -385,7 +475,7 @@ export const PreferredOrientationModule: React.FC = () => {
               </div>
             </div>
 
-            {/* Lattice Constants a, b, c */}
+            {/* Lattice Constants a, b, c & X-Ray Anode Wavelength */}
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <label className="text-[10px] font-mono text-slate-500 block mb-0.5">a (Å)</label>
@@ -394,7 +484,7 @@ export const PreferredOrientationModule: React.FC = () => {
                   step="0.01"
                   value={latticeA}
                   onChange={(e) => setLatticeA(parseFloat(e.target.value) || 1)}
-                  className="w-full text-xs font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5"
+                  className="w-full text-xs font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 tabular-nums"
                 />
               </div>
               <div>
@@ -404,7 +494,7 @@ export const PreferredOrientationModule: React.FC = () => {
                   step="0.01"
                   value={latticeB}
                   onChange={(e) => setLatticeB(parseFloat(e.target.value) || 1)}
-                  className="w-full text-xs font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5"
+                  className="w-full text-xs font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 tabular-nums"
                 />
               </div>
               <div>
@@ -414,46 +504,129 @@ export const PreferredOrientationModule: React.FC = () => {
                   step="0.01"
                   value={latticeC}
                   onChange={(e) => setLatticeC(parseFloat(e.target.value) || 1)}
-                  className="w-full text-xs font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5"
+                  className="w-full text-xs font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 tabular-nums"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-mono text-slate-500 block mb-0.5">
+                X-Ray Source Wavelength λ (Å):
+              </label>
+              <select
+                value={wavelength}
+                onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                className="w-full text-xs font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-2 text-slate-800 dark:text-slate-200"
+              >
+                <option value={1.54056}>Cu Kα₁ (1.54056 Å)</option>
+                <option value={1.78897}>Co Kα₁ (1.78897 Å)</option>
+                <option value={0.7093}>Mo Kα₁ (0.70930 Å)</option>
+                <option value={2.2897}>Cr Kα₁ (2.28970 Å)</option>
+              </select>
             </div>
           </div>
 
           {/* Model Sliders */}
           <div className="space-y-4 pt-2 border-t border-slate-200 dark:border-white/5">
-            {/* Primary March Parameter r1 */}
-            <div>
-              <div className="flex justify-between items-center text-xs font-bold mb-1">
-                <span className="text-slate-700 dark:text-slate-300">March Parameter r₁:</span>
-                <span className="font-mono text-teal-600 dark:text-teal-400">{rValue.toFixed(3)}</span>
+            {(textureModel === 'March-Dollase' || textureModel === 'Bimodal-March-Dollase') && (
+              <div>
+                <div className="flex justify-between items-center text-xs font-bold mb-1">
+                  <span className="text-slate-700 dark:text-slate-300">March Parameter r₁:</span>
+                  <span className="font-mono text-teal-600 dark:text-teal-400 tabular-nums">{rValue.toFixed(3)}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.05"
+                  max="4.0"
+                  step="0.01"
+                  value={rValue}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setRValue(val);
+                    if (val < 1.0) setHabitModel('Platelet');
+                    else if (val > 1.0) setHabitModel('Needle');
+                  }}
+                  className="w-full accent-teal-500 cursor-pointer"
+                />
+                <div className="flex justify-between text-[9px] text-slate-500 font-mono">
+                  <span>0.05 (Platelet)</span>
+                  <span>1.0 (Random)</span>
+                  <span>4.0 (Needle)</span>
+                </div>
               </div>
-              <input
-                type="range"
-                min="0.05"
-                max="4.0"
-                step="0.01"
-                value={rValue}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setRValue(val);
-                  if (val < 1.0) setHabitModel('Platelet');
-                  else if (val > 1.0) setHabitModel('Needle');
-                }}
-                className="w-full accent-teal-500 cursor-pointer"
-              />
-              <div className="flex justify-between text-[9px] text-slate-500 font-mono">
-                <span>0.05 (Platelet)</span>
-                <span>1.0 (Random)</span>
-                <span>4.0 (Needle)</span>
+            )}
+
+            {textureModel === 'Jarvinen-Harmonics' && (
+              <div className="p-3 bg-white dark:bg-black/60 rounded-xl border border-slate-200 dark:border-white/5 space-y-3">
+                <span className="text-[10px] font-black uppercase text-teal-600 dark:text-teal-400 block">
+                  Järvinen Spherical Harmonics (Legendre P₂, P₄)
+                </span>
+                <div>
+                  <div className="flex justify-between text-[11px] font-bold mb-0.5">
+                    <span>2nd-Order Harmonic C₂:</span>
+                    <span className="font-mono text-teal-600 dark:text-teal-400 tabular-nums">{c2Value.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-1.5"
+                    max="3.0"
+                    step="0.05"
+                    value={c2Value}
+                    onChange={(e) => setC2Value(parseFloat(e.target.value))}
+                    className="w-full accent-teal-500 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-[11px] font-bold mb-0.5">
+                    <span>4th-Order Harmonic C₄:</span>
+                    <span className="font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">{c4Value.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-1.5"
+                    max="2.5"
+                    step="0.05"
+                    value={c4Value}
+                    onChange={(e) => setC4Value(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-500 cursor-pointer"
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {textureModel === 'Von-Mises-Fisher' && (
+              <div className="p-3 bg-white dark:bg-black/60 rounded-xl border border-slate-200 dark:border-white/5 space-y-2">
+                <span className="text-[10px] font-black uppercase text-teal-600 dark:text-teal-400 block">
+                  Von Mises-Fisher Spherical Concentration
+                </span>
+                <div>
+                  <div className="flex justify-between text-[11px] font-bold mb-0.5">
+                    <span>Concentration κ (Kappa):</span>
+                    <span className="font-mono text-teal-600 dark:text-teal-400 tabular-nums">{vmfKappa.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.05"
+                    max="12.0"
+                    step="0.1"
+                    value={vmfKappa}
+                    onChange={(e) => setVmfKappa(parseFloat(e.target.value))}
+                    className="w-full accent-teal-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-500 font-mono">
+                    <span>0.05 (Isotropic)</span>
+                    <span>4.0 (Moderate)</span>
+                    <span>12.0 (Sharp Fiber)</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Fraction f1 */}
             <div>
               <div className="flex justify-between items-center text-xs font-bold mb-1">
-                <span className="text-slate-700 dark:text-slate-300">Oriented Fraction f₁:</span>
-                <span className="font-mono text-indigo-600 dark:text-indigo-400">{(fraction * 100).toFixed(0)}%</span>
+                <span className="text-slate-700 dark:text-slate-300">Oriented Volume Fraction f₁:</span>
+                <span className="font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">{(fraction * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -484,7 +657,7 @@ export const PreferredOrientationModule: React.FC = () => {
                 <div>
                   <div className="flex justify-between text-[11px] font-bold mb-0.5">
                     <span>Parameter r₂:</span>
-                    <span className="font-mono text-purple-600 dark:text-purple-400">{r2Value.toFixed(2)}</span>
+                    <span className="font-mono text-purple-600 dark:text-purple-400 tabular-nums">{r2Value.toFixed(2)}</span>
                   </div>
                   <input
                     type="range"
@@ -493,6 +666,21 @@ export const PreferredOrientationModule: React.FC = () => {
                     step="0.05"
                     value={r2Value}
                     onChange={(e) => setR2Value(parseFloat(e.target.value))}
+                    className="w-full accent-purple-500 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-[11px] font-bold mb-0.5">
+                    <span>Secondary Fraction f₂:</span>
+                    <span className="font-mono text-purple-600 dark:text-purple-400 tabular-nums">{(fraction2 * 100).toFixed(0)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.0"
+                    max={Math.max(0, 1.0 - fraction)}
+                    step="0.02"
+                    value={Math.min(fraction2, Math.max(0, 1.0 - fraction))}
+                    onChange={(e) => setFraction2(parseFloat(e.target.value))}
                     className="w-full accent-purple-500 cursor-pointer"
                   />
                 </div>
@@ -574,7 +762,7 @@ export const PreferredOrientationModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Live Diffraction Reflection Intensity & Residual Profile Comparison */}
+      {/* Live Diffraction Reflection Intensity & ODF Angular Profile Comparison */}
       <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-[2rem] p-6 shadow-sm dark:shadow-2xl backdrop-blur-md">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-4 border-b border-slate-200 dark:border-white/5 pb-4">
           <div className="flex items-center gap-3">
@@ -583,46 +771,123 @@ export const PreferredOrientationModule: React.FC = () => {
             </div>
             <div>
               <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 tracking-wider">
-                Diffraction Reflection Matrix &amp; Profile Residuals
+                {chartViewMode === 'bars'
+                  ? 'Diffraction Reflection Matrix & Profile Residuals'
+                  : 'Orientation Distribution Function P(α) vs. Interplanar Angle α'}
               </h3>
               <p className="text-[11px] text-slate-500 font-sans">
-                Comparison of Random Standard (I₀), Texture-Corrected Model (I_calc), and Observed Peak Intensities (I_obs)
+                {chartViewMode === 'bars'
+                  ? 'Comparison of Random Standard (I₀), Texture-Corrected Model (I_calc), and Observed Peak Intensities (I_obs)'
+                  : `Theoretical pole density multiplier P(α) from α = 0° (parallel to [${primaryAxis}]) to α = 90° (transverse)`}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 font-mono text-xs">
-            <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-emerald-700 dark:text-emerald-300">
-              R_wp: <strong>{rwp.toFixed(2)}%</strong>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1 bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-xl p-1">
+              <button
+                onClick={() => setChartViewMode('bars')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  chartViewMode === 'bars'
+                    ? 'bg-teal-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Intensity Spectrum (I₀ / I_calc / I_obs)
+              </button>
+              <button
+                onClick={() => setChartViewMode('odf_curve')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  chartViewMode === 'odf_curve'
+                    ? 'bg-teal-500 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                P(α) Angular ODF Curve (0°–90°)
+              </button>
             </div>
-            <div className="px-3 py-1 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40 rounded-xl text-amber-700 dark:text-amber-300">
-              χ²: <strong>{chiSquared.toFixed(2)}</strong>
+
+            <div className="flex items-center gap-2 font-mono text-xs">
+              <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-emerald-700 dark:text-emerald-300">
+                R_wp: <strong>{rwp.toFixed(2)}%</strong>
+              </div>
+              <div className="px-3 py-1 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40 rounded-xl text-amber-700 dark:text-amber-300">
+                χ²: <strong>{chiSquared.toFixed(2)}</strong>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Recharts Bar Chart */}
+        {/* Chart Area */}
         <div className="h-72 w-full mt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={reflections} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-              <XAxis dataKey="hkl" stroke="#64748b" fontSize={11} fontFamily="monospace" />
-              <YAxis stroke="#64748b" fontSize={11} fontFamily="monospace" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0f172a',
-                  borderColor: 'rgba(255,255,255,0.1)',
-                  borderRadius: '1rem',
-                  fontSize: '11px',
-                  fontFamily: 'monospace'
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-              <Bar dataKey="iStandard" name="Random Standard I₀" fill="#64748b" radius={[4, 4, 0, 0]} opacity={0.6} />
-              <Bar dataKey="iScaled" name="Texture Model I_calc" fill="#2dd4bf" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="iMeasured" name="Observed Peak I_obs" fill="#6366f1" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {chartViewMode === 'bars' ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={reflections} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis dataKey="hkl" stroke="#64748b" fontSize={11} fontFamily="monospace" />
+                <YAxis stroke="#64748b" fontSize={11} fontFamily="monospace" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    fontSize: '11px',
+                    fontFamily: 'monospace'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                <Bar dataKey="iStandard" name="Random Standard I₀" fill="#64748b" radius={[4, 4, 0, 0]} opacity={0.6} />
+                <Bar dataKey="iScaled" name="Texture Model I_calc" fill="#2dd4bf" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="iMeasured" name="Observed Peak I_obs" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={odfCurveData} margin={{ top: 10, right: 24, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                <XAxis
+                  dataKey="alpha"
+                  stroke="#64748b"
+                  fontSize={11}
+                  fontFamily="monospace"
+                  tickFormatter={(v) => `${v}°`}
+                />
+                <YAxis stroke="#64748b" fontSize={11} fontFamily="monospace" />
+                <Tooltip
+                  formatter={(value: any, name: string) => [
+                    typeof value === 'number' ? `${value.toFixed(3)} MUD` : value,
+                    name
+                  ]}
+                  labelFormatter={(label) => `Interplanar Angle α = ${label}°`}
+                  contentStyle={{
+                    backgroundColor: '#0f172a',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderRadius: '1rem',
+                    fontSize: '11px',
+                    fontFamily: 'monospace'
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                <Line
+                  type="monotone"
+                  dataKey="pIsotropic"
+                  name="Isotropic Random Baseline (P = 1.0)"
+                  stroke="#64748b"
+                  strokeDasharray="4 4"
+                  dot={false}
+                  strokeWidth={1.5}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="pModel"
+                  name={`${textureModel} Distribution P(α)`}
+                  stroke="#2dd4bf"
+                  strokeWidth={2.5}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -642,6 +907,9 @@ export const PreferredOrientationModule: React.FC = () => {
         currentR2={r2Value}
         currentF1={fraction}
         currentF2={fraction2}
+        currentC2={c2Value}
+        currentC4={c4Value}
+        currentKappa={vmfKappa}
         onApplyRefinedParams={handleApplyRefinedParams}
       />
 
@@ -657,19 +925,60 @@ export const PreferredOrientationModule: React.FC = () => {
                 Experimental Diffraction Reflection Matrix
               </h3>
               <p className="text-[11px] text-slate-500 font-sans">
-                Paste or edit peak reflection lines: <code>h, k, l, I_std, I_obs</code>
+                Click any plane row to set it as the primary texture axis <code>[H K L]</code>, or append new reflections below
               </p>
             </div>
           </div>
+
+          <button
+            onClick={handleExportReflectionsCSV}
+            disabled={reflections.length === 0}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-teal-500/10 hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/20 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export Matrix CSV
+          </button>
+        </div>
+
+        {/* Quick-Add Reflection Bar */}
+        <div className="mb-4 p-3 bg-white dark:bg-black/50 rounded-xl border border-slate-200 dark:border-white/5 flex flex-wrap items-end gap-2.5 font-mono">
+          <div className="text-[10px] font-bold uppercase text-slate-500 mr-1 self-center">
+            Quick-Append Reflection:
+          </div>
+          {[
+            { label: 'h', val: newH, set: setNewH, step: 1 },
+            { label: 'k', val: newK, set: setNewK, step: 1 },
+            { label: 'l', val: newL, set: setNewL, step: 1 },
+            { label: 'I_std', val: newIStd, set: setNewIStd, step: 5 },
+            { label: 'I_obs', val: newIObs, set: setNewIObs, step: 5 },
+          ].map((fld) => (
+            <div key={fld.label} className="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800">
+              <span className="text-[10px] text-slate-500 font-bold">{fld.label}:</span>
+              <input
+                type="number"
+                step={fld.step}
+                value={fld.val}
+                onChange={(e) => fld.set(parseFloat(e.target.value) || 0)}
+                className="w-12 text-xs font-bold bg-transparent text-slate-800 dark:text-slate-200 outline-none text-center tabular-nums"
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={handleAddReflectionRow}
+            className="px-3.5 py-1.5 bg-teal-500 hover:bg-teal-600 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+          >
+            + Add Reflection
+          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-              Raw Reflection Table Input:
+              Raw Reflection Table Input (<code>h, k, l, I_std, I_obs</code>):
             </label>
             <textarea
-              rows={8}
+              rows={9}
               value={inputData}
               onChange={(e) => setInputData(e.target.value)}
               placeholder="0, 0, 1, 100, 245&#10;1, 0, 0, 80, 22"
@@ -678,31 +987,75 @@ export const PreferredOrientationModule: React.FC = () => {
           </div>
 
           {/* Interactive Formatted Table */}
-          <div className="md:col-span-2 overflow-x-auto max-h-60 rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-black/60 shadow-inner">
+          <div className="md:col-span-2 overflow-x-auto max-h-72 rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-black/60 shadow-inner">
             <table className="w-full text-xs text-left font-mono">
-              <thead className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 uppercase text-[10px] sticky top-0">
+              <thead className="bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 uppercase text-[10px] sticky top-0 z-10">
                 <tr>
                   <th className="p-2.5">Plane (hkl)</th>
-                  <th className="p-2.5">Angle α (°)</th>
-                  <th className="p-2.5">P(α)</th>
-                  <th className="p-2.5">I_std</th>
-                  <th className="p-2.5">I_obs</th>
-                  <th className="p-2.5">I_calc</th>
-                  <th className="p-2.5">Harris TC</th>
+                  <th className="p-2.5 text-right">2θ (°)</th>
+                  <th className="p-2.5 text-right">d (Å)</th>
+                  <th className="p-2.5 text-right">Angle α</th>
+                  <th className="p-2.5 text-right">P(α)</th>
+                  <th className="p-2.5 text-right">I_std</th>
+                  <th className="p-2.5 text-right">I_obs</th>
+                  <th className="p-2.5 text-right">I_calc</th>
+                  <th className="p-2.5 text-right">Harris TC</th>
+                  <th className="p-2.5 text-right">Axis</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                {reflections.map((r, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
-                    <td className="p-2.5 font-bold text-slate-800 dark:text-slate-200">{r.hkl}</td>
-                    <td className="p-2.5 text-slate-600 dark:text-slate-400">{r.angleAlpha.toFixed(1)}°</td>
-                    <td className="p-2.5 text-teal-600 dark:text-teal-400 font-bold">{r.correctionFactor.toFixed(3)}</td>
-                    <td className="p-2.5 text-slate-500">{r.iStandard}</td>
-                    <td className="p-2.5 text-indigo-600 dark:text-indigo-400 font-bold">{r.iMeasured}</td>
-                    <td className="p-2.5 text-emerald-600 dark:text-emerald-400">{r.iScaled.toFixed(1)}</td>
-                    <td className="p-2.5 text-purple-600 dark:text-purple-400 font-bold">{r.harrisTC.toFixed(2)}</td>
-                  </tr>
-                ))}
+                {reflections.map((r, idx) => {
+                  const isPrimaryAxis = r.angleAlpha < 0.5;
+                  return (
+                    <tr
+                      key={idx}
+                      onClick={() => setPrimaryAxis(`${r.h}, ${r.k}, ${r.l}`)}
+                      className={`transition-colors cursor-pointer ${
+                        isPrimaryAxis
+                          ? 'bg-teal-500/10 hover:bg-teal-500/15'
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-900/40'
+                      }`}
+                      title={`Click to set [${r.h}, ${r.k}, ${r.l}] as Primary Preferred Orientation Axis`}
+                    >
+                      <td className="p-2.5 font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                        {r.hkl}
+                      </td>
+                      <td className="p-2.5 text-right text-slate-500 tabular-nums">
+                        {(r.twoTheta ?? 0).toFixed(1)}°
+                      </td>
+                      <td className="p-2.5 text-right text-slate-500 tabular-nums">
+                        {(r.dSpacing ?? 0).toFixed(2)}
+                      </td>
+                      <td className="p-2.5 text-right text-slate-600 dark:text-slate-400 tabular-nums">
+                        {r.angleAlpha.toFixed(1)}°
+                      </td>
+                      <td className="p-2.5 text-right text-teal-600 dark:text-teal-400 font-bold tabular-nums">
+                        {r.correctionFactor.toFixed(3)}
+                      </td>
+                      <td className="p-2.5 text-right text-slate-500 tabular-nums">{r.iStandard}</td>
+                      <td className="p-2.5 text-right text-indigo-600 dark:text-indigo-400 font-bold tabular-nums">
+                        {r.iMeasured}
+                      </td>
+                      <td className="p-2.5 text-right text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        {r.iScaled.toFixed(1)}
+                      </td>
+                      <td className="p-2.5 text-right text-purple-600 dark:text-purple-400 font-bold tabular-nums">
+                        {r.harrisTC.toFixed(2)}
+                      </td>
+                      <td className="p-2.5 text-right">
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                            isPrimaryAxis
+                              ? 'bg-teal-500 text-white'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-teal-500'
+                          }`}
+                        >
+                          {isPrimaryAxis ? 'Active' : 'Set [HKL]'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

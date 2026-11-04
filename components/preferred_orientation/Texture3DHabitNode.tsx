@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Rotate3d, Play, Pause, RefreshCw, Layers } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Rotate3d, Play, Pause, RefreshCw } from 'lucide-react';
 
 interface Texture3DHabitNodeProps {
   rValue: number;
@@ -9,7 +9,6 @@ interface Texture3DHabitNodeProps {
 
 export const Texture3DHabitNode: React.FC<Texture3DHabitNodeProps> = ({
   rValue,
-  habitModel,
   primaryAxis
 }) => {
   const [habitRotX, setHabitRotX] = useState<number>(25);
@@ -17,6 +16,17 @@ export const Texture3DHabitNode: React.FC<Texture3DHabitNodeProps> = ({
   const [autoSpinHabit, setAutoSpinHabit] = useState<boolean>(false);
   const [isDraggingHabit, setIsDraggingHabit] = useState<boolean>(false);
   const dragStart = useRef({ x: 0, y: 0, rotX: 25, rotY: 35 });
+
+  useEffect(() => {
+    if (!autoSpinHabit || isDraggingHabit) return;
+    let rafId: number;
+    const step = () => {
+      setHabitRotY((prev) => (prev + 0.6) % 360);
+      rafId = requestAnimationFrame(step);
+    };
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [autoSpinHabit, isDraggingHabit]);
 
   return (
     <div 
@@ -116,7 +126,7 @@ export const Texture3DHabitNode: React.FC<Texture3DHabitNodeProps> = ({
               height = Math.min(80, 16 * rValue);
             }
 
-            const activeRotY = autoSpinHabit ? (habitRotY + (Date.now() / 30) % 360) : habitRotY;
+            const activeRotY = habitRotY;
 
             const vertices3D = [];
             for (let i = 0; i < 6; i++) {

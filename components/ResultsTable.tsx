@@ -510,7 +510,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                   const isSelected = selectedIndices.includes(originalIndex);
                   const isFocused = originalIndex === activePeakIndex;
                   const intensity = row.intensity !== undefined ? row.intensity : 100;
-                  const rowKey = `${row.hkl || 'peak'}-${row.twoTheta.toFixed(4)}-${row.dSpacing.toFixed(4)}`;
+                  const rowKey = `row-${originalIndex}-${index}-${row.hkl || 'peak'}-${row.twoTheta.toFixed(4)}-${row.dSpacing.toFixed(4)}`;
                   return (
                     <motion.tr 
                       key={rowKey} 
@@ -533,7 +533,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
                       <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center">
                           <input
-                            id={`row-checkbox-${originalIndex}`}
+                            id={`row-checkbox-${originalIndex}-${index}`}
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleRowSelectToggle(row)}
