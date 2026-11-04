@@ -50,6 +50,7 @@ import { MaterialParameterStudioModal } from './MaterialParameterStudioModal';
 import { CrystallographicIntelligencePanel } from './CrystallographicIntelligencePanel';
 import { ConstituentPhaseElementsPanel } from './ConstituentPhaseElementsPanel';
 import { fetchLearnedMaterials } from '../services/geminiService';
+import { PDF2DatabaseWorkbench } from './deeplearning/PDF2DatabaseWorkbench';
 
 const LOCAL_STORAGE_KEY = 'crystal_suite_materials_v1';
 
@@ -922,6 +923,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
 
   // Global Sync & Database Portal states
   const [showGlobalPortal, setShowGlobalPortal] = useState(false);
+  const [showPDF2Workbench, setShowPDF2Workbench] = useState(true);
   const [selectedGlobalDB, setSelectedGlobalDB] = useState('materials_project');
   const [globalApiKey, setGlobalApiKey] = useState('');
   const [globalSearch, setGlobalSearch] = useState('');
@@ -1754,6 +1756,11 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newMaterials));
       bulkSaveOfflineMaterials(newMaterials).catch(e => console.error('IndexedDB bulk save issue:', e));
+      window.dispatchEvent(
+        new CustomEvent('xrd-pdf2-db-updated', {
+          detail: { totalDatabaseCount: newMaterials.length, timestamp: new Date().toISOString() }
+        })
+      );
     } catch (e) {
       console.error('Failed to save material overrides', e);
     }
@@ -3873,7 +3880,30 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                 <Database className="w-4 h-4 animate-pulse" />
                 <span>{showGlobalPortal ? t('Close Global Sync', 'Close Global Sync') : t('Global Database Sync', 'Global Database Sync')}</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPDF2Workbench(!showPDF2Workbench)}
+                className={`flex items-center gap-2 px-4 py-2 border font-black tracking-widest uppercase rounded-xl transition-colors cursor-pointer text-[10px] leading-none ${
+                  showPDF2Workbench
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                    : 'bg-amber-500/5 hover:bg-amber-500/15 border-amber-500/25 text-amber-300'
+                }`}
+              >
+                <DownloadCloud className="w-4 h-4 text-amber-400" />
+                <span>{showPDF2Workbench ? 'Hide ICDD PDF-2 Database' : 'ICDD PDF-2 Database & Download'}</span>
+              </button>
             </div>
+
+            {showPDF2Workbench && (
+              <div className="mt-3">
+                <PDF2DatabaseWorkbench
+                  materials={materials}
+                  onMaterialsUpdated={(updated) => saveMaterials(updated)}
+                  onClose={() => setShowPDF2Workbench(false)}
+                />
+              </div>
+            )}
 
             {/* Advanced Range Filters Sub-Drawer */}
             {showAdvancedFilters && (

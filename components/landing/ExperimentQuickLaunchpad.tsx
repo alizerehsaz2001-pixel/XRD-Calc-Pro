@@ -16,6 +16,7 @@ import {
   Flame,
   Binary
 } from 'lucide-react';
+import { ExperimentPresetSpectrumGraphic } from './WelcomePageGraphics';
 
 export interface ExperimentPreset {
   id: string;
@@ -358,6 +359,13 @@ export const ExperimentQuickLaunchpad: React.FC<Props> = ({
                     Verified
                   </span>
                 </div>
+
+                {/* Live Multi-Peak Diffraction Spectrum SVG */}
+                <ExperimentPresetSpectrumGraphic
+                  peaks={activePreset.samplePeaks}
+                  formula={activePreset.formula}
+                  crystalSystem={activePreset.crystalSystem}
+                />
 
                 {/* Mini Peaks Table */}
                 <div className="space-y-2">

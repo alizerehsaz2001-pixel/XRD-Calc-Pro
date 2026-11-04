@@ -9,11 +9,19 @@ import { motion, AnimatePresence } from 'motion/react';
 interface ResultsTableProps {
   results: BraggResult[];
   onExportCompare?: (selectedResults: BraggResult[]) => void;
+  activePeakIndex?: number;
+  onSelectPeakIndex?: (idx: number) => void;
 }
 
-export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCompare }) => {
+export const ResultsTable: React.FC<ResultsTableProps> = ({
+  results,
+  onExportCompare,
+  activePeakIndex = 0,
+  onSelectPeakIndex,
+}) => {
   const { t } = useTranslation();
   const { precision, lengthUnit = 'Å' } = useSettings();
+  const focusedPeak = results[activePeakIndex] || results[0];
 
   const [minIntensity, setMinIntensity] = useState<number>(0);
   const [minDSpacing, setMinDSpacing] = useState<string>('');
@@ -197,15 +205,15 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-300 dark:border-slate-800 overflow-hidden flex flex-col min-h-[400px] transition-colors ResultsTable">
       <div className="p-2 px-4 shadow-sm z-10">
         <ScientificMathControl
-          title="Bragg's Law Verification"
+          title={`Bragg's Law Verification ${focusedPeak?.hkl ? `• (${focusedPeak.hkl}) Peak` : `• 2θ = ${focusedPeak?.twoTheta.toFixed(2)}°`}`}
           formula="\lambda = 2 d \sin \theta \implies d = \frac{\lambda}{2 \sin \theta}"
-          description="Verification of the core X-ray crystal scattering condition for the primary indexed peak."
-          variables={results.length > 0 ? [
+          description="Verification of the core X-ray crystal scattering condition for the currently focused reflection."
+          variables={focusedPeak ? [
             { symbol: 'n', name: 'Order of reflection', value: 1, unit: '' },
-            { symbol: 'θ', name: 'Bragg Angle', value: ((results[0].twoTheta / 2) * Math.PI / 180), unit: 'rad' },
-            { symbol: 'λ', name: 'Scattering Wavelength', value: convertLength(2 * results[0].dSpacing * Math.sin((results[0].twoTheta / 2) * Math.PI / 180), lengthUnit), unit: lengthUnit }
+            { symbol: 'θ', name: 'Bragg Angle', value: ((focusedPeak.twoTheta / 2) * Math.PI / 180), unit: 'rad' },
+            { symbol: 'λ', name: 'Scattering Wavelength', value: convertLength(2 * focusedPeak.dSpacing * Math.sin((focusedPeak.twoTheta / 2) * Math.PI / 180), lengthUnit), unit: lengthUnit }
           ] : []}
-          result={results.length > 0 ? convertLength(results[0].dSpacing, lengthUnit) : 0}
+          result={focusedPeak ? convertLength(focusedPeak.dSpacing, lengthUnit) : 0}
           resultUnit={lengthUnit}
           resultName="Calculated D-Spacing"
         />
@@ -500,6 +508,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                 {filteredResults.map((row, index) => {
                   const originalIndex = results.indexOf(row);
                   const isSelected = selectedIndices.includes(originalIndex);
+                  const isFocused = originalIndex === activePeakIndex;
                   const intensity = row.intensity !== undefined ? row.intensity : 100;
                   const rowKey = `${row.hkl || 'peak'}-${row.twoTheta.toFixed(4)}-${row.dSpacing.toFixed(4)}`;
                   return (
@@ -510,11 +519,16 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                       exit={{ opacity: 0, y: -8, scale: 0.98 }}
                       transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3), ease: [0.25, 0.8, 0.25, 1] }}
                       className={`transition-colors cursor-pointer ${
-                        isSelected 
-                          ? 'bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30' 
-                          : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        isFocused
+                          ? 'bg-cyan-50/70 dark:bg-cyan-950/30 hover:bg-cyan-50 dark:hover:bg-cyan-950/40 ring-1 ring-inset ring-cyan-500/30'
+                          : isSelected 
+                            ? 'bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30' 
+                            : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                       }`}
-                      onClick={() => handleRowSelectToggle(row)}
+                      onClick={() => {
+                        onSelectPeakIndex?.(originalIndex);
+                        handleRowSelectToggle(row);
+                      }}
                     >
                       <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center">
@@ -532,6 +546,11 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                           <span className={row.validationError ? 'text-rose-600 dark:text-rose-400' : 'text-indigo-600 dark:text-indigo-400'}>
                             ({row.hkl || '?'})
                           </span>
+                          {isFocused && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/30">
+                              Goniometer
+                            </span>
+                          )}
                           {row.validationError && (
                             <span 
                               className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500 text-white dark:bg-rose-600 animate-pulse cursor-help shrink-0"

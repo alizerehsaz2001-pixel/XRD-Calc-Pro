@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useI18n } from './components/I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
+import { InteractiveBraggWorkbench } from './components/bragg/InteractiveBraggWorkbench';
 
 // Resilient helper for lazy dynamic component imports with auto-retry and flexible default/named export resolution
 function safeLazy<T extends React.ComponentType<any>>(
@@ -377,8 +378,9 @@ const App: React.FC = () => {
   const [rawPeaks, setRawPeaks] = useState<string>(savedState?.rawPeaks ?? '28.44, 47.30, 56.12, 69.13, 76.38'); 
   const [rawHKL, setRawHKL] = useState<string>(savedState?.rawHKL ?? '111, 220, 311, 400, 331');
   const [materialName, setMaterialName] = useState<string | null>(savedState?.materialName ?? null);
-  const [crystalSystem, setCrystalSystem] = useState<string>(savedState?.crystalSystem ?? 'SC');
+  const [crystalSystem, setCrystalSystem] = useState<string>(savedState?.crystalSystem ?? 'DC');
   const [results, setResults] = useState<BraggResult[]>(savedState?.results ?? []);
+  const [activeBraggPeakIndex, setActiveBraggPeakIndex] = useState<number>(0);
   const [comparePeaks, setComparePeaks] = useState<BraggResult[] | null>(null);
   const [compareMaterialName, setCompareMaterialName] = useState<string | null>(null);
   const [braggHistory, setBraggHistory] = useState<BraggHistoryItem[]>(() => {
@@ -947,84 +949,118 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
-  const handleCalculate = (saveToHistory = true) => {
-    if (isSimulationRunning) return;
-    
-    setIsSimulationRunning(true);
-    setSimulationStep(1);
-    
-    setTimeout(() => setSimulationStep(2), 600);
-    setTimeout(() => setSimulationStep(3), 1400);
-    setTimeout(() => setSimulationStep(4), 2200);
-    setTimeout(() => setSimulationStep(5), 3000);
-    
-    setTimeout(() => {
-      setIsSimulationRunning(false);
-      
-      // Parse peaks supporting both "twoTheta" and optional ":intensity" format (e.g., "28.44:100, 47.30:80")
-      const parsedPeaks = rawPeaks
-        .split(/[,;\s]+/)
-        .map(pString => pString.trim())
-        .filter(s => s !== '')
-        .map(pString => {
-          const parts = pString.split(':');
-          const thetaVal = parseFloat(parts[0]);
-          let intensityVal: number | undefined = undefined;
-          if (parts.length > 1) {
-            const parsedInt = parseFloat(parts[1]);
-            if (!isNaN(parsedInt)) {
-              intensityVal = parsedInt;
-            }
+  // Pure synchronous Bragg diffraction solver with pre-sort HKL pairing and Bragg-Brentano calibration
+  const computeBraggResults = React.useCallback((
+    wavelengthVal: number,
+    rawPeaksStr: string,
+    rawHKLStr: string,
+    zeroShiftVal: number,
+    sampleDispVal: number,
+    goniometerRadVal: number,
+    crystalSysVal: string
+  ): BraggResult[] => {
+    const hklList = (rawHKLStr.includes(',') || rawHKLStr.includes(';'))
+      ? rawHKLStr.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean)
+      : (rawHKLStr.match(/\([^)]+\)|\S+/g) || []).map(s => s.trim()).filter(Boolean);
+
+    const parsedPeaksWithHkl = rawPeaksStr
+      .split(/[,;\s]+/)
+      .map(pString => pString.trim())
+      .filter(s => s !== '')
+      .map((pString, rawIdx) => {
+        const parts = pString.split(':');
+        const thetaVal = parseFloat(parts[0]);
+        let intensityVal: number | undefined = undefined;
+        if (parts.length > 1) {
+          const parsedInt = parseFloat(parts[1]);
+          if (!isNaN(parsedInt)) {
+            intensityVal = parsedInt;
           }
-          return { twoTheta: thetaVal, intensity: intensityVal };
-        })
-        .filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0 && p.twoTheta < 180)
-        .sort((a, b) => a.twoTheta - b.twoTheta);
+        }
+        return {
+          twoTheta: thetaVal,
+          intensity: intensityVal,
+          hkl: hklList[rawIdx] || '',
+          rawIdx,
+        };
+      })
+      .filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0 && p.twoTheta < 180)
+      .sort((a, b) => a.twoTheta - b.twoTheta);
 
-      const hklList = rawHKL
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s !== '');
+    return parsedPeaksWithHkl
+      .map((peakObj, idx) => {
+        // Apply Bragg-Brentano Zero-Shift and Sample-Displacement errors
+        // 2theta_calibrated = 2theta_obs - zero_shift - (2 * s * cos(theta_rad) / R) * (180 / PI)
+        const thetaRad = (peakObj.twoTheta / 2) * (Math.PI / 180);
+        const displacementTerm = goniometerRadVal > 0
+          ? (2 * sampleDispVal * Math.cos(thetaRad) / goniometerRadVal) * (180 / Math.PI)
+          : 0;
+        const calibratedTwoTheta = peakObj.twoTheta - zeroShiftVal - displacementTerm;
 
-      const computed = parsedPeaks
-        .map((peakObj, idx) => {
-          // Apply Zero-Shift and Sample-Displacement errors based on the goniometer geometry settings
-          // Equation: 2theta_calibrated = 2theta_obs - zero_shift - (2 * s * cos(theta_rad) / R) * (180 / PI)
-          const thetaRad = (peakObj.twoTheta / 2) * (Math.PI / 180);
-          const displacementTerm = goniometerRadius > 0 
-            ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
-            : 0;
-          const calibratedTwoTheta = peakObj.twoTheta - zeroShift - displacementTerm;
-
-          const res = calculateBragg(wavelength, calibratedTwoTheta);
-          if (res) {
-            const hklValue = hklList[idx] || '';
-            let validationError: string | undefined = undefined;
-            if (hklValue) {
-              const parsed = parseSingleHKL(hklValue);
-              if (parsed) {
-                const check = validateHKLAgainstCrystalSystem(parsed.h, parsed.k, parsed.l, crystalSystem);
-                if (!check.valid) {
-                  validationError = check.reason;
-                }
+        const res = calculateBragg(wavelengthVal, calibratedTwoTheta);
+        if (res) {
+          const hklValue = peakObj.hkl;
+          let validationError: string | undefined = undefined;
+          if (hklValue) {
+            const parsed = parseSingleHKL(hklValue);
+            if (parsed) {
+              const check = validateHKLAgainstCrystalSystem(parsed.h, parsed.k, parsed.l, crystalSysVal);
+              if (!check.valid) {
+                validationError = check.reason;
               }
             }
-            // Assign a natural decreasing simulated default intensity (e.g. 100, 85, 70...) if none is provided
-            const assignedIntensity = peakObj.intensity !== undefined 
-              ? peakObj.intensity 
-              : Math.max(10, 100 - (idx * 15));
-            return { 
-              ...res, 
-              hkl: hklValue, 
-              intensity: assignedIntensity,
-              validationError
-            } as BraggResult;
           }
-          return null;
-        })
-        .filter((res): res is BraggResult => res !== null);
-      
-      setResults(computed);
+          const assignedIntensity = peakObj.intensity !== undefined
+            ? peakObj.intensity
+            : Math.max(10, 100 - (idx * 15));
+          return {
+            ...res,
+            hkl: hklValue,
+            intensity: assignedIntensity,
+            validationError
+          } as BraggResult;
+        }
+        return null;
+      })
+      .filter((res): res is BraggResult => res !== null);
+  }, []);
+
+  // Real-time reactive Bragg calculation whenever inputs, wavelength, or geometry calibration change
+  useEffect(() => {
+    const computed = computeBraggResults(
+      wavelength,
+      rawPeaks,
+      rawHKL,
+      zeroShift,
+      sampleDisplacement,
+      goniometerRadius,
+      crystalSystem
+    );
+    setResults(computed);
+    setActiveBraggPeakIndex(prev => (computed.length === 0 ? 0 : Math.min(prev, computed.length - 1)));
+  }, [wavelength, rawPeaks, rawHKL, zeroShift, sampleDisplacement, goniometerRadius, crystalSystem, computeBraggResults]);
+
+  const handleCalculate = (saveToHistory = true) => {
+    if (isSimulationRunning) return;
+
+    const computed = computeBraggResults(
+      wavelength,
+      rawPeaks,
+      rawHKL,
+      zeroShift,
+      sampleDisplacement,
+      goniometerRadius,
+      crystalSystem
+    );
+    setResults(computed);
+
+    setIsSimulationRunning(true);
+    setSimulationStep(1);
+    setTimeout(() => setSimulationStep(3), 80);
+    setTimeout(() => setSimulationStep(5), 160);
+
+    setTimeout(() => {
+      setIsSimulationRunning(false);
 
       if (computed.length > 0) {
         playSynthTone('success');
@@ -1044,7 +1080,7 @@ const App: React.FC = () => {
           rawHKL,
           results: computed
         };
-        
+
         setBraggHistory(prev => {
           const updated = [newItem, ...prev].slice(0, 10); // Keep last 10
           localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
@@ -1085,84 +1121,32 @@ const App: React.FC = () => {
           });
         }
       }
-    }, 3800);
+    }, 260);
   };
 
   const handleBatchCalculate = async (batchSets: Array<{ sampleId: string; rawPeaks: string; rawHKL: string }>) => {
     if (isSimulationRunning) return;
     setIsSimulationRunning(true);
     setSimulationStep(1);
-    
-    setTimeout(() => setSimulationStep(2), 600);
-    setTimeout(() => setSimulationStep(3), 1400);
-    setTimeout(() => setSimulationStep(4), 2200);
-    setTimeout(() => setSimulationStep(5), 3000);
-    
+    setTimeout(() => setSimulationStep(3), 100);
+    setTimeout(() => setSimulationStep(5), 200);
+
     setTimeout(async () => {
       setIsSimulationRunning(false);
-      
+
       const newHistoryItems: BraggHistoryItem[] = [];
       const offlineItems: OfflineAnalysisResult[] = [];
-      
+
       for (const set of batchSets) {
-        const parsedPeaks = set.rawPeaks
-          .split(/[,;\s]+/)
-          .map(pString => pString.trim())
-          .filter(s => s !== '')
-          .map(pString => {
-            const parts = pString.split(':');
-            const thetaVal = parseFloat(parts[0]);
-            let intensityVal: number | undefined = undefined;
-            if (parts.length > 1) {
-              const parsedInt = parseFloat(parts[1]);
-              if (!isNaN(parsedInt)) {
-                intensityVal = parsedInt;
-              }
-            }
-            return { twoTheta: thetaVal, intensity: intensityVal };
-          })
-          .filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0 && p.twoTheta < 180)
-          .sort((a, b) => a.twoTheta - b.twoTheta);
-
-        const hklList = set.rawHKL
-          .split(',')
-          .map(s => s.trim())
-          .filter(s => s !== '');
-
-        const computed = parsedPeaks
-          .map((peakObj, idx) => {
-            const thetaRad = (peakObj.twoTheta / 2) * (Math.PI / 180);
-            const displacementTerm = goniometerRadius > 0 
-              ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
-              : 0;
-            const calibratedTwoTheta = peakObj.twoTheta - zeroShift - displacementTerm;
-
-            const res = calculateBragg(wavelength, calibratedTwoTheta);
-            if (res) {
-              const hklValue = hklList[idx] || '';
-              let validationError: string | undefined = undefined;
-              if (hklValue) {
-                const parsed = parseSingleHKL(hklValue);
-                if (parsed) {
-                  const check = validateHKLAgainstCrystalSystem(parsed.h, parsed.k, parsed.l, crystalSystem);
-                  if (!check.valid) {
-                    validationError = check.reason;
-                  }
-                }
-              }
-              const assignedIntensity = peakObj.intensity !== undefined 
-                ? peakObj.intensity 
-                : Math.max(10, 100 - (idx * 15));
-              return { 
-                ...res, 
-                hkl: hklValue, 
-                intensity: assignedIntensity,
-                validationError
-              } as BraggResult;
-            }
-            return null;
-          })
-          .filter((res): res is BraggResult => res !== null);
+        const computed = computeBraggResults(
+          wavelength,
+          set.rawPeaks,
+          set.rawHKL,
+          zeroShift,
+          sampleDisplacement,
+          goniometerRadius,
+          crystalSystem
+        );
 
         if (computed.length > 0) {
           const newItem: BraggHistoryItem = {
@@ -1175,7 +1159,7 @@ const App: React.FC = () => {
             results: computed
           };
           newHistoryItems.push(newItem);
-          
+
           offlineItems.push({
             id: newItem.id,
             type: 'bragg',
@@ -1194,12 +1178,12 @@ const App: React.FC = () => {
           localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
           return updated;
         });
-        
+
         for (const item of offlineItems) {
           await saveOfflineAnalysis(item).catch(console.error);
         }
         refreshOfflineAnalyses();
-        
+
         if (user) {
           for (const newItem of newHistoryItems) {
             const path = `braggHistory/${newItem.id}`;
@@ -1221,18 +1205,18 @@ const App: React.FC = () => {
             });
           }
         }
-        
+
         const last = newHistoryItems[0];
         setSampleId(last.sampleId || "");
         setRawPeaks(last.rawPeaks);
         setRawHKL(last.rawHKL);
         setResults(last.results);
-        
+
         playSynthTone('success');
       } else {
         playSynthTone('error');
       }
-    }, 3800);
+    }, 320);
   };
 
 
@@ -2137,6 +2121,33 @@ const App: React.FC = () => {
                     displayMode === 'fullscreen' ? (
                       /* Full-Screen Mode: Strict Functional Sequential Dependency Pipeline */
                       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Interactive Bragg Diffractometer Workbench (1-Click Standards, Anode Switcher, Auto-Indexer, Bidirectional Calculator) */}
+                        <InteractiveBraggWorkbench
+                          sampleId={sampleId}
+                          setSampleId={setSampleId}
+                          materialName={materialName}
+                          setMaterialName={setMaterialName}
+                          wavelength={wavelength}
+                          setWavelength={setWavelength}
+                          rawPeaks={rawPeaks}
+                          setRawPeaks={setRawPeaks}
+                          rawHKL={rawHKL}
+                          setRawHKL={setRawHKL}
+                          crystalSystem={crystalSystem}
+                          setCrystalSystem={setCrystalSystem}
+                          zeroShift={zeroShift}
+                          setZeroShift={setZeroShift}
+                          sampleDisplacement={sampleDisplacement}
+                          setSampleDisplacement={setSampleDisplacement}
+                          goniometerRadius={goniometerRadius}
+                          setGoniometerRadius={setGoniometerRadius}
+                          results={results}
+                          activePeakIndex={activeBraggPeakIndex}
+                          setActivePeakIndex={setActiveBraggPeakIndex}
+                          onSaveSnapshot={() => handleCalculate(true)}
+                          onJumpToModule={(mod) => setActiveModule(mod as Module)}
+                        />
+
                         {/* Stage 1: Numerical Inputs & Goniometer Geometry */}
                         <div id="stage-inputs" className="space-y-3">
                           <WorkflowStageHeader 
@@ -2183,7 +2194,7 @@ const App: React.FC = () => {
                             totalSteps={5} 
                             title={t('Stage 2: Operational Controls & Processing Console', 'Stage 2: Operational Controls & Processing Console')} 
                             subtitle={t('Execute Bragg diffraction solver, run batch array evaluation, and review instrument calibration', 'Execute Bragg diffraction solver, run batch array evaluation, and review instrument calibration')} 
-                            badge="Execution Pipeline" 
+                            badge="Live Reactive Engine" 
                             badgeColor="cyan" 
                             isComplete={results.length > 0} 
                           />
@@ -2200,8 +2211,12 @@ const App: React.FC = () => {
                                   <span className="font-bold text-emerald-400">{zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°</span>
                                 </div>
                                 <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
-                                  <span className="text-slate-400">Goniometer Radius:</span>
-                                  <span className="font-bold text-indigo-400">{goniometerRadius} mm</span>
+                                  <span className="text-slate-400">Focused Peak:</span>
+                                  <span className="font-bold text-indigo-300">
+                                    {results[activeBraggPeakIndex]
+                                      ? `(${results[activeBraggPeakIndex].hkl || '?'}) @ ${results[activeBraggPeakIndex].twoTheta.toFixed(2)}°`
+                                      : 'None'}
+                                  </span>
                                 </div>
                                 <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
                                   <span className="text-slate-400">Loaded Peaks:</span>
@@ -2216,8 +2231,8 @@ const App: React.FC = () => {
                                   onClick={() => handleCalculate(true)}
                                   className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer hover:scale-[1.02] transition-all"
                                 >
-                                  <Zap className="w-4 h-4 text-cyan-200 animate-pulse" />
-                                  <span>{t('Execute Solver (Enter)', 'Execute Solver')}</span>
+                                  <Zap className="w-4 h-4 text-cyan-200" />
+                                  <span>{t('Save Snapshot to History', 'Save Snapshot to History')}</span>
                                 </button>
                                 <button
                                   type="button"
@@ -2258,7 +2273,7 @@ const App: React.FC = () => {
                               <Suspense fallback={<ModuleLoadingFallback />}>
                                 <BraggVisualization 
                                   wavelength={wavelength} 
-                                  twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
+                                  twoTheta={results[activeBraggPeakIndex]?.twoTheta ?? results[0]?.twoTheta ?? 28.44} 
                                 />
                               </Suspense>
                             </div>
@@ -2288,7 +2303,9 @@ const App: React.FC = () => {
                           />
                           <Suspense fallback={<ModuleLoadingFallback />}>
                             <ResultsTable 
-                              results={results} 
+                              results={results}
+                              activePeakIndex={activeBraggPeakIndex}
+                              onSelectPeakIndex={setActiveBraggPeakIndex}
                               onExportCompare={(selectedResults) => {
                                 setComparePeaks(selectedResults);
                                 setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
@@ -2347,6 +2364,32 @@ const App: React.FC = () => {
                     ) : (
                       /* Half-Screen Mode (50% Split Width Multitasking Flow) */
                       <div className="space-y-6 animate-in fade-in duration-300">
+                        <InteractiveBraggWorkbench
+                          sampleId={sampleId}
+                          setSampleId={setSampleId}
+                          materialName={materialName}
+                          setMaterialName={setMaterialName}
+                          wavelength={wavelength}
+                          setWavelength={setWavelength}
+                          rawPeaks={rawPeaks}
+                          setRawPeaks={setRawPeaks}
+                          rawHKL={rawHKL}
+                          setRawHKL={setRawHKL}
+                          crystalSystem={crystalSystem}
+                          setCrystalSystem={setCrystalSystem}
+                          zeroShift={zeroShift}
+                          setZeroShift={setZeroShift}
+                          sampleDisplacement={sampleDisplacement}
+                          setSampleDisplacement={setSampleDisplacement}
+                          goniometerRadius={goniometerRadius}
+                          setGoniometerRadius={setGoniometerRadius}
+                          results={results}
+                          activePeakIndex={activeBraggPeakIndex}
+                          setActivePeakIndex={setActiveBraggPeakIndex}
+                          onSaveSnapshot={() => handleCalculate(true)}
+                          onJumpToModule={(mod) => setActiveModule(mod as Module)}
+                        />
+
                         {/* Stage 1: Numerical Inputs & Parameters */}
                         <div id="stage-inputs" className="space-y-2">
                           <WorkflowStageHeader 
@@ -2408,7 +2451,7 @@ const App: React.FC = () => {
                                 className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                               >
                                 <Zap className="w-3.5 h-3.5 text-cyan-200" />
-                                <span>{t('Calculate', 'Calculate')}</span>
+                                <span>{t('Save Snapshot', 'Save Snapshot')}</span>
                               </button>
                               <button
                                 type="button"
@@ -2436,7 +2479,7 @@ const App: React.FC = () => {
                             <div className="space-y-4">
                               <BraggVisualization 
                                 wavelength={wavelength} 
-                                twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
+                                twoTheta={results[activeBraggPeakIndex]?.twoTheta ?? results[0]?.twoTheta ?? 28.44} 
                               />
                               <DiffractionChart 
                                 results={results} 
@@ -2461,7 +2504,9 @@ const App: React.FC = () => {
                           <Suspense fallback={<ModuleLoadingFallback />}>
                             <div className="space-y-4">
                               <ResultsTable 
-                                results={results} 
+                                results={results}
+                                activePeakIndex={activeBraggPeakIndex}
+                                onSelectPeakIndex={setActiveBraggPeakIndex}
                                 onExportCompare={(selectedResults) => {
                                   setComparePeaks(selectedResults);
                                   setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');

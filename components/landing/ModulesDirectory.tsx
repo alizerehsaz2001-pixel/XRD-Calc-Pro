@@ -27,6 +27,7 @@ import {
   LineChart,
   Target
 } from 'lucide-react';
+import { renderScientificModuleIcon } from '../LeftSidebarGraphics';
 
 export type ModuleCategory = 'all' | 'fundamentals' | 'strain' | 'refinement' | 'thin_films' | 'ai_data';
 
@@ -488,8 +489,8 @@ export const ModulesDirectory: React.FC<ModulesDirectoryProps> = ({
 
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
-                    <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-violet-400 group-hover:text-cyan-300 group-hover:border-violet-500/40 group-hover:scale-105 transition-all duration-300 shadow-inner">
-                      <Icon className="w-5 h-5" />
+                    <div className="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-violet-400 group-hover:text-cyan-300 group-hover:border-violet-500/40 group-hover:scale-105 transition-all duration-300 shadow-inner">
+                      {renderScientificModuleIcon(item.id, true)}
                     </div>
                     {item.badge && (
                       <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-300 border border-violet-500/20">

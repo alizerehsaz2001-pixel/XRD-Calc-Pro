@@ -20,6 +20,7 @@ import { MultiPeakManager, SCIENTIFIC_PEAK_COLORS } from './MultiPeakManager';
 import { OriginProFWHMPlotter } from './OriginProFWHMPlotter';
 import { InteractiveResidualSubplot } from './profile/InteractiveResidualSubplot';
 import { LiveComponentDeconstructionCard, DeconstructedComponentItem } from './profile/LiveComponentDeconstructionCard';
+import { LineProfileAnalyticsHeader } from './profile/LineProfileAnalyticsHeader';
 import { downsampleLTTB } from '../utils/performanceOptimizer';
 import {
   ComposedChart,
@@ -4136,101 +4137,40 @@ export const FWHMModule: React.FC = () => {
       {/* Visualizer and Stats Panel */}
       <div className="xl:col-span-9 space-y-6">
         
-        {/* Scenario Simulation Presets Toolbar */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-3.5 rounded-2xl border border-indigo-800/40 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-300 border border-indigo-500/30">
-              <Zap className="w-4 h-4 text-amber-300" />
-            </div>
-            <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-200 block flex items-center gap-2">
-                Diffraction Simulation Scenarios
-                <span className="px-1.5 py-0.2 text-[9px] rounded-md bg-indigo-500/30 text-indigo-200 font-mono">1-Click Scenarios</span>
-              </span>
-              <span className="text-[10px] text-indigo-300/80">Realistic physical crystal, instrumental & deconvolution standards</span>
-            </div>
-          </div>
+        {/* Interactive Line Profile Analytics Workbench Header, Kernel Comparator & Calibration Scenarios */}
+        <LineProfileAnalyticsHeader
+          type={type}
+          setType={setType}
+          center={center}
+          setCenter={setCenter}
+          fwhm={fwhm}
+          setFwhmManual={setFwhmManual}
+          eta={eta}
+          setEta={setEta}
+          pearsonM={pearsonM}
+          setPearsonM={setPearsonM}
+          amplitude={amplitude}
+          activeWavelength={activeWavelength}
+          scherrerK={scherrerK}
+          stats={extSim.stats}
+          onApplyScenario={applyScenarioPreset}
+          onRunAutoFit={autoFitPeakModel}
+          isFitting={isFitting}
+        />
+
+        {/* Top Navigation Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex flex-wrap items-center gap-1.5">
             <button
-              onClick={() => applyScenarioPreset('solitude')}
-              className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500/30 to-amber-600/30 hover:from-amber-500/40 hover:to-amber-600/40 text-amber-200 text-[10px] font-extrabold uppercase rounded-lg border border-amber-400/50 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-md"
-              title="Solitude Pure Peak Mode - Pristine, clutter-free clean Bragg diffraction curve with zero noise"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              Solitude Pure Peak
-            </button>
-            <button
-              onClick={() => applyScenarioPreset('tch_lab6')}
-              className="px-2.5 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-indigo-400/50 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-              title="Thompson-Cox-Hastings Pseudo-Voigt on SRM 660c LaB6 standard"
-            >
-              <span className="w-2 h-2 rounded-full bg-indigo-400"></span>
-              TCH-pV (LaB₆)
-            </button>
-            <button
-              onClick={() => applyScenarioPreset('pearson_vii')}
-              className="px-2.5 py-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-100 text-[10px] font-bold uppercase rounded-lg border border-emerald-400/50 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-              title="Pearson VII with variable exponent m=1.8 (heavy tails)"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              Pearson VII (m=1.8)
-            </button>
-            <button
-              onClick={() => applyScenarioPreset('silicon')}
-              className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-              title="Silicon (111) Calibration Standard - Narrow Instrumental Broadening"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Si Standard (0.08°)
-            </button>
-            <button
-              onClick={() => applyScenarioPreset('gold_nano')}
-              className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-              title="Gold Nanoparticle Broadened Peak (~10nm domain size)"
-            >
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              Nanoparticle (~10nm)
-            </button>
-            <button
-              onClick={() => applyScenarioPreset('ka_doublet')}
-              className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-              title="Cu Kα1/Kα2 Doublet Splitting Resolution"
-            >
-              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-              Kα Doublet Split
-            </button>
-            <button
-              onClick={() => applyScenarioPreset('strain')}
-              className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-              title="Asymmetric Microstrain Tailed Peak"
-            >
-              <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-              Microstrain Tailed
-            </button>
-            <button
-              onClick={() => applyScenarioPreset('multi_peak')}
-              className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-indigo-100 text-[10px] font-bold uppercase rounded-lg border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
-              title="Overlapping Multi-Phase Reflection Deconvolution"
-            >
-              <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-              Overlapping Deconv
-            </button>
-          </div>
-        </div>
-        
-        {/* Top Navigation Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2">
-            <button
               onClick={() => setActiveTab('visualizer')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'visualizer'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <Activity className="w-4 h-4" />
-              Visualizer & NLLS Fitting
+              <Activity className="w-3.5 h-3.5" />
+              <span>1. Peak Visualizer & NLLS Fit</span>
             </button>
 
             <button
@@ -4238,31 +4178,31 @@ export const FWHMModule: React.FC = () => {
                 setActiveTab('multipeak');
                 setEnableMultiPeakMode(true);
               }}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'multipeak'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md font-extrabold'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <Palette className="w-4 h-4 text-purple-400" />
-              Multi-Peak Deconv & Colors
-              <span className="bg-purple-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold">
+              <Palette className="w-3.5 h-3.5 text-purple-400" />
+              <span>2. Multi-Peak Deconvolution</span>
+              <span className="bg-purple-500/20 border border-purple-400/40 text-purple-600 dark:text-purple-300 text-[10px] px-1.5 py-0.2 rounded font-mono font-bold">
                 {customPeaks.filter(p => p.enabled).length}/{customPeaks.length}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab('import')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'import'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <Download className="w-4 h-4 text-emerald-400" />
-              Import Real XRD Data (.xy, .csv)
+              <Download className="w-3.5 h-3.5 text-emerald-400" />
+              <span>3. Experimental XRD Import</span>
               {importedPoints.length > 0 && (
-                <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono">
+                <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.2 rounded font-mono">
                   {importedPoints.length} pts
                 </span>
               )}
@@ -4270,33 +4210,33 @@ export const FWHMModule: React.FC = () => {
 
             <button
               onClick={() => setActiveTab('theory')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'theory'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <BookOpen className="w-4 h-4 text-amber-400" />
-              Theoretical Diagrams & Physics Reference
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span>4. Physics & Mathematical Reference</span>
             </button>
 
             <button
               onClick={() => setActiveTab('origin_matplotlib')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'origin_matplotlib'
-                  ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white shadow-md font-extrabold'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
-              <Sparkles className="w-4 h-4 text-yellow-400" />
-              Python Matplotlib Origin Studio
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <span>5. Publication Figure Studio</span>
             </button>
           </div>
 
-          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-2.5 pr-2">
-            <span>λ = {(activeWavelength * 10).toFixed(4)} Å</span>
+          <div className="text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-2 pr-2">
+            <span>d = <strong className="text-emerald-600 dark:text-emerald-400">{extSim.stats.dSpacing.toFixed(4)} Å</strong></span>
             <span>|</span>
-            <span className="text-indigo-600 dark:text-indigo-400 font-bold">2θ₀ = {center.toFixed(3)}°</span>
+            <span>q = <strong className="text-indigo-600 dark:text-indigo-400">{extSim.stats.qVector.toFixed(3)} Å⁻¹</strong></span>
           </div>
         </div>
 
@@ -5255,64 +5195,54 @@ export const FWHMModule: React.FC = () => {
             </div>
           )}
 
-          {/* Optional Floating On-Chart Live Scientific Summary Badge */}
+          {/* Non-Obstructing Docked Live Scientific Telemetry Strip */}
           {showLiveSummary && (
-            <div className="absolute top-20 right-8 z-30 pointer-events-auto flex flex-col gap-2 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md text-white p-4 rounded-xl border-2 border-indigo-500/70 text-xs font-mono shadow-2xl min-w-[260px] max-w-[320px] animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between gap-3 font-bold text-indigo-300 pb-2 border-b border-slate-800">
-                <span className="flex items-center gap-1.5 text-xs">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Live HUD Summary
+            <div className="mb-3 px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-slate-950 text-white border border-indigo-500/40 shadow-sm flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono tabular-nums">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="flex items-center gap-1.5 font-sans font-bold text-indigo-300 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  Docked Profile Telemetry
                 </span>
-                <button
-                  onClick={() => setShowLiveSummary(false)}
-                  className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title="Close Live HUD Summary"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] pt-1">
-                <div className="text-slate-400 font-medium">Profile Model:</div>
-                <div className="font-extrabold text-emerald-400 text-right">{type}</div>
-
-                <div className="text-slate-400 font-medium">Peak Centroid (2θ):</div>
-                <div className="font-extrabold text-white text-right font-mono">{center.toFixed(3)}°</div>
-
-                <div className="text-slate-400 font-medium">Observed FWHM (β_obs):</div>
-                <div className="font-extrabold text-indigo-400 text-right font-mono">{extSim.stats.effTchFwhm.toFixed(4)}°</div>
-
-                <div className="text-slate-400 font-medium">FWTM / Ratio:</div>
-                <div className="font-extrabold text-teal-300 text-right font-mono">{extSim.stats.fwtm.toFixed(3)}° ({extSim.stats.fwtmRatio.toFixed(2)})</div>
-
+                <div>
+                  <span className="text-slate-400 mr-1">Kernel:</span>
+                  <span className="font-bold text-emerald-400">{type}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 mr-1">2θ₀:</span>
+                  <span className="font-bold text-white">{center.toFixed(3)}°</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 mr-1">β_obs:</span>
+                  <span className="font-bold text-indigo-400">{extSim.stats.effTchFwhm.toFixed(4)}°</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 mr-1">FWTM:</span>
+                  <span className="font-bold text-teal-300">{extSim.stats.fwtm.toFixed(3)}° ({extSim.stats.fwtmRatio.toFixed(2)}×)</span>
+                </div>
                 {enableInstCorrection && (
-                  <>
-                    <div className="text-slate-400 font-medium">Instrument (β_inst):</div>
-                    <div className="font-extrabold text-slate-300 text-right font-mono">{extSim.stats.betaInst.toFixed(4)}°</div>
-
-                    <div className="text-slate-400 font-medium">Sample (β_sample):</div>
-                    <div className="font-extrabold text-purple-300 text-right font-mono">{extSim.stats.betaSample.toFixed(4)}°</div>
-                  </>
+                  <div>
+                    <span className="text-slate-400 mr-1">β_sample:</span>
+                    <span className="font-bold text-purple-300">{extSim.stats.betaSample.toFixed(4)}°</span>
+                    <span className="text-slate-500 ml-1">(β_inst {extSim.stats.betaInst.toFixed(3)}°)</span>
+                  </div>
                 )}
-
-                <div className="text-slate-400 font-medium">d-Spacing (d):</div>
-                <div className="font-extrabold text-emerald-300 text-right font-mono">{extSim.stats.dSpacing.toFixed(4)} Å</div>
-
-                <div className="text-slate-400 font-medium">Crystallite Size (D):</div>
-                <div className="font-extrabold text-amber-300 text-right font-mono">
-                  {extSim.stats.betaSample > 0 ? `${((scherrerK * activeWavelength) / ((extSim.stats.betaSample * Math.PI / 180) * Math.cos((center / 2) * Math.PI / 180))).toFixed(1)} nm` : '-'}
+                <div>
+                  <span className="text-slate-400 mr-1">d:</span>
+                  <span className="font-bold text-emerald-300">{extSim.stats.dSpacing.toFixed(4)} Å</span>
                 </div>
-
-                <div className="text-slate-400 font-medium">Microstrain (ε):</div>
-                <div className="font-extrabold text-cyan-300 text-right font-mono">
-                  {extSim.stats.betaSample > 0 ? `${((extSim.stats.betaSample * Math.PI / 180) / (4 * Math.tan((center / 2) * Math.PI / 180)) * 100).toFixed(3)}%` : '-'}
-                </div>
-
-                <div className="text-slate-400 font-medium border-t border-slate-800 pt-1 mt-0.5">R_wp / χ²:</div>
-                <div className="font-extrabold text-rose-300 text-right font-mono border-t border-slate-800 pt-1 mt-0.5">
-                  {extSim.stats.rWP.toFixed(2)}% / {extSim.stats.goodnessOfFit.toFixed(2)}
+                <div>
+                  <span className="text-slate-400 mr-1">R_wp / χ²:</span>
+                  <span className="font-bold text-rose-300">{extSim.stats.rWP.toFixed(2)}% / {extSim.stats.goodnessOfFit.toFixed(2)}</span>
                 </div>
               </div>
+
+              <button
+                onClick={() => setShowLiveSummary(false)}
+                className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                title="Hide Docked Telemetry Strip"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 
@@ -6660,112 +6590,174 @@ export const FWHMModule: React.FC = () => {
           </div>
         )}
 
-        {/* Physical Statistics Cards */}
+        {/* Quantitative Physical Statistics & Module Bridge Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-          
           {/* Observed FWHM Card */}
-          <div className="bg-indigo-50/80 dark:bg-indigo-950/40 p-3.5 rounded-xl border-2 border-indigo-300 dark:border-indigo-700/80 shadow-sm">
-            <span className="text-[9px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider block mb-1">
-              Observed Peak FWHM (β_obs)
-            </span>
-            <span className="text-xl font-extrabold font-mono text-indigo-600 dark:text-indigo-300">
-              {extSim.stats.effTchFwhm.toFixed(4)}°
-            </span>
-            <p className="text-[9px] text-indigo-800 dark:text-indigo-300/80 font-medium mt-0.5 leading-normal font-sans">
-              β_sample = {extSim.stats.betaSample.toFixed(4)}°
-            </p>
-          </div>
-          
-          {/* Crystallite Size */}
-          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-              Sample Crystallite Size (D)
-            </span>
-            <span className="text-lg font-bold font-mono text-indigo-600 dark:text-indigo-400">
-              {extSim.stats.betaSample > 0 ? (
-                (() => {
-                  const thetaRad = (center / 2) * (Math.PI / 180);
-                  const betaRad = (extSim.stats.betaSample * Math.PI) / 180;
-                  const L = (scherrerK * activeWavelength) / (betaRad * Math.cos(thetaRad));
-                  return L > 250 ? ">250 nm" : `${L.toFixed(1)} nm`;
-                })()
-              ) : '-'}
-            </span>
-            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">
-              Deconvolved footprint (β_inst = {extSim.stats.betaInst.toFixed(3)}°).
-            </p>
+          <div className="bg-indigo-50/90 dark:bg-indigo-950/40 p-3.5 rounded-xl border border-indigo-300 dark:border-indigo-700/80 shadow-sm flex flex-col justify-between">
+            <div>
+              <span className="text-[9px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider block mb-1">
+                Observed FWHM (β_obs)
+              </span>
+              <span className="text-xl font-extrabold font-mono tabular-nums text-indigo-600 dark:text-indigo-300">
+                {extSim.stats.effTchFwhm.toFixed(4)}°
+              </span>
+            </div>
+            <div className="mt-2 pt-1.5 border-t border-indigo-200/60 dark:border-indigo-800/60">
+              <div className="flex items-center justify-between text-[9px] font-mono text-indigo-800 dark:text-indigo-300">
+                <span>β_sample:</span>
+                <strong>{extSim.stats.betaSample.toFixed(4)}°</strong>
+              </div>
+              <div className="w-full h-1 bg-indigo-200 dark:bg-indigo-900 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-indigo-600 dark:bg-indigo-400"
+                  style={{
+                    width: `${Math.min(100, Math.max(8, (extSim.stats.betaSample / Math.max(0.0001, extSim.stats.effTchFwhm)) * 100))}%`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Microstrain */}
-          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-              Lattice Microstrain (ε)
-            </span>
-            <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-100">
-              {extSim.stats.betaSample > 0 ? (
-                (() => {
-                  const thetaRad = (center / 2) * (Math.PI / 180);
-                  const betaRad = (extSim.stats.betaSample * Math.PI) / 180;
-                  const e = betaRad / (4 * Math.tan(thetaRad));
-                  return `${(e * 1000).toFixed(2)} × 10⁻³`;
-                })()
-              ) : '-'}
-            </span>
-            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">Stokes-Wilson microstrain.</p>
+          {/* Crystallite Size + 1-Click Scherrer Bridge */}
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                Crystallite Size (D)
+              </span>
+              <span className="text-lg font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
+                {extSim.stats.betaSample > 0 ? (
+                  (() => {
+                    const thetaRad = (center / 2) * (Math.PI / 180);
+                    const betaRad = (extSim.stats.betaSample * Math.PI) / 180;
+                    const L = (scherrerK * activeWavelength) / (betaRad * Math.cos(thetaRad));
+                    return L > 250 ? '>250 nm' : `${L.toFixed(1)} nm`;
+                  })()
+                ) : '-'}
+              </span>
+              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                β_inst = {extSim.stats.betaInst.toFixed(3)}°
+              </p>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'scherrer' }))}
+              className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline text-left cursor-pointer flex items-center justify-between"
+            >
+              <span>Open Scherrer Lab</span>
+              <span>→</span>
+            </button>
+          </div>
+
+          {/* Microstrain + 1-Click Williamson-Hall Bridge */}
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                Lattice Microstrain (ε)
+              </span>
+              <span className="text-lg font-bold font-mono tabular-nums text-slate-800 dark:text-slate-100">
+                {extSim.stats.betaSample > 0 ? (
+                  (() => {
+                    const thetaRad = (center / 2) * (Math.PI / 180);
+                    const betaRad = (extSim.stats.betaSample * Math.PI) / 180;
+                    const e = betaRad / (4 * Math.tan(thetaRad));
+                    return `${(e * 1000).toFixed(2)} × 10⁻³`;
+                  })()
+                ) : '-'}
+              </span>
+              <p className="text-[9px] text-slate-400 mt-0.5">Stokes–Wilson ε</p>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'wh' }))}
+              className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-purple-600 dark:text-purple-400 hover:underline text-left cursor-pointer flex items-center justify-between"
+            >
+              <span>Williamson-Hall</span>
+              <span>→</span>
+            </button>
           </div>
 
           {/* Bragg d-spacing & q-vector */}
-          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-              d-Spacing & q-Vector
-            </span>
-            <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400">
-              {extSim.stats.dSpacing.toFixed(4)} Å
-            </span>
-            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">
-              q = {extSim.stats.qVector.toFixed(3)} Å⁻¹
-            </p>
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                d-Spacing & q-Vector
+              </span>
+              <span className="text-lg font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                {extSim.stats.dSpacing.toFixed(4)} Å
+              </span>
+              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                q = {extSim.stats.qVector.toFixed(3)} Å⁻¹
+              </p>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'bragg' }))}
+              className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline text-left cursor-pointer flex items-center justify-between"
+            >
+              <span>Bragg Diffractometer</span>
+              <span>→</span>
+            </button>
           </div>
 
           {/* FWTM & Shape Ratio */}
-          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-              FWTM ÷ FWHM Ratio
-            </span>
-            <span className="text-lg font-bold font-mono text-slate-800 dark:text-slate-100">
-              {extSim.stats.fwtmRatio.toFixed(2)}
-            </span>
-            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">
-              FWTM: {extSim.stats.fwtm.toFixed(3)}° (G=1.82, L=3.00)
-            </p>
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                FWTM ÷ FWHM Ratio
+              </span>
+              <span className="text-lg font-bold font-mono tabular-nums text-slate-800 dark:text-slate-100">
+                {extSim.stats.fwtmRatio.toFixed(2)}×
+              </span>
+              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                FWTM: {extSim.stats.fwtm.toFixed(3)}°
+              </p>
+            </div>
+            <div className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[9px] font-mono text-slate-400">
+              <span>G: 1.82</span>
+              <span>φ={extSim.stats.shapeFactor.toFixed(2)}</span>
+              <span>L: 3.00</span>
+            </div>
           </div>
 
           {/* Centroid CoM & Skewness */}
-          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-              Centroid 2θ_CoM
-            </span>
-            <span className="text-lg font-bold font-mono text-purple-600 dark:text-purple-400">
-              {extSim.stats.centroid.toFixed(3)}°
-            </span>
-            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">
-              Skew: {extSim.stats.skewness > 0 ? `+${extSim.stats.skewness.toFixed(3)}` : extSim.stats.skewness.toFixed(3)}°
-            </p>
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                Centroid 2θ_CoM
+              </span>
+              <span className="text-lg font-bold font-mono tabular-nums text-purple-600 dark:text-purple-400">
+                {extSim.stats.centroid.toFixed(3)}°
+              </span>
+              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                Skew: {extSim.stats.skewness > 0 ? `+${extSim.stats.skewness.toFixed(3)}` : extSim.stats.skewness.toFixed(3)}°
+              </p>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'wa' }))}
+              className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-[9px] font-bold text-amber-600 dark:text-amber-400 hover:underline text-left cursor-pointer flex items-center justify-between"
+            >
+              <span>Warren-Averbach</span>
+              <span>→</span>
+            </button>
           </div>
 
           {/* Profile Fit Rwp & Chi2 */}
-          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-              Fit Residual R_wp (χ²)
-            </span>
-            <span className="text-lg font-bold font-mono text-rose-600 dark:text-rose-400">
-              {extSim.stats.rWP.toFixed(2)}%
-            </span>
-            <p className="text-[9px] text-slate-400 mt-0.5 leading-normal font-sans">
-              Goodness of Fit χ² = {extSim.stats.goodnessOfFit.toFixed(2)}
-            </p>
+          <div className="bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div>
+              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                Fit Residual R_wp (χ²)
+              </span>
+              <span className="text-lg font-bold font-mono tabular-nums text-rose-600 dark:text-rose-400">
+                {extSim.stats.rWP.toFixed(2)}%
+              </span>
+              <p className="text-[9px] text-slate-400 mt-0.5 font-mono">
+                GOF χ² = {extSim.stats.goodnessOfFit.toFixed(2)}
+              </p>
+            </div>
+            <div className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[9px] font-mono text-slate-400">
+              <span>SNR: {extSim.stats.snr.toFixed(1)}</span>
+              <span className={extSim.stats.rWP < 5 ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                {extSim.stats.rWP < 5 ? ' Optimal' : 'Noisy'}
+              </span>
+            </div>
           </div>
-
         </div>
 
         {/* Profile Analysis Alerts */}

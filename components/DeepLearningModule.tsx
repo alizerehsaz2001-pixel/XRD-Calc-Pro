@@ -93,6 +93,8 @@ import { EXAMPLE_MIXTURES, EXAMPLE_MATERIAL_SEARCH_MAP } from "../utils/dlExampl
 import { getPythonEngineCode } from "../utils/dlPythonExporter";
 import { ScientificFormatMenuBar } from './deeplearning/ScientificFormatMenuBar';
 import { ScientificDataIngestionConsole } from './deeplearning/ScientificDataIngestionConsole';
+import { NeuralNetworkWorkbench } from './deeplearning/NeuralNetworkWorkbench';
+import { PDF2DatabaseWorkbench } from './deeplearning/PDF2DatabaseWorkbench';
 const MATERIAL_DB = getActiveMaterials();
 
 const MATERIAL_ELEMENTS: Record<
@@ -585,7 +587,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ML Validation detailed tab view states
-  const [selectedValidationTab, setSelectedValidationTab] = useState<'audit' | 'robustness' | 'confusion'>('audit');
+  const [selectedValidationTab, setSelectedValidationTab] = useState<'audit' | 'robustness' | 'confusion' | 'training'>('training');
   const [resultsSubTab, setResultsSubTab] = useState<'alignment' | 'ml_techniques'>('ml_techniques');
   const [showGradCam, setShowGradCam] = useState<boolean>(false);
   const [noiseLevel, setNoiseLevel] = useState<number>(10); // Gaussian noise perturbation %
@@ -1128,6 +1130,20 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [showCandidateOverlay, setShowCandidateOverlay] = useState<boolean>(true);
   const [showResidualCurve, setShowResidualCurve] = useState<boolean>(true);
   const [showDeconvolutedPeaks, setShowDeconvolutedPeaks] = useState<boolean>(false);
+  const [showPDF2DatabasePanel, setShowPDF2DatabasePanel] = useState<boolean>(true);
+  const [activeMaterialDb, setActiveMaterialDb] = useState<any[]>(() => getActiveMaterials());
+
+  useEffect(() => {
+    const syncMaterialsRegistry = () => {
+      setActiveMaterialDb(getActiveMaterials());
+    };
+    window.addEventListener('xrd-pdf2-db-updated', syncMaterialsRegistry);
+    window.addEventListener('material-learned', syncMaterialsRegistry);
+    return () => {
+      window.removeEventListener('xrd-pdf2-db-updated', syncMaterialsRegistry);
+      window.removeEventListener('material-learned', syncMaterialsRegistry);
+    };
+  }, []);
 
   // Multi-Class ROC Curves Dataset
   const rocCurveData = React.useMemo(() => {
@@ -1586,7 +1602,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
     const isPeakSearch =
       numericTokens.length > 0 && numericTokens.length >= keywords.length / 2;
 
-    return MATERIAL_DB.map((material: any) => {
+    return activeMaterialDb.map((material: any) => {
       let score = 0;
 
       keywords.forEach((kw) => {
@@ -1654,8 +1670,10 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [isMixMode, setIsMixMode] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Check for pending neural load requests (e.g., from the Crystalin Lifecycle Dashboard)
+  // Check for pending neural load requests or initialize default crystallographic standard on first load
   useEffect(() => {
+    loadBenchmarkTraining();
+
     const checkPendingLoad = () => {
       const pending = localStorage.getItem('xrd_pending_neural_load');
       if (pending) {
@@ -1670,15 +1688,37 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
             // Automatically execute the deep learning phase identification sequence
             setTimeout(() => {
               runAnalysis(item.pattern, false);
-            }, 600);
+            }, 400);
           }
           localStorage.removeItem('xrd_pending_neural_load');
+          return true;
         } catch (e) {
           console.error("Failed to load pending neural pattern:", e);
         }
       }
+      return false;
     };
-    checkPendingLoad();
+
+    const loadedPending = checkPendingLoad();
+    if (!loadedPending && !inputData.trim()) {
+      const defaultMat =
+        MATERIAL_DB.find((m) => m.name.toLowerCase().includes("quartz")) ||
+        MATERIAL_DB[0];
+      const fallbackPattern =
+        defaultMat?.pattern ||
+        "20.85, 35 (100)\n26.64, 100 (101)\n36.54, 12 (110)\n39.46, 10 (102)\n50.14, 18 (112)\n59.96, 11 (211)\n68.14, 9 (203)";
+      setInputData(fallbackPattern);
+      setSearchTerm(defaultMat?.name || "Quartz (Alpha-SiO2)");
+      setActiveInputTool("preview");
+      const pts = parseXYData(fallbackPattern);
+      const computed = identifyPhasesDL(pts, false, engineConfig);
+      setResult(computed);
+      if (computed.candidates.length > 0) {
+        setSelectedCandidate(computed.candidates[0]);
+      }
+      setProgressStep(5);
+    }
+
     window.addEventListener('focus', checkPendingLoad);
     return () => window.removeEventListener('focus', checkPendingLoad);
   }, []);
@@ -1856,7 +1896,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
 
   const generateMixturePattern = (names: string[]) => {
     const materials = names
-      .map((n) => MATERIAL_DB.find((m) => m.name === n))
+      .map((n) => activeMaterialDb.find((m) => m.name === n))
       .filter(Boolean) as typeof MATERIAL_DB;
     if (materials.length === 0) return;
 
@@ -2033,20 +2073,8 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
     }, 50);
 
     // Load active materials from local storage merges if present
-    let activeMaterialsList = MATERIAL_DB;
-    try {
-      const savedMaterials = localStorage.getItem("crystal_suite_materials_v1");
-      if (savedMaterials) {
-        const parsedMaterials = JSON.parse(savedMaterials);
-        if (Array.isArray(parsedMaterials) && parsedMaterials.length > 0) {
-          const parsedNames = new Set(parsedMaterials.map(m => m?.name).filter(Boolean));
-          const missingMaterials = MATERIAL_DB.filter(m => !parsedNames.has(m.name));
-          activeMaterialsList = [...parsedMaterials, ...missingMaterials];
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load custom materials in Deep Learning matches", e);
-    }
+    let activeMaterialsList = getActiveMaterials();
+    setActiveMaterialDb(activeMaterialsList);
 
     // Check if input matches a known material to override/enhance results
     const matchedMaterial = activeMaterialsList.find(
@@ -2999,6 +3027,33 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
         )}
       </div>
 
+      {/* Interactive Neural Network Architecture, Layer Activation Probe & Multi-Task Prediction Workbench */}
+      <div className="lg:col-span-12">
+        <NeuralNetworkWorkbench
+          parsedPoints={parsedPoints}
+          selectedCandidate={selectedCandidate}
+          candidates={result?.candidates || []}
+          engineConfig={engineConfig}
+          onUpdateEngineConfig={(newCfg) => setEngineConfig(newCfg)}
+          onTriggerPhaseID={handleRunAI}
+          onLoadPatternData={(pat, label) => {
+            setInputData(pat);
+            if (label) setSearchTerm(label);
+            setActiveInputTool("preview");
+            runAnalysis(pat, false);
+          }}
+          onOpenMLStudioTab={() => {
+            setResultsSubTab('ml_techniques');
+            document.getElementById('ml-techniques-studio-anchor')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          onOpenPDF2Database={() => {
+            setShowPDF2DatabasePanel(true);
+            document.getElementById('pdf2-database-studio-anchor')?.scrollIntoView({ behavior: 'smooth' });
+          }}
+          isSimulating={isSimulating}
+        />
+      </div>
+
       {/* Input Configuration & Top Panels */}
       <div className="lg:col-span-12 flex flex-col gap-8">
         {/* Advanced Engine Configuration (Collapsible for cleaner friendly view) */}
@@ -3895,9 +3950,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <Brain className="w-7 h-7 text-violet-400 drop-shadow flex-shrink-0" />
               </div>
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">PhaseID Neural Net</span>
-              <span className="text-xs font-semibold bg-indigo-500/10 text-indigo-300 px-3 py-1.5 rounded-full border border-indigo-500/30 flex items-center gap-1.5 shadow-sm mt-1 md:mt-0 uppercase tracking-wider">
+              <span className="text-xs font-semibold bg-indigo-500/10 text-indigo-300 px-3 py-1.5 rounded-full border border-indigo-500/30 flex items-center gap-1.5 shadow-sm mt-1 md:mt-0 uppercase tracking-wider font-mono tabular-nums">
                 <Database className="w-3.5 h-3.5" />
-                {MATERIAL_DB.length} Materials Indexed
+                {activeMaterialDb.length} PDF-2 / Crystal Standards Synced
               </span>
             </h2>
             {isSimulating && (
@@ -4859,16 +4914,62 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
               <div className="mt-8 space-y-4 relative z-10">
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-300 flex items-center gap-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800">
+                    <span className="text-xs font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wider pl-1">
                       <Database className="w-4 h-4 text-violet-400" /> 
-                      <span className="uppercase tracking-wide">Standard Reference Registries</span>
+                      <span>Reference Database & Sample Library</span>
                     </span>
-                    <span className="text-xs font-mono bg-violet-500/10 text-violet-300 border border-violet-500/20 px-2.5 py-1 rounded font-medium">
-                      ICDD / COD / RRUFF / ICSD / CSD
-                    </span>
+                    <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setShowPDF2DatabasePanel(true)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                          showPDF2DatabasePanel
+                            ? 'bg-amber-500 text-slate-950'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Database className="w-3.5 h-3.5" />
+                        <span>ICDD PDF-2 Database & Exporter</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowPDF2DatabasePanel(false)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                          !showPDF2DatabasePanel
+                            ? 'bg-violet-600 text-white'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Quick Sample Presets (150+ Standards)</span>
+                      </button>
+                    </div>
                   </div>
 
+                  {showPDF2DatabasePanel ? (
+                    <div id="pdf2-database-studio-anchor">
+                      <PDF2DatabaseWorkbench
+                        materials={activeMaterialDb}
+                        activeScanPoints={parsedPoints}
+                        onMaterialsUpdated={(updated) => setActiveMaterialDb(updated)}
+                        onSyncAndTrainNeuralNet={() => {
+                          setActiveMaterialDb(getActiveMaterials());
+                          handleRunAI();
+                        }}
+                        onSelectCardForScan={(card) => {
+                          const formattedLines = card.reflections
+                            .map(r => `${r.twoTheta.toFixed(3)}, ${r.intensity.toFixed(1)}, 0.16, ${r.h}, ${r.k}, ${r.l}`)
+                            .join('\n');
+                          setInputData(formattedLines);
+                          setSearchTerm(`[PDF ${card.pdfCardNumber}] ${card.name}`);
+                          runAnalysis(formattedLines, false);
+                          playSynthTone('success');
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <>
                   {/* Interactive filter & search deck */}
                   <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-5 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -4914,7 +5015,6 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       )}
                     </div>
                   </div>
-                </div>
 
                 <div className="h-[400px] overflow-y-auto pr-4 pl-2 pb-5 custom-scrollbar bg-slate-900/40 border border-slate-700 rounded-xl relative space-y-6 pt-4 shadow-inner">
                 {(() => {
@@ -5760,6 +5860,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     ))
                   );
                 })()}
+                </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

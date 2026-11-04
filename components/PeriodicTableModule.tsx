@@ -32,6 +32,13 @@ import {
   MicroLatticeGlyph,
   ElectronShellRingGraphic
 } from './periodic/PeriodicGraphics';
+import {
+  PeriodicCrystalStructureStrip,
+  ElementCrystallographyAndAllotropesPanel,
+  PeriodicCrystalSystemsAtlas,
+  calculateExactElementMetrics,
+  CRYSTAL_FAMILIES_METADATA
+} from './periodic/PeriodicCrystalSystemsAtlas';
 import { HeatmapMode, ColorMode, QuickPreset, CrystalElement, FamousCompound } from './periodic/types';
 
 export type { FamousCompound, CrystalElement };
@@ -195,7 +202,7 @@ const CrystallineLattice3D: React.FC<{
   gamma?: number;
   hkl?: [number, number, number];
   onHklChange?: (h: number, k: number, l: number) => void;
-}> = ({ structure, a, b, c, colorClass, symbol = 'X', spaceGroup, hkl = [1, 1, 1], onHklChange }) => {
+}> = ({ structure, a, b, c, colorClass, symbol = 'X', spaceGroup, alpha, beta, gamma, hkl = [1, 1, 1], onHklChange }) => {
   // Static view by default as requested by user ("make it more scientific and it should be static")
   const [yaw, setYaw] = useState<number>(35);
   const [pitch, setPitch] = useState<number>(-20);
@@ -213,7 +220,7 @@ const CrystallineLattice3D: React.FC<{
   // Proportional dimensional scale bounding factors
   const la = 75;
   const lb = b ? (b / a) * 75 : 75;
-  const lc = c ? (c / a) * 75 : 75;
+  const lc = c ? (c / a) * 75 : (structure === 'HCP' || structure === 'Hexagonal' ? 75 * 1.58 : 75);
 
   // Scale bounds to fit inside SVG viewport nicely
   const maxSide = Math.max(la, lb, lc);
@@ -222,27 +229,62 @@ const CrystallineLattice3D: React.FC<{
   const sb = lb * scaleNorm;
   const sc = lc * scaleNorm;
 
+  // True Crystallographic Fractional-to-Cartesian converter with angular shear (α, β, γ)
+  const fracToCart = useMemo(() => {
+    const alphaDeg = alpha || (structure === 'Rhombohedral' ? 68 : 90);
+    const betaDeg = beta || (structure === 'Monoclinic' ? 104 : 90);
+    const gammaDeg = gamma || (structure === 'Rhombohedral' ? 68 : 90);
+
+    // Clamp extreme angles slightly for clean 3D viewport legibility while preserving authentic shear
+    const effAlpha = structure === 'Rhombohedral' ? Math.max(62, Math.min(115, alphaDeg)) : 90;
+    const effBeta = structure === 'Monoclinic' ? Math.max(65, Math.min(118, betaDeg)) : (structure === 'Rhombohedral' ? effAlpha : 90);
+    const effGamma = structure === 'Rhombohedral' ? effAlpha : 90;
+
+    const rad = Math.PI / 180;
+    const ca = Math.cos(effAlpha * rad);
+    const cb = Math.cos(effBeta * rad);
+    const cg = Math.cos(effGamma * rad);
+    const sg = Math.max(0.25, Math.sin(effGamma * rad));
+    const czTerm = (ca - cb * cg) / sg;
+    const czScale = Math.sqrt(Math.max(0.2, 1 - cb * cb - czTerm * czTerm));
+
+    const mapRaw = (u: number, v: number, w: number) => ({
+      x: u * sa + v * sb * cg + w * sc * cb,
+      y: v * sb * sg + w * sc * czTerm,
+      z: w * sc * czScale
+    });
+
+    const center = mapRaw(0.5, 0.5, 0.5);
+    return (u: number, v: number, w: number): { x: number; y: number; z: number } => {
+      const p = mapRaw(u, v, w);
+      return {
+        x: p.x - center.x,
+        y: p.y - center.y,
+        z: p.z - center.z
+      };
+    };
+  }, [sa, sb, sc, alpha, beta, gamma, structure]);
+
   // Generate wireframe box vectors mapped relative to cell metrics center
   const boxVertices = useMemo<Point3D[]>(() => {
-    const ox = -sa / 2;
-    const oy = -sb / 2;
-    const oz = -sc / 2;
-    return [
-      { x: ox, y: oy, z: oz, frac: [0, 0, 0] },             // 0
-      { x: ox + sa, y: oy, z: oz, frac: [1, 0, 0] },        // 1
-      { x: ox + sa, y: oy + sb, z: oz, frac: [1, 1, 0] },   // 2
-      { x: ox, y: oy + sb, z: oz, frac: [0, 1, 0] },        // 3
-      { x: ox, y: oy, z: oz + sc, frac: [0, 0, 1] },        // 4
-      { x: ox + sa, y: oy, z: oz + sc, frac: [1, 0, 1] },   // 5
-      { x: ox + sa, y: oy + sb, z: oz + sc, frac: [1, 1, 1] },// 6
-      { x: ox, y: oy + sb, z: oz + sc, frac: [0, 1, 1] }   // 7
+    const cornersFrac: [number, number, number][] = [
+      [0, 0, 0], // 0
+      [1, 0, 0], // 1
+      [1, 1, 0], // 2
+      [0, 1, 0], // 3
+      [0, 0, 1], // 4
+      [1, 0, 1], // 5
+      [1, 1, 1], // 6
+      [0, 1, 1]  // 7
     ];
-  }, [sa, sb, sc]);
+    return cornersFrac.map((frac) => ({
+      ...fracToCart(frac[0], frac[1], frac[2]),
+      frac
+    }));
+  }, [fracToCart]);
 
   // Generate atomic nodes basis on atomic Bravais lattice classification
   const atoms = useMemo<Point3D[]>(() => {
-    const ox = -sa / 2;
-    const oy = -sb / 2;
     const oz = -sc / 2;
     const list: Point3D[] = [];
 
@@ -280,88 +322,93 @@ const CrystallineLattice3D: React.FC<{
       }
       list.push({ x: 0, y: 0, z: -oz, id: 'Hex-Top-Center', frac: [0, 0, 1], type: 'center' });
 
-      // Middle Interstitial Trio
-      for (let i = 0; i < 3; i++) {
-        const theta = ((i * 120 + 30) * Math.PI) / 180;
-        list.push({ 
-          x: (r * 0.55) * Math.cos(theta), 
-          y: (r * 0.55) * Math.sin(theta), 
-          z: 0, 
-          id: `HCP-Mid-${i + 1}`,
-          frac: [0.33, 0.67, 0.5],
-          type: 'interstitial'
-        });
+      // Middle Interstitial Trio (B-layer for HCP)
+      if (structure === 'HCP') {
+        for (let i = 0; i < 3; i++) {
+          const theta = ((i * 120 + 30) * Math.PI) / 180;
+          list.push({ 
+            x: (r * 0.55) * Math.cos(theta), 
+            y: (r * 0.55) * Math.sin(theta), 
+            z: 0, 
+            id: `HCP-Mid-${i + 1}`,
+            frac: [0.33, 0.67, 0.5],
+            type: 'interstitial'
+          });
+        }
       }
       return list;
     }
 
-    // Default corners for orthogonal/cubic cells
+    // Default corners for cubic / sheared cells
     boxVertices.forEach((v, index) => {
       list.push({ ...v, id: `Corner-${index + 1}`, type: 'corner' });
     });
 
-    if (structure === 'BCC') {
-      list.push({ x: 0, y: 0, z: 0, id: 'Body-Center', frac: [0.5, 0.5, 0.5], type: 'body' });
-    } else if (structure === 'FCC') {
-      list.push({ x: 0, y: 0, z: oz, id: 'Face-Bottom', frac: [0.5, 0.5, 0], type: 'face' });
-      list.push({ x: 0, y: 0, z: -oz, id: 'Face-Top', frac: [0.5, 0.5, 1], type: 'face' });
-      list.push({ x: ox, y: 0, z: 0, id: 'Face-Left', frac: [0, 0.5, 0.5], type: 'face' });
-      list.push({ x: -ox, y: 0, z: 0, id: 'Face-Right', frac: [1, 0.5, 0.5], type: 'face' });
-      list.push({ x: 0, y: oy, z: 0, id: 'Face-Front', frac: [0.5, 1, 0.5], type: 'face' });
-      list.push({ x: 0, y: -oy, z: 0, id: 'Face-Back', frac: [0.5, 0, 0.5], type: 'face' });
-    } else if (structure === 'Diamond') {
-      list.push({ x: 0, y: 0, z: oz, id: 'Face-Bottom', frac: [0.5, 0.5, 0], type: 'face' });
-      list.push({ x: 0, y: 0, z: -oz, id: 'Face-Top', frac: [0.5, 0.5, 1], type: 'face' });
-      list.push({ x: ox, y: 0, z: 0, id: 'Face-Left', frac: [0, 0.5, 0.5], type: 'face' });
-      list.push({ x: -ox, y: 0, z: 0, id: 'Face-Right', frac: [1, 0.5, 0.5], type: 'face' });
-      list.push({ x: 0, y: oy, z: 0, id: 'Face-Front', frac: [0.5, 1, 0.5], type: 'face' });
-      list.push({ x: 0, y: -oy, z: 0, id: 'Face-Back', frac: [0.5, 0, 0.5], type: 'face' });
+    const addBasis = (u: number, v: number, w: number, id: string, type: Point3D['type']) => {
+      list.push({
+        ...fracToCart(u, v, w),
+        id,
+        frac: [u, v, w],
+        type
+      });
+    };
 
-      list.push({ x: ox + sa / 4, y: oy + sb / 4, z: oz + sc / 4, id: 'Tetra-1', frac: [0.25, 0.25, 0.25], type: 'interstitial' });
-      list.push({ x: ox + (3 * sa) / 4, y: oy + (3 * sb) / 4, z: oz + sc / 4, id: 'Tetra-2', frac: [0.75, 0.75, 0.25], type: 'interstitial' });
-      list.push({ x: ox + sa / 4, y: oy + (3 * sb) / 4, z: oz + (3 * sc) / 4, id: 'Tetra-3', frac: [0.25, 0.75, 0.75], type: 'interstitial' });
-      list.push({ x: ox + (3 * sa) / 4, y: oy + sb / 4, z: oz + (3 * sc) / 4, id: 'Tetra-4', frac: [0.75, 0.25, 0.75], type: 'interstitial' });
+    if (structure === 'BCC' || structure === 'Tetragonal') {
+      addBasis(0.5, 0.5, 0.5, 'Body-Center', 'body');
+    } else if (structure === 'FCC') {
+      addBasis(0.5, 0.5, 0, 'Face-Bottom', 'face');
+      addBasis(0.5, 0.5, 1, 'Face-Top', 'face');
+      addBasis(0, 0.5, 0.5, 'Face-Left', 'face');
+      addBasis(1, 0.5, 0.5, 'Face-Right', 'face');
+      addBasis(0.5, 1, 0.5, 'Face-Front', 'face');
+      addBasis(0.5, 0, 0.5, 'Face-Back', 'face');
+    } else if (structure === 'Diamond') {
+      addBasis(0.5, 0.5, 0, 'Face-Bottom', 'face');
+      addBasis(0.5, 0.5, 1, 'Face-Top', 'face');
+      addBasis(0, 0.5, 0.5, 'Face-Left', 'face');
+      addBasis(1, 0.5, 0.5, 'Face-Right', 'face');
+      addBasis(0.5, 1, 0.5, 'Face-Front', 'face');
+      addBasis(0.5, 0, 0.5, 'Face-Back', 'face');
+
+      addBasis(0.25, 0.25, 0.25, 'Tetra-1', 'interstitial');
+      addBasis(0.75, 0.75, 0.25, 'Tetra-2', 'interstitial');
+      addBasis(0.25, 0.75, 0.75, 'Tetra-3', 'interstitial');
+      addBasis(0.75, 0.25, 0.75, 'Tetra-4', 'interstitial');
+    } else if (structure === 'Rhombohedral') {
+      // A7 Peierls-distorted internal basis site along [111] trigonal diagonal (As, Sb, Bi)
+      addBasis(0.47, 0.47, 0.47, 'A7-Basis', 'body');
+    } else if (structure === 'Orthorhombic') {
+      // C-centered / dimer sites (Ga, U, P)
+      addBasis(0.5, 0.5, 0, 'C-Base-Bot', 'face');
+      addBasis(0.5, 0.5, 1, 'C-Base-Top', 'face');
+      addBasis(0.5, 0.22, 0.5, 'Dimer-1', 'interstitial');
+      addBasis(0.5, 0.78, 0.5, 'Dimer-2', 'interstitial');
+    } else if (structure === 'Monoclinic') {
+      addBasis(0.5, 0.5, 0.5, 'Mono-Interior', 'body');
     } else if (structure === 'Amorphous') {
       list.length = 0;
       for (let i = 0; i < 15; i++) {
-        const rx = (Math.random() - 0.5) * sa;
-        const ry = (Math.random() - 0.5) * sb;
-        const rz = (Math.random() - 0.5) * sc;
-        list.push({
-          x: rx, y: ry, z: rz,
-          id: `Node-${i + 1}`,
-          frac: [Number(((rx - ox) / sa).toFixed(2)), Number(((ry - oy) / sb).toFixed(2)), Number(((rz - oz) / sc).toFixed(2))],
-          type: 'interstitial'
-        });
+        const u = Number((((i * 37) % 100) / 100).toFixed(2));
+        const v = Number((((i * 61 + 19) % 100) / 100).toFixed(2));
+        const w = Number((((i * 83 + 41) % 100) / 100).toFixed(2));
+        addBasis(u, v, w, `Node-${i + 1}`, 'interstitial');
       }
     }
 
     return list;
-  }, [sa, sb, sc, structure, boxVertices]);
+  }, [sa, sc, structure, boxVertices, fracToCart]);
 
   // Scientific metadata metrics lookup
   const crystalProps = useMemo(() => {
-    switch (structure) {
-      case 'BCC':
-        return { name: 'Body-Centered Cubic', z: 2, cn: 8, apf: '68%', sg: spaceGroup || 'Im-3m (229)', formula: 'a = b = c' };
-      case 'FCC':
-        return { name: 'Face-Centered Cubic', z: 4, cn: 12, apf: '74%', sg: spaceGroup || 'Fm-3m (225)', formula: 'a = b = c' };
-      case 'HCP':
-      case 'Hexagonal':
-        return { name: 'Hexagonal Close-Packed', z: 6, cn: 12, apf: '74%', sg: spaceGroup || 'P6₃/mmc (194)', formula: 'c/a ≈ 1.633' };
-      case 'Diamond':
-        return { name: 'Diamond Cubic', z: 8, cn: 4, apf: '34%', sg: spaceGroup || 'Fd-3m (227)', formula: 'a = b = c' };
-      case 'Tetragonal':
-        return { name: 'Tetragonal', z: 2, cn: 8, apf: '65%', sg: spaceGroup || 'I4/mmm (139)', formula: 'a = b ≠ c' };
-      case 'Orthorhombic':
-        return { name: 'Orthorhombic', z: 4, cn: 8, apf: '62%', sg: spaceGroup || 'Cmcm (63)', formula: 'a ≠ b ≠ c' };
-      case 'Monoclinic':
-        return { name: 'Monoclinic', z: 2, cn: 6, apf: '55%', sg: spaceGroup || 'P2₁/c (14)', formula: 'β ≠ 90°' };
-      case 'Rhombohedral':
-        return { name: 'Rhombohedral', z: 1, cn: 6, apf: '58%', sg: spaceGroup || 'R-3m (166)', formula: 'a=b=c, α=β=γ≠90°' };
-      default:
-        return { name: 'Simple Cubic / Primitive', z: 1, cn: 6, apf: '52%', sg: spaceGroup || 'Pm-3m (221)', formula: 'a = b = c' };
-    }
+    const meta = CRYSTAL_FAMILIES_METADATA[structure] || CRYSTAL_FAMILIES_METADATA.FCC;
+    return {
+      name: meta.name,
+      z: meta.atomsPerCellZ,
+      cn: meta.coordNumber,
+      apf: `${meta.apfPercent}%`,
+      sg: spaceGroup || meta.spaceGroupPrototype,
+      formula: `${meta.pearsonDefault} · ${meta.strukturbericht}`
+    };
   }, [structure, spaceGroup]);
 
   // Continuous physics orbital rotation loop (Optional, defaults OFF)
@@ -436,9 +483,6 @@ const CrystallineLattice3D: React.FC<{
   const hklPolygon2D = useMemo(() => {
     const [mh, mk, ml] = hkl;
     if (!showHklPlane || (mh === 0 && mk === 0 && ml === 0)) return [];
-    const ox = -sa / 2;
-    const oy = -sb / 2;
-    const oz = -sc / 2;
     const boxEdgesFrac: [[number, number, number], [number, number, number]][] = [
       [[0, 0, 0], [1, 0, 0]], [[1, 0, 0], [1, 1, 0]], [[1, 1, 0], [0, 1, 0]], [[0, 1, 0], [0, 0, 0]],
       [[0, 0, 1], [1, 0, 1]], [[1, 0, 1], [1, 1, 1]], [[1, 1, 1], [0, 1, 1]], [[0, 1, 1], [0, 0, 1]],
@@ -449,15 +493,15 @@ const CrystallineLattice3D: React.FC<{
       const f1 = mh * p1[0] + mk * p1[1] + ml * p1[2] - 1;
       const f2 = mh * p2[0] + mk * p2[1] + ml * p2[2] - 1;
       if (Math.abs(f1) < 1e-6) {
-        pts3D.push({ x: ox + p1[0] * sa, y: oy + p1[1] * sb, z: oz + p1[2] * sc });
+        pts3D.push(fracToCart(p1[0], p1[1], p1[2]));
       } else if (Math.abs(f2) < 1e-6) {
-        pts3D.push({ x: ox + p2[0] * sa, y: oy + p2[1] * sb, z: oz + p2[2] * sc });
+        pts3D.push(fracToCart(p2[0], p2[1], p2[2]));
       } else if (f1 * f2 < 0) {
         const t = f1 / (f1 - f2);
         const u = p1[0] + t * (p2[0] - p1[0]);
         const v = p1[1] + t * (p2[1] - p1[1]);
         const w = p1[2] + t * (p2[2] - p1[2]);
-        pts3D.push({ x: ox + u * sa, y: oy + v * sb, z: oz + w * sc });
+        pts3D.push(fracToCart(u, v, w));
       }
     }
     // Deduplicate points
@@ -472,15 +516,15 @@ const CrystallineLattice3D: React.FC<{
     const cx = proj.reduce((acc, p) => acc + p.x, 0) / proj.length;
     const cy = proj.reduce((acc, p) => acc + p.y, 0) / proj.length;
     return proj.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
-  }, [hkl, showHklPlane, sa, sb, sc, yaw, pitch]);
+  }, [hkl, showHklPlane, fracToCart, yaw, pitch]);
 
   // Origin point for coordinate axes
-  const origin3D: Point3D = { x: -sa / 2, y: -sb / 2, z: -sc / 2, id: 'Origin' };
+  const origin3D: Point3D = { ...fracToCart(0, 0, 0), id: 'Origin' };
   const origin2D = project(origin3D);
 
-  const axisA2D = project({ x: -sa / 2 + sa * 0.45, y: -sb / 2, z: -sc / 2, id: 'AxisA' });
-  const axisB2D = project({ x: -sa / 2, y: -sb / 2 + sb * 0.45, z: -sc / 2, id: 'AxisB' });
-  const axisC2D = project({ x: -sa / 2, y: -sb / 2, z: -sc / 2 + sc * 0.45, id: 'AxisC' });
+  const axisA2D = project({ ...fracToCart(0.45, 0, 0), id: 'AxisA' });
+  const axisB2D = project({ ...fracToCart(0, 0.45, 0), id: 'AxisB' });
+  const axisC2D = project({ ...fracToCart(0, 0, 0.45), id: 'AxisC' });
 
   // Determine element specific color highlights
   const atomColor = useMemo(() => {
@@ -701,9 +745,33 @@ const CrystallineLattice3D: React.FC<{
             );
           })}
 
-          {/* Body-Center Coordination Lines (BCC) */}
-          {structure === 'BCC' && (() => {
-            const center = projectedAtoms.find(a => a.id === 'Body-Center');
+          {/* 3D Miller (hkl) Diffraction Plane Slice Polygon */}
+          {showHklPlane && hklPolygon2D.length >= 3 && (
+            <g className="pointer-events-none">
+              <polygon
+                points={hklPolygon2D.map(p => `${p.x},${p.y}`).join(' ')}
+                fill="rgba(34, 211, 238, 0.22)"
+                stroke="#22d3ee"
+                strokeWidth={1.5}
+                strokeDasharray="3 1.5"
+              />
+              <text
+                x={hklPolygon2D.reduce((s, p) => s + p.x, 0) / hklPolygon2D.length}
+                y={hklPolygon2D.reduce((s, p) => s + p.y, 0) / hklPolygon2D.length}
+                fill="#67e8f9"
+                fontSize="8"
+                fontWeight="bold"
+                fontFamily="monospace"
+                textAnchor="middle"
+              >
+                ({hkl.join('')})
+              </text>
+            </g>
+          )}
+
+          {/* Coordination Polyhedra & Internal Bonding Network */}
+          {(structure === 'BCC' || structure === 'Tetragonal' || structure === 'Rhombohedral' || structure === 'Monoclinic') && (() => {
+            const center = projectedAtoms.find(a => a.type === 'body');
             if (!center) return null;
             return projectedBox.map((corner, cIdx) => (
               <line
@@ -712,11 +780,90 @@ const CrystallineLattice3D: React.FC<{
                 y1={center.y}
                 x2={corner.x}
                 y2={corner.y}
-                stroke="rgba(56,189,248,0.4)"
+                stroke="rgba(56,189,248,0.42)"
                 strokeWidth={1}
                 strokeDasharray="2 2"
               />
             ));
+          })()}
+
+          {/* Diamond Cubic sp³ Tetrahedral Covalent Bonds */}
+          {structure === 'Diamond' && (() => {
+            const tetraAtoms = projectedAtoms.filter(a => a.type === 'interstitial');
+            const latticeSites = projectedAtoms.filter(a => a.type !== 'interstitial');
+            const bonds: React.ReactNode[] = [];
+            tetraAtoms.forEach((tet, tIdx) => {
+              if (!tet.frac) return;
+              latticeSites.forEach((site, sIdx) => {
+                if (!site.frac) return;
+                const dFrac = Math.hypot(
+                  tet.frac[0] - site.frac[0],
+                  tet.frac[1] - site.frac[1],
+                  tet.frac[2] - site.frac[2]
+                );
+                // Nearest neighbors in diamond cubic are at √3/4 ≈ 0.433 fractional distance
+                if (Math.abs(dFrac - 0.433) < 0.08) {
+                  bonds.push(
+                    <line
+                      key={`dia-bond-${tIdx}-${sIdx}`}
+                      x1={tet.x}
+                      y1={tet.y}
+                      x2={site.x}
+                      y2={site.y}
+                      stroke="rgba(34,211,238,0.65)"
+                      strokeWidth={1.6}
+                      strokeLinecap="round"
+                    />
+                  );
+                }
+              });
+            });
+            return bonds;
+          })()}
+
+          {/* FCC Octahedral Face-Center Coordination Cage */}
+          {structure === 'FCC' && (() => {
+            const faceAtoms = projectedAtoms.filter(a => a.type === 'face');
+            const edgesOct: React.ReactNode[] = [];
+            for (let i = 0; i < faceAtoms.length; i++) {
+              for (let j = i + 1; j < faceAtoms.length; j++) {
+                const f1 = faceAtoms[i].frac;
+                const f2 = faceAtoms[j].frac;
+                if (f1 && f2) {
+                  const dist = Math.hypot(f1[0] - f2[0], f1[1] - f2[1], f1[2] - f2[2]);
+                  if (Math.abs(dist - 0.7071) < 0.05) {
+                    edgesOct.push(
+                      <line
+                        key={`fcc-oct-${i}-${j}`}
+                        x1={faceAtoms[i].x}
+                        y1={faceAtoms[i].y}
+                        x2={faceAtoms[j].x}
+                        y2={faceAtoms[j].y}
+                        stroke="rgba(52,211,153,0.35)"
+                        strokeWidth={0.9}
+                        strokeDasharray="1.5 1.5"
+                      />
+                    );
+                  }
+                }
+              }
+            }
+            return edgesOct;
+          })()}
+
+          {/* HCP Mid-Plane B-Layer Triad Coordination */}
+          {structure === 'HCP' && (() => {
+            const midAtoms = projectedAtoms.filter(a => a.type === 'interstitial');
+            if (midAtoms.length < 3) return null;
+            return (
+              <polygon
+                points={midAtoms.map(m => `${m.x},${m.y}`).join(' ')}
+                fill="rgba(56,189,248,0.14)"
+                stroke="rgba(56,189,248,0.55)"
+                strokeWidth={1}
+                strokeDasharray="2 1.5"
+              />
+            );
           })()}
 
           {/* Crystallographic Coordinate Axes (a, b, c) */}
@@ -2337,7 +2484,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [loadedBanner, setLoadedBanner] = useState<string | null>(null);
 
   // Comparison Module states
-  const [activeTab, setActiveTab] = useState<'grid' | 'compare' | 'alloy' | 'neutron_deck'>('grid');
+  const [activeTab, setActiveTab] = useState<'grid' | 'crystal_atlas' | 'compare' | 'alloy' | 'neutron_deck'>('grid');
   const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
   const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
   const [detailSubTab, setDetailSubTab] = useState<
@@ -2477,14 +2624,10 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
     const calculatedPeaks: Array<{ twoTheta: number; relI: number; hkl: string }> = [];
     for (const p of planes) {
-      const s = Math.sqrt(p.h * p.h + p.k * p.k + p.l * p.l);
-      const d = a / s;
-      const sinTheta = lambda / (2 * d);
-      if (sinTheta > 0 && sinTheta < 0.99) {
-        const thetaRad = Math.asin(sinTheta);
-        const twoThetaDeg = (thetaRad * 2 * 180) / Math.PI;
+      const exactMetrics = calculateExactElementMetrics(element, p.h, p.k, p.l, lambda);
+      if (exactMetrics.twoTheta !== null && exactMetrics.twoTheta > 5 && exactMetrics.twoTheta < 150) {
         calculatedPeaks.push({
-          twoTheta: Number(twoThetaDeg.toFixed(2)),
+          twoTheta: Number(exactMetrics.twoTheta.toFixed(2)),
           relI: p.relI,
           hkl: `(${p.h} ${p.k} ${p.l})`
         });
@@ -3001,6 +3144,22 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         </button>
         <button
           onClick={() => {
+            setActiveTab('crystal_atlas');
+            playSynthTone('tick');
+          }}
+          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
+            activeTab === 'crystal_atlas' 
+              ? 'text-emerald-400 border-b-2 border-emerald-500 font-extrabold' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-emerald-400" />
+            Crystal Systems & Bravais Atlas
+          </div>
+        </button>
+        <button
+          onClick={() => {
             setActiveTab('compare');
             playSynthTone('tick');
           }}
@@ -3070,6 +3229,19 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             activePreset={activePreset}
             onSelectPreset={setActivePreset}
           />
+
+          {/* Interactive 118-Element Crystal Systems & Bravais Distribution Strip */}
+          {(colorMode === 'structure' || structureFilter !== 'all') && (
+            <PeriodicCrystalStructureStrip
+              elements={fullElementsGrid}
+              activeStructureFilter={structureFilter}
+              onSelectStructureFilter={setStructureFilter}
+              onOpenFullAtlas={() => {
+                setActiveTab('crystal_atlas');
+                playSynthTone('switch');
+              }}
+            />
+          )}
 
           {/* Dynamic Property Heatmap Legend */}
           <PeriodicHeatmapLegend
@@ -3511,6 +3683,42 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           alpha={activeElementInfo.alpha}
                           beta={activeElementInfo.beta}
                           gamma={activeElementInfo.gamma}
+                          hkl={[elemH, elemK, elemL]}
+                          onHklChange={(h, k, l) => {
+                            setElemH(h);
+                            setElemK(k);
+                            setElemL(l);
+                          }}
+                        />
+
+                        {/* Deep Crystallographic Descriptor, Exact Metric Tensor & Allotropes Panel */}
+                        <ElementCrystallographyAndAllotropesPanel
+                          element={activeElementInfo}
+                          hkl={[elemH, elemK, elemL]}
+                          onHklChange={(h, k, l) => {
+                            setElemH(h);
+                            setElemK(k);
+                            setElemL(l);
+                            playSynthTone('tick');
+                          }}
+                          onApplyAllotropeOverride={(allotrope) => {
+                            updateCustomOverride(activeElementInfo.number, {
+                              crystalStructure: allotrope.crystalStructure,
+                              spaceGroup: allotrope.spaceGroup,
+                              a: allotrope.a,
+                              b: allotrope.b,
+                              c: allotrope.c,
+                              alpha: allotrope.alpha,
+                              beta: allotrope.beta,
+                              gamma: allotrope.gamma,
+                              density: allotrope.density
+                            });
+                            playSynthTone('success');
+                          }}
+                          onOpenFullAtlas={() => {
+                            setActiveTab('crystal_atlas');
+                            playSynthTone('switch');
+                          }}
                         />
 
                         {/* Deep Crystallographic Parameters */}
@@ -3551,7 +3759,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                 a = {activeElementInfo.a.toFixed(3)} Å 
                                 {activeElementInfo.b ? `, b = ${activeElementInfo.b.toFixed(3)} Å` : ''} 
                                 {activeElementInfo.c ? `, c = ${activeElementInfo.c.toFixed(3)} Å` : ''}
-                                <span className="ml-2 text-slate-500 text-[9px]">V ≈ {((activeElementInfo.a * (activeElementInfo.b || activeElementInfo.a) * (activeElementInfo.c || activeElementInfo.a)) * (activeElementInfo.crystalStructure === 'HCP' ? 0.866 : 1)).toFixed(2)} Å³</span>
+                                <span className="ml-2 text-slate-500 text-[9px]">
+                                  V = {calculateExactElementMetrics(activeElementInfo, elemH, elemK, elemL).unitCellVolume.toFixed(2)} Å³
+                                </span>
                               </div>
                             </div>
 
@@ -3573,26 +3783,13 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           </span>
 
                           <ScientificMathControl
-                            title={`${activeElementInfo.symbol} Mass-Energy Equivalence`}
-                            formula="E = m \cdot c^2"
-                            description={`Calculate the total rest energy of a single ${activeElementInfo.name} atom using Einstein's mass-energy equivalence.`}
-                            variables={[
-                              { symbol: 'm', name: 'Rest Mass', value: activeElementInfo.weight * 1.66053906660e-27, unit: 'kg' },
-                              { symbol: 'c', name: 'Speed of Light', value: 299792458, unit: 'm/s' }
-                            ]}
-                            result={(activeElementInfo.weight * 1.66053906660e-27 * Math.pow(299792458, 2)) * 1e12}
-                            resultUnit="pJ"
-                            resultName="Rest Energy (E)"
-                          />
-
-                          <ScientificMathControl
                             title={`${activeElementInfo.symbol} Theoretical Density Verification`}
                             formula="\rho_{\text{calc}} = \frac{Z \cdot M}{N_A \cdot V_{\text{cell}} \cdot 10^{-24}}"
-                            description={`Verify the crystallographic density of ${activeElementInfo.name} based on its atomic weight, number of atoms per unit cell (Z), and unit cell volume.`}
+                            description={`Verify the crystallographic density of ${activeElementInfo.name} based on its atomic weight, number of atoms per unit cell (Z), and exact unit cell volume.`}
                             variables={[
                               { symbol: 'Z', name: `Atoms/Cell (${activeElementInfo.crystalStructure})`, value: activeElementInfo.crystalStructure === 'FCC' ? 4 : activeElementInfo.crystalStructure === 'BCC' ? 2 : activeElementInfo.crystalStructure === 'HCP' ? 6 : activeElementInfo.crystalStructure === 'Diamond' ? 8 : 2, unit: '' },
                               { symbol: 'M', name: 'Atomic Weight (M)', value: activeElementInfo.weight, unit: 'g/mol' },
-                              { symbol: 'V_cell', name: 'Unit Cell Volume (V)', value: (activeElementInfo.a * (activeElementInfo.b || activeElementInfo.a) * (activeElementInfo.c || activeElementInfo.a)) * (activeElementInfo.crystalStructure === 'HCP' ? 0.866025 : 1), unit: 'Å³' },
+                              { symbol: 'V_cell', name: 'Unit Cell Volume (V)', value: calculateExactElementMetrics(activeElementInfo, elemH, elemK, elemL).unitCellVolume, unit: 'Å³' },
                               { symbol: 'N_A', name: 'Avogadro Number (N_A)', value: 6.02214e23, unit: 'mol⁻¹' }
                             ]}
                             result={activeElementInfo.density}
@@ -3600,66 +3797,26 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             resultName="Theoretical X-Ray Density"
                           />
 
-                          <div className="bg-slate-900/60 p-4 rounded-2xl border border-white/5 space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-mono text-slate-400">Set Miller Indices (h k l)</span>
-                              <div className="flex items-center gap-2">
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[8px] text-slate-500 uppercase font-mono">h</span>
-                                  <input 
-                                    type="number" 
-                                    min="0" 
-                                    max="9" 
-                                    value={String(elemH) === 'NaN' ? '' : elemH} 
-                                    onChange={(e) => setElemH(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
-                                  />
-                                </div>
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[8px] text-slate-500 uppercase font-mono">k</span>
-                                  <input 
-                                    type="number" 
-                                    min="0" 
-                                    max="9" 
-                                    value={String(elemK) === 'NaN' ? '' : elemK} 
-                                    onChange={(e) => setElemK(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
-                                  />
-                                </div>
-                                <div className="flex flex-col items-center">
-                                  <span className="text-[8px] text-slate-500 uppercase font-mono">l</span>
-                                  <input 
-                                    type="number" 
-                                    min="0" 
-                                    max="9" 
-                                    value={String(elemL) === 'NaN' ? '' : elemL} 
-                                    onChange={(e) => setElemL(Math.max(0, parseInt(e.target.value) || 0))}
-                                    className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            <ScientificMathControl
-                              title={`${activeElementInfo.symbol} interplanar d-spacing`}
-                              formula="d_{hkl} = \frac{a}{\sqrt{h^2 + k^2 + l^2}}"
-                              description={`Determine the exact interplanar spacing for reflection planes (${elemH} ${elemK} ${elemL}) inside the crystal lattice.`}
-                              variables={[
-                                { symbol: 'a', name: 'Lattice Constant a', value: activeElementInfo.a, unit: 'Å' },
-                                { symbol: 'h', name: 'Miller index h', value: elemH, unit: '' },
-                                { symbol: 'k', name: 'Miller index k', value: elemK, unit: '' },
-                                { symbol: 'l', name: 'Miller index l', value: elemL, unit: '' }
-                              ]}
-                              result={
-                                (() => {
-                                  const s = elemH * elemH + elemK * elemK + elemL * elemL;
-                                  return s !== 0 ? activeElementInfo.a / Math.sqrt(s) : 0;
-                                })()
-                              }
-                              resultUnit="Å"
-                              resultName="Interplanar d-Spacing"
-                            />
-                          </div>
+                          {(() => {
+                            const exactM = calculateExactElementMetrics(activeElementInfo, elemH, elemK, elemL);
+                            return (
+                              <ScientificMathControl
+                                title={`${activeElementInfo.symbol} Symmetry-Exact Interplanar d-Spacing`}
+                                formula={exactM.meta.dSpacingFormulaLatex}
+                                description={`Determine the exact interplanar spacing for reflection planes (${elemH} ${elemK} ${elemL}) inside the ${exactM.meta.crystalSystem} lattice.`}
+                                variables={[
+                                  { symbol: 'a', name: 'Lattice Constant a', value: exactM.a, unit: 'Å' },
+                                  ...(activeElementInfo.c ? [{ symbol: 'c', name: 'Lattice Constant c', value: exactM.c, unit: 'Å' }] : []),
+                                  { symbol: 'h', name: 'Miller index h', value: elemH, unit: '' },
+                                  { symbol: 'k', name: 'Miller index k', value: elemK, unit: '' },
+                                  { symbol: 'l', name: 'Miller index l', value: elemL, unit: '' }
+                                ]}
+                                result={exactM.dSpacing}
+                                resultUnit="Å"
+                                resultName="Interplanar d-Spacing"
+                              />
+                            );
+                          })()}
                         </div>
                       </div>
                     )}
@@ -4398,6 +4555,40 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         </div>
       </div>
     </div>
+  ) : activeTab === 'crystal_atlas' ? (
+    <PeriodicCrystalSystemsAtlas
+      elements={fullElementsGrid}
+      selectedElementZ={selectedElement || 14}
+      onSelectElement={(z) => {
+        setSelectedElement(z);
+        setDetailSubTab('lattice');
+        setActiveTab('grid');
+        playSynthTone('switch');
+      }}
+      onFilterGridByStructure={(struct) => {
+        setColorMode('structure');
+        setStructureFilter(struct);
+        setActiveTab('grid');
+        playSynthTone('switch');
+      }}
+      onApplyAllotropeOverride={(z, allotrope) => {
+        updateCustomOverride(z, {
+          crystalStructure: allotrope.crystalStructure,
+          spaceGroup: allotrope.spaceGroup,
+          a: allotrope.a,
+          b: allotrope.b,
+          c: allotrope.c,
+          alpha: allotrope.alpha,
+          beta: allotrope.beta,
+          gamma: allotrope.gamma,
+          density: allotrope.density
+        });
+        setSelectedElement(z);
+        setDetailSubTab('lattice');
+        setActiveTab('grid');
+        playSynthTone('success');
+      }}
+    />
   ) : activeTab === 'alloy' ? (
     <div className="space-y-6">
       {/* Top Banner */}

@@ -70,6 +70,8 @@ import { WelcomeTourModal } from './landing/WelcomeTourModal';
 import { ExperimentQuickLaunchpad } from './landing/ExperimentQuickLaunchpad';
 import { WelcomeFloatingDock } from './landing/WelcomeFloatingDock';
 import { ResumeSectionPickerModal, ResumeModuleId } from './landing/ResumeSectionPickerModal';
+import { CrystallographicBrandEmblem } from './TopAppBar';
+import { renderScientificModuleIcon } from './LeftSidebarGraphics';
 
 // --- Background Decorations ---
 const DiffractionGrid = () => (
@@ -1566,11 +1568,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
         <nav className={`w-full transition-all duration-300 ${isScrolled ? 'bg-[#050B14]/90 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-[#020617]/80 backdrop-blur-md border-b border-white/5 py-4'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}>
-             <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-700 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent_70%)]" />
-              <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-white/10 blur-xl rounded-full" />
-              <Hexagon className="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] relative z-10" fill="white" fillOpacity="0.1" />
-            </div>
+            <CrystallographicBrandEmblem />
             <div className="flex flex-col">
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black tracking-tight leading-none text-white">XRD<span className="text-violet-500 font-normal">CalcPro</span></span>
@@ -2053,31 +2051,32 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
                 )}
               </div>
 
-              {/* Quick Launch Direct Tool Access */}
+              {/* Quick Launch Direct Tool Access with Custom Scientific Vector Icons */}
               <div className={`flex flex-wrap items-center gap-2 max-w-2xl mb-4 select-none ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mr-1 font-mono">
                   {t("Quick Tools:", "Quick Tools:")}
                 </span>
                 {[
-                  { name: 'Bragg Solver', icon: '⚡', mod: 'bragg' },
-                  { name: 'Williamson-Hall', icon: '📐', mod: 'wh' },
-                  { name: 'Scherrer Sizing', icon: '🔬', mod: 'scherrer' },
-                  { name: '3D Unit Cells', icon: '⚛️', mod: 'unit_cells' },
-                  { name: 'AI Phase ID', icon: '🤖', mod: 'dl' },
+                  { name: 'Bragg Solver', mod: 'bragg' },
+                  { name: 'Williamson-Hall', mod: 'wh' },
+                  { name: 'Scherrer Sizing', mod: 'scherrer' },
+                  { name: '3D Unit Cells', mod: 'unit_cells' },
+                  { name: 'Periodic Table', mod: 'periodic_table' },
+                  { name: 'AI Phase ID', mod: 'dl' },
                 ].map((tool) => (
                   <button
                     key={tool.mod}
                     onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', tool.mod)}
-                    className="px-2.5 py-1 bg-cyan-950/25 hover:bg-cyan-900/40 border border-cyan-800/40 hover:border-cyan-500/50 rounded-lg text-xs font-mono text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    className="px-2.5 py-1.5 bg-cyan-950/25 hover:bg-cyan-900/40 border border-cyan-800/40 hover:border-cyan-500/50 rounded-xl text-xs font-mono text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                   >
-                    <span>{tool.icon}</span>
+                    <span className="scale-90">{renderScientificModuleIcon(tool.mod, true)}</span>
                     <span className="font-bold">{tool.name}</span>
                   </button>
                 ))}
               </div>
 
               {/* Popular Lattice Quick Keys */}
-              <div className={`flex flex-wrap gap-2 max-w-2xl mb-12 select-none animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
+              <div className={`flex flex-wrap gap-2 max-w-2xl mb-10 select-none animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mt-1.5 mr-1 font-mono">
                   {t("Tuned Lattices:", "Tuned Lattices:")}
                 </span>
@@ -2101,32 +2100,56 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
                 ))}
               </div>
 
-              {/* High-End Academic Metrics Grid */}
-              <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-white/10 pt-8">
-                <div className="space-y-1">
-                  <p className="text-3xl font-black text-white leading-none tracking-tight">1.2M+</p>
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
+              {/* High-End Academic Metrics Grid with Custom Vector Schematics */}
+              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-white/10 pt-6">
+                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl font-black text-white leading-none tracking-tight font-mono">1.2M+</p>
+                    <svg className="w-5 h-5 text-cyan-400" viewBox="0 0 24 24" fill="none">
+                      <polygon points="12,2 20,7 20,17 12,22 4,17 4,7" stroke="currentColor" strokeWidth="1.6" fill="currentColor" fillOpacity="0.15" />
+                      <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+                    </svg>
+                  </div>
+                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
                     {t("COD Profiles", "COD Profiles")}
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-3xl font-black text-white leading-none tracking-tight">&lt;0.2s</p>
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
-                    {t("Search Latency", "Search Latency")}
-                  </p>
-                </div>
-                <div className="space-y-1 hidden sm:block">
-                  <p className="text-3xl font-black text-white leading-none tracking-tight">AI</p>
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
-                    {t("Peak Fitting", "Peak Fitting")}
-                  </p>
-                </div>
-                <div className="space-y-1 hidden md:block">
-                  <div className="flex gap-1 mb-2 items-center h-8">
-                    {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400" />)}
+
+                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl font-black text-cyan-300 leading-none tracking-tight font-mono">30+</p>
+                    <svg className="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="none">
+                      <path d="M3 19 L8 19 L12 5 L16 19 L21 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 font-mono">
-                    {t("High Precision", "High Precision")}
+                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                    {t("XRD Instruments", "XRD Instruments")}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl font-black text-emerald-300 leading-none tracking-tight font-mono">0.001°</p>
+                    <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
+                      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" />
+                    </svg>
+                  </div>
+                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                    {t("2θ Resolution", "2θ Resolution")}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl font-black text-violet-300 leading-none tracking-tight font-mono">14 / 7</p>
+                    <svg className="w-5 h-5 text-amber-400" viewBox="0 0 24 24" fill="none">
+                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+                    </svg>
+                  </div>
+                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                    {t("Bravais & Systems", "Bravais & Systems")}
                   </p>
                 </div>
               </div>

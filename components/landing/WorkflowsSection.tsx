@@ -16,6 +16,7 @@ import {
   Sparkles,
   ChevronRight
 } from 'lucide-react';
+import { WorkflowPipelineDiagramSVG } from './WelcomePageGraphics';
 
 interface WorkflowsSectionProps {
   onLaunchModule: (moduleId: string) => void;
@@ -116,9 +117,11 @@ export const WorkflowsSection: React.FC<WorkflowsSectionProps> = ({
                 <h3 className="text-xl font-bold text-white mb-2 leading-snug">
                   {wf.title}
                 </h3>
-                <p className="text-xs text-slate-400 mb-6 font-medium leading-relaxed">
+                <p className="text-xs text-slate-400 mb-4 font-medium leading-relaxed">
                   {wf.subtitle}
                 </p>
+
+                <WorkflowPipelineDiagramSVG workflowId={wf.id} />
 
                 <div className="space-y-3 mb-8">
                   {wf.steps.map((step, stepIdx) => (

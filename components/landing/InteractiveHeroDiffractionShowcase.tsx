@@ -1,18 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   Activity, 
-  Cpu, 
   Shapes, 
-  Layers, 
   Sparkles, 
   ArrowRight, 
-  Maximize2,
   Atom,
-  CheckCircle2,
-  Sliders,
-  Zap
+  CheckCircle2
 } from 'lucide-react';
+import {
+  DebyeScherrerDetectorGraphic,
+  GoniometerLatticeSchematic
+} from './WelcomePageGraphics';
 
 interface Peak {
   twoTheta: number;
@@ -77,9 +75,9 @@ const DEMO_MATERIALS: MaterialDemo[] = [
   {
     id: 'TiO2',
     name: 'Anatase Titania',
-    formula: 'TiO2',
+    formula: 'TiO₂',
     system: 'Tetragonal',
-    spaceGroup: 'I41/amd (#141)',
+    spaceGroup: 'I4₁/amd (#141)',
     lattice: 'a = 3.784, c = 9.514 Å',
     dSize: 24.6,
     strain: 0.115,
@@ -96,7 +94,7 @@ const DEMO_MATERIALS: MaterialDemo[] = [
   {
     id: 'MAPbI3',
     name: 'Perovskite',
-    formula: 'CH3NH3PbI3',
+    formula: 'MAPbI₃',
     system: 'Tetragonal',
     spaceGroup: 'I4/mcm (#140)',
     lattice: 'a = 8.865, c = 12.659 Å',
@@ -127,75 +125,82 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
     return DEMO_MATERIALS.find(m => m.id === selectedId) || DEMO_MATERIALS[0];
   }, [selectedId]);
 
+  const primaryOrHoveredPeak = useMemo(() => {
+    if (hoveredPeak) return hoveredPeak;
+    return activeMaterial.peaks.find(p => p.intensity === 100) || activeMaterial.peaks[0];
+  }, [hoveredPeak, activeMaterial]);
+
   // Chart dimensions
   const min2Theta = 10;
   const max2Theta = 90;
   const svgWidth = 480;
-  const svgHeight = 160;
-  const paddingX = 35;
-  const paddingY = 25;
+  const svgHeight = 166;
+  const paddingX = 32;
+  const baselineY = 122;
+  const diffZeroY = 144;
 
   const getX = (twoTheta: number) => {
     return paddingX + ((twoTheta - min2Theta) / (max2Theta - min2Theta)) * (svgWidth - paddingX * 2);
   };
 
   const getY = (intensityPercent: number) => {
-    return svgHeight - paddingY - (intensityPercent / 100) * (svgHeight - paddingY * 2);
+    return baselineY - (intensityPercent / 100) * 96;
   };
 
-  // Generate continuous pseudo-Voigt profile path for realistic diffractogram
-  const curvePath = useMemo(() => {
+  // Generate continuous pseudo-Voigt profile path + residual difference trace
+  const { curvePath, diffPath } = useMemo(() => {
     const points: string[] = [];
+    const diffPts: string[] = [];
     const step = 0.5;
     const numSteps = Math.floor((max2Theta - min2Theta) / step);
 
     for (let i = 0; i <= numSteps; i++) {
       const xVal = min2Theta + i * step;
-      let yIntensity = 2; // subtle background level
+      let yIntensity = 2;
+      let residual = Math.sin(xVal * 1.9) * 0.8;
 
-      // Add contributions from each peak
       activeMaterial.peaks.forEach(peak => {
         const delta = xVal - peak.twoTheta;
         const halfWidth = peak.fwhm;
-        // Pseudo-Voigt (combination of Gaussian and Lorentzian)
         const g = Math.exp(-Math.LN2 * Math.pow(delta / (halfWidth / 2), 2));
         const l = 1 / (1 + Math.pow(delta / (halfWidth / 2), 2));
         const profile = 0.6 * g + 0.4 * l;
         yIntensity += peak.intensity * profile;
+        residual += (delta / (halfWidth + 0.2)) * Math.exp(-Math.pow(delta / halfWidth, 2)) * 4.2;
       });
 
-      // Clamp max
       const clamped = Math.min(100, yIntensity);
       const px = getX(xVal);
       const py = getY(clamped);
+      const dy = diffZeroY - Math.max(-7, Math.min(7, residual));
 
-      if (i === 0) {
-        points.push(`M ${px.toFixed(1)} ${py.toFixed(1)}`);
-      } else {
-        points.push(`L ${px.toFixed(1)} ${py.toFixed(1)}`);
-      }
+      points.push(`${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`);
+      diffPts.push(`${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${dy.toFixed(1)}`);
     }
 
-    return points.join(' ');
+    return { curvePath: points.join(' '), diffPath: diffPts.join(' ') };
   }, [activeMaterial]);
 
   return (
-    <div className="relative group perspective-2000 hidden lg:block">
-      <div className="absolute inset-0 bg-gradient-to-tr from-violet-600/15 via-cyan-500/10 to-transparent blur-[120px] rounded-full group-hover:bg-violet-600/20 transition-all duration-1000" />
+    <div className="relative group perspective-2000 w-full">
+      <div className="absolute inset-0 bg-gradient-to-tr from-violet-600/15 via-cyan-500/10 to-transparent blur-[120px] rounded-full group-hover:bg-violet-600/20 transition-all duration-1000 pointer-events-none" />
       
-      <div className="relative z-10 transform rotate-y-[-6deg] rotate-x-[4deg] group-hover:rotate-0 group-hover:scale-[1.02] transition-all duration-700">
-        <div className="bg-[#050B14]/95 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-[0_50px_100px_-15px_rgba(0,0,0,0.85)] ring-1 ring-white/15 flex flex-col">
+      <div className="relative z-10 lg:transform lg:rotate-y-[-4deg] lg:rotate-x-[2deg] group-hover:rotate-0 transition-all duration-700">
+        <div className="bg-[#050B14]/95 backdrop-blur-2xl rounded-[2.2rem] border border-white/10 overflow-hidden shadow-[0_40px_90px_-15px_rgba(0,0,0,0.85)] ring-1 ring-white/15 flex flex-col">
           
           {/* Top Header Controls Bar with Live Indicator */}
-          <div className={`p-4 sm:p-5 border-b border-white/10 bg-white/[0.03] flex items-center justify-between backdrop-blur-md ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`px-5 py-3.5 border-b border-white/10 bg-white/[0.03] flex flex-wrap items-center justify-between gap-2 backdrop-blur-md ${isRTL ? "flex-row-reverse" : ""}`}>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
-              <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-              <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+              <span className="text-[10px] font-mono text-slate-400 font-bold ml-1 hidden sm:inline">
+                DIFFRACTOMETER HUD
+              </span>
             </div>
 
             {/* Material Selector Chips */}
-            <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-slate-950/90 p-1 rounded-xl border border-slate-800">
               {DEMO_MATERIALS.map((m) => (
                 <button
                   key={m.id}
@@ -214,35 +219,39 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-              <span className="text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider hidden sm:inline">
-                Live Diffractogram
+              <span className="text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider">
+                Cu Kα₁ · 1.5406 Å
               </span>
             </div>
           </div>
 
-          {/* Interactive Diffraction Pattern Viewer */}
-          <div className="p-6 pb-4 flex flex-col gap-4">
+          {/* Interactive Diffraction Pattern & 2D Detector / Goniometer Suite */}
+          <div className="p-5 flex flex-col gap-3.5">
             
-            {/* Diffractogram Stage */}
-            <div className="relative w-full bg-[#060B16] rounded-2xl border border-white/5 p-3 overflow-hidden shadow-inner">
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none" />
-              
-              {/* Scan Info Badge */}
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1 px-2">
+            {/* 1D Diffractogram + Residual Difference Plot */}
+            <div className="relative w-full bg-[#040812] rounded-2xl border border-slate-800/90 p-3 overflow-hidden shadow-inner">
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1 px-1">
                 <div className="flex items-center gap-2">
                   <span className="text-white font-bold">{activeMaterial.name} ({activeMaterial.formula})</span>
-                  <span className="text-cyan-400 font-semibold">• λ = 1.5406 Å (Cu-Kα)</span>
+                  <span className="text-indigo-300 font-semibold">• {activeMaterial.spaceGroup}</span>
                 </div>
-                <span className="text-slate-500">2θ: 10° – 90°</span>
+                <div className="flex items-center gap-3 text-[9px]">
+                  <span className="flex items-center gap-1 text-cyan-300">
+                    <span className="w-2 h-0.5 bg-cyan-400 inline-block" /> I_calc(2θ)
+                  </span>
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <span className="w-2 h-0.5 bg-emerald-400 inline-block" /> Δ(I_obs - I_calc)
+                  </span>
+                </div>
               </div>
 
               {/* SVG Diffractogram Plot */}
-              <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-44 overflow-visible select-none">
+              <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-40 overflow-visible select-none">
                 <defs>
                   <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.4" />
+                    <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.38" />
                     <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.02" />
                   </linearGradient>
                   <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
@@ -257,17 +266,17 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
                   <g key={t}>
                     <line
                       x1={getX(t)}
-                      y1={paddingY}
+                      y1={16}
                       x2={getX(t)}
-                      y2={svgHeight - paddingY}
-                      stroke="rgba(255,255,255,0.06)"
+                      y2={svgHeight - 14}
+                      stroke="rgba(255,255,255,0.05)"
                       strokeDasharray="3 3"
                     />
                     <text
                       x={getX(t)}
-                      y={svgHeight - 8}
+                      y={svgHeight - 3}
                       fill="#64748B"
-                      fontSize="9"
+                      fontSize="8.5"
                       fontFamily="monospace"
                       textAnchor="middle"
                     >
@@ -278,7 +287,7 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
 
                 {/* Filled diffractogram area */}
                 <path
-                  d={`${curvePath} L ${getX(max2Theta)} ${getY(0)} L ${getX(min2Theta)} ${getY(0)} Z`}
+                  d={`${curvePath} L ${getX(max2Theta)} ${baselineY} L ${getX(min2Theta)} ${baselineY} Z`}
                   fill="url(#curveGradient)"
                 />
 
@@ -290,6 +299,11 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
                   strokeWidth="2"
                   strokeLinecap="round"
                 />
+
+                {/* Bragg reflection tick marks (|) & residual difference trace */}
+                <line x1={paddingX} y1={baselineY} x2={svgWidth - paddingX} y2={baselineY} stroke="rgba(255,255,255,0.12)" />
+                <line x1={paddingX} y1={diffZeroY} x2={svgWidth - paddingX} y2={diffZeroY} stroke="rgba(52,211,153,0.18)" strokeDasharray="2 2" />
+                <path d={diffPath} fill="none" stroke="#34d399" strokeWidth="1.1" strokeOpacity="0.8" />
 
                 {/* Peak Markers & Miller Indices Labels */}
                 {activeMaterial.peaks.map((peak, idx) => {
@@ -304,11 +318,21 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
                       onMouseEnter={() => setHoveredPeak(peak)}
                       onMouseLeave={() => setHoveredPeak(null)}
                     >
+                      {/* Bragg Position Tick below baseline */}
+                      <line
+                        x1={px}
+                        y1={baselineY + 3}
+                        x2={px}
+                        y2={baselineY + 9}
+                        stroke={isHovered ? '#22d3ee' : '#a78bfa'}
+                        strokeWidth={isHovered ? '2' : '1.4'}
+                      />
+
                       {/* Peak apex dot */}
                       <circle
                         cx={px}
                         cy={py}
-                        r={isHovered ? 5 : 3.5}
+                        r={isHovered ? 4.5 : 3}
                         className={`transition-all duration-200 ${
                           isHovered ? 'fill-cyan-300 stroke-white stroke-2' : 'fill-cyan-400'
                         }`}
@@ -317,9 +341,9 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
                       {/* (hkl) index text */}
                       <text
                         x={px}
-                        y={py - 8}
-                        fill={isHovered ? '#67E8F9' : '#94A3B8'}
-                        fontSize="9"
+                        y={py - 7}
+                        fill={isHovered ? '#67E8F9' : '#CBD5E1'}
+                        fontSize="8.5"
                         fontWeight="bold"
                         fontFamily="monospace"
                         textAnchor="middle"
@@ -333,89 +357,89 @@ export const InteractiveHeroDiffractionShowcase: React.FC<Props> = ({ onLaunch, 
                         x1={px}
                         y1={py}
                         x2={px}
-                        y2={svgHeight - paddingY}
-                        stroke={isHovered ? 'rgba(34,211,238,0.5)' : 'rgba(139,92,246,0.2)'}
+                        y2={baselineY}
+                        stroke={isHovered ? 'rgba(34,211,238,0.55)' : 'rgba(139,92,246,0.2)'}
                         strokeWidth={isHovered ? "1.5" : "1"}
                         strokeDasharray={isHovered ? "none" : "2 2"}
                       />
                     </g>
                   );
                 })}
-
-                {/* Sweeping laser scanning beam */}
-                <line
-                  x1={paddingX}
-                  y1={svgHeight - paddingY}
-                  x2={svgWidth - paddingX}
-                  y2={svgHeight - paddingY}
-                  stroke="rgba(255,255,255,0.15)"
-                />
               </svg>
 
               {/* Hover Tooltip Overlay */}
-              <div className="h-6 flex items-center justify-between px-2 pt-1 border-t border-white/5 text-[10px] font-mono">
-                {hoveredPeak ? (
-                  <div className="flex items-center gap-3 text-cyan-300">
-                    <span className="font-bold text-white">Peak {hoveredPeak.hkl}</span>
-                    <span>2θ = {hoveredPeak.twoTheta.toFixed(2)}°</span>
-                    <span>Rel Intensity = {hoveredPeak.intensity}%</span>
-                    <span>FWHM = {hoveredPeak.fwhm}°</span>
-                  </div>
-                ) : (
-                  <span className="text-slate-500 italic">Hover over peak reflections to inspect Miller (hkl) metrics</span>
-                )}
+              <div className="h-5 flex items-center justify-between px-1 pt-1 border-t border-white/5 text-[9.5px] font-mono">
+                <div className="flex items-center gap-3 text-cyan-300">
+                  <span className="font-bold text-white">Reflection {primaryOrHoveredPeak.hkl}</span>
+                  <span>2θ = {primaryOrHoveredPeak.twoTheta.toFixed(2)}°</span>
+                  <span>I/I₀ = {primaryOrHoveredPeak.intensity}%</span>
+                  <span>FWHM = {primaryOrHoveredPeak.fwhm}°</span>
+                </div>
                 <span className="text-emerald-400 font-bold flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  Rietveld Indexed
+                  Indexed
                 </span>
               </div>
             </div>
 
+            {/* Dual Synchronized Graphics: 2D Debye-Scherrer Detector + θ/2θ Goniometer & 3D Cell */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <DebyeScherrerDetectorGraphic
+                peaks={activeMaterial.peaks}
+                hoveredPeak={hoveredPeak}
+                onHoverPeak={setHoveredPeak}
+                formula={activeMaterial.formula}
+              />
+              <GoniometerLatticeSchematic
+                system={activeMaterial.system}
+                twoTheta={primaryOrHoveredPeak.twoTheta}
+                hkl={primaryOrHoveredPeak.hkl}
+              />
+            </div>
+
             {/* Crystal Structure Metric Tiles */}
-            <div className="grid grid-cols-3 gap-3 select-none">
-              
-              <div className="bg-slate-900/60 rounded-xl border border-white/5 p-3 flex flex-col justify-between hover:bg-slate-900/80 hover:border-violet-500/30 transition-all">
-                <div className="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+            <div className="grid grid-cols-3 gap-2.5 select-none">
+              <div className="bg-slate-900/60 rounded-xl border border-white/5 p-2.5 flex flex-col justify-between hover:bg-slate-900/80 hover:border-violet-500/30 transition-all">
+                <div className="flex items-center justify-between text-slate-400 text-[9.5px] font-bold uppercase tracking-wider">
                   <span>Symmetry</span>
                   <Shapes className="w-3.5 h-3.5 text-cyan-400" />
                 </div>
-                <div className="mt-2">
-                  <p className="text-sm font-black font-mono text-white tracking-tight">{activeMaterial.spaceGroup}</p>
-                  <p className="text-[10px] font-mono text-slate-400 truncate">{activeMaterial.system}</p>
+                <div className="mt-1.5">
+                  <p className="text-xs font-black font-mono text-white tracking-tight">{activeMaterial.spaceGroup}</p>
+                  <p className="text-[9.5px] font-mono text-slate-400 truncate">{activeMaterial.system}</p>
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 rounded-xl border border-white/5 p-3 flex flex-col justify-between hover:bg-slate-900/80 hover:border-violet-500/30 transition-all">
-                <div className="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                  <span>Crystallite D</span>
+              <div className="bg-slate-900/60 rounded-xl border border-white/5 p-2.5 flex flex-col justify-between hover:bg-slate-900/80 hover:border-violet-500/30 transition-all">
+                <div className="flex items-center justify-between text-slate-400 text-[9.5px] font-bold uppercase tracking-wider">
+                  <span>Domain Size D</span>
                   <Atom className="w-3.5 h-3.5 text-violet-400" />
                 </div>
-                <div className="mt-2">
-                  <p className="text-sm font-black font-mono text-white tracking-tight">{activeMaterial.dSize} nm</p>
-                  <p className="text-[10px] font-mono text-slate-400">Strain ε = {activeMaterial.strain}%</p>
+                <div className="mt-1.5">
+                  <p className="text-xs font-black font-mono text-white tracking-tight">{activeMaterial.dSize} nm</p>
+                  <p className="text-[9.5px] font-mono text-slate-400">Strain ε = {activeMaterial.strain}%</p>
                 </div>
               </div>
 
-              <div className="bg-slate-900/60 rounded-xl border border-white/5 p-3 flex flex-col justify-between hover:bg-slate-900/80 hover:border-emerald-500/30 transition-all">
-                <div className="flex items-center justify-between text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                  <span>Rietveld Rwp</span>
+              <div className="bg-slate-900/60 rounded-xl border border-white/5 p-2.5 flex flex-col justify-between hover:bg-slate-900/80 hover:border-emerald-500/30 transition-all">
+                <div className="flex items-center justify-between text-slate-400 text-[9.5px] font-bold uppercase tracking-wider">
+                  <span>Profile Fit</span>
                   <Activity className="w-3.5 h-3.5 text-emerald-400" />
                 </div>
-                <div className="mt-2">
-                  <p className="text-sm font-black font-mono text-emerald-400 tracking-tight">{(activeMaterial.rwp * 100).toFixed(1)}%</p>
-                  <p className="text-[10px] font-mono text-slate-400">{activeMaterial.lattice}</p>
+                <div className="mt-1.5">
+                  <p className="text-xs font-black font-mono text-emerald-400 tracking-tight">Rwp {(activeMaterial.rwp * 100).toFixed(1)}%</p>
+                  <p className="text-[9.5px] font-mono text-slate-400 truncate">{activeMaterial.lattice}</p>
                 </div>
               </div>
-
             </div>
 
             {/* Direct Open in Full Analyzer Action */}
             <button
               onClick={() => onLaunch(activeMaterial.id)}
-              className="w-full py-3 bg-gradient-to-r from-violet-600/30 via-indigo-600/30 to-cyan-600/30 hover:from-violet-600/50 hover:to-cyan-600/50 border border-violet-500/40 hover:border-cyan-400/60 rounded-xl text-xs font-mono font-bold text-cyan-200 hover:text-white flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer group/cta"
+              className="w-full py-2.5 bg-gradient-to-r from-violet-600/30 via-indigo-600/30 to-cyan-600/30 hover:from-violet-600/50 hover:to-cyan-600/50 border border-violet-500/40 hover:border-cyan-400/60 rounded-xl text-xs font-mono font-bold text-cyan-200 hover:text-white flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer group/cta"
             >
               <Sparkles className="w-4 h-4 text-cyan-300 group-hover/cta:rotate-12 transition-transform" />
-              <span>Load {activeMaterial.formula} in Full Rietveld & Bragg Engine</span>
+              <span>Load {activeMaterial.formula} in Full Bragg & Profile Engine</span>
               <ArrowRight className="w-4 h-4 text-cyan-300 group-hover/cta:translate-x-1 transition-transform" />
             </button>
 
