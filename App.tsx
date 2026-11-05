@@ -228,16 +228,37 @@ const App: React.FC = () => {
           localStorage.setItem('lab_director_profile_payload', JSON.stringify(defaultProfile));
         }
         setIsRegistered(true);
+     } else {
+       const savedReg = localStorage.getItem('xrd_user_registration');
+       if (!savedReg) {
+         const defaultGuest = {
+           name: 'Guest Crystallographer',
+           email: 'guest@quantum-crystallography.org',
+           organization: 'Quantum Crystallography Labs',
+           nationality: 'American',
+           researchRole: 'Lead Investigator',
+           researchField: 'Condensed Matter Physics',
+           registeredAt: new Date().toISOString()
+         };
+         localStorage.setItem('xrd_user_registration', JSON.stringify(defaultGuest));
+         setIsRegistered(true);
+       }
      }
   }, [user]);
 
-  const [showWhyXrdPage, setShowWhyXrdPage] = useState<boolean>(() => {
-    // Shows before welcome page on initial visit unless the user checked 'don't show again'
-    return localStorage.getItem('xrd_skip_why_xrd_intro') !== 'true';
+  const [showWhyXrdPage, setShowWhyXrdPage] = useState<boolean>(false);
+  const [hasEntered, setHasEntered] = useState<boolean>(() => {
+    const saved = localStorage.getItem('xrd_has_entered');
+    return saved !== null ? saved === 'true' : true;
   });
-  const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
   const [activeModule, setActiveModule] = useState<Module>('bragg');
+  const [sidebarMode, setSidebarMode] = useState<'guided' | 'all'>(() => {
+    const saved = localStorage.getItem('xrd_sidebar_mode');
+    return saved === 'all' ? 'all' : 'guided';
+  });
+  const [braggWorkspaceStep, setBraggWorkspaceStep] = useState<'1_input' | '2_visuals' | '3_results' | '4_history' | 'all'>('1_input');
+  const [showAdvancedBraggInput, setShowAdvancedBraggInput] = useState<boolean>(false);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState<boolean>(false);
   const [isSidebarPinned, setIsSidebarPinned] = useState<boolean>(() => {
     const saved = localStorage.getItem('xrd_sidebar_pinned');
@@ -251,6 +272,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('xrd_sidebar_pinned', isSidebarPinned ? 'true' : 'false');
   }, [isSidebarPinned]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_sidebar_mode', sidebarMode);
+  }, [sidebarMode]);
 
   useEffect(() => {
     if (hasEntered) {
@@ -280,7 +305,8 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
   const [skipIntros, setSkipIntros] = useState<boolean>(() => {
-    return localStorage.getItem('xrd_skip_intros') === 'true';
+    const saved = localStorage.getItem('xrd_skip_intros');
+    return saved !== null ? saved === 'true' : true;
   });
   const [showQuickRibbon, setShowQuickRibbon] = useState<boolean>(() => {
     return localStorage.getItem('xrd_show_quick_ribbon_tools') === 'true';
@@ -294,7 +320,7 @@ const App: React.FC = () => {
     });
     playSynthTone('switch');
   };
-  const [isExplained, setIsExplained] = useState<boolean>(false);
+  const [isExplained, setIsExplained] = useState<boolean>(true);
 
   // Load persistent configurations from localStorage with robust safety fallbacks
   const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai'>(() => {
@@ -1695,23 +1721,95 @@ const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Interactive Ewald Sphere & Bragg Goniometer Telemetry Card + Dual Portals */}
-            <SidebarGoniometerTelemetryCard
-              activeModule={activeModule}
-              wavelength={wavelength}
-              goniometerRadius={goniometerRadius}
-              peaksCount={results.length}
-              crystalSystem={crystalSystem}
-              theme={theme}
-              onOpenWelcome={() => {
-                setHasEntered(false);
-                playSynthTone('switch');
-              }}
-              onOpenWhyXrd={() => {
-                setShowWhyXrdPage(true);
-                playSynthTone('switch');
-              }}
-            />
+            {/* Mode Switcher: Guided 5-Step Flow vs All 32 Expert Tools */}
+            <div className="px-3.5 pt-2.5 pb-1.5 shrink-0 z-10 border-b border-slate-100 dark:border-slate-800/80">
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarMode('guided');
+                    setSidebarSearch('');
+                    playSynthTone('switch');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    sidebarMode === 'guided' && !sidebarSearch.trim()
+                      ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Simple step-by-step workflow for core XRD tasks"
+                >
+                  <span>Guided 5-Step</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarMode('all');
+                    playSynthTone('switch');
+                  }}
+                  className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    sidebarMode === 'all' || !!sidebarSearch.trim()
+                      ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Browse all 32 specialized crystallography & diffraction modules"
+                >
+                  <span>All {modules.length} Tools</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Interactive Ewald Sphere & Bragg Goniometer Telemetry Card (Full in Expert Mode, Compact Strip in Guided Mode) */}
+            {sidebarMode === 'all' ? (
+              <SidebarGoniometerTelemetryCard
+                activeModule={activeModule}
+                wavelength={wavelength}
+                goniometerRadius={goniometerRadius}
+                peaksCount={results.length}
+                crystalSystem={crystalSystem}
+                theme={theme}
+                onOpenWelcome={() => {
+                  setHasEntered(false);
+                  playSynthTone('switch');
+                }}
+                onOpenWhyXrd={() => {
+                  setShowWhyXrdPage(true);
+                  playSynthTone('switch');
+                }}
+              />
+            ) : (
+              <div className="px-3.5 py-2 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 text-[11px] bg-slate-50/60 dark:bg-slate-950/40 shrink-0 z-10">
+                <div className="flex items-center gap-1.5 font-mono text-slate-600 dark:text-slate-300 truncate">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>λ={wavelength.toFixed(4)}Å</span>
+                  <span className="text-slate-300 dark:text-slate-700">·</span>
+                  <span>{results.length} peaks</span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowWhyXrdPage(true);
+                      playSynthTone('switch');
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 font-semibold text-[10px] cursor-pointer transition-colors"
+                    title="Explore real-world applications of X-Ray Diffraction"
+                  >
+                    Why XRD?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasEntered(false);
+                      playSynthTone('switch');
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-slate-200/70 dark:bg-slate-800 hover:bg-slate-300/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-[10px] cursor-pointer transition-colors"
+                    title="Open Welcome Tour"
+                  >
+                    Home
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Quick Search / Filter Bar with Ctrl+K Palette Trigger */}
             <div className="px-3.5 pt-2 pb-1.5 shrink-0 z-10">
@@ -1721,12 +1819,14 @@ const App: React.FC = () => {
                   type="text"
                   value={sidebarSearch}
                   onChange={(e) => setSidebarSearch(e.target.value)}
-                  placeholder={t('Filter modules or equations...', 'Filter modules or equations...')}
+                  placeholder={t('Search any tool or formula...', 'Search any tool or formula...')}
+                  aria-label="Search modules or equations"
                   className="w-full pl-8 pr-14 py-1.5 text-xs bg-slate-100/90 dark:bg-slate-950/70 border border-slate-200/90 dark:border-slate-800 rounded-lg outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-colors"
                 />
                 {sidebarSearch ? (
                   <button
                     onClick={() => setSidebarSearch('')}
+                    aria-label="Clear search"
                     className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -1746,11 +1846,167 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Scrollable Categorized Module List */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-4 z-10">
-              {Array.from(
-                new Set(
-                  (sidebarSearch.trim()
+            {/* Scrollable Module List: Guided 5-Step Flow OR Categorized All-Tools View */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-3 z-10">
+              {sidebarMode === 'guided' && !sidebarSearch.trim() ? (
+                <div className="space-y-3">
+                  <div className="px-1 flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      Core XRD Workflow (Steps 1–5)
+                    </span>
+                    <span className="text-[10px] font-mono text-indigo-500 font-semibold">Start Here</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {[
+                      {
+                        step: 1,
+                        id: 'bragg' as Module,
+                        title: 'Bragg Peak Calculator',
+                        desc: 'Convert 2θ peak angles into d-spacing & crystal planes'
+                      },
+                      {
+                        step: 2,
+                        id: 'selection' as Module,
+                        title: 'Crystal Symmetry & Rules',
+                        desc: 'Identify allowed (hkl) planes & BCC / FCC / Diamond lattices'
+                      },
+                      {
+                        step: 3,
+                        id: 'fwhm' as Module,
+                        title: 'Peak Broadening (FWHM)',
+                        desc: 'Measure peak width at half-maximum intensity'
+                      },
+                      {
+                        step: 4,
+                        id: 'scherrer' as Module,
+                        title: 'Crystallite Size (Scherrer)',
+                        desc: 'Calculate nanocrystal size (nm) from peak width'
+                      },
+                      {
+                        step: 5,
+                        id: 'database' as Module,
+                        title: 'Material Database & Search',
+                        desc: 'Match experimental peaks against reference standards'
+                      }
+                    ].map((item) => {
+                      const isActive = activeModule === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveModule(item.id);
+                            playSynthTone('xrd_scan');
+                          }}
+                          className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer flex items-start gap-2.5 ${
+                            isActive
+                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20'
+                              : 'bg-slate-50/90 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-100'
+                          }`}
+                        >
+                          <div
+                            className={`w-6 h-6 rounded-lg text-xs font-mono font-black flex items-center justify-center shrink-0 mt-0.5 ${
+                              isActive
+                                ? 'bg-white/20 text-white'
+                                : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                            }`}
+                          >
+                            {item.step}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold leading-snug truncate">
+                              {item.title}
+                            </div>
+                            <div
+                              className={`text-[11px] leading-snug mt-0.5 line-clamp-2 ${
+                                isActive ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'
+                              }`}
+                            >
+                              {item.desc}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Popular Next-Step Companion Tools */}
+                  <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800/80 space-y-1.5">
+                    <div className="px-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      Popular Next Steps
+                    </div>
+                    <div className="grid grid-cols-1 gap-1">
+                      {[
+                        { id: 'wh' as Module, label: 'Williamson-Hall (Size + Strain)', badge: 'Strain ε' },
+                        { id: 'dl' as Module, label: 'AI Phase ID (Neural Network)', badge: 'Deep Learning' },
+                        { id: 'preferred_orientation' as Module, label: 'Preferred Orientation (Texture)', badge: 'TC(hkl)' },
+                        { id: 'compare' as Module, label: 'Compare Diffraction Patterns', badge: 'Overlay' },
+                        { id: 'unit_cells' as Module, label: '3D Crystal Unit Cells (14 Bravais)', badge: '3D Lattice' },
+                        { id: 'settings' as Module, label: 'Settings & Calibration', badge: 'Config' }
+                      ].map((tool) => {
+                        const isActive = activeModule === tool.id;
+                        return (
+                          <button
+                            key={tool.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveModule(tool.id);
+                              playSynthTone('xrd_scan');
+                            }}
+                            className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                              isActive
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70'
+                            }`}
+                          >
+                            <span className="truncate">{tool.label}</span>
+                            <span
+                              className={`text-[9.5px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                                isActive
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                              }`}
+                            >
+                              {tool.badge}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Button to reveal all 32 modules */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSidebarMode('all');
+                      playSynthTone('switch');
+                    }}
+                    className="w-full py-2 px-3 rounded-xl border border-dashed border-indigo-400/50 dark:border-indigo-500/40 bg-indigo-50/50 dark:bg-indigo-950/20 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span>Explore All {modules.length} Specialized Tools →</span>
+                  </button>
+                </div>
+              ) : (
+                Array.from(
+                  new Set(
+                    (sidebarSearch.trim()
+                      ? modules.filter((m) => {
+                          const q = sidebarSearch.toLowerCase();
+                          const meta = getModuleScientificMeta(m.id);
+                          return (
+                            m.label.toLowerCase().includes(q) ||
+                            (m.group && m.group.toLowerCase().includes(q)) ||
+                            meta.formula.toLowerCase().includes(q) ||
+                            meta.symbol.toLowerCase().includes(q)
+                          );
+                        })
+                      : modules
+                    ).map((m) => m.group || '')
+                  )
+                ).map((group) => {
+                  const groupFiltered = (sidebarSearch.trim()
                     ? modules.filter((m) => {
                         const q = sidebarSearch.toLowerCase();
                         const meta = getModuleScientificMeta(m.id);
@@ -1762,132 +2018,118 @@ const App: React.FC = () => {
                         );
                       })
                     : modules
-                  ).map((m) => m.group || '')
-                )
-              ).map((group) => {
-                const groupFiltered = (sidebarSearch.trim()
-                  ? modules.filter((m) => {
-                      const q = sidebarSearch.toLowerCase();
-                      const meta = getModuleScientificMeta(m.id);
-                      return (
-                        m.label.toLowerCase().includes(q) ||
-                        (m.group && m.group.toLowerCase().includes(q)) ||
-                        meta.formula.toLowerCase().includes(q) ||
-                        meta.symbol.toLowerCase().includes(q)
-                      );
-                    })
-                  : modules
-                ).filter((m) => m.group === group);
+                  ).filter((m) => m.group === group);
 
-                if (groupFiltered.length === 0) return null;
+                  if (groupFiltered.length === 0) return null;
 
-                const catMeta = getCategoryMeta(group);
-                const isCollapsed = !sidebarSearch.trim() && !!collapsedSidebarGroups[group];
-                const hasActiveChild = groupFiltered.some((m) => m.id === activeModule);
+                  const catMeta = getCategoryMeta(group);
+                  const isCollapsed = !sidebarSearch.trim() && !!collapsedSidebarGroups[group];
+                  const hasActiveChild = groupFiltered.some((m) => m.id === activeModule);
 
-                return (
-                  <div key={group} className="space-y-1">
-                    {/* Interactive Category Header */}
-                    <button
-                      onClick={() =>
-                        setCollapsedSidebarGroups((prev) => ({
-                          ...prev,
-                          [group]: !prev[group]
-                        }))
-                      }
-                      className={`w-full px-2 py-1 rounded-md flex items-center justify-between gap-2 text-left transition-colors cursor-pointer group/cat ${
-                        hasActiveChild
-                          ? 'bg-slate-100/80 dark:bg-slate-800/40'
-                          : 'hover:bg-slate-100/50 dark:hover:bg-white/[0.03]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        {catMeta.svg}
-                        <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-[0.14em] truncate">
-                          {group}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={`text-[9px] font-mono font-bold ${catMeta.color}`}>
-                          {catMeta.symbol}
-                        </span>
-                        <span className="text-slate-300 dark:text-slate-700 text-[9px]">·</span>
-                        <span className="text-[9px] font-mono tabular-nums text-slate-400 dark:text-slate-500">
-                          {groupFiltered.length}
-                        </span>
-                        <ChevronDown
-                          className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
-                            isCollapsed ? '-rotate-90' : 'rotate-0'
-                          }`}
-                        />
-                      </div>
-                    </button>
+                  return (
+                    <div key={group} className="space-y-1">
+                      {/* Interactive Category Header */}
+                      <button
+                        onClick={() =>
+                          setCollapsedSidebarGroups((prev) => ({
+                            ...prev,
+                            [group]: !prev[group]
+                          }))
+                        }
+                        className={`w-full px-2 py-1 rounded-md flex items-center justify-between gap-2 text-left transition-colors cursor-pointer group/cat ${
+                          hasActiveChild
+                            ? 'bg-slate-100/80 dark:bg-slate-800/40'
+                            : 'hover:bg-slate-100/50 dark:hover:bg-white/[0.03]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {catMeta.svg}
+                          <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-[0.14em] truncate">
+                            {group}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`text-[9px] font-mono font-bold ${catMeta.color}`}>
+                            {catMeta.symbol}
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-700 text-[9px]">·</span>
+                          <span className="text-[9px] font-mono tabular-nums text-slate-400 dark:text-slate-500">
+                            {groupFiltered.length}
+                          </span>
+                          <ChevronDown
+                            className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${
+                              isCollapsed ? '-rotate-90' : 'rotate-0'
+                            }`}
+                          />
+                        </div>
+                      </button>
 
-                    {/* Category Modules */}
-                    {!isCollapsed && (
-                      <div className="space-y-0.5 pl-1 border-l border-slate-200/70 dark:border-slate-800/80 ml-2.5">
-                        {groupFiltered.map((m) => {
-                          const isActive = activeModule === m.id;
-                          const modMeta = getModuleScientificMeta(m.id);
-                          const isCyber = theme === 'cyberpunk';
+                      {/* Category Modules */}
+                      {!isCollapsed && (
+                        <div className="space-y-0.5 pl-1 border-l border-slate-200/70 dark:border-slate-800/80 ml-2.5">
+                          {groupFiltered.map((m) => {
+                            const isActive = activeModule === m.id;
+                            const modMeta = getModuleScientificMeta(m.id);
+                            const isCyber = theme === 'cyberpunk';
 
-                          return (
-                            <button
-                              key={m.id}
-                              onClick={() => {
-                                setActiveModule(m.id);
-                                playSynthTone('xrd_scan');
-                              }}
-                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 group relative flex items-center justify-between gap-2 cursor-pointer ${
-                                isActive
-                                  ? isCyber
-                                    ? 'bg-cyber-accent/20 text-cyber-accent border border-cyber-accent/50 shadow-[0_0_12px_rgba(0,255,159,0.2)]'
-                                    : 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/25'
-                                  : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100/90 dark:hover:bg-slate-800/60'
-                              }`}
-                              title={`${m.label} — ${modMeta.formula}`}
-                            >
-                              {isActive && (
-                                <span
-                                  className={`absolute -left-[5px] w-1 h-4 rounded-r-full ${
-                                    isCyber ? 'bg-cyber-accent shadow-[0_0_6px_#00ff9f]' : 'bg-indigo-500 dark:bg-indigo-400'
-                                  }`}
-                                />
-                              )}
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div
-                                  className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                                    isActive
-                                      ? isCyber
-                                        ? 'bg-cyber-accent/20'
-                                        : 'bg-white/15'
-                                      : 'bg-slate-100 dark:bg-slate-800/90 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/50'
-                                  }`}
-                                >
-                                  {getModuleIcon(m.id, isActive)}
-                                </div>
-                                <span className="truncate leading-tight">{m.label}</span>
-                              </div>
-
-                              <span
-                                className={`text-[9px] font-mono tabular-nums shrink-0 transition-colors ${
+                            return (
+                              <button
+                                key={m.id}
+                                onClick={() => {
+                                  setActiveModule(m.id);
+                                  playSynthTone('xrd_scan');
+                                }}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 group relative flex items-center justify-between gap-2 cursor-pointer ${
                                   isActive
                                     ? isCyber
-                                      ? 'text-cyber-accent font-bold'
-                                      : 'text-indigo-100 font-bold'
-                                    : 'text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+                                      ? 'bg-cyber-accent/20 text-cyber-accent border border-cyber-accent/50 shadow-[0_0_12px_rgba(0,255,159,0.2)]'
+                                      : 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/25'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100/90 dark:hover:bg-slate-800/60'
                                 }`}
+                                title={`${m.label} — ${modMeta.formula}`}
                               >
-                                {modMeta.symbol}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                                {isActive && (
+                                  <span
+                                    className={`absolute -left-[5px] w-1 h-4 rounded-r-full ${
+                                      isCyber ? 'bg-cyber-accent shadow-[0_0_6px_#00ff9f]' : 'bg-indigo-500 dark:bg-indigo-400'
+                                    }`}
+                                  />
+                                )}
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div
+                                    className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+                                      isActive
+                                        ? isCyber
+                                          ? 'bg-cyber-accent/20'
+                                          : 'bg-white/15'
+                                        : 'bg-slate-100 dark:bg-slate-800/90 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-950/50'
+                                    }`}
+                                  >
+                                    {getModuleIcon(m.id, isActive)}
+                                  </div>
+                                  <span className="truncate leading-tight">{m.label}</span>
+                                </div>
+
+                                <span
+                                  className={`text-[9px] font-mono tabular-nums shrink-0 transition-colors ${
+                                    isActive
+                                      ? isCyber
+                                        ? 'text-cyber-accent font-bold'
+                                        : 'text-indigo-100 font-bold'
+                                      : 'text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+                                  }`}
+                                >
+                                  {modMeta.symbol}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
 
             {/* Consolidated Lab Report Compiler & Instrument Telemetry Footer */}
@@ -2116,205 +2358,388 @@ const App: React.FC = () => {
               {/* Dynamic XRD Section Diffraction Scan Animation upon Section Click */}
               <XRDSectionScanAnimation activeModule={activeModule} theme={theme} />
 
+              {/* Plain-English Contextual Workflow Guide Bar */}
+              {activeModule !== 'profile' && activeModule !== 'settings' && (
+                <div className="mb-4 p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="flex items-start sm:items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 font-mono text-xs font-black">
+                      {activeModule === 'bragg'
+                        ? '1/5'
+                        : activeModule === 'selection'
+                        ? '2/5'
+                        : activeModule === 'fwhm'
+                        ? '3/5'
+                        : activeModule === 'scherrer'
+                        ? '4/5'
+                        : activeModule === 'database'
+                        ? '5/5'
+                        : getModuleScientificMeta(activeModule).symbol}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">
+                          {modules.find((m) => m.id === activeModule)?.label || activeModule}
+                        </h2>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          {getModuleScientificMeta(activeModule).formula}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                        {activeModule === 'bragg' &&
+                          'Step 1: Pick a reference standard or enter 2θ peak angles below to compute d-spacing (Å) and index (hkl) crystal planes.'}
+                        {activeModule === 'selection' &&
+                          'Step 2: Check which (hkl) reflections are allowed or forbidden by crystal symmetry (BCC, FCC, Diamond, Hexagonal).'}
+                        {activeModule === 'fwhm' &&
+                          'Step 3: Fit diffraction peaks to measure Full Width at Half Maximum (FWHM, β) and profile shape.'}
+                        {activeModule === 'scherrer' &&
+                          'Step 4: Estimate average nanocrystallite size D (nm) from peak broadening using the Scherrer equation.'}
+                        {activeModule === 'database' &&
+                          'Step 5: Search reference crystal phases by peak positions or chemical elements and sync with the Neural Network.'}
+                        {activeModule !== 'bragg' &&
+                          activeModule !== 'selection' &&
+                          activeModule !== 'fwhm' &&
+                          activeModule !== 'scherrer' &&
+                          activeModule !== 'database' &&
+                          'Adjust parameters on the left or top controls to update live crystallographic calculations and interactive plots.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExplained(false);
+                        playSynthTone('switch');
+                      }}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/70 hover:border-indigo-400 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                      title="Read the plain-English explanation and mathematical formulas for this tool"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>How This Works</span>
+                    </button>
+
+                    {/* Next Logical Step Button */}
+                    {(() => {
+                      const nextMap: Partial<Record<Module, { id: Module; label: string }>> = {
+                        bragg: { id: 'selection', label: 'Step 2: Selection Rules' },
+                        selection: { id: 'fwhm', label: 'Step 3: Peak Width (FWHM)' },
+                        fwhm: { id: 'scherrer', label: 'Step 4: Crystallite Size' },
+                        scherrer: { id: 'database', label: 'Step 5: Material Database' },
+                        database: { id: 'dl', label: 'AI Phase ID' }
+                      };
+                      const nextStep = nextMap[activeModule];
+                      if (!nextStep) return null;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveModule(nextStep.id);
+                            playSynthTone('switch');
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-colors"
+                        >
+                          <span>Next: {nextStep.label} →</span>
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
               <AnimatePresence mode="wait">
                   <motion.div
                     key={activeModule}
-                    initial={animationsEnabled ? { opacity: 0, scale: 0.93, y: 15, filter: 'blur(8px)' } : false}
-                    animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-                    exit={animationsEnabled ? { opacity: 0, scale: 0.97, y: -10, filter: 'blur(4px)' } : { opacity: 1 }}
+                    initial={animationsEnabled ? { opacity: 0, scale: 0.98, y: 8 } : false}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={animationsEnabled ? { opacity: 0, scale: 0.98, y: -6 } : { opacity: 1 }}
                     transition={{
-                      duration: 0.45,
+                      duration: 0.25,
                       ease: [0.16, 1, 0.3, 1],
                     }}
                     className="w-full origin-center"
                   >
                     <ErrorBoundary key={activeModule}>
                   {activeModule === 'bragg' && (
-                    displayMode === 'fullscreen' ? (
-                      /* Full-Screen Mode: Strict Functional Sequential Dependency Pipeline */
-                      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {/* Interactive Bragg Diffractometer Workbench (1-Click Standards, Anode Switcher, Auto-Indexer, Bidirectional Calculator) */}
-                        <InteractiveBraggWorkbench
-                          sampleId={sampleId}
-                          setSampleId={setSampleId}
-                          materialName={materialName}
-                          setMaterialName={setMaterialName}
-                          wavelength={wavelength}
-                          setWavelength={setWavelength}
-                          rawPeaks={rawPeaks}
-                          setRawPeaks={setRawPeaks}
-                          rawHKL={rawHKL}
-                          setRawHKL={setRawHKL}
-                          crystalSystem={crystalSystem}
-                          setCrystalSystem={setCrystalSystem}
-                          zeroShift={zeroShift}
-                          setZeroShift={setZeroShift}
-                          sampleDisplacement={sampleDisplacement}
-                          setSampleDisplacement={setSampleDisplacement}
-                          goniometerRadius={goniometerRadius}
-                          setGoniometerRadius={setGoniometerRadius}
-                          results={results}
-                          activePeakIndex={activeBraggPeakIndex}
-                          setActivePeakIndex={setActiveBraggPeakIndex}
-                          onSaveSnapshot={() => handleCalculate(true)}
-                          onJumpToModule={(mod) => setActiveModule(mod as Module)}
-                        />
-
-                        {/* Stage 1: Numerical Inputs & Goniometer Geometry */}
-                        <div id="stage-inputs" className="space-y-3">
-                          <WorkflowStageHeader 
-                            step={1} 
-                            totalSteps={5} 
-                            title={t('Stage 1: Numerical Inputs & Goniometer Geometry', 'Stage 1: Numerical Inputs & Goniometer Geometry')} 
-                            subtitle={t('Radiation source wavelength (λ), goniometer radius (R), instrument zero-offset, and 2θ reflection angles', 'Radiation source wavelength (λ), goniometer radius (R), instrument zero-offset, and 2θ reflection angles')} 
-                            badge="Inputs & Geometry" 
-                            badgeColor="indigo" 
-                            isComplete={results.length > 0} 
-                          />
-                          <div className="rounded-3xl bg-white/70 dark:bg-slate-900/70 border border-slate-200/80 dark:border-white/10 p-4 sm:p-6 shadow-xl backdrop-blur-md">
-                            <BraggInput 
-                              sampleId={sampleId}
-                              setSampleId={setSampleId}
-                              wavelength={wavelength}
-                              setWavelength={setWavelength}
-                              rawPeaks={rawPeaks}
-                              setRawPeaks={setRawPeaks}
-                              rawHKL={rawHKL}
-                              setRawHKL={setRawHKL}
-                              onCalculate={() => handleCalculate(true)}
-                              onBatchCalculate={handleBatchCalculate}
-                              zeroShift={zeroShift}
-                              setZeroShift={setZeroShift}
-                              sampleDisplacement={sampleDisplacement}
-                              setSampleDisplacement={setSampleDisplacement}
-                              goniometerRadius={goniometerRadius}
-                              setGoniometerRadius={setGoniometerRadius}
-                              isSimulationRunning={isSimulationRunning}
-                              simulationStep={simulationStep}
-                              isSaving={isSaving}
-                              lastAutosaved={lastAutosaved}
-                              crystalSystem={crystalSystem}
-                              setCrystalSystem={setCrystalSystem}
-                            />
-                          </div>
+                    <div className="space-y-5 animate-in fade-in duration-300">
+                      {/* Step-by-Step Workspace Navigation Bar for Bragg Module */}
+                      <div className="p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 shadow-xs flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {[
+                            {
+                              id: '1_input' as const,
+                              step: '1',
+                              label: 'Enter Peaks & Standards',
+                              badge: `${results.length} peaks`
+                            },
+                            {
+                              id: '2_visuals' as const,
+                              step: '2',
+                              label: 'Spectrum & 3D Ray Optics',
+                              badge: 'Interactive'
+                            },
+                            {
+                              id: '3_results' as const,
+                              step: '3',
+                              label: 'Results Table & Unit Cell',
+                              badge: crystalSystem
+                            },
+                            {
+                              id: '4_history' as const,
+                              step: '4',
+                              label: 'Saved History & Export',
+                              badge: `${braggHistory.length} saved`
+                            }
+                          ].map((tab) => {
+                            const isSelected = braggWorkspaceStep === tab.id;
+                            return (
+                              <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => {
+                                  setBraggWorkspaceStep(tab.id);
+                                  playSynthTone('switch');
+                                }}
+                                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                                  isSelected
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                }`}
+                              >
+                                <span
+                                  className={`w-5 h-5 rounded-md text-[10px] font-mono font-black flex items-center justify-center ${
+                                    isSelected
+                                      ? 'bg-white/20 text-white'
+                                      : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                                  }`}
+                                >
+                                  {tab.step}
+                                </span>
+                                <span>{tab.label}</span>
+                                <span
+                                  className={`hidden sm:inline text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                                    isSelected
+                                      ? 'bg-white/20 text-white'
+                                      : 'bg-slate-200/70 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400'
+                                  }`}
+                                >
+                                  {tab.badge}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
 
-                        {/* Stage 2: Operational Controls & Processing Console */}
-                        <div id="stage-operations" className="space-y-3">
-                          <WorkflowStageHeader 
-                            step={2} 
-                            totalSteps={5} 
-                            title={t('Stage 2: Operational Controls & Processing Console', 'Stage 2: Operational Controls & Processing Console')} 
-                            subtitle={t('Execute Bragg diffraction solver, run batch array evaluation, and review instrument calibration', 'Execute Bragg diffraction solver, run batch array evaluation, and review instrument calibration')} 
-                            badge="Live Reactive Engine" 
-                            badgeColor="cyan" 
-                            isComplete={results.length > 0} 
+                        <div className="flex items-center gap-2 ml-auto">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBraggWorkspaceStep((prev) => (prev === 'all' ? '1_input' : 'all'));
+                              playSynthTone('switch');
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer transition-colors ${
+                              braggWorkspaceStep === 'all'
+                                ? 'bg-indigo-500/15 border-indigo-500 text-indigo-600 dark:text-indigo-300 font-bold'
+                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                            title="Switch between step-by-step tabs and a single continuous page"
+                          >
+                            {braggWorkspaceStep === 'all' ? 'Step-by-Step View' : 'Show All on One Page'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* STEP 1: Interactive Bragg Workbench + Optional Collapsible Batch/Raw Input */}
+                      {(braggWorkspaceStep === '1_input' || braggWorkspaceStep === 'all') && (
+                        <div id="stage-inputs" className="space-y-4">
+                          <InteractiveBraggWorkbench
+                            sampleId={sampleId}
+                            setSampleId={setSampleId}
+                            materialName={materialName}
+                            setMaterialName={setMaterialName}
+                            wavelength={wavelength}
+                            setWavelength={setWavelength}
+                            rawPeaks={rawPeaks}
+                            setRawPeaks={setRawPeaks}
+                            rawHKL={rawHKL}
+                            setRawHKL={setRawHKL}
+                            crystalSystem={crystalSystem}
+                            setCrystalSystem={setCrystalSystem}
+                            zeroShift={zeroShift}
+                            setZeroShift={setZeroShift}
+                            sampleDisplacement={sampleDisplacement}
+                            setSampleDisplacement={setSampleDisplacement}
+                            goniometerRadius={goniometerRadius}
+                            setGoniometerRadius={setGoniometerRadius}
+                            results={results}
+                            activePeakIndex={activeBraggPeakIndex}
+                            setActivePeakIndex={setActiveBraggPeakIndex}
+                            onSaveSnapshot={() => handleCalculate(true)}
+                            onJumpToModule={(mod) => setActiveModule(mod as Module)}
                           />
-                          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-900/95 to-indigo-950/90 border border-cyan-500/30 shadow-xl backdrop-blur-md text-white">
-                            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                              {/* Real-time telemetry badges */}
-                              <div className="flex flex-wrap items-center gap-2.5">
-                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
-                                  <span className="text-slate-400">Radiation Source:</span>
-                                  <span className="font-bold text-cyan-400">λ = {wavelength.toFixed(5)} Å</span>
-                                </div>
-                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
-                                  <span className="text-slate-400">Zero Offset:</span>
-                                  <span className="font-bold text-emerald-400">{zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°</span>
-                                </div>
-                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
-                                  <span className="text-slate-400">Focused Peak:</span>
-                                  <span className="font-bold text-indigo-300">
-                                    {results[activeBraggPeakIndex]
-                                      ? `(${results[activeBraggPeakIndex].hkl || '?'}) @ ${results[activeBraggPeakIndex].twoTheta.toFixed(2)}°`
-                                      : 'None'}
+
+                          {/* Progressive Disclosure: Optional Raw Text / Batch CSV Input & Instrument Calibration */}
+                          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-xs">
+                            <button
+                              type="button"
+                              onClick={() => setShowAdvancedBraggInput((prev) => !prev)}
+                              className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Sliders className="w-4 h-4 text-indigo-500" />
+                                <div>
+                                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                    Raw Peak List Paste, Batch Multi-Sample Processing & Goniometer Offsets
+                                  </span>
+                                  <span className="hidden sm:inline text-xs text-slate-400 dark:text-slate-500 ml-2">
+                                    (Optional — use when pasting comma-separated peak lists or running batch jobs)
                                   </span>
                                 </div>
-                                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 font-mono text-xs flex items-center gap-2">
-                                  <span className="text-slate-400">Loaded Peaks:</span>
-                                  <span className="font-bold text-amber-400">{results.length} Indexed</span>
-                                </div>
                               </div>
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 shrink-0">
+                                <span>{showAdvancedBraggInput ? 'Hide Panel' : 'Expand Panel'}</span>
+                                <ChevronDown
+                                  className={`w-4 h-4 transition-transform ${
+                                    showAdvancedBraggInput ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </div>
+                            </button>
 
-                              {/* Direct execution triggers */}
-                              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                                <button
-                                  type="button"
-                                  onClick={() => handleCalculate(true)}
-                                  className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer hover:scale-[1.02] transition-all"
-                                >
-                                  <Zap className="w-4 h-4 text-cyan-200" />
-                                  <span>{t('Save Snapshot to History', 'Save Snapshot to History')}</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleGeneratePdf}
-                                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center gap-1.5 border border-white/10 cursor-pointer transition-colors"
-                                  title={t('Export Certified PDF Report', 'Export Certified PDF Report')}
-                                >
-                                  <FileDown className="w-3.5 h-3.5 text-indigo-300" />
-                                  <span>PDF Report</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleClearAll}
-                                  className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-rose-500/20 hover:text-rose-300 text-slate-400 font-bold text-xs flex items-center gap-1.5 border border-white/5 cursor-pointer transition-colors"
-                                  title={t('Reset inputs and calculated results', 'Reset inputs and calculated results')}
-                                >
-                                  <RotateCcw className="w-3.5 h-3.5" />
-                                  <span>Reset</span>
-                                </button>
+                            {showAdvancedBraggInput && (
+                              <div className="p-4 sm:p-6 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-950/40">
+                                <BraggInput
+                                  sampleId={sampleId}
+                                  setSampleId={setSampleId}
+                                  wavelength={wavelength}
+                                  setWavelength={setWavelength}
+                                  rawPeaks={rawPeaks}
+                                  setRawPeaks={setRawPeaks}
+                                  rawHKL={rawHKL}
+                                  setRawHKL={setRawHKL}
+                                  onCalculate={() => handleCalculate(true)}
+                                  onBatchCalculate={handleBatchCalculate}
+                                  zeroShift={zeroShift}
+                                  setZeroShift={setZeroShift}
+                                  sampleDisplacement={sampleDisplacement}
+                                  setSampleDisplacement={setSampleDisplacement}
+                                  goniometerRadius={goniometerRadius}
+                                  setGoniometerRadius={setGoniometerRadius}
+                                  isSimulationRunning={isSimulationRunning}
+                                  simulationStep={simulationStep}
+                                  isSaving={isSaving}
+                                  lastAutosaved={lastAutosaved}
+                                  crystalSystem={crystalSystem}
+                                  setCrystalSystem={setCrystalSystem}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {braggWorkspaceStep === '1_input' && (
+                            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50">
+                              <div className="text-xs text-slate-700 dark:text-slate-300">
+                                <strong>{results.length} reflections</strong> calculated at λ = {wavelength.toFixed(4)} Å. Ready to inspect the diffraction pattern and 3D ray optics?
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBraggWorkspaceStep('2_visuals');
+                                  playSynthTone('switch');
+                                }}
+                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors shrink-0"
+                              >
+                                Step 2: View Spectrum & Ray Optics →
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* STEP 2: Interactive Diffractogram & 3D Ray Visualizer */}
+                      {(braggWorkspaceStep === '2_visuals' || braggWorkspaceStep === 'all') && (
+                        <div id="stage-visualizer" className="space-y-4">
+                          {/* Quick Peak Selector Strip */}
+                          {results.length > 0 && (
+                            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                Click a peak to aim the 3D X-Ray Goniometer:
+                              </span>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {results.map((r, idx) => {
+                                  const isAct = idx === activeBraggPeakIndex;
+                                  return (
+                                    <button
+                                      key={`vis-pk-${idx}-${r.twoTheta}`}
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveBraggPeakIndex(idx);
+                                        playSynthTone('tick');
+                                      }}
+                                      className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer border ${
+                                        isAct
+                                          ? 'bg-emerald-600 text-white border-emerald-500 font-bold'
+                                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500/50'
+                                      }`}
+                                    >
+                                      ({r.hkl || idx + 1}) {r.twoTheta.toFixed(2)}° → d={r.dSpacing.toFixed(3)}Å
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </div>
-                          </div>
-                        </div>
+                          )}
 
-                        {/* Stage 3: High-Refresh 120 FPS Visualizer & Diffraction Profile */}
-                        <div id="stage-visualizer" className="space-y-3">
-                          <WorkflowStageHeader 
-                            step={3} 
-                            totalSteps={5} 
-                            title={t('Stage 3: High-Refresh 120 FPS Visualizer & Diffraction Profile', 'Stage 3: High-Refresh 120 FPS Visualizer & Diffraction Profile')} 
-                            subtitle={t('Sub-8ms real-time ray-tracing goniometer and high-precision interactive spectrum chart', 'Sub-8ms real-time ray-tracing goniometer and high-precision interactive spectrum chart')} 
-                            badge="120 FPS Interactive" 
-                            badgeColor="emerald" 
-                            isComplete={results.length > 0} 
-                          />
-                          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-                            <div className="xl:col-span-5">
+                          <div className={displayMode === 'fullscreen' ? 'grid grid-cols-1 xl:grid-cols-12 gap-6 items-start' : 'space-y-4'}>
+                            <div className={displayMode === 'fullscreen' ? 'xl:col-span-5' : ''}>
                               <Suspense fallback={<ModuleLoadingFallback />}>
-                                <BraggVisualization 
-                                  wavelength={wavelength} 
-                                  twoTheta={results[activeBraggPeakIndex]?.twoTheta ?? results[0]?.twoTheta ?? 28.44} 
+                                <BraggVisualization
+                                  wavelength={wavelength}
+                                  twoTheta={results[activeBraggPeakIndex]?.twoTheta ?? results[0]?.twoTheta ?? 28.44}
                                 />
                               </Suspense>
                             </div>
-                            <div className="xl:col-span-7">
+                            <div className={displayMode === 'fullscreen' ? 'xl:col-span-7' : ''}>
                               <Suspense fallback={<ModuleLoadingFallback />}>
-                                <DiffractionChart 
-                                  results={results} 
-                                  materialName={materialName} 
-                                  wavelength={wavelength} 
-                                  onResultsChange={setResults} 
+                                <DiffractionChart
+                                  results={results}
+                                  materialName={materialName}
+                                  wavelength={wavelength}
+                                  onResultsChange={setResults}
                                 />
                               </Suspense>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Stage 4: Quantitative Results & Lattice Refinement */}
-                        <div id="stage-results" className="space-y-3">
-                          <WorkflowStageHeader 
-                            step={4} 
-                            totalSteps={5} 
-                            title={t('Stage 4: Quantitative Results & Lattice Parameter Refinement', 'Stage 4: Quantitative Results & Lattice Parameter Refinement')} 
-                            subtitle={t('Calculated interplanar d-spacing (Å), scattering vectors Q (Å⁻¹), and unit cell indexing', 'Calculated interplanar d-spacing (Å), scattering vectors Q (Å⁻¹), and unit cell indexing')} 
-                            badge="Quantitative Data" 
-                            badgeColor="amber" 
-                            isComplete={results.length > 0} 
-                          />
+                          {braggWorkspaceStep === '2_visuals' && (
+                            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50">
+                              <button
+                                type="button"
+                                onClick={() => setBraggWorkspaceStep('1_input')}
+                                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                              >
+                                ← Back to Step 1 (Inputs)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBraggWorkspaceStep('3_results');
+                                  playSynthTone('switch');
+                                }}
+                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors"
+                              >
+                                Step 3: View Results Table & Unit Cell Solver →
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* STEP 3: Quantitative Results Table & Unit Cell Lattice Solver */}
+                      {(braggWorkspaceStep === '3_results' || braggWorkspaceStep === 'all') && (
+                        <div id="stage-results" className="space-y-5">
                           <Suspense fallback={<ModuleLoadingFallback />}>
-                            <ResultsTable 
+                            <ResultsTable
                               results={results}
                               activePeakIndex={activeBraggPeakIndex}
                               onSelectPeakIndex={setActiveBraggPeakIndex}
@@ -2324,248 +2749,112 @@ const App: React.FC = () => {
                                 setActiveModule('compare');
                               }}
                             />
-                            <div className="mt-6">
+                            <div className="mt-5">
                               <LatticeEstimator results={results} />
                             </div>
                           </Suspense>
-                        </div>
 
-                        {/* Stage 5: Engine Data Link & Audit Archives */}
-                        <div id="stage-history" className="space-y-3">
-                          <WorkflowStageHeader 
-                            step={5} 
-                            totalSteps={5} 
-                            title={t('Stage 5: Engine Data Link & Historical Audit Trail', 'Stage 5: Engine Data Link & Historical Audit Trail')} 
-                            subtitle={t('Strict JSON export and reproducible calculation history with point-in-time restore points', 'Strict JSON export and reproducible calculation history with point-in-time restore points')} 
-                            badge="Data & Archives" 
-                            badgeColor="purple" 
-                            isComplete={braggHistory.length > 0} 
-                          />
-                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                            <div className="lg:col-span-6">
-                              <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
-                                <BraggHistory 
-                                  history={braggHistory} 
-                                  onRestore={restoreHistory} 
-                                  onClear={clearHistory} 
-                                />
-                              </Suspense>
-                            </div>
-                            <div className="lg:col-span-6">
-                              <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-800 dark:border-white/5 ring-1 ring-white/10">
-                                 <div className="flex justify-between items-center mb-3">
-                                   <div className="flex items-center gap-2">
-                                     <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                                     <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Engine Data Link (Strict JSON)</span>
-                                   </div>
-                                   <button 
-                                     onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
-                                     className="text-[10px] text-white/60 hover:text-white transition-colors bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md font-mono cursor-pointer"
-                                   >
-                                     Copy Strict JSON
-                                   </button>
-                                 </div>
-                                 <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-56 scrollbar-thin scrollbar-thumb-slate-700 p-2 bg-black/40 rounded-xl">
-                                    {JSON.stringify(braggJsonOutput, null, 2)}
-                                 </pre>
+                          {braggWorkspaceStep === '3_results' && (
+                            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50">
+                              <button
+                                type="button"
+                                onClick={() => setBraggWorkspaceStep('2_visuals')}
+                                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                              >
+                                ← Back to Step 2 (Spectrum)
+                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBraggWorkspaceStep('4_history');
+                                    playSynthTone('switch');
+                                  }}
+                                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors"
+                                >
+                                  Step 4: Saved History & Export →
+                                </button>
                               </div>
                             </div>
-                          </div>
+                          )}
                         </div>
-                      </div>
-                    ) : (
-                      /* Half-Screen Mode (50% Split Width Multitasking Flow) */
-                      <div className="space-y-6 animate-in fade-in duration-300">
-                        <InteractiveBraggWorkbench
-                          sampleId={sampleId}
-                          setSampleId={setSampleId}
-                          materialName={materialName}
-                          setMaterialName={setMaterialName}
-                          wavelength={wavelength}
-                          setWavelength={setWavelength}
-                          rawPeaks={rawPeaks}
-                          setRawPeaks={setRawPeaks}
-                          rawHKL={rawHKL}
-                          setRawHKL={setRawHKL}
-                          crystalSystem={crystalSystem}
-                          setCrystalSystem={setCrystalSystem}
-                          zeroShift={zeroShift}
-                          setZeroShift={setZeroShift}
-                          sampleDisplacement={sampleDisplacement}
-                          setSampleDisplacement={setSampleDisplacement}
-                          goniometerRadius={goniometerRadius}
-                          setGoniometerRadius={setGoniometerRadius}
-                          results={results}
-                          activePeakIndex={activeBraggPeakIndex}
-                          setActivePeakIndex={setActiveBraggPeakIndex}
-                          onSaveSnapshot={() => handleCalculate(true)}
-                          onJumpToModule={(mod) => setActiveModule(mod as Module)}
-                        />
+                      )}
 
-                        {/* Stage 1: Numerical Inputs & Parameters */}
-                        <div id="stage-inputs" className="space-y-2">
-                          <WorkflowStageHeader 
-                            step={1} 
-                            totalSteps={5} 
-                            title={t('Stage 1: Inputs & Goniometer Geometry', 'Stage 1: Inputs & Goniometer Geometry')} 
-                            badge="Inputs" 
-                            badgeColor="indigo" 
-                            isComplete={results.length > 0} 
-                          />
-                          <div className="rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 p-3 sm:p-4 shadow-md backdrop-blur-md">
-                            <BraggInput 
-                              sampleId={sampleId}
-                              setSampleId={setSampleId}
-                              wavelength={wavelength}
-                              setWavelength={setWavelength}
-                              rawPeaks={rawPeaks}
-                              setRawPeaks={setRawPeaks}
-                              rawHKL={rawHKL}
-                              setRawHKL={setRawHKL}
-                              onCalculate={() => handleCalculate(true)}
-                              onBatchCalculate={handleBatchCalculate}
-                              zeroShift={zeroShift}
-                              setZeroShift={setZeroShift}
-                              sampleDisplacement={sampleDisplacement}
-                              setSampleDisplacement={setSampleDisplacement}
-                              goniometerRadius={goniometerRadius}
-                              setGoniometerRadius={setGoniometerRadius}
-                              isSimulationRunning={isSimulationRunning}
-                              simulationStep={simulationStep}
-                              isSaving={isSaving}
-                              lastAutosaved={lastAutosaved}
-                              crystalSystem={crystalSystem}
-                              setCrystalSystem={setCrystalSystem}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Stage 2: Operational Controls & Processing Console */}
-                        <div id="stage-operations" className="space-y-2">
-                          <WorkflowStageHeader 
-                            step={2} 
-                            totalSteps={5} 
-                            title={t('Stage 2: Operational Controls', 'Stage 2: Operational Controls')} 
-                            badge="Operations" 
-                            badgeColor="cyan" 
-                            isComplete={results.length > 0} 
-                          />
-                          <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-cyan-500/30 text-white space-y-3">
-                            <div className="flex items-center justify-between text-xs font-mono">
-                              <span className="text-slate-400">λ: <strong className="text-cyan-400">{wavelength.toFixed(4)} Å</strong></span>
-                              <span className="text-slate-400">Zero: <strong className="text-emerald-400">{zeroShift}°</strong></span>
-                              <span className="text-slate-400">Peaks: <strong className="text-amber-400">{results.length}</strong></span>
+                      {/* STEP 4: Saved Calculation History & PDF/JSON Export */}
+                      {(braggWorkspaceStep === '4_history' || braggWorkspaceStep === 'all') && (
+                        <div id="stage-history" className="space-y-4">
+                          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                                Save Snapshot & Export Lab Report
+                              </h3>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Save your current peaks to history or generate a formatted PDF diffraction report.
+                              </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleCalculate(true)}
-                                className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                               >
-                                <Zap className="w-3.5 h-3.5 text-cyan-200" />
-                                <span>{t('Save Snapshot', 'Save Snapshot')}</span>
+                                <Zap className="w-3.5 h-3.5" />
+                                <span>Save Current Snapshot</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleGeneratePdf}
+                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                              >
+                                <FileDown className="w-3.5 h-3.5" />
+                                <span>Download PDF Report</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={handleClearAll}
-                                className="py-2 px-3 rounded-xl bg-white/10 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/15 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                               >
                                 <RotateCcw className="w-3.5 h-3.5" />
-                                <span>Reset</span>
+                                <span>Reset Inputs</span>
                               </button>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Stage 3: Visualizer & Spectrum */}
-                        <div id="stage-visualizer" className="space-y-2">
-                          <WorkflowStageHeader 
-                            step={3} 
-                            totalSteps={5} 
-                            title={t('Stage 3: 120 FPS Visualizer & Spectrum', 'Stage 3: 120 FPS Visualizer & Spectrum')} 
-                            badge="Visualizer" 
-                            badgeColor="emerald" 
-                            isComplete={results.length > 0} 
-                          />
-                          <Suspense fallback={<ModuleLoadingFallback />}>
-                            <div className="space-y-4">
-                              <BraggVisualization 
-                                wavelength={wavelength} 
-                                twoTheta={results[activeBraggPeakIndex]?.twoTheta ?? results[0]?.twoTheta ?? 28.44} 
-                              />
-                              <DiffractionChart 
-                                results={results} 
-                                materialName={materialName} 
-                                wavelength={wavelength} 
-                                onResultsChange={setResults} 
-                              />
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                            <div className="lg:col-span-6">
+                              <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
+                                <BraggHistory
+                                  history={braggHistory}
+                                  onRestore={restoreHistory}
+                                  onClear={clearHistory}
+                                />
+                              </Suspense>
                             </div>
-                          </Suspense>
-                        </div>
-
-                        {/* Stage 4: Results & Lattice Solver */}
-                        <div id="stage-results" className="space-y-2">
-                          <WorkflowStageHeader 
-                            step={4} 
-                            totalSteps={5} 
-                            title={t('Stage 4: Quantitative Results & Lattice', 'Stage 4: Quantitative Results & Lattice')} 
-                            badge="Results" 
-                            badgeColor="amber" 
-                            isComplete={results.length > 0} 
-                          />
-                          <Suspense fallback={<ModuleLoadingFallback />}>
-                            <div className="space-y-4">
-                              <ResultsTable 
-                                results={results}
-                                activePeakIndex={activeBraggPeakIndex}
-                                onSelectPeakIndex={setActiveBraggPeakIndex}
-                                onExportCompare={(selectedResults) => {
-                                  setComparePeaks(selectedResults);
-                                  setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
-                                  setActiveModule('compare');
-                                }}
-                              />
-                              <LatticeEstimator results={results} />
-                            </div>
-                          </Suspense>
-                        </div>
-
-                        {/* Stage 5: Archives & JSON Data */}
-                        <div id="stage-history" className="space-y-2">
-                          <WorkflowStageHeader 
-                            step={5} 
-                            totalSteps={5} 
-                            title={t('Stage 5: History & Engine Data', 'Stage 5: History & Engine Data')} 
-                            badge="Archives" 
-                            badgeColor="purple" 
-                            isComplete={braggHistory.length > 0} 
-                          />
-                          <div className="space-y-4">
-                            <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
-                              <BraggHistory 
-                                history={braggHistory} 
-                                onRestore={restoreHistory} 
-                                onClear={clearHistory} 
-                              />
-                            </Suspense>
-                            <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-800 dark:border-white/5">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest font-mono">Engine Data Link</span>
-                                <button 
-                                  onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
-                                  className="text-[10px] text-white/60 hover:text-white transition-colors bg-white/10 px-2 py-1 rounded cursor-pointer"
-                                >
-                                  Copy JSON
-                                </button>
+                            <div className="lg:col-span-6">
+                              <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-xl border border-slate-800 dark:border-white/5">
+                                <div className="flex justify-between items-center mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                                      Structured JSON Data Output
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
+                                    className="text-[10px] text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md font-mono cursor-pointer"
+                                  >
+                                    Copy JSON
+                                  </button>
+                                </div>
+                                <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-56 p-2.5 bg-black/40 rounded-xl">
+                                  {JSON.stringify(braggJsonOutput, null, 2)}
+                                </pre>
                               </div>
-                              <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-40 scrollbar-thin scrollbar-thumb-slate-700 p-2 bg-black/40 rounded-lg">
-                                {JSON.stringify(braggJsonOutput, null, 2)}
-                              </pre>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )
+                      )}
+                    </div>
                   )}
 
                   <Suspense fallback={<ModuleLoadingFallback />}>

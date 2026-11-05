@@ -261,34 +261,34 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
   const harmonicsTable = result?.harmonicsTable || [];
 
   return (
-    <div className="bg-slate-900/90 rounded-2xl border border-white/10 p-5 space-y-4 shadow-xl">
+    <div className="bg-[#0B0F17] rounded-2xl border border-slate-800 p-5 space-y-4 shadow-xl">
       {/* Header with Mode Toggle & Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-white/5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-800/80">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+            <span className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
               <Binary className="w-4 h-4" />
             </span>
             <h4 className="text-base font-semibold text-slate-100 tracking-tight">
               Fourier Harmonic Coefficients Editor
             </h4>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono border border-white/5">
-              {points.length} Harmonics
+            <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-900 text-slate-300 font-mono tabular-nums border border-slate-800">
+              {points.length} L-steps
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Edit harmonic decay coefficients $A_n(L)$, inspect live Stokes deconvolution, and eliminate Hook effect artifacts.
+            Edit cosine harmonic decay coefficients Aₙ(L), inspect live Stokes deconvolution, and test Hook-effect tangent linearization.
           </p>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Mode Switcher */}
-          <div className="flex p-1 bg-slate-950/80 rounded-xl border border-white/5 text-xs">
+          <div className="flex p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs">
             <button
               onClick={() => setEditorMode('grid')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 editorMode === 'grid'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -299,7 +299,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
               onClick={() => setEditorMode('raw_text')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
                 editorMode === 'raw_text'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  ? 'bg-indigo-600 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -310,7 +310,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
 
           <button
             onClick={onOpenPeakConverter}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs font-medium transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs font-medium transition-all"
             title="Synthesize Fourier coefficients from 2θ peak profiles or instrumental standards"
           >
             <Wand2 className="w-3.5 h-3.5" />
@@ -324,14 +324,14 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={handleAddRow}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-white/5 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-lg border border-slate-800 transition-all"
           >
             <Plus className="w-3.5 h-3.5 text-indigo-400" />
             Add Row
           </button>
           <button
             onClick={handleNormalizeA0}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-white/5 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-lg border border-slate-800 transition-all"
             title="Normalize all orders so max A is 1.0"
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
@@ -339,7 +339,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
           </button>
           <button
             onClick={handleMonotonicFilter}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-white/5 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-lg border border-slate-800 transition-all"
             title="Clamp unphysical positive fluctuations to enforce monotonic Fourier decay"
           >
             <TrendingDown className="w-3.5 h-3.5 text-cyan-400" />
@@ -347,28 +347,28 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
           </button>
           <button
             onClick={() => setGridGeneratorOpen(!gridGeneratorOpen)}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-white/5 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-lg border border-slate-800 transition-all"
           >
             <Sparkles className="w-3.5 h-3.5 text-rose-400" />
             Generate Grid
           </button>
           <button
             onClick={handleInjectTestHookArtifact}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg border border-amber-500/20 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 rounded-lg border border-amber-500/25 transition-all"
             title="Simulate background over-subtraction / tail truncation at L ≤ 2 nm to test automatic Hook-effect tangent correction"
           >
             <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-            Test Hook Artifact
+            Simulate Hook Artifact
           </button>
         </div>
 
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-white/5 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-lg border border-slate-800 transition-all"
           >
             {copiedData ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            {copiedData ? 'Copied' : 'Copy'}
+            {copiedData ? 'Copied' : 'Copy CSV'}
           </button>
         </div>
       </div>
@@ -380,7 +380,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="p-4 bg-slate-950/70 rounded-xl border border-indigo-500/20 space-y-3"
+            className="p-4 bg-slate-950 rounded-xl border border-indigo-500/25 space-y-3"
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-indigo-300 flex items-center gap-1.5">
@@ -401,7 +401,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                   type="number"
                   value={gridStartL}
                   onChange={(e) => setGridStartL(Math.max(1, parseFloat(e.target.value) || 1))}
-                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:border-indigo-500"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono tabular-nums focus:border-indigo-500"
                 />
               </div>
               <div>
@@ -410,7 +410,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                   type="number"
                   value={gridEndL}
                   onChange={(e) => setGridEndL(Math.max(gridStartL + 1, parseFloat(e.target.value) || 30))}
-                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:border-indigo-500"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono tabular-nums focus:border-indigo-500"
                 />
               </div>
               <div>
@@ -419,7 +419,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                   type="number"
                   value={gridStepL}
                   onChange={(e) => setGridStepL(Math.max(0.5, parseFloat(e.target.value) || 2))}
-                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:border-indigo-500"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono tabular-nums focus:border-indigo-500"
                 />
               </div>
               <div>
@@ -428,7 +428,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                   type="number"
                   value={gridSizeNm}
                   onChange={(e) => setGridSizeNm(Math.max(5, parseFloat(e.target.value) || 25))}
-                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:border-indigo-500"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono tabular-nums focus:border-indigo-500"
                 />
               </div>
               <div>
@@ -438,14 +438,14 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                   step="0.0005"
                   value={gridStrain}
                   onChange={(e) => setGridStrain(Math.max(0, parseFloat(e.target.value) || 0.002))}
-                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:border-indigo-500"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono tabular-nums focus:border-indigo-500"
                 />
               </div>
             </div>
             <div className="flex justify-end">
               <button
                 onClick={handleGenerateUniformGrid}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg shadow-lg shadow-indigo-600/30 transition-all"
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg shadow-sm transition-all"
               >
                 Apply Generated Harmonic Series
               </button>
@@ -456,30 +456,32 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
 
       {/* Main Content Area */}
       {editorMode === 'grid' ? (
-        <div className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950/60 max-h-[420px] overflow-y-auto">
+        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/80 max-h-[420px] overflow-y-auto custom-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
-            <thead className="bg-slate-900/90 sticky top-0 z-10 text-[11px] font-semibold text-slate-300 uppercase tracking-wider border-b border-white/10">
+            <thead className="bg-slate-900 sticky top-0 z-10 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
               <tr>
-                <th className="py-2.5 px-3 text-center w-12">Active</th>
+                <th className="py-2.5 px-3 text-center w-12">Use</th>
                 <th className="py-2.5 px-3">L (nm)</th>
-                <th className="py-2.5 px-3">Order 1 (d={d1.toFixed(3)}Å)</th>
-                <th className="py-2.5 px-3">Order 2 (d={d2.toFixed(3)}Å)</th>
-                {d3 && <th className="py-2.5 px-3">Order 3 (d={d3.toFixed(3)}Å)</th>}
-                {d4 && <th className="py-2.5 px-3">Order 4 (d={d4.toFixed(3)}Å)</th>}
-                <th className="py-2.5 px-3 text-indigo-300 bg-indigo-950/30">Pure A_S(L)</th>
-                <th className="py-2.5 px-3 text-emerald-300 bg-emerald-950/30">RMS Strain</th>
-                <th className="py-2.5 px-3 text-center w-16">Action</th>
+                <th className="py-2.5 px-3 text-sky-400">Order 1 (d₁={d1.toFixed(3)}Å)</th>
+                <th className="py-2.5 px-3 text-purple-400">Order 2 (d₂={d2.toFixed(3)}Å)</th>
+                {d3 && <th className="py-2.5 px-3 text-emerald-400">Order 3 (d₃={d3.toFixed(3)}Å)</th>}
+                {d4 && <th className="py-2.5 px-3 text-amber-400">Order 4 (d₄={d4.toFixed(3)}Å)</th>}
+                <th className="py-2.5 px-3 text-rose-300 bg-rose-950/20">Pure Size A_S(L)</th>
+                <th className="py-2.5 px-3 text-cyan-300 bg-cyan-950/20">RMS Strain ⟨ε_L²⟩½</th>
+                <th className="py-2.5 px-3 text-center w-12">Del</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 font-mono">
+            <tbody className="divide-y divide-slate-800/70 font-mono tabular-nums">
               {points.map((pt, idx) => {
                 const decon = harmonicsTable.find(h => Math.abs(h.L_nm - pt.L_nm) < 1e-4);
                 const isExcluded = pt.isExcluded;
+                const aSizePct = decon ? Math.max(0, Math.min(100, decon.A_size * 100)) : 0;
+                const strainPct = decon ? Math.max(0, Math.min(100, (decon.rmsStrain / 0.008) * 100)) : 0;
 
                 return (
                   <tr 
                     key={idx} 
-                    className={`transition-colors hover:bg-white/[0.02] ${
+                    className={`transition-colors hover:bg-slate-900/60 ${
                       isExcluded ? 'opacity-40 bg-rose-950/10' : ''
                     }`}
                   >
@@ -505,34 +507,44 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                         step="0.5"
                         value={pt.L_nm}
                         onChange={(e) => handleCellChange(idx, 'L_nm', parseFloat(e.target.value) || 0)}
-                        className="w-16 bg-slate-900 border border-white/10 rounded px-2 py-1 text-slate-100 font-mono focus:border-indigo-500 text-xs"
+                        className="w-16 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-100 font-mono tabular-nums focus:border-indigo-500 text-xs"
                       />
                     </td>
 
                     {/* A1 */}
                     <td className="py-2 px-3">
-                      <input
-                        type="number"
-                        step="0.005"
-                        max="1.0"
-                        min="0.0"
-                        value={pt.A1}
-                        onChange={(e) => handleCellChange(idx, 'A1', parseFloat(e.target.value) || 0)}
-                        className="w-20 bg-slate-900 border border-white/10 rounded px-2 py-1 text-slate-100 font-mono focus:border-indigo-500 text-xs"
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.005"
+                          max="1.0"
+                          min="0.0"
+                          value={pt.A1}
+                          onChange={(e) => handleCellChange(idx, 'A1', parseFloat(e.target.value) || 0)}
+                          className="w-20 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-sky-300 font-mono tabular-nums focus:border-sky-500 text-xs"
+                        />
+                        <div className="hidden xl:block w-10 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                          <div className="h-full bg-sky-500/70" style={{ width: `${Math.min(100, Math.max(0, pt.A1 * 100))}%` }} />
+                        </div>
+                      </div>
                     </td>
 
                     {/* A2 */}
                     <td className="py-2 px-3">
-                      <input
-                        type="number"
-                        step="0.005"
-                        max="1.0"
-                        min="0.0"
-                        value={pt.A2}
-                        onChange={(e) => handleCellChange(idx, 'A2', parseFloat(e.target.value) || 0)}
-                        className="w-20 bg-slate-900 border border-white/10 rounded px-2 py-1 text-slate-100 font-mono focus:border-indigo-500 text-xs"
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.005"
+                          max="1.0"
+                          min="0.0"
+                          value={pt.A2}
+                          onChange={(e) => handleCellChange(idx, 'A2', parseFloat(e.target.value) || 0)}
+                          className="w-20 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-purple-300 font-mono tabular-nums focus:border-purple-500 text-xs"
+                        />
+                        <div className="hidden xl:block w-10 h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-500/70" style={{ width: `${Math.min(100, Math.max(0, pt.A2 * 100))}%` }} />
+                        </div>
+                      </div>
                     </td>
 
                     {/* A3 */}
@@ -545,7 +557,7 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                           min="0.0"
                           value={pt.A3 ?? 0.001}
                           onChange={(e) => handleCellChange(idx, 'A3', parseFloat(e.target.value) || 0)}
-                          className="w-20 bg-slate-900 border border-white/10 rounded px-2 py-1 text-slate-100 font-mono focus:border-indigo-500 text-xs"
+                          className="w-20 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-emerald-300 font-mono tabular-nums focus:border-emerald-500 text-xs"
                         />
                       </td>
                     )}
@@ -560,19 +572,33 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
                           min="0.0"
                           value={pt.A4 ?? 0.001}
                           onChange={(e) => handleCellChange(idx, 'A4', parseFloat(e.target.value) || 0)}
-                          className="w-20 bg-slate-900 border border-white/10 rounded px-2 py-1 text-slate-100 font-mono focus:border-indigo-500 text-xs"
+                          className="w-20 bg-slate-900 border border-slate-800 rounded px-2 py-1 text-amber-300 font-mono tabular-nums focus:border-amber-500 text-xs"
                         />
                       </td>
                     )}
 
-                    {/* Deconvolved Pure Size A_S(L) */}
-                    <td className="py-2 px-3 bg-indigo-950/20 text-indigo-300 font-medium">
-                      {decon ? decon.A_size.toFixed(4) : '---'}
+                    {/* Deconvolved Pure Size A_S(L) with Sparkbar */}
+                    <td className="py-2 px-3 bg-rose-950/15 text-rose-300 font-medium">
+                      {decon ? (
+                        <div className="flex items-center gap-2">
+                          <span className="w-14">{decon.A_size.toFixed(4)}</span>
+                          <div className="w-12 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                            <div className="h-full bg-rose-500" style={{ width: `${aSizePct}%` }} />
+                          </div>
+                        </div>
+                      ) : '---'}
                     </td>
 
-                    {/* Live RMS Strain */}
-                    <td className="py-2 px-3 bg-emerald-950/20 text-emerald-300 font-medium">
-                      {decon ? decon.rmsStrain.toExponential(3) : '---'}
+                    {/* Live RMS Strain with Sparkbar */}
+                    <td className="py-2 px-3 bg-cyan-950/15 text-cyan-300 font-medium">
+                      {decon ? (
+                        <div className="flex items-center gap-2">
+                          <span className="w-16">{(decon.rmsStrain * 100).toFixed(3)}%</span>
+                          <div className="w-10 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                            <div className="h-full bg-cyan-400" style={{ width: `${strainPct}%` }} />
+                          </div>
+                        </div>
+                      ) : '---'}
                     </td>
 
                     {/* Delete Action */}
@@ -597,10 +623,10 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
             value={inputData}
             onChange={(e) => onChangeInputData(e.target.value)}
             rows={12}
-            className="w-full bg-slate-950/80 border border-white/10 rounded-xl p-3 text-xs font-mono text-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-y leading-relaxed"
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono tabular-nums text-slate-200 focus:border-indigo-500 outline-none resize-y leading-relaxed"
             placeholder="# L[nm], A(d1), A(d2), [A(d3), A(d4)]&#10;1, 0.985, 0.952&#10;2, 0.960, 0.895&#10;! 4, 0.901, 0.774  (prefix with ! to exclude)"
           />
-          <div className="flex items-center justify-between text-[11px] text-slate-400">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
             <span>Syntax: <code className="text-indigo-300">L, A1, A2 [, A3, A4]</code> &bull; Prefix line with <code className="text-rose-400">!</code> to exclude outlier</span>
             <span>{points.length} data points recognized</span>
           </div>
@@ -609,19 +635,19 @@ export const WarrenAverbachHarmonicsManager: React.FC<WarrenAverbachHarmonicsMan
 
       {/* Diagnostics Bar */}
       {result?.hookDiagnostics && (
-        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-950/50 rounded-xl border border-white/5 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs">
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${result.hookDiagnostics.hookDetected ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></span>
             <span className="text-slate-300">
               Hook Effect Diagnostic: {result.hookDiagnostics.hookDetected ? (
-                <strong className="text-amber-400 font-medium">Hook Artifact Detected (A₀* = {result.hookDiagnostics.extrapolatedIntercept.toFixed(3)})</strong>
+                <strong className="text-amber-400 font-medium font-mono">Hook Artifact Detected (A₀* = {result.hookDiagnostics.extrapolatedIntercept.toFixed(3)})</strong>
               ) : (
-                <strong className="text-emerald-400 font-medium">Physically Well-Behaved Decay (A₀ ≈ 1.00)</strong>
+                <strong className="text-emerald-400 font-medium font-mono">Physically Well-Behaved Decay (A₀ ≈ 1.00)</strong>
               )}
             </span>
           </div>
-          <div className="text-slate-400 font-mono text-[11px]">
-            Apparent ⟨D⟩_A: <span className="text-slate-200">{result.hookDiagnostics.apparentSizeDaNm.toFixed(1)} nm</span>
+          <div className="text-slate-400 font-mono tabular-nums text-[11px]">
+            Apparent ⟨D⟩_A: <span className="text-slate-200 font-bold">{result.hookDiagnostics.apparentSizeDaNm.toFixed(1)} nm</span>
           </div>
         </div>
       )}

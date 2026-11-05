@@ -1163,6 +1163,7 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
                 setShowSampleDropdown((prev) => !prev);
                 playSynthTone('switch');
               }}
+              aria-label="Load reference sample dataset"
               className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
                 showSampleDropdown
                   ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400'
@@ -1171,7 +1172,7 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
               title={t('Load pre-configured standard diffraction datasets', 'Load pre-configured standard diffraction datasets')}
             >
               <FlaskConical className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="hidden xl:inline">{t('Standards', 'Standards')}</span>
+              <span className="hidden md:inline">{t('Load Sample', 'Load Sample')}</span>
               <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${showSampleDropdown ? 'rotate-180' : ''}`} />
             </button>
 
@@ -1230,22 +1231,26 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
                 setIsExplained(false);
                 playSynthTone('switch');
               }}
+              aria-label="Open theory and formula guide"
               className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300 hover:border-slate-300 dark:hover:border-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap"
               title={t('Open theoretical principles and formulas for this module', 'Open theoretical principles and formulas')}
             >
               <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-              <span className="hidden xl:inline">{t('Theory', 'Theory')}</span>
+              <span className="hidden md:inline">{t('Guide', 'Guide')}</span>
             </button>
           )}
 
           {/* 3. Display Mode Switcher (Full-Screen vs Half-Screen Mode) */}
-          <DisplayModeSwitcher compact={true} />
+          <div className="hidden xl:block">
+            <DisplayModeSwitcher compact={true} />
+          </div>
 
           {/* 4. Quick Modules Strip Toggle Button */}
           {onToggleQuickRibbon && (
             <button
               onClick={onToggleQuickRibbon}
-              className={`p-1.5 rounded-lg border text-xs font-semibold flex items-center justify-center cursor-pointer transition-all ${
+              aria-label="Toggle quick modules ribbon"
+              className={`hidden xl:flex p-1.5 rounded-lg border text-xs font-semibold items-center justify-center cursor-pointer transition-all ${
                 showQuickRibbon
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                   : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:border-slate-300 dark:hover:border-slate-700'
@@ -1257,13 +1262,14 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
           )}
 
           {/* 5. Cloud & Offline Database Sync Telemetry */}
-          <div className="relative" id="indexeddb-sync-container">
+          <div className="relative hidden sm:block" id="indexeddb-sync-container">
             <button
               id="indexeddb-sync-button"
               onClick={() => {
                 syncIndexedDBWithFirestore(true);
                 playSynthTone('switch');
               }}
+              aria-label="Database synchronization status"
               onMouseEnter={() => setShowSyncTooltip(true)}
               onMouseLeave={() => setShowSyncTooltip(false)}
               className={`px-2 py-1.5 rounded-lg border flex items-center gap-1.5 cursor-pointer transition-all relative ${

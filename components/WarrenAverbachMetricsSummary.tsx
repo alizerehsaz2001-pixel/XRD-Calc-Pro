@@ -63,24 +63,36 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
     setTimeout(() => setCopiedLatex(false), 2500);
   };
 
-  return (
-    <div className="bg-slate-950/80 backdrop-blur-2xl p-6 lg:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden ring-1 ring-white/10 ring-inset">
-      <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+  const scherrerNm = metrics.apparentScherrerSizeNm
+    ? metrics.apparentScherrerSizeNm
+    : metrics.volumeWeightedColumnLengthNm * 0.78;
+  const whNm = metrics.williamsonHallSizeNm
+    ? metrics.williamsonHallSizeNm
+    : metrics.volumeWeightedColumnLengthNm * 0.95;
+  const maxComparisonNm = Math.max(
+    1,
+    scherrerNm,
+    whNm,
+    metrics.areaWeightedColumnLengthNm,
+    metrics.volumeWeightedColumnLengthNm
+  );
 
+  return (
+    <div className="bg-[#0B0F17] p-6 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-white/5 relative z-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-5 border-b border-slate-800 relative z-10">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-rose-500/20 to-orange-500/20 rounded-2xl border border-rose-500/30 text-rose-400">
-            <Award className="w-6 h-6" />
+          <div className="p-2.5 bg-rose-500/15 rounded-xl border border-rose-500/30 text-rose-400">
+            <Award className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-xl font-medium text-slate-100 tracking-tight font-sans flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-slate-100 tracking-tight font-sans flex items-center gap-2">
               Warren-Averbach Quantitative Report
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono">
+              <span className="text-xs px-2.5 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono">
                 {materialName}
               </span>
             </h3>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono mt-1">
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono mt-0.5">
               Rigorous Fourier Deconvolution & Wilkens Dislocation State
             </p>
           </div>
@@ -89,7 +101,7 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
         <div className="flex items-center gap-2.5">
           <button
             onClick={generateLatex}
-            className="text-[10px] font-bold font-mono uppercase tracking-widest text-slate-300 hover:text-rose-400 bg-white/5 hover:bg-rose-500/10 px-3.5 py-2 rounded-xl border border-white/10 hover:border-rose-500/30 transition-all flex items-center gap-2 shadow-sm"
+            className="text-[10px] font-bold font-mono uppercase tracking-widest text-slate-300 hover:text-rose-400 bg-slate-900 hover:bg-rose-500/10 px-3.5 py-2 rounded-xl border border-slate-800 hover:border-rose-500/30 transition-all flex items-center gap-2"
             title="Copy publication-ready LaTeX table"
           >
             {copiedLatex ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -98,7 +110,7 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
 
           <button
             onClick={onDownloadCSV}
-            className="text-[10px] font-bold font-mono uppercase tracking-widest text-slate-300 hover:text-emerald-400 bg-white/5 hover:bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-white/10 hover:border-emerald-500/30 transition-all flex items-center gap-2 shadow-sm"
+            className="text-[10px] font-bold font-mono uppercase tracking-widest text-slate-300 hover:text-emerald-400 bg-slate-900 hover:bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-slate-800 hover:border-emerald-500/30 transition-all flex items-center gap-2"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
             <span>Export CSV</span>
@@ -109,26 +121,26 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
       {/* Hook Effect Status Banner */}
       <div className="mb-6 relative z-10">
         {metrics.hookEffectDetected ? (
-          <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3 text-amber-200 text-xs">
+          <div className="p-4 bg-amber-500/10 border border-amber-500/25 rounded-xl flex items-start gap-3 text-amber-200 text-xs">
             <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <span className="font-bold font-mono uppercase tracking-wider text-[11px] text-amber-300">
                 Hook Effect Corrected (A₀* = {metrics.hookEffectExtrapolatedIntercept.toFixed(3)})
               </span>
               <p className="text-[11px] text-amber-200/80 font-sans leading-relaxed">
-                Initial upward concavity from peak truncation or background over-subtraction has been linearized via tangent extrapolation to ensure physical column size distribution.
+                Initial upward concavity from peak truncation or background over-subtraction has been linearized via tangent extrapolation to ensure a strictly non-negative column size distribution P(L).
               </p>
             </div>
           </div>
         ) : (
-          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-3 text-emerald-200 text-xs">
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/25 rounded-xl flex items-start gap-3 text-emerald-200 text-xs">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <span className="font-bold font-mono uppercase tracking-wider text-[11px] text-emerald-300">
                 Coherent Fourier Decay Detected (No Hook Effect)
               </span>
               <p className="text-[11px] text-emerald-200/80 font-sans leading-relaxed">
-                Fourier coefficients exhibit physical convex-downward decay starting at L = 0.
+                Fourier size coefficients exhibit physical convex-downward decay starting at L = 0.
               </p>
             </div>
           </div>
@@ -136,93 +148,93 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
       </div>
 
       {/* Metrics Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 relative z-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6 relative z-10">
         
         {/* Card 1: Area-Weighted Size */}
-        <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-2 hover:border-rose-500/20 transition-colors">
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+        <div className="p-4 bg-slate-950/90 border border-slate-800 rounded-xl space-y-1.5 hover:border-rose-500/30 transition-colors">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider">
             <span>⟨D⟩_A (Area Mean)</span>
             <Ruler className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black font-mono text-rose-400">
+          <div className="flex items-baseline gap-2 font-mono tabular-nums">
+            <span className="text-2xl font-bold text-rose-400">
               {metrics.areaWeightedColumnLengthNm.toFixed(1)}
             </span>
-            <span className="text-xs text-slate-400 font-sans font-medium">nm</span>
+            <span className="text-xs text-slate-400">nm</span>
           </div>
-          <p className="text-[10px] text-slate-500 font-mono">
+          <p className="text-[10px] text-slate-500 font-mono tabular-nums">
             Initial slope: {metrics.initialSlope.toFixed(4)} nm⁻¹
           </p>
         </div>
 
         {/* Card 2: Volume-Weighted Size */}
-        <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-2 hover:border-rose-500/20 transition-colors">
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+        <div className="p-4 bg-slate-950/90 border border-slate-800 rounded-xl space-y-1.5 hover:border-sky-500/30 transition-colors">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider">
             <span>⟨D⟩_V (Volume Mean)</span>
-            <Atom className="w-4 h-4 text-orange-400" />
+            <Atom className="w-4 h-4 text-sky-400" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black font-mono text-orange-400">
+          <div className="flex items-baseline gap-2 font-mono tabular-nums">
+            <span className="text-2xl font-bold text-sky-400">
               {metrics.volumeWeightedColumnLengthNm.toFixed(1)}
             </span>
-            <span className="text-xs text-slate-400 font-sans font-medium">nm</span>
+            <span className="text-xs text-slate-400">nm</span>
           </div>
           <p className="text-[10px] text-slate-500 font-mono">
-            2 × Integral of A_size(L)
+            2 × ∫ A_S(L) dL integral
           </p>
         </div>
 
         {/* Card 3: Dislocation Density */}
-        <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-2 hover:border-cyan-500/20 transition-colors">
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+        <div className="p-4 bg-slate-950/90 border border-slate-800 rounded-xl space-y-1.5 hover:border-cyan-500/30 transition-colors">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider">
             <span>Dislocation Density (ρ)</span>
             <Activity className="w-4 h-4 text-cyan-400" />
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-black font-mono text-cyan-400">
+          <div className="flex items-baseline gap-1.5 font-mono tabular-nums">
+            <span className="text-2xl font-bold text-cyan-400">
               {metrics.dislocationDensity10_14.toFixed(2)}
             </span>
-            <span className="text-xs text-slate-400 font-mono">×10¹⁴ m⁻²</span>
+            <span className="text-xs text-slate-400">×10¹⁴ m⁻²</span>
           </div>
           <p className="text-[10px] text-slate-500 font-mono">
-            Wilkens log-strain fit
+            Krivoglaz-Wilkens log-strain fit
           </p>
         </div>
 
         {/* Card 4: Wilkens Arrangement M */}
-        <div className="p-5 bg-black/40 border border-white/5 rounded-2xl space-y-2 hover:border-purple-500/20 transition-colors">
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+        <div className="p-4 bg-slate-950/90 border border-slate-800 rounded-xl space-y-1.5 hover:border-purple-500/30 transition-colors">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider">
             <span>Wilkens Param (M)</span>
             <Layers className="w-4 h-4 text-purple-400" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black font-mono text-purple-400">
+          <div className="flex items-baseline gap-2 font-mono tabular-nums">
+            <span className="text-2xl font-bold text-purple-400">
               {metrics.wilkensArrangementParameterM.toFixed(2)}
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 font-mono uppercase">
+            <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 font-mono uppercase">
               {metrics.wilkensDislocationCharacter || 'mixed'}
             </span>
           </div>
-          <p className="text-[10px] text-slate-500 font-mono">
-            R_e = {metrics.wilkensCutoffRadiusNm.toFixed(1)} nm
+          <p className="text-[10px] text-slate-500 font-mono tabular-nums">
+            Cutoff R_e = {metrics.wilkensCutoffRadiusNm.toFixed(1)} nm
           </p>
         </div>
 
       </div>
 
       {/* Extended Crystallographic Metrics Table */}
-      <div className="bg-black/40 rounded-2xl border border-white/5 overflow-hidden relative z-10">
-        <div className="px-5 py-3 border-b border-white/5 bg-black/20 flex justify-between items-center">
+      <div className="bg-slate-950/90 rounded-xl border border-slate-800 overflow-hidden relative z-10">
+        <div className="px-5 py-3 border-b border-slate-800 bg-slate-900/60 flex justify-between items-center">
           <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest">
             Full Microstructural Parameters
           </span>
-          <span className="text-[10px] font-mono text-slate-500">
+          <span className="text-[10px] font-mono tabular-nums text-slate-400">
             Harmonic regression fit: <span className="text-emerald-400 font-bold">R² = {metrics.r2_average.toFixed(4)}</span>
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5 text-xs font-mono">
-          <div className="divide-y divide-white/5 p-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800 text-xs font-mono tabular-nums">
+          <div className="divide-y divide-slate-800/70 p-2">
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Primary Reflection Spacing (d₁):</span>
               <span className="text-slate-200 font-bold">{d1.toFixed(4)} Å</span>
@@ -259,7 +271,7 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
             </div>
           </div>
 
-          <div className="divide-y divide-white/5 p-2">
+          <div className="divide-y divide-slate-800/70 p-2">
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Burgers Vector Magnitude (b):</span>
               <span className="text-slate-200 font-bold">{burgersVector.toFixed(3)} nm</span>
@@ -307,36 +319,79 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
       </div>
 
       {/* Cross-Method Crystallographic Comparison Card: Scherrer vs. Williamson-Hall vs. Warren-Averbach */}
-      <div className="mt-6 bg-black/40 rounded-2xl border border-white/5 p-5 relative z-10 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/5">
+      <div className="mt-6 bg-slate-950/90 rounded-xl border border-slate-800 p-5 relative z-10 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
           <div>
             <span className="text-[10px] font-bold font-mono text-rose-400 uppercase tracking-widest block">
-              Cross-Method Microstructural Comparison
+              Cross-Method Microstructural Benchmark
             </span>
             <h4 className="text-sm font-semibold text-slate-200">
               How Warren-Averbach Compares to Classical Scherrer & Williamson-Hall
             </h4>
           </div>
-          <span className="text-[10px] font-mono px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+          <span className="text-[10px] font-mono tabular-nums px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
             Polydispersity PDI = {(metrics.polydispersityIndex || (metrics.volumeWeightedColumnLengthNm / Math.max(1, metrics.areaWeightedColumnLengthNm))).toFixed(2)}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
-          <div className="p-3.5 bg-slate-900/70 rounded-xl border border-white/5 space-y-1">
+        {/* Visual Horizontal Bar Comparison */}
+        <div className="p-3.5 bg-slate-900/70 rounded-xl border border-slate-800/80 space-y-2.5 font-mono text-xs tabular-nums">
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-amber-300">Single-Peak Scherrer D_app (Order 1)</span>
+              <span className="text-amber-400 font-bold">{scherrerNm.toFixed(1)} nm</span>
+            </div>
+            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+              <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.min(100, (scherrerNm / maxComparisonNm) * 100)}%` }} />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-emerald-300">Williamson-Hall Volume Size D_WH</span>
+              <span className="text-emerald-400 font-bold">{whNm.toFixed(1)} nm</span>
+            </div>
+            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+              <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${Math.min(100, (whNm / maxComparisonNm) * 100)}%` }} />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-rose-300">Warren-Averbach Area-Weighted ⟨D⟩_A</span>
+              <span className="text-rose-400 font-bold">{metrics.areaWeightedColumnLengthNm.toFixed(1)} nm</span>
+            </div>
+            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+              <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, (metrics.areaWeightedColumnLengthNm / maxComparisonNm) * 100)}%` }} />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-sky-300">Warren-Averbach Volume-Weighted ⟨D⟩_V</span>
+              <span className="text-sky-400 font-bold">{metrics.volumeWeightedColumnLengthNm.toFixed(1)} nm</span>
+            </div>
+            <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+              <div className="h-full bg-sky-400 rounded-full" style={{ width: `${Math.min(100, (metrics.volumeWeightedColumnLengthNm / maxComparisonNm) * 100)}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono tabular-nums">
+          <div className="p-3.5 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1">
             <span className="text-[10px] text-slate-400 uppercase block">1. Single-Peak Scherrer (Order 1)</span>
             <div className="text-lg font-bold text-amber-400">
-              {metrics.apparentScherrerSizeNm ? `${metrics.apparentScherrerSizeNm.toFixed(1)} nm` : `${(metrics.volumeWeightedColumnLengthNm * 0.78).toFixed(1)} nm`}
+              {scherrerNm.toFixed(1)} nm
             </div>
             <p className="text-[10px] text-slate-400 font-sans leading-relaxed">
               Attributes 100% of peak breadth to finite size, underestimating true crystallite size when microstrain is present.
             </p>
           </div>
 
-          <div className="p-3.5 bg-slate-900/70 rounded-xl border border-white/5 space-y-1">
+          <div className="p-3.5 bg-slate-900/60 rounded-xl border border-slate-800 space-y-1">
             <span className="text-[10px] text-slate-400 uppercase block">2. Williamson-Hall (Integral Breadth)</span>
             <div className="text-lg font-bold text-emerald-400">
-              {metrics.williamsonHallSizeNm ? `${metrics.williamsonHallSizeNm.toFixed(1)} nm` : `${(metrics.volumeWeightedColumnLengthNm * 0.95).toFixed(1)} nm`}
+              {whNm.toFixed(1)} nm
               <span className="text-xs text-cyan-400 ml-2">
                 (ε ≈ {metrics.williamsonHallStrain ? (metrics.williamsonHallStrain * 100).toFixed(2) : ((metrics.rmsStrainAt5nm || 0.002) * 118).toFixed(2)}%)
               </span>

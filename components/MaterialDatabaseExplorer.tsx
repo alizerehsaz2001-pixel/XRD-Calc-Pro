@@ -900,26 +900,32 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const [xrdFwhm, setXrdFwhm] = useState<number>(0.3);
   const [activeDetailTab, setActiveDetailTab] = useState<'spectrum' | 'lattice' | 'composition' | 'thermo'>('spectrum');
   const [thermoTemperature, setThermoTemperature] = useState<number>(298);
+  const [hoveredTwoTheta, setHoveredTwoTheta] = useState<number | null>(null);
+  const [selectedPeakIdx, setSelectedPeakIdx] = useState<number | null>(null);
 
   // Smooth continuous spin duration & manual drag-to-rotate for 3D crystal lattice visualizer
-  const [dragRotX, setDragRotX] = useState<number>(0.40);
-  const [dragRotY, setDragRotY] = useState<number>(0);
+  const [dragRotX, setDragRotX] = useState<number>(0.42);
+  const [dragRotY, setDragRotY] = useState<number>(0.55);
   const [isDraggingLattice, setIsDraggingLattice] = useState<boolean>(false);
   const [latticeStyle, setLatticeStyle] = useState<'wireframe' | 'ball-stick' | 'space-filling'>('ball-stick');
+  const [autoRotateLattice, setAutoRotateLattice] = useState<boolean>(true);
+  const [latticeZoom, setLatticeZoom] = useState<number>(1.0);
+  const [showLatticeAxes, setShowLatticeAxes] = useState<boolean>(true);
+  const [selectedMillerPlane, setSelectedMillerPlane] = useState<'none' | '100' | '110' | '111'>('111');
   
   const dragStartPos = useRef({ x: 0, y: 0 });
   const dragStartRot = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (isDraggingLattice) return;
+    if (isDraggingLattice || !autoRotateLattice) return;
     let frameId: number;
     const tick = () => {
-      setDragRotY(prev => (prev + 0.008) % (Math.PI * 2));
+      setDragRotY(prev => (prev + 0.007) % (Math.PI * 2));
       frameId = requestAnimationFrame(tick);
     };
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [isDraggingLattice]);
+  }, [isDraggingLattice, autoRotateLattice]);
 
   // Global Sync & Database Portal states
   const [showGlobalPortal, setShowGlobalPortal] = useState(false);
@@ -2727,15 +2733,15 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
     setEditApplications(editApplications.filter(t => t !== tag));
   };
 
-  // Mathematically projects and renders the 3D rotating Crystal Lattice system wireframe with drag-to-rotate support
+  // Mathematically projects and renders the 3D rotating Crystal Lattice system with axes, Miller planes, and drag-to-rotate support
   const renderCrystalLattice = (system: string) => {
     const norm = (system || '').toLowerCase();
+    const spaceGroupStr = (selectedMaterial?.spaceGroup || '').toLowerCase();
     
-    // Euler rotation angles based on manual drag values
     const rotX = dragRotX;
     const rotY = dragRotY;
     
-    // Helper projection function
+    // 3D perspective + orthographic hybrid projection into 320x240 viewport
     const project = (x: number, y: number, z: number) => {
       const cosY = Math.cos(rotY);
       const sinY = Math.sin(rotY);
@@ -2747,22 +2753,27 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
       const y2 = y * cosX - z1 * sinX;
       const z2 = y * sinX + z1 * cosX;
       
-      const scale = 52;
+      const perspective = 1 / (1 - z2 * 0.14);
+      const scale = 68 * latticeZoom * perspective;
       return {
-        x: 100 + x1 * scale,
-        y: 100 + y2 * scale,
+        x: 160 + x1 * scale,
+        y: 122 + y2 * scale,
         z: z2
       };
     };
 
     let vertices: Array<[number, number, number]> = [];
+    let interiorAtoms: Array<{ pos: [number, number, number]; role: 'body' | 'face' | 'motif' }> = [];
     let edges: Array<[number, number]> = [];
+    let faces: Array<number[]> = [];
     let title = "Standard Cubic";
-    let desc = "a = b = c (α = β = γ = 90°)";
+    let desc = "a = b = c  •  α = β = γ = 90°";
+    let bravaisCode = "cP / cF / cI";
 
     if (norm.includes('cubic')) {
-      title = "Cubic Lattice";
-      desc = "a = b = c (α = β = γ = 90°)";
+      title = "Cubic Bravais Lattice";
+      desc = "a = b = c  •  α = β = γ = 90°";
+      bravaisCode = spaceGroupStr.startsWith('f') ? "Face-Centered (cF)" : spaceGroupStr.startsWith('i') ? "Body-Centered (cI)" : "Primitive Cubic (cP)";
       vertices = [
         [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
         [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5]
@@ -2772,36 +2783,67 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
         [4,5], [5,6], [6,7], [7,4],
         [0,4], [1,5], [2,6], [3,7]
       ];
+      faces = [
+        [0,1,2,3], [4,5,6,7], [0,1,5,4],
+        [2,3,7,6], [0,3,7,4], [1,2,6,5]
+      ];
+      if (spaceGroupStr.startsWith('i')) {
+        interiorAtoms.push({ pos: [0, 0, 0], role: 'body' });
+      } else if (spaceGroupStr.startsWith('f')) {
+        interiorAtoms.push(
+          { pos: [0, 0, -0.5], role: 'face' },
+          { pos: [0, 0, 0.5], role: 'face' },
+          { pos: [0, -0.5, 0], role: 'face' },
+          { pos: [0, 0.5, 0], role: 'face' },
+          { pos: [-0.5, 0, 0], role: 'face' },
+          { pos: [0.5, 0, 0], role: 'face' }
+        );
+      } else {
+        interiorAtoms.push({ pos: [0, 0, 0], role: 'body' });
+      }
     } else if (norm.includes('tetragonal')) {
       title = "Tetragonal Lattice";
-      desc = "a = b ≠ c (α = β = γ = 90°)";
+      desc = "a = b ≠ c  •  α = β = γ = 90°";
+      bravaisCode = spaceGroupStr.startsWith('i') ? "Body-Centered (tI)" : "Primitive (tP)";
       vertices = [
-        [-0.4, -0.7, -0.4], [0.4, -0.7, -0.4], [0.4, 0.7, -0.4], [-0.4, 0.7, -0.4],
-        [-0.4, -0.7, 0.4], [0.4, -0.7, 0.4], [0.4, 0.7, 0.4], [-0.4, 0.7, 0.4]
+        [-0.42, -0.68, -0.42], [0.42, -0.68, -0.42], [0.42, 0.68, -0.42], [-0.42, 0.68, -0.42],
+        [-0.42, -0.68, 0.42], [0.42, -0.68, 0.42], [0.42, 0.68, 0.42], [-0.42, 0.68, 0.42]
       ];
       edges = [
         [0,1], [1,2], [2,3], [3,0],
         [4,5], [5,6], [6,7], [7,4],
         [0,4], [1,5], [2,6], [3,7]
       ];
+      faces = [
+        [0,1,2,3], [4,5,6,7], [0,1,5,4],
+        [2,3,7,6], [0,3,7,4], [1,2,6,5]
+      ];
+      interiorAtoms.push({ pos: [0, 0, 0], role: 'body' });
     } else if (norm.includes('orthorhombic')) {
       title = "Orthorhombic Lattice";
-      desc = "a ≠ b ≠ c (α = β = γ = 90°)";
+      desc = "a ≠ b ≠ c  •  α = β = γ = 90°";
+      bravaisCode = "Orthorhombic (oP / oF / oI)";
       vertices = [
-        [-0.3, -0.65, -0.48], [0.3, -0.65, -0.48], [0.3, 0.65, -0.48], [-0.3, 0.65, -0.48],
-        [-0.3, -0.65, 0.48], [0.3, -0.65, 0.48], [0.3, 0.65, 0.48], [-0.3, 0.65, 0.48]
+        [-0.34, -0.65, -0.48], [0.34, -0.65, -0.48], [0.34, 0.65, -0.48], [-0.34, 0.65, -0.48],
+        [-0.34, -0.65, 0.48], [0.34, -0.65, 0.48], [0.34, 0.65, 0.48], [-0.34, 0.65, 0.48]
       ];
       edges = [
         [0,1], [1,2], [2,3], [3,0],
         [4,5], [5,6], [6,7], [7,4],
         [0,4], [1,5], [2,6], [3,7]
       ];
+      faces = [
+        [0,1,2,3], [4,5,6,7], [0,1,5,4],
+        [2,3,7,6], [0,3,7,4], [1,2,6,5]
+      ];
+      interiorAtoms.push({ pos: [0, 0, 0], role: 'motif' });
     } else if (norm.includes('hexagonal')) {
-      title = "Hexagonal Polytype";
-      desc = "a = b ≠ c (α = β = 90°, γ = 120°)";
-      const topY = -0.65;
-      const botY = 0.65;
-      const r = 0.52;
+      title = "Hexagonal Bipyramidal Prism";
+      desc = "a = b ≠ c  •  α = β = 90°, γ = 120°";
+      bravaisCode = "Hexagonal (hP)";
+      const topY = -0.62;
+      const botY = 0.62;
+      const r = 0.54;
       for (let i = 0; i < 6; i++) {
         const rad = (i * 60) * (Math.PI / 180);
         vertices.push([r * Math.cos(rad), topY, r * Math.sin(rad)]);
@@ -2815,56 +2857,84 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
         [6,7], [7,8], [8,9], [9,10], [10,11], [11,6],
         [0,6], [1,7], [2,8], [3,9], [4,10], [5,11]
       ];
+      faces = [
+        [0,1,2,3,4,5], [6,7,8,9,10,11],
+        [0,1,7,6], [1,2,8,7], [2,3,9,8],
+        [3,4,10,9], [4,5,11,10], [5,0,6,11]
+      ];
+      interiorAtoms.push(
+        { pos: [0, topY, 0], role: 'face' },
+        { pos: [0, botY, 0], role: 'face' },
+        { pos: [0.22, 0, 0.14], role: 'motif' }
+      );
     } else if (norm.includes('monoclinic')) {
-      title = "Monoclinic Lattice";
-      desc = "a ≠ b ≠ c (α = γ = 90°, β ≠ 120°)";
-      const skew = 0.28;
+      title = "Monoclinic Inclined Prism";
+      desc = "a ≠ b ≠ c  •  α = γ = 90°, β ≠ 90°";
+      bravaisCode = "Monoclinic (mP / mC)";
+      const skew = 0.26;
       vertices = [
-        [-0.32 - skew, -0.5, -0.42], [0.32 - skew, -0.5, -0.42], [0.32 + skew, 0.5, -0.42], [-0.32 + skew, 0.5, -0.42],
-        [-0.32 - skew, -0.5, 0.42], [0.32 - skew, -0.5, 0.42], [0.32 + skew, 0.5, 0.42], [-0.32 + skew, 0.5, 0.42]
+        [-0.35 - skew, -0.52, -0.44], [0.35 - skew, -0.52, -0.44], [0.35 + skew, 0.52, -0.44], [-0.35 + skew, 0.52, -0.44],
+        [-0.35 - skew, -0.52, 0.44], [0.35 - skew, -0.52, 0.44], [0.35 + skew, 0.52, 0.44], [-0.35 + skew, 0.52, 0.44]
       ];
       edges = [
         [0,1], [1,2], [2,3], [3,0],
         [4,5], [5,6], [6,7], [7,4],
         [0,4], [1,5], [2,6], [3,7]
       ];
+      faces = [
+        [0,1,2,3], [4,5,6,7], [0,1,5,4],
+        [2,3,7,6], [0,3,7,4], [1,2,6,5]
+      ];
+      interiorAtoms.push({ pos: [0, 0, 0], role: 'motif' });
     } else if (norm.includes('triclinic')) {
-      title = "Triclinic Lattice";
-      desc = "a ≠ b ≠ c (α ≠ β ≠ γ ≠ 90°)";
-      const hSkew = 0.25;
-      const dSkew = 0.20;
+      title = "Triclinic Oblique Parallelepiped";
+      desc = "a ≠ b ≠ c  •  α ≠ β ≠ γ ≠ 90°";
+      bravaisCode = "Triclinic (aP)";
+      const hSkew = 0.24;
+      const dSkew = 0.18;
       vertices = [
-        [-0.3 - hSkew, -0.45, -0.4 - dSkew], [0.3 - hSkew, -0.45, -0.4 - dSkew], [0.3 + hSkew, 0.45, -0.4 + dSkew], [-0.3 + hSkew, 0.45, -0.4 + dSkew],
-        [-0.3 - hSkew, -0.45, 0.4 - dSkew], [0.3 - hSkew, -0.45, 0.4 - dSkew], [0.3 + hSkew, 0.45, 0.4 + dSkew], [-0.3 + hSkew, 0.45, 0.4 + dSkew]
+        [-0.32 - hSkew, -0.48, -0.42 - dSkew], [0.32 - hSkew, -0.48, -0.42 - dSkew], [0.32 + hSkew, 0.48, -0.42 + dSkew], [-0.32 + hSkew, 0.48, -0.42 + dSkew],
+        [-0.32 - hSkew, -0.48, 0.42 - dSkew], [0.32 - hSkew, -0.48, 0.42 - dSkew], [0.32 + hSkew, 0.48, 0.42 + dSkew], [-0.32 + hSkew, 0.48, 0.42 + dSkew]
       ];
       edges = [
         [0,1], [1,2], [2,3], [3,0],
         [4,5], [5,6], [6,7], [7,4],
         [0,4], [1,5], [2,6], [3,7]
+      ];
+      faces = [
+        [0,1,2,3], [4,5,6,7], [0,1,5,4],
+        [2,3,7,6], [0,3,7,4], [1,2,6,5]
       ];
     } else if (norm.includes('trigonal') || norm.includes('rhombohedral')) {
-      title = "Rhombohedral System";
-      desc = "a = b = c (α = β = γ ≠ 90°)";
-      const shear = 0.2;
+      title = "Trigonal / Rhombohedral Cell";
+      desc = "a = b = c  •  α = β = γ ≠ 90°";
+      bravaisCode = "Rhombohedral (hR)";
+      const shear = 0.19;
       vertices = [
-        [-0.4 - shear, -0.4 - shear, -0.4], [0.4 - shear, -0.4 - shear, -0.4], [0.4 + shear, 0.4 + shear, -0.4], [-0.4 + shear, 0.4 + shear, -0.4],
-        [-0.4 - shear, -0.4 - shear, 0.4], [0.4 - shear, -0.4 - shear, 0.4], [0.4 + shear, 0.4 + shear, 0.4], [-0.4 + shear, 0.4 + shear, 0.4]
+        [-0.42 - shear, -0.42 - shear, -0.42], [0.42 - shear, -0.42 - shear, -0.42], [0.42 + shear, 0.42 + shear, -0.42], [-0.42 + shear, 0.42 + shear, -0.42],
+        [-0.42 - shear, -0.42 - shear, 0.42], [0.42 - shear, -0.42 - shear, 0.42], [0.42 + shear, 0.42 + shear, 0.42], [-0.42 + shear, 0.42 + shear, 0.42]
       ];
       edges = [
         [0,1], [1,2], [2,3], [3,0],
         [4,5], [5,6], [6,7], [7,4],
         [0,4], [1,5], [2,6], [3,7]
       ];
+      faces = [
+        [0,1,2,3], [4,5,6,7], [0,1,5,4],
+        [2,3,7,6], [0,3,7,4], [1,2,6,5]
+      ];
+      interiorAtoms.push({ pos: [0, 0, 0], role: 'body' });
     } else {
-      title = "Amorphous / Short-Range";
-      desc = "Non-crystalline topology (Short range order)";
+      title = "Amorphous / Short-Range Glassy Network";
+      desc = "Non-crystalline topology (Pair distribution SRO)";
+      bravaisCode = "Disordered Network";
       const seedPoints = [
-        [-0.32, -0.15, 0.22], [0.12, 0.38, -0.32], [-0.42, 0.28, -0.12], [0.32, -0.28, 0.12],
-        [-0.08, -0.48, -0.18], [0.38, 0.18, 0.32], [-0.18, 0.08, 0.42], [0.18, -0.08, -0.32],
-        [-0.42, -0.28, -0.38], [0.02, 0.12, -0.08], [0.28, 0.42, -0.08], [-0.15, -0.25, -0.25]
+        [-0.35, -0.18, 0.24], [0.14, 0.42, -0.35], [-0.45, 0.30, -0.14], [0.35, -0.30, 0.14],
+        [-0.10, -0.50, -0.20], [0.40, 0.20, 0.35], [-0.20, 0.10, 0.45], [0.20, -0.10, -0.35],
+        [-0.45, -0.30, -0.40], [0.02, 0.12, -0.08], [0.30, 0.45, -0.10], [-0.18, -0.28, -0.28]
       ];
       vertices = seedPoints.map(([x,y,z], idx) => {
-        const jiggle = Math.sin(rotY * 4.5 + idx) * 0.035;
+        const jiggle = Math.sin(rotY * 4.5 + idx) * 0.025;
         return [x + jiggle, y + jiggle, z + jiggle];
       });
       edges = [];
@@ -2874,7 +2944,7 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
           const dy = vertices[i][1] - vertices[j][1];
           const dz = vertices[i][2] - vertices[j][2];
           const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-          if (dist < 0.62) {
+          if (dist < 0.65) {
             edges.push([i, j]);
           }
         }
@@ -2882,8 +2952,51 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
     }
 
     const projected = vertices.map(v => project(v[0], v[1], v[2]));
+    const projectedInterior = interiorAtoms.map(item => ({
+      ...item,
+      proj: project(item.pos[0], item.pos[1], item.pos[2])
+    }));
 
-    // Mouse drag handlers
+    // Compute Miller plane polygon points in 3D unit cell space
+    const getMillerPlanePolygon = () => {
+      if (selectedMillerPlane === 'none' || vertices.length < 8) return null;
+      let pts3D: Array<[number, number, number]> = [];
+      if (selectedMillerPlane === '100') {
+        // Plane parallel to b and c intersecting +a face
+        pts3D = [
+          [0.35, -0.48, -0.45],
+          [0.35, 0.48, -0.45],
+          [0.35, 0.48, 0.45],
+          [0.35, -0.48, 0.45]
+        ];
+      } else if (selectedMillerPlane === '110') {
+        // Diagonal plane slicing across a and b
+        pts3D = [
+          [-0.45, -0.5, -0.45],
+          [0.45, 0.5, -0.45],
+          [0.45, 0.5, 0.45],
+          [-0.45, -0.5, 0.45]
+        ];
+      } else if (selectedMillerPlane === '111') {
+        // Octahedral (111) cleavage triangle
+        pts3D = [
+          [0.48, -0.48, -0.48],
+          [-0.48, 0.48, -0.48],
+          [-0.48, -0.48, 0.48]
+        ];
+      }
+      return pts3D.map(p => project(p[0], p[1], p[2]));
+    };
+
+    const millerPolygon = getMillerPlanePolygon();
+
+    // Crystallographic basis vectors origin & endpoints
+    const axisOrigin = project(-0.68, 0.58, -0.55);
+    const axisA = project(-0.18, 0.58, -0.55);
+    const axisB = project(-0.68, 0.58, -0.05);
+    const axisC = project(-0.68, 0.08, -0.55);
+
+    // Mouse & Touch drag handlers
     const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
       setIsDraggingLattice(true);
       dragStartPos.current = { x: e.clientX, y: e.clientY };
@@ -2902,7 +3015,6 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
       setIsDraggingLattice(false);
     };
 
-    // Touch drag handlers
     const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
       if (e.touches.length === 0) return;
       setIsDraggingLattice(true);
@@ -2919,205 +3031,489 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
     };
 
     return (
-      <div 
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUpOrLeave}
-        onMouseLeave={handleMouseUpOrLeave}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleMouseUpOrLeave}
-        className={`flex flex-col items-center justify-center p-5 bg-slate-950/70 rounded-3xl border ${isDraggingLattice ? 'border-indigo-500/60 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'border-slate-800/80'} aspect-square relative max-w-[280px] mx-auto overflow-hidden select-none cursor-grab active:cursor-grabbing transition-all group`}
-      >
-        <div className="absolute top-3 left-3 flex flex-col gap-0.5 pointer-events-none">
-          <span className="text-[10px] font-black uppercase text-indigo-400 font-mono tracking-tight">{title}</span>
-          <span className="text-[8px] text-slate-500 font-mono tracking-wide">{desc}</span>
-        </div>
+      <div className="space-y-2.5">
+        <div 
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleMouseUpOrLeave}
+          className={`flex flex-col items-center justify-center p-4 bg-[#030712] rounded-2xl border ${isDraggingLattice ? 'border-cyan-400/70 shadow-[0_0_25px_rgba(34,211,238,0.2)]' : 'border-slate-800'} relative w-full overflow-hidden select-none cursor-grab active:cursor-grabbing transition-all group`}
+        >
+          {/* Subtle Crystallographic Polar Reticle Background */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_52%,rgba(34,211,238,0.08),transparent_65%)] pointer-events-none" />
 
-        <div className="absolute top-3 right-3 flex gap-1 z-20 bg-black/60 p-0.5 rounded-lg border border-slate-800/80">
-          <button
-            onClick={(e) => { e.stopPropagation(); setLatticeStyle('wireframe'); }}
-            className={`px-1.5 py-0.5 rounded text-[7px] font-mono font-bold transition-all ${latticeStyle === 'wireframe' ? 'bg-indigo-600/90 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
-            title="Wireframe Render"
-          >
-            Wire
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setLatticeStyle('ball-stick'); }}
-            className={`px-1.5 py-0.5 rounded text-[7px] font-mono font-bold transition-all ${latticeStyle === 'ball-stick' ? 'bg-indigo-600/90 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
-            title="Ball & Stick Render"
-          >
-            Ball
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setLatticeStyle('space-filling'); }}
-            className={`px-1.5 py-0.5 rounded text-[7px] font-mono font-bold transition-all ${latticeStyle === 'space-filling' ? 'bg-indigo-600/90 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
-            title="Space Filling Packing"
-          >
-            Space
-          </button>
-        </div>
+          {/* Top Left Header: Bravais Class & Constraints */}
+          <div className="w-full flex flex-wrap justify-between items-start gap-2 z-20 mb-1">
+            <div className="flex flex-col pointer-events-none">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black uppercase text-cyan-300 font-mono tracking-tight">{title}</span>
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                  {bravaisCode}
+                </span>
+              </div>
+              <span className="text-[9px] text-slate-400 font-mono tracking-wide mt-0.5">{desc}</span>
+            </div>
 
-        <svg className="w-48 h-48 mt-4 pointer-events-none" viewBox="0 0 200 200">
-          <circle cx="100" cy="100" r="82" fill="none" stroke="rgba(99,102,241,0.06)" strokeDasharray="3,5" />
+            {/* Render Mode Switcher */}
+            <div className="flex items-center gap-1 bg-slate-950/90 p-1 rounded-lg border border-slate-800">
+              {(['wireframe', 'ball-stick', 'space-filling'] as const).map(mode => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setLatticeStyle(mode); }}
+                  className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                    latticeStyle === mode
+                      ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/50 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                  }`}
+                >
+                  {mode === 'wireframe' ? 'Wire' : mode === 'ball-stick' ? 'Ball & Stick' : 'Packing'}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {/* Core definitions */}
-          <defs>
-            <radialGradient id="standardAtomGrad" cx="35%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#A5F3FC" />
-              <stop offset="70%" stopColor="#0891B2" />
-              <stop offset="100%" stopColor="#155E75" />
-            </radialGradient>
-            <radialGradient id="anchorAtomGrad" cx="35%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#FDE68A" />
-              <stop offset="70%" stopColor="#D97706" />
-              <stop offset="100%" stopColor="#78350F" />
-            </radialGradient>
-          </defs>
+          {/* 3D Interactive SVG Viewport */}
+          <svg className="w-full h-60 pointer-events-none" viewBox="0 0 320 240">
+            <defs>
+              <radialGradient id="standardAtomGrad" cx="32%" cy="30%" r="68%">
+                <stop offset="0%" stopColor="#E0F2FE" />
+                <stop offset="45%" stopColor="#22D3EE" />
+                <stop offset="85%" stopColor="#0284C7" />
+                <stop offset="100%" stopColor="#082F49" />
+              </radialGradient>
+              <radialGradient id="anchorAtomGrad" cx="32%" cy="30%" r="68%">
+                <stop offset="0%" stopColor="#FEF3C7" />
+                <stop offset="45%" stopColor="#F59E0B" />
+                <stop offset="85%" stopColor="#B45309" />
+                <stop offset="100%" stopColor="#451A03" />
+              </radialGradient>
+              <radialGradient id="interiorAtomGrad" cx="32%" cy="30%" r="68%">
+                <stop offset="0%" stopColor="#F3E8FF" />
+                <stop offset="45%" stopColor="#A855F7" />
+                <stop offset="85%" stopColor="#6B21A8" />
+                <stop offset="100%" stopColor="#3B0764" />
+              </radialGradient>
+              <linearGradient id="millerPlaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.34" />
+                <stop offset="50%" stopColor="#EC4899" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#6366F1" stopOpacity="0.30" />
+              </linearGradient>
+            </defs>
 
-          {/* Draw Edges */}
-          {latticeStyle !== 'space-filling' && edges.map(([p1, p2], idx) => {
-            const v1 = projected[p1];
-            const v2 = projected[p2];
-            if (!v1 || !v2) return null;
-            const avgZ = (v1.z + v2.z) / 2;
-            const opacity = Math.max(0.15, Math.min(0.85, (avgZ + 1.2) / 2));
-            const strokeWidth = latticeStyle === 'ball-stick' ? "2.5" : "1.2";
-            const strokeColor = latticeStyle === 'ball-stick' ? "#818CF8" : "#4F46E5";
-            return (
-              <line
-                key={`e-${idx}`}
-                x1={v1.x.toFixed(1)}
-                y1={v1.y.toFixed(1)}
-                x2={v2.x.toFixed(1)}
-                y2={v2.y.toFixed(1)}
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
-                strokeOpacity={opacity}
-                strokeLinecap="round"
-              />
-            );
-          })}
+            {/* Ewald / Goniometer Polar Rings */}
+            <circle cx="160" cy="122" r="96" fill="none" stroke="rgba(148,163,184,0.08)" strokeWidth="1" strokeDasharray="3,4" />
+            <circle cx="160" cy="122" r="68" fill="none" stroke="rgba(56,189,248,0.07)" strokeWidth="0.75" />
+            <line x1="50" y1="122" x2="270" y2="122" stroke="rgba(148,163,184,0.06)" strokeWidth="0.75" />
+            <line x1="160" y1="22" x2="160" y2="222" stroke="rgba(148,163,184,0.06)" strokeWidth="0.75" />
 
-          {/* Draw Atoms */}
-          {projected.map((v, idx) => {
-            let baseRadius = 7.5;
-            let range = 3;
-            if (latticeStyle === 'wireframe') {
-              baseRadius = 4.5;
-              range = 1.5;
-            } else if (latticeStyle === 'space-filling') {
-              baseRadius = 22;
-              range = 8;
-            }
-            const radius = Math.max(baseRadius - range, Math.min(baseRadius + range, baseRadius + v.z * range));
-            const opacity = Math.max(0.3, Math.min(1, (v.z + 1.2) / 2));
-            const isAnchor = idx === 0;
-            return (
-              <g key={`v-${idx}`}>
-                <circle
-                  cx={v.x.toFixed(1)}
-                  cy={v.y.toFixed(1)}
-                  r={radius.toFixed(1)}
-                  fill={isAnchor ? "url(#anchorAtomGrad)" : "url(#standardAtomGrad)"}
-                  fillOpacity={latticeStyle === 'space-filling' ? opacity * 0.95 : opacity}
+            {/* Translucent Unit Cell Bounding Facets */}
+            {faces.map((faceIndices, fIdx) => {
+              const pts = faceIndices.map(i => projected[i]).filter(Boolean);
+              if (pts.length < 3) return null;
+              const pointsAttr = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+              return (
+                <polygon
+                  key={`face-${fIdx}`}
+                  points={pointsAttr}
+                  fill="rgba(34, 211, 238, 0.035)"
+                  stroke="none"
                 />
-                <circle
-                  cx={v.x.toFixed(1)}
-                  cy={v.y.toFixed(1)}
-                  r={(radius + 1.5).toFixed(1)}
-                  fill="none"
-                  stroke={isAnchor ? "#F59E0B" : "#22D3EE"}
-                  strokeOpacity={opacity * 0.4}
-                  strokeWidth="0.8"
+              );
+            })}
+
+            {/* Miller Plane (hkl) Cleavage Slice Overlay */}
+            {millerPolygon && millerPolygon.length >= 3 && (
+              <g>
+                <polygon
+                  points={millerPolygon.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
+                  fill="url(#millerPlaneGrad)"
+                  stroke="#F43F5E"
+                  strokeWidth="1.4"
+                  strokeDasharray="3,2"
                 />
+                <text
+                  x={millerPolygon[0].x.toFixed(1)}
+                  y={(millerPolygon[0].y - 6).toFixed(1)}
+                  fill="#FDA4AF"
+                  fontSize="9"
+                  fontFamily="monospace"
+                  fontWeight="bold"
+                >
+                  ({selectedMillerPlane})
+                </text>
               </g>
-            );
-          })}
-        </svg>
+            )}
 
-        <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded bg-black/60 border border-slate-900/60 text-[7px] text-slate-500 font-mono uppercase tracking-widest select-none pointer-events-none flex items-center gap-1">
-          <span className="w-1 h-1 bg-indigo-500 rounded-full animate-ping" />
-          Drag to inspect
-        </div>
+            {/* Draw Unit Cell Edges (Depth-shaded) */}
+            {latticeStyle !== 'space-filling' && edges.map(([p1, p2], idx) => {
+              const v1 = projected[p1];
+              const v2 = projected[p2];
+              if (!v1 || !v2) return null;
+              const avgZ = (v1.z + v2.z) / 2;
+              const opacity = Math.max(0.22, Math.min(0.92, (avgZ + 1.25) / 2));
+              const strokeWidth = latticeStyle === 'ball-stick' ? (avgZ > 0 ? "2.4" : "1.4") : "1.3";
+              const strokeColor = avgZ > 0 ? "#38BDF8" : "#6366F1";
+              return (
+                <line
+                  key={`e-${idx}`}
+                  x1={v1.x.toFixed(1)}
+                  y1={v1.y.toFixed(1)}
+                  x2={v2.x.toFixed(1)}
+                  y2={v2.y.toFixed(1)}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeOpacity={opacity}
+                  strokeLinecap="round"
+                />
+              );
+            })}
 
-        <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/60 border border-slate-900/60 text-[7px] text-slate-500 font-mono uppercase tracking-widest select-none pointer-events-none">
-          Rot X/Y: {(rotX * 180 / Math.PI).toFixed(0)}° / {(rotY * 180 / Math.PI).toFixed(0)}°
+            {/* Draw Coordination Bonds from Interior Atoms to Nearest Vertices */}
+            {latticeStyle === 'ball-stick' && projectedInterior.map((intAtom, iIdx) =>
+              projected.slice(0, 8).map((v, vIdx) => (
+                <line
+                  key={`bond-${iIdx}-${vIdx}`}
+                  x1={intAtom.proj.x.toFixed(1)}
+                  y1={intAtom.proj.y.toFixed(1)}
+                  x2={v.x.toFixed(1)}
+                  y2={v.y.toFixed(1)}
+                  stroke="#A855F7"
+                  strokeWidth="1.1"
+                  strokeDasharray="2,2.5"
+                  strokeOpacity="0.45"
+                />
+              ))
+            )}
+
+            {/* 3D Crystallographic Basis Axes (a, b, c) */}
+            {showLatticeAxes && (
+              <g>
+                {/* a-axis (Rose) */}
+                <line x1={axisOrigin.x} y1={axisOrigin.y} x2={axisA.x} y2={axisA.y} stroke="#F43F5E" strokeWidth="2" strokeLinecap="round" />
+                <circle cx={axisA.x} cy={axisA.y} r="2.5" fill="#F43F5E" />
+                <text x={axisA.x + 5} y={axisA.y + 3} fill="#FDA4AF" fontSize="9" fontFamily="monospace" fontWeight="bold">a</text>
+
+                {/* b-axis (Emerald) */}
+                <line x1={axisOrigin.x} y1={axisOrigin.y} x2={axisB.x} y2={axisB.y} stroke="#10B981" strokeWidth="2" strokeLinecap="round" />
+                <circle cx={axisB.x} cy={axisB.y} r="2.5" fill="#10B981" />
+                <text x={axisB.x + 5} y={axisB.y + 3} fill="#6EE7B7" fontSize="9" fontFamily="monospace" fontWeight="bold">b</text>
+
+                {/* c-axis (Cyan) */}
+                <line x1={axisOrigin.x} y1={axisOrigin.y} x2={axisC.x} y2={axisC.y} stroke="#06B6D4" strokeWidth="2" strokeLinecap="round" />
+                <circle cx={axisC.x} cy={axisC.y} r="2.5" fill="#06B6D4" />
+                <text x={axisC.x - 3} y={axisC.y - 6} fill="#67E8F9" fontSize="9" fontFamily="monospace" fontWeight="bold">c</text>
+              </g>
+            )}
+
+            {/* Draw Interior Motif / Centering Atoms */}
+            {projectedInterior.map((item, idx) => {
+              const baseRadius = latticeStyle === 'wireframe' ? 5 : latticeStyle === 'space-filling' ? 21 : 9.5;
+              const radius = Math.max(4, baseRadius + item.proj.z * 2.5);
+              return (
+                <g key={`int-${idx}`}>
+                  <circle
+                    cx={item.proj.x.toFixed(1)}
+                    cy={item.proj.y.toFixed(1)}
+                    r={radius.toFixed(1)}
+                    fill="url(#interiorAtomGrad)"
+                    fillOpacity="0.95"
+                  />
+                  <circle
+                    cx={item.proj.x.toFixed(1)}
+                    cy={item.proj.y.toFixed(1)}
+                    r={(radius + 1.8).toFixed(1)}
+                    fill="none"
+                    stroke="#C084FC"
+                    strokeOpacity="0.5"
+                    strokeWidth="0.9"
+                  />
+                </g>
+              );
+            })}
+
+            {/* Draw Corner Lattice Atoms (Sorted by Z depth) */}
+            {projected
+              .map((v, idx) => ({ v, idx }))
+              .sort((a, b) => a.v.z - b.v.z)
+              .map(({ v, idx }) => {
+                let baseRadius = 8.2;
+                let range = 3;
+                if (latticeStyle === 'wireframe') {
+                  baseRadius = 4.8;
+                  range = 1.5;
+                } else if (latticeStyle === 'space-filling') {
+                  baseRadius = 23;
+                  range = 7;
+                }
+                const radius = Math.max(baseRadius - range, Math.min(baseRadius + range, baseRadius + v.z * range));
+                const opacity = Math.max(0.38, Math.min(1, (v.z + 1.25) / 2));
+                const isAnchor = idx === 0;
+                return (
+                  <g key={`v-${idx}`}>
+                    <circle
+                      cx={v.x.toFixed(1)}
+                      cy={v.y.toFixed(1)}
+                      r={radius.toFixed(1)}
+                      fill={isAnchor ? "url(#anchorAtomGrad)" : "url(#standardAtomGrad)"}
+                      fillOpacity={latticeStyle === 'space-filling' ? opacity * 0.94 : opacity}
+                    />
+                    <circle
+                      cx={v.x.toFixed(1)}
+                      cy={v.y.toFixed(1)}
+                      r={(radius + 1.4).toFixed(1)}
+                      fill="none"
+                      stroke={isAnchor ? "#F59E0B" : "#22D3EE"}
+                      strokeOpacity={opacity * 0.45}
+                      strokeWidth="0.8"
+                    />
+                  </g>
+                );
+              })}
+          </svg>
+
+          {/* Bottom Interactive HUD Toolbar */}
+          <div className="w-full flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 z-20">
+            {/* Miller Plane Overlay Selector */}
+            <div className="flex items-center gap-1">
+              <span className="text-[8px] font-mono uppercase text-slate-500 mr-1">Miller Plane:</span>
+              {(['none', '100', '110', '111'] as const).map(plane => (
+                <button
+                  key={plane}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setSelectedMillerPlane(plane); }}
+                  className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold transition-all cursor-pointer ${
+                    selectedMillerPlane === plane
+                      ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
+                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  }`}
+                >
+                  {plane === 'none' ? 'Off' : `(${plane})`}
+                </button>
+              ))}
+            </div>
+
+            {/* Orbit, Axes, Zoom & Reset Controls */}
+            <div className="flex items-center gap-1 font-mono text-[8px]">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowLatticeAxes(a => !a); }}
+                className={`px-2 py-0.5 rounded border transition-all cursor-pointer font-bold ${
+                  showLatticeAxes
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                }`}
+              >
+                Axes
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setAutoRotateLattice(r => !r); }}
+                className={`px-2 py-0.5 rounded border transition-all cursor-pointer font-bold ${
+                  autoRotateLattice
+                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                }`}
+              >
+                {autoRotateLattice ? 'Orbit: ON' : 'Orbit: PAUSED'}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLatticeZoom(z => Math.min(1.4, Math.max(0.75, z === 1.0 ? 1.2 : 1.0)));
+                }}
+                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 cursor-pointer font-bold"
+                title="Toggle Zoom"
+              >
+                {latticeZoom > 1.05 ? '1.2x' : '1.0x'}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDragRotX(0.42);
+                  setDragRotY(0.55);
+                  setLatticeZoom(1.0);
+                }}
+                className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 cursor-pointer font-bold"
+                title="Reset Euler Orientation"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   };
 
+  // Helper SVG generator for 3D Isometric Crystal System Icons in Analytics Panel
+  const renderCrystalSystemMiniIcon = (sysName: string, isActive: boolean) => {
+    const lower = sysName.toLowerCase();
+    const stroke = isActive ? "#22D3EE" : "#38BDF8";
+    if (lower.includes('hexagonal')) {
+      return (
+        <svg className="w-7 h-7 shrink-0" viewBox="0 0 36 36" fill="none">
+          <polygon points="18,3 30,9 30,27 18,33 6,27 6,9" fill="rgba(34,211,238,0.08)" stroke={stroke} strokeWidth="1.5" />
+          <polyline points="6,9 18,15 30,9" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+          <line x1="18" y1="15" x2="18" y2="33" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+        </svg>
+      );
+    }
+    if (lower.includes('tetragonal')) {
+      return (
+        <svg className="w-7 h-7 shrink-0" viewBox="0 0 36 36" fill="none">
+          <polygon points="18,2 28,7 28,29 18,34 8,29 8,7" fill="rgba(99,102,241,0.1)" stroke={stroke} strokeWidth="1.5" />
+          <polyline points="8,7 18,12 28,7" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+          <line x1="18" y1="12" x2="18" y2="34" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+        </svg>
+      );
+    }
+    if (lower.includes('orthorhombic')) {
+      return (
+        <svg className="w-7 h-7 shrink-0" viewBox="0 0 36 36" fill="none">
+          <polygon points="16,4 30,9 30,28 20,33 6,28 6,9" fill="rgba(16,185,129,0.08)" stroke={stroke} strokeWidth="1.5" />
+          <polyline points="6,9 20,14 30,9" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+          <line x1="20" y1="14" x2="20" y2="33" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+        </svg>
+      );
+    }
+    if (lower.includes('monoclinic') || lower.includes('triclinic') || lower.includes('trigonal')) {
+      return (
+        <svg className="w-7 h-7 shrink-0" viewBox="0 0 36 36" fill="none">
+          <polygon points="21,4 32,10 27,29 15,33 5,27 10,8" fill="rgba(244,63,94,0.08)" stroke={stroke} strokeWidth="1.5" />
+          <polyline points="10,8 20,14 32,10" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+          <line x1="20" y1="14" x2="15" y2="33" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.7" />
+        </svg>
+      );
+    }
+    // Default Isometric Cubic
+    return (
+      <svg className="w-7 h-7 shrink-0" viewBox="0 0 36 36" fill="none">
+        <polygon points="18,4 30,11 30,25 18,32 6,25 6,11" fill="rgba(34,211,238,0.1)" stroke={stroke} strokeWidth="1.5" />
+        <polyline points="6,11 18,18 30,11" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.75" />
+        <line x1="18" y1="18" x2="18" y2="32" stroke={stroke} strokeWidth="1.2" strokeOpacity="0.75" />
+        <circle cx="18" cy="18" r="2" fill="#F59E0B" />
+      </svg>
+    );
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-100">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-100">
       
-      {/* 1. HERO DIRECTORY HEADER */}
-      <div className="relative group p-8 sm:p-10 rounded-[3rem] bg-gradient-to-br from-[#0F172A] to-[#0B1526] backdrop-blur-md border border-indigo-500/20 hover:border-indigo-500/40 transition-all shadow-2xl overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-0">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-500/20 to-cyan-500/20 rounded-full blur-[100px] pointer-events-none group-hover:scale-110 group-hover:opacity-100 transition-all duration-700 opacity-60 z-[-1]" />
+      {/* 1. SCIENTIFIC MATERIALS REGISTRY HEADER */}
+      <div className="relative p-6 sm:p-8 rounded-3xl bg-[#070D19] border border-slate-800/90 shadow-2xl overflow-hidden flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        {/* Subtle Precision Crystallographic Grid & Radial Glow */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.03)_1px,transparent_1px)] bg-[size:28px_28px] pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10 w-full md:w-auto">
-          <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/20 border border-indigo-400/40 shadow-[inset_0_2px_15px_rgba(255,255,255,0.05),0_4px_25px_rgba(0,0,0,0.5)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-500">
-            <Database className="w-10 h-10 text-indigo-300 group-hover:scale-110 transition-transform duration-500" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 relative z-10">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/15 border border-cyan-400/30 shadow-inner flex items-center justify-center shrink-0">
+            <Database className="w-8 h-8 text-cyan-300" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-cyan-100 tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-              {t('Scientific Materials Registry', 'Scientific Materials Registry')}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] px-2.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
+                ICDD / COD / Materials Project Sync
+              </span>
+              <span className="text-[10px] font-mono text-slate-400">
+                λ = {xrdWavelength.toFixed(4)} Å
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight mt-1.5">
+              {t('Crystallographic Materials Registry', 'Crystallographic Materials Registry')}
             </h1>
-            <p className="text-xs md:text-sm text-indigo-300 font-mono font-black tracking-[0.2em] uppercase mt-2 flex items-center gap-2">
-               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-              {t('Crystal Suite Database - Index 12.1.0', 'Crystal Suite Database - Index 12.1.0')}
+            <p className="text-xs text-slate-400 font-mono mt-1">
+              Interactive Powder Diffraction Reference Library, 3D Bravais Unit Cells &amp; Solid-Solution Phase Workbench
             </p>
           </div>
         </div>
 
-        {/* Global Inventory Counts Banner & Reset options */}
-        <div className="flex gap-4 sm:gap-6 flex-wrap relative z-10 w-full md:w-auto mt-4 md:mt-0 items-center">
-          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/80 border border-indigo-500/30 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] px-5 py-4 text-center hover:border-indigo-400 transition-colors cursor-default">
-            <span className="text-3xl sm:text-4xl font-black text-indigo-400 font-mono tracking-tighter drop-shadow-[0_0_10px_rgba(99,102,241,0.3)]">{stats.totalCount}</span>
-            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mt-1">Standards</p>
-          </div>
-          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/80 border border-cyan-500/30 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] px-5 py-4 text-center hover:border-cyan-400 transition-colors cursor-default">
-            <span className="text-3xl sm:text-4xl font-black text-cyan-400 font-mono tracking-tighter drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">{categories.length}</span>
-            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mt-1">Taxonomy</p>
-          </div>
-          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/80 border border-emerald-500/30 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] px-5 py-4 text-center hover:border-emerald-400 transition-colors cursor-default">
-            <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tighter drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">{stats.uniqueElements}</span>
-            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mt-1">Elements</p>
+        {/* Global Telemetry Strip & Primary Actions */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 relative z-10 w-full xl:w-auto justify-between xl:justify-end">
+          <div className="grid grid-cols-3 gap-3 flex-1 sm:flex-initial">
+            <div className="rounded-2xl bg-slate-950/90 border border-slate-800 px-4 py-3 text-left">
+              <span className="block text-[9px] uppercase font-mono font-bold text-slate-400 tracking-wider">Standards</span>
+              <span className="text-2xl sm:text-3xl font-black text-indigo-400 font-mono tabular-nums tracking-tight">{stats.totalCount}</span>
+            </div>
+            <div className="rounded-2xl bg-slate-950/90 border border-slate-800 px-4 py-3 text-left">
+              <span className="block text-[9px] uppercase font-mono font-bold text-slate-400 tracking-wider">Taxonomies</span>
+              <span className="text-2xl sm:text-3xl font-black text-cyan-400 font-mono tabular-nums tracking-tight">{categories.length}</span>
+            </div>
+            <div className="rounded-2xl bg-slate-950/90 border border-slate-800 px-4 py-3 text-left">
+              <span className="block text-[9px] uppercase font-mono font-bold text-slate-400 tracking-wider">Elements</span>
+              <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tabular-nums tracking-tight">{stats.uniqueElements}</span>
+            </div>
           </div>
 
-          {/* Reset All Database Button */}
-          {isAnyMaterialModified && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleResetAllMaterials}
-              className="flex items-center gap-2 px-6 py-3.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 rounded-2xl text-[11px] font-black uppercase tracking-widest cursor-pointer transition-all duration-300 shadow-inner w-full md:w-auto justify-center"
-              title={t('Reset entire database overrides to standard defaults', 'Reset entire database overrides to standard defaults')}
+              onClick={handleStartCreate}
+              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-cyan-500/15 border border-cyan-400/30 cursor-pointer transition-all"
             >
-              <RotateCcw className="w-4 h-4" />
-              <span>Reset DB Override</span>
+              <Plus className="w-4 h-4" />
+              <span>New Standard</span>
             </button>
-          )}
+
+            <button
+              onClick={handleExportJSON}
+              className="flex items-center gap-1.5 px-3.5 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-xl text-xs font-mono font-bold cursor-pointer transition-all"
+              title="Export entire registry to JSON"
+            >
+              <DownloadCloud className="w-4 h-4 text-cyan-400" />
+              <span className="hidden sm:inline">Export DB</span>
+            </button>
+
+            {isAnyMaterialModified && (
+              <button
+                onClick={handleResetAllMaterials}
+                className="flex items-center gap-1.5 px-3.5 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-mono font-bold cursor-pointer transition-all"
+                title={t('Reset entire database overrides to standard defaults', 'Reset entire database overrides to standard defaults')}
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span className="hidden sm:inline">Reset DB</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 2. ANALYTICS & DISTRIBUTION METRICS SECTION */}
+      {/* 2. INTERACTIVE TAXONOMY & CRYSTAL SYSTEM ANALYTICS MATRIX */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Category breakdown progress meter */}
-        <div className="lg:col-span-7 bg-black/40 backdrop-blur-md border border-white/5 hover:border-indigo-500/20 transition-all p-8 rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col justify-between group z-0">
-          <div className="absolute top-0 right-0 p-32 opacity-[0.03] bg-gradient-to-bl from-indigo-400 to-purple-400 rounded-bl-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700 z-[-1]" />
-          <div className="relative z-10">
-            <h3 className="font-black text-slate-200 text-sm tracking-widest uppercase mb-6 flex items-center gap-3">
-              <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-inner">
-                <Layers className="w-5 h-5 text-indigo-400" />
-              </div>
-              Taxonomy Category Breakdown
-            </h3>
-            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
+        {/* Interactive Taxonomy Category Breakdown (Click any bar to filter) */}
+        <div className="lg:col-span-7 bg-[#070D19] border border-slate-800/90 p-6 rounded-3xl shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex flex-wrap justify-between items-center gap-2 mb-5">
+              <h3 className="font-black text-slate-100 text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2.5">
+                <div className="p-2 bg-indigo-500/15 rounded-xl border border-indigo-500/30">
+                  <Layers className="w-4 h-4 text-indigo-400" />
+                </div>
+                <span>Taxonomy Phase Distribution</span>
+                <span className="text-[10px] font-mono font-normal text-slate-400 hidden sm:inline">
+                  (Click category to filter)
+                </span>
+              </h3>
+              {selectedCategory !== 'All' && (
+                <button
+                  onClick={() => { setSelectedCategory('All'); setCurrentPage(1); }}
+                  className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-500/30 cursor-pointer transition-all"
+                >
+                  Filter: {selectedCategory} ×
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 max-h-[290px] overflow-y-auto pr-2 custom-scrollbar">
               {stats.categoryDistribution.map(({ name, count }) => {
                 const percent = ((count / stats.totalCount) * 100).toFixed(1);
                 const color = getCategoryThemeColor(name);
+                const isCatActive = selectedCategory === name;
                 
-                // Color map for tailwind styles
                 const textThemes: { [key: string]: string } = {
                   amber: 'text-amber-400', blue: 'text-blue-400', cyan: 'text-cyan-400',
                   fuchsia: 'text-fuchsia-400', rose: 'text-rose-400', orange: 'text-orange-400',
@@ -3136,75 +3532,125 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                 const bc = bgThemes[color] || 'bg-slate-500';
 
                 return (
-                  <div key={name} className="space-y-2 group/item">
-                    <div className="flex justify-between items-center text-[11px] uppercase tracking-wider">
-                      <span className="font-bold text-slate-400 group-hover/item:text-slate-200 transition-colors flex items-center gap-2.5">
-                        <span className={`w-2.5 h-2.5 rounded-full ${bc} shadow-[0_0_10px_rgba(255,255,255,0.2)]`} />
-                        {name}
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(prev => prev === name ? 'All' : name);
+                      setCurrentPage(1);
+                    }}
+                    className={`w-full text-left p-2.5 rounded-xl border transition-all cursor-pointer group/item ${
+                      isCatActive
+                        ? 'bg-indigo-950/50 border-indigo-400/60 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                        : 'bg-slate-950/60 border-slate-800/70 hover:border-slate-700 hover:bg-slate-900/50'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center text-[11px] uppercase tracking-wider mb-1.5">
+                      <span className={`font-bold truncate pr-2 flex items-center gap-2 ${isCatActive ? 'text-white' : 'text-slate-300 group-hover/item:text-white'}`}>
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${bc}`} />
+                        <span className="truncate">{name}</span>
                       </span>
-                      <span className="font-mono text-slate-500 font-bold bg-black/40 px-2 py-0.5 rounded shadow-inner">
-                        <span className={tc}>{count}</span> <span className="text-[9px]">({percent}%)</span>
+                      <span className="font-mono tabular-nums text-slate-400 font-bold shrink-0">
+                        <span className={tc}>{count}</span> <span className="text-[9px] text-slate-500">({percent}%)</span>
                       </span>
                     </div>
-                    <div className="h-1.5 w-full bg-black/60 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                    <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full rounded-full ${bc} opacity-80 group-hover/item:opacity-100 transition-all duration-300 shadow-[0_0_10px_rgba(255,255,255,0.2)]`} 
-                        style={{ width: `${percent}%` }}
+                        className={`h-full rounded-full ${bc} transition-all duration-300`} 
+                        style={{ width: `${Math.max(4, parseFloat(percent))}%` }}
                       />
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           </div>
         </div>
 
-        {/* Crystal System & Physical extremes */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        {/* Right Analytics Column: Interactive 3D Bravais Crystal System Selector & Density Extremes */}
+        <div className="lg:col-span-5 flex flex-col gap-5">
           
-          {/* Crystal system stats */}
-          <div className="bg-gradient-to-br from-[#0F172A] to-[#0A0F1D] backdrop-blur-md border border-cyan-500/10 hover:border-cyan-500/30 transition-all p-8 rounded-[3rem] shadow-2xl flex-1 flex flex-col justify-between relative overflow-hidden group z-0">
-             <div className="absolute top-0 right-0 p-24 opacity-10 bg-gradient-to-bl from-cyan-500 to-blue-500 rounded-bl-[100px] pointer-events-none group-hover:opacity-20 group-hover:scale-110 transition-all duration-700 z-[-1]" />
-            <div className="relative z-10">
-              <h3 className="font-black text-slate-100 text-sm tracking-widest uppercase mb-6 flex items-center gap-3">
-                <div className="p-2 bg-cyan-500/20 rounded-xl border border-cyan-400/30 shadow-[inset_0_2px_10px_rgba(34,211,238,0.2)]">
-                  <Box className="w-5 h-5 text-cyan-300" />
-                </div>
-                Crystal System Distribution
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
+          {/* Interactive Crystal System Distribution Cards with Isometric Bravais Icons */}
+          <div className="bg-[#070D19] border border-slate-800/90 p-6 rounded-3xl shadow-xl flex-1 flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-center gap-2 mb-4">
+                <h3 className="font-black text-slate-100 text-xs sm:text-sm tracking-wider uppercase flex items-center gap-2.5">
+                  <div className="p-2 bg-cyan-500/15 rounded-xl border border-cyan-400/30">
+                    <Box className="w-4 h-4 text-cyan-300" />
+                  </div>
+                  <span>Crystal Symmetry Systems</span>
+                </h3>
+                {selectedCrystalSystem !== 'All' && (
+                  <button
+                    onClick={() => { setSelectedCrystalSystem('All'); setCurrentPage(1); }}
+                    className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 cursor-pointer transition-all"
+                  >
+                    {selectedCrystalSystem} ×
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {stats.systemDistribution.slice(0, 6).map(({ name, count }) => {
-                  const percent = ((count / stats.totalCount) * 100).toFixed(1);
+                  const percent = ((count / stats.totalCount) * 100).toFixed(0);
+                  const isSysActive = selectedCrystalSystem.toLowerCase() === name.toLowerCase();
                   return (
-                    <div key={name} className="p-4 rounded-2xl bg-[#060B12]/80 border border-white/5 hover:border-cyan-500/30 flex flex-col justify-between shadow-[inset_0_2px_15px_rgba(0,0,0,0.5)] transition-colors group/sys">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight group-hover/sys:text-white transition-colors">{name}</span>
-                      <div className="flex justify-between items-baseline mt-3">
-                        <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-500 font-mono leading-none drop-shadow-[0_2px_5px_rgba(34,211,238,0.3)]">{count}</span>
-                        <span className="text-[9px] font-mono text-cyan-400 font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded border border-cyan-500/30">{percent}%</span>
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCrystalSystem(prev => prev.toLowerCase() === name.toLowerCase() ? 'All' : name);
+                        setCurrentPage(1);
+                      }}
+                      className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer group/sys ${
+                        isSysActive
+                          ? 'bg-cyan-950/50 border-cyan-400/70 shadow-[0_0_15px_rgba(34,211,238,0.2)]'
+                          : 'bg-slate-950/80 border-slate-800/80 hover:border-cyan-500/40 hover:bg-slate-900/70'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        {renderCrystalSystemMiniIcon(name, isSysActive)}
+                        <span className="text-[9px] font-mono tabular-nums text-cyan-300 font-bold bg-cyan-500/15 px-1.5 py-0.5 rounded border border-cyan-500/25">
+                          {percent}%
+                        </span>
                       </div>
-                    </div>
+                      <div className="mt-2.5">
+                        <span className={`block text-[10px] font-black uppercase tracking-wider truncate ${isSysActive ? 'text-white' : 'text-slate-300 group-hover/sys:text-white'}`}>
+                          {name}
+                        </span>
+                        <span className="text-lg font-black text-cyan-400 font-mono tabular-nums leading-tight">
+                          {count} <span className="text-[9px] font-normal text-slate-500">phases</span>
+                        </span>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
             </div>
           </div>
 
-          {/* Density metrics/stats extreme */}
-          <div className="bg-gradient-to-br from-[#0F172A] to-[#0A0F1D] backdrop-blur-md border border-emerald-500/10 hover:border-emerald-500/30 transition-all p-6 rounded-[2.5rem] shadow-2xl flex flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 shadow-inner flex items-center justify-center p-3">
-                <Compass className="w-full h-full text-emerald-400" />
+          {/* Physical Density & Mean Registry Telemetry Strip */}
+          <div className="bg-[#070D19] border border-slate-800/90 px-6 py-4 rounded-2xl shadow-lg flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <Compass className="w-5 h-5 text-emerald-400" />
               </div>
-              <div>
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] leading-none mb-1.5">Database Density Extremes</h4>
-                <p className="text-sm text-emerald-300 font-bold max-w-[200px] truncate" title={stats.maxDensity.mat}>
+              <div className="min-w-0">
+                <span className="block text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                  Peak Density Reference • Mean ρ: {stats.avgDensity} g/cm³
+                </span>
+                <p className="text-xs sm:text-sm text-emerald-300 font-bold truncate mt-0.5" title={stats.maxDensity.mat}>
                   {stats.maxDensity.mat || 'N/A'}
                 </p>
               </div>
             </div>
-            <div className="text-right pl-4 border-l border-white/5">
-              <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 font-mono leading-none">{stats.maxDensity.val || '0.0'}</span>
-              <p className="text-[9px] uppercase text-slate-500 font-mono font-bold tracking-widest mt-1">g/cm³ (Max)</p>
+            <div className="text-right pl-4 border-l border-slate-800 shrink-0">
+              <span className="text-2xl font-black text-white font-mono tabular-nums leading-none">
+                {stats.maxDensity.val || '0.0'}
+              </span>
+              <span className="block text-[9px] uppercase text-slate-400 font-mono font-bold tracking-wider mt-1">
+                g/cm³ Max
+              </span>
             </div>
           </div>
 
@@ -3443,19 +3889,37 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                       </div>
                     </div>
 
-                    <div className="relative h-60 w-full bg-[#030712] rounded-[2rem] border border-slate-900 overflow-hidden shadow-inner">
-                      {/* Grid markers */}
-                      <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-900">
-                        <line x1="0%" y1="20%" x2="100%" y2="20%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                        <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                        <line x1="0%" y1="80%" x2="100%" y2="80%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                        <line x1="25%" y1="0" x2="25%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                        <line x1="50%" y1="0" x2="50%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                        <line x1="75%" y1="0" x2="75%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                      </svg>
+                    <div className="relative w-full bg-[#030712] rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
+                      <svg className="w-full h-60 block" viewBox="0 0 800 220">
+                        {/* Scientific Reticle Gridlines */}
+                        {[0.25, 0.5, 0.75, 1.0].map((frac, gIdx) => {
+                          const y = 180 - frac * 150;
+                          return (
+                            <g key={`cgrid-h-${gIdx}`}>
+                              <line x1="0" y1={y} x2="800" y2={y} stroke="#0F172A" strokeWidth="1" strokeDasharray="3,3" />
+                              <text x="8" y={y - 4} fill="#475569" fontSize="9" fontFamily="monospace">
+                                {Math.round(frac * 100)}%
+                              </text>
+                            </g>
+                          );
+                        })}
+                        {[20, 30, 40, 50, 60, 70, 80].map(deg => {
+                          const x = ((deg - 10) / 80) * 800;
+                          return (
+                            <line
+                              key={`cgrid-v-${deg}`}
+                              x1={x}
+                              y1="20"
+                              x2={x}
+                              y2="180"
+                              stroke="#0F172A"
+                              strokeWidth="1"
+                              strokeDasharray="3,3"
+                            />
+                          );
+                        })}
 
-                      {/* Overlapping diffraction patterns */}
-                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 180" preserveAspectRatio="none">
+                        {/* Overlapping diffraction patterns + Bragg ticks */}
                         {comparedMaterials.map((name, idx) => {
                           const mat = materials.find(m => m.name === name);
                           if (!mat) return null;
@@ -3463,8 +3927,7 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                           const strokeColors = ['#22d3ee', '#fbbf24', '#34d399', '#f43f5e'];
                           const stroke = strokeColors[idx] || '#cbd5e1';
 
-                          // Compute path
-                          const steps = 240;
+                          const steps = 320;
                           const min2Theta = 10;
                           const max2Theta = 90;
                           const sigma = xrdFwhm / 2.35482;
@@ -3474,37 +3937,69 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                             let intensity = 0;
                             matShiftedPeaks.forEach(p => {
                               const diff = twoTheta - p.twoTheta;
-                              intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
+                              if (Math.abs(diff) < 5) {
+                                intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
+                              }
                             });
-                            const baseline = 2 * Math.exp(-twoTheta / 35);
-                            const pseudoNoise = (Math.sin(twoTheta * 5) * 0.1 + Math.sin(twoTheta * 17) * 0.05);
-                            const finalVal = Math.min(100, Math.max(0, intensity + baseline + pseudoNoise + 1));
-                            const x = (i / steps) * 100;
-                            const y = 180 - (finalVal / 100) * 145;
+                            const baseline = 1.5 * Math.exp(-twoTheta / 35);
+                            const finalVal = Math.min(100, Math.max(0, intensity + baseline));
+                            const x = (i / steps) * 800;
+                            const y = 180 - (finalVal / 100) * 150;
                             const safeY = isNaN(y) || !isFinite(y) ? 180 : y;
                             path += (i === 0 ? "M " : "L ") + `${x.toFixed(1)},${safeY.toFixed(1)} `;
                           }
                           return (
-                            <path
-                              key={name}
-                              d={path}
-                              fill="none"
-                              stroke={stroke}
-                              strokeWidth="2.5"
-                              strokeOpacity="0.85"
-                            />
+                            <g key={name}>
+                              <path
+                                d={path}
+                                fill="none"
+                                stroke={stroke}
+                                strokeWidth="2"
+                                strokeOpacity="0.9"
+                                strokeLinejoin="round"
+                              />
+                              {matShiftedPeaks.map((pk, pIdx) => {
+                                const tx = ((pk.twoTheta - 10) / 80) * 800;
+                                if (tx < 0 || tx > 800) return null;
+                                return (
+                                  <line
+                                    key={`ctick-${idx}-${pIdx}`}
+                                    x1={tx}
+                                    y1={182 + idx * 4}
+                                    x2={tx}
+                                    y2={185 + idx * 4}
+                                    stroke={stroke}
+                                    strokeWidth="1.8"
+                                  />
+                                );
+                              })}
+                            </g>
+                          );
+                        })}
+
+                        {/* Bottom 2-Theta Scale Bar */}
+                        <rect x="0" y="199" width="800" height="21" fill="#020617" />
+                        <line x1="0" y1="199" x2="800" y2="199" stroke="#1E293B" strokeWidth="1" />
+                        {[10, 20, 30, 40, 50, 60, 70, 80, 90].map(deg => {
+                          const x = ((deg - 10) / 80) * 800;
+                          const anchor = deg === 10 ? "start" : deg === 90 ? "end" : "middle";
+                          const dx = deg === 10 ? 8 : deg === 90 ? -8 : 0;
+                          return (
+                            <text
+                              key={`cax-${deg}`}
+                              x={x + dx}
+                              y="214"
+                              textAnchor={anchor}
+                              fill="#64748B"
+                              fontSize="10"
+                              fontFamily="monospace"
+                              fontWeight="bold"
+                            >
+                              {deg}°{deg === 50 ? ' 2θ' : ''}
+                            </text>
                           );
                         })}
                       </svg>
-
-                      {/* X-axis labels inside SVG */}
-                      <div className="absolute bottom-2 left-6 right-6 flex justify-between font-mono text-[8px] text-slate-500 font-extrabold select-none">
-                        <span>10° 2θ</span>
-                        <span>30°</span>
-                        <span>50°</span>
-                        <span>70°</span>
-                        <span>90° 2θ</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -5067,7 +5562,7 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
 
           {/* Directory Materials List Container */}
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {paginatedMaterials.map((material) => {
                 const themeColor = getCategoryThemeColor(material.type || '');
                 const isSelected = selectedMaterialName === material.name;
@@ -5085,129 +5580,231 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                   JSON.stringify(standardItem.applications) !== JSON.stringify(material.applications)
                 ) : false;
 
-                // Color classes
                 const activeBorderColor = isSelected 
-                  ? 'border-cyan-400/60 shadow-[0_8px_32px_-4px_rgba(34,211,238,0.35),inset_0_1px_2px_rgba(255,255,255,0.2)] bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-cyan-950/40 scale-[1.02] ring-1 ring-cyan-400/50 z-10' 
-                  : 'border-white/10 hover:border-indigo-400/50 bg-gradient-to-br from-slate-900/50 to-black/80 hover:from-slate-800/60 hover:to-slate-900/90 hover:-translate-y-1 hover:shadow-[0_12px_32px_-8px_rgba(99,102,241,0.25)]';
+                  ? 'border-cyan-400/80 shadow-[0_8px_30px_-4px_rgba(34,211,238,0.28)] bg-[#0A1324] ring-1 ring-cyan-400/50 z-10' 
+                  : 'border-slate-800/90 hover:border-cyan-500/40 bg-[#070D19] hover:bg-[#0A1222] hover:shadow-xl';
 
-                const indicatorBadgeTheme: any = {
-                  amber: 'text-amber-300 bg-amber-500/20 border-amber-500/30 text-shadow-amber',
-                  blue: 'text-blue-300 bg-blue-500/20 border-blue-500/30 text-shadow-blue',
-                  cyan: 'text-cyan-300 bg-cyan-500/20 border-cyan-500/30 text-shadow-cyan',
-                  fuchsia: 'text-fuchsia-300 bg-fuchsia-500/20 border-fuchsia-500/30 text-shadow-fuchsia',
-                  rose: 'text-rose-300 bg-rose-500/20 border-rose-500/30 text-shadow-rose',
-                  orange: 'text-orange-300 bg-orange-500/20 border-orange-500/30 text-shadow-orange',
-                  yellow: 'text-yellow-300 bg-yellow-500/20 border-yellow-500/30 text-shadow-yellow',
-                  emerald: 'text-emerald-300 bg-emerald-500/20 border-emerald-500/30 text-shadow-emerald',
-                  violet: 'text-violet-300 bg-violet-500/20 border-violet-500/30 text-shadow-violet',
-                  purple: 'text-purple-300 bg-purple-500/20 border-purple-500/30 text-shadow-purple',
-                  teal: 'text-teal-300 bg-teal-500/20 border-teal-500/30 text-shadow-teal',
-                  slate: 'text-slate-300 bg-slate-800/50 border-slate-700/50'
+                const indicatorBadgeTheme: Record<string, string> = {
+                  amber: 'text-amber-300 bg-amber-500/15 border-amber-500/30',
+                  blue: 'text-blue-300 bg-blue-500/15 border-blue-500/30',
+                  cyan: 'text-cyan-300 bg-cyan-500/15 border-cyan-500/30',
+                  fuchsia: 'text-fuchsia-300 bg-fuchsia-500/15 border-fuchsia-500/30',
+                  rose: 'text-rose-300 bg-rose-500/15 border-rose-500/30',
+                  orange: 'text-orange-300 bg-orange-500/15 border-orange-500/30',
+                  yellow: 'text-yellow-300 bg-yellow-500/15 border-yellow-500/30',
+                  emerald: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/30',
+                  violet: 'text-violet-300 bg-violet-500/15 border-violet-500/30',
+                  purple: 'text-purple-300 bg-purple-500/15 border-purple-500/30',
+                  teal: 'text-teal-300 bg-teal-500/15 border-teal-500/30',
+                  slate: 'text-slate-300 bg-slate-800/60 border-slate-700/60'
                 };
 
-                const countOfPeaks = material.pattern.split('\n').filter(p=>p.trim()).length;
+                const cardPeaks = getShiftedPeaksForMaterial(material, xrdWavelength);
+                const countOfPeaks = cardPeaks.length;
+                const strongestPeak = cardPeaks.reduce(
+                  (best, cur) => (cur.intensity > best.intensity ? cur : best),
+                  cardPeaks[0] || { twoTheta: 0, intensity: 0, dSpacing: 0 }
+                );
 
                 return (
                   <div
                     key={material.name}
                     onClick={() => {
                       setSelectedMaterialName(material.name);
-                      setIsEditing(false); // Close edit mode on change
+                      setSelectedPeakIdx(null);
+                      setIsEditing(false);
                     }}
-                    className={`group relative p-5 rounded-[2rem] cursor-pointer transition-all duration-500 flex flex-col justify-between backdrop-blur-md border overflow-hidden ${activeBorderColor}`}
+                    className={`group relative p-5 rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between border overflow-hidden ${activeBorderColor}`}
                   >
-                    {/* Bountiful Ambient Background Effects */}
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMiIvPjwvc3ZnPg==')] opacity-50 mix-blend-overlay pointer-events-none" />
-                    
-                    {/* Geometric Crystal SVG decoration in background */}
-                    <svg className="absolute -bottom-10 -right-10 w-48 h-48 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-700 text-white pointer-events-none transform group-hover:scale-110 group-hover:rotate-12" viewBox="0 0 100 100" fill="currentColor">
-                      <polygon points="50,5 95,25 95,75 50,95 5,75 5,25" stroke="currentColor" strokeWidth="2" fill="none" />
-                      <line x1="50" y1="5" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
-                      <line x1="95" y1="25" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
-                      <line x1="5" y1="25" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
-                      <line x1="50" y1="95" x2="50" y2="50" stroke="currentColor" strokeWidth="2" />
-                    </svg>
+                    {/* Top active accent line */}
+                    {isSelected && (
+                      <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400" />
+                    )}
 
-                    {/* Top decoration line for selected */}
-                    {isSelected && <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-500 shadow-[0_0_20px_rgba(34,211,238,0.9)]" />}
-                    
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full blur-[40px] group-hover:bg-cyan-500/10 transition-all duration-700 pointer-events-none" />
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/5 rounded-full blur-[30px] group-hover:bg-indigo-500/15 transition-all duration-700 pointer-events-none" />
-
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start gap-4 mb-4">
-                        <div className="flex flex-col gap-1.5">
-                          <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-lg inline-flex items-center w-fit border shadow-inner ${indicatorBadgeTheme[themeColor] || indicatorBadgeTheme.slate}`}>
-                            {material.type || 'Custom'}
-                          </span>
-                          <span className={`text-lg font-black flex items-center gap-2 mt-2 truncate max-w-[180px] drop-shadow-md transition-colors ${isSelected ? 'text-white' : 'text-slate-100 group-hover:text-cyan-100'}`} title={material.name}>
+                    <div className="relative z-10 space-y-3.5">
+                      {/* Header Row: Category, Name, Formula & Star/Compare Actions */}
+                      <div className="flex justify-between items-start gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${indicatorBadgeTheme[themeColor] || indicatorBadgeTheme.slate}`}>
+                              {material.type || 'Custom'}
+                            </span>
                             {isItemModified && (
-                              <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)] animate-pulse inline-block shrink-0" title="Has manual overrides" />
+                              <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                Override
+                              </span>
                             )}
+                          </div>
+                          <h4
+                            className={`text-base font-black truncate mt-1.5 transition-colors ${
+                              isSelected ? 'text-white' : 'text-slate-100 group-hover:text-cyan-200'
+                            }`}
+                            title={material.name}
+                          >
                             {material.name}
-                          </span>
+                          </h4>
                         </div>
-                        <div className="text-right flex flex-col items-end gap-2 shrink-0">
-                          <span className="text-[12px] text-cyan-300 font-bold bg-black/60 px-3 py-1.5 rounded-xl border border-white/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] group-hover:border-cyan-500/40 transition-colors backdrop-blur-md">
+
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className="text-xs font-mono font-black text-cyan-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 group-hover:border-cyan-500/40 transition-colors">
                             {material.formula}
                           </span>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleStarMaterial(material.name, e)}
-                              className={`p-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${
-                                starredMaterials.includes(material.name)
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
-                                  : 'bg-black/60 text-slate-400 hover:text-amber-300 border border-white/10 hover:border-amber-500/30 hover:bg-white/5'
-                              }`}
-                              title={starredMaterials.includes(material.name) ? "Remove from starred" : "Star material"}
-                            >
-                              <Star className={`w-3.5 h-3.5 ${starredMaterials.includes(material.name) ? 'fill-amber-400 text-amber-400' : ''}`} />
-                            </button>
-                            <button
-                              onClick={(e) => handleToggleCompare(material.name, e)}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${
-                                comparedMaterials.includes(material.name)
-                                  ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
-                                  : 'bg-black/60 text-slate-400 hover:text-white border border-white/10 hover:border-slate-500/50 hover:bg-white/5'
-                              }`}
-                              title={comparedMaterials.includes(material.name) ? t("Remove from comparison", "Remove from comparison") : t("Add to side-by-side comparison", "Add to side-by-side comparison")}
-                            >
-                              <Scale className="w-3.5 h-3.5" />
-                              <span>{comparedMaterials.includes(material.name) ? t('Compared', 'Compared') : t('Compare', 'Compare')}</span>
-                            </button>
-                          </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 mt-4 bg-gradient-to-b from-black/40 to-black/20 p-3.5 rounded-2xl border border-white/10 font-mono shadow-inner backdrop-blur-sm">
-                        <div className="flex flex-col gap-1 text-center border-r border-white/10 pr-3">
-                          <span className="text-[8px] text-slate-400/80 uppercase font-black tracking-widest">Crystal System</span>
-                          <span className="text-[11px] font-bold text-slate-200 truncate rounded">{material.crystalSystem || 'Crystalline'}</span>
+                      {/* Live Mini-XRD Diffraction Spectrum Sparkline Graphic */}
+                      <div className="bg-[#030712] border border-slate-800/90 rounded-xl p-2.5 relative overflow-hidden">
+                        <div className="flex justify-between items-center text-[8px] font-mono text-slate-400 mb-1">
+                          <span className="uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                            <Activity className="w-2.5 h-2.5 text-cyan-400" />
+                            Powder XRD Fingerprint ({countOfPeaks} peaks)
+                          </span>
+                          {strongestPeak.twoTheta > 0 && (
+                            <span className="text-cyan-300 font-bold tabular-nums">
+                              I₁₀₀ @ {strongestPeak.twoTheta.toFixed(1)}° ({strongestPeak.dSpacing.toFixed(2)} Å)
+                            </span>
+                          )}
                         </div>
-                        <div className="flex flex-col gap-1 text-center pl-3">
-                          <span className="text-[8px] text-slate-400/80 uppercase font-black tracking-widest">Space Group</span>
-                          <span className="text-[11px] text-indigo-300 font-bold">{material.spaceGroup || 'Unknown'}</span>
+                        <svg className="w-full h-10 overflow-visible" viewBox="0 0 220 38">
+                          {/* Subtle baseline & grid ticks */}
+                          <line x1="0" y1="35" x2="220" y2="35" stroke="#1E293B" strokeWidth="1" />
+                          <line x1="55" y1="4" x2="55" y2="35" stroke="#0F172A" strokeWidth="0.75" strokeDasharray="2,2" />
+                          <line x1="110" y1="4" x2="110" y2="35" stroke="#0F172A" strokeWidth="0.75" strokeDasharray="2,2" />
+                          <line x1="165" y1="4" x2="165" y2="35" stroke="#0F172A" strokeWidth="0.75" strokeDasharray="2,2" />
+
+                          {/* Continuous broadened mini-envelope */}
+                          <path
+                            d={(() => {
+                              const steps = 72;
+                              let d = "M 0,35 ";
+                              for (let i = 0; i <= steps; i++) {
+                                const tt = 10 + (i / steps) * 80;
+                                let val = 0;
+                                for (const pk of cardPeaks) {
+                                  const diff = tt - pk.twoTheta;
+                                  if (Math.abs(diff) < 3.5) {
+                                    val += pk.intensity * Math.exp(-(diff * diff) / 0.65);
+                                  }
+                                }
+                                const clamped = Math.min(100, val);
+                                const x = (i / steps) * 220;
+                                const y = 35 - (clamped / 100) * 29;
+                                d += `L ${x.toFixed(1)},${y.toFixed(1)} `;
+                              }
+                              return d;
+                            })()}
+                            fill="none"
+                            stroke={isSelected ? "#22D3EE" : "#6366F1"}
+                            strokeWidth="1.25"
+                            strokeOpacity="0.85"
+                          />
+
+                          {/* Discrete Bragg stick markers */}
+                          {cardPeaks.map((pk, pIdx) => {
+                            const x = Math.max(2, Math.min(218, ((pk.twoTheta - 10) / 80) * 220));
+                            const h = Math.max(3, (Math.min(100, pk.intensity) / 100) * 29);
+                            const isPrimary = Math.abs(pk.twoTheta - strongestPeak.twoTheta) < 0.05;
+                            return (
+                              <g key={pIdx}>
+                                <line
+                                  x1={x.toFixed(1)}
+                                  y1="35"
+                                  x2={x.toFixed(1)}
+                                  y2={(35 - h).toFixed(1)}
+                                  stroke={isPrimary ? "#22D3EE" : "#818CF8"}
+                                  strokeWidth={isPrimary ? "1.8" : "1.2"}
+                                  strokeOpacity={isPrimary ? "1" : "0.75"}
+                                />
+                                {isPrimary && (
+                                  <circle cx={x.toFixed(1)} cy={(35 - h).toFixed(1)} r="1.8" fill="#22D3EE" />
+                                )}
+                              </g>
+                            );
+                          })}
+                        </svg>
+                      </div>
+
+                      {/* Unboxed Tabular Crystallographic Telemetry Strip */}
+                      <div className="grid grid-cols-3 gap-2 pt-1 font-mono">
+                        <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl px-2.5 py-2 flex items-center gap-2 min-w-0">
+                          {renderCrystalSystemMiniIcon(material.crystalSystem || 'Cubic', isSelected)}
+                          <div className="min-w-0">
+                            <span className="block text-[8px] text-slate-500 uppercase font-bold">System</span>
+                            <span className="block text-[10px] font-bold text-slate-200 truncate" title={material.crystalSystem}>
+                              {material.crystalSystem || 'Cubic'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl px-2.5 py-2 min-w-0">
+                          <span className="block text-[8px] text-slate-500 uppercase font-bold">Space Group</span>
+                          <span className="block text-[11px] font-bold text-indigo-300 truncate mt-0.5">
+                            {material.spaceGroup || 'P1'}
+                          </span>
+                        </div>
+
+                        <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl px-2.5 py-2 min-w-0">
+                          <span className="block text-[8px] text-slate-500 uppercase font-bold">Density / Mod</span>
+                          <span className="block text-[10px] font-bold text-emerald-400 tabular-nums truncate mt-0.5">
+                            {material.density ? `${material.density.toFixed(2)}` : '-'} <span className="text-slate-500 font-normal">g/cm³</span>
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center mt-5 pt-3.5 border-t border-white/10 text-[10px] font-mono text-slate-500 relative z-10">
-                      <span className="flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/5 px-3 py-1.5 rounded-xl border border-emerald-500/20 shadow-sm">
-                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)] animate-pulse" />
-                        <span className="text-slate-400">ρ:</span> <span className="text-emerald-400 font-bold ml-0.5">{material.density ? material.density.toFixed(2) : '-'}</span>
-                      </span>
-                      <span className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-500/10 to-purple-500/5 px-3 py-1.5 rounded-xl border border-indigo-500/20 shadow-sm">
-                        <Activity className="w-3.5 h-3.5 text-indigo-400" /> 
-                        <span className="text-indigo-400 font-black text-[11px]">{countOfPeaks}</span> <span className="text-[8px] uppercase tracking-widest text-indigo-300/70">Peaks</span>
-                      </span>
+                    {/* Card Footer Action Bar */}
+                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-800/80 text-[10px] font-mono relative z-10 gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const event = new CustomEvent('LOAD_MATERIAL_TO_WORKSPACE', { detail: material });
+                          window.dispatchEvent(event);
+                          setImportStatus(`Loaded "${material.name}" into active Bragg simulation workspace!`);
+                          setTimeout(() => setImportStatus(null), 4000);
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-bold uppercase tracking-wider text-[9px] transition-all cursor-pointer"
+                        title="Load directly into Bragg Simulation Workbench"
+                      >
+                        <Zap className="w-3 h-3 fill-emerald-300" />
+                        <span>Load to Sim</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleCompare(material.name, e)}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer border ${
+                            comparedMaterials.includes(material.name)
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                              : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800 hover:border-slate-700'
+                          }`}
+                          title={comparedMaterials.includes(material.name) ? "Remove from comparison" : "Add to side-by-side comparison"}
+                        >
+                          <Scale className="w-3 h-3" />
+                          <span>{comparedMaterials.includes(material.name) ? 'Compared' : 'Compare'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleStarMaterial(material.name, e)}
+                          className={`p-1.5 rounded-lg transition-all cursor-pointer border ${
+                            starredMaterials.includes(material.name)
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                              : 'bg-slate-950 text-slate-400 hover:text-amber-300 border-slate-800 hover:border-amber-500/30'
+                          }`}
+                          title={starredMaterials.includes(material.name) ? "Remove from starred" : "Star material"}
+                        >
+                          <Star className={`w-3.5 h-3.5 ${starredMaterials.includes(material.name) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
               })}
 
               {filteredAndSortedMaterials.length === 0 && (
-                <div className="col-span-2 py-12 px-6 text-center text-slate-400 space-y-4 bg-gradient-to-b from-cyan-950/20 via-black/40 to-black/60 border border-cyan-500/30 rounded-3xl backdrop-blur-md shadow-2xl">
+                <div className="col-span-2 py-12 px-6 text-center text-slate-400 space-y-4 bg-[#070D19] border border-cyan-500/30 rounded-3xl shadow-2xl">
                   <div className="w-14 h-14 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
                     <Sparkles className="w-7 h-7 text-cyan-400 animate-pulse" />
                   </div>
@@ -5223,7 +5820,7 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                         setGeminiFlashInitialQuery(searchQuery);
                         setShowGeminiFlashSearch(true);
                       }}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:via-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-cyan-500/20 border border-cyan-400/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:via-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-cyan-500/20 border border-cyan-400/40 transition-all cursor-pointer"
                     >
                       <Sparkles className="w-4 h-4 text-cyan-200" />
                       <span>Search COD / ICDD via Gemini 3.6 Flash</span>
@@ -5233,65 +5830,98 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto bg-gradient-to-b from-black/60 to-black/40 backdrop-blur-2xl border border-indigo-500/10 rounded-[2.5rem] shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8)] relative z-10">
+            <div className="overflow-x-auto bg-[#070D19] border border-slate-800/90 rounded-3xl shadow-2xl relative z-10">
               <table className="w-full text-left border-collapse text-xs font-mono">
                 <thead>
-                  <tr className="border-b border-indigo-500/20 bg-indigo-500/5 text-slate-400 select-none backdrop-blur-xl">
-                    <th className="py-5 px-6 font-black uppercase tracking-[0.2em] text-[9px] w-5/12 text-indigo-300">Formula & Name</th>
-                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-indigo-300">Lattice System</th>
-                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right text-indigo-300">Density (g/cm³)</th>
-                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right text-indigo-300">Modulus (GPa)</th>
-                    <th className="py-5 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-center text-indigo-300">XRD Peaks</th>
-                    <th className="py-5 px-6 font-black uppercase tracking-[0.2em] text-[9px] text-center text-indigo-300">Compare</th>
+                  <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 select-none">
+                    <th className="py-4 px-5 font-black uppercase tracking-wider text-[9px] text-indigo-300">Formula &amp; Name</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-wider text-[9px] text-indigo-300">Symmetry</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-wider text-[9px] text-indigo-300">XRD Fingerprint</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-wider text-[9px] text-right text-indigo-300">ρ (g/cm³)</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-wider text-[9px] text-right text-indigo-300">E (GPa)</th>
+                    <th className="py-4 px-5 font-black uppercase tracking-wider text-[9px] text-right text-indigo-300">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-800/60">
                   {paginatedMaterials.map((material) => {
                     const isSelected = selectedMaterialName === material.name;
-                    const countOfPeaks = material.pattern.split('\n').filter(p=>p.trim()).length;
+                    const rowPeaks = getShiftedPeaksForMaterial(material, xrdWavelength);
                     return (
                       <tr
                         key={material.name}
                         onClick={() => {
                           setSelectedMaterialName(material.name);
+                          setSelectedPeakIdx(null);
                           setIsEditing(false);
                         }}
-                        className={`cursor-pointer transition-all duration-300 group hover:bg-white/5 text-slate-300 ${isSelected ? 'bg-gradient-to-r from-indigo-500/20 to-indigo-900/10 text-indigo-100 font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-1px_0_rgba(255,255,255,0.05)]' : 'bg-transparent'}`}
+                        className={`cursor-pointer transition-all group hover:bg-slate-900/60 text-slate-300 ${
+                          isSelected ? 'bg-cyan-950/30 text-white font-bold' : ''
+                        }`}
                       >
-                        <td className="py-5 px-6 relative">
-                          {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.9)]" />}
-                          <div className="font-extrabold flex items-center gap-3 font-sans text-xs">
-                            <span className="text-[11px] text-cyan-300 font-mono font-bold bg-black/60 px-2.5 py-1 rounded-xl border border-white/10 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] group-hover:border-cyan-500/30 transition-colors">
+                        <td className="py-3.5 px-5 relative">
+                          {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400" />}
+                          <div className="flex items-center gap-2.5 font-sans text-xs">
+                            <span className="text-[11px] text-cyan-300 font-mono font-bold bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
                               {material.formula}
                             </span>
-                            <span className={`truncate max-w-[180px] drop-shadow-md transition-colors ${isSelected ? 'text-white' : 'group-hover:text-cyan-100'}`} title={material.name}>{material.name}</span>
+                            <span className="truncate max-w-[160px] font-bold">{material.name}</span>
                           </div>
                         </td>
-                        <td className="py-5 px-4">
-                          <div className="text-slate-200 font-sans text-[12px] font-bold">{material.crystalSystem || 'N/A'}</div>
-                          <div className="text-[10px] text-indigo-300 font-mono tracking-wider mt-1">{material.spaceGroup || 'N/A'}</div>
+                        <td className="py-3.5 px-4">
+                          <div className="text-slate-200 font-sans text-xs font-bold">{material.crystalSystem || 'N/A'}</div>
+                          <div className="text-[10px] text-indigo-300 font-mono">{material.spaceGroup || 'N/A'}</div>
                         </td>
-                        <td className="py-5 px-4 text-right font-mono text-emerald-400 font-bold text-xs">
+                        <td className="py-3.5 px-4">
+                          <svg className="w-28 h-6 bg-slate-950 rounded border border-slate-800/80 p-0.5" viewBox="0 0 120 22">
+                            {rowPeaks.map((pk, idx) => {
+                              const x = Math.max(2, Math.min(118, ((pk.twoTheta - 10) / 80) * 120));
+                              const h = Math.max(2, (Math.min(100, pk.intensity) / 100) * 18);
+                              return (
+                                <line
+                                  key={idx}
+                                  x1={x}
+                                  y1={20}
+                                  x2={x}
+                                  y2={20 - h}
+                                  stroke="#22D3EE"
+                                  strokeWidth="1.4"
+                                />
+                              );
+                            })}
+                          </svg>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono tabular-nums text-emerald-400 font-bold text-xs">
                           {material.density ? material.density.toFixed(2) : '-'}
                         </td>
-                        <td className="py-5 px-4 text-right font-mono text-amber-400 font-bold text-xs">
+                        <td className="py-3.5 px-4 text-right font-mono tabular-nums text-amber-400 font-bold text-xs">
                           {material.elasticModulus || '-'}
                         </td>
-                        <td className="py-5 px-4 text-center font-mono font-black text-indigo-400 text-xs">
-                          {countOfPeaks}
-                        </td>
-                        <td className="py-5 px-6 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={(e) => handleToggleCompare(material.name, e)}
-                            className={`p-2.5 rounded-xl transition-all duration-300 cursor-pointer inline-flex items-center justify-center ${
-                              comparedMaterials.includes(material.name)
-                                ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.25)]'
-                                : 'bg-black/60 text-slate-400 hover:text-white border border-white/10 hover:border-slate-500/50 hover:bg-white/5'
-                            }`}
-                            title={comparedMaterials.includes(material.name) ? t("Remove from comparison", "Remove from comparison") : t("Add to side-by-side comparison", "Add to side-by-side comparison")}
-                          >
-                            <Scale className="w-4 h-4" />
-                          </button>
+                        <td className="py-3.5 px-5 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                const event = new CustomEvent('LOAD_MATERIAL_TO_WORKSPACE', { detail: material });
+                                window.dispatchEvent(event);
+                                setImportStatus(`Loaded "${material.name}" into active Bragg simulation workspace!`);
+                                setTimeout(() => setImportStatus(null), 4000);
+                              }}
+                              className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 cursor-pointer"
+                              title="Load into Simulation Workspace"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => handleToggleCompare(material.name, e)}
+                              className={`p-1.5 rounded-lg transition-all cursor-pointer border ${
+                                comparedMaterials.includes(material.name)
+                                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                  : 'bg-slate-950 text-slate-400 hover:text-white border-slate-800'
+                              }`}
+                              title="Compare Material"
+                            >
+                              <Scale className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -5322,23 +5952,23 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex justify-between items-center bg-black/40 px-5 py-3 rounded-2xl border border-slate-800/60 font-mono text-xs">
+            <div className="flex justify-between items-center bg-[#070D19] px-5 py-3 rounded-2xl border border-slate-800/80 font-mono text-xs">
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="flex items-center gap-1 font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none pb-0.5"
+                className="flex items-center gap-1 font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none pb-0.5 cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" /> Prev
               </button>
               
-              <span className="text-slate-500 font-mono text-[10px] font-bold uppercase tracking-widest">
-                Page <span className="text-indigo-400">{currentPage}</span> of <span className="text-slate-300">{totalPages}</span>
+              <span className="text-slate-500 font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums">
+                Page <span className="text-cyan-400">{currentPage}</span> of <span className="text-slate-300">{totalPages}</span>
               </span>
 
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="flex items-center gap-1 font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none pb-0.5"
+                className="flex items-center gap-1 font-bold text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none pb-0.5 cursor-pointer"
               >
                 Next <ChevronRight className="w-4 h-4" />
               </button>
@@ -5347,14 +5977,14 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
 
         </div>
 
-        {/* RIGHT COLUMN: DETAIL DIRECTORY VIEW & LIVE INTERACTIVE EDITOR FOR SELECTED STANDARD */}
+        {/* RIGHT COLUMN: CRYSTALLOGRAPHIC MATERIAL DOSSIER & LIVE INTERACTIVE EDITOR */}
         <div className="lg:col-span-5 relative">
           
           <div className="sticky top-6 space-y-6">
             
             {/* Main inspector panel */}
-            <div ref={inspectorRef} className="bg-[#050B14]/90 rounded-[2rem] border border-indigo-500/30 p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div ref={inspectorRef} className="bg-[#070D19] rounded-3xl border border-slate-800/90 p-6 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
               
               {!selectedMaterial ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center text-slate-500 space-y-4">
@@ -5375,15 +6005,15 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                 </div>
               ) : (
                 /* ================= STANDARD DETAILS & READ MODE ================= */
-                <div className="space-y-6 relative z-10">
+                <div className="space-y-5 relative z-10">
                   
-                  {/* Inspector Actions Bar: Edit and Reset buttons */}
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="text-[8px] font-black uppercase tracking-widest px-2.5 py-1 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 rounded-md">
+                  {/* Inspector Actions Bar: Edit, Export and Reset buttons */}
+                  <div className="flex justify-between items-start gap-3">
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-widest px-2.5 py-1 bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 rounded-lg">
                       {selectedMaterial.type || 'Custom Standard'}
                     </span>
                     
-                    <div className="flex gap-2 flex-wrap justify-end">
+                    <div className="flex gap-1.5 flex-wrap justify-end">
                       <button
                         onClick={() => {
                           const event = new CustomEvent('LOAD_MATERIAL_TO_WORKSPACE', { detail: selectedMaterial });
@@ -5391,7 +6021,7 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                           setImportStatus(`Loaded "${selectedMaterial.name}" into active Bragg simulation workspace!`);
                           setTimeout(() => setImportStatus(null), 4000);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 border border-emerald-400/50 text-white rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-[0_2px_12px_rgba(16,185,129,0.3)] hover:scale-105 transition-all duration-200"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 border border-emerald-400/50 text-white rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-md transition-all"
                         title="Load this material into active Bragg profile simulation"
                       >
                         <Zap className="w-3.5 h-3.5 fill-emerald-200" />
@@ -5400,10 +6030,10 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
 
                       <button
                         onClick={(e) => handleToggleStarMaterial(selectedMaterial.name, e)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200 border ${
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer transition-all border ${
                           starredMaterials.includes(selectedMaterial.name)
-                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
-                            : 'bg-black/40 border-white/10 text-slate-400 hover:text-amber-300'
+                            ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-amber-300'
                         }`}
                         title={starredMaterials.includes(selectedMaterial.name) ? "Unstar Material" : "Star Material"}
                       >
@@ -5413,144 +6043,159 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
 
                       <button
                         onClick={handleExportSelectedCIF}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-cyan-600/10 hover:bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-cyan-600/10 hover:bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                         title="Export CIF file for crystallographic software (VESTA, Mercury, Diamond)"
                       >
                         <DownloadCloud className="w-3 h-3" />
-                        <span>Export CIF</span>
+                        <span>CIF</span>
                       </button>
 
                       <button
                         onClick={handleExportSpectrumCSV}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                         title="Export XRD Spectrum peak table to CSV (2Theta, Intensity, d-spacing)"
                       >
                         <DownloadCloud className="w-3 h-3 text-emerald-400" />
-                        <span>Export CSV</span>
+                        <span>CSV</span>
                       </button>
 
                       <button
                         onClick={handleStartEdit}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                         title={t('Edit this material parameters', 'Edit this material parameters')}
                       >
                         <Edit2 className="w-3 h-3" />
-                        <span>Edit Parameters</span>
+                        <span>Edit</span>
                       </button>
 
                       {isSelectedMaterialModified && (
                         <button
                           onClick={handleResetSelected}
-                          className="flex items-center gap-1 px-2.5 py-1 bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200"
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-600/10 hover:bg-rose-600/20 border border-rose-500/30 text-rose-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                           title={t('Reset overrides to default standard specifications', 'Reset overrides to default standard specifications')}
                         >
                           <RotateCcw className="w-3 h-3" />
-                          <span>Reset Defaults</span>
+                          <span>Reset</span>
                         </button>
                       )}
 
                       <button
                         onClick={() => handleDeleteMaterial(selectedMaterial.name)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 border border-rose-400 text-white rounded-lg text-[11px] font-black tracking-wider cursor-pointer shadow-[0_2px_10px_rgba(225,29,72,0.4)] transition-all duration-200 uppercase"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-rose-500/15 hover:bg-rose-600 border border-rose-500/40 text-rose-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all"
                         title={t('Delete this standard sheet', 'Delete this standard sheet')}
                       >
-                        <Trash2 className="w-3.5 h-3.5 text-white" />
-                        <span>Remove Material</span>
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
 
-                  {/* Title */}
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-black text-white leading-tight tracking-tight mt-1 flex items-center gap-2">
+                  {/* Title & Formula Header */}
+                  <div className="space-y-1.5">
+                    <h2 className="text-2xl font-black text-white leading-tight tracking-tight flex items-center gap-2">
                       {selectedMaterial.name}
                       {isSelectedMaterialModified && (
-                        <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30 font-sans font-black tracking-normal">
+                        <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30 font-mono font-bold">
                           Modified
                         </span>
                       )}
                     </h2>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className="text-xs font-mono font-bold px-2.5 py-1 bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 rounded-md shadow-inner">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-mono font-black px-3 py-1 bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 rounded-lg">
                         {selectedMaterial.formula}
                       </span>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-md">
+                      <span className="text-[10px] font-mono font-bold px-2.5 py-1 bg-slate-900 text-slate-300 border border-slate-800 rounded-lg">
                         State: {selectedMaterial.standardState || 'Solid'}
                       </span>
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                      <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg border ${
                         (selectedMaterial.stabilityStatus || 'Stable').toUpperCase() === 'STABLE'
-                          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                          : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25'
+                          : 'bg-amber-500/10 text-amber-300 border-amber-500/25'
                       }`}>
-                        Stability: {selectedMaterial.stabilityStatus || 'Stable'}
+                        {selectedMaterial.stabilityStatus || 'Stable'}
                       </span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-300 leading-relaxed bg-black/30 p-4 border border-slate-900 rounded-xl max-h-[120px] overflow-y-auto">
+                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3.5 border border-slate-800/80 rounded-xl max-h-[110px] overflow-y-auto">
                     {selectedMaterial.description}
                   </p>
 
                   {/* Core Telemetry Grid (Always Visible) */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 font-mono">
-                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Space Group</span>
-                      <span className="text-[11px] block text-indigo-300 font-black mt-1 uppercase truncate">
+                    <div className="p-2.5 bg-slate-950/90 border border-slate-800/80 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold">Space Group</span>
+                      <span className="text-xs block text-indigo-300 font-black mt-1 truncate">
                         {selectedMaterial.spaceGroup || 'N/A'}
                       </span>
                     </div>
 
-                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Crystal System</span>
-                      <span className="text-[11px] block text-slate-200 mt-1 uppercase font-extrabold truncate" title={selectedMaterial.crystalSystem}>
+                    <div className="p-2.5 bg-slate-950/90 border border-slate-800/80 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold">Crystal System</span>
+                      <span className="text-xs block text-slate-100 mt-1 font-extrabold truncate" title={selectedMaterial.crystalSystem}>
                         {selectedMaterial.crystalSystem || 'N/A'}
                       </span>
                     </div>
 
-                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Density</span>
-                      <span className="text-[11px] block text-emerald-400 font-extrabold mt-1">
+                    <div className="p-2.5 bg-slate-950/90 border border-slate-800/80 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold">Density (ρ)</span>
+                      <span className="text-xs block text-emerald-400 font-extrabold tabular-nums mt-1">
                         {selectedMaterial.density ? `${selectedMaterial.density} g/cm³` : 'N/A'}
                       </span>
                     </div>
 
-                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Elastic Modulus</span>
-                      <span className="text-[11px] block text-amber-500 font-extrabold mt-1">
+                    <div className="p-2.5 bg-slate-950/90 border border-slate-800/80 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold">Modulus (E)</span>
+                      <span className="text-xs block text-amber-400 font-extrabold tabular-nums mt-1">
                         {selectedMaterial.elasticModulus ? `${selectedMaterial.elasticModulus} GPa` : 'N/A'}
                       </span>
                     </div>
                   </div>
 
                   {/* Scientific Tabs Switcher */}
-                  <div className="border border-white/5 bg-black/45 p-1 rounded-2xl flex gap-1 flex-wrap mb-4 shadow-inner">
+                  <div className="border border-slate-800 bg-slate-950/90 p-1 rounded-2xl grid grid-cols-2 sm:grid-cols-4 gap-1">
                     <button
                       onClick={() => setActiveDetailTab('spectrum')}
-                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'spectrum' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+                      className={`flex items-center justify-center gap-1.5 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                        activeDetailTab === 'spectrum'
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                          : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                      }`}
                     >
                       <Activity className="w-3.5 h-3.5" />
-                      Spectrum
+                      <span>Spectrum</span>
                     </button>
                     <button
                       onClick={() => setActiveDetailTab('lattice')}
-                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'lattice' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+                      className={`flex items-center justify-center gap-1.5 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                        activeDetailTab === 'lattice'
+                          ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                          : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                      }`}
                     >
                       <Box className="w-3.5 h-3.5" />
-                      Lattice Unit Cell
+                      <span>3D Lattice</span>
                     </button>
                     <button
                       onClick={() => setActiveDetailTab('composition')}
-                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'composition' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+                      className={`flex items-center justify-center gap-1.5 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                        activeDetailTab === 'composition'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                          : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                      }`}
                     >
                       <FlaskConical className="w-3.5 h-3.5" />
-                      Composition
+                      <span>Elements</span>
                     </button>
                     <button
                       onClick={() => setActiveDetailTab('thermo')}
-                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'thermo' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
+                      className={`flex items-center justify-center gap-1.5 px-2.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer ${
+                        activeDetailTab === 'thermo'
+                          ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40'
+                          : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                      }`}
                     >
                       <Flame className="w-3.5 h-3.5" />
-                      Thermodynamics
+                      <span>Thermo</span>
                     </button>
                   </div>
 
@@ -5558,15 +6203,14 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                   <div className="space-y-4">
                     {activeDetailTab === 'spectrum' && (
                       <div className="space-y-4 animate-in fade-in duration-300">
-                        {/* Parameter Controls Panel */}
-                        <div className="p-3 bg-black/35 border border-slate-800/50 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Anode select */}
+                        {/* Diffractometer Source & Instrumental Broadening Controls */}
+                        <div className="p-3 bg-slate-950/90 border border-slate-800/80 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Diffractometer Source (Anode)</label>
+                            <label className="text-[8px] font-mono font-bold uppercase text-slate-400 tracking-wider">Diffractometer Source (Anode)</label>
                             <select
                               value={xrdWavelength}
                               onChange={e => setXrdWavelength(parseFloat(e.target.value))}
-                              className="w-full bg-[#050B14]/80 px-2 py-1.5 border border-slate-800 text-[10px] font-bold text-slate-300 outline-none rounded-lg cursor-pointer"
+                              className="w-full bg-[#030712] px-2.5 py-1.5 border border-slate-800 text-[10px] font-mono font-bold text-cyan-300 outline-none rounded-lg cursor-pointer"
                             >
                               <option value={1.54059}>Cu-Kα (λ = 1.5406 Å)</option>
                               <option value={0.71073}>Mo-Kα (λ = 0.7107 Å)</option>
@@ -5575,11 +6219,10 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                             </select>
                           </div>
 
-                          {/* Broadening slider */}
                           <div className="space-y-1">
                             <div className="flex justify-between items-baseline">
-                              <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Grain Broadening (FWHM)</label>
-                              <span className="text-[8px] text-cyan-400 font-mono font-bold">{xrdFwhm.toFixed(2)}° 2θ</span>
+                              <label className="text-[8px] font-mono font-bold uppercase text-slate-400 tracking-wider">Peak Broadening (FWHM)</label>
+                              <span className="text-[9px] text-cyan-400 font-mono tabular-nums font-bold">{xrdFwhm.toFixed(2)}° 2θ</span>
                             </div>
                             <input
                               type="range"
@@ -5588,155 +6231,289 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                               step={0.05}
                               value={String(xrdFwhm) === 'NaN' ? '' : xrdFwhm}
                               onChange={e => setXrdFwhm(parseFloat(e.target.value))}
-                              className="w-full h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                              className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-400 mt-1"
                             />
                           </div>
                         </div>
 
-                        {/* Interactive Continuous Diffractogram Plot */}
+                        {/* High-Resolution Proportional SVG Diffractogram (640x230) */}
                         <div className="space-y-1.5">
-                          <div className="flex justify-between items-center text-[9px] font-mono font-bold text-slate-400">
-                            <span>Intensity Trace</span>
-                            <span className="text-[8px] text-slate-500">Min 2θ: 10° | Max 2θ: 90°</span>
+                          <div className="flex flex-wrap justify-between items-center text-[9px] font-mono text-slate-400 gap-2">
+                            <span className="font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                              Simulated Powder Diffractogram
+                            </span>
+                            {hoveredTwoTheta !== null ? (
+                              <span className="text-cyan-300 font-bold tabular-nums bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
+                                2θ = {hoveredTwoTheta.toFixed(2)}° • d = {(xrdWavelength / (2 * Math.sin((hoveredTwoTheta / 2) * (Math.PI / 180)))).toFixed(4)} Å
+                              </span>
+                            ) : (
+                              <span className="text-[8px] text-slate-500">Hover trace for live Bragg d-spacing</span>
+                            )}
                           </div>
 
-                          <div className="relative h-44 w-full bg-[#030712] rounded-xl border border-slate-900 overflow-hidden">
-                            {/* Grid markers */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-900">
-                              <line x1="0%" y1="20%" x2="100%" y2="20%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                              <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                              <line x1="0%" y1="80%" x2="100%" y2="80%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                              <line x1="25%" y1="0" x2="25%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                              <line x1="50%" y1="0" x2="50%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                              <line x1="75%" y1="0" x2="75%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
-                            </svg>
+                          <div
+                            className="relative w-full bg-[#030712] rounded-2xl border border-slate-800 overflow-hidden select-none cursor-crosshair"
+                            onMouseMove={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                              setHoveredTwoTheta(10 + relX * 80);
+                            }}
+                            onMouseLeave={() => setHoveredTwoTheta(null)}
+                          >
+                            {(() => {
+                              const W = 640;
+                              const H = 225;
+                              const padTop = 24;
+                              const plotBottom = 182;
+                              const plotH = plotBottom - padTop;
+                              const min2T = 10;
+                              const max2T = 90;
+                              const sigma = xrdFwhm / 2.35482;
+                              const steps = 320;
 
-                            {/* Spectrum curve paths */}
-                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 180" preserveAspectRatio="none">
-                              <defs>
-                                <linearGradient id="xrdSpectrumGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                  <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.38" />
-                                  <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.00" />
-                                </linearGradient>
-                              </defs>
-                              
-                              {/* Filled continuous curve area */}
-                              <path 
-                                d={(() => {
-                                  // Live compute continuous Area path inside SVG bounds
-                                  const steps = 240;
-                                  const min2Theta = 10;
-                                  const max2Theta = 90;
-                                  const sigma = xrdFwhm / 2.35482;
-                                  let path = "M 0,180 ";
-                                  for (let i = 0; i <= steps; i++) {
-                                    const twoTheta = min2Theta + (i / steps) * (max2Theta - min2Theta);
-                                    let intensity = 0;
-                                    shiftedPeaks.forEach(p => {
-                                      const diff = twoTheta - p.twoTheta;
-                                      intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
-                                    });
-                                    const baseline = 2 * Math.exp(-twoTheta / 35);
-                                    const pseudoNoise = (Math.sin(twoTheta * 5) * 0.4 + Math.sin(twoTheta * 17) * 0.2 + (Math.sin(twoTheta * 97) * 0.1));
-                                    const finalVal = Math.min(100, Math.max(0, intensity + baseline + pseudoNoise + 1));
-                                    const x = (i / steps) * 100;
-                                    const y = 180 - (finalVal / 100) * 145;
-                                    path += `L ${x.toFixed(1)},${y.toFixed(1)} `;
+                              let areaPath = `M 0,${plotBottom} `;
+                              let linePath = "";
+                              for (let i = 0; i <= steps; i++) {
+                                const twoTheta = min2T + (i / steps) * (max2T - min2T);
+                                let intensity = 0;
+                                for (const p of shiftedPeaks) {
+                                  const diff = twoTheta - p.twoTheta;
+                                  if (Math.abs(diff) < 5) {
+                                    intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
                                   }
-                                  path += "L 100,180 Z";
-                                  return path;
-                                })()} 
-                                fill="url(#xrdSpectrumGradient)" 
-                              />
+                                }
+                                const baseline = 1.6 * Math.exp(-twoTheta / 38);
+                                const finalVal = Math.min(100, Math.max(0, intensity + baseline));
+                                const x = (i / steps) * W;
+                                const y = plotBottom - (finalVal / 100) * plotH;
+                                areaPath += `L ${x.toFixed(1)},${y.toFixed(1)} `;
+                                linePath += (i === 0 ? "M " : "L ") + `${x.toFixed(1)},${y.toFixed(1)} `;
+                              }
+                              areaPath += `L ${W},${plotBottom} Z`;
 
-                              {/* Crisp glowing line path */}
-                              <path 
-                                d={(() => {
-                                  const steps = 240;
-                                  const min2Theta = 10;
-                                  const max2Theta = 90;
-                                  const sigma = xrdFwhm / 2.35482;
-                                  let path = "";
-                                  for (let i = 0; i <= steps; i++) {
-                                    const twoTheta = min2Theta + (i / steps) * (max2Theta - min2Theta);
-                                    let intensity = 0;
-                                    shiftedPeaks.forEach(p => {
-                                      const diff = twoTheta - p.twoTheta;
-                                      intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
-                                    });
-                                    const baseline = 2 * Math.exp(-twoTheta / 35);
-                                    const pseudoNoise = (Math.sin(twoTheta * 5) * 0.4 + Math.sin(twoTheta * 17) * 0.2 + (Math.sin(twoTheta * 97) * 0.1));
-                                    const finalVal = Math.min(100, Math.max(0, intensity + baseline + pseudoNoise + 1));
-                                    const x = (i / steps) * 100;
-                                    const y = 180 - (finalVal / 100) * 145;
-                                    path += (i === 0 ? "M " : "L ") + `${x.toFixed(1)},${y.toFixed(1)} `;
-                                  }
-                                  return path;
-                                })()} 
-                                fill="none" 
-                                stroke="#22d3ee" 
-                                strokeWidth="2" 
-                              />
-                            </svg>
+                              // Top 3 strongest reflections for callout labels
+                              const topPeaks = [...shiftedPeaks]
+                                .map((p, idx) => ({ ...p, idx }))
+                                .sort((a, b) => b.intensity - a.intensity)
+                                .slice(0, 3);
 
-                            {/* Individual peak reference points */}
-                            <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
-                              {shiftedPeaks.map((p, idx) => {
-                                const minTheta = 10;
-                                const maxTheta = 90;
-                                const percentX = Math.max(0, Math.min(100, ((p.twoTheta - minTheta) / (maxTheta - minTheta)) * 100));
-                                return (
-                                  <div 
-                                    key={idx}
-                                    style={{ left: `${percentX}%` }}
-                                    className="absolute bottom-6 top-0 group/pmark w-0 rounded-full"
-                                  >
-                                    {/* Vertical dashed line marking structural peak position */}
-                                    <div className="absolute inset-y-0 w-[1px] border-l border-dashed border-cyan-500/10 group-hover/pmark:border-cyan-500/50" />
-                                    
-                                    {/* Live Peak metadata flag */}
-                                    <div className="absolute bottom-[20%] left-0 -translate-x-1/2 p-1.5 rounded-md bg-[#020617]/90 border border-indigo-500/20 text-[7px] font-mono whitespace-nowrap opacity-0 group-hover/pmark:opacity-100 transition-opacity z-10 shadow-xl">
-                                      {p.twoTheta.toFixed(3)}° (Int: {p.intensity.toFixed(1)}%)
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                              const hoverX = hoveredTwoTheta !== null ? ((hoveredTwoTheta - min2T) / (max2T - min2T)) * W : null;
 
-                            {/* Tick values */}
-                            <div className="absolute bottom-0 inset-x-0 h-5 bg-black/85 border-t border-slate-900 flex justify-between px-3 items-center text-[8px] font-mono text-slate-500 select-none">
-                              <span>10° 2θ</span>
-                              <span>30°</span>
-                              <span>50°</span>
-                              <span>70°</span>
-                              <span>90° 2θ</span>
-                            </div>
+                              return (
+                                <svg className="w-full h-52 block" viewBox={`0 0 ${W} ${H}`}>
+                                  <defs>
+                                    <linearGradient id="xrdSpectrumGradientHiRes" x1="0%" y1="0%" x2="0%" y2="100%">
+                                      <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.36" />
+                                      <stop offset="75%" stopColor="#6366F1" stopOpacity="0.10" />
+                                      <stop offset="100%" stopColor="#030712" stopOpacity="0.0" />
+                                    </linearGradient>
+                                  </defs>
+
+                                  {/* Horizontal & Vertical Scientific Reticle Gridlines */}
+                                  {[0.25, 0.5, 0.75, 1.0].map((frac, idx) => {
+                                    const y = plotBottom - frac * plotH;
+                                    return (
+                                      <g key={`hgrid-${idx}`}>
+                                        <line x1="0" y1={y} x2={W} y2={y} stroke="#0F172A" strokeWidth="1" strokeDasharray="3,3" />
+                                        <text x="6" y={y - 3} fill="#475569" fontSize="9" fontFamily="monospace">
+                                          {Math.round(frac * 100)}%
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
+
+                                  {[20, 30, 40, 50, 60, 70, 80].map(angle => {
+                                    const x = ((angle - min2T) / (max2T - min2T)) * W;
+                                    return (
+                                      <line
+                                        key={`vgrid-${angle}`}
+                                        x1={x}
+                                        y1={padTop}
+                                        x2={x}
+                                        y2={plotBottom}
+                                        stroke="#0F172A"
+                                        strokeWidth="1"
+                                        strokeDasharray="3,3"
+                                      />
+                                    );
+                                  })}
+
+                                  {/* Filled Diffractogram Area & Crisp Profile Curve */}
+                                  <path d={areaPath} fill="url(#xrdSpectrumGradientHiRes)" />
+                                  <path d={linePath} fill="none" stroke="#22D3EE" strokeWidth="1.8" strokeLinejoin="round" />
+
+                                  {/* Selected or Top Peak Callout Badges */}
+                                  {topPeaks.map(pk => {
+                                    const x = Math.max(36, Math.min(W - 36, ((pk.twoTheta - min2T) / (max2T - min2T)) * W));
+                                    const y = plotBottom - (Math.min(100, pk.intensity) / 100) * plotH;
+                                    const isSelectedPeak = selectedPeakIdx === pk.idx;
+                                    return (
+                                      <g key={`lbl-${pk.idx}`}>
+                                        <circle
+                                          cx={((pk.twoTheta - min2T) / (max2T - min2T)) * W}
+                                          cy={y}
+                                          r={isSelectedPeak ? "4" : "2.8"}
+                                          fill={isSelectedPeak ? "#F59E0B" : "#22D3EE"}
+                                        />
+                                        <rect
+                                          x={x - 32}
+                                          y={Math.max(4, y - 20)}
+                                          width="64"
+                                          height="14"
+                                          rx="4"
+                                          fill="#091326"
+                                          stroke={isSelectedPeak ? "#F59E0B" : "#1E293B"}
+                                          strokeWidth="1"
+                                        />
+                                        <text
+                                          x={x}
+                                          y={Math.max(14, y - 10)}
+                                          textAnchor="middle"
+                                          fill={isSelectedPeak ? "#FDE68A" : "#A5F3FC"}
+                                          fontSize="8.5"
+                                          fontFamily="monospace"
+                                          fontWeight="bold"
+                                        >
+                                          {pk.twoTheta.toFixed(1)}° ({pk.dSpacing.toFixed(2)}Å)
+                                        </text>
+                                      </g>
+                                    );
+                                  })}
+
+                                  {/* Baseline Bragg Reflection Tick Strip (y = 182..204) */}
+                                  <rect x="0" y={plotBottom} width={W} height="22" fill="#060D1A" />
+                                  <line x1="0" y1={plotBottom} x2={W} y2={plotBottom} stroke="#1E293B" strokeWidth="1" />
+                                  {shiftedPeaks.map((p, idx) => {
+                                    const x = ((p.twoTheta - min2T) / (max2T - min2T)) * W;
+                                    if (x < 0 || x > W) return null;
+                                    const isSel = selectedPeakIdx === idx;
+                                    return (
+                                      <g
+                                        key={`tick-${idx}`}
+                                        className="cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedPeakIdx(prev => prev === idx ? null : idx);
+                                        }}
+                                      >
+                                        <line
+                                          x1={x}
+                                          y1={plotBottom + 3}
+                                          x2={x}
+                                          y2={plotBottom + 18}
+                                          stroke={isSel ? "#F59E0B" : p.intensity >= 50 ? "#22D3EE" : "#818CF8"}
+                                          strokeWidth={isSel ? "2.5" : "1.6"}
+                                        />
+                                        {isSel && (
+                                          <line
+                                            x1={x}
+                                            y1={padTop}
+                                            x2={x}
+                                            y2={plotBottom}
+                                            stroke="#F59E0B"
+                                            strokeWidth="1.2"
+                                            strokeDasharray="3,2"
+                                          />
+                                        )}
+                                      </g>
+                                    );
+                                  })}
+
+                                  {/* Interactive Hover Crosshair */}
+                                  {hoverX !== null && (
+                                    <line
+                                      x1={hoverX}
+                                      y1={padTop}
+                                      x2={hoverX}
+                                      y2={plotBottom + 22}
+                                      stroke="#38BDF8"
+                                      strokeWidth="1"
+                                      strokeDasharray="2,2"
+                                    />
+                                  )}
+
+                                  {/* Bottom 2-Theta Axis Scale Bar */}
+                                  <rect x="0" y="204" width={W} height="21" fill="#020617" />
+                                  <line x1="0" y1="204" x2={W} y2="204" stroke="#1E293B" strokeWidth="1" />
+                                  {[10, 20, 30, 40, 50, 60, 70, 80, 90].map(deg => {
+                                    const x = ((deg - min2T) / (max2T - min2T)) * W;
+                                    const anchor = deg === 10 ? "start" : deg === 90 ? "end" : "middle";
+                                    const dx = deg === 10 ? 6 : deg === 90 ? -6 : 0;
+                                    return (
+                                      <text
+                                        key={`ax-${deg}`}
+                                        x={x + dx}
+                                        y="218"
+                                        textAnchor={anchor}
+                                        fill="#64748B"
+                                        fontSize="9.5"
+                                        fontFamily="monospace"
+                                        fontWeight="bold"
+                                      >
+                                        {deg}°{deg === 50 ? ' 2θ' : ''}
+                                      </text>
+                                    );
+                                  })}
+                                </svg>
+                              );
+                            })()}
                           </div>
                         </div>
 
-                        {/* Peak Bragg Spacing Table */}
+                        {/* Interactive Synchronized Peak Bragg Spacing Table */}
                         <div className="space-y-1.5 font-mono">
-                          <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Simulated Multi-Plane Reflections & spacings</span>
-                          <div className="max-h-32 overflow-y-auto border border-slate-900 rounded-xl bg-black/25 custom-scrollbar text-[10px] font-mono">
+                          <div className="flex justify-between items-center">
+                            <span className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">
+                              Bragg Reflections &amp; Interplanar Spacings ({shiftedPeaks.length})
+                            </span>
+                            {selectedPeakIdx !== null && (
+                              <button
+                                onClick={() => setSelectedPeakIdx(null)}
+                                className="text-[9px] text-amber-400 hover:underline cursor-pointer"
+                              >
+                                Clear Peak Lock
+                              </button>
+                            )}
+                          </div>
+                          <div className="max-h-40 overflow-y-auto border border-slate-800 rounded-xl bg-slate-950/80 custom-scrollbar text-[10px] font-mono tabular-nums">
                             <table className="w-full text-left">
                               <thead>
-                                <tr className="border-b border-slate-900 bg-slate-950/20 text-slate-400 sticky top-0">
-                                  <th className="py-2 px-3 text-[9px] uppercase font-bold text-slate-500">2-Theta Angle</th>
+                                <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 sticky top-0">
+                                  <th className="py-2 px-3 text-[9px] uppercase font-bold text-slate-500">#</th>
+                                  <th className="py-2 px-3 text-[9px] uppercase font-bold text-slate-500">2θ Angle</th>
                                   <th className="py-2 px-3 text-right text-[9px] uppercase font-bold text-slate-500">d-Spacing (Å)</th>
-                                  <th className="py-2 px-3 text-right text-[9px] uppercase font-bold text-slate-500">Relative Int.</th>
+                                  <th className="py-2 px-3 text-right text-[9px] uppercase font-bold text-slate-500">Rel. Int.</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-900/60 font-mono">
-                                {shiftedPeaks.map((p, idx) => (
-                                  <tr key={idx} className="hover:bg-slate-900/20 text-slate-350">
-                                    <td className="py-1.5 px-3 font-semibold">{p.twoTheta.toFixed(3)}°</td>
-                                    <td className="py-1.5 px-3 text-right text-cyan-400 font-bold">{p.dSpacing.toFixed(5)} Å</td>
-                                    <td className="py-1.5 px-3 text-right font-semibold text-indigo-400">{p.intensity.toFixed(1)}%</td>
-                                  </tr>
-                                ))}
+                              <tbody className="divide-y divide-slate-900">
+                                {shiftedPeaks.map((p, idx) => {
+                                  const isSel = selectedPeakIdx === idx;
+                                  return (
+                                    <tr
+                                      key={idx}
+                                      onClick={() => setSelectedPeakIdx(prev => prev === idx ? null : idx)}
+                                      className={`cursor-pointer transition-colors ${
+                                        isSel ? 'bg-amber-500/15 text-amber-200' : 'hover:bg-slate-900/60 text-slate-300'
+                                      }`}
+                                    >
+                                      <td className="py-1.5 px-3 text-slate-500">{idx + 1}</td>
+                                      <td className="py-1.5 px-3 font-bold">{p.twoTheta.toFixed(3)}°</td>
+                                      <td className="py-1.5 px-3 text-right text-cyan-400 font-bold">{p.dSpacing.toFixed(4)} Å</td>
+                                      <td className="py-1.5 px-3 text-right font-bold text-indigo-400">
+                                        <div className="inline-flex items-center gap-2 justify-end">
+                                          <div className="w-12 h-1.5 bg-slate-900 rounded-full overflow-hidden hidden sm:block">
+                                            <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${Math.min(100, p.intensity)}%` }} />
+                                          </div>
+                                          <span>{p.intensity.toFixed(1)}%</span>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                                 {shiftedPeaks.length === 0 && (
                                   <tr>
-                                    <td colSpan={3} className="py-4 text-center text-slate-500">All Bragg planes extinguished at this wavelength</td>
+                                    <td colSpan={4} className="py-4 text-center text-slate-500">All Bragg planes extinguished at this wavelength</td>
                                   </tr>
                                 )}
                               </tbody>
