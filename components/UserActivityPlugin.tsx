@@ -110,10 +110,10 @@ export const UserActivityPlugin: React.FC<UserActivityPluginProps> = ({
   };
 
   const handleClear = async () => {
-    if (window.confirm('Are you sure you want to clear the local activity log? This will reset local audit trails.')) {
-      await clearAllActivities();
-      setActivities([]);
-    }
+    await clearAllActivities();
+    setActivities([]);
+    setSyncFeedback('Activity log cleared');
+    setTimeout(() => setSyncFeedback(null), 2500);
   };
 
   const handleCopyDetails = (act: UserActivity) => {

@@ -1188,10 +1188,8 @@ export const XrdNanoModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({
                   </span>
                   <button
                     onClick={() => {
-                      if (confirm("Clear XRD Nano generation history?")) {
-                        setHistory([]);
-                        localStorage.removeItem('xrd_nano_banana2_history');
-                      }
+                      setHistory([]);
+                      localStorage.removeItem('xrd_nano_banana2_history');
                     }}
                     className="text-[11px] text-slate-500 hover:text-rose-400 flex items-center gap-1"
                   >

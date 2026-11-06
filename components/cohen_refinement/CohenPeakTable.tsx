@@ -1,33 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, ArrowUpDown, FileText, Check, AlertTriangle, Eye, EyeOff, Sparkles, Zap, Filter, Tag } from 'lucide-react';
-import { PeakInput } from './CohenPresetsDb';
-
-interface PeakDetail {
-  id: string;
-  twoTheta: number;
-  twoThetaCalc: number;
-  deltaTwoTheta: number;
-  dObs?: number;
-  dCalc?: number;
-  deltaD?: number;
-  h: number;
-  k: number;
-  l: number;
-  sin2Obs: number;
-  sin2Calc: number;
-  driftVal: number;
-  residualSin2: number;
-  weight?: number;
-  intensity?: number;
-  enabled?: boolean;
-  wavelength?: number;
-  isOutlier?: boolean;
-}
+import { Plus, Trash2, FileText, AlertTriangle, Eye, Zap, Filter, Tag, Wand2 } from 'lucide-react';
+import { CrystalSystem, PeakInput } from './CohenPresetsDb';
+import { CohenPeakDetail, suggestBestHklForPeak } from './CohenSolver';
 
 interface CohenPeakTableProps {
   peaks: PeakInput[];
-  peakDetails?: PeakDetail[];
+  peakDetails?: CohenPeakDetail[];
+  crystalSystem?: CrystalSystem;
+  wavelength?: number;
+  refinedLattice?: { a: number; b: number; c: number; alphaDeg?: number; betaDeg?: number; gammaDeg?: number };
   onUpdatePeak: (id: string, field: keyof PeakInput, value: any) => void;
   onDeletePeak: (id: string) => void;
   onAddPeak: (peak: Partial<PeakInput>) => void;
@@ -41,6 +23,9 @@ interface CohenPeakTableProps {
 export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
   peaks = [],
   peakDetails = [],
+  crystalSystem = 'Cubic',
+  wavelength = 1.54056,
+  refinedLattice = { a: 5.431, b: 5.431, c: 5.431 },
   onUpdatePeak,
   onDeletePeak,
   onAddPeak,
@@ -50,30 +35,41 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
   activeBraggCount = 0,
   precision = 4
 }) => {
-  // New Peak Form State
   const [newH, setNewH] = useState<number>(1);
   const [newK, setNewK] = useState<number>(1);
   const [newL, setNewL] = useState<number>(1);
   const [newTwoTheta, setNewTwoTheta] = useState<string>('30.00');
   const [newIntensity, setNewIntensity] = useState<number>(100);
   const [displayMode, setDisplayMode] = useState<'angles' | 'dSpacing'>('angles');
-
-  // Sorting
-  const [sortBy, setSortBy] = useState<'twoTheta' | 'residual' | 'intensity' | 'weight'>('twoTheta');
+  const [sortBy, setSortBy] = useState<'twoTheta' | 'residual' | 'cooks' | 'weight'>('twoTheta');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
   const safePeakDetails = Array.isArray(peakDetails) ? peakDetails : [];
   const safePeaks = Array.isArray(peaks) ? peaks : [];
 
-  // Details map for easy lookup
-  const detailMap = new Map<string, PeakDetail>();
+  const detailMap = new Map<string, CohenPeakDetail>();
   safePeakDetails.forEach(p => detailMap.set(p.id, p));
+
+  const handleAutoIndexNewPeak = () => {
+    const tt = parseFloat(newTwoTheta);
+    if (isNaN(tt) || tt <= 0 || tt >= 180) return;
+    const suggested = suggestBestHklForPeak(tt, wavelength, crystalSystem, refinedLattice);
+    setNewH(suggested.h);
+    setNewK(suggested.k);
+    setNewL(suggested.l);
+  };
+
+  const handleAutoIndexRow = (p: PeakInput) => {
+    const suggested = suggestBestHklForPeak(p.twoTheta, p.wavelength || wavelength, crystalSystem, refinedLattice);
+    onUpdatePeak(p.id, 'h', suggested.h);
+    onUpdatePeak(p.id, 'k', suggested.k);
+    onUpdatePeak(p.id, 'l', suggested.l);
+  };
 
   const handleAddSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const tt = parseFloat(newTwoTheta);
     if (isNaN(tt) || tt <= 0 || tt >= 180) {
-      alert('Please enter a valid 2θ angle between 0° and 180°.');
       return;
     }
 
@@ -97,7 +93,7 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
 
   const handleDisableOutliers = () => {
     safePeakDetails.forEach(p => {
-      if (Math.abs(p.deltaTwoTheta) > 0.04) {
+      if (p.isOutlier || Math.abs(p.deltaTwoTheta) > 0.04) {
         onUpdatePeak(p.id, 'enabled', false);
       }
     });
@@ -110,7 +106,6 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
   };
 
   const handleToggleDoubletWavelength = (id: string, currentWavelength?: number) => {
-    // Cu Ka1 = 1.54056, Cu Ka2 = 1.54439
     if (!currentWavelength || Math.abs(currentWavelength - 1.54056) < 0.0001) {
       onUpdatePeak(id, 'wavelength', 1.54439); // Switch to Ka2
     } else {
@@ -122,13 +117,15 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
     if (sortBy === 'twoTheta') {
       return sortAsc ? a.twoTheta - b.twoTheta : b.twoTheta - a.twoTheta;
     }
-    if (sortBy === 'intensity') {
-      return sortAsc ? (a.intensity || 0) - (b.intensity || 0) : (b.intensity || 0) - (a.intensity || 0);
-    }
     if (sortBy === 'residual') {
       const resA = Math.abs(detailMap.get(a.id)?.deltaTwoTheta || 0);
       const resB = Math.abs(detailMap.get(b.id)?.deltaTwoTheta || 0);
       return sortAsc ? resA - resB : resB - resA;
+    }
+    if (sortBy === 'cooks') {
+      const cA = detailMap.get(a.id)?.cooksDistance || 0;
+      const cB = detailMap.get(b.id)?.cooksDistance || 0;
+      return sortAsc ? cA - cB : cB - cA;
     }
     if (sortBy === 'weight') {
       const wA = detailMap.get(a.id)?.weight || 1;
@@ -138,21 +135,21 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
     return 0;
   });
 
-  const outlierCount = safePeakDetails.filter(p => Math.abs(p.deltaTwoTheta) > 0.04).length;
+  const outlierCount = safePeakDetails.filter(p => p.isOutlier || Math.abs(p.deltaTwoTheta) > 0.04).length;
   const enabledCount = safePeaks.filter(p => p.enabled !== false).length;
 
   return (
     <div className="space-y-4">
       {/* Quick Add / Manual Entry Card */}
-      <div className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2">
               <Plus className="w-4 h-4 text-indigo-500" />
-              Add Reflection Peak
+              Add &amp; Auto-Index Reflection Peak
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Enter (<i>h</i>, <i>k</i>, <i>l</i>) Miller indices and observed 2θ diffraction position
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Enter observed 2θ and click Auto-HKL to match closest Miller indices for the active unit cell
             </p>
           </div>
 
@@ -181,50 +178,14 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
               className="px-3 py-1.5 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Reset Peaks
+              Reset to Preset
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleAddSubmit} className="grid grid-cols-2 sm:grid-cols-6 gap-3 items-end">
+        <form onSubmit={handleAddSubmit} className="grid grid-cols-2 sm:grid-cols-7 gap-2.5 items-end">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
-              Miller <i>h</i>
-            </label>
-            <input
-              type="number"
-              value={newH}
-              onChange={(e) => setNewH(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
-              Miller <i>k</i>
-            </label>
-            <input
-              type="number"
-              value={newK}
-              onChange={(e) => setNewK(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
-              Miller <i>l</i>
-            </label>
-            <input
-              type="number"
-              value={newL}
-              onChange={(e) => setNewL(parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
               2θ Observed (°)
             </label>
             <input
@@ -232,46 +193,92 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
               step="0.001"
               value={newTwoTheta}
               onChange={(e) => setNewTwoTheta(e.target.value)}
-              className="w-full px-3 py-2 bg-indigo-50/60 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl text-sm font-black font-mono text-indigo-700 dark:text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
+              className="w-full px-3 py-2 bg-indigo-50/60 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl text-sm font-black font-mono text-indigo-700 dark:text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1 ml-1">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+              Miller <i>h</i>
+            </label>
+            <input
+              type="number"
+              value={newH}
+              onChange={(e) => setNewH(parseInt(e.target.value) || 0)}
+              className="w-full px-2.5 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+              Miller <i>k</i>
+            </label>
+            <input
+              type="number"
+              value={newK}
+              onChange={(e) => setNewK(parseInt(e.target.value) || 0)}
+              className="w-full px-2.5 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+              Miller <i>l</i>
+            </label>
+            <input
+              type="number"
+              value={newL}
+              onChange={(e) => setNewL(parseInt(e.target.value) || 0)}
+              className="w-full px-2.5 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
               Intensity (%)
             </label>
             <input
               type="number"
               value={newIntensity}
               onChange={(e) => setNewIntensity(parseFloat(e.target.value) || 100)}
-              className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
+              className="w-full px-2.5 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
             />
           </div>
 
-          <div className="col-span-2 sm:col-span-1">
+          <div>
+            <button
+              type="button"
+              onClick={handleAutoIndexNewPeak}
+              className="w-full px-3 py-2 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+              title="Suggest closest (hkl) for entered 2θ"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              Auto-HKL
+            </button>
+          </div>
+
+          <div>
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5"
+              className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              Add
+              Add Peak
             </button>
           </div>
         </form>
       </div>
 
       {/* Main Reflections Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden space-y-0">
-        <div className="p-5 md:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-          <div className="flex items-center gap-3">
-            <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
-                Diffraction Reflection Peaks ({peaks.length} Peaks, {enabledCount} Active)
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Toggle reflections on/off to isolate outliers, observe real-time parameter convergence, and tag wavelengths
-              </p>
-            </div>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col lg:flex-row justify-between lg:items-center gap-3">
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+              Diffraction Reflections Matrix ({peaks.length} Total, {enabledCount} Active)
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Inspect apparent lattice a<sub>app</sub>, angular/d-spacing residuals, Hat leverage h<sub>ii</sub>, and Cook&apos;s influence D<sub>i</sub>
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -280,10 +287,10 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                 type="button"
                 onClick={handleDisableOutliers}
                 className="px-2.5 py-1 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs font-bold rounded-lg flex items-center gap-1 shadow-sm hover:bg-amber-100"
-                title="Disable peaks with |Δ2θ| > 0.04°"
+                title="Disable peaks with |Δ2θ| > 0.04° or |r*| > 2.5"
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                Exclude Outliers ({outlierCount})
+                Mask Outliers ({outlierCount})
               </button>
             )}
 
@@ -294,7 +301,7 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
               title="Isolate high angles 2θ >= 50° for highest lattice accuracy"
             >
               <Filter className="w-3.5 h-3.5 text-indigo-500" />
-              High-Angle Only
+              High-Angle (≥50°)
             </button>
 
             <button
@@ -306,7 +313,6 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
               Enable All
             </button>
 
-            {/* Display toggle between 2theta and d-spacing */}
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
               <button
                 type="button"
@@ -324,7 +330,7 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                   displayMode === 'dSpacing' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                d (Å)
+                d (Å) &amp; ppm
               </button>
             </div>
 
@@ -337,7 +343,7 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                   sortBy === 'twoTheta' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                Pos
+                2θ
               </button>
               <button
                 type="button"
@@ -346,16 +352,16 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                   sortBy === 'residual' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                |Δ|
+                |Δ2θ|
               </button>
               <button
                 type="button"
-                onClick={() => { setSortBy('weight'); setSortAsc(!sortAsc); }}
+                onClick={() => { setSortBy('cooks'); setSortAsc(!sortAsc); }}
                 className={`px-2 py-0.5 rounded font-bold transition-all ${
-                  sortBy === 'weight' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+                  sortBy === 'cooks' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
-                Weight
+                Cook&apos;s D
               </button>
             </div>
           </div>
@@ -365,26 +371,28 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
               <tr>
-                <th className="p-3 w-10 text-center">Active</th>
-                <th className="p-3 w-10 text-center">#</th>
-                <th className="p-3">HKL (<i>h</i>, <i>k</i>, <i>l</i>)</th>
+                <th className="p-2.5 w-10 text-center">Use</th>
+                <th className="p-2.5 w-8 text-center">#</th>
+                <th className="p-2.5">Miller (<i>h k l</i>)</th>
                 {displayMode === 'angles' ? (
                   <>
-                    <th className="p-3">2θ<sub>Obs</sub> (°)</th>
-                    <th className="p-3">2θ<sub>Calc</sub> (°)</th>
-                    <th className="p-3">Δ2θ (°)</th>
+                    <th className="p-2.5">2θ<sub>Obs</sub> (°)</th>
+                    <th className="p-2.5">2θ<sub>Calc</sub> (°)</th>
+                    <th className="p-2.5">Δ2θ (°)</th>
                   </>
                 ) : (
                   <>
-                    <th className="p-3">d<sub>Obs</sub> (Å)</th>
-                    <th className="p-3">d<sub>Calc</sub> (Å)</th>
-                    <th className="p-3">Δd (Å)</th>
+                    <th className="p-2.5">d<sub>Obs</sub> (Å)</th>
+                    <th className="p-2.5">d<sub>Calc</sub> (Å)</th>
+                    <th className="p-2.5">Δd/d (ppm)</th>
                   </>
                 )}
-                <th className="p-3">Wavelength λ</th>
-                <th className="p-3">Weight w<sub>i</sub></th>
-                <th className="p-3">Drift <i>f</i>(θ)</th>
-                <th className="p-3 text-center">Actions</th>
+                <th className="p-2.5">a<sub>app</sub> (Å)</th>
+                <th className="p-2.5">Drift <i>f</i>(θ)</th>
+                <th className="p-2.5">Weight / h<sub>ii</sub></th>
+                <th className="p-2.5">Cook&apos;s D<sub>i</sub></th>
+                <th className="p-2.5">Anode</th>
+                <th className="p-2.5 text-center">Act</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
@@ -393,8 +401,8 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                   const detail = detailMap.get(p.id);
                   const isEnabled = p.enabled !== false;
                   const delta2Th = detail ? detail.deltaTwoTheta : 0;
-                  const deltaD = detail?.deltaD || 0;
-                  const isOutlier = Math.abs(delta2Th) > 0.04;
+                  const deltaDPpm = detail?.deltaDPpm || 0;
+                  const isOutlier = Boolean(detail?.isOutlier);
                   const isKa2 = p.wavelength && Math.abs(p.wavelength - 1.54439) < 0.0001;
 
                   return (
@@ -411,104 +419,117 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                           : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
                       }`}
                     >
-                      {/* Toggle Active Checkbox */}
-                      <td className="p-3 text-center">
+                      <td className="p-2.5 text-center">
                         <input
                           type="checkbox"
                           checked={isEnabled}
                           onChange={(e) => onUpdatePeak(p.id, 'enabled', e.target.checked)}
                           className="w-4 h-4 accent-indigo-600 rounded cursor-pointer"
-                          title={isEnabled ? 'Click to exclude from refinement' : 'Click to include in refinement'}
                         />
                       </td>
 
-                      <td className="p-3 text-center text-slate-400 dark:text-slate-500 font-bold">
+                      <td className="p-2.5 text-center text-slate-400 dark:text-slate-500 font-bold">
                         {idx + 1}
                       </td>
 
-                      <td className="p-3">
+                      <td className="p-2.5">
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
                             value={p.h}
                             onChange={(e) => onUpdatePeak(p.id, 'h', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
+                            className="w-9 px-1 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300"
                           />
                           <input
                             type="number"
                             value={p.k}
                             onChange={(e) => onUpdatePeak(p.id, 'k', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
+                            className="w-9 px-1 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300"
                           />
                           <input
                             type="number"
                             value={p.l}
                             onChange={(e) => onUpdatePeak(p.id, 'l', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
+                            className="w-9 px-1 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300"
                           />
+                          <button
+                            type="button"
+                            onClick={() => handleAutoIndexRow(p)}
+                            className="p-1 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded"
+                            title="Auto-suggest closest (hkl) for this peak's 2θ"
+                          >
+                            <Wand2 className="w-3 h-3" />
+                          </button>
                         </div>
                       </td>
 
                       {displayMode === 'angles' ? (
                         <>
-                          <td className="p-3 font-bold">
+                          <td className="p-2.5 font-bold">
                             <input
                               type="number"
                               step="0.001"
                               value={p.twoTheta}
                               onChange={(e) => onUpdatePeak(p.id, 'twoTheta', parseFloat(e.target.value) || 30)}
-                              className="w-24 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-700 dark:text-indigo-400 shadow-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                              className="w-22 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-700 dark:text-indigo-400 focus:ring-1 focus:ring-indigo-500 outline-none"
                             />
                           </td>
 
-                          <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
-                            {detail ? detail.twoThetaCalc.toFixed(Math.min(precision, 3)) : '-'}
+                          <td className="p-2.5 font-bold text-slate-700 dark:text-slate-200">
+                            {detail ? detail.twoThetaCalc.toFixed(Math.min(precision, 4)) : '-'}
                           </td>
 
-                          <td className="p-3 font-bold">
+                          <td className="p-2.5 font-bold">
                             {detail ? (
-                              <div className="flex items-center gap-2">
-                                <span className={Math.abs(delta2Th) < 0.015 ? 'text-emerald-600 dark:text-emerald-400' : Math.abs(delta2Th) < 0.04 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}>
-                                  {delta2Th > 0 ? `+${delta2Th.toFixed(4)}` : delta2Th.toFixed(4)}°
-                                </span>
-                                <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex items-center relative">
-                                  <div className="w-0.5 h-full bg-slate-400 dark:bg-slate-600 absolute left-1/2 -translate-x-1/2" />
-                                  <div
-                                    className={`h-full ${delta2Th >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                                    style={{
-                                      width: `${Math.min(50, Math.abs(delta2Th) * 500)}%`,
-                                      marginLeft: delta2Th >= 0 ? '50%' : `${50 - Math.min(50, Math.abs(delta2Th) * 500)}%`
-                                    }}
-                                  />
-                                </div>
-                              </div>
+                              <span className={Math.abs(delta2Th) < 0.015 ? 'text-emerald-600 dark:text-emerald-400' : Math.abs(delta2Th) < 0.04 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}>
+                                {delta2Th > 0 ? `+${delta2Th.toFixed(4)}` : delta2Th.toFixed(4)}°
+                              </span>
                             ) : '-'}
                           </td>
                         </>
                       ) : (
                         <>
-                          <td className="p-3 font-bold text-indigo-700 dark:text-indigo-300">
-                            {detail?.dObs ? detail.dObs.toFixed(4) : '-'}
+                          <td className="p-2.5 font-bold text-indigo-700 dark:text-indigo-300">
+                            {detail?.dObs ? detail.dObs.toFixed(5) : '-'}
                           </td>
-                          <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
-                            {detail?.dCalc ? detail.dCalc.toFixed(4) : '-'}
+                          <td className="p-2.5 font-bold text-slate-700 dark:text-slate-200">
+                            {detail?.dCalc ? detail.dCalc.toFixed(5) : '-'}
                           </td>
-                          <td className="p-3 font-bold">
+                          <td className="p-2.5 font-bold">
                             {detail ? (
-                              <span className={Math.abs(deltaD) < 0.0005 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
-                                {deltaD > 0 ? `+${deltaD.toFixed(5)}` : deltaD.toFixed(5)} Å
+                              <span className={Math.abs(deltaDPpm) < 150 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
+                                {deltaDPpm > 0 ? `+${deltaDPpm.toFixed(1)}` : deltaDPpm.toFixed(1)} ppm
                               </span>
                             ) : '-'}
                           </td>
                         </>
                       )}
 
-                      {/* Wavelength tag (Ka1 vs Ka2) */}
-                      <td className="p-3">
+                      <td className="p-2.5 text-slate-700 dark:text-slate-300 font-bold">
+                        {detail?.apparentA ? detail.apparentA.toFixed(5) : '-'}
+                      </td>
+
+                      <td className="p-2.5 text-slate-500 text-[11px]">
+                        {detail ? detail.driftVal.toFixed(4) : '-'}
+                      </td>
+
+                      <td className="p-2.5 text-slate-600 dark:text-slate-400 text-[11px]">
+                        {detail ? `${detail.weight.toFixed(2)} / ${detail.leverageHii.toFixed(2)}` : '-'}
+                      </td>
+
+                      <td className="p-2.5 text-[11px]">
+                        {detail ? (
+                          <span className={detail.cooksDistance > 0.5 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-slate-500'}>
+                            {detail.cooksDistance.toFixed(3)}
+                          </span>
+                        ) : '-'}
+                      </td>
+
+                      <td className="p-2.5">
                         <button
                           type="button"
                           onClick={() => handleToggleDoubletWavelength(p.id, p.wavelength)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-md border flex items-center gap-1 transition-all ${
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded border flex items-center gap-1 transition-all ${
                             isKa2
                               ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700'
                               : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
@@ -520,24 +541,15 @@ export const CohenPeakTable: React.FC<CohenPeakTableProps> = ({
                         </button>
                       </td>
 
-                      {/* Weight */}
-                      <td className="p-3 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
-                        {detail?.weight !== undefined ? detail.weight.toFixed(3) : '1.000'}
-                      </td>
-
-                      <td className="p-3 text-slate-500 font-mono text-[11px]">
-                        {detail ? detail.driftVal.toFixed(4) : '-'}
-                      </td>
-
-                      <td className="p-3 text-center">
+                      <td className="p-2.5 text-center">
                         <button
                           type="button"
                           onClick={() => onDeletePeak(p.id)}
                           disabled={peaks.length <= 2}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors disabled:opacity-30"
+                          className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors disabled:opacity-30"
                           title="Delete Reflection"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </td>
                     </motion.tr>

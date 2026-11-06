@@ -906,10 +906,12 @@ plt.show()
                     </div>
                     <button
                       onClick={() => {
-                        const rad1 = (calc2Theta1 * Math.PI) / 360;
-                        const rad2 = (calc2Theta2 * Math.PI) / 360;
-                        const newD1 = Number((calcLambda / (2 * Math.sin(rad1))).toFixed(4));
-                        const newD2 = Number((calcLambda / (2 * Math.sin(rad2))).toFixed(4));
+                        const rad1 = (Math.max(1, Math.min(179, calc2Theta1)) * Math.PI) / 360;
+                        const rad2 = (Math.max(1, Math.min(179, calc2Theta2)) * Math.PI) / 360;
+                        const sin1 = Math.max(1e-4, Math.sin(rad1));
+                        const sin2 = Math.max(1e-4, Math.sin(rad2));
+                        const newD1 = Number((calcLambda / (2 * sin1)).toFixed(4));
+                        const newD2 = Number((calcLambda / (2 * sin2)).toFixed(4));
                         setD1(newD1);
                         setD2(newD2);
                         setD3(Number((newD1 / 3).toFixed(4)));
@@ -917,7 +919,7 @@ plt.show()
                       }}
                       className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-[11px] uppercase tracking-wider transition-all"
                     >
-                      Apply d₁={(calcLambda / (2 * Math.sin((calc2Theta1 * Math.PI) / 360))).toFixed(3)}Å, d₂={(calcLambda / (2 * Math.sin((calc2Theta2 * Math.PI) / 360))).toFixed(3)}Å
+                      Apply d₁={(calcLambda / (2 * Math.max(1e-4, Math.sin((Math.max(1, Math.min(179, calc2Theta1)) * Math.PI) / 360)))).toFixed(3)}Å, d₂={(calcLambda / (2 * Math.max(1e-4, Math.sin((Math.max(1, Math.min(179, calc2Theta2)) * Math.PI) / 360)))).toFixed(3)}Å
                     </button>
                   </div>
                 ) : (
@@ -2439,8 +2441,8 @@ plt.show()
                       onChange={(e) => setSelectedOrderPlotL(parseFloat(e.target.value))}
                       className="bg-transparent text-rose-400 text-xs font-mono tabular-nums font-bold outline-none cursor-pointer"
                     >
-                      {result.orderPlots.map((op) => (
-                        <option key={op.L_nm} value={op.L_nm} className="bg-[#0b1120] text-white">
+                      {result.orderPlots.map((op, opIdx) => (
+                        <option key={`opt-${op.L_nm}-${opIdx}`} value={op.L_nm} className="bg-[#0b1120] text-white">
                           L = {op.L_nm.toFixed(1)} nm
                         </option>
                       ))}
@@ -2453,11 +2455,11 @@ plt.show()
               {result?.orderPlots && result.orderPlots.length > 0 && (
                 <div className="flex flex-wrap items-center gap-1.5 mb-4 pb-3 border-b border-slate-800/80 font-mono tabular-nums text-[10px]">
                   <span className="text-slate-500 uppercase mr-1">Column L Slices:</span>
-                  {result.orderPlots.map((op) => {
+                  {result.orderPlots.map((op, opIdx) => {
                     const isSel = Math.abs(op.L_nm - selectedOrderPlotL) < 0.1;
                     return (
                       <button
-                        key={op.L_nm}
+                        key={`pill-${op.L_nm}-${opIdx}`}
                         onClick={() => setSelectedOrderPlotL(op.L_nm)}
                         className={`px-2 py-1 rounded-md border transition-all ${
                           isSel

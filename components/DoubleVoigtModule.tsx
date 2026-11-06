@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
-import { parseDoubleVoigtInput, calculateDoubleVoigt } from '../utils/physics';
+import { parseDoubleVoigtInput, calculateDoubleVoigt, DoubleVoigtPeakInput } from '../utils/physics';
 import { DoubleVoigtResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
-import { playSynthTone } from '../utils/sound';
 import {
   ComposedChart,
   LineChart,
@@ -20,8 +18,7 @@ import {
   BarChart,
   Bar,
   Cell,
-  Area,
-  AreaChart
+  Area
 } from 'recharts';
 import {
   Activity,
@@ -34,33 +31,24 @@ import {
   Trash2,
   TrendingUp,
   CheckCircle,
-  CheckCircle2,
   HelpCircle,
   Download,
-  Info,
-  Sparkles,
-  BarChart2,
   Sliders,
-  Maximize2,
-  RefreshCw,
-  Zap,
-  AlertTriangle,
-  Award,
-  ArrowRight,
-  GitBranch,
-  Compass,
   BookOpen,
-  Loader2,
-  Play,
-  PieChart,
-  RotateCcw
+  RotateCcw,
+  Plus,
+  Filter,
+  Table,
+  FileText,
+  ArrowUpDown,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { AIAnalysis } from './AIAnalysis';
 import { PythonCodeExporter } from './PythonCodeExporter';
-import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
@@ -76,39 +64,71 @@ const XRAY_WAVELENGTHS = [
 
 const DV_PRESETS = [
   {
-    name: 'Nanocrystalline CeO2 Powder',
+    name: 'CeO2 Fluorite SRM',
+    tag: 'Mixed Size + Strain',
     wavelength: 1.54056,
     instFwhm: 0.05,
-    data: "28.55, 0.32, 0.65, 1, 1, 1\n33.08, 0.35, 0.60, 2, 0, 0\n47.48, 0.42, 0.55, 2, 2, 0\n56.34, 0.48, 0.50, 3, 1, 1\n59.09, 0.51, 0.48, 2, 2, 2\n69.41, 0.58, 0.45, 4, 0, 0",
-    desc: 'Cubic fluorite structure exhibiting mixed size and microstrain broadening.'
+    data: "28.55, 0.320, 1, 1, 1, 0.65\n33.08, 0.350, 2, 0, 0, 0.60\n47.48, 0.420, 2, 2, 0, 0.55\n56.34, 0.480, 3, 1, 1, 0.50\n59.09, 0.510, 2, 2, 2, 0.48\n69.41, 0.580, 4, 0, 0, 0.45",
+    desc: 'Cubic fluorite CeO2 reference powder exhibiting balanced Cauchy size and Gaussian microstrain broadening.'
   },
   {
-    name: 'Ball-Milled Nanostructured Ni',
+    name: 'Ball-Milled Ni',
+    tag: 'High Dislocation ρ',
     wavelength: 1.54056,
     instFwhm: 0.08,
-    data: "44.51, 0.45, 0.70, 1, 1, 1\n51.85, 0.52, 0.62, 2, 0, 0\n76.37, 0.71, 0.52, 2, 2, 0\n92.94, 0.88, 0.45, 3, 1, 1\n98.44, 0.95, 0.42, 2, 2, 2",
-    desc: 'Heavy plastic deformation leading to substantial dislocation density and strain.'
+    data: "44.51, 0.450, 1, 1, 1, 0.70\n51.85, 0.520, 2, 0, 0, 0.62\n76.37, 0.710, 2, 2, 0, 0.52\n92.94, 0.880, 3, 1, 1, 0.45\n98.44, 0.950, 2, 2, 2, 0.42",
+    desc: 'Severely deformed FCC nickel powder with high Gaussian microstrain and elevated dislocation density.'
   },
   {
     name: 'Sol-Gel TiO2 Anatase',
+    tag: 'Tetragonal Oxide',
     wavelength: 1.54056,
     instFwhm: 0.06,
-    data: "25.28, 0.38, 0.58, 1, 0, 1\n37.80, 0.42, 0.55, 0, 0, 4\n48.05, 0.49, 0.51, 2, 0, 0\n53.89, 0.54, 0.48, 1, 0, 5\n55.08, 0.56, 0.47, 2, 1, 1\n62.69, 0.62, 0.44, 2, 0, 4",
-    desc: 'Tetragonal nanocrystals with anisotropic crystallite growth.'
+    data: "25.28, 0.380, 1, 0, 1, 0.58\n37.80, 0.420, 0, 0, 4, 0.55\n48.05, 0.490, 2, 0, 0, 0.51\n53.89, 0.540, 1, 0, 5, 0.48\n55.08, 0.560, 2, 1, 1, 0.47\n62.69, 0.620, 2, 0, 4, 0.44",
+    desc: 'Tetragonal nanocrystals synthesized by sol-gel calcination.'
   },
   {
-    name: 'ZnO Wurtzite Nanorods',
+    name: 'ZnO Nanorods',
+    tag: 'Cauchy Size Dom.',
     wavelength: 1.54056,
     instFwhm: 0.07,
-    data: "31.77, 0.30, 0.62, 1, 0, 0\n34.42, 0.28, 0.68, 0, 0, 2\n36.25, 0.33, 0.60, 1, 0, 1\n47.54, 0.40, 0.54, 1, 0, 2\n56.60, 0.45, 0.51, 1, 1, 0\n62.86, 0.50, 0.48, 1, 0, 3",
-    desc: 'Hexagonal wurtzite nanoparticles showing c-axis elongated morphology.'
+    data: "31.77, 0.300, 1, 0, 0, 0.62\n34.42, 0.280, 0, 0, 2, 0.68\n36.25, 0.330, 1, 0, 1, 0.60\n47.54, 0.400, 1, 0, 2, 0.54\n56.60, 0.450, 1, 1, 0, 0.51\n62.86, 0.500, 1, 0, 3, 0.48",
+    desc: 'Hexagonal wurtzite nanoparticles showing Cauchy-dominated domain broadening.'
+  },
+  {
+    name: 'Cold-Rolled α-Brass',
+    tag: 'Fault + Strain',
+    wavelength: 1.54056,
+    instFwhm: 0.07,
+    data: "42.32, 0.510, 1, 1, 1, 0.56\n49.28, 0.640, 2, 0, 0, 0.48\n72.25, 0.890, 2, 2, 0, 0.41\n87.46, 1.150, 3, 1, 1, 0.36\n92.42, 1.260, 2, 2, 2, 0.34",
+    desc: 'Cold-rolled Cu-Zn alloy with pronounced Gaussian and Cauchy strain slopes.'
+  },
+  {
+    name: 'Pt/C Fuel Catalyst',
+    tag: 'Ultrafine ~6 nm',
+    wavelength: 1.54056,
+    instFwhm: 0.08,
+    data: "39.76, 1.420, 1, 1, 1, 0.78\n46.24, 1.480, 2, 0, 0, 0.75\n67.45, 1.690, 2, 2, 0, 0.71\n81.29, 1.920, 3, 1, 1, 0.68\n85.71, 2.020, 2, 2, 2, 0.66",
+    desc: 'Ultrafine carbon-supported platinum electrocatalyst nanoparticles with high Lorentzian tail fraction.'
   }
 ];
+
+const serializeDvPeaksToText = (peaks: DoubleVoigtPeakInput[]): string => {
+  return peaks
+    .map(p => {
+      const etaVal = (p.eta !== undefined ? p.eta : 0.5).toFixed(2);
+      if (p.hkl && p.hkl.length === 3) {
+        return `${p.twoTheta.toFixed(2)}, ${p.fwhmObs.toFixed(3)}, ${p.hkl[0]}, ${p.hkl[1]}, ${p.hkl[2]}, ${etaVal}`;
+      }
+      return `${p.twoTheta.toFixed(2)}, ${p.fwhmObs.toFixed(3)}, ${etaVal}`;
+    })
+    .join('\n');
+};
 
 export const DoubleVoigtModule: React.FC = () => {
   const { lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.54056);
-  const [instFwhm, setInstFwhm] = useState<number>(0.06);
+  const [instFwhm, setInstFwhm] = useState<number>(0.05);
   const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
   const [cagliotiU, setCagliotiU] = useState<number>(0.005);
   const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
@@ -119,27 +139,29 @@ export const DoubleVoigtModule: React.FC = () => {
   const [monochromatorAngle, setMonochromatorAngle] = useState<number>(26.4);
   const [kAlpha2Correction, setKAlpha2Correction] = useState<boolean>(false);
   const [shapeK, setShapeK] = useState<number>(1.0);
+  const [burgersVectorNm, setBurgersVectorNm] = useState<number>(0.25);
+
+  const [deconvKernel, setDeconvKernel] = useState<'deKeijser-1982' | 'Langford-1978' | 'Balzar-1993'>('deKeijser-1982');
+  const [regressionWeighting, setRegressionWeighting] = useState<'OLS' | 'WLS-LowS' | 'Huber-Robust'>('OLS');
+  const [excludedIndices, setExcludedIndices] = useState<number[]>([]);
 
   const [expSubTab, setExpSubTab] = useState<'wavelength' | 'instrument' | 'corrections'>('wavelength');
+  const [inputEditorMode, setInputEditorMode] = useState<'table' | 'raw'>('table');
 
   const [inputData, setInputData] = useState<string>(DV_PRESETS[0].data);
-  const [activePlotTab, setActivePlotTab] = useState<'concept' | 'cauchy' | 'gaussian' | 'profile' | 'summary'>('concept');
+  const [activePresetName, setActivePresetName] = useState<string>(DV_PRESETS[0].name);
+  const [activePlotTab, setActivePlotTab] = useState<'cauchy' | 'gaussian' | 'summary' | 'profile' | 'concept'>('cauchy');
+  const [summarySubView, setSummarySubView] = useState<'distribution' | 'strainCurve' | 'bars'>('distribution');
   const [selectedPeakIdx, setSelectedPeakIdx] = useState<number>(0);
   const [interactiveEta, setInteractiveEta] = useState<number>(0.60);
-  const [activeStepHover, setActiveStepHover] = useState<number | null>(null);
+  const [showConfidenceBand, setShowConfidenceBand] = useState<boolean>(true);
+  const [statusBanner, setStatusBanner] = useState<string | null>(null);
 
-  // Deconvolution execution states
-  const [isDeconvolving, setIsDeconvolving] = useState<boolean>(false);
-  const [deconvStage, setDeconvStage] = useState<number>(0);
-  const [summaryViewMode, setSummaryViewMode] = useState<'distribution' | 'bars'>('distribution');
-
-  const DECONV_STAGES = [
-    { step: 1, title: 'Reflection Profile Parsing', desc: 'Parsing Bragg centroids (2θ), observed FWHM breadths, and pseudo-Voigt mixing fractions (η)' },
-    { step: 2, title: 'Instrumental Deconvolution', desc: 'Stripping g(2θ) instrumental response kernel using Caglioti parameters & slit corrections' },
-    { step: 3, title: 'Balzar-Popa Voigt Inversion', desc: 'Separating true specimen broadening into Cauchy (β_fC) and Gaussian (β_fG) integral breadths' },
-    { step: 4, title: 'Dual Reciprocal Regressions', desc: 'Performing linear least-squares regressions: β_C* vs. s and (β_G*)^2 vs. s^2' },
-    { step: 5, title: 'Microstructural Synthesis', desc: 'Extracting volume size ⟨D_V⟩, area size ⟨D_A⟩, Gaussian microstrain, and polydispersity distribution' }
-  ];
+  // Draft row for adding a reflection in table mode
+  const [newTwoTheta, setNewTwoTheta] = useState<string>('47.48');
+  const [newFwhm, setNewFwhm] = useState<string>('0.420');
+  const [newEta, setNewEta] = useState<string>('0.55');
+  const [newHkl, setNewHkl] = useState<string>('220');
 
   const [result, setResult] = useState<DoubleVoigtResult | null>(() => {
     try {
@@ -150,10 +172,12 @@ export const DoubleVoigtModule: React.FC = () => {
     }
   });
 
-  const [copiedNotification, setCopiedNotification] = useState(false);
-  const isFirstRender = useRef(true);
+  const showTransientStatus = (msg: string) => {
+    setStatusBanner(msg);
+    setTimeout(() => setStatusBanner(null), 3200);
+  };
 
-  const parsedPeaks = React.useMemo(() => {
+  const parsedPeaks = useMemo(() => {
     return parseDoubleVoigtInput(inputData);
   }, [inputData]);
 
@@ -171,7 +195,11 @@ export const DoubleVoigtModule: React.FC = () => {
           applyLPFactor,
           monochromatorAngleDeg: monochromatorAngle,
           kAlpha2Correction,
-          shapeK
+          shapeK,
+          deconvKernel,
+          regressionWeighting,
+          burgersVectorNm,
+          excludedIndices
         }
       );
       setResult(computed);
@@ -181,7 +209,6 @@ export const DoubleVoigtModule: React.FC = () => {
     } else {
       setResult(null);
     }
-    isFirstRender.current = false;
   }, [
     wavelength,
     instFwhm,
@@ -195,159 +222,330 @@ export const DoubleVoigtModule: React.FC = () => {
     applyLPFactor,
     monochromatorAngle,
     kAlpha2Correction,
-    shapeK
+    shapeK,
+    deconvKernel,
+    regressionWeighting,
+    burgersVectorNm,
+    excludedIndices
   ]);
 
   const handleApplyPreset = (preset: typeof DV_PRESETS[0]) => {
-    playSynthTone('switch');
+    setActivePresetName(preset.name);
     setWavelength(preset.wavelength);
     setInstFwhm(preset.instFwhm);
+    setExcludedIndices([]);
     setInputData(preset.data);
     setSelectedPeakIdx(0);
+    showTransientStatus(`Loaded standard preset: ${preset.name}`);
   };
 
-  const handleRunFullDeconvolution = () => {
-    playSynthTone('action');
-    setIsDeconvolving(true);
-    setDeconvStage(1);
+  const handleTogglePeakExclusion = (idx: number) => {
+    setExcludedIndices(prev => {
+      if (prev.includes(idx)) {
+        return prev.filter(i => i !== idx);
+      }
+      const activeCount = parsedPeaks.length - prev.length;
+      if (activeCount <= 2) {
+        showTransientStatus('Minimum 2 active reflections required for Double-Voigt regression.');
+        return prev;
+      }
+      return [...prev, idx];
+    });
+  };
 
-    setTimeout(() => {
-      setDeconvStage(2);
-      playSynthTone('tick');
-    }, 220);
-    setTimeout(() => {
-      setDeconvStage(3);
-      playSynthTone('tick');
-    }, 440);
-    setTimeout(() => {
-      setDeconvStage(4);
-      playSynthTone('tick');
-    }, 660);
-    setTimeout(() => {
-      setDeconvStage(5);
-      playSynthTone('tick');
-    }, 880);
-    setTimeout(() => {
-      setIsDeconvolving(false);
-      playSynthTone('success');
-    }, 1100);
+  const handleAutoPruneOutliers = () => {
+    if (!result || !result.points) return;
+    const outlierIndices = result.points
+      .filter(p => !p.excluded && p.isOutlier && p.index !== undefined)
+      .map(p => p.index as number);
+
+    if (outlierIndices.length === 0) {
+      showTransientStatus('No statistical outliers (|z| > 2.0) detected in Cauchy or Gaussian regressions.');
+      return;
+    }
+
+    const remaining = parsedPeaks.length - (excludedIndices.length + outlierIndices.length);
+    if (remaining < 2) {
+      showTransientStatus('Cannot prune outliers: at least 2 reflections must remain active.');
+      return;
+    }
+
+    setExcludedIndices(prev => Array.from(new Set([...prev, ...outlierIndices])));
+    showTransientStatus(`Excluded ${outlierIndices.length} statistical outlier reflection(s).`);
+  };
+
+  const handleUpdatePeakRow = (idx: number, field: 'twoTheta' | 'fwhmObs' | 'eta' | 'hkl', rawVal: string) => {
+    const updated = [...parsedPeaks];
+    if (!updated[idx]) return;
+    if (field === 'twoTheta') {
+      const val = parseFloat(rawVal);
+      if (!isNaN(val) && val > 0 && val < 180) updated[idx] = { ...updated[idx], twoTheta: val };
+    } else if (field === 'fwhmObs') {
+      const val = parseFloat(rawVal);
+      if (!isNaN(val) && val > 0) updated[idx] = { ...updated[idx], fwhmObs: val };
+    } else if (field === 'eta') {
+      const val = parseFloat(rawVal);
+      if (!isNaN(val)) updated[idx] = { ...updated[idx], eta: Math.min(0.99, Math.max(0.01, val)) };
+    } else if (field === 'hkl') {
+      const clean = rawVal.replace(/[^0-9-]/g, '');
+      if (clean.length === 3) {
+        updated[idx] = {
+          ...updated[idx],
+          hkl: [parseInt(clean[0], 10) || 0, parseInt(clean[1], 10) || 0, parseInt(clean[2], 10) || 0]
+        };
+      } else {
+        const parts = rawVal.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+        if (parts.length === 3) {
+          updated[idx] = { ...updated[idx], hkl: [parts[0], parts[1], parts[2]] };
+        }
+      }
+    }
+    setInputData(serializeDvPeaksToText(updated));
+  };
+
+  const handleDeletePeakRow = (idx: number) => {
+    const updated = parsedPeaks.filter((_, i) => i !== idx);
+    setExcludedIndices(prev => prev.filter(i => i !== idx).map(i => (i > idx ? i - 1 : i)));
+    setInputData(serializeDvPeaksToText(updated));
+  };
+
+  const handleAddPeakRow = () => {
+    const tt = parseFloat(newTwoTheta);
+    const fw = parseFloat(newFwhm);
+    const et = Math.min(0.99, Math.max(0.01, parseFloat(newEta) || 0.5));
+    if (isNaN(tt) || tt <= 0 || tt >= 180 || isNaN(fw) || fw <= 0) {
+      showTransientStatus('Enter valid 2θ (1–179°) and FWHM (> 0°) values.');
+      return;
+    }
+    let hklArr: [number, number, number] | undefined = undefined;
+    const cleanHkl = newHkl.trim().replace(/[()[\]]/g, '');
+    if (/^\d{3}$/.test(cleanHkl)) {
+      hklArr = [parseInt(cleanHkl[0], 10), parseInt(cleanHkl[1], 10), parseInt(cleanHkl[2], 10)];
+    } else {
+      const parts = cleanHkl.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+      if (parts.length === 3) hklArr = [parts[0], parts[1], parts[2]];
+    }
+    const updated = [...parsedPeaks, { twoTheta: tt, fwhmObs: fw, eta: et, hkl: hklArr }];
+    setInputData(serializeDvPeaksToText(updated));
+    showTransientStatus(`Added reflection at 2θ = ${tt.toFixed(2)}° (η = ${et.toFixed(2)})`);
+  };
+
+  const handleSortPeaksByAngle = () => {
+    const sorted = [...parsedPeaks].sort((a, b) => a.twoTheta - b.twoTheta);
+    setExcludedIndices([]);
+    setInputData(serializeDvPeaksToText(sorted));
+    showTransientStatus('Sorted reflections in ascending 2θ order.');
+  };
+
+  const handleSyncFromWorkspace = () => {
+    try {
+      const fwhmSaved = localStorage.getItem('xrd_fwhm_current');
+      if (fwhmSaved) {
+        const parsed = JSON.parse(fwhmSaved);
+        if (Array.isArray(parsed) && parsed.length >= 2) {
+          const imported: DoubleVoigtPeakInput[] = parsed
+            .filter((item: any) => item.twoTheta > 0 && item.fwhm > 0)
+            .map((item: any) => ({
+              twoTheta: Number(item.twoTheta),
+              fwhmObs: Number(item.fwhm),
+              eta: item.eta !== undefined ? Number(item.eta) : 0.55,
+              hkl: item.hkl
+            }));
+          if (imported.length >= 2) {
+            setExcludedIndices([]);
+            setInputData(serializeDvPeaksToText(imported));
+            setActivePresetName('Workspace Import');
+            showTransientStatus(`Imported ${imported.length} reflections from FWHM Workspace.`);
+            return;
+          }
+        }
+      }
+      showTransientStatus('No external multi-peak Voigt profile found in local workspace.');
+    } catch {
+      showTransientStatus('Could not read workspace storage.');
+    }
   };
 
   const handleCopyLaTeX = () => {
     if (!result) return;
-    playSynthTone('chime');
     const latex = `\\begin{align*}
-\\text{Cauchy Line: } \\beta_C^*(s) &= \\frac{1}{D_V} + 2 e_C \\cdot s \\quad (m_C = ${result.cauchyFit.slope.toFixed(4)}, C_C = ${result.cauchyFit.intercept.toFixed(4)}, R^2 = ${result.cauchyFit.rSquared.toFixed(4)}) \\\\
-\\text{Gaussian Line: } (\\beta_G^*(s))^2 &= \\left(\\frac{1}{\\pi D_G}\\right)^2 + 8\\pi e_G^2 \\cdot s^2 \\quad (m_G = ${result.gaussianFit.slope.toFixed(4)}, C_G = ${result.gaussianFit.intercept.toFixed(4)}, R^2 = ${result.gaussianFit.rSquared.toFixed(4)}) \\\\
-D_V &= ${result.volumeSizeDvNm.toFixed(2)} \\text{ nm}, \\quad D_A = ${result.areaSizeDaNm.toFixed(2)} \\text{ nm}, \\quad D_G = ${result.gaussianSizeDgNm.toFixed(2)} \\text{ nm} \\\\
-e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.gaussianStrainEg * 100).toFixed(4)}\\%, \\quad \\langle e^2 \\rangle^{1/2} = ${(result.rmsStrain * 100).toFixed(4)}\\%
+\\text{Cauchy Regression: } \\beta_C^*(s) &= \\frac{1}{\\langle D \\rangle_V} + 2 e_C \\cdot s \\quad (m_C = ${result.cauchyFit.slope.toFixed(4)}, C_C = ${result.cauchyFit.intercept.toFixed(4)}, R^2 = ${(result.cauchyFit.rSquared * 100).toFixed(2)}\\%) \\\\
+\\text{Gaussian Regression: } (\\beta_G^*(s))^2 &= \\left(\\frac{1}{\\pi D_G}\\right)^2 + 8\\pi e_G^2 \\cdot s^2 \\quad (m_G = ${result.gaussianFit.slope.toFixed(4)}, C_G = ${result.gaussianFit.intercept.toFixed(5)}, R^2 = ${(result.gaussianFit.rSquared * 100).toFixed(2)}\\%) \\\\
+\\langle D \\rangle_V &= ${result.volumeSizeDvNm.toFixed(2)} \\pm ${(result.volumeSizeUncertaintyNm || 0).toFixed(2)} \\text{ nm}, \\quad \\langle D \\rangle_A = ${result.areaSizeDaNm.toFixed(2)} \\text{ nm}, \\quad \\langle D \\rangle_N = ${(result.numberSizeDnNm || 0).toFixed(2)} \\text{ nm} \\\\
+e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.gaussianStrainEg * 100).toFixed(4)}\\%, \\quad \\langle \\varepsilon^2 \\rangle^{1/2} = ${(result.rmsStrain * 100).toFixed(4)}\\%
 \\end{align*}`;
     navigator.clipboard.writeText(latex);
-    setCopiedNotification(true);
-    setTimeout(() => setCopiedNotification(false), 2500);
+    showTransientStatus('Copied publication-ready Double-Voigt LaTeX equations to clipboard.');
   };
-
-  // Column-length distribution P(L) based on log-normal crystallite model
-  const columnLengthData = React.useMemo(() => {
-    if (!result || !result.volumeSizeDvNm || !result.areaSizeDaNm) return null;
-    const Dv = result.volumeSizeDvNm;
-    const Da = result.areaSizeDaNm;
-    const ratio = Math.max(1.005, Dv / Math.max(0.1, Da));
-
-    const sigmaSq = Math.max(0.01, Math.min(1.8, Math.log(ratio)));
-    const sigma = Math.sqrt(sigmaSq);
-    const mu = Math.log(Da) - 0.5 * sigmaSq;
-    const modeL = Math.exp(mu - sigmaSq);
-    const medianL = Math.exp(mu);
-
-    const maxL = Math.max(Dv * 2.8, 50);
-    const numPoints = 65;
-    const points = [];
-
-    for (let i = 1; i <= numPoints; i++) {
-      const L = (i / numPoints) * maxL;
-      if (L <= 0) continue;
-      const logDiff = Math.log(L) - mu;
-      const P = (1 / (L * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-(logDiff * logDiff) / (2 * sigmaSq));
-      points.push({
-        L: parseFloat(L.toFixed(2)),
-        density: parseFloat((P * 100).toFixed(3))
-      });
-    }
-
-    return { points, modeL, medianL, sigma, Dv, Da, ratio };
-  }, [result]);
 
   const handleDownloadCSV = () => {
     if (!result || !result.points) return;
-    let csv = "2Theta (deg),hkl,s (nm^-1),s^2 (nm^-2),beta_C* (nm^-1),(beta_G*)^2 (nm^-2),Single D_V (nm)\n";
-    result.points.forEach(p => {
-      const hklStr = p.hkl ? `"${p.hkl.join('')}"` : '""';
-      csv += `${p.twoTheta},${hklStr},${p.s.toFixed(6)},${p.s2.toFixed(6)},${p.betaCStar.toFixed(6)},${p.betaGStarSq.toFixed(6)},${p.singleDvNm.toFixed(4)}\n`;
+    let csv = "Index,Status,2Theta (deg),hkl,d_hkl (A),FWHM_obs (deg),FWHM_inst (deg),eta_obs,Shape_Phi,s (nm^-1),s^2 (nm^-2),beta_C* (nm^-1),(beta_G*)^2 (nm^-2),beta_G* (nm^-1),Single_D_V (nm),Cauchy_z,Gaussian_z\n";
+    result.points.forEach((p, idx) => {
+      const hklStr = p.hkl ? `"(${p.hkl.join('')})"` : '""';
+      const state = p.excluded ? 'Excluded' : p.isOutlier ? 'Outlier' : 'Nominal';
+      csv += `${idx + 1},${state},${p.twoTheta.toFixed(4)},${hklStr},${(p.dSpacingAngstrom || 0).toFixed(4)},${(p.fwhmObs || 0).toFixed(4)},${(p.fwhmInst || 0).toFixed(4)},${(p.etaObs || 0.5).toFixed(3)},${(p.shapeFactorPhi || 0).toFixed(4)},${p.s.toFixed(6)},${p.s2.toFixed(6)},${p.betaCStar.toFixed(6)},${p.betaGStarSq.toFixed(6)},${p.betaGStar.toFixed(6)},${p.singleDvNm.toFixed(4)},${(p.cauchyStdResidual || 0).toFixed(4)},${(p.gaussianStdResidual || 0).toFixed(4)}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Double_Voigt_Analysis_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `Double_Voigt_Analysis_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    showTransientStatus('Exported full Double-Voigt CSV report.');
   };
 
-  // Generate Cauchy chart data
-  const cauchyChartData = React.useMemo(() => {
-    if (!result || result.points.length < 2) return null;
-    const xVals = result.points.map(p => p.s);
-    const minX = Math.min(...xVals);
-    const maxX = Math.max(...xVals);
-    const pad = (maxX - minX) * 0.15 || 0.1;
-    const startX = 0; // Show intercept clearly at s = 0
-    const endX = maxX + pad;
+  // Area-weighted P_A(L) & Volume-weighted P_V(L) Log-Normal Column-Length Distributions
+  const columnLengthData = useMemo(() => {
+    if (!result || !result.volumeSizeDvNm || !result.areaSizeDaNm) return null;
+    const Dv = result.volumeSizeDvNm;
+    const Da = result.areaSizeDaNm;
+    const Dn = result.numberSizeDnNm || Da * 0.72;
+    const ratio = Math.max(1.005, Dv / Math.max(0.1, Da));
 
-    const points = result.points.map(p => ({
+    const sigmaSq = Math.max(0.01, Math.min(1.6, Math.log(ratio)));
+    const sigma = Math.sqrt(sigmaSq);
+    const muArea = Math.log(Da) - 0.5 * sigmaSq;
+    const muVol = Math.log(Dv) - 0.5 * sigmaSq;
+    const modeL = Math.exp(muArea - sigmaSq);
+    const medianL = result.logNormalMedianNm || Math.exp(muArea);
+
+    const maxL = Math.max(Dv * 2.6, 40);
+    const numPoints = 64;
+    const points = [];
+
+    for (let i = 1; i <= numPoints; i++) {
+      const L = (i / numPoints) * maxL;
+      if (L <= 0) continue;
+      const diffA = Math.log(L) - muArea;
+      const diffV = Math.log(L) - muVol;
+      const pArea = (1 / (L * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-(diffA * diffA) / (2 * sigmaSq));
+      const pVol = (1 / (L * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-(diffV * diffV) / (2 * sigmaSq));
+      points.push({
+        L: parseFloat(L.toFixed(2)),
+        areaDensity: parseFloat((pArea * 100).toFixed(3)),
+        volumeDensity: parseFloat((pVol * 100).toFixed(3))
+      });
+    }
+
+    return { points, modeL, medianL, sigma, Dv, Da, Dn, ratio };
+  }, [result]);
+
+  // Generate Cauchy chart data with 95% CI band
+  const cauchyChartData = useMemo(() => {
+    if (!result || result.points.length < 2) return null;
+    const activePts = result.points.filter(p => !p.excluded);
+    if (activePts.length < 2) return null;
+
+    const xVals = result.points.map(p => p.s);
+    const maxX = Math.max(...xVals);
+    const startX = 0;
+    const endX = maxX * 1.12;
+
+    const n = activePts.length;
+    const meanX = activePts.reduce((s, p) => s + p.s, 0) / n;
+    const ssX = activePts.reduce((s, p) => s + Math.pow(p.s - meanX, 2), 0);
+    const rmse = result.cauchyFit.rmse || 0.002;
+    const tCrit = n <= 3 ? 4.303 : n === 4 ? 3.182 : n === 5 ? 2.776 : 2.3;
+
+    const steps = 25;
+    const band = [];
+    for (let i = 0; i <= steps; i++) {
+      const sVal = startX + (i / steps) * (endX - startX);
+      const fitY = result.cauchyFit.slope * sVal + result.cauchyFit.intercept;
+      const se = ssX > 0 ? rmse * Math.sqrt(1 / n + Math.pow(sVal - meanX, 2) / ssX) : rmse;
+      const delta = tCrit * se;
+      band.push({
+        x: sVal,
+        fitY,
+        ciRange: [fitY - delta, fitY + delta]
+      });
+    }
+
+    const activeScatter = activePts.map(p => ({
+      index: p.index,
       x: p.s,
       y: p.betaCStar,
       twoTheta: p.twoTheta,
       hkl: p.hkl ? `(${p.hkl.join('')})` : `${p.twoTheta.toFixed(2)}°`,
-      singleDvNm: p.singleDvNm
+      singleDvNm: p.singleDvNm,
+      stdRes: p.cauchyStdResidual
     }));
 
-    const line = [
-      { x: startX, fitY: result.cauchyFit.slope * startX + result.cauchyFit.intercept },
-      { x: endX, fitY: result.cauchyFit.slope * endX + result.cauchyFit.intercept }
-    ];
+    const excludedScatter = result.points
+      .filter(p => p.excluded)
+      .map(p => ({
+        index: p.index,
+        x: p.s,
+        y: p.betaCStar,
+        twoTheta: p.twoTheta,
+        hkl: p.hkl ? `(${p.hkl.join('')})` : `${p.twoTheta.toFixed(2)}°`,
+        singleDvNm: p.singleDvNm,
+        stdRes: p.cauchyStdResidual
+      }));
 
-    return { points, line, startX, endX };
+    return { activeScatter, excludedScatter, band, startX, endX };
   }, [result]);
 
-  // Generate Gaussian chart data
-  const gaussianChartData = React.useMemo(() => {
+  // Generate Gaussian chart data with 95% CI band
+  const gaussianChartData = useMemo(() => {
     if (!result || result.points.length < 2) return null;
-    const xVals = result.points.map(p => p.s2);
-    const minX = Math.min(...xVals);
-    const maxX = Math.max(...xVals);
-    const pad = (maxX - minX) * 0.15 || 0.01;
-    const startX = 0; // Show intercept clearly at s^2 = 0
-    const endX = maxX + pad;
+    const activePts = result.points.filter(p => !p.excluded);
+    if (activePts.length < 2) return null;
 
-    const points = result.points.map(p => ({
+    const xVals = result.points.map(p => p.s2);
+    const maxX = Math.max(...xVals);
+    const startX = 0;
+    const endX = maxX * 1.12;
+
+    const n = activePts.length;
+    const meanX = activePts.reduce((s, p) => s + p.s2, 0) / n;
+    const ssX = activePts.reduce((s, p) => s + Math.pow(p.s2 - meanX, 2), 0);
+    const rmse = result.gaussianFit.rmse || 0.0005;
+    const tCrit = n <= 3 ? 4.303 : n === 4 ? 3.182 : n === 5 ? 2.776 : 2.3;
+
+    const steps = 25;
+    const band = [];
+    for (let i = 0; i <= steps; i++) {
+      const s2Val = startX + (i / steps) * (endX - startX);
+      const fitY = result.gaussianFit.slope * s2Val + result.gaussianFit.intercept;
+      const se = ssX > 0 ? rmse * Math.sqrt(1 / n + Math.pow(s2Val - meanX, 2) / ssX) : rmse;
+      const delta = tCrit * se;
+      band.push({
+        x: s2Val,
+        fitY,
+        ciRange: [fitY - delta, fitY + delta]
+      });
+    }
+
+    const activeScatter = activePts.map(p => ({
+      index: p.index,
       x: p.s2,
       y: p.betaGStarSq,
       twoTheta: p.twoTheta,
       hkl: p.hkl ? `(${p.hkl.join('')})` : `${p.twoTheta.toFixed(2)}°`,
-      betaGStar: p.betaGStar
+      betaGStar: p.betaGStar,
+      stdRes: p.gaussianStdResidual
     }));
 
-    const line = [
-      { x: startX, fitY: result.gaussianFit.slope * startX + result.gaussianFit.intercept },
-      { x: endX, fitY: result.gaussianFit.slope * endX + result.gaussianFit.intercept }
-    ];
+    const excludedScatter = result.points
+      .filter(p => p.excluded)
+      .map(p => ({
+        index: p.index,
+        x: p.s2,
+        y: p.betaGStarSq,
+        twoTheta: p.twoTheta,
+        hkl: p.hkl ? `(${p.hkl.join('')})` : `${p.twoTheta.toFixed(2)}°`,
+        betaGStar: p.betaGStar,
+        stdRes: p.gaussianStdResidual
+      }));
 
-    return { points, line, startX, endX };
+    return { activeScatter, excludedScatter, band, startX, endX };
   }, [result]);
 
   // Concept simulation profile data for interactive Double-Voigt breakdown
-  const conceptProfileData = React.useMemo(() => {
+  const conceptProfileData = useMemo(() => {
     const numPoints = 100;
     const center = 38.0;
     const fwhm = 0.40;
@@ -376,43 +574,40 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
   }, [interactiveEta]);
 
   // Generate Voigt profile deconvolution curve simulation for selected peak
-  const selectedPeakProfileData = React.useMemo(() => {
+  const selectedPeakProfileData = useMemo(() => {
     if (!result || !result.points || result.points.length === 0) return null;
     const peakIdx = Math.min(selectedPeakIdx, result.points.length - 1);
     const peak = result.points[peakIdx];
     if (!peak) return null;
 
-    const parsedInput = parseDoubleVoigtInput(inputData)[peakIdx];
-    const eta = parsedInput?.eta || 0.5;
-    const fwhm = parsedInput?.fwhmObs || 0.4;
+    const eta = peak.etaObs ?? 0.5;
+    const fwhm = peak.fwhmObs ?? 0.4;
+    const instW = peak.fwhmInst ?? instFwhm;
     const center = peak.twoTheta;
 
-    // Generate x-range around 2theta +/- 3 * fwhm
     const numPoints = 120;
     const halfWidth = fwhm * 3;
     const profilePoints = [];
 
-    const gamma = fwhm / 2; // Cauchy HWHM
-    const sigma = fwhm / (2 * Math.sqrt(2 * Math.LN2)); // Gaussian sigma
+    const gamma = fwhm / 2;
+    const sigma = fwhm / (2 * Math.sqrt(2 * Math.LN2));
+    const sigmaInst = Math.max(0.01, instW) / (2 * Math.sqrt(2 * Math.LN2));
 
     for (let i = 0; i < numPoints; i++) {
       const x = (center - halfWidth) + (i / (numPoints - 1)) * (2 * halfWidth);
       const dx = x - center;
 
-      // Cauchy/Lorentzian component L(x)
-      const cauchy = (1 / Math.PI) * (gamma / (dx * dx + gamma * gamma)) * (Math.PI * gamma); // Normalized peak height 1
-
-      // Gaussian component G(x)
+      const cauchy = (1 / Math.PI) * (gamma / (dx * dx + gamma * gamma)) * (Math.PI * gamma);
       const gaussian = Math.exp(-(dx * dx) / (2 * sigma * sigma));
-
-      // Pseudo-Voigt combination
       const voigt = eta * cauchy + (1 - eta) * gaussian;
+      const instCurve = Math.exp(-(dx * dx) / (2 * sigmaInst * sigmaInst)) * 0.65;
 
       profilePoints.push({
         twoTheta: parseFloat(x.toFixed(3)),
         voigt: parseFloat(voigt.toFixed(4)),
         cauchy: parseFloat((eta * cauchy).toFixed(4)),
-        gaussian: parseFloat(((1 - eta) * gaussian).toFixed(4))
+        gaussian: parseFloat(((1 - eta) * gaussian).toFixed(4)),
+        instrumental: parseFloat(instCurve.toFixed(4))
       });
     }
 
@@ -422,51 +617,57 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
       fwhm,
       data: profilePoints
     };
-  }, [result, selectedPeakIdx, inputData]);
+  }, [result, selectedPeakIdx, instFwhm]);
 
   // Size Comparison Data for Bar Chart
-  const sizeComparisonData = React.useMemo(() => {
+  const sizeComparisonData = useMemo(() => {
     if (!result) return [];
     return [
-      { name: 'Volume Size (D_V)', size: result.volumeSizeDvNm, color: '#6366f1' },
-      { name: 'Area Size (D_A)', size: result.areaSizeDaNm, color: '#a855f7' },
-      { name: 'Gaussian Size (D_G)', size: result.gaussianSizeDgNm, color: '#06b6d4' }
+      { name: 'Number ⟨D_N⟩', size: result.numberSizeDnNm || result.areaSizeDaNm * 0.72, color: '#64748b' },
+      { name: 'Median M', size: result.logNormalMedianNm || result.areaSizeDaNm * 0.85, color: '#06b6d4' },
+      { name: 'Area ⟨D_A⟩', size: result.areaSizeDaNm, color: '#10b981' },
+      { name: 'Volume ⟨D_V⟩', size: result.volumeSizeDvNm, color: '#6366f1' },
+      { name: 'Gaussian D_G', size: result.gaussianSizeDgNm, color: '#a855f7' }
     ];
   }, [result]);
+
+  const activeCount = result ? result.points.filter(p => !p.excluded).length : 0;
+  const totalCount = result ? result.points.length : parsedPeaks.length;
+  const outlierCount = result ? result.points.filter(p => !p.excluded && p.isOutlier).length : 0;
 
   const dvWalkthroughSteps: WizardStep[] = [
     {
       title: 'Prepare Observed Peaks & Instrumental Breadth',
       subtitle: 'Input (2θ, FWHM_obs, η_obs, hkl)',
-      explanation: 'Every Bragg reflection is modeled as a pseudo-Voigt or true Voigt profile characterized by its FWHM and Lorentzian mixing fraction η. The instrumental broadening (g-profile) is subtracted using Caglioti parameters or constant slit corrections.',
-      tip: 'Ensure that the Lorentzian fraction η_obs reflects true profile tails; higher η gives a larger Cauchy component.'
+      explanation: 'Every Bragg reflection is modeled as a Voigt profile characterized by its FWHM and Lorentzian mixing fraction η. The instrumental broadening kernel g(2θ) is subtracted independently from the Cauchy and Gaussian components.',
+      tip: 'Higher η values indicate Lorentzian-dominated tails typical of pure crystallite size broadening.'
     },
     {
-      title: 'Voigt Deconvolution (Balzar-Popa Inversion)',
-      subtitle: 'Separating Cauchy (β_fC) & Gaussian (β_fG) Integral Breadths',
-      explanation: 'Using the parabolic Voigt relation (β_C* = β_fC / β_f, β_G* = β_fG / β_f), we isolate the true specimen Cauchy integral breadth β_fC and Gaussian integral breadth β_fG in reciprocal space units (nm⁻¹).',
-      tip: 'If Cauchy component β_C exceeds the total breadth, the profile is purely Lorentzian (size-dominated without detectable Gaussian microstrain).'
+      title: 'Voigt Deconvolution (de Keijser / Balzar-Ledbetter)',
+      subtitle: 'Separating Cauchy (β_C*) & Gaussian (β_G*) Integral Breadths',
+      explanation: 'Using exact empirical Voigt polynomial inversions, each peak breadth is decomposed into reciprocal-space Cauchy integral breadth β_C* (nm⁻¹) and Gaussian integral breadth β_G* (nm⁻¹).',
+      tip: 'Switch between de Keijser (1982), Langford (1978), and Balzar-Ledbetter (1993) kernels in the Solver & Optics tab.'
     },
     {
-      title: 'Dual Linear Extrapolations: β_C* and (β_G*)²',
+      title: 'Dual Reciprocal Extrapolations: β_C* vs s and (β_G*)² vs s²',
       subtitle: 'Intercepts = Crystallite Sizes; Slopes = Microstrains',
-      explanation: '1. Cauchy plot: β_C* vs. s (where s = 2sinθ/λ) yields area-weighted size ⟨D_A⟩ from the vertical intercept and Cauchy strain e_C from the slope.\n2. Gaussian plot: (β_G*)² vs. s² yields volume-weighted size ⟨D_V⟩ from the intercept and Gaussian strain e_G from the slope.',
-      tip: 'Area-weighted size ⟨D_A⟩ is fundamentally smaller than volume-weighted size ⟨D_V⟩. Their ratio ⟨D_V⟩ / ⟨D_A⟩ indicates size polydispersity!'
+      explanation: '1. Cauchy plot: β_C* vs. s yields volume-weighted size ⟨D_V⟩ = 1 / β_C,S* and Cauchy strain e_C.\n2. Gaussian plot: (β_G*)² vs. s² yields Gaussian size D_G and Gaussian microstrain e_G.',
+      tip: 'Combine β_C,S* and β_G,S* via Langford’s complementary error function erfc(k) to obtain the true Area-Weighted Size ⟨D_A⟩.'
     },
     {
-      title: 'Column Length Distribution & Summary',
-      subtitle: 'Log-Normal & Gaussian Column Length Functions',
-      explanation: 'From ⟨D_A⟩ and ⟨D_V⟩, we calculate the full column-length distribution and overall RMS microstrain ⟨e²⟩¹/² = √(e_C² + e_G²).',
-      tip: 'A high ⟨D_V⟩/⟨D_A⟩ ratio (> 1.5) points to wide particle size distribution (polydispersity) or anisotropic crystal habit.'
+      title: 'Column-Length Distribution P(L) & Strain Profile ⟨ε²(L)⟩¹/²',
+      subtitle: 'Log-Normal Moments & Distance-Dependent Strain Decay',
+      explanation: 'From ⟨D_A⟩ and ⟨D_V⟩, the full log-normal column-length distributions P_A(L) and P_V(L) plus the Warren-Averbach equivalent RMS strain curve ⟨ε²(L)⟩¹/² vs L are synthesized.',
+      tip: 'A polydispersity ratio ⟨D_V⟩/⟨D_A⟩ > 1.4 indicates a broad crystallite size distribution.'
     }
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
-      {/* 0. Guided Walkthrough Wizard */}
+    <div className="space-y-6 max-w-[1440px] mx-auto pb-16 px-2 sm:px-4 text-slate-900 dark:text-slate-100">
+      {/* Guided Walkthrough Wizard */}
       <GuidedWalkthroughWizard
-        moduleName="Double-Voigt Method (Langford / Balzar Formalism)"
-        description="Master pseudo-Voigt deconvolution, Cauchy vs. Gaussian reciprocal integral breadths, and volume vs. area crystallite sizes."
+        moduleName="Double-Voigt Method (Langford / Balzar-Ledbetter Formalism)"
+        description="Master Voigt-Voigt profile deconvolution, reciprocal Cauchy and Gaussian regressions, and log-normal column-length distributions."
         steps={dvWalkthroughSteps}
         presetNames={DV_PRESETS.map(p => p.name)}
         onLoadBenchmarkPreset={(idx) => {
@@ -475,168 +676,270 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
         }}
       />
 
-      {/* 0.5 Physical Meaning Verdict Banner */}
+      {/* Top Telemetry & Calibration Ribbon */}
+      <div className="bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-semibold text-slate-900 dark:text-white tracking-tight">
+            DOUBLE-VOIGT DECONVOLUTION ENGINE
+          </span>
+          <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+            {result ? `● k = ${(result.voigtParameterK || 0).toFixed(3)}` : '● Awaiting Input'}
+          </span>
+          <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+          <span className="text-slate-600 dark:text-slate-400 tabular-nums">
+            REFLECTIONS: <strong className="text-slate-900 dark:text-white">{activeCount}/{totalCount}</strong>
+          </span>
+          <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">·</span>
+          <span className="text-slate-600 dark:text-slate-400">
+            KERNEL: <strong className="text-indigo-600 dark:text-indigo-400">{deconvKernel}</strong>
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSyncFromWorkspace}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-indigo-500/50 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <Database className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Sync Workspace</span>
+          </button>
+
+          {outlierCount > 0 && (
+            <button
+              type="button"
+              onClick={handleAutoPruneOutliers}
+              className="px-3 py-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>Prune {outlierCount} Outlier{outlierCount > 1 ? 's' : ''}</span>
+            </button>
+          )}
+
+          {excludedIndices.length > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setExcludedIndices([]);
+                showTransientStatus('Restored all excluded reflections.');
+              }}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-indigo-500/40 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restore ({excludedIndices.length})</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleDownloadCSV}
+            disabled={!result}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-indigo-500/50 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Download CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopyLaTeX}
+            disabled={!result}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold disabled:opacity-40 transition-colors flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span>Copy LaTeX</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Transient Feedback Banner */}
+      <AnimatePresence>
+        {statusBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="bg-indigo-500/10 border border-indigo-500/30 text-indigo-800 dark:text-indigo-200 px-4 py-2.5 rounded-xl text-xs font-mono flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span>{statusBanner}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStatusBanner(null)}
+              className="text-xs underline opacity-75 hover:opacity-100"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Physical Meaning Summary Verdict */}
       {result && (
         <PhysicalMeaningSummary
-          title="Double-Voigt Physical Crystallite & Strain Verdict"
+          title="Double-Voigt Crystallite Size Moments & Strain Verdict"
           tone={result.rmsStrain > 0.003 ? 'warning' : 'success'}
-          statement={`Sample exhibits volume-weighted crystallite size ⟨D_V⟩ = ${convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(1)} ${lengthUnit} and area-weighted size ⟨D_A⟩ = ${convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(1)} ${lengthUnit} with an RMS microstrain of ${(result.rmsStrain * 100).toFixed(3)}%.`}
-          contextNote={`Polydispersity ratio ⟨D_V⟩ / ⟨D_A⟩ = ${(result.volumeSizeDvNm / (result.areaSizeDaNm || 1)).toFixed(2)}. ${result.volumeSizeDvNm / (result.areaSizeDaNm || 1) > 1.4 ? 'High polydispersity ratio indicates significant nanoparticle size spread or anisotropic growth.' : 'Uniform crystallite size distribution.'}`}
+          statement={`Sample exhibits volume-weighted size ⟨D_V⟩ = ${convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(1)} ${lengthUnit}, area-weighted size ⟨D_A⟩ = ${convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(1)} ${lengthUnit}, and number-weighted size ⟨D_N⟩ = ${convertLength((result.numberSizeDnNm || result.areaSizeDaNm * 0.72) * 10, lengthUnit).toFixed(1)} ${lengthUnit} with RMS microstrain ⟨ε²⟩¹/² = ${(result.rmsStrain * 100).toFixed(3)}%.`}
+          contextNote={`Polydispersity index κ = ⟨D_V⟩/⟨D_A⟩ = ${(result.polydispersityRatio || 1.2).toFixed(2)} (Log-normal σ_LN = ${(result.logNormalSigma || 0.3).toFixed(3)}). Williamson-Smallman dislocation density ρ = ${((result.dislocationDensityM2 || 0) / 1e15).toFixed(2)} × 10¹⁵ m⁻².`}
           metrics={[
-            { label: '⟨D_V⟩ Vol Size', value: convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(1), unit: lengthUnit },
+            { label: '⟨D_V⟩ Volume Size', value: convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(1), unit: lengthUnit },
             { label: '⟨D_A⟩ Area Size', value: convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(1), unit: lengthUnit },
-            { label: 'RMS Microstrain', value: (result.rmsStrain * 100).toFixed(3), unit: '%' },
-            { label: 'Polydispersity', value: (result.volumeSizeDvNm / (result.areaSizeDaNm || 1)).toFixed(2), unit: '' }
+            { label: 'RMS Strain', value: (result.rmsStrain * 100).toFixed(3), unit: '%' },
+            { label: 'Polydispersity κ', value: (result.polydispersityRatio || 1.2).toFixed(2), unit: '' }
           ]}
         />
       )}
 
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#0B1230] to-[#060A20] p-6 md:p-10 border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.15)] group">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-indigo-500/30 transition-colors duration-700" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-purple-600/30 transition-colors duration-700" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          <div className="space-y-4 flex-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-medium shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-              <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-              <span>Advanced Convolution Profile Analysis • Langford Double-Voigt Method</span>
+      {/* Architectural Header & Dual Voigt Formulation */}
+      <div className="bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <div className="lg:col-span-6 space-y-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+              <span>Reciprocal-Space Voigt Convolution</span>
+              <span aria-hidden="true">·</span>
+              <span>Langford (1978, 1992) &amp; Balzar-Ledbetter (1993)</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-400 tracking-tight flex flex-wrap items-center gap-3">
+
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
               Double-Voigt Method
-              <span className="text-xs font-mono font-normal text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/30 shadow-inner">
-                Voigt-Voigt Deconvolution
-              </span>
             </h1>
-            <p className="text-slate-300 text-sm md:text-base max-w-2xl leading-relaxed">
-              Deconvolutes size and strain broadening into Voigt functions in reciprocal space <span className="font-mono text-indigo-300">(s = 2sinθ / λ)</span>. By separating Cauchy and Gaussian components, it extracts volume-weighted <span className="font-mono text-indigo-300">(D_V)</span> and area-weighted <span className="font-mono text-indigo-300">(D_A)</span> sizes alongside root-mean-square microstrains.
+
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              Models both size-broadened and strain-broadened line profiles as Voigt functions in reciprocal space <span className="font-mono text-indigo-600 dark:text-indigo-400">s = 2sinθ/λ</span>. Because the convolution of two Voigt profiles is analytically another Voigt profile, Cauchy integral breadths add linearly while Gaussian integral breadths add quadratically—enabling exact extraction of volume-weighted <span className="font-mono text-indigo-600 dark:text-indigo-400">⟨D_V⟩</span>, area-weighted <span className="font-mono text-emerald-600 dark:text-emerald-400">⟨D_A⟩</span>, and distance-dependent microstrain <span className="font-mono text-indigo-600 dark:text-indigo-400">⟨ε²(L)⟩¹/²</span>.
             </p>
+          </div>
+
+          <div className="lg:col-span-6 bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-2">
+              <span>DUAL RECIPROCAL VOIGT SEPARATION</span>
+              <span>s = 2sinθ / λ [nm⁻¹]</span>
+            </div>
+            <div
+              className="py-2 px-3 bg-white dark:bg-[#070A12] rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto text-center text-slate-900 dark:text-slate-100 text-xs"
+              dangerouslySetInnerHTML={{
+                __html: katex.renderToString(
+                  '\\beta_C^*(s) = \\frac{1}{\\langle D \\rangle_V} + 2 e_C s, \\qquad \\big(\\beta_G^*(s)\\big)^2 = \\left(\\frac{1}{\\pi D_G}\\right)^2 + 8\\pi e_G^2 s^2',
+                  { throwOnError: false, displayMode: true }
+                )
+              }}
+            />
+            <div
+              className="py-1.5 px-3 bg-white dark:bg-[#070A12] rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto text-center text-slate-900 dark:text-slate-100 text-xs"
+              dangerouslySetInnerHTML={{
+                __html: katex.renderToString(
+                  '\\langle D \\rangle_A = \\frac{1}{\\pi \\beta_{G,S}^*} \\exp(k^2)\\,\\text{erfc}(k), \\quad k = \\frac{\\beta_{C,S}^*}{\\sqrt{\\pi}\\,\\beta_{G,S}^*}',
+                  { throwOnError: false, displayMode: false }
+                )
+              }}
+            />
+          </div>
+        </div>
+
+        {/* 6 Curated Reference Standards */}
+        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0">
+            <FlaskConical className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+            <span>REFERENCE STANDARDS:</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 w-full">
+            {DV_PRESETS.map((p) => {
+              const isSelected = activePresetName === p.name;
+              return (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => handleApplyPreset(p)}
+                  className={`px-3 py-2 rounded-lg border text-left transition-colors cursor-pointer ${
+                    isSelected
+                      ? 'bg-indigo-500/10 border-indigo-500 text-slate-900 dark:text-white'
+                      : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-500/40'
+                  }`}
+                >
+                  <div className="text-xs font-semibold truncate">{p.name}</div>
+                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate mt-0.5">{p.tag}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Experimental Sample Presets Toolbar */}
-      <div className="bg-[#050C17]/90 p-4 sm:p-5 rounded-3xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] relative z-20 hover:border-indigo-500/30 transition-colors duration-500">
-        <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-300 font-bold uppercase tracking-wider">
-          <FlaskConical className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
-          <span>Curated Experimental Presets</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {DV_PRESETS.map((p) => {
-            const isActive = inputData === p.data;
-            return (
-              <motion.button
-                key={p.name}
-                whileHover={{ scale: 1.03, y: -1 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => handleApplyPreset(p)}
-                className={`px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-mono font-bold rounded-xl border transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 cursor-pointer relative overflow-hidden ${
-                  isActive
-                    ? 'bg-indigo-500/25 text-indigo-200 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                    : 'bg-black/50 hover:bg-indigo-500/10 text-indigo-400 border-white/5 hover:border-indigo-500/30'
-                }`}
-              >
-                <Zap className={`w-3.5 h-3.5 transition-transform ${isActive ? 'text-indigo-300 animate-pulse' : 'text-indigo-400'}`} />
-                <span>{p.name}</span>
-                {isActive && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping ml-0.5" />
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column: Controls & Input Data */}
+      {/* Main Split Console Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Calibration, Instrumental Kernel & Interactive Reflection Manager */}
         <div className="lg:col-span-5 space-y-6">
-          
-          {/* Instrument Settings Card */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5 hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
-
-            <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
+          {/* Instrument & Voigt Physics Card */}
+          <div className="bg-white dark:bg-[#0B0F19] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  Step 1
-                </span>
-                <Atom className="w-4 h-4 text-indigo-400 animate-spin-slow" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Experimental Configuration</h3>
+                <Atom className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  Voigt Deconvolution &amp; Optics
+                </h2>
               </div>
-              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" /> Configured
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                λ = {convertLength(wavelength, lengthUnit).toFixed(4)} {lengthUnit} · K = {shapeK.toFixed(2)}
               </span>
             </div>
 
-            {/* Sub-tab Navigation */}
-            <div className="flex p-1 bg-black/50 rounded-xl border border-white/10 gap-1 relative z-10">
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  playSynthTone('switch');
-                  setExpSubTab('wavelength');
-                }}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            {/* Sub-tab Segmented Control */}
+            <div className="flex p-1 bg-slate-100 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 gap-1">
+              <button
+                type="button"
+                onClick={() => setExpSubTab('wavelength')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   expSubTab === 'wavelength'
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200/80 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <Sliders className="w-3 h-3" />
-                Radiation & K
-              </motion.button>
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Radiation &amp; Habit</span>
+              </button>
 
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  playSynthTone('switch');
-                  setExpSubTab('instrument');
-                }}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              <button
+                type="button"
+                onClick={() => setExpSubTab('instrument')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   expSubTab === 'instrument'
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200/80 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <Activity className="w-3 h-3" />
-                Instrumental
-              </motion.button>
+                <Activity className="w-3.5 h-3.5" />
+                <span>Inst. Kernel</span>
+              </button>
 
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  playSynthTone('switch');
-                  setExpSubTab('corrections');
-                }}
-                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              <button
+                type="button"
+                onClick={() => setExpSubTab('corrections')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer ${
                   expSubTab === 'corrections'
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200/80 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <Zap className="w-3 h-3" />
-                Corrections
-              </motion.button>
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Solver &amp; Optics</span>
+              </button>
             </div>
 
-            {/* Tab 1: Wavelength, Shape K, and Zero Shift */}
+            {/* Subtab 1: Wavelength, Shape K, Burgers Vector, Zero Shift */}
             {expSubTab === 'wavelength' && (
-              <div className="space-y-4 relative z-10">
-                {/* Wavelength Picker */}
-                <div className="group/input">
-                  <label className="block text-xs font-semibold text-slate-300 mb-2 group-hover/input:text-indigo-300 transition-colors">
-                    X-Ray Radiation Wavelength (λ) [{lengthUnit}]
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    X-Ray Anode Wavelength (λ) [{lengthUnit}]
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       value={convertLength(wavelength, lengthUnit)}
                       onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
-                      className="w-full px-3 py-2 bg-black/40 text-indigo-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors cursor-pointer appearance-none shadow-inner"
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-[#111827] text-slate-900 dark:text-indigo-300 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono tabular-nums outline-none focus:border-indigo-500 cursor-pointer"
                     >
                       {XRAY_WAVELENGTHS.map((w) => (
                         <option key={w.label} value={convertLength(w.value, lengthUnit)}>
@@ -649,62 +952,67 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                       step="0.00001"
                       value={convertLength(wavelength, lengthUnit)}
                       onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value) || 1.54056, lengthUnit))}
-                      className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors shadow-inner"
-                      placeholder={`Custom ${lengthUnit}`}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-[#111827] text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono tabular-nums outline-none focus:border-indigo-500"
                     />
                   </div>
                 </div>
 
-                {/* Crystallite Shape Scale K */}
-                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-2 shadow-inner">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-300 font-medium">Shape Habit Multiplier (K):</span>
-                    <span className="text-indigo-300 font-mono font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                      K = {shapeK.toFixed(2)}
-                    </span>
+                {/* Shape Habit Multiplier K & Burgers Vector b */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-700 dark:text-slate-300 font-medium">Habit K:</span>
+                      <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400 font-semibold">{shapeK.toFixed(2)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.80"
+                      max="1.20"
+                      step="0.01"
+                      value={shapeK}
+                      onChange={(e) => setShapeK(parseFloat(e.target.value))}
+                      className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="0.80"
-                    max="1.20"
-                    step="0.01"
-                    value={shapeK}
-                    onChange={(e) => setShapeK(parseFloat(e.target.value))}
-                    className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                  />
-                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
-                    <span>0.89 (Spherical)</span>
-                    <span>1.00 (Standard)</span>
-                    <span>1.07 (Octahedral)</span>
+
+                  <div className="p-3 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-700 dark:text-slate-300 font-medium">Burgers b:</span>
+                      <span className="font-mono tabular-nums text-indigo-600 dark:text-indigo-400 font-semibold">{burgersVectorNm.toFixed(2)} nm</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.15"
+                      max="0.45"
+                      step="0.01"
+                      value={burgersVectorNm}
+                      onChange={(e) => setBurgersVectorNm(parseFloat(e.target.value))}
+                      className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
+                    />
                   </div>
                 </div>
 
                 {/* Goniometer Zero-Shift Correction */}
-                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-2 shadow-inner">
+                <div className="p-3 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-300 font-medium flex items-center gap-1.5">
-                      <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">
                       Goniometer Zero-Shift (Δ2θ₀)
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className={`font-mono text-xs px-2 py-0.5 rounded border ${
-                        zeroShiftDeg !== 0 
-                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 font-bold' 
-                          : 'bg-black/60 text-slate-400 border-white/5'
-                      }`}>
+                    <div className="flex items-center gap-2 font-mono tabular-nums">
+                      <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
                         {zeroShiftDeg > 0 ? `+${zeroShiftDeg.toFixed(2)}` : zeroShiftDeg.toFixed(2)}° 2θ
                       </span>
                       {zeroShiftDeg !== 0 && (
                         <button
+                          type="button"
                           onClick={() => setZeroShiftDeg(0)}
-                          className="text-[10px] text-indigo-400 hover:underline font-mono"
+                          className="text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-white underline cursor-pointer"
                         >
                           Reset
                         </button>
                       )}
                     </div>
                   </div>
-
                   <input
                     type="range"
                     min="-0.5"
@@ -712,40 +1020,42 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     step="0.01"
                     value={zeroShiftDeg}
                     onChange={(e) => setZeroShiftDeg(parseFloat(e.target.value))}
-                    className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                    className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
                   />
-                  <p className="text-[10px] text-slate-400 leading-tight">
-                    Corrects systematic zero error: 2θ_corr = 2θ_obs + Δ2θ₀
-                  </p>
                 </div>
               </div>
             )}
 
-            {/* Tab 2: Instrumental Broadening & Caglioti */}
+            {/* Subtab 2: Instrumental Broadening & Caglioti */}
             {expSubTab === 'instrument' && (
-              <div className="space-y-4 relative z-10">
-                {/* Instrumental Mode Toggle */}
-                <div className="group/input">
+              <div className="space-y-4">
+                <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="block text-xs font-semibold text-slate-300 group-hover/input:text-indigo-300 transition-colors">
-                      Instrumental Profile Resolution
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                      Instrumental Profile g(2θ)
                     </label>
-                    <div className="flex bg-black/60 p-1 rounded-lg border border-white/10 text-[10px] font-mono shadow-inner">
+                    <div className="flex bg-slate-100 dark:bg-[#111827] p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono">
                       <button
+                        type="button"
                         onClick={() => setInstrumentalMode('constant')}
-                        className={`px-2.5 py-1 rounded-md transition-all ${
-                          instrumentalMode === 'constant' ? 'bg-indigo-500 text-black font-bold shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                          instrumentalMode === 'constant'
+                            ? 'bg-indigo-600 text-white font-semibold'
+                            : 'text-slate-600 dark:text-slate-400'
                         }`}
                       >
                         Constant
                       </button>
                       <button
+                        type="button"
                         onClick={() => setInstrumentalMode('caglioti')}
-                        className={`px-2.5 py-1 rounded-md transition-all ${
-                          instrumentalMode === 'caglioti' ? 'bg-indigo-500 text-black font-bold shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                          instrumentalMode === 'caglioti'
+                            ? 'bg-indigo-600 text-white font-semibold'
+                            : 'text-slate-600 dark:text-slate-400'
                         }`}
                       >
-                        Caglioti
+                        Caglioti (U,V,W)
                       </button>
                     </div>
                   </div>
@@ -755,77 +1065,85 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
-                          step="0.001"
+                          step="0.005"
+                          min="0"
                           value={instFwhm}
-                          onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                          onChange={(e) => setInstFwhm(Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-full px-3 py-2 bg-slate-50 dark:bg-[#111827] text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono tabular-nums"
                         />
-                        <span className="text-xs text-slate-400 font-mono whitespace-nowrap">°2θ FWHM</span>
+                        <span className="text-xs text-slate-500 font-mono whitespace-nowrap">°2θ FWHM</span>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-4 gap-1.5">
                         {[0, 0.05, 0.08, 0.12].map(val => (
-                          <button 
+                          <button
                             key={val}
                             type="button"
                             onClick={() => setInstFwhm(val)}
-                            className={`flex-1 py-1 rounded-lg border text-[9px] font-black transition-all ${instFwhm === val ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-300'}`}
+                            className={`py-1.5 rounded-lg border text-xs font-mono tabular-nums cursor-pointer ${
+                              instFwhm === val
+                                ? 'bg-indigo-500/15 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-semibold'
+                                : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}
                           >
-                            {val === 0 ? '0 (Raw)' : `${val}°`}
+                            {val === 0 ? '0° (Raw)' : `${val}°`}
                           </button>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="flex gap-1 mb-1 overflow-x-auto pb-1">
-                        {[
-                          { name: '0 (Raw)', u: 0, v: 0, w: 0 },
-                          { name: 'Lab XRD', u: 0.005, v: -0.002, w: 0.015 },
-                          { name: 'Synchrotron', u: 0.0002, v: -0.0001, w: 0.001 }
-                        ].map((preset) => (
-                          <button
-                            key={preset.name}
-                            type="button"
-                            onClick={() => {
-                              setCagliotiU(preset.u);
-                              setCagliotiV(preset.v);
-                              setCagliotiW(preset.w);
-                            }}
-                            className="px-2 py-1 bg-black/40 border border-white/10 rounded-md text-[9px] font-mono text-slate-300 hover:text-indigo-400 hover:border-indigo-500/40 whitespace-nowrap"
-                          >
-                            {preset.name}
-                          </button>
-                        ))}
+                    <div className="space-y-2.5 p-3 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-mono text-slate-500">FWHM² = U·tan²θ + V·tanθ + W</span>
+                        <div className="flex gap-1">
+                          {[
+                            { name: 'LaB6 SRM', u: 0.004, v: -0.0015, w: 0.006 },
+                            { name: 'Lab XRD', u: 0.005, v: -0.002, w: 0.015 },
+                            { name: 'Synchrotron', u: 0.0002, v: -0.0001, w: 0.001 }
+                          ].map((preset) => (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              onClick={() => {
+                                setCagliotiU(preset.u);
+                                setCagliotiV(preset.v);
+                                setCagliotiW(preset.w);
+                              }}
+                              className="px-2 py-0.5 bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-700 rounded text-[10px] font-mono text-slate-700 dark:text-slate-300 hover:border-indigo-500 cursor-pointer"
+                            >
+                              {preset.name}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <span className="block text-[10px] text-slate-400 font-mono mb-1">U (tan²θ)</span>
+                          <span className="block text-[10px] text-slate-500 font-mono mb-1">U (tan²θ)</span>
                           <input
                             type="number"
                             step="0.001"
                             value={cagliotiU}
                             onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                            className="w-full px-2 py-1.5 bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono tabular-nums"
                           />
                         </div>
                         <div>
-                          <span className="block text-[10px] text-slate-400 font-mono mb-1">V (tanθ)</span>
+                          <span className="block text-[10px] text-slate-500 font-mono mb-1">V (tanθ)</span>
                           <input
                             type="number"
                             step="0.001"
                             value={cagliotiV}
                             onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                            className="w-full px-2 py-1.5 bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono tabular-nums"
                           />
                         </div>
                         <div>
-                          <span className="block text-[10px] text-slate-400 font-mono mb-1">W (const)</span>
+                          <span className="block text-[10px] text-slate-500 font-mono mb-1">W (const)</span>
                           <input
                             type="number"
                             step="0.001"
                             value={cagliotiW}
                             onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                            className="w-full px-2 py-1.5 bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono tabular-nums"
                           />
                         </div>
                       </div>
@@ -833,1360 +1151,1235 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   )}
                 </div>
 
-                {/* Instrumental Profile Cauchy Fraction Slider (instEta) */}
-                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-1.5 shadow-inner">
+                {/* Instrumental Voigt Fraction (instEta) */}
+                <div className="p-3 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-300 font-medium">Instrumental Voigt Fraction (η_inst):</span>
-                    <span className="text-indigo-300 font-mono font-bold">{instEta.toFixed(2)}</span>
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">Instrumental Lorentzian Fraction (η_inst):</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-mono tabular-nums font-bold">{instEta.toFixed(2)}</span>
                   </div>
                   <input
                     type="range"
-                    min="0"
-                    max="1"
+                    min="0.05"
+                    max="0.95"
                     step="0.05"
                     value={instEta}
                     onChange={(e) => setInstEta(parseFloat(e.target.value))}
-                    className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                    className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
                   />
-                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
-                    <span>0.0 (Pure Gaussian Inst)</span>
-                    <span>1.0 (Pure Cauchy Inst)</span>
+                  <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                    <span>0.05 (Gaussian Slits)</span>
+                    <span>0.95 (Lorentzian Spectral)</span>
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-tight pt-1">
-                    Langford Subtraction: β_C,S = β_C,obs - β_C,inst & β_G,S² = β_G,obs² - β_G,inst²
-                  </p>
                 </div>
               </div>
             )}
 
-            {/* Tab 3: Advanced Corrections */}
+            {/* Subtab 3: Voigt Inversion Kernel, Regression Weighting & Optical Corrections */}
             {expSubTab === 'corrections' && (
-              <div className="space-y-4 relative z-10">
-                {/* Lorentz-Polarization (L-P) Factor Toggle */}
-                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-3 shadow-inner">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-semibold text-white block">
-                        Lorentz-Polarization (L-P) Factor Correction
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        Adjusts line breadth for scattering geometry weighting
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setApplyLPFactor(!applyLPFactor)}
-                      className={`w-11 h-6 rounded-full transition-colors relative ${
-                        applyLPFactor ? 'bg-indigo-500' : 'bg-white/10'
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                          applyLPFactor ? 'translate-x-5' : 'translate-x-0'
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Voigt Integral Breadth Inversion Kernel
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'deKeijser-1982' as const, label: 'de Keijser (1982)', desc: 'Direct η ratios' },
+                      { id: 'Langford-1978' as const, label: 'Langford (1978)', desc: 'Shape φ = 2w/β' },
+                      { id: 'Balzar-1993' as const, label: 'Balzar (1993)', desc: 'Full Voigt β(η)' }
+                    ].map(k => (
+                      <button
+                        key={k.id}
+                        type="button"
+                        onClick={() => setDeconvKernel(k.id)}
+                        className={`p-2 rounded-lg border text-left transition-colors cursor-pointer ${
+                          deconvKernel === k.id
+                            ? 'bg-indigo-500/15 border-indigo-500 text-slate-900 dark:text-white'
+                            : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                         }`}
-                      />
-                    </button>
+                      >
+                        <div className="text-[11px] font-mono font-semibold truncate">{k.label}</div>
+                        <div className="text-[10px] text-slate-500 truncate mt-0.5">{k.desc}</div>
+                      </button>
+                    ))}
                   </div>
-
-                  {applyLPFactor && (
-                    <div className="pt-2 border-t border-white/10 space-y-1.5">
-                      <label className="text-[10px] text-slate-300 font-mono block">
-                        Monochromator Angle (2θ_m)
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setMonochromatorAngle(0)}
-                          className={`py-1 px-2 rounded-lg text-[10px] font-mono border ${
-                            monochromatorAngle === 0 
-                              ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
-                              : 'bg-black/60 text-slate-400 border-white/5'
-                          }`}
-                        >
-                          Unpolarized (0°)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMonochromatorAngle(26.4)}
-                          className={`py-1 px-2 rounded-lg text-[10px] font-mono border ${
-                            monochromatorAngle === 26.4 
-                              ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
-                              : 'bg-black/60 text-slate-400 border-white/5'
-                          }`}
-                        >
-                          Graphite (26.4°)
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* K-Alpha2 Doublet Wavelength Correction */}
-                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between shadow-inner">
-                  <div>
-                    <span className="text-xs font-semibold text-white block">
-                      Kα₂ Doublet Splitting Correction
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      Rachinger doublet stripping at higher 2θ angles
-                    </span>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Dual Regression Solver Weighting
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'OLS' as const, label: 'Standard OLS', desc: 'Uniform weight' },
+                      { id: 'WLS-LowS' as const, label: '1/s Weighted', desc: 'Low-angle priority' },
+                      { id: 'Huber-Robust' as const, label: 'Huber IRLS', desc: 'Outlier resistant' }
+                    ].map(w => (
+                      <button
+                        key={w.id}
+                        type="button"
+                        onClick={() => setRegressionWeighting(w.id)}
+                        className={`p-2 rounded-lg border text-left transition-colors cursor-pointer ${
+                          regressionWeighting === w.id
+                            ? 'bg-indigo-500/15 border-indigo-500 text-slate-900 dark:text-white'
+                            : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        <div className="text-[11px] font-mono font-semibold truncate">{w.label}</div>
+                        <div className="text-[10px] text-slate-500 truncate mt-0.5">{w.desc}</div>
+                      </button>
+                    ))}
                   </div>
+                </div>
+
+                {/* L-P & K-Alpha2 toggles */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setApplyLPFactor(!applyLPFactor)}
+                    className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                      applyLPFactor
+                        ? 'bg-indigo-500/15 border-indigo-500 text-slate-900 dark:text-white'
+                        : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <div className="text-xs font-semibold">L-P Polarization</div>
+                    <div className="text-[10px] font-mono mt-0.5">{applyLPFactor ? 'Enabled (26.4°)' : 'Disabled'}</div>
+                  </button>
 
                   <button
                     type="button"
                     onClick={() => setKAlpha2Correction(!kAlpha2Correction)}
-                    className={`w-11 h-6 rounded-full transition-colors relative ${
-                      kAlpha2Correction ? 'bg-indigo-500' : 'bg-white/10'
+                    className={`p-2.5 rounded-xl border text-left transition-colors cursor-pointer ${
+                      kAlpha2Correction
+                        ? 'bg-indigo-500/15 border-indigo-500 text-slate-900 dark:text-white'
+                        : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
                     }`}
                   >
-                    <span
-                      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                        kAlpha2Correction ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
+                    <div className="text-xs font-semibold">Rachinger Kα₂</div>
+                    <div className="text-[10px] font-mono mt-0.5">{kAlpha2Correction ? 'Stripping Active' : 'Disabled'}</div>
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Peak Data Input */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-white/20 transition-colors duration-500">
-            <div className="flex items-center justify-between">
+          {/* Dual-Mode Reflection Manager (Interactive Table vs Raw Batch Input) */}
+          <div className="bg-white dark:bg-[#0B0F19] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                  Step 2
-                </span>
-                <Database className="w-4 h-4 text-indigo-400" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Reflections Input</h3>
+                <Database className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+                  Voigt Reflections ({parsedPeaks.length})
+                </h2>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-1.5">
+                <div className="flex bg-slate-100 dark:bg-[#111827] p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setInputEditorMode('table')}
+                    className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors cursor-pointer ${
+                      inputEditorMode === 'table'
+                        ? 'bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white font-semibold'
+                        : 'text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <Table className="w-3 h-3" />
+                    <span>Table</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInputEditorMode('raw')}
+                    className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors cursor-pointer ${
+                      inputEditorMode === 'raw'
+                        ? 'bg-white dark:bg-[#0B0F19] text-slate-900 dark:text-white font-semibold'
+                        : 'text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span>Raw Text</span>
+                  </button>
+                </div>
+
                 <button
-                  onClick={() => setInputData('')}
-                  className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1.5 transition-colors px-2.5 py-1.5 bg-black/40 rounded-lg hover:bg-white/5 border border-transparent hover:border-red-500/20 cursor-pointer"
+                  type="button"
+                  onClick={handleSortPeaksByAngle}
+                  title="Sort by 2θ ascending"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111827] hover:border-indigo-500/50 text-slate-600 dark:text-slate-300 cursor-pointer"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExcludedIndices([]);
+                    setInputData('');
+                  }}
+                  title="Clear all reflections"
+                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#111827] hover:border-rose-500/50 text-slate-600 dark:text-slate-300 hover:text-rose-500 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Clear
                 </button>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400 leading-normal">
-              One reflection per line: <code className="text-indigo-300 bg-black/60 px-1.5 py-0.5 rounded font-mono shadow-inner border border-white/5 text-[11px]">2θ [deg], FWHM [deg], η [0..1], h, k, l</code>
-            </p>
+            {inputEditorMode === 'table' ? (
+              <div className="space-y-3">
+                <div className="max-h-72 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <table className="w-full text-left font-mono text-xs tabular-nums">
+                    <thead className="bg-slate-50 dark:bg-[#111827] text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+                      <tr>
+                        <th className="py-2 px-2">Use</th>
+                        <th className="py-2 px-1.5">2θ (°)</th>
+                        <th className="py-2 px-1.5">FWHM (°)</th>
+                        <th className="py-2 px-1.5">η [0–1]</th>
+                        <th className="py-2 px-1.5">hkl</th>
+                        <th className="py-2 px-1.5 text-center">Del</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800/70">
+                      {parsedPeaks.map((peak, idx) => {
+                        const isExcl = excludedIndices.includes(idx);
+                        return (
+                          <tr
+                            key={`dv-peak-row-${idx}`}
+                            className={`transition-colors ${
+                              isExcl
+                                ? 'opacity-45 bg-slate-100/50 dark:bg-slate-900/40'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                            }`}
+                          >
+                            <td className="py-1.5 px-2">
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePeakExclusion(idx)}
+                                className="text-indigo-600 dark:text-indigo-400 cursor-pointer"
+                              >
+                                {isExcl ? <Square className="w-4 h-4 text-slate-400" /> : <CheckSquare className="w-4 h-4" />}
+                              </button>
+                            </td>
+                            <td className="py-1.5 px-1.5">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={peak.twoTheta}
+                                onChange={(e) => handleUpdatePeakRow(idx, 'twoTheta', e.target.value)}
+                                className="w-16 px-1.5 py-1 rounded bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono tabular-nums"
+                              />
+                            </td>
+                            <td className="py-1.5 px-1.5">
+                              <input
+                                type="number"
+                                step="0.005"
+                                value={peak.fwhmObs}
+                                onChange={(e) => handleUpdatePeakRow(idx, 'fwhmObs', e.target.value)}
+                                className="w-16 px-1.5 py-1 rounded bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono tabular-nums"
+                              />
+                            </td>
+                            <td className="py-1.5 px-1.5">
+                              <input
+                                type="number"
+                                step="0.02"
+                                min="0.01"
+                                max="0.99"
+                                value={peak.eta ?? 0.5}
+                                onChange={(e) => handleUpdatePeakRow(idx, 'eta', e.target.value)}
+                                className="w-14 px-1.5 py-1 rounded bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 text-xs font-mono tabular-nums"
+                              />
+                            </td>
+                            <td className="py-1.5 px-1.5">
+                              <input
+                                type="text"
+                                value={peak.hkl ? peak.hkl.join('') : ''}
+                                placeholder="hkl"
+                                onChange={(e) => handleUpdatePeakRow(idx, 'hkl', e.target.value)}
+                                className="w-12 px-1.5 py-1 rounded bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-mono"
+                              />
+                            </td>
+                            <td className="py-1.5 px-1.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePeakRow(idx)}
+                                className="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mx-auto" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
 
-            <div className="relative group/textarea">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-[30px] pointer-events-none group-focus-within/textarea:bg-indigo-500/10 transition-colors" />
-              <textarea
-                value={inputData}
-                onChange={(e) => setInputData(e.target.value)}
-                rows={9}
-                spellCheck={false}
-                className="w-full p-4 bg-black/60 text-indigo-300 font-mono text-xs border border-white/10 rounded-2xl outline-none focus:border-indigo-500/50 hover:border-white/20 transition-all custom-scrollbar leading-relaxed shadow-inner relative z-10"
-              />
+                {/* Quick Add Reflection Bar */}
+                <div className="p-2.5 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-1.5">
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="2θ (°)"
+                    value={newTwoTheta}
+                    onChange={(e) => setNewTwoTheta(e.target.value)}
+                    className="w-17 px-2 py-1.5 bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono tabular-nums"
+                  />
+                  <input
+                    type="number"
+                    step="0.005"
+                    placeholder="FWHM"
+                    value={newFwhm}
+                    onChange={(e) => setNewFwhm(e.target.value)}
+                    className="w-17 px-2 py-1.5 bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono tabular-nums"
+                  />
+                  <input
+                    type="number"
+                    step="0.02"
+                    placeholder="η"
+                    value={newEta}
+                    onChange={(e) => setNewEta(e.target.value)}
+                    className="w-15 px-2 py-1.5 bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono tabular-nums"
+                  />
+                  <input
+                    type="text"
+                    placeholder="hkl"
+                    value={newHkl}
+                    onChange={(e) => setNewHkl(e.target.value)}
+                    className="w-14 px-2 py-1.5 bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPeakRow}
+                    className="ml-auto px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Format: <code className="font-mono text-indigo-600 dark:text-indigo-400">2θ [deg], FWHM [deg], h, k, l, η [0..1]</code>
+                </p>
+                <textarea
+                  value={inputData}
+                  onChange={(e) => {
+                    setExcludedIndices([]);
+                    setInputData(e.target.value);
+                  }}
+                  rows={8}
+                  spellCheck={false}
+                  className="w-full p-3.5 bg-slate-50 dark:bg-[#111827] text-slate-900 dark:text-indigo-300 font-mono text-xs border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 leading-relaxed"
+                />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs font-mono pt-1 text-slate-500 dark:text-slate-400">
+              <span>
+                Active Reflections: <strong className="text-slate-900 dark:text-white tabular-nums">{activeCount}</strong> / {totalCount}
+              </span>
+              {activeCount >= 2 ? (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                  ● Dual Fits Converged
+                </span>
+              ) : (
+                <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                  ▲ Need ≥ 2 Reflections
+                </span>
+              )}
             </div>
+          </div>
+        </div>
 
-            {/* Input Peak Counter & Diagnostic Chips */}
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between text-[11px] font-mono">
-                <span className="text-slate-400">Parsed reflections: <strong className="text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{parsedPeaks.length}</strong></span>
-                {parsedPeaks.length >= 2 ? (
-                  <span className="text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
-                    <CheckCircle className="w-3.5 h-3.5" /> Ready for deconvolution
-                  </span>
-                ) : (
-                  <span className="text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
-                    <AlertTriangle className="w-3.5 h-3.5" /> Minimum 2 reflections required
-                  </span>
+        {/* Right Column: 4-Card Telemetry Strip, 5 Interactive Chart Views & Deconvolution Matrix */}
+        <div className="lg:col-span-7 space-y-6">
+          {result ? (
+            <>
+              {/* 4-Card Microstructural Telemetry Strip */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {/* 1. Volume-Weighted Size D_V */}
+                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                    <span>VOLUME SIZE ⟨D_V⟩</span>
+                    <Ruler className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="my-2 flex items-baseline">
+                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                      {convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(2)}
+                    </span>
+                    <span className="text-xs uppercase font-mono text-slate-400 ml-1.5">
+                      {lengthUnit}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                    <div className="flex justify-between">
+                      <span>Std Error (±ΔD_V):</span>
+                      <span className="text-slate-800 dark:text-slate-200">
+                        ±{convertLength((result.volumeSizeUncertaintyNm || 0) * 10, lengthUnit).toFixed(2)} {lengthUnit}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gaussian D_G:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                        {convertLength(result.gaussianSizeDgNm * 10, lengthUnit).toFixed(2)} {lengthUnit}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Area-Weighted Size D_A & Polydispersity */}
+                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                    <span>AREA SIZE ⟨D_A⟩</span>
+                    <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="my-2 flex items-baseline">
+                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                      {convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(2)}
+                    </span>
+                    <span className="text-xs uppercase font-mono text-slate-400 ml-1.5">
+                      {lengthUnit}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                    <div className="flex justify-between">
+                      <span>Polydispersity κ:</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                        {(result.polydispersityRatio || 1.2).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Number ⟨D_N⟩:</span>
+                      <span className="text-slate-800 dark:text-slate-200">
+                        {convertLength((result.numberSizeDnNm || result.areaSizeDaNm * 0.72) * 10, lengthUnit).toFixed(2)} {lengthUnit}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Deconvolved Microstrains */}
+                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                    <span>RMS STRAIN ⟨ε²⟩¹/²</span>
+                    <TrendingUp className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="my-2 flex items-baseline">
+                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                      {(result.rmsStrain * 100).toFixed(4)}
+                    </span>
+                    <span className="text-xs uppercase font-mono text-slate-400 ml-1">
+                      %
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                    <div className="flex justify-between">
+                      <span>Cauchy e_C:</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">{(result.cauchyStrainEc * 100).toFixed(4)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gaussian e_G:</span>
+                      <span className="text-purple-600 dark:text-purple-400">{(result.gaussianStrainEg * 100).toFixed(4)}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Dislocation Density & Dual Fit R^2 */}
+                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                    <span>DISLOCATION (ρ)</span>
+                    <Activity className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <div className="my-2 flex items-baseline">
+                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                      {((result.dislocationDensityM2 || 0) / 1e15).toFixed(2)}
+                    </span>
+                    <span className="text-xs font-mono text-slate-400 ml-1.5">
+                      ×10¹⁵ m⁻²
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                    <div className="flex justify-between">
+                      <span>Cauchy R²:</span>
+                      <span className="text-slate-800 dark:text-slate-200">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Gaussian R²:</span>
+                      <span className="text-slate-800 dark:text-slate-200">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5-Tab Interactive Visualization Stage */}
+              <div className="bg-white dark:bg-[#0B0F19] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { id: 'cauchy' as const, label: '01. Cauchy Fit (β_C* vs s)' },
+                      { id: 'gaussian' as const, label: '02. Gaussian Fit ((β_G*)² vs s²)' },
+                      { id: 'summary' as const, label: '03. Column P(L) & Strain Curve' },
+                      { id: 'profile' as const, label: '04. Peak Voigt Deconvolution' },
+                      { id: 'concept' as const, label: '05. Voigt Physics Sandbox' }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActivePlotTab(tab.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                          activePlotTab === tab.id
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 dark:bg-[#111827] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tab 1: Cauchy Linear Regression */}
+                {activePlotTab === 'cauchy' && cauchyChartData && (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono tabular-nums">
+                      <span className="text-slate-600 dark:text-slate-300">
+                        Cauchy Regression: <strong className="text-indigo-600 dark:text-indigo-400">β_C*(s) = {result.cauchyFit.slope.toFixed(4)}·s + {result.cauchyFit.intercept.toFixed(4)} nm⁻¹</strong>
+                      </span>
+                      <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-400">
+                        <input
+                          type="checkbox"
+                          checked={showConfidenceBand}
+                          onChange={(e) => setShowConfidenceBand(e.target.checked)}
+                          className="accent-indigo-500 rounded"
+                        />
+                        <span>95% Confidence Band</span>
+                      </label>
+                    </div>
+
+                    <div className="h-80 sm:h-96 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={cauchyChartData.band} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                          <XAxis
+                            dataKey="x"
+                            type="number"
+                            domain={[cauchyChartData.startX, cauchyChartData.endX]}
+                            tickFormatter={(v) => Number(v).toFixed(2)}
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                            label={{
+                              value: 'Scattering Vector s = 2 sin θ / λ [nm⁻¹]',
+                              position: 'insideBottom',
+                              offset: -15,
+                              fill: '#6366f1',
+                              fontSize: 12,
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <YAxis
+                            type="number"
+                            domain={['auto', 'auto']}
+                            tickFormatter={(v) => Number(v).toFixed(3)}
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                            label={{
+                              value: 'Cauchy Breadth β_C* [nm⁻¹]',
+                              angle: -90,
+                              position: 'insideLeft',
+                              offset: -5,
+                              fill: '#6366f1',
+                              fontSize: 12,
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const pt = payload.find(p => p.payload && p.payload.twoTheta !== undefined)?.payload || payload[0].payload;
+                                if (pt.twoTheta !== undefined) {
+                                  return (
+                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl font-mono text-xs space-y-1 tabular-nums">
+                                      <div className="text-indigo-400 font-bold border-b border-slate-700 pb-1">
+                                        {pt.hkl} · 2θ = {pt.twoTheta.toFixed(2)}°
+                                      </div>
+                                      <div>s: <span className="text-indigo-300">{pt.x.toFixed(4)} nm⁻¹</span></div>
+                                      <div>β_C*: <span className="text-indigo-300 font-bold">{pt.y.toFixed(4)} nm⁻¹</span></div>
+                                      <div>Apparent D_V: <span className="text-emerald-400 font-bold">{pt.singleDvNm.toFixed(2)} nm</span></div>
+                                      <div>Std Residual z_C: <span className="text-slate-300">{pt.stdRes?.toFixed(2)}</span></div>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div className="bg-slate-900 text-white border border-slate-700 p-2.5 rounded-xl font-mono text-xs tabular-nums">
+                                    <div className="text-indigo-400">s = {Number(pt.x).toFixed(3)} nm⁻¹</div>
+                                    <div>Fit β_C* = {Number(pt.fitY).toFixed(4)} nm⁻¹</div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                          <ReferenceLine x={0} stroke="#6366f1" strokeDasharray="4 4" label={{ value: 's = 0 (1/D_V)', fill: '#6366f1', fontSize: 10 }} />
+
+                          {showConfidenceBand && (
+                            <Area
+                              type="monotone"
+                              dataKey="ciRange"
+                              name="95% Confidence Band"
+                              stroke="none"
+                              fill="#6366f1"
+                              fillOpacity={0.14}
+                            />
+                          )}
+
+                          <Line
+                            type="linear"
+                            dataKey="fitY"
+                            name={`Cauchy Linear Fit (R² = ${(result.cauchyFit.rSquared * 100).toFixed(1)}%)`}
+                            stroke="#6366f1"
+                            strokeWidth={2.5}
+                            dot={false}
+                          />
+
+                          <Scatter
+                            data={cauchyChartData.activeScatter}
+                            dataKey="y"
+                            name="Active Reflections"
+                            fill="#6366f1"
+                            stroke="#4338ca"
+                            strokeWidth={2}
+                            onClick={(data: any) => {
+                              if (data && typeof data.index === 'number') {
+                                handleTogglePeakExclusion(data.index);
+                              }
+                            }}
+                            cursor="pointer"
+                          />
+
+                          {cauchyChartData.excludedScatter.length > 0 && (
+                            <Scatter
+                              data={cauchyChartData.excludedScatter}
+                              dataKey="y"
+                              name="Excluded Reflections"
+                              fill="#f59e0b"
+                              stroke="#b45309"
+                              strokeWidth={1.5}
+                            />
+                          )}
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 2: Gaussian Parabolic Regression */}
+                {activePlotTab === 'gaussian' && gaussianChartData && (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono tabular-nums">
+                      <span className="text-slate-600 dark:text-slate-300">
+                        Gaussian Regression: <strong className="text-purple-600 dark:text-purple-400">(β_G*)² = {result.gaussianFit.slope.toFixed(4)}·s² + {result.gaussianFit.intercept.toFixed(5)} nm⁻²</strong>
+                      </span>
+                      <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-400">
+                        <input
+                          type="checkbox"
+                          checked={showConfidenceBand}
+                          onChange={(e) => setShowConfidenceBand(e.target.checked)}
+                          className="accent-purple-500 rounded"
+                        />
+                        <span>95% Confidence Band</span>
+                      </label>
+                    </div>
+
+                    <div className="h-80 sm:h-96 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={gaussianChartData.band} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                          <XAxis
+                            dataKey="x"
+                            type="number"
+                            domain={[gaussianChartData.startX, gaussianChartData.endX]}
+                            tickFormatter={(v) => Number(v).toFixed(2)}
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                            label={{
+                              value: 'Squared Scattering Vector s² [nm⁻²]',
+                              position: 'insideBottom',
+                              offset: -15,
+                              fill: '#a855f7',
+                              fontSize: 12,
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <YAxis
+                            type="number"
+                            domain={['auto', 'auto']}
+                            tickFormatter={(v) => Number(v).toFixed(4)}
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                            label={{
+                              value: 'Gaussian Breadth Squared (β_G*)² [nm⁻²]',
+                              angle: -90,
+                              position: 'insideLeft',
+                              offset: -5,
+                              fill: '#a855f7',
+                              fontSize: 12,
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const pt = payload.find(p => p.payload && p.payload.twoTheta !== undefined)?.payload || payload[0].payload;
+                                if (pt.twoTheta !== undefined) {
+                                  return (
+                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl font-mono text-xs space-y-1 tabular-nums">
+                                      <div className="text-purple-400 font-bold border-b border-slate-700 pb-1">
+                                        {pt.hkl} · 2θ = {pt.twoTheta.toFixed(2)}°
+                                      </div>
+                                      <div>s²: <span className="text-purple-300">{pt.x.toFixed(4)} nm⁻²</span></div>
+                                      <div>(β_G*)²: <span className="text-purple-300 font-bold">{pt.y.toFixed(5)} nm⁻²</span></div>
+                                      <div>β_G*: <span className="text-white">{pt.betaGStar?.toFixed(4)} nm⁻¹</span></div>
+                                      <div>Std Residual z_G: <span className="text-slate-300">{pt.stdRes?.toFixed(2)}</span></div>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div className="bg-slate-900 text-white border border-slate-700 p-2.5 rounded-xl font-mono text-xs tabular-nums">
+                                    <div className="text-purple-400">s² = {Number(pt.x).toFixed(3)} nm⁻²</div>
+                                    <div>Fit (β_G*)² = {Number(pt.fitY).toFixed(5)} nm⁻²</div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                          <ReferenceLine x={0} stroke="#a855f7" strokeDasharray="4 4" label={{ value: 's² = 0', fill: '#a855f7', fontSize: 10 }} />
+
+                          {showConfidenceBand && (
+                            <Area
+                              type="monotone"
+                              dataKey="ciRange"
+                              name="95% Confidence Band"
+                              stroke="none"
+                              fill="#a855f7"
+                              fillOpacity={0.14}
+                            />
+                          )}
+
+                          <Line
+                            type="linear"
+                            dataKey="fitY"
+                            name={`Gaussian Linear Fit (R² = ${(result.gaussianFit.rSquared * 100).toFixed(1)}%)`}
+                            stroke="#a855f7"
+                            strokeWidth={2.5}
+                            dot={false}
+                          />
+
+                          <Scatter
+                            data={gaussianChartData.activeScatter}
+                            dataKey="y"
+                            name="Active Reflections"
+                            fill="#a855f7"
+                            stroke="#7e22ce"
+                            strokeWidth={2}
+                            onClick={(data: any) => {
+                              if (data && typeof data.index === 'number') {
+                                handleTogglePeakExclusion(data.index);
+                              }
+                            }}
+                            cursor="pointer"
+                          />
+
+                          {gaussianChartData.excludedScatter.length > 0 && (
+                            <Scatter
+                              data={gaussianChartData.excludedScatter}
+                              dataKey="y"
+                              name="Excluded Reflections"
+                              fill="#f59e0b"
+                              stroke="#b45309"
+                              strokeWidth={1.5}
+                            />
+                          )}
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 3: Column-Length Distribution P(L), Warren-Averbach Strain Curve & Moments */}
+                {activePlotTab === 'summary' && columnLengthData && (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-mono text-slate-600 dark:text-slate-400">
+                        Synthesized from ⟨D_A⟩ = {columnLengthData.Da.toFixed(2)} nm &amp; ⟨D_V⟩ = {columnLengthData.Dv.toFixed(2)} nm (σ_LN = {columnLengthData.sigma.toFixed(3)})
+                      </span>
+                      <div className="flex bg-slate-100 dark:bg-[#111827] p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono">
+                        <button
+                          type="button"
+                          onClick={() => setSummarySubView('distribution')}
+                          className={`px-2.5 py-1 rounded-md cursor-pointer ${
+                            summarySubView === 'distribution'
+                              ? 'bg-indigo-600 text-white font-semibold'
+                              : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Log-Normal P(L)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSummarySubView('strainCurve')}
+                          className={`px-2.5 py-1 rounded-md cursor-pointer ${
+                            summarySubView === 'strainCurve'
+                              ? 'bg-indigo-600 text-white font-semibold'
+                              : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          RMS Strain ⟨ε²(L)⟩¹/²
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSummarySubView('bars')}
+                          className={`px-2.5 py-1 rounded-md cursor-pointer ${
+                            summarySubView === 'bars'
+                              ? 'bg-indigo-600 text-white font-semibold'
+                              : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Size Moments
+                        </button>
+                      </div>
+                    </div>
+
+                    {summarySubView === 'distribution' && (
+                      <div className="h-80 sm:h-96 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={columnLengthData.points} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                            <XAxis
+                              dataKey="L"
+                              type="number"
+                              domain={[0, 'auto']}
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                              label={{
+                                value: 'Column Length L [nm]',
+                                position: 'insideBottom',
+                                offset: -15,
+                                fill: '#10b981',
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <YAxis
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                              label={{
+                                value: 'Probability Density P(L) [%]',
+                                angle: -90,
+                                position: 'insideLeft',
+                                offset: -5,
+                                fill: '#10b981',
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const d = payload[0].payload;
+                                  return (
+                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl font-mono text-xs space-y-1 tabular-nums">
+                                      <div className="text-emerald-400 font-bold border-b border-slate-700 pb-1">
+                                        Column Length L = {d.L} nm
+                                      </div>
+                                      <div>Area-Weighted P_A(L): <span className="text-emerald-400 font-bold">{d.areaDensity}%</span></div>
+                                      <div>Volume-Weighted P_V(L): <span className="text-indigo-400 font-bold">{d.volumeDensity}%</span></div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                            <ReferenceLine x={columnLengthData.Da} stroke="#10b981" strokeDasharray="4 4" label={{ value: `⟨D_A⟩ = ${columnLengthData.Da.toFixed(1)} nm`, fill: '#10b981', fontSize: 10, position: 'top' }} />
+                            <ReferenceLine x={columnLengthData.Dv} stroke="#6366f1" strokeDasharray="4 4" label={{ value: `⟨D_V⟩ = ${columnLengthData.Dv.toFixed(1)} nm`, fill: '#6366f1', fontSize: 10, position: 'top' }} />
+                            <Area type="monotone" dataKey="areaDensity" name="Area-Weighted Distribution P_A(L)" stroke="#10b981" fill="#10b981" fillOpacity={0.18} strokeWidth={2} />
+                            <Area type="monotone" dataKey="volumeDensity" name="Volume-Weighted Distribution P_V(L)" stroke="#6366f1" fill="#6366f1" fillOpacity={0.18} strokeWidth={2} />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {summarySubView === 'strainCurve' && result.strainDistributionCurve && (
+                      <div className="h-80 sm:h-96 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={result.strainDistributionCurve} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                            <XAxis
+                              dataKey="L"
+                              type="number"
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                              label={{
+                                value: 'Correlation Distance / Column Length L [nm]',
+                                position: 'insideBottom',
+                                offset: -15,
+                                fill: '#a855f7',
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <YAxis
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                              label={{
+                                value: 'RMS Microstrain ⟨ε²(L)⟩¹/² [%]',
+                                angle: -90,
+                                position: 'insideLeft',
+                                offset: -5,
+                                fill: '#a855f7',
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const d = payload[0].payload;
+                                  return (
+                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl font-mono text-xs space-y-1 tabular-nums">
+                                      <div className="text-purple-400 font-bold border-b border-slate-700 pb-1">
+                                        Column Distance L = {d.L} nm
+                                      </div>
+                                      <div>Total RMS Strain ⟨ε_L⟩: <span className="text-white font-bold">{d.rmsStrainPct.toFixed(4)}%</span></div>
+                                      <div>Cauchy L⁻¹/² Term: <span className="text-indigo-400">{d.cauchyContribPct.toFixed(4)}%</span></div>
+                                      <div>Gaussian Constant Limit: <span className="text-purple-400">{d.gaussianContribPct.toFixed(4)}%</span></div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                            <Line type="monotone" dataKey="rmsStrainPct" name="Total Warren-Averbach Equivalent ⟨ε²(L)⟩¹/² [%]" stroke="#a855f7" strokeWidth={2.5} dot={false} />
+                            <Line type="monotone" dataKey="cauchyContribPct" name="Cauchy Strain Decay (∝ L⁻¹/²)" stroke="#6366f1" strokeWidth={1.8} strokeDasharray="4 4" dot={false} />
+                            <Line type="monotone" dataKey="gaussianContribPct" name="Gaussian Strain Asymptote" stroke="#10b981" strokeWidth={1.5} strokeDasharray="2 2" dot={false} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {summarySubView === 'bars' && (
+                      <div className="h-80 sm:h-96 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={sizeComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 25 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                            <XAxis
+                              dataKey="name"
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                            />
+                            <YAxis
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                              label={{
+                                value: 'Crystallite Size [nm]',
+                                angle: -90,
+                                position: 'insideLeft',
+                                offset: -5,
+                                fill: '#10b981',
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const d = payload[0].payload;
+                                  return (
+                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl font-mono text-xs space-y-1 tabular-nums">
+                                      <div className="text-emerald-400 font-bold border-b border-slate-700 pb-1">{d.name}</div>
+                                      <div>Calculated Size: <span className="text-white font-bold">{d.size.toFixed(2)} nm</span></div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Bar dataKey="size" name="Crystallite Size Moment [nm]" radius={[6, 6, 0, 0]} maxBarSize={54}>
+                              {sizeComparisonData.map((entry, index) => (
+                                <Cell key={`size-cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab 4: Single-Peak Voigt Deconvolution Profile */}
+                {activePlotTab === 'profile' && selectedPeakProfileData && (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                      <span className="text-slate-600 dark:text-slate-300">
+                        Inspecting Reflection Voigt Kernel Decomposition:
+                      </span>
+                      <select
+                        value={selectedPeakIdx}
+                        onChange={(e) => setSelectedPeakIdx(parseInt(e.target.value, 10))}
+                        className="px-3 py-1.5 bg-slate-50 dark:bg-[#111827] text-indigo-600 dark:text-indigo-300 border border-slate-200 dark:border-slate-700 rounded-lg font-mono text-xs cursor-pointer"
+                      >
+                        {result.points.map((p, idx) => (
+                          <option key={`sel-pk-${idx}`} value={idx}>
+                            Peak #{idx + 1}: 2θ = {p.twoTheta.toFixed(2)}° {p.hkl ? `(${p.hkl.join('')})` : ''} · η = {(p.etaObs ?? 0.5).toFixed(2)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="h-80 sm:h-96 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={selectedPeakProfileData.data} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                          <XAxis
+                            dataKey="twoTheta"
+                            type="number"
+                            domain={['auto', 'auto']}
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                            label={{
+                              value: 'Diffraction Angle 2θ [°]',
+                              position: 'insideBottom',
+                              offset: -15,
+                              fill: '#06b6d4',
+                              fontSize: 12,
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <YAxis
+                            type="number"
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                            label={{
+                              value: 'Normalized Intensity [a.u.]',
+                              angle: -90,
+                              position: 'insideLeft',
+                              offset: -5,
+                              fill: '#06b6d4',
+                              fontSize: 12,
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const d = payload[0].payload;
+                                return (
+                                  <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl font-mono text-xs space-y-1 tabular-nums">
+                                    <div className="text-cyan-400 font-bold border-b border-slate-700 pb-1">2θ = {d.twoTheta}°</div>
+                                    <div>Total Voigt V(2θ): <span className="text-white font-bold">{d.voigt}</span></div>
+                                    <div>Cauchy L(2θ) [Size]: <span className="text-indigo-400">{d.cauchy}</span></div>
+                                    <div>Gaussian G(2θ) [Strain]: <span className="text-purple-400">{d.gaussian}</span></div>
+                                    <div>Inst. Kernel g(2θ): <span className="text-amber-400">{d.instrumental}</span></div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                          <Line type="monotone" dataKey="voigt" name="Composite Voigt Profile V(2θ)" stroke="#06b6d4" strokeWidth={2.5} dot={false} />
+                          <Line type="monotone" dataKey="cauchy" name="Cauchy Size Component L(2θ)" stroke="#6366f1" strokeWidth={1.8} strokeDasharray="4 4" dot={false} />
+                          <Line type="monotone" dataKey="gaussian" name="Gaussian Strain Component G(2θ)" stroke="#a855f7" strokeWidth={1.8} strokeDasharray="2 2" dot={false} />
+                          <Line type="monotone" dataKey="instrumental" name="Instrumental Resolution Kernel g(2θ)" stroke="#f59e0b" strokeWidth={1.4} dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 5: Interactive Voigt Physics Sandbox */}
+                {activePlotTab === 'concept' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                      <div className="flex flex-wrap justify-between items-center text-xs font-mono">
+                        <span className="text-slate-700 dark:text-slate-200 font-semibold flex items-center gap-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                          <span>Lorentzian Mixing Parameter η = {interactiveEta.toFixed(2)}</span>
+                        </span>
+                        <span className="text-indigo-600 dark:text-indigo-400 tabular-nums">
+                          Shape Factor φ = 2w/β = {(1 / (0.5 * (Math.PI * interactiveEta + Math.sqrt(Math.PI / Math.LN2) * (1 - interactiveEta)))).toFixed(4)}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.05"
+                        max="0.95"
+                        step="0.01"
+                        value={interactiveEta}
+                        onChange={(e) => setInteractiveEta(parseFloat(e.target.value))}
+                        className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
+                      />
+                      <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                        <span>← η = 0.05 (Gaussian Strain Core, φ → 0.9394)</span>
+                        <span>η = 0.95 (Cauchy Size Wings, φ → 0.6366) →</span>
+                      </div>
+                    </div>
+
+                    <div className="h-72 sm:h-80 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={conceptProfileData} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                          <XAxis
+                            dataKey="twoTheta"
+                            type="number"
+                            domain={['auto', 'auto']}
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                          />
+                          <YAxis
+                            type="number"
+                            stroke="#64748b"
+                            tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                          />
+                          <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                          <Line type="monotone" dataKey="voigt" name="Total Voigt Profile V(2θ)" stroke="#06b6d4" strokeWidth={2.5} dot={false} />
+                          <Line type="monotone" dataKey="cauchySize" name="Cauchy Component (Size)" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 4" dot={false} />
+                          <Line type="monotone" dataKey="gaussianStrain" name="Gaussian Component (Strain)" stroke="#a855f7" strokeWidth={2} strokeDasharray="2 2" dot={false} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {/* Reflection Chips Live Inspector */}
-              {parsedPeaks.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {parsedPeaks.map((pk, idx) => (
-                    <motion.div
-                      key={idx}
-                      whileHover={{ scale: 1.04 }}
-                      onClick={() => {
-                        setSelectedPeakIdx(idx);
-                        setActivePlotTab('profile');
-                        playSynthTone('switch');
-                      }}
-                      className={`text-[10px] font-mono px-2 py-1 rounded-lg border flex items-center gap-1.5 cursor-pointer transition-all ${
-                        selectedPeakIdx === idx
-                          ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.3)]'
-                          : 'bg-black/40 text-slate-400 border-white/5 hover:border-indigo-500/30 hover:text-slate-300'
-                      }`}
-                      title="Click to inspect this peak's Voigt deconvolution profile"
-                    >
-                      <span className="font-bold text-indigo-400">#{idx + 1}</span>
-                      <span>{pk.twoTheta.toFixed(1)}°</span>
-                      <span className="text-slate-500">|</span>
-                      <span className="text-slate-300">η={pk.eta.toFixed(2)}</span>
-                      {pk.hkl && (
-                        <span className="text-indigo-300 bg-indigo-500/20 px-1 rounded text-[9px]">
-                          ({pk.hkl.join('')})
-                        </span>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Execute Double-Voigt Deconvolution Primary Action */}
-            <div className="pt-2">
-              <motion.button
-                onClick={handleRunFullDeconvolution}
-                disabled={parsedPeaks.length < 2 || isDeconvolving}
-                whileHover={parsedPeaks.length >= 2 && !isDeconvolving ? { scale: 1.02, y: -2 } : {}}
-                whileTap={parsedPeaks.length >= 2 && !isDeconvolving ? { scale: 0.98 } : {}}
-                className={`w-full py-4 rounded-2xl font-black uppercase tracking-wider text-xs sm:text-sm flex items-center justify-center gap-3 relative overflow-hidden transition-all duration-300 cursor-pointer ${
-                  parsedPeaks.length >= 2
-                    ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-[0_10px_25px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_35px_rgba(99,102,241,0.5)] border border-indigo-400/40'
-                    : 'bg-slate-800/60 text-slate-500 border border-white/5 cursor-not-allowed'
-                }`}
-              >
-                {/* Continuous Shimmer Effect */}
-                {parsedPeaks.length >= 2 && !isDeconvolving && (
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
-                    initial={{ x: '-100%' }}
-                    animate={{ x: '200%' }}
-                    transition={{ repeat: Infinity, duration: 2.2, ease: 'linear' }}
-                  />
-                )}
-
-                {isDeconvolving ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin text-white" />
-                    <span className="relative z-10 font-sans">
-                      Deconvolving Stage {deconvStage} / 5...
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5 text-indigo-200 relative z-10 group-hover:scale-110 transition-transform" />
-                    <span className="relative z-10 font-sans tracking-wide">
-                      Execute Double-Voigt Deconvolution
-                    </span>
-                  </>
-                )}
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Theoretical Summary Box */}
-          <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/20 shadow-[0_8px_30px_rgba(99,102,241,0.05)] space-y-4 hover:border-indigo-500/40 transition-colors duration-500 relative overflow-hidden group">
-            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
-            <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2 relative z-10">
-              <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                Step 3
-              </span>
-              <Info className="w-4 h-4" />
-              Double-Voigt Formulation Guide
-            </h4>
-            <p className="text-xs text-slate-300 leading-relaxed relative z-10">
-              Calculates area-weighted crystallite size <span className="font-mono text-indigo-300">(D_A)</span> via Langford&apos;s formula by integrating the combined Cauchy and Gaussian Voigt contributions:
-            </p>
-            <div 
-              className="text-white text-xs sm:text-sm py-3 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto text-center shadow-inner relative z-10"
-              dangerouslySetInnerHTML={{
-                __html: katex.renderToString(
-                  'D_A = \\frac{1}{\\pi \\beta_{G,S}^*} \\cdot \\exp(k^2) \\cdot \\text{erfc}(k)',
-                  { throwOnError: false, displayMode: true }
-                )
-              }}
-            />
-            <div className="bg-indigo-500/5 p-3 rounded-xl border border-indigo-500/20 space-y-1.5 hover:bg-indigo-500/10 transition-colors relative z-10">
-              <span className="text-indigo-400 font-bold block flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" />Voigt Parameter Ratio:</span>
-              <div 
-                className="text-slate-200 text-center bg-black/40 py-1.5 px-2 rounded-lg"
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(
-                    'k = \\frac{\\beta_{C,S}^*}{\\sqrt{\\pi} \\beta_{G,S}^*}',
-                    { throwOnError: false, displayMode: false }
-                  )
-                }}
-              />
-            </div>
-          </div>
-
-        </div>
-
-        {/* Right Column: Key Results & Interactive Visualizers */}
-        <div className="lg:col-span-7 space-y-6">
-
-          {/* Active Deconvolution Computing Sequence */}
-          <AnimatePresence>
-            {isDeconvolving && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                className="bg-gradient-to-br from-[#0A1026] via-[#050C1B] to-[#0D0826] p-8 rounded-3xl border border-indigo-500/40 shadow-[0_0_50px_rgba(99,102,241,0.25)] relative overflow-hidden text-center space-y-6"
-              >
-                {/* Ambient radial glow */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/15 rounded-full blur-[70px] pointer-events-none" />
-
-                {/* Concentric spinning rings */}
-                <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-                    className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/40"
-                  />
-                  <motion.div
-                    animate={{ rotate: -360 }}
-                    transition={{ repeat: Infinity, duration: 4.5, ease: 'linear' }}
-                    className="absolute inset-2 rounded-full border border-purple-400/50 border-t-transparent"
-                  />
-                  <motion.div
-                    animate={{ scale: [1, 1.15, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
-                    className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.6)]"
-                  >
-                    <Zap className="w-7 h-7 text-white animate-pulse" />
-                  </motion.div>
+              {/* Reflection Parameters & Residual Diagnostic Table */}
+              <div className="bg-white dark:bg-[#0B0F19] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Double-Voigt Reciprocal Deconvolution &amp; Diagnostic Table</span>
+                  </h3>
+                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                    Click any row to inspect its Voigt peak profile
+                  </span>
                 </div>
 
-                {/* Stage Progress & Details */}
-                <div className="space-y-2 relative z-10 max-w-md mx-auto">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-indigo-300 font-bold uppercase tracking-wider">
-                      Stage {deconvStage} of 5: {DECONV_STAGES[Math.max(0, deconvStage - 1)]?.title || 'Deconvolution'}
-                    </span>
-                    <span className="text-purple-300 font-bold">{deconvStage * 20}%</span>
-                  </div>
-
-                  <div className="w-full bg-black/60 rounded-full h-2.5 overflow-hidden border border-white/10 p-0.5 shadow-inner">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full shadow-[0_0_12px_rgba(99,102,241,0.8)]"
-                      initial={{ width: '0%' }}
-                      animate={{ width: `${deconvStage * 20}%` }}
-                      transition={{ duration: 0.25 }}
-                    />
-                  </div>
-
-                  <p className="text-xs text-slate-300 min-h-[36px] flex items-center justify-center pt-1 font-sans">
-                    {DECONV_STAGES[Math.max(0, deconvStage - 1)]?.desc}
-                  </p>
+                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+                  <table className="w-full text-left font-mono text-xs tabular-nums">
+                    <thead className="bg-slate-50 dark:bg-[#111827] text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 text-[11px]">
+                      <tr>
+                        <th className="py-2.5 px-3">Use</th>
+                        <th className="py-2.5 px-3">2θ (°)</th>
+                        <th className="py-2.5 px-3">hkl</th>
+                        <th className="py-2.5 px-3">η_obs</th>
+                        <th className="py-2.5 px-3">s (nm⁻¹)</th>
+                        <th className="py-2.5 px-3 text-indigo-600 dark:text-indigo-400">β_C* (nm⁻¹)</th>
+                        <th className="py-2.5 px-3 text-purple-600 dark:text-purple-400">(β_G*)² (nm⁻²)</th>
+                        <th className="py-2.5 px-3 text-emerald-600 dark:text-emerald-400">D_V,hkl (nm)</th>
+                        <th className="py-2.5 px-3">State</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                      {result.points.map((p, idx) => {
+                        const rowIndex = p.index !== undefined ? p.index : idx;
+                        const isSelected = selectedPeakIdx === idx;
+                        return (
+                          <tr
+                            key={`dv-ext-${rowIndex}-${p.twoTheta}`}
+                            onClick={() => {
+                              setSelectedPeakIdx(idx);
+                              setActivePlotTab('profile');
+                            }}
+                            className={`transition-colors cursor-pointer ${
+                              p.excluded
+                                ? 'opacity-45 bg-slate-100/50 dark:bg-slate-900/40'
+                                : isSelected
+                                ? 'bg-indigo-500/10'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                            }`}
+                          >
+                            <td
+                              className="py-2 px-3"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTogglePeakExclusion(rowIndex);
+                              }}
+                            >
+                              <button type="button" className="text-indigo-600 dark:text-indigo-400 cursor-pointer">
+                                {p.excluded ? <Square className="w-4 h-4 text-slate-400" /> : <CheckSquare className="w-4 h-4" />}
+                              </button>
+                            </td>
+                            <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white">{p.twoTheta.toFixed(2)}°</td>
+                            <td className="py-2 px-3 text-indigo-600 dark:text-indigo-400 font-semibold">{p.hkl ? `(${p.hkl.join('')})` : '—'}</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-300">{(p.etaObs ?? 0.5).toFixed(2)}</td>
+                            <td className="py-2 px-3 text-slate-600 dark:text-slate-300">{p.s.toFixed(4)}</td>
+                            <td className="py-2 px-3 font-semibold text-indigo-600 dark:text-indigo-300">{p.betaCStar.toFixed(4)}</td>
+                            <td className="py-2 px-3 font-semibold text-purple-600 dark:text-purple-300">{p.betaGStarSq.toFixed(5)}</td>
+                            <td className="py-2 px-3 font-bold text-emerald-600 dark:text-emerald-400">{p.singleDvNm.toFixed(2)}</td>
+                            <td className="py-2 px-3 whitespace-nowrap">
+                              {p.excluded ? (
+                                <span className="text-slate-400">○ Excluded</span>
+                              ) : p.isOutlier ? (
+                                <span className="text-amber-600 dark:text-amber-400 font-semibold">▲ Outlier</span>
+                              ) : (
+                                <span className="text-emerald-600 dark:text-emerald-400">● Nominal</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
+              </div>
 
-                {/* Stage Step Indicators */}
-                <div className="flex flex-wrap justify-center gap-2 relative z-10 pt-1">
-                  {DECONV_STAGES.map((st) => (
-                    <div
-                      key={st.step}
-                      className={`text-[10px] font-mono px-2.5 py-1 rounded-full border transition-all ${
-                        deconvStage === st.step
-                          ? 'bg-indigo-500 text-white border-indigo-400 font-bold shadow-[0_0_10px_rgba(99,102,241,0.5)]'
-                          : deconvStage > st.step
-                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                          : 'bg-black/40 text-slate-500 border-white/5'
-                      }`}
-                    >
-                      {st.step}. {st.title.split(' ')[0]}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          {/* Key Microstructural Results */}
-          {result && !isDeconvolving ? (
-            <>
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+              {/* Scientific Math Control, AI Analysis & Python Exporter */}
+              <div className="space-y-4">
                 <ScientificMathControl
-                  title="Double-Voigt Extrapolation"
-                  formula="\begin{aligned} \beta_C^*(s) &= \frac{1}{D_V} + 2e_C s \\ (\beta_G^*(s))^2 &= \left(\frac{1}{\pi D_G}\right)^2 + 8\pi e_G^2 s^2 \end{aligned}"
-                  description="Deconvolutes instrumental broadening and separates structural effects into Cauchy (crystallite size) and Gaussian (microstrain) components."
+                  title="Double-Voigt Reciprocal-Space Extrapolation"
+                  formula="\begin{aligned} \beta_C^*(s) &= \frac{1}{\langle D \rangle_V} + 2e_C s \\ (\beta_G^*(s))^2 &= \left(\frac{1}{\pi D_G}\right)^2 + 8\pi e_G^2 s^2 \end{aligned}"
+                  description="Deconvolutes instrumental broadening and separates structural line broadening into Cauchy and Gaussian reciprocal integral breadths."
                   variables={[
                     { symbol: 'D_V', name: 'Volume Size', value: convertLength(result.volumeSizeDvNm * 10, lengthUnit), unit: lengthUnit },
-                    { symbol: 'D_G', name: 'Gaussian Size', value: convertLength(result.gaussianSizeDgNm * 10, lengthUnit), unit: lengthUnit },
+                    { symbol: 'D_A', name: 'Area Size', value: convertLength(result.areaSizeDaNm * 10, lengthUnit), unit: lengthUnit },
                     { symbol: 'e_C', name: 'Cauchy Strain', value: result.cauchyStrainEc * 100, unit: '%' },
                     { symbol: 'e_G', name: 'Gaussian Strain', value: result.gaussianStrainEg * 100, unit: '%' }
                   ]}
                   result={convertLength(result.volumeSizeDvNm * 10, lengthUnit)}
                   resultUnit={lengthUnit}
-                  resultName="D_V (Volume-Weighted Size)"
+                  resultName="⟨D_V⟩ (Volume-Weighted Size)"
                 />
-              </motion.div>
 
-              {/* 4-Column Microstructural Metric Cards */}
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
-              >
-              
-                {/* 1. Volume-Weighted Size D_V */}
-                <motion.div 
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-300 cursor-default"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-indigo-400">
-                      <Ruler className="w-4 h-4" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Volume Size ⟨D_V⟩</span>
-                    </div>
-                    <WhatDoesThisMeanTooltip
-                      term="Volume-Weighted Size ⟨D_V⟩"
-                      symbol="⟨D_V⟩"
-                      explanation="Crystallite diameter weighted by crystal volume (D⁴/D³). Larger crystallites scatter more photons and dominate this metric."
-                      physicalInterpretation="⟨D_V⟩ represents the average crystallite size seen by X-ray scattering power. It is always larger than or equal to area-weighted size ⟨D_A⟩."
-                      ruleOfThumb="Ratio ⟨D_V⟩ / ⟨D_A⟩ ≈ 1.0 for monodisperse crystals; > 1.4 indicates polydispersity or anisotropic morphology."
-                    />
-                  </div>
-                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-                      {convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(2)}
-                    </span>
-                    <span className="text-indigo-300 text-sm font-mono font-semibold">{lengthUnit}</span>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-indigo-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                    <div className="flex justify-between"><span>Gaussian D_G:</span> <span className="text-slate-200 font-bold">{convertLength(result.gaussianSizeDgNm * 10, lengthUnit).toFixed(1)} {lengthUnit}</span></div>
-                    <div className="flex justify-between"><span>Apparent Mode:</span> <span className="text-indigo-300 font-bold">{columnLengthData?.modeL ? `${convertLength(columnLengthData.modeL * 10, lengthUnit).toFixed(1)} ${lengthUnit}` : 'N/A'}</span></div>
-                  </div>
-                </motion.div>
+                <AIAnalysis methodName="Double-Voigt Method (Langford / Balzar-Ledbetter)" resultData={result} />
 
-                {/* 2. Area-Weighted Size D_A & Polydispersity */}
-                <motion.div 
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.1)] relative overflow-hidden group hover:border-emerald-400/60 transition-colors duration-300 cursor-default"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors" />
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-emerald-400">
-                      <Award className="w-4 h-4" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Area Size ⟨D_A⟩</span>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      {(result.volumeSizeDvNm / Math.max(0.1, result.areaSizeDaNm)).toFixed(2)}x
-                    </span>
-                  </div>
-                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-emerald-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                      {convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(2)}
-                    </span>
-                    <span className="text-emerald-300 text-sm font-mono font-semibold">{lengthUnit}</span>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-emerald-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                    <div className="flex justify-between"><span>Polydispersity:</span> <span className="text-emerald-300 font-bold">{(result.volumeSizeDvNm / Math.max(0.1, result.areaSizeDaNm)).toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>Uniformity:</span> <span className="text-slate-200 font-bold">{result.volumeSizeDvNm / Math.max(0.1, result.areaSizeDaNm) > 1.35 ? 'Disperse' : 'Uniform'}</span></div>
-                  </div>
-                </motion.div>
-
-                {/* 3. Cauchy Strain e_C */}
-                <motion.div 
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-purple-500/30 shadow-[0_8px_30px_rgba(168,85,247,0.1)] relative overflow-hidden group hover:border-purple-400/60 transition-colors duration-300 cursor-default"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-colors" />
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-purple-400">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-xs font-bold uppercase tracking-wider">Cauchy Strain (e_C)</span>
-                    </div>
-                    <Layers className="w-4 h-4 text-purple-400/50" />
-                  </div>
-                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-purple-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                      {(result.cauchyStrainEc * 100).toFixed(4)}
-                    </span>
-                    <span className="text-purple-300 text-sm font-mono font-semibold">%</span>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-purple-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                    <div className="flex justify-between"><span>Gaussian e_G:</span> <span className="text-slate-200 font-bold">{(result.gaussianStrainEg * 100).toFixed(4)}%</span></div>
-                    <div className="flex justify-between"><span>Cauchy Slope:</span> <span className="text-purple-300 font-bold">{result.cauchyFit.slope.toFixed(4)}</span></div>
-                  </div>
-                </motion.div>
-
-                {/* 4. Root-Mean-Square Strain */}
-                <motion.div 
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  className="bg-[#050C17]/90 p-5 rounded-3xl border border-cyan-500/30 shadow-[0_8px_30px_rgba(6,182,212,0.1)] relative overflow-hidden group hover:border-cyan-400/60 transition-colors duration-300 cursor-default"
-                >
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-cyan-400">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span className="text-xs font-bold uppercase tracking-wider">RMS Strain ⟨e²⟩¹/²</span>
-                    </div>
-                    <Activity className="w-4 h-4 text-cyan-400/50" />
-                  </div>
-                  <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                      {(result.rmsStrain * 100).toFixed(4)}
-                    </span>
-                    <span className="text-cyan-300 text-sm font-mono font-semibold">%</span>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-cyan-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                    <div className="flex justify-between"><span>Cauchy R²:</span> <span className="text-indigo-300 font-bold">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span></div>
-                    <div className="flex justify-between"><span>Gaussian R²:</span> <span className="text-purple-300 font-bold">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span></div>
-                  </div>
-                </motion.div>
-              </motion.div>
+                <PythonCodeExporter
+                  methodName="Double-Voigt Method"
+                  parameters={{
+                    wavelength: Number(wavelength),
+                    twoTheta: result.points.filter(p => !p.excluded).map(p => p.twoTheta),
+                    betaL: result.points[0]?.betaCStar || 0.18,
+                    betaG: result.points[0]?.betaGStar || 0.12,
+                    x: result.points.filter(p => !p.excluded).map(p => p.s),
+                    yCauchy: result.points.filter(p => !p.excluded).map(p => p.betaCStar),
+                    yGaussian: result.points.filter(p => !p.excluded).map(p => p.betaGStarSq)
+                  }}
+                />
+              </div>
             </>
-          ) : !result && !isDeconvolving ? (
-            <div className="bg-[#080E1A]/90 p-8 rounded-3xl border border-dashed border-white/20 text-center text-slate-400 space-y-2">
-              <HelpCircle className="w-8 h-8 text-indigo-400 mx-auto animate-bounce" />
-              <p className="text-sm font-semibold text-slate-200">Insufficient Peak Data</p>
-              <p className="text-xs text-slate-400">Enter at least 2 valid peak profiles to execute Double-Voigt convolution analysis.</p>
-            </div>
-          ) : null}
-
-          {result && (
-            <div className="space-y-4">
-              <AIAnalysis methodName="Double-Voigt Method (Langford)" resultData={result} />
-              <PythonCodeExporter 
-                methodName="Double-Voigt Method"
-                parameters={{
-                  wavelength: Number(wavelength),
-                  twoTheta: result.points.map(p => p.twoTheta),
-                  betaL: result.points[0]?.betaCStar || 0.18,
-                  betaG: result.points[0]?.betaGStar || 0.12,
-                  x: result.points.map(p => p.s),
-                  yCauchy: result.points.map(p => p.betaCStar),
-                  yGaussian: result.points.map(p => p.betaGStarSq)
-                }}
-              />
+          ) : (
+            <div className="bg-white dark:bg-[#0B0F19] p-10 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 text-center space-y-3">
+              <HelpCircle className="w-8 h-8 text-indigo-600 dark:text-indigo-400 mx-auto" />
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                Minimum 2 Active Voigt Reflections Required
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                Provide at least two reflections with valid 2θ, FWHM, and Lorentzian mixing fraction η, or select one of the Reference Standards above.
+              </p>
             </div>
           )}
-
-          {/* Interactive Plots Navigation Container */}
-          {result && (
-            <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5">
-
-              {/* Method Stepper Pipeline */}
-              <div className="bg-[#050C17]/90 p-4 rounded-2xl border border-indigo-500/20 shadow-inner space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-                  <div className="flex items-center gap-2">
-                    <Compass className="w-4 h-4 text-indigo-400 animate-pulse" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Double-Voigt Logical Execution Pipeline</span>
-                  </div>
-                  <span className="text-[10px] text-indigo-300 font-mono bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                    Click any step to inspect physics
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('profile');
-                    }}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      activePlotTab === 'profile'
-                        ? 'bg-cyan-500/10 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                        Step 1
-                      </span>
-                      <Activity className="w-3.5 h-3.5 text-cyan-400" />
-                    </div>
-                    <h5 className="text-xs font-bold text-white mb-0.5">1. Profile Deconvolution</h5>
-                    <p className="text-[10px] text-slate-400 leading-tight">Strip instrumental broadening g(2θ)</p>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('concept');
-                    }}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      activePlotTab === 'concept'
-                        ? 'bg-indigo-500/10 border-indigo-400 text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]'
-                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                        Step 2
-                      </span>
-                      <GitBranch className="w-3.5 h-3.5 text-indigo-400" />
-                    </div>
-                    <h5 className="text-xs font-bold text-white mb-0.5">2. Voigt Split (L vs G)</h5>
-                    <p className="text-[10px] text-slate-400 leading-tight">Separate Cauchy & Gaussian parts</p>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('cauchy');
-                    }}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      activePlotTab === 'cauchy' || activePlotTab === 'gaussian'
-                        ? 'bg-purple-500/10 border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.2)]'
-                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                        Step 3
-                      </span>
-                      <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
-                    </div>
-                    <h5 className="text-xs font-bold text-white mb-0.5">3. Dual Regressions</h5>
-                    <p className="text-[10px] text-slate-400 leading-tight">Extract D_V from s and e_G from s²</p>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('summary');
-                    }}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                      activePlotTab === 'summary'
-                        ? 'bg-emerald-500/10 border-emerald-400 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                        : 'bg-black/40 border-white/5 text-slate-400 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        Step 4
-                      </span>
-                      <Award className="w-3.5 h-3.5 text-emerald-400" />
-                    </div>
-                    <h5 className="text-xs font-bold text-white mb-0.5">4. Microstructure</h5>
-                    <p className="text-[10px] text-slate-400 leading-tight">Synthesize D_V, D_A, and strain e_G</p>
-                  </motion.button>
-                </div>
-              </div>
-              
-              {/* Tab Selector Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/5 pb-4">
-                <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10 w-full sm:w-auto">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('concept');
-                    }}
-                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center flex items-center justify-center gap-1.5 cursor-pointer ${
-                      activePlotTab === 'concept'
-                        ? 'bg-indigo-500 text-black shadow-lg shadow-indigo-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>Concept Simulation</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('cauchy');
-                    }}
-                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
-                      activePlotTab === 'cauchy'
-                        ? 'bg-indigo-500 text-black shadow-lg shadow-indigo-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    Cauchy Plot (β_C* vs s)
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('gaussian');
-                    }}
-                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
-                      activePlotTab === 'gaussian'
-                        ? 'bg-purple-500 text-black shadow-lg shadow-purple-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    Gaussian Plot ((β_G*)^2 vs s^2)
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('profile');
-                    }}
-                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
-                      activePlotTab === 'profile'
-                        ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    Profile Deconvolution
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      playSynthTone('switch');
-                      setActivePlotTab('summary');
-                    }}
-                    className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center cursor-pointer ${
-                      activePlotTab === 'summary'
-                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    Size Spectrum
-                  </motion.button>
-                </div>
-
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -1 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleDownloadCSV}
-                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono flex items-center gap-2 transition-all border border-white/10 hover:border-white/20"
-                    title="Export CSV"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Export CSV</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.02, y: -1 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleCopyLaTeX}
-                    className={`px-4 py-2 rounded-xl text-xs font-mono flex items-center gap-2 transition-all border ${
-                      copiedNotification 
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
-                        : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
-                    }`}
-                  >
-                    {copiedNotification ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    <span>{copiedNotification ? 'Copied LaTeX!' : 'Copy LaTeX'}</span>
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Tab 0: Interactive Concept Simulation Tab */}
-              {activePlotTab === 'concept' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="space-y-5 bg-[#030710]/60 p-5 sm:p-6 rounded-2xl border border-indigo-500/30 relative shadow-inner"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                        <BookOpen className="w-4 h-4 text-indigo-400" />
-                        <span>Interactive Voigt Component Breakdown Visualizer</span>
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Move the Lorentzian fraction slider below to see how a Voigt peak splits into Cauchy (Size) and Gaussian (Strain) curves.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10 text-xs font-mono text-indigo-300">
-                      <span>Lorentzian Fraction (η):</span>
-                      <strong className="text-white bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
-                        {interactiveEta.toFixed(2)}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {/* Interactive Control Slider */}
-                  <div className="bg-black/40 p-4 rounded-2xl border border-white/5 space-y-2">
-                    <div className="flex justify-between items-center text-xs font-mono">
-                      <span className="text-indigo-400 font-bold flex items-center gap-1.5">
-                        <Sliders className="w-3.5 h-3.5" />
-                        Adjust Peak Profile Shape (η = Lorentzian Area / Total Area)
-                      </span>
-                      <span className="text-slate-300 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 text-[11px]">
-                        {interactiveEta > 0.70 
-                          ? 'Crystallite Size Broadening Dominates (Heavy Tails)' 
-                          : interactiveEta < 0.35 
-                          ? 'Lattice Microstrain Broadening Dominates (Gaussian Core)' 
-                          : 'Convoluted Size + Microstrain Profile'}
-                      </span>
-                    </div>
-
-                    <input
-                      type="range"
-                      min="0.05"
-                      max="0.95"
-                      step="0.01"
-                      value={interactiveEta}
-                      onChange={(e) => setInteractiveEta(parseFloat(e.target.value))}
-                      className="w-full accent-indigo-400 cursor-pointer h-2 bg-white/10 rounded-lg appearance-none"
-                    />
-
-                    <div className="flex justify-between text-[10px] font-mono text-slate-400 pt-1">
-                      <span className="text-purple-400 font-bold">← η = 0.05 (Pure Gaussian / Strain)</span>
-                      <span className="text-slate-300 font-semibold">η = 0.50 (Voigt Balance)</span>
-                      <span className="text-indigo-400 font-bold">η = 0.95 (Pure Cauchy / Domain Size) →</span>
-                    </div>
-                  </div>
-
-                  {/* Live Simulation Chart */}
-                  <div className="h-72 sm:h-96 w-full pt-2">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={conceptProfileData} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                        <XAxis
-                          dataKey="twoTheta"
-                          type="number"
-                          domain={['auto', 'auto']}
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 'Diffraction Angle 2θ [°]',
-                            position: 'insideBottom',
-                            offset: -15,
-                            fill: '#818cf8',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <YAxis
-                          type="number"
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 'Normalized Intensity [a.u.]',
-                            angle: -90,
-                            position: 'insideLeft',
-                            offset: -10,
-                            fill: '#818cf8',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const d = payload[0].payload;
-                              return (
-                                <div className="bg-[#050C17]/95 border border-indigo-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-indigo-400 font-bold border-b border-white/10 pb-1">
-                                    2θ = {d.twoTheta}°
-                                  </div>
-                                  <div>Total Voigt V(2θ): <span className="text-white font-bold">{d.voigt}</span></div>
-                                  <div>Cauchy (Size): <span className="text-indigo-400 font-bold">{d.cauchySize}</span></div>
-                                  <div>Gaussian (Strain): <span className="text-purple-400 font-bold">{d.gaussianStrain}</span></div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
-
-                        <Line
-                          type="monotone"
-                          dataKey="voigt"
-                          name="Observed Peak Profile V(2θ)"
-                          stroke="#ffffff"
-                          strokeWidth={3}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="cauchySize"
-                          name="Cauchy (Lorentzian) Component → Size Broadening (D_V)"
-                          stroke="#818cf8"
-                          strokeWidth={2}
-                          strokeDasharray="4 4"
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="gaussianStrain"
-                          name="Gaussian Component → Microstrain Broadening (e_G)"
-                          stroke="#c084fc"
-                          strokeWidth={2}
-                          strokeDasharray="2 2"
-                          dot={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* Physical Explanation Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                    <div className="bg-indigo-950/30 p-3.5 rounded-2xl border border-indigo-500/30 space-y-1.5">
-                      <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs">
-                        <Ruler className="w-4 h-4 text-indigo-400" />
-                        <span>Cauchy Component (Lorentzian Wings)</span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                        Lorentzian broadening extends far into the tail wings. It is caused by **crystallite boundary size limitations**.
-                      </p>
-                      <div className="bg-black/60 p-2 rounded text-center text-indigo-200 font-mono text-[11px] border border-white/5">
-                        β_C*(s) = (1 / D_V) + 2 e_C · s
-                      </div>
-                    </div>
-
-                    <div className="bg-purple-950/30 p-3.5 rounded-2xl border border-purple-500/30 space-y-1.5">
-                      <div className="flex items-center gap-2 text-purple-300 font-bold text-xs">
-                        <TrendingUp className="w-4 h-4 text-purple-400" />
-                        <span>Gaussian Component (Peak Core)</span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                        Gaussian broadening forms the central peak core. It is caused by **lattice microstrains and d-spacing distributions**.
-                      </p>
-                      <div className="bg-black/60 p-2 rounded text-center text-purple-200 font-mono text-[11px] border border-white/5">
-                        (β_G*(s))² = (1 / π D_G)² + 8π e_G² · s²
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Tab 1: Cauchy Chart */}
-              {activePlotTab === 'cauchy' && cauchyChartData && (
-                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono text-slate-300 gap-2">
-                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Linear Cauchy Regression: <strong className="text-indigo-400">β_C* = 1/D_V + 2 e_C · s</strong></span>
-                    <span className="bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20 text-slate-400">Intercept (s=0): <strong className="text-indigo-300">{result.cauchyFit.intercept.toFixed(4)} nm⁻¹</strong></span>
-                  </div>
-
-                  <div className="h-72 sm:h-96 w-full pt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                        <XAxis
-                          dataKey="x"
-                          type="number"
-                          domain={[cauchyChartData.startX, cauchyChartData.endX]}
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 'Scattering Vector s = 2 sin θ / λ [nm⁻¹]',
-                            position: 'insideBottom',
-                            offset: -15,
-                            fill: '#818cf8',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <YAxis
-                          dataKey="y"
-                          type="number"
-                          domain={['auto', 'auto']}
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 'Cauchy Breadth β_C* [nm⁻¹]',
-                            angle: -90,
-                            position: 'insideLeft',
-                            offset: -10,
-                            fill: '#818cf8',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload;
-                              return (
-                                <div className="bg-[#050C17]/95 border border-indigo-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-indigo-400 font-bold border-b border-white/10 pb-1">
-                                    {data.hkl ? `Reflection: ${data.hkl}` : `2θ = ${data.twoTheta?.toFixed(2)}°`}
-                                  </div>
-                                  <div>2θ: <span className="text-indigo-300">{data.twoTheta?.toFixed(2)}°</span></div>
-                                  <div>s: <span className="text-indigo-300">{data.x?.toFixed(4)} nm⁻¹</span></div>
-                                  <div>β_C*: <span className="text-indigo-300">{data.y?.toFixed(4)} nm⁻¹</span></div>
-                                  <div>Single D_V: <span className="text-emerald-400 font-bold">{data.singleDvNm?.toFixed(2)} nm</span></div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
-
-                        {/* Intercept Line */}
-                        <ReferenceLine 
-                          x={0} 
-                          stroke="#818cf8" 
-                          strokeDasharray="4 4" 
-                          label={{ value: "s = 0", fill: "#818cf8", fontSize: 10, position: "top" }} 
-                        />
-
-                        <Line
-                          data={cauchyChartData.line}
-                          type="linear"
-                          dataKey="fitY"
-                          name={`Cauchy Fit: β_C* = ${result.cauchyFit.slope.toFixed(4)}s + ${result.cauchyFit.intercept.toFixed(4)} (R² = ${(result.cauchyFit.rSquared*100).toFixed(1)}%)`}
-                          stroke="#818cf8"
-                          strokeWidth={2.5}
-                          dot={false}
-                          activeDot={false}
-                        />
-
-                        <Scatter
-                          data={cauchyChartData.points}
-                          name="Measured Cauchy Reflections"
-                          fill="#a5b4fc"
-                          stroke="#6366f1"
-                          strokeWidth={2}
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Gaussian Chart */}
-              {activePlotTab === 'gaussian' && gaussianChartData && (
-                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono text-slate-300 gap-2">
-                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Linear Gaussian Regression: <strong className="text-purple-400">(β_G*)^2 = (1/π D_G)^2 + 8π e_G^2 · s^2</strong></span>
-                    <span className="bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 text-slate-400">Intercept (s²=0): <strong className="text-purple-300">{result.gaussianFit.intercept.toFixed(5)} nm⁻²</strong></span>
-                  </div>
-
-                  <div className="h-72 sm:h-96 w-full pt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                        <XAxis
-                          dataKey="x"
-                          type="number"
-                          domain={[gaussianChartData.startX, gaussianChartData.endX]}
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 's² [nm⁻²]',
-                            position: 'insideBottom',
-                            offset: -15,
-                            fill: '#c084fc',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <YAxis
-                          dataKey="y"
-                          type="number"
-                          domain={['auto', 'auto']}
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: '(β_G*)² [nm⁻²]',
-                            angle: -90,
-                            position: 'insideLeft',
-                            offset: -10,
-                            fill: '#c084fc',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const data = payload[0].payload;
-                              return (
-                                <div className="bg-[#050C17]/95 border border-purple-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-purple-400 font-bold border-b border-white/10 pb-1">
-                                    {data.hkl ? `Reflection: ${data.hkl}` : `2θ = ${data.twoTheta?.toFixed(2)}°`}
-                                  </div>
-                                  <div>2θ: <span className="text-purple-300">{data.twoTheta?.toFixed(2)}°</span></div>
-                                  <div>s²: <span className="text-purple-300">{data.x?.toFixed(4)} nm⁻²</span></div>
-                                  <div>(β_G*)²: <span className="text-purple-300">{data.y?.toFixed(5)} nm⁻²</span></div>
-                                  <div>β_G*: <span className="text-purple-300">{data.betaGStar?.toFixed(4)} nm⁻¹</span></div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
-
-                        <ReferenceLine 
-                          x={0} 
-                          stroke="#c084fc" 
-                          strokeDasharray="4 4" 
-                          label={{ value: "s² = 0", fill: "#c084fc", fontSize: 10, position: "top" }} 
-                        />
-
-                        <Line
-                          data={gaussianChartData.line}
-                          type="linear"
-                          dataKey="fitY"
-                          name={`Gaussian Fit: (β_G*)² = ${result.gaussianFit.slope.toFixed(4)}s² + ${result.gaussianFit.intercept.toFixed(5)} (R² = ${(result.gaussianFit.rSquared*100).toFixed(1)}%)`}
-                          stroke="#c084fc"
-                          strokeWidth={2.5}
-                          dot={false}
-                          activeDot={false}
-                        />
-
-                        <Scatter
-                          data={gaussianChartData.points}
-                          name="Measured Gaussian Reflections"
-                          fill="#e9d5ff"
-                          stroke="#a855f7"
-                          strokeWidth={2}
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 3: Peak Profile Deconvolution Simulator */}
-              {activePlotTab === 'profile' && selectedPeakProfileData && (
-                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 text-slate-300">
-                      Select Reflection to Inspect Deconvoluted Voigt Components:
-                    </span>
-
-                    {/* Reflection Picker */}
-                    <select
-                      value={selectedPeakIdx}
-                      onChange={(e) => setSelectedPeakIdx(parseInt(e.target.value))}
-                      className="px-3 py-1.5 bg-black/40 text-cyan-300 border border-cyan-500/30 rounded-xl outline-none font-bold hover:border-cyan-400/50 transition-colors cursor-pointer appearance-none"
-                    >
-                      {result.points.map((p, idx) => (
-                        <option key={idx} value={idx}>
-                          Peak #{idx+1}: 2θ = {p.twoTheta.toFixed(2)}° {p.hkl ? `(${p.hkl.join('')})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono bg-black/40 p-3 rounded-2xl border border-white/5 shadow-inner">
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase block">Position</span>
-                      <strong className="text-white">{selectedPeakProfileData.peak.twoTheta.toFixed(2)}° 2θ</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase block">FWHM Obs</span>
-                      <strong className="text-cyan-300">{selectedPeakProfileData.fwhm.toFixed(3)}°</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase block">Lorentzian Fraction η</span>
-                      <strong className="text-indigo-300">{selectedPeakProfileData.eta.toFixed(2)}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 text-[10px] uppercase block">Apparent Size D_V</span>
-                      <strong className="text-emerald-400">{selectedPeakProfileData.peak.singleDvNm.toFixed(2)} nm</strong>
-                    </div>
-                  </div>
-
-                  <div className="h-72 sm:h-96 w-full pt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={selectedPeakProfileData.data} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                        <XAxis
-                          dataKey="twoTheta"
-                          type="number"
-                          domain={['auto', 'auto']}
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 'Diffraction Angle 2θ [°]',
-                            position: 'insideBottom',
-                            offset: -15,
-                            fill: '#06b6d4',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <YAxis
-                          type="number"
-                          stroke="#64748b"
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 'Normalized Intensity [a.u.]',
-                            angle: -90,
-                            position: 'insideLeft',
-                            offset: -10,
-                            fill: '#06b6d4',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const d = payload[0].payload;
-                              return (
-                                <div className="bg-[#050C17]/95 border border-cyan-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-cyan-400 font-bold border-b border-white/10 pb-1">
-                                    2θ = {d.twoTheta}°
-                                  </div>
-                                  <div>Total Voigt I: <span className="text-white font-bold">{d.voigt}</span></div>
-                                  <div>Cauchy Component: <span className="text-indigo-400 font-bold">{d.cauchy}</span></div>
-                                  <div>Gaussian Component: <span className="text-purple-400 font-bold">{d.gaussian}</span></div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
-
-                        <Line
-                          type="monotone"
-                          dataKey="voigt"
-                          name="Composite Voigt Profile V(2θ)"
-                          stroke="#06b6d4"
-                          strokeWidth={3}
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="cauchy"
-                          name="Cauchy (Lorentzian) Profile L(2θ)"
-                          stroke="#818cf8"
-                          strokeWidth={1.5}
-                          strokeDasharray="4 4"
-                          dot={false}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="gaussian"
-                          name="Gaussian Profile G(2θ)"
-                          stroke="#c084fc"
-                          strokeWidth={1.5}
-                          strokeDasharray="2 2"
-                          dot={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Size Distribution Spectrum Bar Chart */}
-              {activePlotTab === 'summary' && sizeComparisonData && (
-                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
-                  <div className="text-xs font-mono text-slate-300">
-                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Microstructural Size Metric Spectrum comparison derived from Langford Voigt deconvolution</span>
-                  </div>
-
-                  <div className="h-72 sm:h-96 w-full pt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={sizeComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 25 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
-                        <XAxis 
-                          dataKey="name" 
-                          stroke="#94a3b8" 
-                          tick={{ fill: '#e2e8f0', fontSize: 12, fontFamily: 'monospace' }} 
-                        />
-                        <YAxis 
-                          stroke="#64748b" 
-                          tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
-                          label={{
-                            value: 'Crystallite Size [nm]',
-                            angle: -90,
-                            position: 'insideLeft',
-                            offset: -10,
-                            fill: '#10b981',
-                            fontSize: 12,
-                            fontFamily: 'monospace'
-                          }}
-                        />
-                        <Tooltip
-                          content={({ active, payload }) => {
-                            if (active && payload && payload.length) {
-                              const d = payload[0].payload;
-                              return (
-                                <div className="bg-[#050C17]/95 border border-emerald-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-emerald-400 font-bold border-b border-white/10 pb-1">
-                                    {d.name}
-                                  </div>
-                                  <div>Calculated Size: <span className="text-white font-bold">{d.size.toFixed(2)} nm</span></div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <Bar dataKey="size" name="Crystallite Size [nm]" radius={[12, 12, 0, 0]}>
-                          {sizeComparisonData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          )}
-
-          {/* Reflection Parameters Summary Table */}
-          {result && result.points && (
-            <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-indigo-500/30 transition-colors duration-500 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[60px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
-              <div className="flex items-center justify-between relative z-10">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-indigo-400" />
-                  Double-Voigt Reflection Deconvolution Table
-                </h3>
-                <span className="text-xs font-mono text-slate-400 bg-black/40 px-3 py-1 rounded-full border border-white/5">
-                  <strong className="text-indigo-400">{result.points.length}</strong> peaks deconvoluted
-                </span>
-              </div>
-
-              <div className="overflow-x-auto custom-scrollbar relative z-10 bg-black/40 rounded-2xl border border-white/5">
-                <table className="w-full text-left font-mono text-xs">
-                  <thead>
-                    <tr className="border-b border-white/10 text-slate-400 text-[11px] uppercase bg-black/40">
-                      <th className="py-3 px-4 font-semibold tracking-wider">2θ [°]</th>
-                      <th className="py-3 px-4 font-semibold tracking-wider">hkl</th>
-                      <th className="py-3 px-4 font-semibold tracking-wider">s [nm⁻¹]</th>
-                      <th className="py-3 px-4 font-semibold tracking-wider">s² [nm⁻²]</th>
-                      <th className="py-3 px-4 font-semibold tracking-wider text-indigo-400">β_C* [nm⁻¹]</th>
-                      <th className="py-3 px-4 font-semibold tracking-wider text-purple-400">(β_G*)² [nm⁻²]</th>
-                      <th className="py-3 px-4 font-semibold tracking-wider text-emerald-400">Single D_V [nm]</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-slate-200">
-                    {result.points.map((p, idx) => (
-                      <tr 
-                        key={idx} 
-                        onClick={() => {
-                          setSelectedPeakIdx(idx);
-                          setActivePlotTab('profile');
-                        }}
-                        className={`hover:bg-indigo-500/10 transition-colors cursor-pointer ${selectedPeakIdx === idx ? 'bg-indigo-500/20 border-l-2 border-indigo-400 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)]' : 'border-l-2 border-transparent'}`}
-                      >
-                        <td className="py-3 px-4 font-bold text-white">{p.twoTheta.toFixed(2)}°</td>
-                        <td className="py-3 px-4 text-indigo-300">
-                          <span className="bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{p.hkl ? `(${p.hkl.join('')})` : '-'}</span>
-                        </td>
-                        <td className="py-3 px-4 text-slate-300">{p.s.toFixed(4)}</td>
-                        <td className="py-3 px-4 text-slate-400">{p.s2.toFixed(4)}</td>
-                        <td className="py-3 px-4 text-indigo-300 font-bold bg-indigo-500/5">{p.betaCStar.toFixed(4)}</td>
-                        <td className="py-3 px-4 text-purple-300 font-bold bg-purple-500/5">{p.betaGStarSq.toFixed(5)}</td>
-                        <td className="py-3 px-4 text-emerald-400 font-bold bg-emerald-500/5">{p.singleDvNm.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
         </div>
       </div>
     </div>

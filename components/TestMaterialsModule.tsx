@@ -2665,8 +2665,6 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
 
   const handleDeleteCustomPreset = (nameToDelete: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm(`Are you sure you want to delete "${nameToDelete}"?`)) return;
-    
     const updated = customPresets.filter(p => p.name !== nameToDelete);
     saveCustomPresets(updated);
     if (expandedMaterial === nameToDelete) {

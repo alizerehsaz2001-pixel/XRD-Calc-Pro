@@ -1,5 +1,5 @@
 import { getActiveMaterials } from './materialsHelper';
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, IBModelComparisonItem, WAInputPoint, WAHarmonicDeconvolvedPoint, WAResult, WAColumnDistributionPoint, WAOrderPlotLine, WAMetrics, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters, HKLPlaneSuggestion, SuggestHKLsResponse } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MonshiScherrerMethodBenchmark, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, IBModelComparisonItem, WAInputPoint, WAHarmonicDeconvolvedPoint, WAResult, WAColumnDistributionPoint, WAOrderPlotLine, WAMetrics, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters, HKLPlaneSuggestion, SuggestHKLsResponse } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
 
@@ -6611,6 +6611,8 @@ export const calculateMonshiScherrer = (
     applyLPFactor?: boolean;
     monochromatorAngleDeg?: number;
     kAlpha2Correction?: boolean;
+    regressionWeighting?: 'OLS' | 'WLS-CosTheta' | 'Huber-Robust';
+    excludedIndices?: number[];
   }
 ): MonshiScherrerResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
@@ -6620,6 +6622,8 @@ export const calculateMonshiScherrer = (
   const applyLP = advancedPhysics?.applyLPFactor || false;
   const monoAngle = advancedPhysics?.monochromatorAngleDeg !== undefined ? advancedPhysics.monochromatorAngleDeg : 26.4;
   const kAlpha2Corr = advancedPhysics?.kAlpha2Correction || false;
+  const regressionWeighting = advancedPhysics?.regressionWeighting || 'OLS';
+  const excludedSet = new Set<number>(advancedPhysics?.excludedIndices || []);
 
   const points: MonshiScherrerPoint[] = [];
   const pointsExtended: MonshiScherrerResult['pointsExtended'] = [];
@@ -6627,13 +6631,15 @@ export const calculateMonshiScherrer = (
   let sumThetaRad = 0;
   let sumBetaRad = 0;
 
-  for (const peak of peaks) {
+  for (let idx = 0; idx < peaks.length; idx++) {
+    const peak = peaks[idx];
+    const isExcluded = excludedSet.has(idx);
     const rawTwoTheta = peak.twoTheta;
     const twoThetaCorr = Math.max(1, Math.min(179, rawTwoTheta + zeroShift));
     const thetaRad = (twoThetaCorr / 2) * (Math.PI / 180);
 
     let rawFwhmObs = peak.fwhmObs;
-    // Optional K-alpha2 doublet correction (approximate Rachinger factor if kAlpha2Corr is active)
+    // Optional K-alpha2 doublet correction (Rachinger factor if kAlpha2Corr is active)
     if (kAlpha2Corr && twoThetaCorr > 30) {
       const doubletSepDeg = (1.54439 - 1.54056) / 1.54056 * Math.tan(thetaRad) * (180 / Math.PI);
       if (rawFwhmObs > doubletSepDeg * 0.5) {
@@ -6648,13 +6654,12 @@ export const calculateMonshiScherrer = (
       const monoRad = (monoAngle / 2) * (Math.PI / 180);
       const cos2Mono = Math.cos(2 * monoRad);
       const cos2Theta = Math.cos(2 * thetaRad);
-      const sinTheta = Math.sin(thetaRad);
-      const cosTheta = Math.cos(thetaRad);
+      const sinTheta = Math.max(1e-4, Math.sin(thetaRad));
+      const cosTheta = Math.max(1e-4, Math.cos(thetaRad));
 
       const pol = (1 + Math.pow(cos2Theta, 2) * Math.pow(cos2Mono, 2)) / (1 + Math.pow(cos2Mono, 2));
       const lpFactor = pol / (Math.pow(sinTheta, 2) * cosTheta);
 
-      // Apply normalized LP scale to line breadth
       const lpNorm = Math.min(2.5, Math.max(0.5, lpFactor / 4.0));
       betaObsRad = betaObsRad / Math.sqrt(lpNorm);
     }
@@ -6680,7 +6685,6 @@ export const calculateMonshiScherrer = (
     } else if (broadeningModel === 'Voigt') {
       const betaG = Math.sqrt(Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad));
       const betaL = Math.max(0, betaObsRad - betaInstRad);
-      // Olivero & Longbothum Voigt breadth approximation
       betaSampleRad = 0.5346 * betaL + Math.sqrt(0.2166 * betaL * betaL + betaG * betaG);
     } else {
       const betaSq = Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
@@ -6689,6 +6693,7 @@ export const calculateMonshiScherrer = (
 
     if (betaSampleRad <= 0) continue;
 
+    const sinTheta = Math.max(1e-6, Math.sin(thetaRad));
     const cosTheta = Math.cos(thetaRad);
     if (cosTheta <= 1e-10) continue;
 
@@ -6698,80 +6703,279 @@ export const calculateMonshiScherrer = (
     const x = Math.log(1 / cosTheta);
     const y = Math.log(betaSampleRad);
 
-    points.push({ x, y, twoTheta: twoThetaCorr, hkl: peak.hkl });
-
-    sumThetaRad += thetaRad;
-    sumBetaRad += betaSampleRad;
-
+    const dSpacingAngstrom = wavelength / (2 * sinTheta);
+    const qVectorInvAngstrom = (4 * Math.PI * sinTheta) / wavelength;
     const singlePeakSizeNm = (K * wavelength) / (betaSampleRad * cosTheta) / 10;
+    const dislocationDensityHkl = singlePeakSizeNm > 0 ? 1e18 / (singlePeakSizeNm * singlePeakSizeNm) : 0; // m^-2
+    const instFractionPct = rawFwhmObs > 0 ? Math.min(100, (peakInstFwhmDeg / rawFwhmObs) * 100) : 0;
+    const baseWeight = regressionWeighting === 'WLS-CosTheta' ? Math.pow(cosTheta, 2) : 1.0;
+
+    if (!isExcluded) {
+      points.push({ x, y, twoTheta: twoThetaCorr, hkl: peak.hkl, excluded: false });
+      sumThetaRad += thetaRad;
+      sumBetaRad += betaSampleRad;
+    }
 
     pointsExtended.push({
+      index: idx,
       twoTheta: twoThetaCorr,
+      dSpacingAngstrom,
+      qVectorInvAngstrom,
       fwhmObs: peak.fwhmObs,
       fwhmInst: peakInstFwhmDeg,
+      instFractionPct,
       betaCorrectedDeg: betaSampleRad * (180 / Math.PI),
       betaCorrectedRad: betaSampleRad,
       x,
       y,
+      weight: baseWeight,
       singlePeakSizeNm,
-      hkl: peak.hkl
+      dislocationDensityHkl,
+      hkl: peak.hkl,
+      excluded: isExcluded
     });
   }
 
-  if (points.length < 2) return null;
+  const activeExtended = pointsExtended.filter(p => !p.excluded);
+  if (activeExtended.length < 2) return null;
 
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (const p of points) {
-    sumX += p.x;
-    sumY += p.y;
-    sumXY += p.x * p.y;
-    sumX2 += p.x * p.x;
+  // Helper for Weighted Least Squares on active points
+  const solveWLS = (weights: number[]) => {
+    let sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWX2 = 0;
+    for (let i = 0; i < activeExtended.length; i++) {
+      const p = activeExtended[i];
+      const w = Math.max(1e-6, weights[i]);
+      sumW += w;
+      sumWX += w * p.x;
+      sumWY += w * p.y;
+      sumWXY += w * p.x * p.y;
+      sumWX2 += w * p.x * p.x;
+    }
+    const denom = sumW * sumWX2 - sumWX * sumWX;
+    if (Math.abs(denom) < 1e-12) return null;
+    const m = (sumW * sumWXY - sumWX * sumWY) / denom;
+    const c = (sumWY - m * sumWX) / sumW;
+    return { m, c, sumW, sumWX, sumWY, sumWX2, denom };
+  };
+
+  let activeWeights = activeExtended.map(p => p.weight ?? 1.0);
+  let wlsFit = solveWLS(activeWeights);
+  if (!wlsFit) return null;
+
+  // If Huber-Robust IRLS is selected, perform 5 iterations of Huber reweighting
+  if (regressionWeighting === 'Huber-Robust' && activeExtended.length >= 3) {
+    for (let iter = 0; iter < 5; iter++) {
+      const resArr = activeExtended.map(p => Math.abs(p.y - (wlsFit!.m * p.x + wlsFit!.c)));
+      const sortedRes = [...resArr].sort((a, b) => a - b);
+      const mad = Math.max(1e-4, sortedRes[Math.floor(sortedRes.length / 2)] * 1.4826);
+      const huberDelta = 1.345 * mad;
+      activeWeights = resArr.map(r => (r <= huberDelta ? 1.0 : huberDelta / r));
+      const updated = solveWLS(activeWeights);
+      if (updated) wlsFit = updated;
+    }
   }
-  const n = points.length;
-  const denom = (n * sumX2 - sumX * sumX);
-  if (Math.abs(denom) < 1e-12) return null;
 
-  const slope = (n * sumXY - sumX * sumY) / denom;
-  const intercept = (sumY - slope * sumX) / n;
+  const slope = wlsFit.m;
+  const intercept = wlsFit.c;
 
-  const meanY = sumY / n;
-  let ssTot = 0, ssRes = 0;
-  for (const p of points) {
+  // Constrained Fixed-Slope (m = 1.0) Monshi-Scherrer Regression: Y = 1.0 * X + C_fixed
+  let sumWFixed = 0, sumWDiff = 0;
+  for (let i = 0; i < activeExtended.length; i++) {
+    const w = activeWeights[i];
+    sumWFixed += w;
+    sumWDiff += w * (activeExtended[i].y - activeExtended[i].x);
+  }
+  const constrainedIntercept = sumWFixed > 0 ? sumWDiff / sumWFixed : intercept;
+  const constrainedSizeNm = Math.exp(-constrainedIntercept) * (K * wavelength) / 10;
+
+  // Compute R^2, Pearson r, RMSE, and Standard Errors
+  const n = activeExtended.length;
+  const meanX = activeExtended.reduce((s, p) => s + p.x, 0) / n;
+  const meanY = activeExtended.reduce((s, p) => s + p.y, 0) / n;
+
+  let ssTot = 0, ssRes = 0, ssX = 0, covXY = 0;
+  for (const p of activeExtended) {
     const yPred = slope * p.x + intercept;
     ssTot += Math.pow(p.y - meanY, 2);
     ssRes += Math.pow(p.y - yPred, 2);
+    ssX += Math.pow(p.x - meanX, 2);
+    covXY += (p.x - meanX) * (p.y - meanY);
   }
-  const rSquared = ssTot === 0 ? 0 : Math.max(0, 1 - (ssRes / ssTot));
 
-  // D = (K * lambda) / (10 * e^(intercept)) = (K * lambda * e^(-intercept)) / 10
+  const rSquared = ssTot === 0 ? 0 : Math.max(0, 1 - (ssRes / ssTot));
+  const pearsonR = (ssX > 0 && ssTot > 0) ? covXY / Math.sqrt(ssX * ssTot) : 0;
+  const rmse = Math.sqrt(ssRes / Math.max(1, n));
+  const residualVariance = n > 2 ? ssRes / (n - 2) : ssRes / Math.max(1, n);
+  const residualStdDev = Math.sqrt(Math.max(1e-12, residualVariance));
+
+  const slopeStdErr = ssX > 0 ? Math.sqrt(residualVariance / ssX) : 0;
+  const interceptStdErr = ssX > 0 ? Math.sqrt(residualVariance * (1 / n + (meanX * meanX) / ssX)) : 0;
+
+  // Populate per-point residuals, standardized residuals, and outlier status
+  for (const p of pointsExtended) {
+    const yFit = slope * p.x + intercept;
+    const yConst = 1.0 * p.x + constrainedIntercept;
+    const res = p.y - yFit;
+    const leverage = ssX > 0 ? (1 / n) + Math.pow(p.x - meanX, 2) / ssX : 1 / n;
+    const stdRes = residualStdDev > 1e-6 ? res / (residualStdDev * Math.sqrt(Math.max(0.1, 1 - leverage))) : 0;
+    p.yFitted = yFit;
+    p.yConstrained = yConst;
+    p.residual = res;
+    p.standardizedResidual = stdRes;
+    p.isOutlier = Math.abs(stdRes) > 2.0;
+  }
+
+  // D = (K * lambda * e^(-intercept)) / 10
   const sizeNm = Math.exp(-intercept) * (K * wavelength) / 10;
+  const sizeUncertaintyNm = sizeNm * interceptStdErr;
+  const dislocationDensityM2 = sizeNm > 0 ? 1e18 / (sizeNm * sizeNm) : 0;
+
+  // Mean & StdDev of Single-Peak Scherrer sizes
+  const meanSinglePeakSizeNm = activeExtended.reduce((s, p) => s + p.singlePeakSizeNm, 0) / n;
+  const stdDevSinglePeakSizeNm = Math.sqrt(
+    activeExtended.reduce((s, p) => s + Math.pow(p.singlePeakSizeNm - meanSinglePeakSizeNm, 2), 0) / Math.max(1, n - 1)
+  );
+
+  // Classical Linear Scherrer Plot: cos(theta) = (K*lambda/D) * (1/beta)
+  let sumInvBeta = 0, sumCos = 0, sumInvBetaCos = 0, sumInvBeta2 = 0;
+  // Williamson-Hall Cross-Check: beta * cos(theta) = (K*lambda/D) + 4 * strain * sin(theta)
+  let sum4Sin = 0, sumBetaCos = 0, sum4SinBetaCos = 0, sum16Sin2 = 0;
+
+  for (const p of activeExtended) {
+    const thRad = (p.twoTheta / 2) * (Math.PI / 180);
+    const cosTh = Math.cos(thRad);
+    const sinTh = Math.sin(thRad);
+    const invBeta = 1 / p.betaCorrectedRad;
+
+    sumInvBeta += invBeta;
+    sumCos += cosTh;
+    sumInvBetaCos += invBeta * cosTh;
+    sumInvBeta2 += invBeta * invBeta;
+
+    const fourSin = 4 * sinTh;
+    const betaCos = p.betaCorrectedRad * cosTh;
+    sum4Sin += fourSin;
+    sumBetaCos += betaCos;
+    sum4SinBetaCos += fourSin * betaCos;
+    sum16Sin2 += fourSin * fourSin;
+  }
+
+  // Through-origin or linear slope for Classical Scherrer Plot (cos(theta) vs 1/beta)
+  const linearSlope = sumInvBeta2 > 0 ? sumInvBetaCos / sumInvBeta2 : 0;
+  const linearScherrerSizeNm = linearSlope > 0 ? (K * wavelength) / (linearSlope * 10) : meanSinglePeakSizeNm;
+
+  // Williamson-Hall regression
+  const whDenom = n * sum16Sin2 - sum4Sin * sum4Sin;
+  let whSizeNm = sizeNm;
+  let whStrain = 0;
+  let whR2 = 0;
+  if (Math.abs(whDenom) > 1e-12) {
+    const whSlope = (n * sum4SinBetaCos - sum4Sin * sumBetaCos) / whDenom;
+    const whIntercept = (sumBetaCos - whSlope * sum4Sin) / n;
+    whStrain = Math.max(0, whSlope);
+    if (whIntercept > 1e-6) {
+      whSizeNm = (K * wavelength) / (whIntercept * 10);
+    }
+    const meanBC = sumBetaCos / n;
+    let whTot = 0, whRes = 0;
+    for (const p of activeExtended) {
+      const thRad = (p.twoTheta / 2) * (Math.PI / 180);
+      const xWH = 4 * Math.sin(thRad);
+      const yWH = p.betaCorrectedRad * Math.cos(thRad);
+      whTot += Math.pow(yWH - meanBC, 2);
+      whRes += Math.pow(yWH - (whSlope * xWH + whIntercept), 2);
+    }
+    whR2 = whTot > 0 ? Math.max(0, 1 - whRes / whTot) : 0;
+  }
 
   // Monshi-derived strain calculation when slope m > 1
-  const avgThetaRad = sumThetaRad / points.length;
-  const avgBetaRad = sumBetaRad / points.length;
+  const avgThetaRad = sumThetaRad / n;
+  const avgBetaRad = sumBetaRad / n;
   let estimatedStrain = 0;
   if (slope > 1.0 && avgThetaRad > 0) {
-    // Microstrain from excess logarithmic slope: e = (m - 1) * beta_avg / (4 * tan(theta_avg))
     estimatedStrain = Math.max(0, ((slope - 1.0) * avgBetaRad) / (4 * Math.tan(avgThetaRad)));
   }
 
   let slopeInterpretation = '';
   if (Math.abs(slope - 1.0) <= 0.15) {
-    slopeInterpretation = 'Slope ≈ 1.0 indicates near-pure isotropic size broadening with minimal strain distortion (Monshi-Scherrer ideal case).';
+    slopeInterpretation = `Slope m = ${slope.toFixed(4)} (±${slopeStdErr.toFixed(4)}) is close to the theoretical ideal m = 1.0, confirming near-pure isotropic size broadening with minimal lattice microstrain.`;
   } else if (slope > 1.15) {
-    slopeInterpretation = `Slope (${slope.toFixed(3)}) > 1.0 reflects significant microstrain contribution or anisotropic broadening at higher diffraction angles (Estimated Microstrain: ${(estimatedStrain * 100).toFixed(4)}%).`;
+    slopeInterpretation = `Slope m = ${slope.toFixed(4)} (±${slopeStdErr.toFixed(4)}) > 1.0 indicates excess high-angle broadening from lattice microstrain (⟨ε⟩ ≈ ${(estimatedStrain * 100).toFixed(4)}%) or elastic anisotropy. Compare Free-Slope D (${sizeNm.toFixed(2)} nm) with Constrained m=1 Consensus D (${constrainedSizeNm.toFixed(2)} nm).`;
   } else {
-    slopeInterpretation = `Slope (${slope.toFixed(3)}) < 1.0 indicates instrumental broadening over-subtraction or planar defect contribution (stacking faults/twins).`;
+    slopeInterpretation = `Slope m = ${slope.toFixed(4)} (±${slopeStdErr.toFixed(4)}) < 1.0 suggests either instrumental broadening over-subtraction at low angles or crystallographic shape anisotropy / stacking faults.`;
   }
+
+  const methodBenchmarks: MonshiScherrerMethodBenchmark[] = [
+    {
+      methodId: 'monshi_free',
+      name: 'Monshi-Scherrer (Free Slope m)',
+      formula: 'ln(β) = m·ln(1/cosθ) + ln(Kλ/D)',
+      sizeNm,
+      uncertaintyNm: sizeUncertaintyNm,
+      rSquared,
+      strain: estimatedStrain,
+      notes: 'Extracts zero-angle extrapolated size from intercept C while isolating strain/defect deviations in slope m.'
+    },
+    {
+      methodId: 'monshi_fixed',
+      name: 'Monshi-Scherrer (Constrained m = 1.0)',
+      formula: 'ln(β) = 1.0·ln(1/cosθ) + C_fixed',
+      sizeNm: constrainedSizeNm,
+      uncertaintyNm: constrainedSizeNm * (residualStdDev / Math.sqrt(n)),
+      rSquared,
+      notes: 'Enforces theoretical slope m = 1.0; mathematically equivalent to the geometric mean of single-peak sizes.'
+    },
+    {
+      methodId: 'mean_scherrer',
+      name: 'Arithmetic Mean Single-Peak Scherrer',
+      formula: 'D_avg = (1/N) Σ (Kλ / (β_i cosθ_i))',
+      sizeNm: meanSinglePeakSizeNm,
+      uncertaintyNm: stdDevSinglePeakSizeNm,
+      notes: 'Unweighted average across reflections; vulnerable to high-angle Kα2 and strain skew.'
+    },
+    {
+      methodId: 'linear_scherrer',
+      name: 'Linear Scherrer Plot (cosθ vs 1/β)',
+      formula: 'cosθ = (Kλ/D)·(1/β)',
+      sizeNm: linearScherrerSizeNm,
+      uncertaintyNm: stdDevSinglePeakSizeNm * 0.85,
+      notes: 'Direct non-logarithmic least-squares fit; heavily weighted toward narrow low-angle reflections.'
+    },
+    {
+      methodId: 'williamson_hall',
+      name: 'Williamson-Hall Cross-Check (UDM)',
+      formula: 'β·cosθ = Kλ/D + 4ε·sinθ',
+      sizeNm: whSizeNm,
+      uncertaintyNm: sizeUncertaintyNm * 1.1,
+      rSquared: whR2,
+      strain: whStrain,
+      notes: 'Additive size-strain separation for cross-checking Monshi logarithmic strain.'
+    }
+  ];
 
   return {
     sizeNm,
+    sizeUncertaintyNm,
+    constrainedSizeNm,
+    constrainedIntercept,
+    meanSinglePeakSizeNm,
+    stdDevSinglePeakSizeNm,
+    linearScherrerSizeNm,
+    whSizeNm,
+    whStrain,
+    dislocationDensityM2,
     slope,
+    slopeStdErr,
     intercept,
+    interceptStdErr,
     rSquared,
+    pearsonR,
+    rmse,
     slopeInterpretation,
+    regressionWeighting,
     points,
     pointsExtended,
+    methodBenchmarks,
     estimatedStrain,
     zeroShiftApplied: zeroShift,
     broadeningModelUsed: broadeningModel
@@ -7330,6 +7534,10 @@ export const calculateDoubleVoigt = (
     monochromatorAngleDeg?: number;
     kAlpha2Correction?: boolean;
     shapeK?: number;
+    deconvKernel?: 'deKeijser-1982' | 'Langford-1978' | 'Balzar-1993';
+    regressionWeighting?: 'OLS' | 'WLS-LowS' | 'Huber-Robust';
+    burgersVectorNm?: number;
+    excludedIndices?: number[];
   }
 ): DoubleVoigtResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
@@ -7340,16 +7548,54 @@ export const calculateDoubleVoigt = (
   const monoAngle = advancedPhysics?.monochromatorAngleDeg !== undefined ? advancedPhysics.monochromatorAngleDeg : 26.4;
   const kAlpha2Corr = advancedPhysics?.kAlpha2Correction || false;
   const shapeK = advancedPhysics?.shapeK || 1.0;
+  const deconvKernel = advancedPhysics?.deconvKernel || 'deKeijser-1982';
+  const regressionWeighting = advancedPhysics?.regressionWeighting || 'OLS';
+  const burgersVectorNm = advancedPhysics?.burgersVectorNm || 0.25;
+  const excludedSet = new Set<number>(advancedPhysics?.excludedIndices || []);
 
   const lambdaNm = wavelength / 10;
   const points: DoubleVoigtPoint[] = [];
 
-  for (const peak of peaks) {
+  // Helper to compute Cauchy and Gaussian integral breadths from FWHM (rad) and pseudo-Voigt eta
+  const splitVoigtBreadths = (fwhmRad: number, etaVal: number) => {
+    const eta = Math.min(0.99, Math.max(0.01, etaVal));
+    // Shape factor phi = FWHM / beta for pseudo-Voigt
+    const betaOverFwhm = 0.5 * (Math.PI * eta + Math.sqrt(Math.PI / Math.LN2) * (1 - eta));
+    const shapePhi = 1 / Math.max(0.6, betaOverFwhm);
+
+    if (deconvKernel === 'Langford-1978') {
+      // Langford (1978) & de Keijser (1982) integral breadth polynomial inversion in phi = 2w / beta
+      const betaTotal = fwhmRad * betaOverFwhm;
+      const ratioC = Math.max(0.005, Math.min(0.995, 2.0207 - 0.4803 * shapePhi - 1.7756 * shapePhi * shapePhi));
+      const ratioG = Math.max(
+        0.005,
+        Math.min(0.995, 0.6420 + 1.4187 * Math.sqrt(Math.max(0, shapePhi - 2 / Math.PI)) - 2.2043 * shapePhi + 1.8706 * shapePhi * shapePhi)
+      );
+      return { betaTotal, betaC: ratioC * betaTotal, betaG: ratioG * betaTotal, shapePhi };
+    }
+
+    if (deconvKernel === 'Balzar-1993') {
+      // Balzar & Ledbetter (1993) Voigt integral breadth separation from pseudo-Voigt mixing eta
+      const betaTotal = fwhmRad * betaOverFwhm;
+      const ratioC = Math.max(0.005, Math.min(0.995, 0.017475 + 1.500484 * eta - 0.534156 * eta * eta));
+      const ratioG = Math.max(0.005, Math.min(0.995, 0.988851 - 0.655464 * eta - 0.333030 * eta * eta));
+      return { betaTotal, betaC: ratioC * betaTotal, betaG: ratioG * betaTotal, shapePhi };
+    }
+
+    // Default: deKeijser-1982 direct empirical polynomial ratios
+    const ratioC = Math.max(0.001, 0.0146 + 0.99395 * eta - 0.0083 * eta * eta);
+    const ratioG = Math.sqrt(Math.max(1e-10, 1.0016 - 0.52115 * eta - 0.47885 * eta * eta));
+    return { betaTotal: fwhmRad, betaC: ratioC * fwhmRad, betaG: ratioG * fwhmRad, shapePhi };
+  };
+
+  for (let idx = 0; idx < peaks.length; idx++) {
+    const peak = peaks[idx];
+    const isExcluded = excludedSet.has(idx);
     const rawTwoTheta = peak.twoTheta;
     const twoThetaCorr = Math.max(1, Math.min(179, rawTwoTheta + zeroShift));
     const thetaRad = (twoThetaCorr / 2) * (Math.PI / 180);
     const cosTheta = Math.cos(thetaRad);
-    const sinTheta = Math.sin(thetaRad);
+    const sinTheta = Math.max(1e-6, Math.sin(thetaRad));
 
     if (cosTheta <= 1e-10) continue;
 
@@ -7362,7 +7608,7 @@ export const calculateDoubleVoigt = (
       }
     }
 
-    let betaObsRad = rawFwhmObs * (Math.PI / 180);
+    let fwhmObsRad = rawFwhmObs * (Math.PI / 180);
 
     // Optional Lorentz-Polarization factor weighting correction
     if (applyLP) {
@@ -7374,7 +7620,7 @@ export const calculateDoubleVoigt = (
       const lpFactor = pol / (Math.pow(sinTheta, 2) * cosTheta);
 
       const lpNorm = Math.min(2.5, Math.max(0.5, lpFactor / 4.0));
-      betaObsRad = betaObsRad / Math.sqrt(lpNorm);
+      fwhmObsRad = fwhmObsRad / Math.sqrt(lpNorm);
     }
 
     // Instrumental FWHM calculation
@@ -7384,139 +7630,246 @@ export const calculateDoubleVoigt = (
       const valDegSq = cagliotiParams.U * tanTheta * tanTheta + cagliotiParams.V * tanTheta + cagliotiParams.W;
       peakInstFwhmDeg = Math.sqrt(Math.max(1e-6, valDegSq));
     }
-    const betaInstRad = peakInstFwhmDeg * (Math.PI / 180);
+    const fwhmInstRad = peakInstFwhmDeg * (Math.PI / 180);
 
+    const dSpacingAngstrom = wavelength / (2 * sinTheta);
     const s = (2 * sinTheta) / lambdaNm; // scattering vector [nm^-1]
     const s2 = s * s;
 
-    // Deconvolve observed profile into Cauchy (C) and Gaussian (G) parts using de Keijser & Langford (1982)
-    const etaClean = Math.min(0.99, Math.max(0.01, peak.eta ?? 0.5));
-    const ratioC_obs = Math.max(0.001, 0.0146 + 0.99395 * etaClean - 0.0083 * etaClean * etaClean);
-    const ratioG_obs = Math.sqrt(Math.max(1e-10, 1.0016 - 0.52115 * etaClean - 0.47885 * etaClean * etaClean));
-    const betaCObs = ratioC_obs * betaObsRad;
-    const betaGObs = ratioG_obs * betaObsRad;
-
-    // Deconvolve instrumental profile into Cauchy and Gaussian parts using instEta
-    const instEtaClean = Math.min(0.99, Math.max(0.01, instEta));
-    const ratioC_inst = Math.max(0.001, 0.0146 + 0.99395 * instEtaClean - 0.0083 * instEtaClean * instEtaClean);
-    const ratioG_inst = Math.sqrt(Math.max(1e-10, 1.0016 - 0.52115 * instEtaClean - 0.47885 * instEtaClean * instEtaClean));
-    const betaCInst = ratioC_inst * betaInstRad;
-    const betaGInst = ratioG_inst * betaInstRad;
+    const obsSplit = splitVoigtBreadths(fwhmObsRad, peak.eta ?? 0.5);
+    const instSplit = splitVoigtBreadths(fwhmInstRad, instEta);
 
     // Subtract instrumental Cauchy and Gaussian components independently (Langford's Double-Voigt method)
-    const betaCSample = Math.max(1e-10, betaCObs - betaCInst);
-    const betaGSampleSq = Math.max(1e-10, betaGObs * betaGObs - betaGInst * betaGInst);
+    const betaCSample = Math.max(1e-10, obsSplit.betaC - instSplit.betaC);
+    const betaGSampleSq = Math.max(1e-10, obsSplit.betaG * obsSplit.betaG - instSplit.betaG * instSplit.betaG);
     const betaGSample = Math.sqrt(betaGSampleSq);
 
-    // Convert to reciprocal space, incorporating optional crystallite shape factor shapeK
+    // Convert to reciprocal space, incorporating crystallite shape factor shapeK
     const betaCStar = (betaCSample * cosTheta) / (lambdaNm * shapeK);
     const betaGStar = (betaGSample * cosTheta) / (lambdaNm * shapeK);
     const betaGStarSq = betaGStar * betaGStar;
-    const betaStar = Math.sqrt(betaCStar * betaCStar + betaGStarSq);
+    // Exact Voigt total reciprocal integral breadth approximation
+    const kPeak = betaCStar / (Math.sqrt(Math.PI) * Math.max(1e-8, betaGStar));
+    const betaStar = betaGStar > 1e-8
+      ? betaGStar / (Math.exp(kPeak * kPeak) * erfc(kPeak))
+      : Math.sqrt(betaCStar * betaCStar + betaGStarSq);
 
     const singleDvNm = betaCStar > 0 ? 1 / betaCStar : 0;
 
     points.push({
+      index: idx,
       twoTheta: twoThetaCorr,
+      dSpacingAngstrom,
+      fwhmObs: peak.fwhmObs,
+      fwhmInst: peakInstFwhmDeg,
+      etaObs: peak.eta ?? 0.5,
+      shapeFactorPhi: obsSplit.shapePhi,
+      betaObsRad: obsSplit.betaTotal,
+      betaInstRad: instSplit.betaTotal,
       s,
       s2,
       betaStar,
       betaCStar,
       betaGStarSq,
       betaGStar,
+      excluded: isExcluded,
       singleDvNm,
       hkl: peak.hkl
     });
   }
 
-  if (points.length < 2) return null;
+  const activePoints = points.filter(p => !p.excluded);
+  if (activePoints.length < 2) return null;
 
-  // Linear regression for Cauchy plot: betaCStar vs s
-  let sumXc = 0, sumYc = 0, sumXYc = 0, sumX2c = 0;
+  // Weighted / Robust Linear Regression Helper
+  const fitLinearModel = (xArr: number[], yArr: number[], baseWeights: number[]) => {
+    const n = xArr.length;
+    const solveWLS = (wArr: number[]) => {
+      let sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWX2 = 0;
+      for (let i = 0; i < n; i++) {
+        const w = Math.max(1e-6, wArr[i]);
+        sumW += w;
+        sumWX += w * xArr[i];
+        sumWY += w * yArr[i];
+        sumWXY += w * xArr[i] * yArr[i];
+        sumWX2 += w * xArr[i] * xArr[i];
+      }
+      const denom = sumW * sumWX2 - sumWX * sumWX;
+      if (Math.abs(denom) < 1e-14) return null;
+      const slope = (sumW * sumWXY - sumWX * sumWY) / denom;
+      const intercept = (sumWY - slope * sumWX) / sumW;
+      return { slope, intercept };
+    };
+
+    let weights = [...baseWeights];
+    let fit = solveWLS(weights);
+    if (!fit) return null;
+
+    if (regressionWeighting === 'Huber-Robust' && n >= 3) {
+      for (let iter = 0; iter < 5; iter++) {
+        const absRes = xArr.map((x, i) => Math.abs(yArr[i] - (fit!.slope * x + fit!.intercept)));
+        const sorted = [...absRes].sort((a, b) => a - b);
+        const mad = Math.max(1e-5, sorted[Math.floor(sorted.length / 2)] * 1.4826);
+        const delta = 1.345 * mad;
+        weights = absRes.map(r => (r <= delta ? 1.0 : delta / r));
+        const nextFit = solveWLS(weights);
+        if (nextFit) fit = nextFit;
+      }
+    }
+
+    const meanX = xArr.reduce((a, b) => a + b, 0) / n;
+    const meanY = yArr.reduce((a, b) => a + b, 0) / n;
+    let ssTot = 0, ssRes = 0, ssX = 0;
+    for (let i = 0; i < n; i++) {
+      const yPred = fit.slope * xArr[i] + fit.intercept;
+      ssTot += Math.pow(yArr[i] - meanY, 2);
+      ssRes += Math.pow(yArr[i] - yPred, 2);
+      ssX += Math.pow(xArr[i] - meanX, 2);
+    }
+
+    const rSquared = ssTot === 0 ? 0 : Math.max(0, 1 - ssRes / ssTot);
+    const rmse = Math.sqrt(ssRes / Math.max(1, n));
+    const resVar = n > 2 ? ssRes / (n - 2) : ssRes / Math.max(1, n);
+    const resStd = Math.sqrt(Math.max(1e-14, resVar));
+    const slopeStdErr = ssX > 0 ? Math.sqrt(resVar / ssX) : 0;
+    const interceptStdErr = ssX > 0 ? Math.sqrt(resVar * (1 / n + (meanX * meanX) / ssX)) : 0;
+
+    return {
+      slope: fit.slope,
+      slopeStdErr,
+      intercept: fit.intercept,
+      interceptStdErr,
+      rSquared,
+      rmse,
+      meanX,
+      ssX,
+      resStd
+    };
+  };
+
+  const baseWeights = activePoints.map(p =>
+    regressionWeighting === 'WLS-LowS' ? 1 / Math.max(0.5, p.s) : 1.0
+  );
+
+  const cauchyReg = fitLinearModel(
+    activePoints.map(p => p.s),
+    activePoints.map(p => p.betaCStar),
+    baseWeights
+  );
+  const gaussianReg = fitLinearModel(
+    activePoints.map(p => p.s2),
+    activePoints.map(p => p.betaGStarSq),
+    baseWeights
+  );
+
+  if (!cauchyReg || !gaussianReg) return null;
+
+  const nActive = activePoints.length;
   for (const p of points) {
-    sumXc += p.s;
-    sumYc += p.betaCStar;
-    sumXYc += p.s * p.betaCStar;
-    sumX2c += p.s * p.s;
+    const cFit = cauchyReg.slope * p.s + cauchyReg.intercept;
+    const cRes = p.betaCStar - cFit;
+    const cLev = cauchyReg.ssX > 0 ? 1 / nActive + Math.pow(p.s - cauchyReg.meanX, 2) / cauchyReg.ssX : 1 / nActive;
+    const cStdRes = cauchyReg.resStd > 1e-7 ? cRes / (cauchyReg.resStd * Math.sqrt(Math.max(0.1, 1 - cLev))) : 0;
+
+    const gFit = gaussianReg.slope * p.s2 + gaussianReg.intercept;
+    const gRes = p.betaGStarSq - gFit;
+    const gLev = gaussianReg.ssX > 0 ? 1 / nActive + Math.pow(p.s2 - gaussianReg.meanX, 2) / gaussianReg.ssX : 1 / nActive;
+    const gStdRes = gaussianReg.resStd > 1e-7 ? gRes / (gaussianReg.resStd * Math.sqrt(Math.max(0.1, 1 - gLev))) : 0;
+
+    p.cauchyFitted = cFit;
+    p.cauchyResidual = cRes;
+    p.cauchyStdResidual = cStdRes;
+    p.gaussianFitted = gFit;
+    p.gaussianResidual = gRes;
+    p.gaussianStdResidual = gStdRes;
+    p.isOutlier = Math.abs(cStdRes) > 2.0 || Math.abs(gStdRes) > 2.0;
   }
-  const n = points.length;
-  const denomC = n * sumX2c - sumXc * sumXc;
-  if (Math.abs(denomC) < 1e-12) return null;
-
-  const slopeC = (n * sumXYc - sumXc * sumYc) / denomC;
-  const interceptC = (sumYc - slopeC * sumXc) / n;
-
-  const meanYc = sumYc / n;
-  let ssTotC = 0, ssResC = 0;
-  for (const p of points) {
-    const yPred = slopeC * p.s + interceptC;
-    ssTotC += Math.pow(p.betaCStar - meanYc, 2);
-    ssResC += Math.pow(p.betaCStar - yPred, 2);
-  }
-  const rSquaredC = ssTotC === 0 ? 0 : Math.max(0, 1 - ssResC / ssTotC);
-
-  // Linear regression for Gaussian plot: (betaGStar)^2 vs s^2
-  let sumXg = 0, sumYg = 0, sumXYg = 0, sumX2g = 0;
-  for (const p of points) {
-    sumXg += p.s2;
-    sumYg += p.betaGStarSq;
-    sumXYg += p.s2 * p.betaGStarSq;
-    sumX2g += p.s2 * p.s2;
-  }
-  const denomG = n * sumX2g - sumXg * sumXg;
-  if (Math.abs(denomG) < 1e-12) return null;
-
-  const slopeG = (n * sumXYg - sumXg * sumYg) / denomG;
-  const interceptG = (sumYg - slopeG * sumXg) / n;
-
-  const meanYg = sumYg / n;
-  let ssTotG = 0, ssResG = 0;
-  for (const p of points) {
-    const yPred = slopeG * p.s2 + interceptG;
-    ssTotG += Math.pow(p.betaGStarSq - meanYg, 2);
-    ssResG += Math.pow(p.betaGStarSq - yPred, 2);
-  }
-  const rSquaredG = ssTotG === 0 ? 0 : Math.max(0, 1 - ssResG / ssTotG);
 
   // Derive microstructural properties
   // 1. Cauchy Volume-Weighted Crystallite Size: D_V = 1 / Intercept_C
-  const volumeSizeDvNm = interceptC > 1e-8 ? 1 / interceptC : 0;
+  const betaCStarSize = Math.max(1e-5, cauchyReg.intercept);
+  const volumeSizeDvNm = 1 / betaCStarSize;
+  const volumeSizeUncertaintyNm = volumeSizeDvNm * (cauchyReg.interceptStdErr / betaCStarSize);
 
   // 2. Cauchy Strain: e_C = Slope_C / 2
-  const cauchyStrainEc = Math.max(0, slopeC / 2);
+  const cauchyStrainEc = Math.max(0, cauchyReg.slope / 2);
 
   // 3. Gaussian Size: D_G = 1 / (pi * sqrt(Intercept_G))
-  const betaGStarSize = Math.sqrt(Math.max(1e-10, interceptG));
+  const betaGStarSize = Math.sqrt(Math.max(1e-10, gaussianReg.intercept));
   const gaussianSizeDgNm = 1 / (Math.PI * betaGStarSize);
 
   // 4. Gaussian Strain: e_G = sqrt(Slope_G / (8 * pi))
-  const gaussianStrainEg = Math.sqrt(Math.max(0, slopeG / (8 * Math.PI)));
+  const gaussianStrainEg = Math.sqrt(Math.max(0, gaussianReg.slope / (8 * Math.PI)));
 
   // 5. Area-weighted crystallite size (Langford formulation):
-  const betaCStarSize = Math.max(1e-10, interceptC);
   const kRatio = betaCStarSize / (Math.sqrt(Math.PI) * betaGStarSize);
   const areaSizeDaNm = (1 / (Math.PI * betaGStarSize)) * Math.exp(kRatio * kRatio) * erfc(kRatio);
 
-  // 6. RMS Strain
+  // 6. Polydispersity & Log-normal distribution parameters (Krill & Birringer / Langford)
+  const polydispersityRatio = Math.max(1.002, volumeSizeDvNm / Math.max(0.1, areaSizeDaNm));
+  const sigmaLnSq = Math.max(0.005, Math.min(1.5, Math.log(polydispersityRatio)));
+  const logNormalSigma = Math.sqrt(sigmaLnSq);
+  const logNormalMedianNm = areaSizeDaNm * Math.exp(-2.5 * sigmaLnSq);
+  const numberSizeDnNm = logNormalMedianNm * Math.exp(0.5 * sigmaLnSq);
+
+  // 7. RMS Strain & Williamson-Smallman Dislocation Density
   const rmsStrain = Math.sqrt(cauchyStrainEc * cauchyStrainEc + 2 * Math.PI * gaussianStrainEg * gaussianStrainEg);
+  const dislocationDensityM2 = volumeSizeDvNm > 0 && burgersVectorNm > 0
+    ? ((2 * Math.sqrt(3) * rmsStrain) / (volumeSizeDvNm * burgersVectorNm)) * 1e18
+    : 0;
+
+  // 8. Distance-dependent Warren-Averbach equivalent RMS microstrain curve <e^2(L)>^(1/2)
+  const s0 = activePoints[0]?.s || 2.5;
+  const maxL = Math.max(25, Math.min(120, Math.round(volumeSizeDvNm * 2.0)));
+  const strainDistributionCurve: DoubleVoigtResult['strainDistributionCurve'] = [];
+  for (let step = 1; step <= 30; step++) {
+    const L = parseFloat(((step / 30) * maxL).toFixed(2));
+    // Balzar & Ledbetter (1993): <e^2(L)> = (beta_{G,D}^* / s0)^2 / (2*pi) + (beta_{C,D}^* / s0^2) / (pi^2 * L)
+    const gaussianTerm = (2 / Math.PI) * gaussianStrainEg * gaussianStrainEg;
+    const cauchyTerm = (2 * cauchyStrainEc) / (Math.PI * Math.PI * s0 * Math.max(0.5, L));
+    const totalRmsL = Math.sqrt(Math.max(0, gaussianTerm + cauchyTerm));
+    strainDistributionCurve.push({
+      L,
+      rmsStrainPct: totalRmsL * 100,
+      cauchyContribPct: Math.sqrt(Math.max(0, cauchyTerm)) * 100,
+      gaussianContribPct: Math.sqrt(Math.max(0, gaussianTerm)) * 100
+    });
+  }
 
   return {
     volumeSizeDvNm,
+    volumeSizeUncertaintyNm,
     gaussianSizeDgNm,
     areaSizeDaNm,
+    numberSizeDnNm,
+    polydispersityRatio,
+    logNormalSigma,
+    logNormalMedianNm,
+    voigtParameterK: kRatio,
     cauchyStrainEc,
     gaussianStrainEg,
     rmsStrain,
+    dislocationDensityM2,
+    burgersVectorNm,
+    deconvKernelUsed: deconvKernel,
+    regressionWeighting,
     cauchyFit: {
-      slope: slopeC,
-      intercept: interceptC,
-      rSquared: rSquaredC
+      slope: cauchyReg.slope,
+      slopeStdErr: cauchyReg.slopeStdErr,
+      intercept: cauchyReg.intercept,
+      interceptStdErr: cauchyReg.interceptStdErr,
+      rSquared: cauchyReg.rSquared,
+      rmse: cauchyReg.rmse
     },
     gaussianFit: {
-      slope: slopeG,
-      intercept: interceptG,
-      rSquared: rSquaredG
+      slope: gaussianReg.slope,
+      slopeStdErr: gaussianReg.slopeStdErr,
+      intercept: gaussianReg.intercept,
+      interceptStdErr: gaussianReg.interceptStdErr,
+      rSquared: gaussianReg.rSquared,
+      rmse: gaussianReg.rmse
     },
+    strainDistributionCurve,
     points,
     zeroShiftApplied: zeroShift,
     instrumentalModeUsed: instrumentalMode,

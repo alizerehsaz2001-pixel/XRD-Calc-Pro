@@ -10,6 +10,7 @@ export type CrystalSystem =
 export type DriftFunctionType = 
   | 'none'
   | 'nelson_riley' 
+  | 'taylor_sinclair'
   | 'bradley_jay' 
   | 'sample_displacement' 
   | 'hess_hagg' 
@@ -21,6 +22,7 @@ export type WeightingScheme =
   | 'hess_hagg' 
   | 'statistical' 
   | 'intensity' 
+  | 'huber_robust'
   | 'unit';
 
 export interface PeakInput {
@@ -39,6 +41,7 @@ export interface PeakInput {
 export interface PresetSample {
   name: string;
   chemicalFormula?: string;
+  spaceGroup?: string;
   system: CrystalSystem;
   refLattice?: { 
     a?: number; 
@@ -61,6 +64,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Silicon (NIST SRM 640e)',
     chemicalFormula: 'Si',
+    spaceGroup: 'Fd-3m (#227)',
     system: 'Cubic',
     refLattice: { a: 5.4311946 },
     wavelength: 1.54056,
@@ -84,6 +88,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Lanthanum Hexaboride (NIST SRM 660c)',
     chemicalFormula: 'LaB6',
+    spaceGroup: 'Pm-3m (#221)',
     system: 'Cubic',
     refLattice: { a: 4.15689 },
     wavelength: 1.54056,
@@ -107,6 +112,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Cerium Dioxide (CeO2 - Fluorite)',
     chemicalFormula: 'CeO2',
+    spaceGroup: 'Fm-3m (#225)',
     system: 'Cubic',
     refLattice: { a: 5.41110 },
     wavelength: 1.54056,
@@ -128,6 +134,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Rutile Titanium Dioxide (TiO2)',
     chemicalFormula: 'TiO2',
+    spaceGroup: 'P4_2/mnm (#136)',
     system: 'Tetragonal',
     refLattice: { a: 4.5937, c: 2.9587 },
     wavelength: 1.54056,
@@ -150,6 +157,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Anatase Titanium Dioxide (TiO2)',
     chemicalFormula: 'TiO2',
+    spaceGroup: 'I4_1/amd (#141)',
     system: 'Tetragonal',
     refLattice: { a: 3.7845, c: 9.5143 },
     wavelength: 1.54056,
@@ -172,6 +180,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Zinc Oxide (ZnO Wurtzite)',
     chemicalFormula: 'ZnO',
+    spaceGroup: 'P6_3mc (#186)',
     system: 'Hexagonal',
     refLattice: { a: 3.2498, c: 5.2066 },
     wavelength: 1.54056,
@@ -192,14 +201,40 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
     ]
   },
   {
-    name: 'Alumina Corundum (α-Al2O3 NIST SRM 674a)',
+    name: 'α-Quartz (NIST SRM 1878b)',
+    chemicalFormula: 'SiO2',
+    spaceGroup: 'P3_221 (#154)',
+    system: 'Trigonal',
+    refLattice: { a: 4.9134, c: 5.4052, rhombohedralA: 3.3435, rhombohedralAlpha: 94.59 },
+    wavelength: 1.54056,
+    molarMass: 60.0843,
+    formulaUnitsZ: 3,
+    description: 'Respirable alpha-quartz standard with sharp hexagonal/trigonal reflections.',
+    peaks: [
+      { id: 'qtz-1', twoTheta: 20.860, h: 1, k: 0, l: 0, intensity: 22, enabled: true },
+      { id: 'qtz-2', twoTheta: 26.640, h: 1, k: 0, l: 1, intensity: 100, enabled: true },
+      { id: 'qtz-3', twoTheta: 36.544, h: 1, k: 1, l: 0, intensity: 8, enabled: true },
+      { id: 'qtz-4', twoTheta: 39.465, h: 1, k: 0, l: 2, intensity: 7, enabled: true },
+      { id: 'qtz-5', twoTheta: 40.290, h: 1, k: 1, l: 1, intensity: 4, enabled: true },
+      { id: 'qtz-6', twoTheta: 42.450, h: 2, k: 0, l: 0, intensity: 6, enabled: true },
+      { id: 'qtz-7', twoTheta: 45.793, h: 2, k: 0, l: 1, intensity: 4, enabled: true },
+      { id: 'qtz-8', twoTheta: 50.139, h: 1, k: 1, l: 2, intensity: 13, enabled: true },
+      { id: 'qtz-9', twoTheta: 54.875, h: 2, k: 0, l: 2, intensity: 4, enabled: true },
+      { id: 'qtz-10', twoTheta: 59.960, h: 2, k: 1, l: 1, intensity: 9, enabled: true },
+      { id: 'qtz-11', twoTheta: 67.744, h: 2, k: 1, l: 2, intensity: 6, enabled: true },
+      { id: 'qtz-12', twoTheta: 68.144, h: 2, k: 0, l: 3, intensity: 7, enabled: true }
+    ]
+  },
+  {
+    name: 'Alumina Corundum (α-Al2O3 NIST SRM 676a)',
     chemicalFormula: 'Al2O3',
+    spaceGroup: 'R-3c (#167)',
     system: 'Trigonal',
     refLattice: { a: 4.7587, c: 12.9929, rhombohedralA: 5.128, rhombohedralAlpha: 55.28 },
     wavelength: 1.54056,
     molarMass: 101.96,
     formulaUnitsZ: 6,
-    description: 'Trigonal/Hexagonal R-3c corundum standard.',
+    description: 'Trigonal/Hexagonal R-3c corundum quantitative phase & lattice standard.',
     peaks: [
       { id: 'al-1', twoTheta: 25.578, h: 0, k: 1, l: 2, intensity: 65, enabled: true },
       { id: 'al-2', twoTheta: 35.152, h: 1, k: 0, l: 4, intensity: 100, enabled: true },
@@ -214,6 +249,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Calcite (CaCO3 - Trigonal)',
     chemicalFormula: 'CaCO3',
+    spaceGroup: 'R-3c (#167)',
     system: 'Trigonal',
     refLattice: { a: 4.9896, c: 17.0610, rhombohedralA: 6.375, rhombohedralAlpha: 46.08 },
     wavelength: 1.54056,
@@ -239,6 +275,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'YBCO High-Tc Superconductor (YBa2Cu3O7)',
     chemicalFormula: 'YBa2Cu3O7',
+    spaceGroup: 'Pmmm (#47)',
     system: 'Orthorhombic',
     refLattice: { a: 3.822, b: 3.891, c: 11.681 },
     wavelength: 1.54056,
@@ -260,6 +297,7 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
   {
     name: 'Baddeleyite Monoclinic Zirconia (ZrO2)',
     chemicalFormula: 'ZrO2',
+    spaceGroup: 'P2_1/c (#14)',
     system: 'Monoclinic',
     refLattice: { a: 5.150, b: 5.212, c: 5.317, betaDeg: 99.23 },
     wavelength: 1.54056,
@@ -280,8 +318,9 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
     ]
   },
   {
-    name: 'Chalcanthite Copper Sulfate (CuSO4·5H2O - Triclinic)',
+    name: 'Chalcanthite Copper Sulfate (CuSO4·5H2O)',
     chemicalFormula: 'CuSO4·5H2O',
+    spaceGroup: 'P-1 (#2)',
     system: 'Triclinic',
     refLattice: { 
       a: 6.122, 
@@ -313,8 +352,9 @@ export const COHEN_PRESET_SAMPLES: PresetSample[] = [
     ]
   },
   {
-    name: 'Kaolinite Clay (Al2Si2O5(OH)4 - Triclinic)',
+    name: 'Kaolinite Clay (Al2Si2O5(OH)4)',
     chemicalFormula: 'Al2Si2O5(OH)4',
+    spaceGroup: 'C1 (#1)',
     system: 'Triclinic',
     refLattice: { 
       a: 5.154, 

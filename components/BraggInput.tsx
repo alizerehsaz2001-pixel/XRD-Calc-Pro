@@ -1951,11 +1951,11 @@ const BraggInputComponent: React.FC<BraggInputProps> = ({
                           No matching database materials.
                         </div>
                       ) : (
-                        filteredRefineMaterials.map((mat) => {
+                        filteredRefineMaterials.map((mat, matIdx) => {
                           const isSelected = selectedRefineMaterial?.name === mat.name;
                           return (
                             <button
-                              key={mat.name}
+                              key={`${mat.name}-${matIdx}`}
                               type="button"
                               onClick={() => {
                                 setSelectedRefineMaterial(mat);

@@ -146,26 +146,65 @@ export interface MonshiScherrerPoint {
   y: number; // ln(beta_sample_rad)
   twoTheta: number;
   hkl?: [number, number, number];
+  excluded?: boolean;
+}
+
+export interface MonshiScherrerMethodBenchmark {
+  methodId: 'monshi_free' | 'monshi_fixed' | 'mean_scherrer' | 'linear_scherrer' | 'williamson_hall';
+  name: string;
+  formula: string;
+  sizeNm: number;
+  uncertaintyNm: number;
+  rSquared?: number;
+  strain?: number;
+  notes: string;
 }
 
 export interface MonshiScherrerResult {
   sizeNm: number;
+  sizeUncertaintyNm?: number;
+  constrainedSizeNm?: number; // Fixed slope m = 1.0 Monshi size (geometric mean)
+  constrainedIntercept?: number;
+  meanSinglePeakSizeNm?: number;
+  stdDevSinglePeakSizeNm?: number;
+  linearScherrerSizeNm?: number;
+  whSizeNm?: number;
+  whStrain?: number;
+  dislocationDensityM2?: number; // rho = 1 / D^2 in m^-2
   slope: number;
+  slopeStdErr?: number;
   intercept: number;
+  interceptStdErr?: number;
   rSquared: number;
+  pearsonR?: number;
+  rmse?: number;
   slopeInterpretation: string;
+  regressionWeighting?: 'OLS' | 'WLS-CosTheta' | 'Huber-Robust';
   points: MonshiScherrerPoint[];
   pointsExtended: {
+    index?: number;
     twoTheta: number;
+    dSpacingAngstrom?: number;
+    qVectorInvAngstrom?: number;
     fwhmObs: number;
     fwhmInst: number;
+    instFractionPct?: number;
     betaCorrectedDeg: number;
     betaCorrectedRad: number;
     x: number;
     y: number;
+    yFitted?: number;
+    yConstrained?: number;
+    residual?: number;
+    standardizedResidual?: number;
+    isOutlier?: boolean;
+    weight?: number;
     singlePeakSizeNm: number;
+    dislocationDensityHkl?: number;
     hkl?: [number, number, number];
+    excluded?: boolean;
   }[];
+  methodBenchmarks?: MonshiScherrerMethodBenchmark[];
   estimatedStrain?: number;
   zeroShiftApplied?: number;
   broadeningModelUsed?: string;
@@ -218,34 +257,72 @@ export interface MethodOfMomentsResult {
 }
 
 export interface DoubleVoigtPoint {
+  index?: number;
   twoTheta: number;
+  dSpacingAngstrom?: number;
+  fwhmObs?: number;
+  fwhmInst?: number;
+  etaObs?: number;
+  shapeFactorPhi?: number; // FWHM / beta
+  betaObsRad?: number;
+  betaInstRad?: number;
   s: number;          // 2 * sin(theta) / lambda [nm^-1]
-  s2: number;         // s^2
-  betaStar: number;   // beta * cos(theta) / lambda [nm^-1]
+  s2: number;         // s^2 [nm^-2]
+  betaStar: number;   // Total sample integral breadth in reciprocal space [nm^-1]
   betaCStar: number;  // Cauchy component in reciprocal space [nm^-1]
   betaGStarSq: number;// (Gaussian component in reciprocal space)^2 [nm^-2]
   betaGStar: number;  // Gaussian component in reciprocal space [nm^-1]
+  cauchyFitted?: number;
+  cauchyResidual?: number;
+  cauchyStdResidual?: number;
+  gaussianFitted?: number;
+  gaussianResidual?: number;
+  gaussianStdResidual?: number;
+  isOutlier?: boolean;
+  excluded?: boolean;
   singleDvNm: number; // Single peak apparent volume size
   hkl?: [number, number, number];
 }
 
 export interface DoubleVoigtResult {
   volumeSizeDvNm: number;     // D_V = 1 / beta_{C,S}* [nm]
+  volumeSizeUncertaintyNm?: number;
   gaussianSizeDgNm: number;   // D_G = 1 / (pi * beta_{G,S}*) [nm]
   areaSizeDaNm: number;       // D_A area-weighted crystallite size [nm]
+  numberSizeDnNm?: number;    // D_N number-weighted crystallite size [nm]
+  polydispersityRatio?: number; // D_V / D_A
+  logNormalSigma?: number;    // Log-normal standard deviation sigma_LN
+  logNormalMedianNm?: number; // Log-normal median size M [nm]
+  voigtParameterK?: number;   // k = beta_{C,S}* / (sqrt(pi) * beta_{G,S}*)
   cauchyStrainEc: number;     // e_C = Slope_C / 2
   gaussianStrainEg: number;   // e_G = sqrt(Slope_G / (8*pi))
   rmsStrain: number;          // <e^2>^(1/2) = sqrt(e_C^2 + 2*pi*e_G^2)
+  dislocationDensityM2?: number; // Williamson-Smallman dislocation density [m^-2]
+  burgersVectorNm?: number;
+  deconvKernelUsed?: 'deKeijser-1982' | 'Langford-1978' | 'Balzar-1993';
+  regressionWeighting?: 'OLS' | 'WLS-LowS' | 'Huber-Robust';
   cauchyFit: {
     slope: number;
+    slopeStdErr?: number;
     intercept: number;
+    interceptStdErr?: number;
     rSquared: number;
+    rmse?: number;
   };
   gaussianFit: {
     slope: number;
+    slopeStdErr?: number;
     intercept: number;
+    interceptStdErr?: number;
     rSquared: number;
+    rmse?: number;
   };
+  strainDistributionCurve?: {
+    L: number;           // Column length L [nm]
+    rmsStrainPct: number;// <e^2(L)>^(1/2) in %
+    cauchyContribPct: number;
+    gaussianContribPct: number;
+  }[];
   points: DoubleVoigtPoint[];
   zeroShiftApplied?: number;
   instrumentalModeUsed?: string;

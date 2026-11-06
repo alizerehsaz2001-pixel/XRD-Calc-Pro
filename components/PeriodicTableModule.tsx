@@ -3078,134 +3078,136 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
   return (
     <div id="crystallography-periodic-table-suite" className="space-y-4">
-      {/* Sleek, organized suite header with Custom Crystallography Block Schematic */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0B0F19] border border-slate-800/80 px-5 py-3.5 rounded-2xl shadow-lg">
+      {/* Calibrated Suite Header with Crystallography Schematic & Quick Z Stepper */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0B0F19] border border-slate-800/90 px-5 py-3.5 rounded-2xl shadow-lg">
         <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Grid className="w-5 h-5 text-indigo-400" />
-              Periodic Table & Crystallography
+              <Grid className="w-5 h-5 text-cyan-400" />
+              Periodic Table &amp; Crystallographic Atlas
             </h2>
-            <span className="text-[10px] font-mono text-slate-500 font-semibold border-l border-slate-800 pl-2">
-              118 Elements · Structural Database
+            <span className="text-xs font-mono text-slate-500">·</span>
+            <span className="text-[11px] font-mono text-slate-400">
+              118 Elements · Bravais Lattices · X-Ray &amp; Neutron Metrology
             </span>
           </div>
           <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-            Explore crystal lattices, space groups, X-ray & neutron scattering, orbitals, and Hume-Rothery metallurgy.
+            Inspect unit cell parameters, space groups, Bragg reflections, radial wavefunctions, and Hume-Rothery solid-solution rules.
           </p>
         </div>
 
-        {/* Custom Vector Schematic + Quick layout toggle */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Right: Quick Element Stepper + Schematic + Layout Switcher */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          {activeElementInfo && (
+            <div className="flex items-center bg-[#070b14] border border-slate-800 rounded-xl p-0.5 text-xs font-mono tabular-nums">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedElement(activeElementInfo.number > 1 ? activeElementInfo.number - 1 : 118);
+                  playSynthTone('tick');
+                }}
+                className="px-2 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Previous element (Left Arrow)"
+              >
+                ←
+              </button>
+              <span className="px-2.5 text-[11px] font-bold text-slate-200 whitespace-nowrap">
+                Z={activeElementInfo.number}{' '}
+                <strong className="text-cyan-300">{activeElementInfo.symbol}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedElement(activeElementInfo.number < 118 ? activeElementInfo.number + 1 : 1);
+                  playSynthTone('tick');
+                }}
+                className="px-2 py-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Next element (Right Arrow)"
+              >
+                →
+              </button>
+            </div>
+          )}
+
           <PeriodicSuiteHeroGraphic />
-          <button
-            type="button"
-            onClick={() => { setLayoutMode(layoutMode === 'split' ? 'expanded' : 'split'); playSynthTone('tick'); }}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-            title="Toggle between Split view (Table + Profiler) and Expanded Full-Width Table"
-          >
-            <span>{layoutMode === 'split' ? 'Full Table' : 'Split View'}</span>
-          </button>
+
+          <div className="flex items-center bg-[#070b14] p-0.5 rounded-xl border border-slate-800 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                setLayoutMode('split');
+                playSynthTone('tick');
+              }}
+              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                layoutMode === 'split'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Split Console
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLayoutMode('expanded');
+                playSynthTone('tick');
+              }}
+              className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                layoutMode === 'expanded'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Full Table
+            </button>
+          </div>
         </div>
       </div>
 
       {loadedBanner && (
-        <div className="bg-gradient-to-r from-indigo-900/90 to-violet-900/90 border border-indigo-500/50 text-indigo-200 text-xs font-black p-4 rounded-xl shadow-[0_0_25px_rgba(99,102,241,0.25)] flex items-center justify-between gap-3 animate-bounce">
-          <div className="flex items-center gap-3">
-            <span className="flex h-3 w-3 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-            </span>
+        <div className="bg-indigo-950/90 border border-indigo-500/50 text-indigo-200 text-xs font-semibold p-3.5 rounded-xl shadow-lg flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Play className="w-4 h-4 text-cyan-400 fill-current shrink-0" />
             <p>
-              Successfully compiled peaks for <span className="text-white font-mono font-bold font-black underline">{loadedBanner}</span>! Switching your workspace to the diffraction spectrometer...
+              Loaded Bragg reflections for{' '}
+              <span className="text-white font-mono font-bold underline">{loadedBanner}</span> into the diffraction spectrometer.
             </p>
           </div>
-          <Play className="w-4 h-4 text-white fill-current animate-pulse" />
         </div>
       )}
 
-      {/* Module Mode Control Tabs */}
-      <div className="flex border-b border-slate-800/60 mb-6 gap-6 text-[11px] font-black pb-3 uppercase tracking-wider overflow-x-auto">
-        <button
-          onClick={() => {
-            setActiveTab('grid');
-            playSynthTone('tick');
-          }}
-          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
-            activeTab === 'grid' 
-              ? 'text-indigo-400 border-b-2 border-indigo-500 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-indigo-400" />
-            Lattice Explorer Grid
-          </div>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('crystal_atlas');
-            playSynthTone('tick');
-          }}
-          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
-            activeTab === 'crystal_atlas' 
-              ? 'text-emerald-400 border-b-2 border-emerald-500 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-400" />
-            Crystal Systems & Bravais Atlas
-          </div>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('compare');
-            playSynthTone('tick');
-          }}
-          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
-            activeTab === 'compare' 
-              ? 'text-rose-400 border-b-2 border-rose-500 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Activity className="w-4.5 h-4.5 text-rose-400" />
-            Lattice Radar Comparator
-          </div>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('alloy');
-            playSynthTone('tick');
-          }}
-          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
-            activeTab === 'alloy' 
-              ? 'text-violet-400 border-b-2 border-violet-500 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Boxes className="w-4.5 h-4.5 text-violet-400" />
-            Hume-Rothery Metallurgy Workbench
-          </div>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('neutron_deck');
-            playSynthTone('tick');
-          }}
-          className={`pb-2 transition-all duration-200 relative whitespace-nowrap ${
-            activeTab === 'neutron_deck' 
-              ? 'text-cyan-400 border-b-2 border-cyan-500 font-extrabold' 
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Atom className="w-4.5 h-4.5 text-cyan-400" />
-            Neutron Scattering & Isotope Deck
-          </div>
-        </button>
+      {/* Segmented Workspace Mode Bar */}
+      <div className="flex items-center gap-1.5 p-1 bg-[#0B0F19] border border-slate-800/90 rounded-xl overflow-x-auto text-xs font-semibold">
+        {(
+          [
+            { id: 'grid', label: 'Periodic Matrix & Profiler', icon: Compass, accent: 'bg-indigo-600 text-white' },
+            { id: 'crystal_atlas', label: 'Bravais & Crystal Atlas', icon: Layers, accent: 'bg-emerald-600 text-white' },
+            { id: 'compare', label: 'Multi-Property Radar Comparator', icon: Activity, accent: 'bg-rose-600 text-white' },
+            { id: 'alloy', label: 'Hume-Rothery Metallurgy Lab', icon: Boxes, accent: 'bg-violet-600 text-white' },
+            { id: 'neutron_deck', label: 'Neutron & Isotope Metrology', icon: Atom, accent: 'bg-cyan-600 text-white' }
+          ] as const
+        ).map(tab => {
+          const Icon = tab.icon;
+          const isAct = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.id);
+                playSynthTone('tick');
+              }}
+              className={`px-3.5 py-2 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap shrink-0 cursor-pointer ${
+                isAct
+                  ? `${tab.accent} shadow-sm font-bold`
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/80'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {activeTab === 'grid' ? (
@@ -3228,6 +3230,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             onTemperatureChange={setTemperature}
             activePreset={activePreset}
             onSelectPreset={setActivePreset}
+            elements={fullElementsGrid}
           />
 
           {/* Interactive 118-Element Crystal Systems & Bravais Distribution Strip */}
@@ -3255,30 +3258,42 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             }}
           />
 
-          {/* Quiet status line */}
-          <div className="flex items-center justify-between text-xs text-slate-400 font-mono px-1 py-0.5">
-            <div className="flex items-center gap-2">
-              <span>Showing <strong className="text-white">{filteredElements.length}</strong> / 118 elements</span>
+          {/* Quiet Telemetry Summary Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 font-mono px-1">
+            <div className="flex items-center gap-2 tabular-nums">
+              <span>
+                Showing <strong className="text-white">{filteredElements.length}</strong> / 118 elements
+              </span>
               {filteredElements.length < 118 && (
-                <span className="text-amber-400 text-[10px] font-sans font-medium bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                  filtered
-                </span>
+                <>
+                  <span className="text-slate-600">·</span>
+                  <span className="text-amber-400">Active filter applied</span>
+                </>
               )}
+              <span className="hidden md:inline text-slate-600">·</span>
+              <span className="hidden md:inline text-slate-500 text-[11px]">
+                Tip: Use keyboard ← ↑ ↓ → arrows to navigate elements
+              </span>
             </div>
             {activeElementInfo && (
-              <div className="flex items-center gap-1.5 text-xs text-indigo-300">
-                <span className="text-slate-500">Selected:</span>
-                <strong className="text-white font-bold">{activeElementInfo.symbol}</strong>
-                <span>({activeElementInfo.name}, #{activeElementInfo.number})</span>
+              <div className="flex items-center gap-1.5 text-xs text-slate-300 tabular-nums">
+                <span className="text-slate-500">Active Specimen:</span>
+                <strong className="text-cyan-300 font-bold">
+                  Z={activeElementInfo.number} {activeElementInfo.symbol}
+                </strong>
+                <span>·</span>
+                <span>{activeElementInfo.name}</span>
+                <span>·</span>
+                <span className="text-indigo-300">{activeElementInfo.crystalStructure}</span>
               </div>
             )}
           </div>
 
           {/* Principal Workspace Grid Area */}
-          <div className={`grid grid-cols-1 ${layoutMode === 'split' ? 'lg:grid-cols-12' : 'grid-cols-1'} gap-6 items-start`}>
+          <div className={`grid grid-cols-1 ${layoutMode === 'split' ? 'lg:grid-cols-12' : 'grid-cols-1'} gap-5 items-start`}>
             {/* Table Column */}
             <div className={`${layoutMode === 'split' ? 'col-span-1 lg:col-span-8' : 'col-span-1'} space-y-4`}>
-              <div className="p-4 sm:p-5 bg-[#0B0F19] border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-[24px] relative">
+              <div className="p-3.5 sm:p-4 bg-[#0B0F19] border border-slate-800/90 shadow-xl rounded-2xl relative">
                 <PeriodicTableGrid
                   elements={fullElementsGrid}
                   selectedElement={selectedElement || 14}
@@ -3302,107 +3317,118 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
             {/* Profiler Column */}
             <div className={`${layoutMode === 'split' ? 'col-span-1 lg:col-span-4' : 'col-span-1'}`}>
-          <AnimatePresence mode="wait">
-            {activeElementInfo ? (
-              <motion.div
-                key={`element-card-${activeElementInfo.number}`}
-                initial={{ opacity: 0, scale: 0.97, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -15 }}
-                transition={{ duration: 0.18 }}
-                className="bg-[#0B0F19]/80 backdrop-blur-2xl border border-white/5 rounded-[24px] p-6 space-y-5 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative overflow-hidden ring-1 ring-white/5"
-              >
-                {/* Element Profiler Ribbon Header */}
-                <div className="flex items-center justify-between border-b border-white/5 pb-5 relative gap-2">
-                  <div className="absolute inset-x-0 -top-10 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none" />
-                  
-                  <div className="space-y-1.5 max-w-[52%] relative z-10">
-                    <span className={`inline-block text-[8px] px-2 py-0.5 rounded-full uppercase tracking-widest font-black leading-none ${activeBadgeColor(activeElementInfo.category)}`}>
-                      {activeElementInfo.category.replace('_', ' ')}
-                    </span>
-                    <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400 tracking-tight">{activeElementInfo.name}</h3>
-                    <p className="text-[9.5px] font-mono text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <span>{activeElementInfo.weight.toFixed(4)} u</span>
-                      <span>·</span>
-                      <span className="text-cyan-300">{activeElementInfo.spaceGroup}</span>
-                    </p>
-                  </div>
+              <AnimatePresence mode="wait">
+                {activeElementInfo ? (
+                  <motion.div
+                    key={`element-card-${activeElementInfo.number}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
+                    className="bg-[#0B0F19] border border-slate-800/90 rounded-2xl p-5 space-y-4 shadow-xl relative overflow-hidden"
+                  >
+                    {/* Element Profiler Header (Clean Unboxed Metadata) */}
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 gap-3">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                          <span className="text-indigo-400 font-bold">
+                            {activeElementInfo.category.replace('_', ' ')}
+                          </span>
+                          <span className="text-slate-600">·</span>
+                          <span>Group {activeElementInfo.group}</span>
+                          <span className="text-slate-600">·</span>
+                          <span>Period {activeElementInfo.period}</span>
+                        </div>
+                        <h3 className="text-2xl font-black text-white tracking-tight truncate">
+                          {activeElementInfo.name}
+                        </h3>
+                        <p className="text-[11px] font-mono text-slate-400 tabular-nums flex items-center gap-1.5 flex-wrap">
+                          <strong className="text-slate-200">{activeElementInfo.weight.toFixed(4)} u</strong>
+                          <span className="text-slate-600">·</span>
+                          <span className="text-cyan-300 font-bold">{activeElementInfo.spaceGroup}</span>
+                          <span className="text-slate-600">·</span>
+                          <span className="text-emerald-300">{activeElementInfo.crystalStructure}</span>
+                        </p>
+                      </div>
 
-                  {/* Concentric Bohr Shell Diagram + Element Logo Plate */}
-                  <div className="flex items-center gap-2.5 z-10 shrink-0">
-                    <ElectronShellRingGraphic
-                      atomicNumber={activeElementInfo.number}
-                      symbol={activeElementInfo.symbol}
-                      size={68}
-                    />
-                    <div className="relative w-16 h-16 bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl flex flex-col items-center justify-center p-1.5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)]">
-                      <span className="text-[8px] font-black font-mono text-slate-400 self-start leading-none absolute top-1.5 left-1.5">
-                        {activeElementInfo.number}
-                      </span>
-                      <MicroLatticeGlyph
-                        structure={activeElementInfo.crystalStructure}
-                        size={11}
-                        className="text-cyan-400 absolute top-1.5 right-1.5"
-                      />
-                      <span className="text-2xl font-black text-white leading-none tracking-tight mt-1.5">
-                        {activeElementInfo.symbol}
-                      </span>
-                      <span className={`text-[6.5px] px-1 py-0.1 select-none font-bold scale-90 uppercase tracking-widest rounded mt-1 text-center ${getStructLabelColor(activeElementInfo.crystalStructure)}`}>
-                        {activeElementInfo.crystalStructure}
-                      </span>
+                      {/* Concentric Bohr Shell Diagram + Element Identity Plate */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <ElectronShellRingGraphic
+                          atomicNumber={activeElementInfo.number}
+                          symbol={activeElementInfo.symbol}
+                          size={64}
+                        />
+                        <div className="w-15 h-15 bg-[#070b14] border border-slate-700/80 rounded-xl flex flex-col items-center justify-between p-1.5 shrink-0">
+                          <div className="w-full flex items-center justify-between text-[8px] font-mono font-bold text-slate-400 leading-none tabular-nums">
+                            <span>Z={activeElementInfo.number}</span>
+                            <MicroLatticeGlyph
+                              structure={activeElementInfo.crystalStructure}
+                              size={10}
+                              className="text-cyan-400"
+                            />
+                          </div>
+                          <span className="text-xl font-black text-white leading-none tracking-tight my-auto">
+                            {activeElementInfo.symbol}
+                          </span>
+                          <span className="text-[7px] font-mono text-cyan-300 font-bold tabular-nums leading-none">
+                            {activeElementInfo.a.toFixed(2)}Å
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="flex flex-wrap justify-between items-center gap-2 bg-slate-900 border-b border-slate-800/80 pb-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-300">Material Profiler</span>
-                    <button
-                      onClick={() => handleLoadElementDiffractionPeaks(activeElementInfo)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition-colors cursor-pointer"
-                      title="Simulate pure element powder XRD Bragg peaks in spectrometer"
-                    >
-                      <Play className="w-2.5 h-2.5 fill-current" />
-                      Graph XRD
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        setAlloySolventZ(activeElementInfo.number);
-                        setActiveTab('alloy');
-                        playSynthTone('switch');
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 transition-colors cursor-pointer"
-                      title="Open in Hume-Rothery Metallurgy Workbench"
-                    >
-                      <Boxes className="w-3 h-3" />
-                      Alloy
-                    </button>
-                    <button
-                      onClick={() => {
-                        setNeutronSelectedZ(activeElementInfo.number);
-                        setActiveTab('neutron_deck');
-                        playSynthTone('switch');
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 transition-colors cursor-pointer"
-                      title="Open in Neutron & Nuclear Metrology Deck"
-                    >
-                      <Atom className="w-3 h-3" />
-                      Neutron
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsEditingElement(!isEditingElement);
-                        playSynthTone('tick');
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white text-slate-300 transition-colors cursor-pointer"
-                    >
-                      <Settings className="w-3 h-3" />
-                      {isEditingElement ? "View" : "Edit"}
-                    </button>
-                  </div>
-                </div>
+                    {/* Quick Action Bar */}
+                    <div className="flex flex-wrap justify-between items-center gap-2 border-b border-slate-800/80 pb-3">
+                      <button
+                        type="button"
+                        onClick={() => handleLoadElementDiffractionPeaks(activeElementInfo)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10.5px] font-mono font-bold uppercase tracking-wider rounded-lg border border-cyan-500/40 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                        title="Simulate pure element powder XRD Bragg peaks in spectrometer"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Simulate XRD Peaks</span>
+                      </button>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAlloySolventZ(activeElementInfo.number);
+                            setActiveTab('alloy');
+                            playSynthTone('switch');
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-mono font-bold uppercase rounded-lg border border-slate-700 bg-slate-900 hover:border-violet-500/50 text-violet-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                          title="Open in Hume-Rothery Metallurgy Workbench"
+                        >
+                          <Boxes className="w-3 h-3" />
+                          <span>Alloy</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNeutronSelectedZ(activeElementInfo.number);
+                            setActiveTab('neutron_deck');
+                            playSynthTone('switch');
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-mono font-bold uppercase rounded-lg border border-slate-700 bg-slate-900 hover:border-cyan-500/50 text-cyan-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                          title="Open in Neutron & Nuclear Metrology Deck"
+                        >
+                          <Atom className="w-3 h-3" />
+                          <span>Neutron</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingElement(!isEditingElement);
+                            playSynthTone('tick');
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-mono font-bold uppercase rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                        >
+                          <Settings className="w-3 h-3" />
+                          <span>{isEditingElement ? 'Done' : 'Edit'}</span>
+                        </button>
+                      </div>
+                    </div>
 
                 {isEditingElement ? (
                   <div className="space-y-4 animate-fadeIn">
@@ -4746,8 +4772,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-slate-300">
-                {alloyVegardCalculations.peakComparisons.map((row) => (
-                  <tr key={row.hkl} className="hover:bg-white/[0.02]">
+                {alloyVegardCalculations.peakComparisons.map((row, rIdx) => (
+                  <tr key={`${row.hkl}-${rIdx}`} className="hover:bg-white/[0.02]">
                     <td className="py-2 px-3 font-bold text-white">{row.hkl}</td>
                     <td className="py-2 px-3">{row.d0.toFixed(4)} &Aring;</td>
                     <td className="py-2 px-3 text-violet-300 font-bold">{row.dAlloy.toFixed(4)} &Aring;</td>

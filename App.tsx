@@ -593,21 +593,22 @@ const App: React.FC = () => {
       if (user && unsyncedAnalyses.length > 0) {
         for (const item of unsyncedAnalyses) {
           setFirestoreSyncStatus(t(`Syncing calculation "${item.title}"...`, `Syncing calculation "${item.title}"...`));
+          const safeId = String(item.id || `bragg-${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 120);
           const docData: any = {
-            id: item.id,
+            id: safeId,
             userId: user.uid,
-            timestamp: item.timestamp,
-            wavelength: item.wavelength || 1.5406,
-            rawPeaks: item.inputData?.rawPeaks || '',
-            rawHKL: item.inputData?.rawHKL || '',
-            resultsJson: JSON.stringify(item.results || [])
+            timestamp: String(item.timestamp || new Date().toISOString()).slice(0, 95),
+            wavelength: typeof item.wavelength === 'number' && item.wavelength > 0 && item.wavelength < 100 ? item.wavelength : 1.5406,
+            rawPeaks: String(item.inputData?.rawPeaks || '').slice(0, 9500),
+            rawHKL: String(item.inputData?.rawHKL || '').slice(0, 9500),
+            resultsJson: JSON.stringify(item.results || []).slice(0, 195000)
           };
           if (item.title && item.title.startsWith('Bragg: ')) {
-            docData.sampleId = item.title.replace('Bragg: ', '');
+            docData.sampleId = item.title.replace('Bragg: ', '').slice(0, 95);
           }
 
           try {
-            await setDoc(doc(db, 'braggHistory', item.id), docData);
+            await setDoc(doc(db, 'braggHistory', safeId), docData);
             await saveOfflineAnalysis({ ...item, isSynced: true });
           } catch (err) {
             console.error("Firestore sync error for analysis:", err);
@@ -624,11 +625,23 @@ const App: React.FC = () => {
         for (const mat of unsyncedMaterials) {
           setFirestoreSyncStatus(t(`Syncing material "${mat.name}"...`, `Syncing material "${mat.name}"...`));
           try {
-            await setDoc(doc(db, 'customMaterials', mat.name), {
-              ...mat,
+            const docId = String((mat as any).id || mat.name || `mat_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 120) || `mat_${Date.now()}`;
+            const matPayload: Record<string, any> = {
+              id: docId,
               userId: user.uid,
-              syncedAt: new Date().toISOString()
-            });
+              name: String(mat.name || 'Custom Material').slice(0, 190),
+              formula: String(mat.formula || '').slice(0, 95),
+              pattern: String(mat.pattern || '').slice(0, 195000),
+            };
+            if (mat.type) matPayload.type = String(mat.type).slice(0, 190);
+            if (mat.description) matPayload.description = String(mat.description).slice(0, 1950);
+            if (mat.crystalSystem) matPayload.crystalSystem = String(mat.crystalSystem).slice(0, 190);
+            if (mat.spaceGroup) matPayload.spaceGroup = String(mat.spaceGroup).slice(0, 190);
+            if (typeof mat.density === 'number' && !isNaN(mat.density)) matPayload.density = mat.density;
+            if (typeof mat.molecularWeight === 'number' && !isNaN(mat.molecularWeight)) matPayload.molecularWeight = mat.molecularWeight;
+            if (typeof mat.elasticModulus === 'number' && !isNaN(mat.elasticModulus)) matPayload.elasticModulus = mat.elasticModulus;
+
+            await setDoc(doc(db, 'customMaterials', docId), matPayload);
             await saveOfflineMaterial({ ...mat, isSynced: true });
           } catch (err) {
             console.error("Firestore material sync error:", err);
@@ -1128,21 +1141,22 @@ const App: React.FC = () => {
           .catch(err => console.error("IndexedDB cache save failed:", err));
 
         if (user) {
-          const path = `braggHistory/${newItem.id}`;
-          const resultsJson = JSON.stringify(computed);
+          const safeId = String(newItem.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 120);
+          const path = `braggHistory/${safeId}`;
+          const resultsJson = JSON.stringify(computed).slice(0, 195000);
           const docData: any = {
-            id: newItem.id,
+            id: safeId,
             userId: user.uid,
-            timestamp: newItem.timestamp,
-            wavelength: newItem.wavelength,
-            rawPeaks: newItem.rawPeaks,
-            rawHKL: newItem.rawHKL,
+            timestamp: String(newItem.timestamp).slice(0, 95),
+            wavelength: typeof newItem.wavelength === 'number' && newItem.wavelength > 0 && newItem.wavelength < 100 ? newItem.wavelength : 1.5406,
+            rawPeaks: String(newItem.rawPeaks || '').slice(0, 9500),
+            rawHKL: String(newItem.rawHKL || '').slice(0, 9500),
             resultsJson: resultsJson
           };
           if (newItem.sampleId) {
-            docData.sampleId = newItem.sampleId;
+            docData.sampleId = String(newItem.sampleId).slice(0, 95);
           }
-          setDoc(doc(db, 'braggHistory', newItem.id), docData).catch((error) => {
+          setDoc(doc(db, 'braggHistory', safeId), docData).catch((error) => {
             handleFirestoreError(error, OperationType.CREATE, path);
           });
         }
@@ -1212,21 +1226,22 @@ const App: React.FC = () => {
 
         if (user) {
           for (const newItem of newHistoryItems) {
-            const path = `braggHistory/${newItem.id}`;
-            const resultsJson = JSON.stringify(newItem.results);
+            const safeId = String(newItem.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 120);
+            const path = `braggHistory/${safeId}`;
+            const resultsJson = JSON.stringify(newItem.results).slice(0, 195000);
             const docData: any = {
-              id: newItem.id,
+              id: safeId,
               userId: user.uid,
-              timestamp: newItem.timestamp,
-              wavelength: newItem.wavelength,
-              rawPeaks: newItem.rawPeaks,
-              rawHKL: newItem.rawHKL,
+              timestamp: String(newItem.timestamp).slice(0, 95),
+              wavelength: typeof newItem.wavelength === 'number' && newItem.wavelength > 0 && newItem.wavelength < 100 ? newItem.wavelength : 1.5406,
+              rawPeaks: String(newItem.rawPeaks || '').slice(0, 9500),
+              rawHKL: String(newItem.rawHKL || '').slice(0, 9500),
               resultsJson: resultsJson
             };
             if (newItem.sampleId) {
-              docData.sampleId = newItem.sampleId;
+              docData.sampleId = String(newItem.sampleId).slice(0, 95);
             }
-            setDoc(doc(db, 'braggHistory', newItem.id), docData).catch((error) => {
+            setDoc(doc(db, 'braggHistory', safeId), docData).catch((error) => {
               handleFirestoreError(error, OperationType.CREATE, path);
             });
           }

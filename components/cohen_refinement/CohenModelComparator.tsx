@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { Award, Check, Sparkles, ArrowRight, Activity, Zap, TrendingDown, Layers, ShieldCheck } from 'lucide-react';
+import { Award, Check, Sparkles, Zap } from 'lucide-react';
 import { CrystalSystem, DriftFunctionType, PeakInput } from './CohenPresetsDb';
 
-interface ModelResult {
+export interface ModelResult {
   a: number;
   b: number;
   c: number;
@@ -12,6 +12,9 @@ interface ModelResult {
   sumResidualSquare: number;
   rwpPct?: number;
   gof?: number;
+  aic?: number;
+  smithSnyderFN?: number;
+  sampleDisplacementUm?: number;
 }
 
 interface CohenModelComparatorProps {
@@ -42,44 +45,51 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
       geometry: 'Standard Parafocusing Powder'
     },
     {
+      type: 'taylor_sinclair',
+      label: 'Taylor-Sinclair',
+      formula: '½cos²θ sinθ(1/sinθ + 1/θ)',
+      context: 'Axial divergence + finite specimen absorption in cylindrical/flat geometry',
+      geometry: 'Cylindrical & Parafocusing'
+    },
+    {
       type: 'sample_displacement',
       label: 'Sample Height Displacement',
       formula: 'cos²θ sinθ',
-      context: 'Goniometer sample plane z-axis displacement offset',
+      context: 'Goniometer sample plane z-axis displacement offset Δz',
       geometry: 'Goniometer Alignment Offset'
     },
     {
       type: 'bradley_jay',
       label: 'Bradley-Jay',
       formula: 'cos²θ',
-      context: 'Debye-Scherrer film camera film shrinkage & absorption',
+      context: 'Debye-Scherrer camera radius & high-angle absorption extrapolation',
       geometry: 'Debye-Scherrer Camera'
     },
     {
       type: 'hess_hagg',
       label: 'Hess-Hägg',
       formula: 'sin²(2θ)',
-      context: 'Focusing Guinier / Seemann-Bohlin geometry cameras',
+      context: 'Focusing Guinier / Seemann-Bohlin transmission geometry cameras',
       geometry: 'Guinier Camera'
     },
     {
       type: 'zero_shift',
       label: 'Detector Zero-Shift',
-      formula: 'cosθ',
-      context: 'Mechanical detector 2θ zero-point encoder calibration offset',
-      geometry: 'Encoder Offset'
+      formula: 'sin(2θ)',
+      context: 'Mechanical detector 2θ zero-point encoder calibration offset Δ2θ₀',
+      geometry: 'Encoder Zero Offset'
     },
     {
       type: 'flat_specimen',
       label: 'Flat Specimen & Transparency',
       formula: 'cotθ (cosθ / sinθ)',
-      context: 'Flat specimen surface aberration & penetration transparency',
-      geometry: 'Thick/Low-Absorption Specimen'
+      context: 'Flat specimen surface aberration & low-μ X-ray penetration depth',
+      geometry: 'Low-Absorption Specimen'
     },
     {
       type: 'dual_drift',
       label: 'Dual-Drift (NR + Zero-Shift)',
-      formula: 'D₁·f_NR(θ) + D₂·cosθ',
+      formula: 'D₁·f_NR(θ) + D₂·sin(2θ)',
       context: 'Simultaneous sample displacement & 2θ zero-offset co-refinement',
       geometry: 'Dual Physical Drift'
     },
@@ -92,7 +102,6 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
     }
   ];
 
-  // Evaluate all models
   const results = useMemo(() => {
     const validPeaks = peaks.filter(p => p.enabled !== false && p.twoTheta > 0 && p.twoTheta < 180);
     if (validPeaks.length < 2) return [];
@@ -113,7 +122,7 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
     }[];
   }, [peaks, crystalSystem, wavelength, solveSystem]);
 
-  // Find best model by minimum RMS 2Theta
+  // Find best model by lowest AIC (or minimum RMS 2Theta if AIC tied)
   const bestModel = useMemo(() => {
     if (!results.length) return null;
     return [...results].sort((a, b) => (a.result.rmsTwoTheta || 999) - (b.result.rmsTwoTheta || 999))[0];
@@ -122,15 +131,15 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
   if (!results.length) return null;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 md:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
         <div>
-          <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2">
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Zap className="w-4 h-4 text-amber-500" />
-            Systematic Drift Function Multi-Model Benchmark
+            Systematic Drift Function Multi-Model Benchmark (9 Analytical Kernels)
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Automatic evaluation across all systematic error drift models to identify the optimal diffractometer fit
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Simultaneous cross-evaluation of all diffractometer error functions ranked by RMS Δ2θ, R<sub>wp</sub>, Smith–Snyder F<sub>N</sub>, and AIC
           </p>
         </div>
 
@@ -138,15 +147,15 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
           <button
             type="button"
             onClick={() => onSelectDriftType(bestModel.type)}
-            className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md hover:opacity-90 flex items-center gap-1.5 transition-all self-start sm:self-auto"
+            className="px-3 py-1.5 rounded-xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm flex items-center gap-1.5 transition-all self-start sm:self-auto"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Apply Best Model ({bestModel.label})
+            Apply Optimal Model ({bestModel.label})
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {results.map(item => {
           const isBest = bestModel?.type === item.type;
           const isActive = activeDriftType === item.type;
@@ -156,12 +165,12 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
             <div
               key={item.type}
               onClick={() => onSelectDriftType(item.type)}
-              className={`p-4 rounded-2xl border transition-all cursor-pointer relative flex flex-col justify-between space-y-3 ${
+              className={`p-4 rounded-xl border transition-all cursor-pointer relative flex flex-col justify-between space-y-3 ${
                 isActive
-                  ? 'border-indigo-500 dark:border-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20 shadow-md'
+                  ? 'border-indigo-500 dark:border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/40 ring-1 ring-indigo-500/30 shadow-sm'
                   : isBest
-                  ? 'border-amber-300 dark:border-amber-500/50 bg-amber-50/30 dark:bg-amber-950/20 hover:border-amber-400'
-                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 hover:border-slate-300 dark:hover:border-slate-700'
+                  ? 'border-amber-300 dark:border-amber-500/50 bg-amber-50/20 dark:bg-amber-950/20 hover:border-amber-400'
+                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/40 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
               <div>
@@ -173,7 +182,7 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
                     {isBest && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center gap-0.5">
                         <Award className="w-3 h-3 text-amber-500" />
-                        Best Fit
+                        Lowest RMS
                       </span>
                     )}
                     {isActive && (
@@ -185,8 +194,8 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
                   </div>
                 </div>
 
-                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/70 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800/80 mb-2 truncate">
-                  {item.formula}
+                <div className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400 bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded border border-slate-200/70 dark:border-slate-800 mb-1.5 truncate">
+                  f(θ) = {item.formula}
                 </div>
 
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
@@ -194,36 +203,34 @@ export const CohenModelComparator: React.FC<CohenModelComparatorProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 space-y-1.5 text-xs">
+              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 space-y-1 text-xs font-mono">
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Refined a₀:</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-100">
-                    {res.a.toFixed(precision + 1)} Å
+                  <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">Refined a₀:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100">
+                    {res.a.toFixed(precision + 1)} ± {res.sigmaA.toFixed(precision + 1)} Å
                   </span>
                 </div>
 
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">RMS Δ2θ:</span>
-                  <span className={`font-mono font-bold ${
-                    isBest ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'
+                  <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">RMS Δ2θ:</span>
+                  <span className={`font-bold ${
+                    isBest ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'
                   }`}>
                     ±{res.rmsTwoTheta.toFixed(4)}°
                   </span>
                 </div>
 
-                {res.rwpPct !== undefined && res.rwpPct > 0 && (
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">Weighted R_wp:</span>
-                    <span className="font-mono text-slate-600 dark:text-slate-400">
-                      {res.rwpPct.toFixed(2)}%
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">F<sub>N</sub> / AIC:</span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                    F={(res.smithSnyderFN || 0).toFixed(1)} | AIC={(res.aic || 0).toFixed(1)}
+                  </span>
+                </div>
 
                 <div className="flex justify-between items-baseline">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Drift Coeff D:</span>
-                  <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
-                    {res.D.toExponential(2)}
+                  <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">Drift D / Δz:</span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                    {res.D.toExponential(2)} ({res.sampleDisplacementUm !== undefined ? `${res.sampleDisplacementUm.toFixed(1)} μm` : '-'})
                   </span>
                 </div>
               </div>

@@ -254,7 +254,6 @@ export const MultiPeakManager: React.FC<MultiPeakManagerProps> = ({
   // Delete a peak
   const handleDeletePeak = (id: string) => {
     if (peaks.length <= 1) {
-      alert('At least one peak must remain in the multi-peak configuration.');
       return;
     }
     onPeaksChange(peaks.filter(p => p.id !== id && p.doubletParentId !== id));
@@ -857,8 +856,8 @@ print("Ready for SciPy curve_fit optimization against experimental XRD scan!")
             </div>
 
             <div className="space-y-2 pt-1">
-              {phaseStats.map(p => (
-                <div key={p.name} className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-2 text-xs">
+              {phaseStats.map((p, pIdx) => (
+                <div key={`${p.name}-${pIdx}`} className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-3 h-3 rounded-md shrink-0" style={{ backgroundColor: p.color }} />
                     <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</span>

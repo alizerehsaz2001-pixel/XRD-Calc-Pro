@@ -2003,12 +2003,14 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
         });
       } else {
         addTerminalLog(`Direct Sync Failed: ${data.error || 'Server error'}`);
-        alert(data.error || 'Failed to fetch global database records.');
+        setImportStatus(data.error || 'Failed to fetch global database records.');
+        setTimeout(() => setImportStatus(null), 4000);
       }
     } catch (e: any) {
       console.error(e);
       addTerminalLog(`Direct Network Exception: ${e.message}`);
-      alert('Error connecting to Global Database Sync service: ' + e.message);
+      setImportStatus('Error connecting to Global Database Sync service: ' + e.message);
+      setTimeout(() => setImportStatus(null), 4000);
     } finally {
       setIsGlobalSearching(false);
     }
@@ -2017,15 +2019,15 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const handleImportGlobalMaterial = async (m: any) => {
     // Generate a clean record conforming to our Material DB item schema
     const newMaterial = {
-      name: m.name,
-      formula: m.formula,
+      name: m.name || 'Procured Material',
+      formula: m.formula || '',
       category: selectedGlobalDB === 'materials_project' ? 'Perovskite' : 'Ceramic',
       type: m.type || 'Custom Procured Material',
-      crystalSystem: m.crystalSystem,
-      spaceGroup: m.spaceGroup,
-      density: m.density || 4.5,
-      molecularWeight: m.molecularWeight || 100,
-      elasticModulus: m.elasticModulus || 65,
+      crystalSystem: m.crystalSystem || 'Cubic',
+      spaceGroup: m.spaceGroup || 'P1',
+      density: typeof m.density === 'number' && !isNaN(m.density) ? m.density : 4.5,
+      molecularWeight: typeof m.molecularWeight === 'number' && !isNaN(m.molecularWeight) ? m.molecularWeight : 100,
+      elasticModulus: typeof m.elasticModulus === 'number' && !isNaN(m.elasticModulus) ? m.elasticModulus : 65,
       description: m.description || `Procured and synced from ${selectedGlobalDB}.`,
       pattern: m.pattern || "",
       applications: m.applications || ["Research"],
@@ -2038,21 +2040,20 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
     // Save to Firestore if user is authenticated
     if (db && auth.currentUser) {
       try {
-        const docId = m.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        const docId = String(newMaterial.name).replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase().slice(0, 120) || `mat_${Date.now()}`;
         await setDoc(doc(db, 'customMaterials', docId), {
           id: docId,
           userId: auth.currentUser.uid,
-          name: newMaterial.name,
-          formula: newMaterial.formula,
-          type: newMaterial.type,
-          crystalSystem: newMaterial.crystalSystem,
-          spaceGroup: newMaterial.spaceGroup,
+          name: String(newMaterial.name).slice(0, 190),
+          formula: String(newMaterial.formula).slice(0, 95),
+          type: String(newMaterial.type).slice(0, 190),
+          crystalSystem: String(newMaterial.crystalSystem).slice(0, 190),
+          spaceGroup: String(newMaterial.spaceGroup).slice(0, 190),
           density: newMaterial.density,
           molecularWeight: newMaterial.molecularWeight,
           elasticModulus: newMaterial.elasticModulus,
-          description: newMaterial.description,
-          pattern: newMaterial.pattern,
-          syncedAt: new Date().toISOString()
+          description: String(newMaterial.description).slice(0, 1950),
+          pattern: String(newMaterial.pattern).slice(0, 195000)
         });
       } catch (err) {
         console.error("Firestore database backup error:", err);
@@ -2070,15 +2071,15 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
     for (const m of globalResults) {
       const idx = next.findIndex(item => item.name === m.name);
       const newMaterial = {
-        name: m.name,
-        formula: m.formula,
+        name: m.name || 'Procured Material',
+        formula: m.formula || '',
         category: 'Ceramic',
         type: m.type || 'Custom Procured Material',
-        crystalSystem: m.crystalSystem,
-        spaceGroup: m.spaceGroup,
-        density: m.density || 4.5,
-        molecularWeight: m.molecularWeight || 100,
-        elasticModulus: m.elasticModulus || 65,
+        crystalSystem: m.crystalSystem || 'Cubic',
+        spaceGroup: m.spaceGroup || 'P1',
+        density: typeof m.density === 'number' && !isNaN(m.density) ? m.density : 4.5,
+        molecularWeight: typeof m.molecularWeight === 'number' && !isNaN(m.molecularWeight) ? m.molecularWeight : 100,
+        elasticModulus: typeof m.elasticModulus === 'number' && !isNaN(m.elasticModulus) ? m.elasticModulus : 65,
         description: m.description || `Bulk imported from ${selectedGlobalDB}.`,
         pattern: m.pattern || "",
         applications: m.applications || ["Research"],
@@ -2094,21 +2095,20 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
       // Save to Firestore if authenticated
       if (db && auth.currentUser) {
         try {
-          const docId = m.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+          const docId = String(newMaterial.name).replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase().slice(0, 120) || `mat_${Date.now()}`;
           await setDoc(doc(db, 'customMaterials', docId), {
             id: docId,
             userId: auth.currentUser.uid,
-            name: newMaterial.name,
-            formula: newMaterial.formula,
-            type: newMaterial.type,
-            crystalSystem: newMaterial.crystalSystem,
-            spaceGroup: newMaterial.spaceGroup,
+            name: String(newMaterial.name).slice(0, 190),
+            formula: String(newMaterial.formula).slice(0, 95),
+            type: String(newMaterial.type).slice(0, 190),
+            crystalSystem: String(newMaterial.crystalSystem).slice(0, 190),
+            spaceGroup: String(newMaterial.spaceGroup).slice(0, 190),
             density: newMaterial.density,
             molecularWeight: newMaterial.molecularWeight,
             elasticModulus: newMaterial.elasticModulus,
-            description: newMaterial.description,
-            pattern: newMaterial.pattern,
-            syncedAt: new Date().toISOString()
+            description: String(newMaterial.description).slice(0, 1950),
+            pattern: String(newMaterial.pattern).slice(0, 195000)
           });
         } catch (err) {
           console.error("Firestore database backup error:", err);
@@ -2222,10 +2222,10 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
 
   // Reset entire database to defaults
   const handleResetAllMaterials = () => {
-    if (window.confirm(t('Are you sure you want to restore all materials back to standard defaults?', 'Are you sure you want to restore all materials back to standard defaults?'))) {
-      saveMaterials(MATERIAL_DB);
-      setIsEditing(false);
-    }
+    saveMaterials(MATERIAL_DB);
+    setIsEditing(false);
+    setImportStatus(t('Restored all material standards back to factory defaults.', 'Restored all material standards back to factory defaults.'));
+    setTimeout(() => setImportStatus(null), 4000);
   };
 
   // Parse list of categories from DB
@@ -2650,23 +2650,23 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
     setSelectedMaterialName(updated.name);
   };
 
-  // Delete a material with confirmation support
+  // Delete a material with status feedback
   const handleDeleteMaterial = (nameToDelete: string) => {
-    if (window.confirm(t('Are you sure you want to delete this material standard from the database? This action is reversible by clicking "Reset DB Overrides & Restore standards".', 'Are you sure you want to delete this material standard from the database? This action is reversible by clicking "Reset DB Overrides & Restore standards".'))) {
-      const remaining = materials.filter(m => m.name !== nameToDelete);
-      saveMaterials(remaining);
-      
-      // Select another material
-      if (selectedMaterialName === nameToDelete) {
-        if (remaining.length > 0) {
-          setSelectedMaterialName(remaining[0].name);
-        } else {
-          setSelectedMaterialName('');
-        }
+    const remaining = materials.filter(m => m.name !== nameToDelete);
+    saveMaterials(remaining);
+    
+    // Select another material
+    if (selectedMaterialName === nameToDelete) {
+      if (remaining.length > 0) {
+        setSelectedMaterialName(remaining[0].name);
+      } else {
+        setSelectedMaterialName('');
       }
-      setIsEditing(false);
-      setIsCreating(false);
     }
+    setIsEditing(false);
+    setIsCreating(false);
+    setImportStatus(`Deleted "${nameToDelete}" from local overrides. Click "Reset" anytime to restore defaults.`);
+    setTimeout(() => setImportStatus(null), 4000);
   };
 
   // Export full DB to custom local JSON file
@@ -2706,15 +2706,19 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
             });
             saveMaterials(merged);
             setSelectedMaterialName(parsed[0].name);
-            alert(t('Database imported and merged successfully!', 'Database imported and merged successfully!'));
+            setImportStatus(t('Database imported and merged successfully!', 'Database imported and merged successfully!'));
+            setTimeout(() => setImportStatus(null), 4000);
           } else {
-            alert(t('Invalid database schema. Make sure every material has name, formula, and pattern fields.', 'Invalid database schema. Make sure every material has name, formula, and pattern fields.'));
+            setImportStatus(t('Invalid database schema. Make sure every material has name, formula, and pattern fields.', 'Invalid database schema. Make sure every material has name, formula, and pattern fields.'));
+            setTimeout(() => setImportStatus(null), 4000);
           }
         } else {
-          alert(t('Uploaded file is not a valid JSON array of materials.', 'Uploaded file is not a valid JSON array of materials.'));
+          setImportStatus(t('Uploaded file is not a valid JSON array of materials.', 'Uploaded file is not a valid JSON array of materials.'));
+          setTimeout(() => setImportStatus(null), 4000);
         }
       } catch (err) {
-        alert(t('Failed to parse the uploaded file as JSON.', 'Failed to parse the uploaded file as JSON.'));
+        setImportStatus(t('Failed to parse the uploaded file as JSON.', 'Failed to parse the uploaded file as JSON.'));
+        setTimeout(() => setImportStatus(null), 4000);
       }
     };
     reader.readAsText(file);
@@ -3805,10 +3809,10 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                         {/* Molecular Weight */}
                         <tr className="hover:bg-white/5 transition-colors">
                           <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Molecular Weight', 'Molecular Weight')}</td>
-                          {comparedMaterials.map((name) => {
+                          {comparedMaterials.map((name, cIdx) => {
                             const mat = materials.find(m => m.name === name);
                             return (
-                              <td key={name} className="py-4 px-6 text-center font-bold text-slate-300">
+                              <td key={`${name}-mw-${cIdx}`} className="py-4 px-6 text-center font-bold text-slate-300">
                                 {mat?.molecularWeight ? `${mat.molecularWeight.toFixed(2)} g/mol` : '-'}
                               </td>
                             );
@@ -3818,11 +3822,11 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                         {/* Lattice Parameters */}
                         <tr className="hover:bg-white/5 transition-colors">
                           <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Lattice Dimensions', 'Lattice Dimensions')}</td>
-                          {comparedMaterials.map((name) => {
+                          {comparedMaterials.map((name, cIdx) => {
                             const mat = materials.find(m => m.name === name);
                             const lp = mat?.latticeParams;
                             return (
-                              <td key={name} className="py-4 px-6 text-center text-[11px] leading-relaxed">
+                              <td key={`${name}-lp-${cIdx}`} className="py-4 px-6 text-center text-[11px] leading-relaxed">
                                 {lp ? (
                                   <div>
                                     <div className="font-extrabold text-slate-200">
@@ -3843,13 +3847,13 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                         {/* Applications */}
                         <tr className="hover:bg-white/5 transition-colors">
                           <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Applications', 'Applications')}</td>
-                          {comparedMaterials.map((name) => {
+                          {comparedMaterials.map((name, cIdx) => {
                             const mat = materials.find(m => m.name === name);
                             return (
-                              <td key={name} className="py-4 px-6 text-center">
+                              <td key={`${name}-app-${cIdx}`} className="py-4 px-6 text-center">
                                 <div className="flex flex-wrap justify-center gap-1 max-w-[200px] mx-auto">
-                                  {mat?.applications?.slice(0, 3).map((app: string) => (
-                                    <span key={app} className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700/50">
+                                  {mat?.applications?.slice(0, 3).map((app: string, aIdx: number) => (
+                                    <span key={`${app}-${aIdx}`} className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700/50">
                                       {app}
                                     </span>
                                   ))}
@@ -4112,10 +4116,10 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                   <div className="w-[1px] h-3/5 bg-slate-700/50 mx-1"></div>
                   <button
                     onClick={() => {
-                      if (confirm("Are you sure you want to reset the Material Registry to its factory default state? All custom materials will be lost.")) {
-                        setMaterials(MATERIAL_DB);
-                        localStorage.removeItem(LOCAL_STORAGE_KEY);
-                      }
+                      setMaterials(MATERIAL_DB);
+                      localStorage.removeItem(LOCAL_STORAGE_KEY);
+                      setImportStatus('Material Registry restored to factory default standards.');
+                      setTimeout(() => setImportStatus(null), 4000);
                     }}
                     className="h-full px-3 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition-colors flex items-center justify-center"
                     title="Reset Registry to Default"
@@ -4592,7 +4596,8 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                               };
                             });
                             saveMaterials(next);
-                            alert(t('Chemical Elements have been auto-synchronized for all materials based on their formulas!', 'Chemical Elements have been auto-synchronized for all materials based on their formulas!'));
+                            setImportStatus(t('Chemical Elements have been auto-synchronized for all materials based on their formulas!', 'Chemical Elements have been auto-synchronized for all materials based on their formulas!'));
+                            setTimeout(() => setImportStatus(null), 4000);
                           }}
                           className="flex-1 px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[9px] font-sans font-bold text-emerald-300 rounded-lg cursor-pointer transition-colors text-center"
                         >
@@ -4614,7 +4619,8 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                               return m;
                             });
                             saveMaterials(next);
-                            alert(t('Missing mechanical stiffness data has been auto-imputed using taxonomy averages!', 'Missing mechanical stiffness data has been auto-imputed using taxonomy averages!'));
+                            setImportStatus(t('Missing mechanical stiffness data has been auto-imputed using taxonomy averages!', 'Missing mechanical stiffness data has been auto-imputed using taxonomy averages!'));
+                            setTimeout(() => setImportStatus(null), 4000);
                           }}
                           className="flex-1 px-2.5 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-sans font-bold text-cyan-300 rounded-lg cursor-pointer transition-colors text-center"
                         >
@@ -4630,7 +4636,8 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                               return { ...m, spaceGroup: m.spaceGroup.trim().replace(/\s+/g, '') };
                             });
                             saveMaterials(next);
-                            alert(t('Missing space groups have been normalized and cleaned!', 'Missing space groups have been normalized and cleaned!'));
+                            setImportStatus(t('Missing space groups have been normalized and cleaned!', 'Missing space groups have been normalized and cleaned!'));
+                            setTimeout(() => setImportStatus(null), 4000);
                           }}
                           className="flex-1 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[9px] font-sans font-bold text-amber-300 rounded-lg cursor-pointer transition-colors text-center"
                         >
@@ -4661,7 +4668,8 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                       <button
                         onClick={() => {
                           setIsDbUnlocked(true);
-                          alert(t('Enterprise Subscription Linked! Fully unlocked access to Premium Databases like SpringerMaterials and ICSD.', 'Enterprise Subscription Linked! Fully unlocked access to Premium Databases like SpringerMaterials and ICSD.'));
+                          setImportStatus(t('Enterprise Subscription Linked! Fully unlocked access to Premium Databases like SpringerMaterials and ICSD.', 'Enterprise Subscription Linked! Fully unlocked access to Premium Databases like SpringerMaterials and ICSD.'));
+                          setTimeout(() => setImportStatus(null), 4000);
                         }}
                         className="px-2 py-0.5 bg-yellow-500 text-slate-950 hover:bg-yellow-400 text-[8.5px] font-mono font-black uppercase rounded transition-colors cursor-pointer"
                       >
@@ -4916,7 +4924,8 @@ ${getDSpacingsFromPattern(m.pattern, xrdWavelength).map(p => `${p.twoTheta.toFix
                                 key={dbItem.id}
                                 onClick={() => {
                                   if (dbItem.premium && !isDbUnlocked) {
-                                    alert(t('This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.', 'This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.'));
+                                    setImportStatus(t('This Premium Database requires an active enterprise license. Click "Unlock Premium" in the header to link.', 'This Premium Database requires an active enterprise license. Click "Unlock Premium" in the header to link.'));
+                                    setTimeout(() => setImportStatus(null), 4000);
                                     return;
                                   }
                                   setSelectedGlobalDB(dbItem.id);
@@ -5494,7 +5503,8 @@ _pd_peak_intensity_value
 ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p.twoTheta.toFixed(3)} ${p.intensity.toFixed(1)}`).join('\n')}`;
                           
                           navigator.clipboard.writeText(cifText);
-                          alert(`CIF Crystallographic data for "${inspectingResult.name}" copied to clipboard!`);
+                          setImportStatus(`CIF Crystallographic data for "${inspectingResult.name}" copied to clipboard!`);
+                          setTimeout(() => setImportStatus(null), 4000);
                           playSynthTone('switch');
                         }}
                         className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] uppercase font-mono font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1.5"
@@ -5843,12 +5853,12 @@ ${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {paginatedMaterials.map((material) => {
+                  {paginatedMaterials.map((material, matIdx) => {
                     const isSelected = selectedMaterialName === material.name;
                     const rowPeaks = getShiftedPeaksForMaterial(material, xrdWavelength);
                     return (
                       <tr
-                        key={material.name}
+                        key={`${material.name}-${matIdx}`}
                         onClick={() => {
                           setSelectedMaterialName(material.name);
                           setSelectedPeakIdx(null);

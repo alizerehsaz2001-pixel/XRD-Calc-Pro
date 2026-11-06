@@ -58,8 +58,9 @@ interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const message = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -69,8 +70,19 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
+  const isOfflineOrTransient =
+    message.toLowerCase().includes('offline') ||
+    message.toLowerCase().includes('could not reach') ||
+    message.toLowerCase().includes('unavailable') ||
+    message.toLowerCase().includes('network');
+  if (isOfflineOrTransient) {
+    console.warn('Firestore offline/transient state:', JSON.stringify(errInfo));
+    return;
+  }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  if (message.toLowerCase().includes('permission') || message.toLowerCase().includes('insufficient')) {
+    throw new Error(JSON.stringify(errInfo));
+  }
 }
 
 interface AuthContextType {
@@ -98,11 +110,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!snap.exists()) {
              await setDoc(userRef, {
                uid: currentUser.uid,
-               email: currentUser.email,
+               email: (currentUser.email || '').slice(0, 250),
              });
           }
         } catch (error) {
-           console.error("Account provision error:", error);
+           console.warn("Account provision warning:", error);
         }
       }
 

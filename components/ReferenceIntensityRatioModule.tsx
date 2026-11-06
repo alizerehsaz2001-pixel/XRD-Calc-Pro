@@ -733,7 +733,8 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         }
       } catch (err) {
         playSynthTone('error');
-        alert('Invalid RIR session JSON file.');
+        setActionNotification('Invalid RIR session JSON file.');
+        setTimeout(() => setActionNotification(null), 3000);
       }
     };
     reader.readAsText(file);

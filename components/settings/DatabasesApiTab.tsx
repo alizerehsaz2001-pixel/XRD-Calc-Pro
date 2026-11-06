@@ -51,6 +51,7 @@ export const DatabasesApiTab: React.FC = () => {
   const [testResponse, setTestResponse] = useState<string | null>(null);
   const [isTestingAi, setIsTestingAi] = useState(false);
   const [activeTabSub, setActiveTabSub] = useState<'databases' | 'ai' | 'snapshots'>('databases');
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
 
   const databases = [
     {
@@ -605,11 +606,16 @@ Model latency: 284ms. Cloud server proxy verified operational with active Redis 
                       onChange={(e) => {
                         if (e.target.files?.[0]) {
                           playSynthTone('success');
-                          alert(`Successfully loaded custom library file: ${e.target.files[0].name}`);
+                          setUploadNotice(`Loaded custom library file: ${e.target.files[0].name}`);
                         }
                       }}
                     />
                   </label>
+                  {uploadNotice && (
+                    <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {uploadNotice}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
