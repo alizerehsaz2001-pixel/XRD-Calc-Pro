@@ -1,10 +1,17 @@
 import { MATERIAL_DB } from './materialDB';
 import { getOfflineMaterials, bulkSaveOfflineMaterials } from './offlineDb';
 
+let cachedRawString: string | null | undefined = undefined;
+let cachedMergedList: any[] | null = null;
+
 export function getActiveMaterials(): any[] {
   if (typeof window === 'undefined') return MATERIAL_DB;
   try {
     const saved = localStorage.getItem('crystal_suite_materials_v1');
+    if (saved === cachedRawString && cachedMergedList !== null) {
+      return cachedMergedList;
+    }
+    cachedRawString = saved;
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -18,12 +25,14 @@ export function getActiveMaterials(): any[] {
             uniqueMap.set(m.name, m);
           }
         });
-        return Array.from(uniqueMap.values());
+        cachedMergedList = Array.from(uniqueMap.values());
+        return cachedMergedList;
       }
     }
   } catch (e) {
     console.error('Failed to load material overrides', e);
   }
+  cachedMergedList = MATERIAL_DB;
   return MATERIAL_DB;
 }
 

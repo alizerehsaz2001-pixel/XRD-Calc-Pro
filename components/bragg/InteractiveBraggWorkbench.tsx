@@ -16,7 +16,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { BraggResult } from '../../types';
-import { parseSingleHKL, validateHKLAgainstCrystalSystem } from '../../utils/physics';
+import { parseSingleHKL, validateHKLAgainstCrystalSystem } from '../../utils/braggCore';
 import { playSynthTone } from '../../utils/sound';
 
 export interface AnodeTargetPreset {

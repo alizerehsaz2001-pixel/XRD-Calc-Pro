@@ -168,8 +168,8 @@ export const MillerPlaneVisualizer: React.FC<MillerPlaneVisualizerProps> = ({ sy
   const kVal = Math.max(-4, Math.min(4, Math.round(k || 0)));
   const lVal = Math.max(-4, Math.min(4, Math.round(l || 0)));
 
-  const [rotation, setRotation] = useState<number>(0);
-  const [autoRotate, setAutoRotate] = useState<boolean>(true);
+  const [rotation, setRotation] = useState<number>(35);
+  const [autoRotate, setAutoRotate] = useState<boolean>(false);
   const [tilt, setTilt] = useState<number>(20); // vertical tilt
 
   useEffect(() => {

@@ -413,8 +413,12 @@ const CrystallineLattice3D: React.FC<{
 
   // Continuous physics orbital rotation loop (Optional, defaults OFF)
   useEffect(() => {
+    if (!isRotating) {
+      prevTimeRef.current = null;
+      return;
+    }
     const tick = (time: number) => {
-      if (prevTimeRef.current !== null && isRotating) {
+      if (prevTimeRef.current !== null) {
         const delta = time - prevTimeRef.current;
         setYaw(y => (y + delta * 0.025) % 360);
       }
@@ -1928,13 +1932,15 @@ const ElectronCloud3D: React.FC<{
         }
       }
 
-      animationFrameId = requestAnimationFrame(draw);
+      if (viewMode !== 'radial' && isPlaying) {
+        animationFrameId = requestAnimationFrame(draw);
+      }
     };
 
     draw();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', updateSize);
     };
   }, [

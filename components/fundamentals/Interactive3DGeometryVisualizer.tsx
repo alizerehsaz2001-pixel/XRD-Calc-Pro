@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   Box, 
   Rotate3d, 
@@ -10,29 +9,24 @@ import {
   RotateCcw, 
   Play, 
   Pause, 
-  Eye, 
-  EyeOff, 
   Sliders, 
   Layers, 
   Download, 
-  Sparkles, 
   Compass, 
-  Calculator, 
   Grid, 
-  Check, 
-  Atom, 
   RefreshCw,
   Lock,
   Unlock,
-  ChevronDown,
-  Info
+  Calculator,
+  CheckCircle2,
+  XCircle,
+  Sparkles
 } from 'lucide-react';
 import { playSynthTone } from '../../utils/sound';
 import { 
   CrystalSystemId, 
   CenteringType, 
-  CRYSTAL_SYSTEMS_CATALOG, 
-  CrystalSystemData 
+  CRYSTAL_SYSTEMS_CATALOG
 } from './UnitCellsSection';
 
 interface Interactive3DGeometryVisualizerProps {
@@ -43,6 +37,8 @@ interface Interactive3DGeometryVisualizerProps {
 }
 
 export type AtomStyle = 'ball-and-stick' | 'wireframe-node' | 'space-filling';
+export type SupercellMode = '1x1x1' | '2x2x1' | '2x2x2';
+export type TrigonalSetting = 'hexagonal_obverse' | 'rhombohedral_primitive';
 
 interface CustomLatticeParams {
   a: number;
@@ -58,13 +54,13 @@ interface AtomHoverInfo {
   y: number;
   label: string;
   coords: string;
+  cartesianStr: string;
   fraction: string;
   type: string;
 }
 
 export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisualizerProps> = ({
   selectedSystemId,
-  onSelectSystem,
   activeCentering,
   setActiveCentering
 }) => {
@@ -78,6 +74,12 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
   const [zoom, setZoom] = useState<number>(1.0);
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  // Trigonal setting state (Hexagonal triple cell vs Primitive rhombohedron)
+  const [trigonalSetting, setTrigonalSetting] = useState<TrigonalSetting>('hexagonal_obverse');
+
+  // Supercell Tessellation State
+  const [supercellMode, setSupercellMode] = useState<SupercellMode>('1x1x1');
 
   // Drag interaction state
   const isDraggingRef = useRef<boolean>(false);
@@ -95,6 +97,9 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     gamma: activeSystem.defaultParams.gamma
   });
 
+  // Reference atomic mass (g/mol) for live theoretical density calculation
+  const [molarMass, setMolarMass] = useState<number>(63.546);
+
   // Symmetry lock toggle
   const [symmetryLocked, setSymmetryLocked] = useState<boolean>(true);
 
@@ -108,11 +113,52 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       beta: activeSystem.defaultParams.beta,
       gamma: activeSystem.defaultParams.gamma
     });
+    if (activeSystem.id === 'trigonal') {
+      setTrigonalSetting('hexagonal_obverse');
+    }
   }, [activeSystem]);
+
+  // Handle switching Trigonal between Hexagonal Obverse (a=b!=c, gamma=120) and Primitive Rhombohedral (a=b=c, alpha=beta=gamma)
+  const handleTrigonalSettingChange = (nextSetting: TrigonalSetting) => {
+    if (nextSetting === trigonalSetting) return;
+    playSynthTone('switch');
+    setTrigonalSetting(nextSetting);
+
+    if (nextSetting === 'rhombohedral_primitive') {
+      // Convert from current Hexagonal (a_H, c_H) to Rhombohedral (a_R, alpha_R)
+      const aH = params.a;
+      const cH = params.c;
+      const aR = (1 / 3) * Math.sqrt(3 * aH * aH + cH * cH);
+      const sinHalfAlpha = Math.min(0.999, 3 / (2 * Math.sqrt(3 + (cH / aH) * (cH / aH))));
+      const alphaR = (2 * Math.asin(sinHalfAlpha) * 180) / Math.PI;
+      setParams({
+        a: parseFloat(aR.toFixed(3)),
+        b: parseFloat(aR.toFixed(3)),
+        c: parseFloat(aR.toFixed(3)),
+        alpha: parseFloat(alphaR.toFixed(2)),
+        beta: parseFloat(alphaR.toFixed(2)),
+        gamma: parseFloat(alphaR.toFixed(2))
+      });
+    } else {
+      // Convert from Rhombohedral (a_R, alpha_R) to Hexagonal Obverse (a_H, c_H)
+      const aR = params.a;
+      const alphaRad = (params.alpha * Math.PI) / 180;
+      const aH = 2 * aR * Math.sin(alphaRad / 2);
+      const cH = aR * Math.sqrt(Math.max(0.01, 3 * (1 + 2 * Math.cos(alphaRad))));
+      setParams({
+        a: parseFloat(aH.toFixed(3)),
+        b: parseFloat(aH.toFixed(3)),
+        c: parseFloat(cH.toFixed(3)),
+        alpha: 90,
+        beta: 90,
+        gamma: 120
+      });
+    }
+  };
 
   // Visual Display Layer Toggles
   const [atomStyle, setAtomStyle] = useState<AtomStyle>('ball-and-stick');
-  const [atomRadiusScale, setAtomRadiusScale] = useState<number>(7);
+  const [atomRadiusScale, setAtomRadiusScale] = useState<number>(7.5);
   const [showCellFaces, setShowCellFaces] = useState<boolean>(true);
   const [showAxes, setShowAxes] = useState<boolean>(true);
   const [showIndices, setShowIndices] = useState<boolean>(true);
@@ -125,6 +171,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
 
   // Miller Plane (hkl) Slicing Overlay
   const [showMillerPlane, setShowMillerPlane] = useState<boolean>(false);
+  const [showParallelPlaneStack, setShowParallelPlaneStack] = useState<boolean>(true);
   const [hklH, setHklH] = useState<number>(1);
   const [hklK, setHklK] = useState<number>(1);
   const [hklL, setHklL] = useState<number>(1);
@@ -139,7 +186,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
   const [hoveredAtom, setHoveredAtom] = useState<AtomHoverInfo | null>(null);
 
   // Active parameter accordion tab
-  const [activeControlTab, setActiveControlTab] = useState<'params' | 'camera' | 'layers' | 'miller'>('params');
+  const [activeControlTab, setActiveControlTab] = useState<'params' | 'layers' | 'miller' | 'packing'>('params');
 
   // Auto-rotation loop
   useEffect(() => {
@@ -228,42 +275,72 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       beta: activeSystem.defaultParams.beta,
       gamma: activeSystem.defaultParams.gamma
     });
+    if (activeSystem.id === 'trigonal') {
+      setTrigonalSetting('hexagonal_obverse');
+    }
   };
 
-  // Parameter slider change handler with symmetry constraints
+  // Parameter slider change handler with proper crystallographic symmetry constraints
   const updateLatticeParam = (key: keyof CustomLatticeParams, val: number) => {
     setParams(prev => {
       const next = { ...prev, [key]: val };
       if (!symmetryLocked) return next;
 
-      // Apply system constraints if locked
       if (activeSystem.id === 'cubic') {
         if (key === 'a' || key === 'b' || key === 'c') {
           next.a = val;
           next.b = val;
           next.c = val;
         }
+        next.alpha = 90;
+        next.beta = 90;
+        next.gamma = 90;
       } else if (activeSystem.id === 'tetragonal') {
         if (key === 'a' || key === 'b') {
           next.a = val;
           next.b = val;
         }
+        next.alpha = 90;
+        next.beta = 90;
+        next.gamma = 90;
       } else if (activeSystem.id === 'hexagonal') {
         if (key === 'a' || key === 'b') {
           next.a = val;
           next.b = val;
         }
+        next.alpha = 90;
+        next.beta = 90;
+        next.gamma = 120;
       } else if (activeSystem.id === 'trigonal') {
-        if (key === 'a' || key === 'b' || key === 'c') {
-          next.a = val;
-          next.b = val;
-          next.c = val;
+        if (trigonalSetting === 'rhombohedral_primitive') {
+          if (key === 'a' || key === 'b' || key === 'c') {
+            next.a = val;
+            next.b = val;
+            next.c = val;
+          }
+          if (key === 'alpha' || key === 'beta' || key === 'gamma') {
+            const clampedAngle = Math.min(118, Math.max(30, val));
+            next.alpha = clampedAngle;
+            next.beta = clampedAngle;
+            next.gamma = clampedAngle;
+          }
+        } else {
+          // Hexagonal obverse setting
+          if (key === 'a' || key === 'b') {
+            next.a = val;
+            next.b = val;
+          }
+          next.alpha = 90;
+          next.beta = 90;
+          next.gamma = 120;
         }
-        if (key === 'alpha' || key === 'beta' || key === 'gamma') {
-          next.alpha = val;
-          next.beta = val;
-          next.gamma = val;
-        }
+      } else if (activeSystem.id === 'orthorhombic') {
+        next.alpha = 90;
+        next.beta = 90;
+        next.gamma = 90;
+      } else if (activeSystem.id === 'monoclinic') {
+        next.alpha = 90;
+        next.gamma = 90;
       }
       return next;
     });
@@ -277,16 +354,20 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     const bR = beta * toRad;
     const gR = gamma * toRad;
 
-    const term = 1 - Math.pow(Math.cos(aR), 2) - Math.pow(Math.cos(bR), 2) - Math.pow(Math.cos(gR), 2) + 
+    const term =
+      1 -
+      Math.pow(Math.cos(aR), 2) -
+      Math.pow(Math.cos(bR), 2) -
+      Math.pow(Math.cos(gR), 2) +
       2 * Math.cos(aR) * Math.cos(bR) * Math.cos(gR);
     return Math.max(0, a * b * c * Math.sqrt(Math.max(0, term)));
   }, [params]);
 
-  // Reciprocal Lattice Parameters: a*, b*, c*
+  // Reciprocal Lattice Parameters: a*, b*, c*, alpha*, beta*, gamma*
   const reciprocalParams = useMemo(() => {
     const { a, b, c, alpha, beta, gamma } = params;
     const V = cellVolume;
-    if (V <= 0) return { aStar: 0, bStar: 0, cStar: 0 };
+    if (V <= 0) return { aStar: 0, bStar: 0, cStar: 0, alphaStar: 90, betaStar: 90, gammaStar: 90 };
     const toRad = Math.PI / 180;
     const aR = alpha * toRad;
     const bR = beta * toRad;
@@ -295,7 +376,19 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     const aStar = (b * c * Math.sin(aR)) / V;
     const bStar = (a * c * Math.sin(bR)) / V;
     const cStar = (a * b * Math.sin(gR)) / V;
-    return { aStar, bStar, cStar };
+
+    const cosAlphaStar = (Math.cos(bR) * Math.cos(gR) - Math.cos(aR)) / Math.max(1e-6, Math.sin(bR) * Math.sin(gR));
+    const cosBetaStar = (Math.cos(aR) * Math.cos(gR) - Math.cos(bR)) / Math.max(1e-6, Math.sin(aR) * Math.sin(gR));
+    const cosGammaStar = (Math.cos(aR) * Math.cos(bR) - Math.cos(gR)) / Math.max(1e-6, Math.sin(aR) * Math.sin(bR));
+
+    return {
+      aStar,
+      bStar,
+      cStar,
+      alphaStar: (Math.acos(Math.max(-1, Math.min(1, cosAlphaStar))) * 180) / Math.PI,
+      betaStar: (Math.acos(Math.max(-1, Math.min(1, cosBetaStar))) * 180) / Math.PI,
+      gammaStar: (Math.acos(Math.max(-1, Math.min(1, cosGammaStar))) * 180) / Math.PI
+    };
   }, [params, cellVolume]);
 
   // Direct Metric Tensor G_ij (3x3 symmetric tensor: g_ij = e_i · e_j)
@@ -315,7 +408,93 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     ];
   }, [params]);
 
-  // Live d-spacing and Bragg 2θ calculation
+  // Multiplicity Z, Nearest-Neighbor Distance d_NN, Hard-Sphere APF, and Density
+  const packingTelemetry = useMemo(() => {
+    const { a, b, c } = params;
+    const isTrigObverse = activeSystem.id === 'trigonal' && trigonalSetting === 'hexagonal_obverse';
+    const netZ =
+      activeCentering === 'F'
+        ? 4
+        : activeCentering === 'I' || activeCentering === 'C'
+        ? 2
+        : isTrigObverse
+        ? 3
+        : 1;
+
+    // Calculate shortest lattice vector / nearest-neighbor distance d_NN
+    const toRad = Math.PI / 180;
+    const ax = a;
+    const bx = b * Math.cos(params.gamma * toRad);
+    const by = b * Math.sin(params.gamma * toRad);
+    const cx = c * Math.cos(params.beta * toRad);
+    const cy = c * (Math.cos(params.alpha * toRad) - Math.cos(params.beta * toRad) * Math.cos(params.gamma * toRad)) / Math.max(1e-5, Math.sin(params.gamma * toRad));
+    const cz = Math.sqrt(Math.max(0, c * c - cx * cx - cy * cy));
+
+    const candidateFrac: [number, number, number][] = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+      [1, 1, 0],
+      [1, -1, 0],
+      [1, 0, 1],
+      [0, 1, 1]
+    ];
+    if (activeCentering === 'I') {
+      candidateFrac.push([0.5, 0.5, 0.5], [0.5, 0.5, -0.5], [0.5, -0.5, 0.5], [-0.5, 0.5, 0.5]);
+    } else if (activeCentering === 'F') {
+      candidateFrac.push([0.5, 0.5, 0], [0.5, 0, 0.5], [0, 0.5, 0.5], [0.5, -0.5, 0]);
+    } else if (activeCentering === 'C') {
+      candidateFrac.push([0.5, 0.5, 0], [0.5, -0.5, 0]);
+    } else if (isTrigObverse) {
+      candidateFrac.push([2 / 3, 1 / 3, 1 / 3], [1 / 3, 2 / 3, 2 / 3], [-1 / 3, 1 / 3, 1 / 3]);
+    }
+
+    let dNN = Infinity;
+    candidateFrac.forEach(([u, v, w]) => {
+      const dx = u * ax + v * bx + w * cx;
+      const dy = v * by + w * cy;
+      const dz = w * cz;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist > 1e-4 && dist < dNN) {
+        dNN = dist;
+      }
+    });
+    if (!isFinite(dNN)) dNN = a;
+
+    const hardSphereRadius = dNN / 2;
+    const sphereVolume = (4 / 3) * Math.PI * Math.pow(hardSphereRadius, 3);
+    const apfPercent = cellVolume > 0 ? Math.min(74.05, ((netZ * sphereVolume) / cellVolume) * 100) : 0;
+
+    // Theoretical Density rho = (Z * M) / (N_A * V * 10^-24) = (Z * M * 1.660539) / V_A^3
+    const densityGcm3 = cellVolume > 0 ? (netZ * molarMass * 1.660539) / cellVolume : 0;
+
+    const coordNumber =
+      activeSystem.id === 'cubic'
+        ? activeCentering === 'F'
+          ? 12
+          : activeCentering === 'I'
+          ? 8
+          : 6
+        : activeSystem.id === 'hexagonal'
+        ? 12
+        : activeCentering === 'I'
+        ? 8
+        : 6;
+
+    return {
+      netZ,
+      dNN,
+      hardSphereRadius,
+      apfPercent,
+      densityGcm3,
+      coordNumber,
+      cornerCount: 8,
+      faceCount: activeCentering === 'F' ? 6 : activeCentering === 'C' ? 2 : 0,
+      bodyCount: activeCentering === 'I' ? 1 : isTrigObverse ? 2 : 0
+    };
+  }, [params, activeCentering, activeSystem.id, trigonalSetting, cellVolume, molarMass]);
+
+  // Live d-spacing and Bragg 2θ calculation using the exact general Reciprocal Metric Tensor
   const dSpacingResult = useMemo(() => {
     const { a, b, c, alpha, beta, gamma } = params;
     const h = hklH;
@@ -323,45 +502,24 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     const l = hklL;
     if (h === 0 && k === 0 && l === 0) return { d: 0, twoTheta: 0, q: 0 };
 
+    const V = cellVolume;
+    if (V <= 0) return { d: 0, twoTheta: 0, q: 0 };
+
     const toRad = Math.PI / 180;
     const aR = alpha * toRad;
     const bR = beta * toRad;
     const gR = gamma * toRad;
 
-    let invD2 = 0;
+    const S11 = b * b * c * c * Math.sin(aR) * Math.sin(aR);
+    const S22 = a * a * c * c * Math.sin(bR) * Math.sin(bR);
+    const S33 = a * a * b * b * Math.sin(gR) * Math.sin(gR);
+    const S12 = a * b * c * c * (Math.cos(aR) * Math.cos(bR) - Math.cos(gR));
+    const S23 = a * a * b * c * (Math.cos(bR) * Math.cos(gR) - Math.cos(aR));
+    const S13 = a * b * b * c * (Math.cos(gR) * Math.cos(aR) - Math.cos(bR));
 
-    switch (activeSystem.id) {
-      case 'cubic':
-        invD2 = (h * h + k * k + l * l) / (a * a);
-        break;
-      case 'tetragonal':
-        invD2 = (h * h + k * k) / (a * a) + (l * l) / (c * c);
-        break;
-      case 'orthorhombic':
-        invD2 = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
-        break;
-      case 'hexagonal':
-        invD2 = (4 / 3) * ((h * h + h * k + k * k) / (a * a)) + (l * l) / (c * c);
-        break;
-      case 'monoclinic': {
-        const sB = Math.sin(bR);
-        const cB = Math.cos(bR);
-        invD2 = (1 / (sB * sB)) * ((h * h) / (a * a) + (k * k * sB * sB) / (b * b) + (l * l) / (c * c) - (2 * h * l * cB) / (a * c));
-        break;
-      }
-      default: {
-        const V = cellVolume;
-        if (V <= 0) return { d: 0, twoTheta: 0, q: 0 };
-        const S11 = b * b * c * c * Math.sin(aR) * Math.sin(aR);
-        const S22 = a * a * c * c * Math.sin(bR) * Math.sin(bR);
-        const S33 = a * a * b * b * Math.sin(gR) * Math.sin(gR);
-        const S12 = a * b * c * c * (Math.cos(aR) * Math.cos(bR) - Math.cos(gR));
-        const S23 = a * a * b * c * (Math.cos(bR) * Math.cos(gR) - Math.cos(aR));
-        const S13 = a * b * b * c * (Math.cos(gR) * Math.cos(aR) - Math.cos(bR));
-        invD2 = (1 / (V * V)) * (S11 * h * h + S22 * k * k + S33 * l * l + 2 * S12 * h * k + 2 * S23 * k * l + 2 * S13 * h * l);
-        break;
-      }
-    }
+    const invD2 =
+      (1 / (V * V)) *
+      (S11 * h * h + S22 * k * k + S33 * l * l + 2 * S12 * h * k + 2 * S23 * k * l + 2 * S13 * h * l);
 
     if (invD2 <= 0) return { d: 0, twoTheta: 0, q: 0 };
     const d = 1 / Math.sqrt(invD2);
@@ -370,23 +528,23 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     const twoTheta = sinTheta <= 1 ? (2 * Math.asin(sinTheta) * 180) / Math.PI : 0;
 
     return { d, twoTheta, q };
-  }, [params, hklH, hklK, hklL, radiation, activeSystem.id, cellVolume]);
+  }, [params, hklH, hklK, hklL, radiation, cellVolume]);
 
-  // 3D Geometric Projection Engine
+  // 3D Geometric Projection Engine with True Depth-Sorting (Painter's Algorithm)
   const projection = useMemo(() => {
     const { a, b, c, alpha, beta, gamma } = params;
     const toRad = Math.PI / 180;
     const yawRad = (yaw * Math.PI) / 180;
     const pitchRad = (pitch * Math.PI) / 180;
 
-    // Normalizing scale
-    const maxDim = Math.max(a, b, c);
-    const baseVisualSize = 135;
+    const maxDim = Math.max(a, b, c, 0.1);
+    const supercellScaleFactor = supercellMode === '2x2x2' ? 0.56 : supercellMode === '2x2x1' ? 0.65 : 1.0;
+    const baseVisualSize = 135 * supercellScaleFactor;
     const sa = (a / maxDim) * baseVisualSize * zoom;
     const sb = (b / maxDim) * baseVisualSize * zoom;
     const sc = (c / maxDim) * baseVisualSize * zoom;
 
-    // Crystallographic Cartesian basis vectors
+    // Crystallographic Cartesian basis vectors (in visual pixels)
     const ax = sa;
     const ay = 0;
     const az = 0;
@@ -396,22 +554,30 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     const bz = 0;
 
     const cx = sc * Math.cos(beta * toRad);
-    const cy = sc * (Math.cos(alpha * toRad) - Math.cos(beta * toRad) * Math.cos(gamma * toRad)) / Math.sin(gamma * toRad || 0.001);
+    const cy =
+      (sc * (Math.cos(alpha * toRad) - Math.cos(beta * toRad) * Math.cos(gamma * toRad))) /
+      Math.max(1e-4, Math.sin(gamma * toRad));
     const czTerm = sc * sc - cx * cx - cy * cy;
     const cz = Math.sqrt(Math.max(0, czTerm));
 
-    // Screen Center
+    // Real-space Angstrom Cartesian basis for tooltips
+    const realAx = a;
+    const realBx = b * Math.cos(gamma * toRad);
+    const realBy = b * Math.sin(gamma * toRad);
+    const realCx = c * Math.cos(beta * toRad);
+    const realCy =
+      (c * (Math.cos(alpha * toRad) - Math.cos(beta * toRad) * Math.cos(gamma * toRad))) /
+      Math.max(1e-4, Math.sin(gamma * toRad));
+    const realCz = Math.sqrt(Math.max(0, c * c - realCx * realCx - realCy * realCy));
+
     const cxScreen = 260;
     const cyScreen = 210;
 
-    // 3D rotation and projection with depth
     const project = (x: number, y: number, z: number) => {
-      // Rotate around Z (yaw)
       const x1 = x * Math.cos(yawRad) - y * Math.sin(yawRad);
       const y1 = x * Math.sin(yawRad) + y * Math.cos(yawRad);
       const z1 = z;
 
-      // Rotate around X (pitch)
       const x2 = x1;
       const y2 = y1 * Math.cos(pitchRad) - z1 * Math.sin(pitchRad);
       const z2 = y1 * Math.sin(pitchRad) + z1 * Math.cos(pitchRad);
@@ -424,10 +590,13 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       };
     };
 
-    // Center offset so cell is centered at origin
-    const ox = (ax + bx + cx) / 2;
-    const oy = (ay + by + cy) / 2;
-    const oz = (az + bz + cz) / 2;
+    const nx = supercellMode === '1x1x1' ? 1 : 2;
+    const ny = supercellMode === '1x1x1' ? 1 : 2;
+    const nz = supercellMode === '2x2x2' ? 2 : 1;
+
+    const ox = (nx * ax + ny * bx + nz * cx) / 2;
+    const oy = (nx * ay + ny * by + nz * cy) / 2;
+    const oz = (nx * az + ny * bz + nz * cz) / 2;
 
     const fracToCart = (u: number, v: number, w: number) => {
       return {
@@ -437,7 +606,14 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       };
     };
 
-    // 8 vertices in fractional coordinates
+    const fracToRealAngstromStr = (u: number, v: number, w: number) => {
+      const rx = u * realAx + v * realBx + w * realCx;
+      const ry = v * realBy + w * realCy;
+      const rz = w * realCz;
+      return `[${rx.toFixed(2)}, ${ry.toFixed(2)}, ${rz.toFixed(2)}] Å`;
+    };
+
+    // Primary unit cell 8 vertices in fractional coordinates
     const fractionalVertices = [
       { u: 0, v: 0, w: 0, label: '000' },
       { u: 1, v: 0, w: 0, label: '100' },
@@ -450,12 +626,47 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     ];
 
     const corners = fractionalVertices.map(fv => {
-      const c = fracToCart(fv.u, fv.v, fv.w);
-      const p = project(c.x, c.y, c.z);
-      return { ...p, u: fv.u, v: fv.v, w: fv.w, label: fv.label };
+      const cPt = fracToCart(fv.u, fv.v, fv.w);
+      const p = project(cPt.x, cPt.y, cPt.z);
+      return {
+        ...p,
+        u: fv.u,
+        v: fv.v,
+        w: fv.w,
+        label: fv.label,
+        cartesianStr: fracToRealAngstromStr(fv.u, fv.v, fv.w)
+      };
     });
 
-    // 12 wireframe edges
+    // Generate Supercell Ghost Wireframe Edges if supercellMode !== '1x1x1'
+    const supercellEdges: { p1: { px: number; py: number }; p2: { px: number; py: number }; isPrimary: boolean; avgDepth: number }[] = [];
+    const baseEdgePairs: [number[], number[]][] = [
+      [[0,0,0], [1,0,0]], [[1,0,0], [1,1,0]], [[1,1,0], [0,1,0]], [[0,1,0], [0,0,0]],
+      [[0,0,1], [1,0,1]], [[1,0,1], [1,1,1]], [[1,1,1], [0,1,1]], [[0,1,1], [0,0,1]],
+      [[0,0,0], [0,0,1]], [[1,0,0], [1,0,1]], [[1,1,0], [1,1,1]], [[0,1,0], [0,1,1]]
+    ];
+
+    for (let iu = 0; iu < nx; iu++) {
+      for (let iv = 0; iv < ny; iv++) {
+        for (let iw = 0; iw < nz; iw++) {
+          const isPrimary = iu === 0 && iv === 0 && iw === 0;
+          baseEdgePairs.forEach(([eA, eB]) => {
+            const c1 = fracToCart(eA[0] + iu, eA[1] + iv, eA[2] + iw);
+            const c2 = fracToCart(eB[0] + iu, eB[1] + iv, eB[2] + iw);
+            const p1 = project(c1.x, c1.y, c1.z);
+            const p2 = project(c2.x, c2.y, c2.z);
+            supercellEdges.push({
+              p1,
+              p2,
+              isPrimary,
+              avgDepth: (p1.depth + p2.depth) / 2
+            });
+          });
+        }
+      }
+    }
+
+    // Primary 12 wireframe edges sorted by depth
     const edges = [
       { i: 0, j: 1, axis: 'a' },
       { i: 1, j: 2, axis: 'b' },
@@ -469,14 +680,16 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       { i: 1, j: 5, axis: 'c' },
       { i: 2, j: 6, axis: 'c' },
       { i: 3, j: 7, axis: 'c' }
-    ].map(e => {
-      const p1 = corners[e.i];
-      const p2 = corners[e.j];
-      const avgDepth = (p1.depth + p2.depth) / 2;
-      return { ...e, p1, p2, avgDepth };
-    });
+    ]
+      .map(e => {
+        const p1 = corners[e.i];
+        const p2 = corners[e.j];
+        const avgDepth = (p1.depth + p2.depth) / 2;
+        return { ...e, p1, p2, avgDepth };
+      })
+      .sort((aE, bE) => aE.avgDepth - bE.avgDepth);
 
-    // 6 Faces for translucent polygon shading
+    // 6 Faces sorted back-to-front (Painter's algorithm)
     const faces = [
       { indices: [0, 1, 2, 3], name: 'Bottom (001)' },
       { indices: [4, 5, 6, 7], name: 'Top (001)' },
@@ -484,12 +697,14 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       { indices: [2, 3, 7, 6], name: 'Back (010)' },
       { indices: [1, 2, 6, 5], name: 'Right (100)' },
       { indices: [0, 3, 7, 4], name: 'Left (100)' }
-    ].map(f => {
-      const pts = f.indices.map(idx => corners[idx]);
-      const avgDepth = pts.reduce((sum, pt) => sum + pt.depth, 0) / pts.length;
-      const pointsStr = pts.map(p => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(' ');
-      return { ...f, pts, avgDepth, pointsStr };
-    });
+    ]
+      .map(f => {
+        const pts = f.indices.map(idx => corners[idx]);
+        const avgDepth = pts.reduce((sum, pt) => sum + pt.depth, 0) / pts.length;
+        const pointsStr = pts.map(p => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(' ');
+        return { ...f, pts, avgDepth, pointsStr };
+      })
+      .sort((fA, fB) => fA.avgDepth - fB.avgDepth);
 
     // Centered Atoms
     interface CenteredPoint {
@@ -498,27 +713,37 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       depth: number;
       label: string;
       coords: string;
+      cartesianStr: string;
       fraction: string;
       type: 'body' | 'face' | 'base' | 'rhombo';
     }
     const centeredPoints: CenteredPoint[] = [];
 
-    const addCentered = (u: number, v: number, w: number, label: string, coords: string, fraction: string, type: CenteredPoint['type']) => {
-      const c = fracToCart(u, v, w);
-      const p = project(c.x, c.y, c.z);
+    const addCentered = (
+      u: number,
+      v: number,
+      w: number,
+      label: string,
+      coords: string,
+      fraction: string,
+      type: CenteredPoint['type']
+    ) => {
+      const cPt = fracToCart(u, v, w);
+      const p = project(cPt.x, cPt.y, cPt.z);
       centeredPoints.push({
         px: p.px,
         py: p.py,
         depth: p.depth,
         label,
         coords,
+        cartesianStr: fracToRealAngstromStr(u, v, w),
         fraction,
         type
       });
     };
 
     if (activeCentering === 'I') {
-      addCentered(0.5, 0.5, 0.5, 'Body-Center', '(½, ½, ½)', '1 (Exclusively internal)', 'body');
+      addCentered(0.5, 0.5, 0.5, 'Body-Center', '(½, ½, ½)', '1.00 (100% inside unit cell)', 'body');
     } else if (activeCentering === 'F') {
       addCentered(0.5, 0.5, 0, 'Face (001) Bot', '(½, ½, 0)', '½ (Shared by 2 cells)', 'face');
       addCentered(0.5, 0.5, 1, 'Face (001) Top', '(½, ½, 1)', '½ (Shared by 2 cells)', 'face');
@@ -529,9 +754,9 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     } else if (activeCentering === 'C') {
       addCentered(0.5, 0.5, 0, 'Base (001) Bot', '(½, ½, 0)', '½ (Shared by 2 cells)', 'base');
       addCentered(0.5, 0.5, 1, 'Base (001) Top', '(½, ½, 1)', '½ (Shared by 2 cells)', 'base');
-    } else if (activeCentering === 'R' && activeSystem.id === 'trigonal') {
-      addCentered(2 / 3, 1 / 3, 1 / 3, 'Trigonal R1', '(⅔, ⅓, ⅓)', '1', 'rhombo');
-      addCentered(1 / 3, 2 / 3, 2 / 3, 'Trigonal R2', '(⅓, ⅔, ⅔)', '1', 'rhombo');
+    } else if (activeCentering === 'R' && activeSystem.id === 'trigonal' && trigonalSetting === 'hexagonal_obverse') {
+      addCentered(2 / 3, 1 / 3, 1 / 3, 'Obverse R1', '(⅔, ⅓, ⅓)', '1.00 (Internal to triple hex cell)', 'rhombo');
+      addCentered(1 / 3, 2 / 3, 2 / 3, 'Obverse R2', '(⅓, ⅔, ⅔)', '1.00 (Internal to triple hex cell)', 'rhombo');
     }
 
     // Struts
@@ -546,18 +771,16 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
 
     if (activeCentering === 'I' && centeredPoints.length > 0) {
       const bc = centeredPoints[0];
-      corners.forEach(c => {
+      corners.forEach(cPt => {
         struts.push({
-          p1: c,
+          p1: cPt,
           p2: bc,
           color: '#ef4444',
           width: 2.2,
-          avgDepth: (c.depth + bc.depth) / 2
+          avgDepth: (cPt.depth + bc.depth) / 2
         });
       });
     } else if (activeCentering === 'F' && centeredPoints.length >= 6) {
-      // Connect face centers to face corners for diagonal bonds
-      // Bottom face center (index 0)
       [0, 1, 2, 3].forEach(idx => {
         struts.push({
           p1: corners[idx],
@@ -567,7 +790,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
           avgDepth: (corners[idx].depth + centeredPoints[0].depth) / 2
         });
       });
-      // Top face center (index 1)
       [4, 5, 6, 7].forEach(idx => {
         struts.push({
           p1: corners[idx],
@@ -577,14 +799,97 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
           avgDepth: (corners[idx].depth + centeredPoints[1].depth) / 2
         });
       });
+    } else if (activeCentering === 'R' && centeredPoints.length >= 2) {
+      struts.push({
+        p1: corners[0],
+        p2: centeredPoints[0],
+        color: '#eab308',
+        width: 1.8,
+        avgDepth: (corners[0].depth + centeredPoints[0].depth) / 2
+      });
+      struts.push({
+        p1: centeredPoints[0],
+        p2: centeredPoints[1],
+        color: '#eab308',
+        width: 1.8,
+        avgDepth: (centeredPoints[0].depth + centeredPoints[1].depth) / 2
+      });
+      struts.push({
+        p1: centeredPoints[1],
+        p2: corners[6],
+        color: '#eab308',
+        width: 1.8,
+        avgDepth: (centeredPoints[1].depth + corners[6].depth) / 2
+      });
     }
 
-    // Hexagonal Prism Geometry
-    const isHexPrism = activeSystem.id === 'hexagonal' && hexPrismMode;
+    // Unified Depth-Sorted Atom List (Corners + Centered sites sorted back-to-front)
+    interface RenderAtomNode {
+      id: string;
+      px: number;
+      py: number;
+      depth: number;
+      label: string;
+      shortLabel?: string;
+      coords: string;
+      cartesianStr: string;
+      fraction: string;
+      typeLabel: string;
+      gradientId: string;
+      strokeColor: string;
+      radiusMult: number;
+      isCorner: boolean;
+    }
+
+    const sortedAtoms: RenderAtomNode[] = [
+      ...corners.map((cPt, idx) => ({
+        id: `corner-${idx}`,
+        px: cPt.px,
+        py: cPt.py,
+        depth: cPt.depth,
+        label: `Vertex (${cPt.label})`,
+        shortLabel: cPt.label,
+        coords: `(${cPt.u}, ${cPt.v}, ${cPt.w})`,
+        cartesianStr: cPt.cartesianStr,
+        fraction: '⅛ (Shared by 8 adjacent unit cells)',
+        typeLabel: 'Corner Lattice Site',
+        gradientId: 'url(#cornerAtom3D)',
+        strokeColor: '#e0e7ff',
+        radiusMult: 1 + cPt.depth * 0.0008,
+        isCorner: true
+      })),
+      ...(showCenterings
+        ? centeredPoints.map((pt, idx) => ({
+            id: `centered-${idx}`,
+            px: pt.px,
+            py: pt.py,
+            depth: pt.depth,
+            label: pt.label,
+            coords: pt.coords,
+            cartesianStr: pt.cartesianStr,
+            fraction: pt.fraction,
+            typeLabel: `${pt.type.toUpperCase()} Centering Site`,
+            gradientId:
+              pt.type === 'body'
+                ? 'url(#bodyAtom3D)'
+                : pt.type === 'face'
+                ? 'url(#faceAtom3D)'
+                : pt.type === 'base'
+                ? 'url(#baseAtom3D)'
+                : 'url(#rhomboAtom3D)',
+            strokeColor: pt.type === 'body' ? '#ffe4e6' : pt.type === 'face' ? '#e0f2fe' : '#d1fae5',
+            radiusMult: 1.12 + pt.depth * 0.0008,
+            isCorner: false
+          }))
+        : [])
+    ].sort((aAt, bAt) => aAt.depth - bAt.depth);
+
+    // Hexagonal Prism Geometry dynamically scaled by params.a and params.c!
+    const isHexPrism = activeSystem.id === 'hexagonal' && hexPrismMode && supercellMode === '1x1x1';
     let hexPrismData = null;
     if (isHexPrism) {
-      const R = 85 * zoom;
-      const H = 135 * zoom;
+      const R = sa * 0.78;
+      const H = sc * 0.96;
       const bRing = [];
       const tRing = [];
       for (let i = 0; i < 6; i++) {
@@ -615,8 +920,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       const pA = { px: origin.px + (v1.px - origin.px) * frac, py: origin.py + (v1.py - origin.py) * frac };
       const pB = { px: origin.px + (v2.px - origin.px) * frac, py: origin.py + (v2.py - origin.py) * frac };
       const mid = {
-        px: origin.px + ((v1.px - origin.px) + (v2.px - origin.px)) * (frac * 0.65),
-        py: origin.py + ((v1.py - origin.py) + (v2.py - origin.py)) * (frac * 0.65)
+        px: origin.px + (v1.px - origin.px + (v2.px - origin.px)) * (frac * 0.65),
+        py: origin.py + (v1.py - origin.py + (v2.py - origin.py)) * (frac * 0.65)
       };
       const pathD = `M ${pA.px} ${pA.py} Q ${mid.px} ${mid.py} ${pB.px} ${pB.py}`;
       return {
@@ -635,54 +940,83 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       createArc(bEnd, cEnd, 'α', params.alpha, '#f59e0b')
     ];
 
-    // Miller Plane (hkl) Slicing Intercepts Polygon
-    let millerPlanePolygon: { px: number; py: number }[] | null = null;
+    // Miller Plane (hkl) Slicing Intercepts Polygon Stack (supports negative indices & parallel plane stacks!)
+    const millerPlanePolygons: { pts: { px: number; py: number }[]; isPrimaryPlane: boolean }[] = [];
     if (showMillerPlane && (hklH !== 0 || hklK !== 0 || hklL !== 0)) {
-      // Find intersections with the 12 unit cell edges [u, v, w] in [0, 1]
-      // Plane equation: h*u + k*v + l*w = 1
       const edgeDefs: [number[], number[]][] = [
         [[0,0,0], [1,0,0]], [[1,0,0], [1,1,0]], [[1,1,0], [0,1,0]], [[0,1,0], [0,0,0]],
         [[0,0,1], [1,0,1]], [[1,0,1], [1,1,1]], [[1,1,1], [0,1,1]], [[0,1,1], [0,0,1]],
         [[0,0,0], [0,0,1]], [[1,0,0], [1,0,1]], [[1,1,0], [1,1,1]], [[0,1,0], [0,1,1]]
       ];
 
-      const intersectPoints: { x: number; y: number; z: number }[] = [];
-      edgeDefs.forEach(([pA, pB]) => {
-        const du = pB[0] - pA[0];
-        const dv = pB[1] - pA[1];
-        const dw = pB[2] - pA[2];
-        const denom = hklH * du + hklK * dv + hklL * dw;
-        if (Math.abs(denom) > 1e-6) {
-          const t = (1 - (hklH * pA[0] + hklK * pA[1] + hklL * pA[2])) / denom;
-          if (t >= -1e-4 && t <= 1 + 1e-4) {
-            const u = pA[0] + t * du;
-            const v = pA[1] + t * dv;
-            const w = pA[2] + t * dw;
-            intersectPoints.push(fracToCart(u, v, w));
-          }
+      // Determine range of plane constants C where h*u + k*v + l*w = C intersects [0,1]^3
+      const cornerDotVals = fractionalVertices.map(fv => hklH * fv.u + hklK * fv.v + hklL * fv.w);
+      const minDot = Math.min(...cornerDotVals);
+      const maxDot = Math.max(...cornerDotVals);
+
+      // Primary plane constant C_primary (1 if positive, or shifted if negative indices)
+      const primaryC =
+        (hklH < 0 ? hklH : 0) +
+        (hklK < 0 ? hklK : 0) +
+        (hklL < 0 ? hklL : 0) +
+        1;
+
+      const planeConstants: number[] = [];
+      if (showParallelPlaneStack) {
+        for (let cInt = Math.ceil(minDot); cInt <= Math.floor(maxDot); cInt++) {
+          planeConstants.push(cInt);
         }
-      });
+      } else {
+        planeConstants.push(primaryC);
+      }
 
-      if (intersectPoints.length >= 3) {
-        // Sort intersection points radially around centroid
-        const centroid = intersectPoints.reduce(
-          (acc, pt) => ({ x: acc.x + pt.x / intersectPoints.length, y: acc.y + pt.y / intersectPoints.length, z: acc.z + pt.z / intersectPoints.length }),
-          { x: 0, y: 0, z: 0 }
-        );
-
-        // Project centroid to screen
-        const cProj = project(centroid.x, centroid.y, centroid.z);
-        const projectedPts = intersectPoints.map(pt => project(pt.x, pt.y, pt.z));
-
-        // Sort by angle around 2D screen centroid
-        projectedPts.sort((p1, p2) => {
-          const a1 = Math.atan2(p1.py - cProj.py, p1.px - cProj.px);
-          const a2 = Math.atan2(p2.py - cProj.py, p2.px - cProj.px);
-          return a1 - a2;
+      planeConstants.forEach(cVal => {
+        const intersectPoints: { x: number; y: number; z: number }[] = [];
+        edgeDefs.forEach(([pA, pB]) => {
+          const du = pB[0] - pA[0];
+          const dv = pB[1] - pA[1];
+          const dw = pB[2] - pA[2];
+          const denom = hklH * du + hklK * dv + hklL * dw;
+          if (Math.abs(denom) > 1e-6) {
+            const t = (cVal - (hklH * pA[0] + hklK * pA[1] + hklL * pA[2])) / denom;
+            if (t >= -1e-4 && t <= 1 + 1e-4) {
+              const u = pA[0] + t * du;
+              const v = pA[1] + t * dv;
+              const w = pA[2] + t * dw;
+              const cart = fracToCart(u, v, w);
+              // Deduplicate vertices
+              if (!intersectPoints.some(ip => Math.hypot(ip.x - cart.x, ip.y - cart.y, ip.z - cart.z) < 0.5)) {
+                intersectPoints.push(cart);
+              }
+            }
+          }
         });
 
-        millerPlanePolygon = projectedPts;
-      }
+        if (intersectPoints.length >= 3) {
+          const centroid = intersectPoints.reduce(
+            (acc, pt) => ({
+              x: acc.x + pt.x / intersectPoints.length,
+              y: acc.y + pt.y / intersectPoints.length,
+              z: acc.z + pt.z / intersectPoints.length
+            }),
+            { x: 0, y: 0, z: 0 }
+          );
+
+          const cProj = project(centroid.x, centroid.y, centroid.z);
+          const projectedPts = intersectPoints.map(pt => project(pt.x, pt.y, pt.z));
+
+          projectedPts.sort((p1, p2) => {
+            const a1 = Math.atan2(p1.py - cProj.py, p1.px - cProj.px);
+            const a2 = Math.atan2(p2.py - cProj.py, p2.px - cProj.px);
+            return a1 - a2;
+          });
+
+          millerPlanePolygons.push({
+            pts: projectedPts,
+            isPrimaryPlane: cVal === primaryC
+          });
+        }
+      });
     }
 
     // 3D Crystallographic Symmetry Axes & Operations
@@ -714,39 +1048,35 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     };
 
     if (activeSystem.id === 'cubic') {
-      // Four <111> 3-fold body diagonal triad axes
       addSymAxis(-0.08, -0.08, -0.08, 1.08, 1.08, 1.08, '3-fold [111]', '#f59e0b', 3);
       addSymAxis(1.08, -0.08, -0.08, -0.08, 1.08, 1.08, '3-fold [1̄11]', '#f59e0b', 3);
       addSymAxis(1.08, 1.08, -0.08, -0.08, -0.08, 1.08, '3-fold [1̄1̄1]', '#f59e0b', 3);
       addSymAxis(-0.08, 1.08, -0.08, 1.08, -0.08, 1.08, '3-fold [11̄1]', '#f59e0b', 3);
     } else if (activeSystem.id === 'tetragonal') {
-      // Principal 4-fold [001] tetrad axis
       addSymAxis(0.5, 0.5, -0.15, 0.5, 0.5, 1.15, '4-fold [001]', '#f97316', 4);
     } else if (activeSystem.id === 'hexagonal') {
-      // Principal 6-fold [0001] hexad axis
       addSymAxis(0.5, 0.5, -0.15, 0.5, 0.5, 1.15, '6-fold [0001]', '#10b981', 6);
     } else if (activeSystem.id === 'trigonal') {
-      // Principal 3-fold [111] rhombohedral triad axis
-      addSymAxis(-0.1, -0.1, -0.1, 1.1, 1.1, 1.1, '3-fold [111]', '#f43f5e', 3);
+      if (trigonalSetting === 'rhombohedral_primitive') {
+        addSymAxis(-0.1, -0.1, -0.1, 1.1, 1.1, 1.1, '3-fold [111]_R', '#f43f5e', 3);
+      } else {
+        addSymAxis(0.5, 0.5, -0.15, 0.5, 0.5, 1.15, '3-fold [0001]_H', '#f43f5e', 3);
+      }
     } else if (activeSystem.id === 'orthorhombic') {
-      // Three orthogonal 2-fold axes
       addSymAxis(0.5, 0.5, -0.14, 0.5, 0.5, 1.14, '2-fold [001]', '#84cc16', 2);
       addSymAxis(0.5, -0.14, 0.5, 0.5, 1.14, 0.5, '2-fold [010]', '#22c55e', 2);
       addSymAxis(-0.14, 0.5, 0.5, 1.14, 0.5, 0.5, '2-fold [100]', '#10b981', 2);
     } else if (activeSystem.id === 'monoclinic') {
-      // Unique 2-fold axis along b [010]
       addSymAxis(0.5, -0.16, 0.5, 0.5, 1.16, 0.5, 'Unique 2-fold [010]', '#38bdf8', 2);
     } else if (activeSystem.id === 'triclinic') {
-      // Inversion center -1 at (1/2, 1/2, 1/2)
       addSymAxis(0, 0, 0, 1, 1, 1, 'Inversion 1̄ (½,½,½)', '#06b6d4', -1);
     }
 
-    // 3D Coordination Polyhedron Facets (Octahedral / Cubic / Basal cage)
+    // 3D Coordination Polyhedron Facets
     const coordinationPolygons: string[] = [];
     if (showCoordinationPolyhedron) {
       if (activeCentering === 'F' && centeredPoints.length >= 6) {
-        // Internal Octahedron formed by the 6 face-centered atoms
-        const fc = centeredPoints; // [bot(0), top(1), front(2), back(3), left(4), right(5)]
+        const fc = centeredPoints;
         const octFaces = [
           [1, 2, 5], [1, 5, 3], [1, 3, 4], [1, 4, 2],
           [0, 2, 5], [0, 5, 3], [0, 3, 4], [0, 4, 2]
@@ -756,8 +1086,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
           coordinationPolygons.push(pts);
         });
       } else {
-        // Coordination polyhedron linking central point (½,½,½) to vertices
-        const centerPt = project(0, 0, 0);
+        const centerCart = fracToCart(0.5, 0.5, 0.5);
+        const centerPt = project(centerCart.x, centerCart.y, centerCart.z);
         const tetIndices = [
           [0, 1, 2], [4, 5, 6], [0, 4, 5], [2, 3, 7]
         ];
@@ -776,12 +1106,12 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     const gizmoLen = 26;
     const projectGizmoVec = (vx: number, vy: number, vz: number) => {
       const mag = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
-      const nx = (vx / mag) * gizmoLen;
-      const ny = (vy / mag) * gizmoLen;
-      const nz = (vz / mag) * gizmoLen;
-      const x1 = nx * Math.cos(yawRad) - ny * Math.sin(yawRad);
-      const y1 = nx * Math.sin(yawRad) + ny * Math.cos(yawRad);
-      const y2 = y1 * Math.cos(pitchRad) - nz * Math.sin(pitchRad);
+      const nxV = (vx / mag) * gizmoLen;
+      const nyV = (vy / mag) * gizmoLen;
+      const nzV = (vz / mag) * gizmoLen;
+      const x1 = nxV * Math.cos(yawRad) - nyV * Math.sin(yawRad);
+      const y1 = nxV * Math.sin(yawRad) + nyV * Math.cos(yawRad);
+      const y2 = y1 * Math.cos(pitchRad) - nzV * Math.sin(pitchRad);
       return { x: gizmoOrigin.x + x1, y: gizmoOrigin.y - y2 };
     };
     const gizmoVectors = {
@@ -794,8 +1124,10 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     return {
       corners,
       edges,
+      supercellEdges,
       faces,
       centeredPoints,
+      sortedAtoms,
       struts,
       angleArcs,
       isHexPrism,
@@ -804,12 +1136,29 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       aEnd,
       bEnd,
       cEnd,
-      millerPlanePolygon,
+      millerPlanePolygons,
       symmetryAxes,
       coordinationPolygons,
       gizmoVectors
     };
-  }, [params, yaw, pitch, zoom, activeCentering, hexPrismMode, showMillerPlane, hklH, hklK, hklL, activeSystem.id, showCoordinationPolyhedron]);
+  }, [
+    params,
+    yaw,
+    pitch,
+    zoom,
+    activeCentering,
+    hexPrismMode,
+    showMillerPlane,
+    showParallelPlaneStack,
+    hklH,
+    hklK,
+    hklL,
+    activeSystem.id,
+    showCoordinationPolyhedron,
+    showCenterings,
+    supercellMode,
+    trigonalSetting
+  ]);
 
   // Handle Export SVG vector graphic
   const handleExportSVG = () => {
@@ -829,7 +1178,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
 
   // Dynamic Atom Radius based on style
   const effectiveAtomRadius = useMemo(() => {
-    if (atomStyle === 'wireframe-node') return 4;
+    if (atomStyle === 'wireframe-node') return 4.2;
     if (atomStyle === 'space-filling') return 22;
     return atomRadiusScale;
   }, [atomStyle, atomRadiusScale]);
@@ -844,25 +1193,71 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
             <Box className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-lg font-bold text-white tracking-tight">
                 {activeSystem.name} Unit Cell 3D Projection
               </h3>
-              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                {activeCentering}-Lattice
+              <span className="text-xs font-mono text-indigo-400 font-bold">
+                · {activeCentering}-Lattice (Z = {packingTelemetry.netZ})
               </span>
             </div>
             <p className="text-xs font-mono text-slate-400 mt-0.5">
-              {activeSystem.axialRelation} • {activeSystem.angleRelation}
+              {activeSystem.axialRelation} · {activeSystem.angleRelation}
             </p>
           </div>
         </div>
 
-        {/* Centering Switcher & Utility Actions */}
+        {/* Centering Switcher, Supercell Tessellation & Utility Actions */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Trigonal Setting Switcher */}
+          {activeSystem.id === 'trigonal' && (
+            <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
+              <button
+                onClick={() => handleTrigonalSettingChange('hexagonal_obverse')}
+                className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                  trigonalSetting === 'hexagonal_obverse'
+                    ? 'bg-rose-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Hexagonal Triple Cell Obverse Setting (Z=3)"
+              >
+                Hex Obverse (Z=3)
+              </button>
+              <button
+                onClick={() => handleTrigonalSettingChange('rhombohedral_primitive')}
+                className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                  trigonalSetting === 'rhombohedral_primitive'
+                    ? 'bg-rose-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Primitive Rhombohedral Axes (Z=1, a=b=c, α=β=γ)"
+              >
+                Rhombohedral (Z=1)
+              </button>
+            </div>
+          )}
+
+          {/* Supercell Tessellation Switcher */}
+          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
+            <span className="text-[10px] font-bold text-slate-500 px-1.5 uppercase">Tiling:</span>
+            {(['1x1x1', '2x2x1', '2x2x2'] as const).map(sc => (
+              <button
+                key={sc}
+                onClick={() => { playSynthTone('tick'); setSupercellMode(sc); }}
+                className={`px-2 py-1 rounded-lg font-bold transition-all ${
+                  supercellMode === sc
+                    ? 'bg-cyan-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {sc}
+              </button>
+            ))}
+          </div>
+
           {/* Centering buttons */}
           <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-            <span className="text-[10px] font-mono font-bold text-slate-500 px-2 uppercase">Lattice:</span>
+            <span className="text-[10px] font-mono font-bold text-slate-500 px-2 uppercase">Bravais:</span>
             {activeSystem.bravaisLattices.map(bl => (
               <button
                 key={bl.type}
@@ -1031,7 +1426,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 className="w-full h-84 max-w-lg mx-auto filter drop-shadow-2xl overflow-visible pointer-events-none"
               >
                 <defs>
-                  {/* High-definition 3D spherical gradients with specular highlights */}
                   <radialGradient id="cornerAtom3D" cx="30%" cy="30%" r="70%">
                     <stop offset="0%" stopColor="#c7d2fe" />
                     <stop offset="35%" stopColor="#6366f1" />
@@ -1057,22 +1451,35 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     <stop offset="35%" stopColor="#eab308" />
                     <stop offset="100%" stopColor="#713f12" />
                   </radialGradient>
-
-                  {/* Marker Arrows for Basis Vectors */}
-                  <marker id="arrowA" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#f43f5e" />
-                  </marker>
-                  <marker id="arrowB" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#10b981" />
-                  </marker>
-                  <marker id="arrowC" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                    <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="#06b6d4" />
-                  </marker>
                 </defs>
 
-                {/* Hexagonal Prism (Image 2 & 3 reproduction) */}
+                {/* Hexagonal Prism (Dynamically scaled by a & c with highlighted Primitive Rhombic Cell) */}
                 {projection.isHexPrism && projection.hexPrismData ? (
                   <g>
+                    {/* Highlighted Primitive Rhombic Sub-Cell (1/3 of Hexagonal Prism) */}
+                    <polygon
+                      points={[
+                        projection.hexPrismData.bCenter,
+                        projection.hexPrismData.bRing[0],
+                        projection.hexPrismData.bRing[1],
+                        projection.hexPrismData.bRing[2]
+                      ].map(p => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(' ')}
+                      fill="rgba(16, 185, 129, 0.16)"
+                      stroke="#10b981"
+                      strokeWidth="1.5"
+                    />
+                    <polygon
+                      points={[
+                        projection.hexPrismData.tCenter,
+                        projection.hexPrismData.tRing[0],
+                        projection.hexPrismData.tRing[1],
+                        projection.hexPrismData.tRing[2]
+                      ].map(p => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(' ')}
+                      fill="rgba(16, 185, 129, 0.16)"
+                      stroke="#10b981"
+                      strokeWidth="1.5"
+                    />
+
                     {/* Bottom & top ring lines */}
                     {projection.hexPrismData.bRing.map((p, i, arr) => (
                       <line
@@ -1115,8 +1522,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                           y1={projection.hexPrismData!.bCenter.py}
                           x2={projection.hexPrismData!.bRing[idx].px}
                           y2={projection.hexPrismData!.bRing[idx].py}
-                          stroke="#0284c7"
-                          strokeWidth="1.2"
+                          stroke="#10b981"
+                          strokeWidth="1.4"
                           strokeDasharray="3 2"
                         />
                         <line
@@ -1124,20 +1531,20 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                           y1={projection.hexPrismData!.tCenter.py}
                           x2={projection.hexPrismData!.tRing[idx].px}
                           y2={projection.hexPrismData!.tRing[idx].py}
-                          stroke="#0284c7"
-                          strokeWidth="1.2"
+                          stroke="#10b981"
+                          strokeWidth="1.4"
                           strokeDasharray="3 2"
                         />
                       </g>
                     ))}
-                    {/* Central c-axis */}
+                    {/* Central 6-fold c-axis */}
                     <line
                       x1={projection.hexPrismData.bCenter.px}
                       y1={projection.hexPrismData.bCenter.py}
                       x2={projection.hexPrismData.tCenter.px}
                       y2={projection.hexPrismData.tCenter.py}
-                      stroke="#0ea5e9"
-                      strokeWidth="1.5"
+                      stroke="#10b981"
+                      strokeWidth="1.8"
                       strokeDasharray="4 3"
                     />
 
@@ -1153,7 +1560,25 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   </g>
                 ) : (
                   <g>
-                    {/* Translucent Shaded Cell Faces (Ordered by Depth) */}
+                    {/* Supercell Ghost Tessellation Wireframe */}
+                    {supercellMode !== '1x1x1' &&
+                      projection.supercellEdges
+                        .filter(se => !se.isPrimary)
+                        .map((se, idx) => (
+                          <line
+                            key={`sc-edge-${idx}`}
+                            x1={se.p1.px}
+                            y1={se.p1.py}
+                            x2={se.p2.px}
+                            y2={se.p2.py}
+                            stroke="#38bdf8"
+                            strokeOpacity="0.28"
+                            strokeWidth="1.1"
+                            strokeDasharray="3 2"
+                          />
+                        ))}
+
+                    {/* Translucent Shaded Cell Faces (Depth-Sorted Back-to-Front) */}
                     {showCellFaces && projection.faces.map((f, idx) => (
                       <polygon
                         key={`face-${idx}`}
@@ -1164,22 +1589,31 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                       />
                     ))}
 
-                    {/* Miller Plane (hkl) 3D Slicing Polygon */}
-                    {projection.millerPlanePolygon && (
-                      <g>
+                    {/* Miller Plane (hkl) 3D Slicing Polygon Stack */}
+                    {projection.millerPlanePolygons.map((poly, pIdx) => (
+                      <g key={`miller-poly-${pIdx}`}>
                         <polygon
-                          points={projection.millerPlanePolygon.map(p => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(' ')}
-                          fill="#f59e0b"
-                          fillOpacity="0.45"
-                          stroke="#fbbf24"
-                          strokeWidth="2"
+                          points={poly.pts.map(p => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(' ')}
+                          fill={poly.isPrimaryPlane ? '#f59e0b' : '#38bdf8'}
+                          fillOpacity={poly.isPrimaryPlane ? '0.42' : '0.20'}
+                          stroke={poly.isPrimaryPlane ? '#fbbf24' : '#38bdf8'}
+                          strokeWidth={poly.isPrimaryPlane ? '2.2' : '1.4'}
+                          strokeDasharray={poly.isPrimaryPlane ? 'none' : '4 2'}
                           strokeLinejoin="round"
                         />
-                        {projection.millerPlanePolygon.map((p, i) => (
-                          <circle key={`mp-${i}`} cx={p.px} cy={p.py} r="3" fill="#fef08a" stroke="#d97706" strokeWidth="1" />
+                        {poly.pts.map((p, i) => (
+                          <circle
+                            key={`mp-${pIdx}-${i}`}
+                            cx={p.px}
+                            cy={p.py}
+                            r={poly.isPrimaryPlane ? '3' : '2'}
+                            fill={poly.isPrimaryPlane ? '#fef08a' : '#bae6fd'}
+                            stroke="#0f172a"
+                            strokeWidth="1"
+                          />
                         ))}
                       </g>
-                    )}
+                    ))}
 
                     {/* 3D Coordination Polyhedron Overlay */}
                     {showCoordinationPolyhedron && projection.coordinationPolygons.map((pts, idx) => (
@@ -1207,7 +1641,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                           strokeDasharray="5 3"
                           opacity="0.88"
                         />
-                        {/* Symmetry Glyph at Endpoint */}
                         {ax.order === 3 && (
                           <polygon
                             points={`${ax.p2.px},${ax.p2.py - 5} ${ax.p2.px - 4.5},${ax.p2.py + 3.5} ${ax.p2.px + 4.5},${ax.p2.py + 3.5}`}
@@ -1263,7 +1696,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                       </g>
                     ))}
 
-                    {/* Struts (BCC/FCC Bonds) */}
+                    {/* Struts (BCC/FCC/Rhombohedral Bonds) */}
                     {showBonds && projection.struts.map((s, idx) => (
                       <line
                         key={`strut-${idx}`}
@@ -1293,83 +1726,47 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                       />
                     ))}
 
-                    {/* 8 Corner Atoms */}
-                    {projection.corners.map((c, idx) => (
-                      <g 
-                        key={`corner-${idx}`}
+                    {/* Depth-Sorted 3D Atoms (Corners + Centered Sites) */}
+                    {projection.sortedAtoms.map(atom => (
+                      <g
+                        key={atom.id}
                         className="pointer-events-auto cursor-pointer"
-                        onMouseEnter={() => setHoveredAtom({
-                          x: c.px,
-                          y: c.py,
-                          label: `Vertex #${idx}`,
-                          coords: `(${c.u}, ${c.v}, ${c.w})`,
-                          fraction: '⅛ (Shared by 8 adjacent unit cells)',
-                          type: 'Corner Vertex Atom'
-                        })}
+                        onMouseEnter={() =>
+                          setHoveredAtom({
+                            x: atom.px,
+                            y: atom.py,
+                            label: atom.label,
+                            coords: atom.coords,
+                            cartesianStr: atom.cartesianStr,
+                            fraction: atom.fraction,
+                            type: atom.typeLabel
+                          })
+                        }
                         onMouseLeave={() => setHoveredAtom(null)}
                       >
                         <circle
-                          cx={c.px}
-                          cy={c.py}
-                          r={effectiveAtomRadius}
-                          fill="url(#cornerAtom3D)"
-                          stroke="#e0e7ff"
-                          strokeWidth="1.5"
-                          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.4))"
+                          cx={atom.px}
+                          cy={atom.py}
+                          r={Math.max(2.5, effectiveAtomRadius * atom.radiusMult)}
+                          fill={atom.gradientId}
+                          stroke={atom.strokeColor}
+                          strokeWidth={atom.isCorner ? '1.5' : '2'}
+                          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.45))"
                         />
-                        {showIndices && (
+                        {showIndices && atom.shortLabel && (
                           <text
-                            x={c.px + effectiveAtomRadius + 3}
-                            y={c.py - 3}
+                            x={atom.px + effectiveAtomRadius + 3}
+                            y={atom.py - 3}
                             fill="#94a3b8"
                             fontSize="9"
                             fontFamily="monospace"
                             fontWeight="bold"
                           >
-                            {c.label}
+                            {atom.shortLabel}
                           </text>
                         )}
                       </g>
                     ))}
-
-                    {/* Centered Atoms (I, F, C, R) */}
-                    {showCenterings && projection.centeredPoints.map((pt, idx) => {
-                      const grad = pt.type === 'body' 
-                        ? 'url(#bodyAtom3D)' 
-                        : pt.type === 'face' 
-                        ? 'url(#faceAtom3D)' 
-                        : pt.type === 'base'
-                        ? 'url(#baseAtom3D)'
-                        : 'url(#rhomboAtom3D)';
-
-                      const strokeColor = pt.type === 'body' ? '#ffe4e6' : pt.type === 'face' ? '#e0f2fe' : '#d1fae5';
-
-                      return (
-                        <g 
-                          key={`centered-${idx}`}
-                          className="pointer-events-auto cursor-pointer"
-                          onMouseEnter={() => setHoveredAtom({
-                            x: pt.px,
-                            y: pt.py,
-                            label: pt.label,
-                            coords: pt.coords,
-                            fraction: pt.fraction,
-                            type: `${pt.type.toUpperCase()} Centering Atom`
-                          })}
-                          onMouseLeave={() => setHoveredAtom(null)}
-                        >
-                          <circle
-                            cx={pt.px}
-                            cy={pt.py}
-                            r={effectiveAtomRadius * 1.1}
-                            fill={grad}
-                            stroke={strokeColor}
-                            strokeWidth="2"
-                            filter="drop-shadow(0 3px 6px rgba(0,0,0,0.5))"
-                          />
-                        </g>
-                      );
-                    })}
                   </g>
                 )}
 
@@ -1398,7 +1795,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 {/* Crystallographic Basis Vectors from Origin */}
                 {showAxes && (
                   <g>
-                    {/* a-vector (Red) */}
                     <line
                       x1={projection.origin.px}
                       y1={projection.origin.py}
@@ -1412,14 +1808,13 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                       x={projection.aEnd.px + 10}
                       y={projection.aEnd.py + 4}
                       fill="#f43f5e"
-                      fontSize="13"
+                      fontSize="12"
                       fontWeight="bold"
                       fontFamily="monospace"
                     >
                       a ({params.a.toFixed(2)}Å)
                     </text>
 
-                    {/* b-vector (Emerald) */}
                     <line
                       x1={projection.origin.px}
                       y1={projection.origin.py}
@@ -1433,14 +1828,13 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                       x={projection.bEnd.px + 8}
                       y={projection.bEnd.py - 6}
                       fill="#10b981"
-                      fontSize="13"
+                      fontSize="12"
                       fontWeight="bold"
                       fontFamily="monospace"
                     >
                       b ({params.b.toFixed(2)}Å)
                     </text>
 
-                    {/* c-vector (Cyan) */}
                     <line
                       x1={projection.origin.px}
                       y1={projection.origin.py}
@@ -1454,7 +1848,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                       x={projection.cEnd.px - 6}
                       y={projection.cEnd.py - 10}
                       fill="#06b6d4"
-                      fontSize="13"
+                      fontSize="12"
                       fontWeight="bold"
                       fontFamily="monospace"
                     >
@@ -1474,7 +1868,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     stroke="#1e293b"
                     strokeWidth="1.2"
                   />
-                  {/* Gizmo a-axis */}
                   <line
                     x1={projection.gizmoVectors.origin.x}
                     y1={projection.gizmoVectors.origin.y}
@@ -1494,7 +1887,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   >
                     a
                   </text>
-                  {/* Gizmo b-axis */}
                   <line
                     x1={projection.gizmoVectors.origin.x}
                     y1={projection.gizmoVectors.origin.y}
@@ -1514,7 +1906,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   >
                     b
                   </text>
-                  {/* Gizmo c-axis */}
                   <line
                     x1={projection.gizmoVectors.origin.x}
                     y1={projection.gizmoVectors.origin.y}
@@ -1543,17 +1934,18 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 </g>
               </svg>
 
-              {/* Hover Tooltip Overlay */}
+              {/* Hover Tooltip Overlay with Fractional + Real Cartesian Coordinates */}
               {hoveredAtom && (
                 <div 
-                  className="absolute z-30 pointer-events-none p-3 rounded-2xl bg-slate-950/95 border border-indigo-500/40 shadow-2xl backdrop-blur-md text-xs font-mono space-y-1 transform -translate-x-1/2 -translate-y-full mb-3"
+                  className="absolute z-30 pointer-events-none p-3 rounded-2xl bg-slate-950/95 border border-indigo-500/40 shadow-2xl backdrop-blur-md text-xs font-mono space-y-1 transform -translate-x-1/2 -translate-y-full mb-3 min-w-[210px]"
                   style={{ left: hoveredAtom.x, top: hoveredAtom.y }}
                 >
                   <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-1">
                     <span className="text-white font-bold">{hoveredAtom.label}</span>
                     <span className="text-indigo-400 font-bold">{hoveredAtom.coords}</span>
                   </div>
-                  <div className="text-slate-400 text-[11px]">{hoveredAtom.type}</div>
+                  <div className="text-cyan-300 text-[10px]">Cartesian: {hoveredAtom.cartesianStr}</div>
+                  <div className="text-slate-400 text-[10px]">{hoveredAtom.type}</div>
                   <div className="text-emerald-400 font-bold text-[10px]">{hoveredAtom.fraction}</div>
                 </div>
               )}
@@ -1561,15 +1953,15 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
 
             {/* Bottom Status & Drag Prompt */}
             <div className="relative z-10 flex items-center justify-between flex-wrap gap-2 text-[11px] font-mono text-slate-400 pt-2 border-t border-slate-800/80">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <span className="flex items-center gap-1 text-slate-300">
                   <Rotate3d className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Click + Drag to Orbit</span>
+                  <span>Drag to Orbit</span>
                 </span>
-                <span>•</span>
+                <span>·</span>
                 <span>Scroll to Zoom</span>
-                <span>•</span>
-                <span className="text-indigo-400 font-bold">Yaw: {Math.round(yaw)}°, Pitch: {Math.round(pitch)}°</span>
+                <span>·</span>
+                <span className="text-indigo-400 font-bold">Yaw {Math.round(yaw)}° · Pitch {Math.round(pitch)}°</span>
               </div>
 
               {/* Quick Legend */}
@@ -1587,12 +1979,61 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     <span className="w-2.5 h-2.5 rounded-full bg-sky-500 inline-block" /> Face (½)
                   </span>
                 )}
-                {showMillerPlane && (
+                {activeCentering === 'C' && (
+                  <span className="flex items-center gap-1 text-emerald-300">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Base (½)
+                  </span>
+                )}
+                {activeCentering === 'R' && trigonalSetting === 'hexagonal_obverse' && (
                   <span className="flex items-center gap-1 text-amber-300">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-amber-500 inline-block" /> ({hklH}{hklK}{hklL}) Plane
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" /> Obverse (1)
                   </span>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Live Unit Cell Site Sharing & Z-Multiplicity Breakdown Strip */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
+            <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-2.5">
+              <span className="text-[9px] text-slate-500 uppercase block">Net Lattice Points (Z)</span>
+              <span className="text-sm font-bold text-emerald-400">
+                Z = {packingTelemetry.netZ} pts/cell
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                8×(⅛){packingTelemetry.faceCount > 0 ? ` + ${packingTelemetry.faceCount}×(½)` : ''}
+                {packingTelemetry.bodyCount > 0 ? ` + ${packingTelemetry.bodyCount}×(1)` : ''}
+              </span>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-2.5">
+              <span className="text-[9px] text-slate-500 uppercase block">Nearest Neighbor (d_NN)</span>
+              <span className="text-sm font-bold text-cyan-300">
+                {packingTelemetry.dNN.toFixed(3)} Å
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                R_touch = {packingTelemetry.hardSphereRadius.toFixed(3)} Å
+              </span>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-2.5">
+              <span className="text-[9px] text-slate-500 uppercase block">Hard-Sphere APF</span>
+              <span className="text-sm font-bold text-amber-300">
+                {packingTelemetry.apfPercent.toFixed(1)}%
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                Coord. Number CN = {packingTelemetry.coordNumber}
+              </span>
+            </div>
+
+            <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-2.5">
+              <span className="text-[9px] text-slate-500 uppercase block">Cell Volume (V_cell)</span>
+              <span className="text-sm font-bold text-indigo-300">
+                {cellVolume.toFixed(2)} Å³
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                {(cellVolume / packingTelemetry.netZ).toFixed(2)} Å³ / lattice pt
+              </span>
             </div>
           </div>
         </div>
@@ -1600,42 +2041,54 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
         {/* Control Inspector Panel (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
           
-          {/* Tabs for Controls */}
-          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-xs font-mono">
+          {/* 4-Tab Control Switcher */}
+          <div className="grid grid-cols-4 gap-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-800 text-[11px] font-mono">
             <button
               onClick={() => { playSynthTone('tick'); setActiveControlTab('params'); }}
-              className={`flex-1 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+              className={`py-2 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
                 activeControlTab === 'params'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
-              <span>Dimensions</span>
+              <span>Metrics</span>
+            </button>
+
+            <button
+              onClick={() => { playSynthTone('tick'); setActiveControlTab('packing'); }}
+              className={`py-2 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
+                activeControlTab === 'packing'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5" />
+              <span>Density</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setActiveControlTab('layers'); }}
-              className={`flex-1 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+              className={`py-2 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
                 activeControlTab === 'layers'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Rendering</span>
+              <span>Layers</span>
             </button>
 
             <button
               onClick={() => { playSynthTone('tick'); setActiveControlTab('miller'); }}
-              className={`flex-1 py-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all ${
+              className={`py-2 rounded-xl font-bold flex items-center justify-center gap-1 transition-all ${
                 activeControlTab === 'miller'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               <Grid className="w-3.5 h-3.5" />
-              <span>(hkl) Slicer</span>
+              <span>(hkl) Slice</span>
             </button>
           </div>
 
@@ -1677,46 +2130,46 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
               {/* Quick Literature Prototype Presets */}
               <div className="space-y-1.5">
                 <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-                  Literature Crystal Presets ({activeSystem.name.split(' ')[0]}):
+                  Reference Crystal Structures ({activeSystem.name.split(' ')[0]}):
                 </span>
                 <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
                   {(activeSystem.id === 'cubic'
                     ? [
-                        { label: 'Cu (cF)', a: 3.615, b: 3.615, c: 3.615, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType },
-                        { label: 'α-Fe (cI)', a: 2.866, b: 2.866, c: 2.866, alpha: 90, beta: 90, gamma: 90, cent: 'I' as CenteringType },
-                        { label: 'Si (cF)', a: 5.431, b: 5.431, c: 5.431, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType },
-                        { label: 'SrTiO₃ (cP)', a: 3.905, b: 3.905, c: 3.905, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType }
+                        { label: 'Cu (cF)', a: 3.615, b: 3.615, c: 3.615, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType, mass: 63.55 },
+                        { label: 'α-Fe (cI)', a: 2.866, b: 2.866, c: 2.866, alpha: 90, beta: 90, gamma: 90, cent: 'I' as CenteringType, mass: 55.85 },
+                        { label: 'Si (cF)', a: 5.431, b: 5.431, c: 5.431, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType, mass: 56.17 },
+                        { label: 'Po (cP)', a: 3.359, b: 3.359, c: 3.359, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType, mass: 208.98 }
                       ]
                     : activeSystem.id === 'hexagonal'
                     ? [
-                        { label: 'Mg (hP)', a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType },
-                        { label: 'α-Ti (hP)', a: 2.951, b: 2.951, c: 4.683, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType },
-                        { label: 'ZnO (hP)', a: 3.250, b: 3.250, c: 5.207, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType }
+                        { label: 'Mg (hP)', a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType, mass: 48.61 },
+                        { label: 'α-Ti (hP)', a: 2.951, b: 2.951, c: 4.683, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType, mass: 95.73 },
+                        { label: 'ZnO (hP)', a: 3.250, b: 3.250, c: 5.207, alpha: 90, beta: 90, gamma: 120, cent: 'P' as CenteringType, mass: 162.76 }
                       ]
                     : activeSystem.id === 'trigonal'
                     ? [
-                        { label: 'α-Quartz', a: 4.913, b: 4.913, c: 5.405, alpha: 90, beta: 90, gamma: 120, cent: 'R' as CenteringType },
-                        { label: 'Corundum', a: 4.759, b: 4.759, c: 12.991, alpha: 90, beta: 90, gamma: 120, cent: 'R' as CenteringType }
+                        { label: 'α-Quartz', a: 4.913, b: 4.913, c: 5.405, alpha: 90, beta: 90, gamma: 120, cent: 'R' as CenteringType, mass: 60.08 },
+                        { label: 'Corundum', a: 4.759, b: 4.759, c: 12.991, alpha: 90, beta: 90, gamma: 120, cent: 'R' as CenteringType, mass: 203.92 }
                       ]
                     : activeSystem.id === 'tetragonal'
                     ? [
-                        { label: 'Rutile TiO₂ (tP)', a: 4.593, b: 4.593, c: 2.959, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType },
-                        { label: 'β-Sn (tI)', a: 5.832, b: 5.832, c: 3.182, alpha: 90, beta: 90, gamma: 90, cent: 'I' as CenteringType },
-                        { label: 'BaTiO₃ (tP)', a: 3.992, b: 3.992, c: 4.036, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType }
+                        { label: 'Rutile TiO₂ (tP)', a: 4.593, b: 4.593, c: 2.959, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType, mass: 159.73 },
+                        { label: 'β-Sn (tI)', a: 5.832, b: 5.832, c: 3.182, alpha: 90, beta: 90, gamma: 90, cent: 'I' as CenteringType, mass: 237.42 },
+                        { label: 'BaTiO₃ (tP)', a: 3.992, b: 3.992, c: 4.036, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType, mass: 233.19 }
                       ]
                     : activeSystem.id === 'orthorhombic'
                     ? [
-                        { label: 'Forsterite (oP)', a: 4.75, b: 10.20, c: 5.98, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType },
-                        { label: 'α-Sulfur (oF)', a: 10.46, b: 12.87, c: 24.49, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType }
+                        { label: 'Forsterite (oP)', a: 4.75, b: 10.20, c: 5.98, alpha: 90, beta: 90, gamma: 90, cent: 'P' as CenteringType, mass: 562.77 },
+                        { label: 'α-Sulfur (oF)', a: 10.46, b: 12.87, c: 24.49, alpha: 90, beta: 90, gamma: 90, cent: 'F' as CenteringType, mass: 1026.0 }
                       ]
                     : activeSystem.id === 'monoclinic'
                     ? [
-                        { label: 'Orthoclase (mC)', a: 8.56, b: 12.96, c: 7.21, alpha: 90, beta: 116.0, gamma: 90, cent: 'C' as CenteringType },
-                        { label: 'm-ZrO₂ (mP)', a: 5.15, b: 5.21, c: 5.31, alpha: 90, beta: 99.2, gamma: 90, cent: 'P' as CenteringType }
+                        { label: 'Orthoclase (mC)', a: 8.56, b: 12.96, c: 7.21, alpha: 90, beta: 116.0, gamma: 90, cent: 'C' as CenteringType, mass: 556.66 },
+                        { label: 'm-ZrO₂ (mP)', a: 5.15, b: 5.21, c: 5.31, alpha: 90, beta: 99.2, gamma: 90, cent: 'P' as CenteringType, mass: 492.89 }
                       ]
                     : [
-                        { label: 'Albite (aP)', a: 8.14, b: 12.78, c: 7.16, alpha: 94.3, beta: 116.6, gamma: 87.7, cent: 'P' as CenteringType },
-                        { label: 'CuSO₄·5H₂O', a: 6.12, b: 10.70, c: 5.97, alpha: 82.3, beta: 107.3, gamma: 102.6, cent: 'P' as CenteringType }
+                        { label: 'Albite (aP)', a: 8.14, b: 12.78, c: 7.16, alpha: 94.3, beta: 116.6, gamma: 87.7, cent: 'P' as CenteringType, mass: 1048.89 },
+                        { label: 'CuSO₄·5H₂O', a: 6.12, b: 10.70, c: 5.97, alpha: 82.3, beta: 107.3, gamma: 102.6, cent: 'P' as CenteringType, mass: 499.37 }
                       ]
                   ).map(p => (
                     <button
@@ -1724,6 +2177,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                       onClick={() => {
                         playSynthTone('tick');
                         setParams({ a: p.a, b: p.b, c: p.c, alpha: p.alpha, beta: p.beta, gamma: p.gamma });
+                        setMolarMass(p.mass);
+                        if (activeSystem.id === 'trigonal') setTrigonalSetting('hexagonal_obverse');
                         if (activeSystem.bravaisLattices.some(b => b.type === p.cent)) {
                           setActiveCentering(p.cent);
                         }
@@ -1738,7 +2193,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
 
               {/* Axial Lengths Sliders: a, b, c */}
               <div className="space-y-3 text-xs font-mono">
-                {/* a slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-slate-300">
                     <span className="flex items-center gap-1.5 text-rose-400 font-bold">
@@ -1757,7 +2211,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   />
                 </div>
 
-                {/* b slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-slate-300">
                     <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
@@ -1776,7 +2229,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   />
                 </div>
 
-                {/* c slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-slate-300">
                     <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
@@ -1798,86 +2250,82 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
 
               {/* Interaxial Angles Sliders: alpha, beta, gamma */}
               <div className="space-y-3 text-xs font-mono pt-2 border-t border-slate-800">
-                {/* alpha */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-300">
-                    <span className="text-amber-400 font-bold">Angle α (b ∧ c):</span>
-                    <span className="font-bold text-white">{params.alpha.toFixed(1)}°</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="45"
-                    max="135"
-                    step="0.5"
-                    disabled={symmetryLocked && activeSystem.id !== 'triclinic'}
-                    value={params.alpha}
-                    onChange={(e) => updateLatticeParam('alpha', parseFloat(e.target.value))}
-                    className={`w-full h-1.5 rounded-lg accent-amber-500 ${
-                      symmetryLocked && activeSystem.id !== 'triclinic' ? 'opacity-40 cursor-not-allowed bg-slate-800' : 'bg-slate-800 cursor-pointer'
-                    }`}
-                  />
-                </div>
+                {(() => {
+                  const canEditAlpha =
+                    !symmetryLocked ||
+                    activeSystem.id === 'triclinic' ||
+                    (activeSystem.id === 'trigonal' && trigonalSetting === 'rhombohedral_primitive');
+                  const canEditBeta =
+                    !symmetryLocked ||
+                    activeSystem.id === 'monoclinic' ||
+                    activeSystem.id === 'triclinic' ||
+                    (activeSystem.id === 'trigonal' && trigonalSetting === 'rhombohedral_primitive');
+                  const canEditGamma =
+                    !symmetryLocked ||
+                    activeSystem.id === 'triclinic' ||
+                    (activeSystem.id === 'trigonal' && trigonalSetting === 'rhombohedral_primitive');
 
-                {/* beta */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-300">
-                    <span className="text-purple-400 font-bold">Angle β (a ∧ c):</span>
-                    <span className="font-bold text-white">{params.beta.toFixed(1)}°</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="45"
-                    max="140"
-                    step="0.5"
-                    disabled={symmetryLocked && activeSystem.id !== 'monoclinic' && activeSystem.id !== 'triclinic'}
-                    value={params.beta}
-                    onChange={(e) => updateLatticeParam('beta', parseFloat(e.target.value))}
-                    className={`w-full h-1.5 rounded-lg accent-purple-500 ${
-                      symmetryLocked && activeSystem.id !== 'monoclinic' && activeSystem.id !== 'triclinic'
-                        ? 'opacity-40 cursor-not-allowed bg-slate-800' 
-                        : 'bg-slate-800 cursor-pointer'
-                    }`}
-                  />
-                </div>
+                  return (
+                    <>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-slate-300">
+                          <span className="text-amber-400 font-bold">Angle α (b ∧ c):</span>
+                          <span className="font-bold text-white">{params.alpha.toFixed(1)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="45"
+                          max="135"
+                          step="0.5"
+                          disabled={!canEditAlpha}
+                          value={params.alpha}
+                          onChange={(e) => updateLatticeParam('alpha', parseFloat(e.target.value))}
+                          className={`w-full h-1.5 rounded-lg accent-amber-500 ${
+                            !canEditAlpha ? 'opacity-40 cursor-not-allowed bg-slate-800' : 'bg-slate-800 cursor-pointer'
+                          }`}
+                        />
+                      </div>
 
-                {/* gamma */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-slate-300">
-                    <span className="text-sky-400 font-bold">Angle γ (a ∧ b):</span>
-                    <span className="font-bold text-white">{params.gamma.toFixed(1)}°</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="45"
-                    max="140"
-                    step="0.5"
-                    disabled={symmetryLocked && activeSystem.id !== 'triclinic'}
-                    value={params.gamma}
-                    onChange={(e) => updateLatticeParam('gamma', parseFloat(e.target.value))}
-                    className={`w-full h-1.5 rounded-lg accent-sky-500 ${
-                      symmetryLocked && activeSystem.id !== 'triclinic' ? 'opacity-40 cursor-not-allowed bg-slate-800' : 'bg-slate-800 cursor-pointer'
-                    }`}
-                  />
-                </div>
-              </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-slate-300">
+                          <span className="text-purple-400 font-bold">Angle β (a ∧ c):</span>
+                          <span className="font-bold text-white">{params.beta.toFixed(1)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="45"
+                          max="140"
+                          step="0.5"
+                          disabled={!canEditBeta}
+                          value={params.beta}
+                          onChange={(e) => updateLatticeParam('beta', parseFloat(e.target.value))}
+                          className={`w-full h-1.5 rounded-lg accent-purple-500 ${
+                            !canEditBeta ? 'opacity-40 cursor-not-allowed bg-slate-800' : 'bg-slate-800 cursor-pointer'
+                          }`}
+                        />
+                      </div>
 
-              {/* Real-Time Mathematical Volume & Reciprocal Lattice Box */}
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-2 border-t border-slate-800">
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-[10px] text-slate-500 block uppercase">Cell Volume (V)</span>
-                  <span className="text-base font-bold text-amber-300">{cellVolume.toFixed(2)} Å³</span>
-                  <span className="text-[9px] text-slate-500 block mt-0.5 truncate">{activeSystem.volumeFormula}</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-[10px] text-slate-500 block uppercase">Reciprocal a*, b*, c*</span>
-                  <span className="text-xs font-bold text-indigo-300 block truncate">
-                    a*={reciprocalParams.aStar.toFixed(3)} Å⁻¹
-                  </span>
-                  <span className="text-[10px] text-slate-400 block truncate">
-                    c*={reciprocalParams.cStar.toFixed(3)} Å⁻¹
-                  </span>
-                </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-slate-300">
+                          <span className="text-sky-400 font-bold">Angle γ (a ∧ b):</span>
+                          <span className="font-bold text-white">{params.gamma.toFixed(1)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="45"
+                          max="140"
+                          step="0.5"
+                          disabled={!canEditGamma}
+                          value={params.gamma}
+                          onChange={(e) => updateLatticeParam('gamma', parseFloat(e.target.value))}
+                          className={`w-full h-1.5 rounded-lg accent-sky-500 ${
+                            !canEditGamma ? 'opacity-40 cursor-not-allowed bg-slate-800' : 'bg-slate-800 cursor-pointer'
+                          }`}
+                        />
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Direct Metric Tensor G_ij 3x3 Matrix Readout */}
@@ -1908,14 +2356,109 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
             </div>
           )}
 
-          {/* TAB 2: Rendering Layers & Atom Representations */}
+          {/* TAB 2: Packing, Reciprocal Cell & Theoretical Density Calculator */}
+          {activeControlTab === 'packing' && (
+            <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-lg font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Calculator className="w-4 h-4 text-emerald-400" />
+                  <span>Packing, Density &amp; Reciprocal Cell</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold">Z = {packingTelemetry.netZ}</span>
+              </div>
+
+              {/* Site-Sharing Breakdown */}
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+                <div className="text-[10px] text-slate-400 uppercase font-bold">
+                  Unit Cell Site-Sharing Accounting
+                </div>
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex justify-between text-slate-300">
+                    <span>Corner Vertices (8 sites × ⅛):</span>
+                    <span className="text-indigo-300 font-bold">1.00 net pt</span>
+                  </div>
+                  {packingTelemetry.faceCount > 0 && (
+                    <div className="flex justify-between text-slate-300">
+                      <span>Face/Base Centers ({packingTelemetry.faceCount} sites × ½):</span>
+                      <span className="text-cyan-300 font-bold">{(packingTelemetry.faceCount * 0.5).toFixed(2)} net pts</span>
+                    </div>
+                  )}
+                  {packingTelemetry.bodyCount > 0 && (
+                    <div className="flex justify-between text-slate-300">
+                      <span>Interior Body Sites ({packingTelemetry.bodyCount} site × 1):</span>
+                      <span className="text-rose-300 font-bold">{packingTelemetry.bodyCount.toFixed(2)} net pts</span>
+                    </div>
+                  )}
+                  <div className="pt-1 border-t border-slate-800 flex justify-between font-bold text-white">
+                    <span>Total Lattice Multiplicity (Z):</span>
+                    <span className="text-emerald-400">{packingTelemetry.netZ} points / cell</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Theoretical Crystal Density Calculator */}
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold">
+                    Theoretical X-Ray Density (ρ_xrd)
+                  </span>
+                  <span className="text-[10px] text-amber-300">ρ = (Z · M) / (N_A · V)</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-[11px] text-slate-300">Motif Molar Mass M (g/mol):</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={molarMass}
+                    onChange={(e) => setMolarMass(Math.max(1, parseFloat(e.target.value) || 1))}
+                    className="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-right text-amber-300 font-bold outline-none"
+                  />
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-emerald-950/25 border border-emerald-500/30 flex items-center justify-between">
+                  <span className="text-slate-300">Calculated Density ρ:</span>
+                  <span className="text-base font-bold text-emerald-300">
+                    {packingTelemetry.densityGcm3.toFixed(3)} g/cm³
+                  </span>
+                </div>
+              </div>
+
+              {/* Reciprocal Lattice Parameters */}
+              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-2">
+                <div className="text-[10px] text-slate-400 uppercase font-bold">
+                  Reciprocal Lattice Parameters (a*, b*, c*, α*, β*, γ*)
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-[11px]">
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                    <span className="text-[9px] text-slate-500 block">a* (Å⁻¹)</span>
+                    <span className="text-rose-300 font-bold">{reciprocalParams.aStar.toFixed(4)}</span>
+                  </div>
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                    <span className="text-[9px] text-slate-500 block">b* (Å⁻¹)</span>
+                    <span className="text-emerald-300 font-bold">{reciprocalParams.bStar.toFixed(4)}</span>
+                  </div>
+                  <div className="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                    <span className="text-[9px] text-slate-500 block">c* (Å⁻¹)</span>
+                    <span className="text-cyan-300 font-bold">{reciprocalParams.cStar.toFixed(4)}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-[10px] text-purple-300 text-center">
+                  <span>α* = {reciprocalParams.alphaStar.toFixed(1)}°</span>
+                  <span>β* = {reciprocalParams.betaStar.toFixed(1)}°</span>
+                  <span>γ* = {reciprocalParams.gammaStar.toFixed(1)}°</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Rendering Layers & Atom Representations */}
           {activeControlTab === 'layers' && (
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-lg">
               <span className="text-xs font-bold text-white uppercase tracking-wider font-mono block border-b border-slate-800 pb-2">
-                Atom Style & Visual Layers
+                Atom Style &amp; Visual Layers
               </span>
 
-              {/* Atom Representation Buttons */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-mono text-slate-400 block">Atom Model Presentation:</span>
                 <div className="grid grid-cols-3 gap-1.5 text-xs font-mono">
@@ -1927,7 +2470,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                         : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
                     }`}
                   >
-                    Ball & Stick
+                    Ball &amp; Stick
                   </button>
                   <button
                     onClick={() => { playSynthTone('tick'); setAtomStyle('wireframe-node'); }}
@@ -1952,7 +2495,6 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 </div>
               </div>
 
-              {/* Radius slider if ball-and-stick */}
               {atomStyle === 'ball-and-stick' && (
                 <div className="space-y-1 font-mono text-xs">
                   <div className="flex justify-between text-slate-300">
@@ -1963,21 +2505,21 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="range"
                     min="4"
                     max="14"
+                    step="0.5"
                     value={atomRadiusScale}
-                    onChange={(e) => setAtomRadiusScale(parseInt(e.target.value))}
+                    onChange={(e) => setAtomRadiusScale(parseFloat(e.target.value))}
                     className="w-full h-1.5 bg-slate-800 accent-indigo-500 rounded-lg cursor-pointer"
                   />
                 </div>
               )}
 
-              {/* Checkbox Layer Toggles */}
               <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-slate-800">
                 <label className="flex items-center gap-2 cursor-pointer text-slate-300">
                   <input
                     type="checkbox"
                     checked={showCellFaces}
                     onChange={(e) => setShowCellFaces(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-indigo-500"
                   />
                   <span>Translucent Faces</span>
                 </label>
@@ -1987,7 +2529,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="checkbox"
                     checked={showAxes}
                     onChange={(e) => setShowAxes(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-indigo-500"
                   />
                   <span>Basis Vectors (a,b,c)</span>
                 </label>
@@ -1997,7 +2539,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="checkbox"
                     checked={showCenterings}
                     onChange={(e) => setShowCenterings(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-indigo-500"
                   />
                   <span>Centered Atoms (I,F,C)</span>
                 </label>
@@ -2007,7 +2549,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="checkbox"
                     checked={showBonds}
                     onChange={(e) => setShowBonds(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-rose-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-rose-500"
                   />
                   <span>Coordination Struts</span>
                 </label>
@@ -2017,7 +2559,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="checkbox"
                     checked={showAngleArcs}
                     onChange={(e) => setShowAngleArcs(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-amber-500"
                   />
                   <span>Angle Arcs (α,β,γ)</span>
                 </label>
@@ -2027,7 +2569,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="checkbox"
                     checked={showIndices}
                     onChange={(e) => setShowIndices(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-indigo-500"
                   />
                   <span>Vertex Labels [uvw]</span>
                 </label>
@@ -2037,7 +2579,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="checkbox"
                     checked={showSymmetryAxes}
                     onChange={(e) => setShowSymmetryAxes(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-amber-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-amber-500"
                   />
                   <span>Symmetry Axes</span>
                 </label>
@@ -2047,13 +2589,12 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     type="checkbox"
                     checked={showCoordinationPolyhedron}
                     onChange={(e) => setShowCoordinationPolyhedron(e.target.checked)}
-                    className="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0"
+                    className="rounded bg-slate-800 border-slate-700 text-cyan-500"
                   />
                   <span>Coord. Polyhedron</span>
                 </label>
               </div>
 
-              {/* Hexagonal prism mode toggle */}
               {activeSystem.id === 'hexagonal' && (
                 <div className="pt-2 border-t border-slate-800 space-y-1">
                   <span className="text-[11px] text-sky-400 font-bold block">Hexagonal Model Type:</span>
@@ -2064,7 +2605,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                         hexPrismMode ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-950 border-slate-800 text-slate-400'
                       }`}
                     >
-                      Full Prism (3 Cells)
+                      Full Prism (3 Rhombic Cells)
                     </button>
                     <button
                       onClick={() => setHexPrismMode(false)}
@@ -2072,7 +2613,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                         !hexPrismMode ? 'bg-sky-600 text-white border-sky-500' : 'bg-slate-950 border-slate-800 text-slate-400'
                       }`}
                     >
-                      Rhombic Unit Cell
+                      Single Rhombic Unit Cell
                     </button>
                   </div>
                 </div>
@@ -2080,7 +2621,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
             </div>
           )}
 
-          {/* TAB 3: Miller Plane (hkl) 3D Slicer */}
+          {/* TAB 4: Miller Plane (hkl) 3D Slicer */}
           {activeControlTab === 'miller' && (
             <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-lg">
               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -2088,24 +2629,33 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   <Grid className="w-4 h-4 text-amber-400" />
                   <span>3D Miller Plane Slicer</span>
                 </span>
-                <button
-                  onClick={() => {
-                    playSynthTone('tick');
-                    setShowMillerPlane(!showMillerPlane);
-                  }}
-                  className={`px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all ${
-                    showMillerPlane
-                      ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
-                      : 'bg-slate-800 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {showMillerPlane ? 'Plane Active' : 'Show Plane'}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setShowParallelPlaneStack(!showParallelPlaneStack)}
+                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all ${
+                      showParallelPlaneStack
+                        ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                        : 'bg-slate-950 text-slate-400 border-slate-800'
+                    }`}
+                    title="Slice all parallel (hkl) planes intersecting the unit cell"
+                  >
+                    {showParallelPlaneStack ? 'Family Stack' : 'Single Plane'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      playSynthTone('tick');
+                      setShowMillerPlane(!showMillerPlane);
+                    }}
+                    className={`px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all ${
+                      showMillerPlane
+                        ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {showMillerPlane ? 'Plane Active' : 'Show Plane'}
+                  </button>
+                </div>
               </div>
-
-              <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                Directly slice through this 3D unit cell with any arbitrary crystallographic plane $(hkl)$.
-              </p>
 
               {/* Miller Indices (h, k, l) inputs */}
               <div className="grid grid-cols-3 gap-2">
@@ -2114,8 +2664,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   <input
                     type="number"
                     value={hklH}
-                    onChange={(e) => setHklH(parseInt(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-sm font-mono font-bold outline-none focus:border-amber-500"
+                    onChange={(e) => { setHklH(parseInt(e.target.value) || 0); setShowMillerPlane(true); }}
+                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-sm font-mono font-bold outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
@@ -2123,8 +2673,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   <input
                     type="number"
                     value={hklK}
-                    onChange={(e) => setHklK(parseInt(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-sm font-mono font-bold outline-none focus:border-amber-500"
+                    onChange={(e) => { setHklK(parseInt(e.target.value) || 0); setShowMillerPlane(true); }}
+                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-sm font-mono font-bold outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
@@ -2132,8 +2682,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   <input
                     type="number"
                     value={hklL}
-                    onChange={(e) => setHklL(parseInt(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-sm font-mono font-bold outline-none focus:border-amber-500"
+                    onChange={(e) => { setHklL(parseInt(e.target.value) || 0); setShowMillerPlane(true); }}
+                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-sm font-mono font-bold outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
@@ -2142,7 +2692,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
               <div className="space-y-1">
                 <span className="text-[10px] font-mono text-slate-400 block">Quick Family Presets:</span>
                 <div className="flex flex-wrap gap-1.5 text-xs font-mono">
-                  {[[1,0,0], [1,1,0], [1,1,1], [0,0,1], [0,1,1], [2,0,0], [2,2,0]].map(([ph, pk, pl]) => (
+                  {[[1,0,0], [1,1,0], [1,1,1], [0,0,1], [2,0,0], [2,2,0], [1,-1,1]].map(([ph, pk, pl]) => (
                     <button
                       key={`${ph}${pk}${pl}`}
                       onClick={() => {
@@ -2211,9 +2761,9 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   allowed = ((h + k) % 2 + 2) % 2 === 0;
                   conditionText = 'h + k = 2n';
                   fSqValue = allowed ? '4 · f²' : '0 (Destructive)';
-                } else if (activeCentering === 'R') {
+                } else if (activeCentering === 'R' && trigonalSetting === 'hexagonal_obverse') {
                   allowed = ((-h + k + l) % 3 + 3) % 3 === 0;
-                  conditionText = '-h + k + l = 3n';
+                  conditionText = '−h + k + l = 3n';
                   fSqValue = allowed ? '9 · f²' : '0 (Destructive)';
                 }
 
@@ -2228,16 +2778,16 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                         {activeCentering}-Lattice Extinction Check
                       </span>
                       {isZero ? (
-                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] font-bold">
+                        <span className="text-slate-400 text-[10px] font-bold">
                           (000) Origin
                         </span>
                       ) : allowed ? (
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
-                          ✓ Allowed ({fSqValue})
+                        <span className="text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Allowed ({fSqValue})
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-bold">
-                          ✕ Systematic Absence
+                        <span className="text-rose-400 text-[10px] font-bold flex items-center gap-1">
+                          <XCircle className="w-3.5 h-3.5" /> Systematic Absence
                         </span>
                       )}
                     </div>
@@ -2265,7 +2815,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
 
               {/* Radiation source picker */}
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1">
-                <span>Radiation:</span>
+                <span>Radiation Source:</span>
                 <select
                   value={radiation.name}
                   onChange={(e) => {

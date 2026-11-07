@@ -2321,6 +2321,8 @@ export const SelectionRulesModule: React.FC = () => {
   const currentSymmetry =
     symmetryDetails[system as keyof typeof symmetryDetails];
 
+  const parsedHKLList = useMemo(() => parseHKLString(hklInput), [hklInput]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 items-start">
       {/* Configuration Sidebar */}
@@ -2658,18 +2660,18 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
 
             {/* Chip tag group representation */}
-            {parseHKLString(hklInput).length > 0 && (
+            {parsedHKLList.length > 0 && (
               <div className="space-y-2 p-4 bg-[#050B14]/30 rounded-none border border-[#1e293b] text-left">
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest pl-0.5">
-                    Active Coordinates ({parseHKLString(hklInput).length} planes)
+                    Active Coordinates ({parsedHKLList.length} planes)
                   </div>
                   <span className="text-[8px] font-mono text-sky-400">
                     Click chip to probe 3D & Phasor
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1 pt-1">
-                  {parseHKLString(hklInput).map((pt, i) => {
+                  {parsedHKLList.map((pt, i) => {
                     const ruleResult = validateSelectionRule(system, pt);
                     const isAllowed = ruleResult.status === "Allowed";
                     const isProbed =

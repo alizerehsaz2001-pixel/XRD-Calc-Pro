@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from "react-markdown";
@@ -12,9 +12,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
-  ReferenceLine,
-  ReferenceArea
+  ReferenceLine
 } from "recharts";
 import {
   Sparkles,
@@ -26,7 +24,6 @@ import {
   Check,
   Download,
   Printer,
-  ChevronDown,
   RefreshCw,
   Zap,
   Layers,
@@ -34,24 +31,19 @@ import {
   Timer,
   Droplets,
   Wind,
-  ShieldAlert,
   Sliders,
   CheckCircle2,
   Atom,
-  Eye,
-  Info,
-  Maximize2,
-  Cpu,
-  Brain,
   Calculator,
-  ArrowRight,
   TrendingUp,
   AlertTriangle,
   Beaker,
-  Gauge
+  Gauge,
+  Compass,
+  RotateCcw
 } from "lucide-react";
 import { DLPhaseCandidate } from "../types";
-import { PRECURSOR_DATABASE, parseChemicalFormula, PrecursorInfo } from "./DeepLearningModule";
+import { PRECURSOR_DATABASE, parseChemicalFormula } from "./DeepLearningModule";
 
 export type SynthMorphologyType =
   | "spherical"
@@ -123,12 +115,100 @@ const SOLVENT_OPTIONS = [
 
 // Common capping agents / surfactants
 const SURFACTANT_OPTIONS = [
-  { id: "ctab", name: "CTAB (Cetyltrimethylammonium Bromide)", role: "Cationic Surfactant • Facet [111] Directional Growth", charge: "+ (Cationic)" },
-  { id: "pvp", name: "PVP (Polyvinylpyrrolidone, MW 40k)", role: "Steric Stabilizer • Anti-Aggregation & Nanocube Faceting", charge: "Neutral" },
-  { id: "oleic_acid", name: "Oleic Acid (OA)", role: "Carboxylic Capping • Monodisperse Quantum Dot Passivation", charge: "Hydrophobic" },
-  { id: "citric_acid", name: "Citric Acid Monohydrate", role: "Chelating & Complexing Agent • Sol-Gel Pechini Route", charge: "Anionic" },
-  { id: "oleylamine", name: "Oleylamine (OLA)", role: "Reducing & Coordinating Solvent • Metal Nanocrystals", charge: "Amine" },
-  { id: "peg_400", name: "PEG-400 (Polyethylene Glycol)", role: "Viscosity Modifier & Mild Dispersant", charge: "Non-ionic" }
+  { id: "ctab", name: "CTAB (Cetyltrimethylammonium Bromide)", role: "Cationic Surfactant · {100}/{111} Selective Adsorption", charge: "+ (Cationic)" },
+  { id: "pvp", name: "PVP (Polyvinylpyrrolidone, MW 40k)", role: "Steric Stabilizer · {100} Nanocube Facet Passivation", charge: "Neutral" },
+  { id: "oleic_acid", name: "Oleic Acid (OA)", role: "Carboxylic Capping · Monodisperse Quantum Dot Passivation", charge: "Hydrophobic" },
+  { id: "citric_acid", name: "Citric Acid Monohydrate", role: "Chelating Agent · Sol-Gel Pechini Polymeric Network", charge: "Anionic" },
+  { id: "oleylamine", name: "Oleylamine (OLA)", role: "Reducing & Coordinating Ligand · Ultrathin Nanosheets", charge: "Amine" },
+  { id: "peg_400", name: "PEG-400 (Polyethylene Glycol)", role: "Steric Dispersion & 1D Nanowire Template", charge: "Non-ionic" }
+];
+
+interface SynthesisMethodPreset {
+  id: string;
+  label: string;
+  subtitle: string;
+  temp: number;
+  time: number;
+  ph: number;
+  size: number;
+  morphology: SynthMorphologyType;
+  atmosphere: SynthAtmosphereType;
+  solvent: string;
+  surfactant: string;
+  rampRate: number;
+}
+
+const SYNTHESIS_METHOD_PRESETS: SynthesisMethodPreset[] = [
+  {
+    id: "hydrothermal",
+    label: "Hydrothermal Autoclave",
+    subtitle: "Subcritical aqueous nucleation",
+    temp: 180,
+    time: 12.0,
+    ph: 9.5,
+    size: 18.0,
+    morphology: "octahedral",
+    atmosphere: "air",
+    solvent: "deionized_water",
+    surfactant: "ctab",
+    rampRate: 3.0
+  },
+  {
+    id: "solvothermal_polyol",
+    label: "Polyol Solvothermal",
+    subtitle: "Reductive glycol growth",
+    temp: 200,
+    time: 8.0,
+    ph: 7.2,
+    size: 12.5,
+    morphology: "cuboidal",
+    atmosphere: "nitrogen",
+    solvent: "ethylene_glycol",
+    surfactant: "pvp",
+    rampRate: 4.0
+  },
+  {
+    id: "sol_gel_pechini",
+    label: "Sol-Gel Pechini",
+    subtitle: "Citrate-nitrate polymer calcination",
+    temp: 650,
+    time: 4.0,
+    ph: 4.5,
+    size: 28.0,
+    morphology: "spherical",
+    atmosphere: "oxygen",
+    solvent: "deionized_water",
+    surfactant: "citric_acid",
+    rampRate: 5.0
+  },
+  {
+    id: "solid_state",
+    label: "Solid-State Ceramic",
+    subtitle: "High-T interdiffusion sintering",
+    temp: 950,
+    time: 16.0,
+    ph: 7.0,
+    size: 45.0,
+    morphology: "hexagonal",
+    atmosphere: "air",
+    solvent: "ethanol",
+    surfactant: "peg_400",
+    rampRate: 8.0
+  },
+  {
+    id: "hot_injection",
+    label: "Colloidal Hot-Injection",
+    subtitle: "LaMer burst quantum dot synthesis",
+    temp: 280,
+    time: 1.5,
+    ph: 7.0,
+    size: 4.5,
+    morphology: "spherical",
+    atmosphere: "argon",
+    solvent: "oleic_acid_octadecene",
+    surfactant: "oleic_acid",
+    rampRate: 15.0
+  }
 ];
 
 export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioProps> = ({
@@ -167,17 +247,27 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
   onRunSynthesisAI,
   onSimulateXRD
 }) => {
-  const { t, i18n } = useTranslation();
-  const isRTL = i18n.language === "fa";
+  const { t } = useTranslation();
 
   // Active studio view tab
   const [activeSubTab, setActiveSubTab] = useState<
     "autoclave" | "ai_route" | "stoichiometry" | "kinetics" | "sop_protocol"
   >("autoclave");
 
-  // Selected solvent and surfactant
+  // Selected solvent, surfactant, and method preset
   const [selectedSolvent, setSelectedSolvent] = useState<string>("deionized_water");
   const [selectedSurfactant, setSelectedSurfactant] = useState<string>("pvp");
+  const [activePresetId, setActivePresetId] = useState<string>("hydrothermal");
+  const [heatingRampRate, setHeatingRampRate] = useState<number>(5.0); // °C/min
+  const [solutionVolumeMl, setSolutionVolumeMl] = useState<number>(50); // mL
+
+  // Wulff 3D Polyhedron Interactive Rotation & Surface Energy Ratio
+  const [wulffRotYaw, setWulffRotYaw] = useState<number>(28);
+  const [wulffRotPitch, setWulffRotPitch] = useState<number>(22);
+  const [gammaRatio111To100, setGammaRatio111To100] = useState<number>(1.15);
+
+  // Local deterministic protocol fallback
+  const [localBlueprintResult, setLocalBlueprintResult] = useState<string | null>(null);
 
   // Copy status indicators
   const [copiedRecipe, setCopiedRecipe] = useState<boolean>(false);
@@ -194,14 +284,32 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
     step_xrd: false
   });
 
+  const applyMethodPreset = (preset: SynthesisMethodPreset) => {
+    setActivePresetId(preset.id);
+    setSynthTemp(preset.temp);
+    setSynthTime(preset.time);
+    setSynthPH(preset.ph);
+    setSynthSize(preset.size);
+    setSynthMorphology(preset.morphology);
+    setSynthAtmosphere(preset.atmosphere);
+    setSelectedSolvent(preset.solvent);
+    setSelectedSurfactant(preset.surfactant);
+    setHeatingRampRate(preset.rampRate);
+    if (preset.morphology === "cuboidal") setGammaRatio111To100(1.52);
+    else if (preset.morphology === "octahedral") setGammaRatio111To100(0.68);
+    else setGammaRatio111To100(1.12);
+  };
+
   // Calculate stoichiometry derived values
   const stoichCalculation = useMemo(() => {
     if (!selectedCandidate) {
       return {
         success: false,
         mwProduct: 100,
+        molesProduct: 0,
         precursors: [],
         totalPrecursorMassGrams: 0,
+        atomEconomyPct: 100,
         errors: ["No candidate phase selected"]
       };
     }
@@ -229,7 +337,6 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
       stoichCoeffs[dopantElement] = parentCoeff * dopingFraction;
     }
 
-    // Atomic weights helper
     const ATOMIC_WEIGHTS: Record<string, number> = {
       H: 1.008, Li: 6.94, Be: 9.012, B: 10.81, C: 12.011, N: 14.007, O: 15.999, F: 18.998,
       Na: 22.99, Mg: 24.305, Al: 26.982, Si: 28.085, P: 30.974, S: 32.06, Cl: 35.45,
@@ -252,6 +359,7 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
     if (mwProduct === 0) mwProduct = selectedCandidate.molecularWeight || 100;
 
     const molesProduct = synthTargetMass / mwProduct;
+    const volLiters = Math.max(0.005, solutionVolumeMl / 1000);
 
     let totalPrecursorMassGrams = 0;
 
@@ -268,8 +376,8 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
         let atomsPerMolecule = 1;
 
         if (chosenPrecursorName === "Custom Precursor") {
-          precursorFormula = "Custom";
-          precursorMw = customPrecursorMws[el] || ATOMIC_WEIGHTS[el] || 50.0;
+          precursorFormula = "Custom Salt";
+          precursorMw = customPrecursorMws[el] || ATOMIC_WEIGHTS[el] || 100.0;
           atomsPerMolecule = 1;
         } else {
           const found = dbPrecursors.find((p) => p.name === chosenPrecursorName);
@@ -287,6 +395,7 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
         const molesPrecursor = molesElement / atomsPerMolecule;
         const massGrams = molesPrecursor * precursorMw;
         const massMilligrams = massGrams * 1000;
+        const molarityMolL = molesPrecursor / volLiters;
         totalPrecursorMassGrams += massGrams;
 
         return {
@@ -299,17 +408,25 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
           atomsPerMolecule,
           molesPrecursor,
           massGrams,
-          massMilligrams
+          massMilligrams,
+          molarityMolL
         };
       });
+
+    const atomEconomyPct =
+      totalPrecursorMassGrams > 0
+        ? Math.min(100, (synthTargetMass / totalPrecursorMassGrams) * 100)
+        : 100;
 
     return {
       success: true,
       errors: [],
       mwProduct,
+      molesProduct,
       stoichCoeffs,
       precursors: precursorsList,
       totalPrecursorMassGrams,
+      atomEconomyPct,
       actualSubstitutedSite
     };
   }, [
@@ -319,10 +436,11 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
     dopantElement,
     dopedSubstitutedElement,
     selectedPrecursors,
-    customPrecursorMws
+    customPrecursorMws,
+    solutionVolumeMl
   ]);
 
-  // JMAK Kinetics Curve dataset generator
+  // JMAK Kinetics & Furnace Thermal Schedule dataset generator
   const jmakKineticsData = useMemo(() => {
     const T_K = 273.15 + synthTemp;
     const baseEa = 45000; // 45 kJ/mol
@@ -361,37 +479,56 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
     const step = 0.5;
 
     for (let t_hr = 0; t_hr <= totalHours; t_hr += step) {
-      // JMAK equation: X(t) = 1 - exp(-k * t^n)
       const t_scaled = t_hr * 10;
       const term = -k_rate * Math.pow(t_scaled, n_exp);
       const X_frac = Math.max(0, Math.min(1.0, 1.0 - Math.exp(term)));
       const X_pct = X_frac * 100;
-      const rate_dxdt = n_exp * k_rate * Math.pow(Math.max(0.1, t_scaled), n_exp - 1) * Math.exp(term) * 100;
+      const rate_dxdt =
+        n_exp * k_rate * Math.pow(Math.max(0.1, t_scaled), n_exp - 1) * Math.exp(term) * 100;
+
+      // LaMer Supersaturation Curve S(t)
+      const burstPeakTime = 1.5;
+      const lamerSupersat =
+        t_hr <= burstPeakTime
+          ? 1.0 + 2.8 * (t_hr / burstPeakTime)
+          : 1.35 + 2.45 * Math.exp(-(t_hr - burstPeakTime) / Math.max(1.2, synthTime * 0.35));
 
       points.push({
         time: t_hr,
         crystallinity: parseFloat(X_pct.toFixed(2)),
         growthRate: parseFloat(rate_dxdt.toFixed(3)),
+        supersaturation: parseFloat(lamerSupersat.toFixed(2)),
         currentDwell: Math.abs(t_hr - synthTime) < 0.26
       });
     }
 
+    // Furnace Temperature Ramp Profile (Time in hours vs Temperature in °C)
+    const rampUpHrs = Math.max(0.25, (synthTemp - 25) / (heatingRampRate * 60));
+    const coolDownHrs = Math.max(0.5, (synthTemp - 25) / (3.5 * 60));
+    const furnaceSchedule = [
+      { stage: "Ambient Start", timeHr: 0, tempC: 25 },
+      { stage: "Nucleation Soak", timeHr: Number((rampUpHrs * 0.6).toFixed(2)), tempC: Math.round(25 + (synthTemp - 25) * 0.65) },
+      { stage: "Dwell Start", timeHr: Number(rampUpHrs.toFixed(2)), tempC: synthTemp },
+      { stage: "Dwell End", timeHr: Number((rampUpHrs + synthTime).toFixed(2)), tempC: synthTemp },
+      { stage: "Anneal Cool", timeHr: Number((rampUpHrs + synthTime + coolDownHrs).toFixed(2)), tempC: 25 }
+    ];
+
     const currentYield = Math.min(
       99.9,
-      Math.max(
-        0.1,
-        (1.0 - Math.exp(-k_rate * Math.pow(synthTime * 10, n_exp))) * 100
-      )
+      Math.max(0.1, (1.0 - Math.exp(-k_rate * Math.pow(synthTime * 10, n_exp))) * 100)
     );
 
     return {
       points,
+      furnaceSchedule,
+      rampUpHrs,
+      coolDownHrs,
       k_rate,
       n_exp,
       baseEa,
       currentYield
     };
-  }, [synthTemp, synthAtmosphere, synthPH, synthSize, synthMorphology, synthTime]);
+  }, [synthTemp, synthAtmosphere, synthPH, synthSize, synthMorphology, synthTime, heatingRampRate]);
 
   // Derived quantum confinement & physical metrics
   const physicsReadouts = useMemo(() => {
@@ -403,7 +540,8 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
         ssa: 0,
         dislocationDensity: 0,
         strainPct: 0,
-        estPressureBar: 1.0
+        estPressureBar: 1.0,
+        scherrerFwhmDeg: 0.25
       };
     }
 
@@ -411,27 +549,44 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
     const bulkEg = selectedCandidate.bandGap || 0;
     const size = Math.max(2.0, synthSize);
 
-    // Quantum confinement shift (effective mass model ~ h^2 / 8m*r^2)
+    // Brus Equation Quantum Confinement Shift (~ h^2 / 8m*R^2)
     const confinementShift = bulkEg > 0 ? parseFloat((15.55 / Math.pow(size, 2)).toFixed(3)) : 0;
     const effectiveEg = parseFloat((bulkEg + confinementShift).toFixed(3));
 
     // Specific Surface Area (BET) = 6000 / (density * diameter_nm) m^2/g
-    const ssa = parseFloat((6000.0 / (density * size)).toFixed(1));
+    const morphFactor =
+      synthMorphology === "nanosheet"
+        ? 1.65
+        : synthMorphology === "nanowire"
+        ? 1.3
+        : synthMorphology === "octahedral"
+        ? 1.15
+        : 1.0;
+    const ssa = parseFloat(((6000.0 * morphFactor) / (density * size)).toFixed(1));
 
-    // Microstrain (lattice mismatch and surface tension ~ 1 / D)
-    const strainPct = parseFloat(((0.15 + (15.0 / size) * 0.08) * (1.0 + synthDoping * 0.12)).toFixed(3));
+    // Microstrain (lattice mismatch and surface tension ~ 1 / D + Vegard dopant shift)
+    const strainPct = parseFloat(
+      ((0.12 + (14.0 / size) * 0.08) * (1.0 + synthDoping * 0.14)).toFixed(3)
+    );
 
     // Dislocation density delta = 1 / D^2 (lines / m^2)
-    const dislocationDensity = parseFloat(((1.0 / Math.pow(size * 1e-9, 2)) * 1e-14).toFixed(2));
+    const dislocationDensity = parseFloat(
+      ((1.0 / Math.pow(size * 1e-9, 2)) * 1e-14).toFixed(2)
+    );
 
-    // Saturated vapor pressure estimate for hydrothermal water/solvent
+    // Scherrer FWHM at 2theta = 30 deg (Cu Ka = 0.15406 nm)
+    const thetaRad = (15.0 * Math.PI) / 180;
+    const betaRad = (0.9 * 0.15406) / (size * Math.cos(thetaRad));
+    const scherrerFwhmDeg = parseFloat(((betaRad * 180) / Math.PI).toFixed(3));
+
+    // Saturated vapor pressure estimate for selected solvent
+    const solventObj = SOLVENT_OPTIONS.find((s) => s.id === selectedSolvent) || SOLVENT_OPTIONS[0];
     const T_C = synthTemp;
     let estPressureBar = 1.0;
-    if (T_C > 100) {
-      // Antoine equation approximation for water
+    if (T_C > solventObj.bp) {
       estPressureBar = Math.min(
         250.0,
-        Math.exp(11.6834 - 3816.44 / (T_C + 227.02))
+        1.0 + Math.pow((T_C - solventObj.bp) / 28.0, 2.15)
       );
     }
 
@@ -442,23 +597,195 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
       ssa,
       dislocationDensity,
       strainPct,
-      estPressureBar: parseFloat(estPressureBar.toFixed(1))
+      estPressureBar: parseFloat(estPressureBar.toFixed(1)),
+      scherrerFwhmDeg
     };
-  }, [selectedCandidate, synthSize, synthDoping, synthTemp]);
+  }, [selectedCandidate, synthSize, synthDoping, synthTemp, synthMorphology, selectedSolvent]);
+
+  // 3D Wulff Polyhedron SVG Projection Geometry
+  const wulffProjection = useMemo(() => {
+    const yaw = (wulffRotYaw * Math.PI) / 180;
+    const pitch = (wulffRotPitch * Math.PI) / 180;
+
+    const project3D = (x: number, y: number, z: number, scale: number = 68) => {
+      // Rotate Y (yaw)
+      const x1 = x * Math.cos(yaw) + z * Math.sin(yaw);
+      const z1 = -x * Math.sin(yaw) + z * Math.cos(yaw);
+      // Rotate X (pitch)
+      const y2 = y * Math.cos(pitch) - z1 * Math.sin(pitch);
+      const z2 = y * Math.sin(pitch) + z1 * Math.cos(pitch);
+      const perspective = 260 / (260 - z2 * 35);
+      return {
+        x: 130 + x1 * scale * perspective,
+        y: 120 - y2 * scale * perspective,
+        z: z2
+      };
+    };
+
+    const sizeScale = Math.max(0.65, Math.min(1.22, 0.72 + synthSize / 95));
+    const faces: { points: string; fill: string; stroke: string; label?: string; zAvg: number; cx: number; cy: number }[] = [];
+
+    const addFace = (verts: [number, number, number][], fill: string, stroke: string, label?: string) => {
+      const proj = verts.map(([vx, vy, vz]) => project3D(vx, vy, vz, 68 * sizeScale));
+      const zAvg = proj.reduce((s, p) => s + p.z, 0) / proj.length;
+      const cx = proj.reduce((s, p) => s + p.x, 0) / proj.length;
+      const cy = proj.reduce((s, p) => s + p.y, 0) / proj.length;
+      faces.push({
+        points: proj.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" "),
+        fill,
+        stroke,
+        label,
+        zAvg,
+        cx,
+        cy
+      });
+    };
+
+    if (synthMorphology === "octahedral") {
+      const top: [number, number, number] = [0, 1.25, 0];
+      const bot: [number, number, number] = [0, -1.25, 0];
+      const v1: [number, number, number] = [1.15, 0, 0];
+      const v2: [number, number, number] = [0, 0, 1.15];
+      const v3: [number, number, number] = [-1.15, 0, 0];
+      const v4: [number, number, number] = [0, 0, -1.15];
+      addFace([top, v1, v2], "rgba(6,182,212,0.28)", "#22d3ee", "{111}");
+      addFace([top, v2, v3], "rgba(99,102,241,0.26)", "#818cf8", "{111}");
+      addFace([top, v3, v4], "rgba(6,182,212,0.18)", "#38bdf8");
+      addFace([top, v4, v1], "rgba(99,102,241,0.18)", "#6366f1");
+      addFace([bot, v2, v1], "rgba(16,185,129,0.24)", "#34d399", "{111}");
+      addFace([bot, v3, v2], "rgba(6,182,212,0.22)", "#22d3ee");
+      addFace([bot, v4, v3], "rgba(15,23,42,0.45)", "#475569");
+      addFace([bot, v1, v4], "rgba(15,23,42,0.45)", "#475569");
+    } else if (synthMorphology === "hexagonal" || synthMorphology === "nanosheet") {
+      const h = synthMorphology === "nanosheet" ? 0.22 : 0.65;
+      const r = synthMorphology === "nanosheet" ? 1.25 : 1.05;
+      const topRing: [number, number, number][] = [];
+      const botRing: [number, number, number][] = [];
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        topRing.push([r * Math.cos(ang), h, r * Math.sin(ang)]);
+        botRing.push([r * Math.cos(ang), -h, r * Math.sin(ang)]);
+      }
+      addFace(topRing, "rgba(6,182,212,0.30)", "#22d3ee", "{0001}");
+      addFace([...botRing].reverse(), "rgba(15,23,42,0.5)", "#38bdf8");
+      for (let i = 0; i < 6; i++) {
+        const next = (i + 1) % 6;
+        addFace(
+          [topRing[i], topRing[next], botRing[next], botRing[i]],
+          i % 2 === 0 ? "rgba(99,102,241,0.25)" : "rgba(16,185,129,0.22)",
+          "#818cf8",
+          i === 0 ? "{10-10}" : undefined
+        );
+      }
+    } else if (synthMorphology === "nanowire") {
+      const h = 1.38;
+      const r = 0.42;
+      const topRing: [number, number, number][] = [];
+      const botRing: [number, number, number][] = [];
+      for (let i = 0; i < 6; i++) {
+        const ang = (i * Math.PI) / 3;
+        topRing.push([r * Math.cos(ang), h, r * Math.sin(ang)]);
+        botRing.push([r * Math.cos(ang), -h, r * Math.sin(ang)]);
+      }
+      addFace(topRing, "rgba(16,185,129,0.35)", "#34d399", "[001] Tip");
+      addFace([...botRing].reverse(), "rgba(15,23,42,0.5)", "#34d399");
+      for (let i = 0; i < 6; i++) {
+        const next = (i + 1) % 6;
+        addFace(
+          [topRing[i], topRing[next], botRing[next], botRing[i]],
+          "rgba(6,182,212,0.24)",
+          "#22d3ee",
+          i === 1 ? "{110}" : undefined
+        );
+      }
+    } else {
+      // Cuboidal / Spherical / Core-Shell (Truncated Cube controlled by gammaRatio111To100)
+      const s = 0.88;
+      const c: [number, number, number][] = [
+        [-s, -s, s],
+        [s, -s, s],
+        [s, s, s],
+        [-s, s, s],
+        [-s, -s, -s],
+        [s, -s, -s],
+        [s, s, -s],
+        [-s, s, -s]
+      ];
+      addFace([c[0], c[1], c[2], c[3]], "rgba(6,182,212,0.26)", "#22d3ee", "{100}");
+      addFace([c[1], c[5], c[6], c[2]], "rgba(99,102,241,0.26)", "#818cf8", "{010}");
+      addFace([c[3], c[2], c[6], c[7]], "rgba(16,185,129,0.26)", "#34d399", "{001}");
+      addFace([c[4], c[0], c[3], c[7]], "rgba(15,23,42,0.45)", "#475569");
+      addFace([c[5], c[4], c[7], c[6]], "rgba(15,23,42,0.45)", "#475569");
+      addFace([c[4], c[5], c[1], c[0]], "rgba(15,23,42,0.45)", "#475569");
+    }
+
+    faces.sort((a, b) => a.zAvg - b.zAvg);
+    return faces;
+  }, [synthMorphology, synthSize, wulffRotYaw, wulffRotPitch]);
+
+  // Generate Instant Deterministic Synthesis Blueprint
+  const generateDeterministicBlueprint = () => {
+    if (!selectedCandidate) return;
+    const solventObj = SOLVENT_OPTIONS.find((s) => s.id === selectedSolvent) || SOLVENT_OPTIONS[0];
+    const surfObj = SURFACTANT_OPTIONS.find((s) => s.id === selectedSurfactant) || SURFACTANT_OPTIONS[0];
+    const precursorLines = stoichCalculation.precursors
+      .map(
+        (p, idx) =>
+          `${idx + 1}. **${p.precursorName}** (\`${p.precursorFormula}\`, MW = ${p.precursorMw.toFixed(2)} g/mol): Weigh **${p.massGrams.toFixed(4)} g** (${p.massMilligrams.toFixed(1)} mg) for ${p.molarityMolL.toFixed(3)} M in ${solutionVolumeMl} mL.`
+      )
+      .join("\n");
+
+    const md = `## Quantitative Synthesis Protocol: ${selectedCandidate.phase_name} (${selectedCandidate.formula})
+
+### 1. Crystallographic Target & Phase Stability
+- **Target Phase**: ${selectedCandidate.phase_name} (\`${selectedCandidate.formula}\`) · Crystal System: **${selectedCandidate.crystalSystem || "Crystalline"}** · Space Group: \`${selectedCandidate.spaceGroup || "P1"}\`
+- **Target Morphology**: **${synthMorphology.toUpperCase()}** · Mean Domain Size $D = ${synthSize.toFixed(1)}\\text{ nm}$ · Expected Scherrer $\\text{FWHM} \\approx ${physicsReadouts.scherrerFwhmDeg}^{\\circ}\\ 2\\theta$
+- **Optimization Focus**: ${synthAiFocus === "purity" ? "Single-Phase Crystallographic Purity" : synthAiFocus === "defects" ? "Oxygen Vacancy & Dopant Defect Engineering" : "Brus Quantum Size Confinement ($\\Delta E_g = +" + physicsReadouts.confinementShift + "\\text{ eV}$)"}
+
+### 2. Stoichiometric Precursor Formulation (Batch Yield: ${synthTargetMass.toFixed(2)} g)
+${precursorLines}
+- **Carrier Solvent**: ${solventObj.name} (${solutionVolumeMl} mL, BP = ${solventObj.bp} °C, $\\varepsilon_r = ${solventObj.dielectric}$)
+- **Capping Agent / Structure Director**: ${surfObj.name} (${surfObj.role})
+
+### 3. Reaction & Thermal Ramp Schedule
+1. **Solvation & Complexation**: Dissolve weighed precursors in ${solutionVolumeMl} mL of ${solventObj.name} under vigorous magnetic stirring (600 RPM). Adjust solution to **pH ${synthPH.toFixed(1)}** dropwise.
+2. **Thermal Ramp**: Heat at **${heatingRampRate.toFixed(1)} °C/min** (${jmakKineticsData.rampUpHrs.toFixed(2)} hrs ramp) to target reaction temperature of **${synthTemp} °C** (${synthTemp + 273.15} K) under **${synthAtmosphere.toUpperCase()}** atmosphere (Est. $P_{\\text{sat}} = ${physicsReadouts.estPressureBar}\\text{ bar}$).
+3. **Isothermal Crystallization Dwell**: Hold at **${synthTemp} °C** for **${synthTime.toFixed(1)} hours** (Predicted JMAK Crystalline Yield: **${jmakKineticsData.currentYield.toFixed(1)}%**, Avrami exponent $n = ${jmakKineticsData.n_exp.toFixed(2)}$).
+
+### 4. Powder XRD Verification Checkpoints
+- Confirm primary diagnostic Bragg reflections for **${selectedCandidate.phase_name}** with zero secondary oxide/hydroxide impurity peaks.
+- Verify grain size via Scherrer/Williamson-Hall broadening ($\\beta_{hkl} \\approx ${physicsReadouts.scherrerFwhmDeg}^{\\circ}$, microstrain $\\varepsilon \\approx ${physicsReadouts.strainPct}\\%$).`;
+
+    setLocalBlueprintResult(md);
+  };
 
   // Copy synthesis AI recipe to clipboard
   const handleCopyRecipe = () => {
-    if (!synthAiResult) return;
-    navigator.clipboard.writeText(synthAiResult);
+    const activeText = synthAiResult || localBlueprintResult;
+    if (!activeText) return;
+    navigator.clipboard.writeText(activeText);
     setCopiedRecipe(true);
     setTimeout(() => setCopiedRecipe(false), 2000);
   };
 
+  // Copy stoichiometric table to clipboard
+  const handleCopyStoichTable = () => {
+    const header = `Element\tPrecursor\tFormula\tMW (g/mol)\tMolar Ratio\tMass (g)\tMass (mg)\tMolarity (M in ${solutionVolumeMl}mL)`;
+    const rows = stoichCalculation.precursors.map(
+      (p) =>
+        `${p.element}\t${p.precursorName}\t${p.precursorFormula}\t${p.precursorMw.toFixed(2)}\t${p.stoichCoeff.toFixed(4)}\t${p.massGrams.toFixed(4)}\t${p.massMilligrams.toFixed(1)}\t${p.molarityMolL.toFixed(4)}`
+    );
+    navigator.clipboard.writeText([header, ...rows].join("\n"));
+    setCopiedStoich(true);
+    setTimeout(() => setCopiedStoich(false), 2000);
+  };
+
   // Download recipe as markdown
   const handleDownloadRecipe = () => {
-    if (!synthAiResult) return;
-    const header = `# XRD-Calc Pro - AI Synthesis Formulation Route\nTarget Phase: ${selectedCandidate?.phase_name} (${selectedCandidate?.formula})\nDate: ${new Date().toISOString()}\n\n`;
-    const blob = new Blob([header + synthAiResult], { type: "text/markdown;charset=utf-8" });
+    const activeText = synthAiResult || localBlueprintResult;
+    if (!activeText) return;
+    const header = `# XRD-Calc Pro - Synthesis Formulation Route\nTarget Phase: ${selectedCandidate?.phase_name} (${selectedCandidate?.formula})\nDate: ${new Date().toISOString()}\n\n`;
+    const blob = new Blob([header + activeText], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -472,6 +799,7 @@ export const SynthesisIntelligenceStudio: React.FC<SynthesisIntelligenceStudioPr
   // Download complete characterization & SOP audit report
   const handleDownloadAuditReport = () => {
     if (!selectedCandidate) return;
+    const activeText = synthAiResult || localBlueprintResult;
 
     const content = `================================================================================
 XRD-CALC PRO - QUANTUM SYNTHESIS & CHARACTERIZATION AUDIT REPORT
@@ -487,10 +815,12 @@ Confidence C-Score   : ${selectedCandidate.confidence_score.toFixed(1)}%
 Target Morphology       : ${synthMorphology.toUpperCase()}
 Target Crystallite Size : ${synthSize.toFixed(1)} nm
 Reaction Temperature    : ${synthTemp} °C (${synthTemp + 273.15} K)
+Heating Ramp Rate       : ${heatingRampRate.toFixed(1)} °C/min
 Autoclave Duration      : ${synthTime.toFixed(1)} hours
 Solution pH Level       : ${synthPH.toFixed(1)}
 Reaction Atmosphere     : ${synthAtmosphere.toUpperCase()}
 Target Batch Mass       : ${synthTargetMass.toFixed(2)} g
+Solution Volume         : ${solutionVolumeMl} mL
 Lattice Dopant Level    : ${synthDoping.toFixed(1)} mol% ${dopantElement ? `(${dopantElement} on ${dopedSubstitutedElement} site)` : ""}
 
 --- QUANTUM CONFINEMENT & PHYSICAL METROLOGY ---
@@ -509,7 +839,7 @@ Required Precursors:
 ${stoichCalculation.precursors
   .map(
     (p, i) =>
-      `${i + 1}. [${p.element}] ${p.precursorName} (${p.precursorFormula}) | MW: ${p.precursorMw.toFixed(2)} g/mol | Req Mass: ${p.massGrams.toFixed(4)} g (${p.massMilligrams.toFixed(1)} mg)`
+      `${i + 1}. [${p.element}] ${p.precursorName} (${p.precursorFormula}) | MW: ${p.precursorMw.toFixed(2)} g/mol | Req Mass: ${p.massGrams.toFixed(4)} g (${p.massMilligrams.toFixed(1)} mg) | Molarity: ${p.molarityMolL.toFixed(4)} M`
   )
   .join("\n")}
 Total Precursor Mass Sum: ${stoichCalculation.totalPrecursorMassGrams.toFixed(4)} g
@@ -520,7 +850,7 @@ Avrami Exponent (n)     : ${jmakKineticsData.n_exp.toFixed(2)}
 Activation Energy (Ea)  : ${(jmakKineticsData.baseEa / 1000).toFixed(1)} kJ/mol
 Simulated Yield at ${synthTime}h: ${jmakKineticsData.currentYield.toFixed(2)} %
 
-${synthAiResult ? `\n--- GEMINI AI SYNTHESIS FORMULATION ROUTE ---\n${synthAiResult}\n` : ""}
+${activeText ? `\n--- SYNTHESIS FORMULATION ROUTE ---\n${activeText}\n` : ""}
 ================================================================================
 XRD Scientific Intelligence Suite • Laboratory Protocol Approved
 ================================================================================`;
@@ -538,12 +868,12 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
 
   if (!selectedCandidate) {
     return (
-      <div className="p-12 text-center bg-[#070D18]/80 rounded-3xl border border-slate-800 flex flex-col items-center justify-center">
-        <Atom className="w-16 h-16 text-indigo-400/40 mb-4 animate-pulse" />
-        <h4 className="text-xl font-bold text-white mb-2">
+      <div className="p-12 text-center bg-[#070B14] rounded-2xl border border-slate-800 flex flex-col items-center justify-center">
+        <Atom className="w-12 h-12 text-indigo-400/50 mb-3" />
+        <h4 className="text-lg font-bold text-white mb-1.5">
           {t("No Predicted Phase Selected", "No Predicted Phase Selected")}
         </h4>
-        <p className="text-sm text-slate-400 max-w-md">
+        <p className="text-xs text-slate-400 max-w-md leading-relaxed">
           {t(
             "Execute the Convolutional Phase Identification Neural Net or select a candidate phase from the identification board to activate Synthesis Intelligence.",
             "Execute the Convolutional Phase Identification Neural Net or select a candidate phase from the identification board to activate Synthesis Intelligence."
@@ -553,37 +883,35 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
     );
   }
 
-  return (
-    <div className="w-full space-y-6 animate-fadeIn">
-      {/* 1. Executive Material Header & Candidate Switcher */}
-      <div className="bg-[#050A14]/90 p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden backdrop-blur-xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-indigo-500/10 via-cyan-500/5 to-transparent rounded-full blur-3xl pointer-events-none -translate-y-20 translate-x-20" />
+  const completedSopCount = Object.values(sopChecked).filter(Boolean).length;
+  const totalSopCount = Object.keys(sopChecked).length;
+  const activeMarkdownRecipe = synthAiResult || localBlueprintResult;
 
-        {/* Phase candidate chips switcher if multiple exist */}
+  return (
+    <div className="w-full space-y-5">
+      {/* 1. Executive Telemetry Header & Candidate Switcher */}
+      <div className="bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-5">
+        {/* Candidate Switcher Strip */}
         {candidates.length > 1 && (
-          <div className="mb-6 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-700">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1 shrink-0 mr-2">
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              {t("Candidate Phases:", "Candidate Phases:")}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800/80 scrollbar-thin">
+            <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+              Target Phase:
             </span>
             {candidates.map((c, idx) => {
               const isSelected = c.phase_name === selectedCandidate.phase_name;
               return (
                 <button
                   key={`${c.phase_name}-${idx}`}
+                  type="button"
                   onClick={() => onSelectCandidate && onSelectCandidate(c)}
-                  className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold tracking-wide transition-all shrink-0 flex items-center gap-2 ${
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors shrink-0 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
                     isSelected
-                      ? "bg-indigo-600/30 border-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]"
-                      : "bg-slate-900/50 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      ? "bg-indigo-600 text-white border-indigo-500"
+                      : "bg-slate-900/70 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
                   }`}
                 >
                   <span>{c.phase_name}</span>
-                  <span
-                    className={`text-[9px] font-mono px-1.5 py-0.5 rounded ${
-                      isSelected ? "bg-indigo-500/40 text-indigo-200" : "bg-black/30 text-slate-500"
-                    }`}
-                  >
+                  <span className="font-mono tabular-nums text-[11px] opacity-85">
                     {c.confidence_score.toFixed(0)}%
                   </span>
                 </button>
@@ -592,111 +920,168 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
           </div>
         )}
 
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="flex items-start sm:items-center gap-5">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-indigo-950/80 via-slate-900 to-cyan-950/80 border border-indigo-500/40 flex items-center justify-center relative shadow-[0_0_30px_rgba(99,102,241,0.25)] shrink-0 overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.2),transparent_70%)] animate-pulse" />
-              <Brain className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-300 drop-shadow-[0_0_10px_rgba(129,140,248,0.8)] relative z-10" />
+        {/* Main Header Identity & Executive Actions */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+          <div className="flex items-start sm:items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 text-cyan-400">
+              <FlaskConical className="w-7 h-7" />
             </div>
 
             <div>
-              <div className="flex flex-wrap items-center gap-2.5 mb-1.5">
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Synthesis Ready
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-[10px] font-mono font-bold text-indigo-300">
-                  C-Score: {selectedCandidate.confidence_score.toFixed(1)}%
-                </span>
+              {/* Clean unboxed metadata line with typographic separators */}
+              <div className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums text-slate-400 mb-1">
+                <span className="text-emerald-400 font-semibold">● Synthesis Ready</span>
+                <span aria-hidden="true">·</span>
+                <span>C-Score {selectedCandidate.confidence_score.toFixed(1)}%</span>
                 {selectedCandidate.crystalSystem && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-mono text-slate-300">
-                    {selectedCandidate.crystalSystem}
-                  </span>
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="text-slate-300">{selectedCandidate.crystalSystem}</span>
+                  </>
                 )}
                 {selectedCandidate.spaceGroup && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-800/80 border border-slate-700 text-[10px] font-mono text-slate-300">
-                    SG: {selectedCandidate.spaceGroup}
-                  </span>
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="text-indigo-300">SG {selectedCandidate.spaceGroup}</span>
+                  </>
                 )}
+                <span aria-hidden="true">·</span>
+                <span className="text-cyan-300">MW {stoichCalculation.mwProduct.toFixed(2)} g/mol</span>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-indigo-200 tracking-tight">
-                {selectedCandidate.phase_name}{" "}
-                <span className="text-indigo-400 font-mono font-bold text-xl sm:text-2xl ml-2">
-                  [{selectedCandidate.formula}]
+              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex flex-wrap items-baseline gap-2.5">
+                <span>{selectedCandidate.phase_name}</span>
+                <span className="text-indigo-400 font-mono text-base sm:text-lg font-semibold">
+                  {selectedCandidate.formula}
                 </span>
               </h2>
 
-              <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl line-clamp-2">
+              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
                 {selectedCandidate.description ||
-                  "Crystallographic phase formulation and morphological growth optimization engine."}
+                  "Thermodynamic synthesis reactor, Wulff crystal habit simulator, and stoichiometric precursor formulation console."}
               </p>
             </div>
           </div>
 
-          {/* Quick executive actions */}
+          {/* Primary Action Bar */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
-              onClick={onRunSynthesisAI}
-              disabled={synthAiLoading}
-              className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(99,102,241,0.4)] flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+              type="button"
+              onClick={() => {
+                generateDeterministicBlueprint();
+                setActiveSubTab("ai_route");
+              }}
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
             >
-              {synthAiLoading ? (
-                <RefreshCw className="w-4 h-4 animate-spin text-white" />
-              ) : (
-                <Sparkles className="w-4 h-4 text-cyan-200 animate-pulse" />
-              )}
-              <span>{synthAiLoading ? t("Formulating AI Recipe...", "Formulating AI Recipe...") : t("Run Gemini Synthesis AI", "Run Gemini Synthesis AI")}</span>
+              <Calculator className="w-3.5 h-3.5" />
+              <span>Instant Protocol Blueprint</span>
             </button>
 
             <button
+              type="button"
+              onClick={() => {
+                setActiveSubTab("ai_route");
+                onRunSynthesisAI();
+              }}
+              disabled={synthAiLoading}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs flex items-center gap-2 transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
+            >
+              {synthAiLoading ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5 text-cyan-200" />
+              )}
+              <span>
+                {synthAiLoading
+                  ? t("Formulating AI Recipe...", "Formulating AI Recipe...")
+                  : t("Generate AI Synthesis Route", "Generate AI Synthesis Route")}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleDownloadAuditReport}
-              className="px-3.5 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700/80 rounded-xl font-semibold text-xs flex items-center gap-2 transition-colors shadow-sm"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
               title="Download Full Synthesis Protocol & SOP"
             >
               <Download className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline">{t("Audit Report", "Audit Report")}</span>
+              <span>{t("Export Audit Report", "Export Audit Report")}</span>
             </button>
           </div>
         </div>
 
+        {/* 1-Click Synthesis Method Preset Strip */}
+        <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider mr-1">
+              Synthesis Route Presets:
+            </span>
+            {SYNTHESIS_METHOD_PRESETS.map((preset) => {
+              const isSelected = activePresetId === preset.id;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => applyMethodPreset(preset)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer whitespace-nowrap ${
+                    isSelected
+                      ? "bg-cyan-500/15 border-cyan-500/50 text-cyan-200"
+                      : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                  }`}
+                  title={preset.subtitle}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="text-xs font-mono tabular-nums text-slate-400 flex items-center gap-2">
+            <span>T = <strong className="text-amber-400">{synthTemp} °C</strong></span>
+            <span>·</span>
+            <span>P_sat = <strong className="text-cyan-400">{physicsReadouts.estPressureBar} bar</strong></span>
+            <span>·</span>
+            <span>Yield = <strong className="text-emerald-400">{jmakKineticsData.currentYield.toFixed(1)}%</strong></span>
+          </div>
+        </div>
+
         {/* 2. Studio Sub-Navigation Tabs */}
-        <div className="mt-8 pt-4 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="pt-3 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
           {[
             {
               id: "autoclave",
-              label: t("Autoclave & Morphology", "Autoclave & Morphology"),
+              label: t("1. Reactor & 3D Wulff Habit", "1. Reactor & 3D Wulff Habit"),
               icon: FlaskConical,
               color: "text-cyan-400",
-              badge: synthMorphology.toUpperCase()
-            },
-            {
-              id: "ai_route",
-              label: t("Gemini AI Recipe", "Gemini AI Recipe"),
-              icon: Sparkles,
-              color: "text-indigo-400",
-              badge: synthAiResult ? t("Generated", "Generated") : undefined
+              meta: `${synthSize.toFixed(0)} nm`
             },
             {
               id: "stoichiometry",
-              label: t("Stoichiometric Batcher", "Stoichiometric Batcher"),
+              label: t("2. Stoichiometric Batcher", "2. Stoichiometric Batcher"),
               icon: Scale,
               color: "text-emerald-400",
-              badge: `${synthTargetMass}g`
+              meta: `${synthTargetMass.toFixed(1)} g`
             },
             {
               id: "kinetics",
-              label: t("JMAK Kinetics & Thermo", "JMAK Kinetics & Thermo"),
+              label: t("3. JMAK Kinetics & Ramp", "3. JMAK Kinetics & Ramp"),
               icon: TrendingUp,
               color: "text-amber-400",
-              badge: `${jmakKineticsData.currentYield.toFixed(0)}% Yield`
+              meta: `${jmakKineticsData.currentYield.toFixed(0)}%`
+            },
+            {
+              id: "ai_route",
+              label: t("4. Protocol & AI Formulation", "4. Protocol & AI Formulation"),
+              icon: Sparkles,
+              color: "text-indigo-400",
+              meta: activeMarkdownRecipe ? "Ready" : undefined
             },
             {
               id: "sop_protocol",
-              label: t("Laboratory SOP Protocol", "Laboratory SOP Protocol"),
+              label: t("5. Lab SOP Checklist", "5. Lab SOP Checklist"),
               icon: FileText,
               color: "text-pink-400",
-              badge: undefined
+              meta: `${completedSopCount}/${totalSopCount}`
             }
           ].map((tab) => {
             const isActive = activeSubTab === tab.id;
@@ -704,29 +1089,20 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveSubTab(tab.id as any)}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all shrink-0 flex items-center gap-2.5 relative ${
+                className={`px-3.5 py-2 rounded-lg font-semibold text-xs transition-colors shrink-0 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? "bg-slate-800 text-white border border-slate-700 shadow-md"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                    ? "bg-slate-800 text-white border border-slate-700"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${tab.color}`} />
+                <Icon className={`w-3.5 h-3.5 ${tab.color}`} />
                 <span>{tab.label}</span>
-                {tab.badge && (
-                  <span
-                    className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
-                      isActive ? "bg-indigo-500/30 text-indigo-300 border border-indigo-500/40" : "bg-slate-900 text-slate-500"
-                    }`}
-                  >
-                    {tab.badge}
+                {tab.meta && (
+                  <span className="font-mono tabular-nums text-[11px] text-slate-400">
+                    ({tab.meta})
                   </span>
-                )}
-                {isActive && (
-                  <motion.div
-                    layoutId="synthesisActiveTabIndicator"
-                    className="absolute bottom-0 left-2 right-2 h-0.5 bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full"
-                  />
                 )}
               </button>
             );
@@ -736,378 +1112,375 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
 
       {/* 3. Sub-Tab Content Router */}
       <AnimatePresence mode="wait">
-        {/* SUBTAB 1: AUTOCLAVE & MORPHOLOGY STUDIO */}
+        {/* SUBTAB 1: AUTOCLAVE REACTOR & 3D WULFF HABIT */}
         {activeSubTab === "autoclave" && (
           <motion.div
             key="tab-autoclave"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch"
           >
             {/* Left Column: Reaction Parameters & Autoclave Controls (5 cols) */}
-            <div className="lg:col-span-5 bg-[#050A14]/90 p-6 sm:p-7 rounded-3xl border border-slate-800/80 shadow-lg space-y-6">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                    <Sliders className="w-4 h-4" />
+            <div className="lg:col-span-5 bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-5">
+              <div className="space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <Sliders className="w-4 h-4 text-cyan-400" />
+                    <div>
+                      <h4 className="text-sm font-bold text-white">
+                        {t("Autoclave & Reaction Boundaries", "Autoclave & Reaction Boundaries")}
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        {t("Thermodynamic & chemical potential parameters", "Thermodynamic & chemical potential parameters")}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-black text-white uppercase tracking-wider">
-                      {t("Autoclave & Reaction Controls", "Autoclave & Reaction Controls")}
-                    </h4>
-                    <p className="text-[10px] text-slate-400">
-                      {t("Hydrothermal & Calcination Boundaries", "Hydrothermal & Calcination Boundaries")}
-                    </p>
+
+                  <span className="text-xs font-mono tabular-nums text-cyan-400 font-semibold">
+                    P_sat = {physicsReadouts.estPressureBar} bar
+                  </span>
+                </div>
+
+                {/* Morphology Selector Grid */}
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-2">
+                    {t("Target Crystal Habit & Nanostructure", "Target Crystal Habit & Nanostructure")}
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { key: "spherical", label: "Quantum Dot", facet: "Isotropic" },
+                      { key: "cuboidal", label: "Nanocube", facet: "{100}" },
+                      { key: "octahedral", label: "Octahedral", facet: "{111}" },
+                      { key: "hexagonal", label: "Hex Prism", facet: "{0001}" },
+                      { key: "nanosheet", label: "2D Nanosheet", facet: "(001)" },
+                      { key: "nanowire", label: "1D Nanowire", facet: "[001]" },
+                      { key: "core_shell", label: "Core-Shell", facet: "Hetero" }
+                    ].map((m) => {
+                      const isSelected = synthMorphology === m.key;
+                      return (
+                        <button
+                          key={m.key}
+                          type="button"
+                          onClick={() => setSynthMorphology(m.key as any)}
+                          className={`p-2 rounded-lg border text-left transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-cyan-500/15 border-cyan-500 text-white"
+                              : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="text-xs font-semibold truncate">{m.label}</div>
+                          <div className="text-[10px] font-mono text-cyan-400/90 mt-0.5">{m.facet}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                  {physicsReadouts.estPressureBar} bar P_sat
-                </span>
-              </div>
+                {/* Slider 1: Crystallite Size */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                      <Atom className="w-3.5 h-3.5 text-cyan-400" />
+                      {t("Target Crystallite Domain Size (D)", "Target Crystallite Domain Size (D)")}
+                    </span>
+                    <span className="font-mono tabular-nums font-bold text-cyan-400">
+                      {synthSize.toFixed(1)} nm
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2.0"
+                    max="50.0"
+                    step="0.5"
+                    value={synthSize}
+                    onChange={(e) => setSynthSize(parseFloat(e.target.value))}
+                    className="w-full accent-cyan-400 bg-slate-900 rounded-lg h-1.5 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                    <span>2.0 nm (Quantum Dot)</span>
+                    <span>FWHM ≈ {physicsReadouts.scherrerFwhmDeg}°</span>
+                    <span>50.0 nm (Bulk)</span>
+                  </div>
+                </div>
 
-              {/* Morphology Selector Grid */}
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2.5">
-                  {t("Target Nanostructure Morphology", "Target Nanostructure Morphology")}
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { key: "spherical", label: "Quantum Dot", icon: "●" },
-                    { key: "nanowire", label: "Nanowire", icon: "▮" },
-                    { key: "nanosheet", label: "2D Nanosheet", icon: "▰" },
-                    { key: "cuboidal", label: "Nanocube", icon: "■" },
-                    { key: "octahedral", label: "Octahedral", icon: "◆" },
-                    { key: "hexagonal", label: "Hex Platelet", icon: "⬡" },
-                    { key: "core_shell", label: "Core-Shell", icon: "◎" }
-                  ].map((m) => {
-                    const isSelected = synthMorphology === m.key;
-                    return (
-                      <button
-                        key={m.key}
-                        onClick={() => setSynthMorphology(m.key as any)}
-                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-                          isSelected
-                            ? "bg-cyan-500/20 border-cyan-500 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-                            : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
-                        }`}
-                      >
-                        <span className="text-base">{m.icon}</span>
-                        <span className="text-[10px] tracking-tight">{m.label}</span>
-                      </button>
-                    );
-                  })}
+                {/* Slider 2: Temperature */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                      <Thermometer className="w-3.5 h-3.5 text-amber-400" />
+                      {t("Reaction / Calcination Temperature", "Reaction / Calcination Temperature")}
+                    </span>
+                    <span className="font-mono tabular-nums font-bold text-amber-400">
+                      {synthTemp} °C ({(synthTemp + 273.15).toFixed(0)} K)
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="80"
+                    max="1200"
+                    step="10"
+                    value={synthTemp}
+                    onChange={(e) => setSynthTemp(parseInt(e.target.value, 10))}
+                    className="w-full accent-amber-400 bg-slate-900 rounded-lg h-1.5 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                    <span>80 °C (Solvothermal)</span>
+                    <span>550 °C (Oxide Calcination)</span>
+                    <span>1200 °C (Solid-State)</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Slider 1: Crystallite Size */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                    <Atom className="w-3.5 h-3.5 text-cyan-400" />
-                    {t("Target Crystallite Size", "Target Crystallite Size")}
-                  </span>
-                  <span className="font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                    {synthSize.toFixed(1)} nm
-                  </span>
+                {/* Slider 3: Duration */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                      <Timer className="w-3.5 h-3.5 text-emerald-400" />
+                      {t("Isothermal Dwell Time", "Isothermal Dwell Time")}
+                    </span>
+                    <span className="font-mono tabular-nums font-bold text-emerald-400">
+                      {synthTime.toFixed(1)} hrs
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="48.0"
+                    step="0.5"
+                    value={synthTime}
+                    onChange={(e) => setSynthTime(parseFloat(e.target.value))}
+                    className="w-full accent-emerald-400 bg-slate-900 rounded-lg h-1.5 cursor-pointer"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="2.0"
-                  max="50.0"
-                  step="0.5"
-                  value={synthSize}
-                  onChange={(e) => setSynthSize(parseFloat(e.target.value))}
-                  className="w-full accent-cyan-400 bg-slate-900 rounded-lg h-2 cursor-pointer"
-                />
-                <div className="flex justify-between text-[9px] font-mono text-slate-500">
-                  <span>2.0 nm (Quantum Dot)</span>
-                  <span>25.0 nm</span>
-                  <span>50.0 nm (Bulk-like)</span>
-                </div>
-              </div>
 
-              {/* Slider 2: Temperature */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                    <Thermometer className="w-3.5 h-3.5 text-amber-400" />
-                    {t("Calcination / Autoclave Temp", "Calcination / Autoclave Temp")}
-                  </span>
-                  <span className="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                    {synthTemp} °C ({synthTemp + 273.15} K)
-                  </span>
+                {/* Slider 4: pH */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-medium text-slate-300 flex items-center gap-1.5">
+                      <Droplets className="w-3.5 h-3.5 text-pink-400" />
+                      {t("Precursor Solution pH", "Precursor Solution pH")}
+                    </span>
+                    <span className="font-mono tabular-nums font-bold text-slate-200">
+                      pH {synthPH.toFixed(1)} · {synthPH < 6 ? "Acidic" : synthPH > 8 ? "Alkaline" : "Neutral"}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1.0"
+                    max="14.0"
+                    step="0.1"
+                    value={synthPH}
+                    onChange={(e) => setSynthPH(parseFloat(e.target.value))}
+                    className="w-full accent-pink-400 bg-slate-900 rounded-lg h-1.5 cursor-pointer"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="80"
-                  max="1200"
-                  step="10"
-                  value={synthTemp}
-                  onChange={(e) => setSynthTemp(parseInt(e.target.value))}
-                  className="w-full accent-amber-400 bg-slate-900 rounded-lg h-2 cursor-pointer"
-                />
-                <div className="flex justify-between text-[9px] font-mono text-slate-500">
-                  <span>80°C (Solvothermal)</span>
-                  <span>500°C (Oxides)</span>
-                  <span>1200°C (Ceramics)</span>
-                </div>
-              </div>
 
-              {/* Slider 3: Duration */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                    <Timer className="w-3.5 h-3.5 text-emerald-400" />
-                    {t("Reaction Duration (Dwell Time)", "Reaction Duration (Dwell Time)")}
-                  </span>
-                  <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                    {synthTime.toFixed(1)} hrs
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="48.0"
-                  step="0.5"
-                  value={synthTime}
-                  onChange={(e) => setSynthTime(parseFloat(e.target.value))}
-                  className="w-full accent-emerald-400 bg-slate-900 rounded-lg h-2 cursor-pointer"
-                />
-                <div className="flex justify-between text-[9px] font-mono text-slate-500">
-                  <span>0.5 hr (Fast Microwave)</span>
-                  <span>6.0 hrs</span>
-                  <span>48.0 hrs (Ostwald Limit)</span>
-                </div>
-              </div>
-
-              {/* Slider 4: pH */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                    <Droplets className="w-3.5 h-3.5 text-pink-400" />
-                    {t("Precursor Solution pH", "Precursor Solution pH")}
-                  </span>
-                  <span
-                    className={`font-mono font-bold px-2 py-0.5 rounded border text-[11px] ${
-                      synthPH < 6
-                        ? "text-rose-400 bg-rose-500/10 border-rose-500/20"
-                        : synthPH > 8
-                        ? "text-blue-400 bg-blue-500/10 border-blue-500/20"
-                        : "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
-                    }`}
+                {/* Atmosphere Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                    <Wind className="w-3.5 h-3.5 text-indigo-400" />
+                    {t("Furnace / Autoclave Atmosphere", "Furnace / Autoclave Atmosphere")}
+                  </label>
+                  <select
+                    value={synthAtmosphere}
+                    onChange={(e) => setSynthAtmosphere(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium text-slate-200 outline-none"
                   >
-                    pH {synthPH.toFixed(1)} ({synthPH < 6 ? "Acidic" : synthPH > 8 ? "Alkaline" : "Neutral"})
-                  </span>
+                    <option value="air">Air (Ambient Oxidizing)</option>
+                    <option value="argon">Argon (Pure Inert Shielding, 99.999%)</option>
+                    <option value="nitrogen">Nitrogen (Inert Purge)</option>
+                    <option value="oxygen">Pure Oxygen (High-Pressure Oxidation)</option>
+                    <option value="forming_gas">Forming Gas (5% H₂ / 95% N₂ Reducing)</option>
+                    <option value="vacuum">High Vacuum (10⁻⁵ mbar)</option>
+                  </select>
                 </div>
-                <input
-                  type="range"
-                  min="1.0"
-                  max="14.0"
-                  step="0.1"
-                  value={synthPH}
-                  onChange={(e) => setSynthPH(parseFloat(e.target.value))}
-                  className="w-full accent-pink-400 bg-slate-900 rounded-lg h-2 cursor-pointer"
-                />
-                <div className="flex justify-between text-[9px] font-mono text-slate-500">
-                  <span>pH 1.0 (Strong Acid)</span>
-                  <span>pH 7.0</span>
-                  <span>pH 14.0 (Strong Base)</span>
-                </div>
-              </div>
-
-              {/* Atmosphere Selector */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Wind className="w-3.5 h-3.5 text-indigo-400" />
-                  {t("Furnace / Autoclave Atmosphere", "Furnace / Autoclave Atmosphere")}
-                </label>
-                <select
-                  value={synthAtmosphere}
-                  onChange={(e) => setSynthAtmosphere(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:ring-2 focus:ring-indigo-500/40 outline-none"
-                >
-                  <option value="air">Air (Ambient Oxidizing)</option>
-                  <option value="argon">Argon (Pure Inert Shielding, 99.999%)</option>
-                  <option value="nitrogen">Nitrogen (Inert Purge)</option>
-                  <option value="oxygen">Pure Oxygen (High-Pressure Oxidation)</option>
-                  <option value="forming_gas">Forming Gas (5% H₂ / 95% N₂ Reducing)</option>
-                  <option value="vacuum">High Vacuum (10⁻⁵ mbar)</option>
-                </select>
               </div>
             </div>
 
-            {/* Right Column: 3D Nanostructure Lattice Visualizer & Physics Metrics (7 cols) */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Dynamic Animated SVG Nanostructure Visualizer */}
-              <div className="bg-[#050A14]/90 p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-lg relative overflow-hidden flex flex-col items-center justify-between min-h-[380px]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.06),transparent_70%)] pointer-events-none" />
+            {/* Right Column: Interactive 3D Wulff Crystal Habit Canvas & Metrology Readouts (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col justify-between space-y-5">
+              {/* Interactive 3D Wulff Polyhedron & Surface Energy Studio */}
+              <div className="bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Compass className="w-4 h-4 text-cyan-400" />
+                      <span>3D Wulff Construction & Crystallographic Facet Habit</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      Gibbs-Wulff theorem: d_hkl ∝ γ_hkl · Surface energy ratio γ_{"{111}"} / γ_{"{100}"} = {gammaRatio111To100.toFixed(2)}
+                    </p>
+                  </div>
 
-                <div className="w-full flex items-center justify-between z-10">
-                  <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Atom className="w-3.5 h-3.5 text-cyan-400 animate-spin" style={{ animationDuration: "12s" }} />
-                    {synthMorphology.toUpperCase()} CRYSTAL LATTICE
-                  </span>
-
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
-                    D = {synthSize.toFixed(1)} nm • T = {synthTemp}°C
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWulffRotYaw(28);
+                        setWulffRotPitch(22);
+                      }}
+                      className="px-2.5 py-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] font-mono text-slate-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Reset View</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Animated Nanostructure Graphics */}
-                <div className="relative w-64 h-64 flex items-center justify-center my-4">
-                  {/* Spherical Quantum Dot */}
-                  {synthMorphology === "spherical" && (
-                    <div className="relative w-56 h-56 flex items-center justify-center">
-                      <motion.div
-                        className="absolute rounded-full border border-cyan-500/30"
-                        style={{
-                          width: `${Math.max(60, Math.min(220, synthSize * 4 + 40))}px`,
-                          height: `${Math.max(60, Math.min(220, synthSize * 4 + 40))}px`
-                        }}
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-                      >
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(6,182,212,1)]" />
-                      </motion.div>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                  {/* 3D SVG Polyhedron Canvas */}
+                  <div className="md:col-span-7 bg-slate-950 rounded-xl border border-slate-800/90 p-3 flex flex-col items-center justify-center relative">
+                    <svg viewBox="0 0 260 240" className="w-full h-56 overflow-visible">
+                      <defs>
+                        <radialGradient id="wulffGlow" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.16" />
+                          <stop offset="100%" stopColor="#0f172a" stopOpacity="0" />
+                        </radialGradient>
+                      </defs>
+                      <circle cx="130" cy="120" r="95" fill="url(#wulffGlow)" />
 
-                      <motion.div
-                        className="rounded-full bg-gradient-to-br from-indigo-500/40 via-cyan-500/40 to-emerald-500/30 border-2 border-cyan-400/60 backdrop-blur-md relative flex items-center justify-center shadow-[0_0_35px_rgba(6,182,212,0.35)]"
-                        style={{
-                          width: `${Math.max(45, Math.min(180, synthSize * 3.4 + 30))}px`,
-                          height: `${Math.max(45, Math.min(180, synthSize * 3.4 + 30))}px`
-                        }}
-                        animate={{ scale: [0.98, 1.02, 0.98] }}
-                        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        <div className="grid grid-cols-3 gap-2 p-2">
-                          {[...Array(9)].map((_, i) => (
-                            <div
-                              key={i}
-                              className={`w-2 h-2 rounded-full ${
-                                i % 2 === 0 ? "bg-cyan-300 shadow-[0_0_8px_rgba(34,211,238,0.8)]" : "bg-indigo-300"
-                              } animate-pulse`}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
+                      {/* Crystallographic Reference Axes */}
+                      <line x1="25" y1="215" x2="65" y2="215" stroke="#38bdf8" strokeWidth="1.5" />
+                      <text x="70" y="218" fill="#38bdf8" fontSize="9" fontFamily="monospace">[100]</text>
+                      <line x1="25" y1="215" x2="25" y2="175" stroke="#34d399" strokeWidth="1.5" />
+                      <text x="16" y="170" fill="#34d399" fontSize="9" fontFamily="monospace">[001]</text>
+
+                      {wulffProjection.map((face, idx) => (
+                        <g key={idx}>
+                          <polygon
+                            points={face.points}
+                            fill={face.fill}
+                            stroke={face.stroke}
+                            strokeWidth="1.5"
+                            strokeLinejoin="round"
+                          />
+                          {face.label && face.zAvg > -0.1 && (
+                            <text
+                              x={face.cx}
+                              y={face.cy}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              fill="#e2e8f0"
+                              fontSize="9.5"
+                              fontFamily="monospace"
+                              fontWeight="bold"
+                            >
+                              {face.label}
+                            </text>
+                          )}
+                        </g>
+                      ))}
+                    </svg>
+
+                    {/* Yaw / Pitch Scrubbers */}
+                    <div className="w-full grid grid-cols-2 gap-3 pt-2 border-t border-slate-900 text-[10px] font-mono text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <span>Yaw:</span>
+                        <input
+                          type="range"
+                          min="-90"
+                          max="90"
+                          value={wulffRotYaw}
+                          onChange={(e) => setWulffRotYaw(parseInt(e.target.value, 10))}
+                          className="w-full accent-cyan-400 h-1 cursor-pointer"
+                        />
+                        <span className="tabular-nums w-8 text-right">{wulffRotYaw}°</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span>Pitch:</span>
+                        <input
+                          type="range"
+                          min="-60"
+                          max="60"
+                          value={wulffRotPitch}
+                          onChange={(e) => setWulffRotPitch(parseInt(e.target.value, 10))}
+                          className="w-full accent-indigo-400 h-1 cursor-pointer"
+                        />
+                        <span className="tabular-nums w-8 text-right">{wulffRotPitch}°</span>
+                      </div>
                     </div>
-                  )}
-
-                  {/* 1D Nanowire / Nanorod */}
-                  {synthMorphology === "nanowire" && (
-                    <div className="relative w-56 h-56 flex items-center justify-center">
-                      <motion.div
-                        className="w-10 bg-gradient-to-b from-cyan-400 via-indigo-500 to-cyan-500 rounded-full border-2 border-cyan-300 shadow-[0_0_30px_rgba(6,182,212,0.4)] flex flex-col items-center justify-between py-3 relative"
-                        style={{
-                          height: `${Math.max(90, Math.min(220, synthSize * 4.2 + 60))}px`
-                        }}
-                        animate={{ rotate: [0, 5, -5, 0] }}
-                        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        {[...Array(6)].map((_, i) => (
-                          <div key={i} className="w-4 h-0.5 bg-white/60 rounded-full" />
-                        ))}
-                      </motion.div>
-                    </div>
-                  )}
-
-                  {/* 2D Nanosheet */}
-                  {synthMorphology === "nanosheet" && (
-                    <div className="relative w-56 h-56 flex items-center justify-center">
-                      <motion.div
-                        className="rounded-2xl bg-gradient-to-tr from-indigo-500/50 via-cyan-500/40 to-emerald-400/30 border-2 border-cyan-400 shadow-[0_0_35px_rgba(6,182,212,0.3)] relative flex items-center justify-center"
-                        style={{
-                          width: `${Math.max(80, Math.min(200, synthSize * 3.8 + 40))}px`,
-                          height: `${Math.max(50, Math.min(140, synthSize * 2.5 + 30))}px`,
-                          transform: "rotateX(55deg) rotateZ(-20deg)"
-                        }}
-                        animate={{ rotateZ: [-25, -15, -25] }}
-                        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        <div className="text-[10px] font-mono font-bold text-cyan-200 uppercase tracking-widest">
-                          (001) BASAL PLANE
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
-
-                  {/* Nanocube / Cuboidal */}
-                  {synthMorphology === "cuboidal" && (
-                    <div className="relative w-56 h-56 flex items-center justify-center">
-                      <motion.div
-                        className="rounded-xl bg-gradient-to-br from-cyan-600/40 via-indigo-600/30 to-slate-900/90 border-2 border-cyan-400 shadow-[0_0_35px_rgba(6,182,212,0.35)] flex items-center justify-center relative backdrop-blur-md"
-                        style={{
-                          width: `${Math.max(60, Math.min(150, synthSize * 3.0 + 30))}px`,
-                          height: `${Math.max(60, Math.min(150, synthSize * 3.0 + 30))}px`
-                        }}
-                        animate={{ rotate: [0, 4, -4, 0] }}
-                        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        <div className="text-[9px] font-mono font-bold text-cyan-200 text-center">
-                          {100} FACET
-                        </div>
-                      </motion.div>
-                    </div>
-                  )}
-
-                  {/* Octahedral / Hexagonal / Core-Shell fallback */}
-                  {(synthMorphology === "octahedral" ||
-                    synthMorphology === "hexagonal" ||
-                    synthMorphology === "core_shell") && (
-                    <div className="relative w-56 h-56 flex items-center justify-center">
-                      <motion.div
-                        className="w-36 h-36 rounded-3xl bg-gradient-to-tr from-indigo-500/40 via-cyan-400/30 to-fuchsia-500/30 border-2 border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.35)] flex items-center justify-center relative rotate-45"
-                        animate={{ rotate: [45, 50, 40, 45] }}
-                        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-                      >
-                        <div className="w-16 h-16 rounded-full bg-cyan-400/60 border border-white/80 animate-ping -rotate-45" />
-                      </motion.div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="w-full grid grid-cols-3 gap-2 border-t border-slate-800/80 pt-3 text-center">
-                  <div>
-                    <span className="text-[9px] text-slate-500 uppercase font-mono block">Specific Surface (BET)</span>
-                    <span className="text-xs font-mono font-bold text-cyan-300">{physicsReadouts.ssa} m²/g</span>
                   </div>
-                  <div>
-                    <span className="text-[9px] text-slate-500 uppercase font-mono block">Effective Bandgap</span>
-                    <span className="text-xs font-mono font-bold text-indigo-300">
-                      {physicsReadouts.effectiveEg > 0 ? `${physicsReadouts.effectiveEg} eV` : "Metallic"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-slate-500 uppercase font-mono block">Lattice Microstrain</span>
-                    <span className="text-xs font-mono font-bold text-emerald-300">{physicsReadouts.strainPct} %</span>
+
+                  {/* Right 5 cols inside Wulff Card: Physical Metrology Readouts */}
+                  <div className="md:col-span-5 space-y-2.5">
+                    {[
+                      {
+                        label: "Specific Surface Area (BET)",
+                        val: `${physicsReadouts.ssa}`,
+                        unit: "m²/g",
+                        sub: `Morphology factor applied`,
+                        tone: "text-cyan-400"
+                      },
+                      {
+                        label: "Effective Band Gap (Brus)",
+                        val: physicsReadouts.effectiveEg > 0 ? `${physicsReadouts.effectiveEg}` : "Metallic",
+                        unit: physicsReadouts.effectiveEg > 0 ? "eV" : "",
+                        sub: `ΔE_g = +${physicsReadouts.confinementShift} eV shift`,
+                        tone: "text-indigo-400"
+                      },
+                      {
+                        label: "Scherrer Peak Broadening",
+                        val: `${physicsReadouts.scherrerFwhmDeg}`,
+                        unit: "° 2θ",
+                        sub: `Lattice strain ε = ${physicsReadouts.strainPct}%`,
+                        tone: "text-emerald-400"
+                      },
+                      {
+                        label: "Dislocation Density (δ)",
+                        val: `${physicsReadouts.dislocationDensity}`,
+                        unit: "×10¹⁴ m⁻²",
+                        sub: `δ = 1 / D² estimate`,
+                        tone: "text-amber-400"
+                      }
+                    ].map((m, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between"
+                      >
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                          {m.label}
+                        </span>
+                        <div className="flex items-baseline justify-between mt-1">
+                          <div>
+                            <span className={`text-lg font-mono tabular-nums font-bold ${m.tone}`}>
+                              {m.val}
+                            </span>
+                            {m.unit && (
+                              <span className="text-[11px] font-mono text-slate-400 ml-1">
+                                {m.unit}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-500">{m.sub}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
               {/* Solvents & Capping Matrix Selector */}
-              <div className="bg-[#050A14]/90 p-6 rounded-3xl border border-slate-800/80 shadow-lg space-y-4">
+              <div className="bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <Beaker className="w-4 h-4 text-indigo-400" />
-                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                    <h4 className="text-sm font-bold text-white">
                       {t("Solvent & Surfactant Capping Matrix", "Solvent & Surfactant Capping Matrix")}
                     </h4>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-mono">Growth Directional Control</span>
+                  <span className="text-[11px] text-slate-400 font-mono">Facet-Selective Passivation</span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
                       Carrier Solvent
                     </label>
                     <select
                       value={selectedSolvent}
                       onChange={(e) => setSelectedSolvent(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:ring-2 focus:ring-indigo-500/40 outline-none"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium text-slate-200 outline-none"
                     >
                       {SOLVENT_OPTIONS.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -1118,13 +1491,13 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                    <label className="text-xs font-medium text-slate-300 block mb-1.5">
                       Capping Surfactant / Ligand
                     </label>
                     <select
                       value={selectedSurfactant}
                       onChange={(e) => setSelectedSurfactant(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 focus:ring-2 focus:ring-indigo-500/40 outline-none"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-xs font-medium text-slate-200 outline-none"
                     >
                       {SURFACTANT_OPTIONS.map((sur) => (
                         <option key={sur.id} value={sur.id}>
@@ -1139,171 +1512,26 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
           </motion.div>
         )}
 
-        {/* SUBTAB 2: GEMINI AI SYNTHESIS FORMULATION */}
-        {activeSubTab === "ai_route" && (
-          <motion.div
-            key="tab-ai-route"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-6"
-          >
-            {/* Control Bar for AI Generation */}
-            <div className="bg-[#050A14]/90 p-6 rounded-3xl border border-slate-800/80 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-indigo-400" />
-                  <h4 className="text-base font-black text-white uppercase tracking-wider">
-                    {t("Gemini Deep Synthesis Formulation Engine", "Gemini Deep Synthesis Formulation Engine")}
-                  </h4>
-                </div>
-                <p className="text-xs text-slate-400">
-                  {t(
-                    "Generates an elite academic recipe combining thermodynamic phase boundaries, solvent selection, temperature ramps, and XRD verification.",
-                    "Generates an elite academic recipe combining thermodynamic phase boundaries, solvent selection, temperature ramps, and XRD verification."
-                  )}
-                </p>
-              </div>
-
-              {/* Optimization Strategic Focus presets */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">Focus:</span>
-                {[
-                  { id: "purity", label: "Phase Purity & Single Crystal" },
-                  { id: "defects", label: "Defect & Vacancy Engineering" },
-                  { id: "confinement", label: "Quantum Size Confinement" }
-                ].map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setSynthAiFocus(f.id as any)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                      synthAiFocus === f.id
-                        ? "bg-indigo-600/40 border border-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.3)]"
-                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-
-                <button
-                  onClick={onRunSynthesisAI}
-                  disabled={synthAiLoading}
-                  className="ml-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white rounded-xl font-bold text-xs shadow-md flex items-center gap-2 active:scale-95 disabled:opacity-50"
-                >
-                  {synthAiLoading ? (
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
-                  )}
-                  <span>{synthAiLoading ? t("Formulating...", "Formulating...") : t("Formulate Recipe", "Formulate Recipe")}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* AI Generation Loading State with timeline */}
-            {synthAiLoading && (
-              <div className="bg-[#050A14]/90 p-10 rounded-3xl border border-indigo-500/30 text-center flex flex-col items-center justify-center space-y-4 shadow-xl">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-                  <Sparkles className="w-6 h-6 text-indigo-400 absolute inset-0 m-auto animate-pulse" />
-                </div>
-                <div className="space-y-1">
-                  <h5 className="text-base font-bold text-white">
-                    {synthAiStep || t("Analyzing Phase Boundaries with Gemini...", "Analyzing Phase Boundaries with Gemini...")}
-                  </h5>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Applying thermodynamic constraints for {selectedCandidate.formula} ({synthMorphology}, {synthTemp}°C, {synthAtmosphere})
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* AI Result Markdown Viewer */}
-            {!synthAiLoading && synthAiResult && (
-              <div className="bg-[#050A14]/90 p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                    <span className="text-xs font-mono font-bold text-emerald-300 uppercase tracking-wider">
-                      Synthesis Formulation Ready • Model: Gemini 2.5 / 3.1 Pro
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleCopyRecipe}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                      title="Copy to clipboard"
-                    >
-                      {copiedRecipe ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedRecipe ? t("Copied!", "Copied!") : t("Copy Recipe", "Copy Recipe")}</span>
-                    </button>
-
-                    <button
-                      onClick={handleDownloadRecipe}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                      title="Download Markdown"
-                    >
-                      <Download className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{t("Export Markdown", "Export Markdown")}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="prose prose-invert max-w-none prose-headings:text-indigo-200 prose-h2:text-lg prose-h2:font-black prose-h3:text-base prose-p:text-slate-300 prose-p:text-sm prose-li:text-slate-300 prose-li:text-sm prose-strong:text-white prose-code:text-cyan-300 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
-                  <ReactMarkdown>{synthAiResult}</ReactMarkdown>
-                </div>
-              </div>
-            )}
-
-            {/* Empty state prompt */}
-            {!synthAiLoading && !synthAiResult && (
-              <div className="bg-[#050A14]/90 p-12 rounded-3xl border border-slate-800/80 text-center flex flex-col items-center justify-center space-y-4">
-                <FlaskConical className="w-12 h-12 text-indigo-400/40 animate-pulse" />
-                <div className="space-y-1">
-                  <h4 className="text-base font-bold text-white">
-                    {t("No Synthesis Route Formulated Yet", "No Synthesis Route Formulated Yet")}
-                  </h4>
-                  <p className="text-xs text-slate-400 max-w-md">
-                    {t(
-                      "Click 'Formulate Recipe' above to have Gemini AI calculate exact chemical quantities, solvent recipes, and temperature schedules for your target phase.",
-                      "Click 'Formulate Recipe' above to have Gemini AI calculate exact chemical quantities, solvent recipes, and temperature schedules for your target phase."
-                    )}
-                  </p>
-                </div>
-                <button
-                  onClick={onRunSynthesisAI}
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white rounded-xl font-bold text-xs shadow-lg active:scale-95 transition-all"
-                >
-                  {t("Generate AI Synthesis Route", "Generate AI Synthesis Route")}
-                </button>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {/* SUBTAB 3: STOICHIOMETRIC PRECURSOR BATCHER */}
+        {/* SUBTAB 2: STOICHIOMETRIC PRECURSOR BATCHER */}
         {activeSubTab === "stoichiometry" && (
           <motion.div
             key="tab-stoichiometry"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-6"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
           >
-            {/* Batch Scale & Dopant Controls Bar */}
-            <div className="bg-[#050A14]/90 p-6 rounded-3xl border border-slate-800/80 shadow-lg grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Batch Scale, Solution Volume & Dopant Controls Bar */}
+            <div className="bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-5">
               {/* Target Batch Mass */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-300 flex items-center gap-1.5">
                     <Scale className="w-3.5 h-3.5 text-emerald-400" />
-                    {t("Target Product Batch Yield", "Target Product Batch Yield")}
+                    {t("Target Product Yield", "Target Product Yield")}
                   </span>
-                  <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <span className="font-mono tabular-nums font-bold text-emerald-400">
                     {synthTargetMass.toFixed(2)} g
                   </span>
                 </div>
@@ -1315,14 +1543,15 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                     step="0.1"
                     value={synthTargetMass}
                     onChange={(e) => setSynthTargetMass(Math.max(0.01, parseFloat(e.target.value) || 0.1))}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-mono font-bold text-white focus:ring-2 focus:ring-emerald-500/40 outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono tabular-nums font-bold text-white outline-none"
                   />
                   <div className="flex gap-1">
-                    {[0.5, 1.0, 5.0, 10.0].map((mass) => (
+                    {[0.5, 1.0, 5.0].map((mass) => (
                       <button
                         key={mass}
+                        type="button"
                         onClick={() => setSynthTargetMass(mass)}
-                        className={`px-2 py-1.5 rounded-lg text-[10px] font-mono font-bold border ${
+                        className={`px-2 py-1.5 rounded-lg text-[10px] font-mono font-bold border cursor-pointer ${
                           synthTargetMass === mass
                             ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
                             : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
@@ -1335,24 +1564,62 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                 </div>
               </div>
 
+              {/* Solution Volume (mL) for Molarity Calculation */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                    <Beaker className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Solvent Volume</span>
+                  </span>
+                  <span className="font-mono tabular-nums font-bold text-cyan-400">
+                    {solutionVolumeMl} mL
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="5"
+                    max="2000"
+                    step="5"
+                    value={solutionVolumeMl}
+                    onChange={(e) => setSolutionVolumeMl(Math.max(5, parseInt(e.target.value, 10) || 50))}
+                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono tabular-nums font-bold text-white outline-none"
+                  />
+                  {[25, 50, 100].map((vol) => (
+                    <button
+                      key={vol}
+                      type="button"
+                      onClick={() => setSolutionVolumeMl(vol)}
+                      className={`px-2 py-1.5 rounded-lg text-[10px] font-mono font-bold border cursor-pointer ${
+                        solutionVolumeMl === vol
+                          ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {vol}mL
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Dopant Element & Concentration */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <span className="font-semibold text-slate-300 flex items-center gap-1.5">
                     <Zap className="w-3.5 h-3.5 text-amber-400" />
-                    {t("Lattice Dopant Substitution", "Lattice Dopant Substitution")}
+                    {t("Dopant Substitution", "Dopant Substitution")}
                   </span>
-                  <span className="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  <span className="font-mono tabular-nums font-bold text-amber-400">
                     {synthDoping.toFixed(1)} mol%
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="text"
-                    placeholder="Dopant (e.g. Fe, Mn, Co)"
+                    placeholder="Dopant (e.g. Fe, Nd)"
                     value={dopantElement}
                     onChange={(e) => setDopantElement(e.target.value.trim())}
-                    className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-mono font-bold text-white focus:ring-2 focus:ring-amber-500/40 outline-none uppercase"
+                    className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono font-bold text-white outline-none"
                   />
                   <input
                     type="range"
@@ -1361,21 +1628,21 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                     step="0.5"
                     value={synthDoping}
                     onChange={(e) => setSynthDoping(parseFloat(e.target.value))}
-                    className="w-full accent-amber-400 bg-slate-900 rounded-lg h-2 cursor-pointer self-center"
+                    className="w-full accent-amber-400 bg-slate-900 rounded-lg h-1.5 cursor-pointer self-center"
                   />
                 </div>
               </div>
 
               {/* Substituted Cation Site */}
               <div className="space-y-2">
-                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                   <Atom className="w-3.5 h-3.5 text-indigo-400" />
-                  {t("Target Host Lattice Site", "Target Host Lattice Site")}
+                  {t("Host Lattice Site", "Host Lattice Site")}
                 </span>
                 <select
                   value={dopedSubstitutedElement}
                   onChange={(e) => setDopedSubstitutedElement(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/40 outline-none"
+                  className="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-semibold text-slate-200 outline-none"
                 >
                   {Object.keys(parseChemicalFormula(selectedCandidate.formula))
                     .filter((el) => el !== "O" && el !== "H")
@@ -1389,48 +1656,57 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
             </div>
 
             {/* Precursor Selection & Mass Calculation Table */}
-            <div className="bg-[#050A14]/90 p-6 sm:p-7 rounded-3xl border border-slate-800/80 shadow-lg space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3.5">
                 <div>
-                  <h4 className="text-sm font-black text-white uppercase tracking-wider">
-                    {t("Precursor Formulation & Weighing Table", "Precursor Formulation & Weighing Table")}
+                  <h4 className="text-sm font-bold text-white">
+                    {t("Precursor Formulation & Analytical Balance Weighing Sheet", "Precursor Formulation & Analytical Balance Weighing Sheet")}
                   </h4>
-                  <p className="text-[10px] text-slate-400">
-                    Calculated for MW = {stoichCalculation.mwProduct.toFixed(2)} g/mol of {selectedCandidate.formula}
+                  <p className="text-xs text-slate-400 font-mono tabular-nums mt-0.5">
+                    Product MW = {stoichCalculation.mwProduct.toFixed(2)} g/mol · Target Moles = {(stoichCalculation.molesProduct * 1000).toFixed(2)} mmol · Atom Economy = {stoichCalculation.atomEconomyPct.toFixed(1)}%
                   </p>
                 </div>
 
-                <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-xl border border-emerald-500/20">
-                  Total Precursors: {stoichCalculation.totalPrecursorMassGrams.toFixed(4)} g
-                </span>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xs font-mono tabular-nums font-bold text-emerald-400">
+                    Total Reagents: {stoichCalculation.totalPrecursorMassGrams.toFixed(4)} g
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCopyStoichTable}
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {copiedStoich ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedStoich ? "Copied TSV" : "Copy Weighing Table"}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs font-mono tabular-nums">
                   <thead>
-                    <tr className="border-b border-slate-800 text-[10px] font-mono uppercase text-slate-400">
-                      <th className="pb-3">Element / Cation</th>
-                      <th className="pb-3">Stoich Ratio</th>
-                      <th className="pb-3">Precursor Selection</th>
-                      <th className="pb-3">Formula</th>
-                      <th className="pb-3">MW (g/mol)</th>
-                      <th className="pb-3 text-right">Required Mass (g)</th>
+                    <tr className="border-b border-slate-800 text-[11px] uppercase text-slate-400">
+                      <th className="pb-3 pr-3">Cation</th>
+                      <th className="pb-3 pr-3">Stoich ν</th>
+                      <th className="pb-3 pr-3">Precursor Salt Selection</th>
+                      <th className="pb-3 pr-3">Formula</th>
+                      <th className="pb-3 pr-3">MW (g/mol)</th>
+                      <th className="pb-3 pr-3 text-right">Molarity (M)</th>
+                      <th className="pb-3 pr-3 text-right">Mass (g)</th>
                       <th className="pb-3 text-right">Mass (mg)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tbody className="divide-y divide-slate-800/60">
                     {stoichCalculation.precursors.map((prec, idx) => {
                       const dbList = PRECURSOR_DATABASE[prec.element] || [];
+                      const isCustom = (selectedPrecursors[prec.element] || prec.precursorName) === "Custom Precursor";
                       return (
                         <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
-                          <td className="py-3 font-bold text-white flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs border border-indigo-500/30">
-                              {prec.element}
-                            </span>
-                            <span>{prec.element}</span>
+                          <td className="py-3 pr-3 font-bold text-white">
+                            {prec.element}
                           </td>
-                          <td className="py-3 text-slate-300">{prec.stoichCoeff.toFixed(4)}</td>
-                          <td className="py-3">
+                          <td className="py-3 pr-3 text-slate-300">{prec.stoichCoeff.toFixed(4)}</td>
+                          <td className="py-3 pr-3">
                             <select
                               value={selectedPrecursors[prec.element] || prec.precursorName}
                               onChange={(e) =>
@@ -1439,19 +1715,38 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                                   [prec.element]: e.target.value
                                 }))
                               }
-                              className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:ring-1 focus:ring-emerald-500 outline-none max-w-[200px]"
+                              className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-sans text-slate-200 outline-none max-w-[230px]"
                             >
                               {dbList.map((item) => (
                                 <option key={item.name} value={item.name}>
                                   {item.name}
                                 </option>
                               ))}
-                              <option value="Custom Precursor">Custom Precursor (Set MW)</option>
+                              <option value="Custom Precursor">Custom Precursor (Manual MW)</option>
                             </select>
                           </td>
-                          <td className="py-3 text-slate-400 text-[11px]">{prec.precursorFormula}</td>
-                          <td className="py-3 text-slate-300">{prec.precursorMw.toFixed(2)}</td>
-                          <td className="py-3 text-right font-bold text-emerald-400 text-sm">
+                          <td className="py-3 pr-3 text-slate-400">{prec.precursorFormula}</td>
+                          <td className="py-3 pr-3 text-slate-300">
+                            {isCustom ? (
+                              <input
+                                type="number"
+                                min="1"
+                                step="0.1"
+                                value={customPrecursorMws[prec.element] || prec.precursorMw}
+                                onChange={(e) => {
+                                  const val = Math.max(1, parseFloat(e.target.value) || 50);
+                                  setCustomPrecursorMws((prev) => ({ ...prev, [prec.element]: val }));
+                                }}
+                                className="w-20 px-2 py-1 bg-slate-950 border border-indigo-500/50 rounded text-xs font-mono text-white"
+                              />
+                            ) : (
+                              prec.precursorMw.toFixed(2)
+                            )}
+                          </td>
+                          <td className="py-3 pr-3 text-right text-indigo-300">
+                            {prec.molarityMolL.toFixed(4)} M
+                          </td>
+                          <td className="py-3 pr-3 text-right font-bold text-emerald-400 text-sm">
                             {prec.massGrams.toFixed(4)} g
                           </td>
                           <td className="py-3 text-right font-bold text-cyan-300">
@@ -1464,144 +1759,361 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                 </table>
               </div>
 
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3 mt-4">
-                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h6 className="text-xs font-bold text-amber-300">
-                    Laboratory Precision & Hygroscopic Salts Warning
-                  </h6>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    Hydrated nitrate and chloride salts (e.g. Co(NO₃)₂·6H₂O, Al(NO₃)₃·9H₂O) rapidly absorb atmospheric moisture. Always dry precursors in a vacuum desiccator before weighing or verify moisture content via thermogravimetric analysis (TGA).
-                  </p>
-                </div>
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  <strong className="text-amber-300">Hygroscopic Precursor Advisory:</strong> Hydrated nitrate and chloride salts absorb ambient moisture rapidly. Weigh immediately from a vacuum desiccator or standardize water of hydration by thermogravimetric analysis (TGA).
+                </p>
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* SUBTAB 4: JMAK KINETICS & THERMODYNAMICS */}
+        {/* SUBTAB 3: JMAK KINETICS & FURNACE THERMAL SCHEDULE */}
         {activeSubTab === "kinetics" && (
           <motion.div
             key="tab-kinetics"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-6"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
           >
-            {/* Top row: Interactive JMAK Sigmoid Crystallization Curve (Recharts) */}
-            <div className="bg-[#050A14]/90 p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-lg space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                <div>
-                  <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    {t("Johnson-Mehl-Avrami-Kolmogorov (JMAK) Crystallization Kinetics", "Johnson-Mehl-Avrami-Kolmogorov (JMAK) Crystallization Kinetics")}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 font-mono">
-                    Model: X_C(t) = 1 - exp(-k · t^n) • Avrami n = {jmakKineticsData.n_exp.toFixed(2)} • Rate k = {jmakKineticsData.k_rate.toExponential(3)} s⁻¹
-                  </p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* Left 7 Cols: Interactive JMAK Sigmoid Crystallization & LaMer Curve */}
+              <div className="lg:col-span-7 bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-400" />
+                      <span>JMAK Crystallization Kinetics & Avrami Transformation</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-mono tabular-nums">
+                      X_C(t) = 1 - exp(-k·t^n) · Avrami n = {jmakKineticsData.n_exp.toFixed(2)} · k = {jmakKineticsData.k_rate.toExponential(2)} s⁻¹
+                    </p>
+                  </div>
+
+                  <span className="text-xs font-mono tabular-nums font-bold text-emerald-400">
+                    Yield @ {synthTime}h: {jmakKineticsData.currentYield.toFixed(1)}%
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-3 font-mono text-xs">
-                  <span className="text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
-                    Yield at {synthTime}h: {jmakKineticsData.currentYield.toFixed(1)}%
-                  </span>
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={jmakKineticsData.points} margin={{ top: 10, right: 16, left: -12, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="crystGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.35} />
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                      <XAxis
+                        dataKey="time"
+                        stroke="#64748B"
+                        fontSize={10}
+                        tickFormatter={(v) => `${v}h`}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        stroke="#64748B"
+                        fontSize={10}
+                        tickFormatter={(v) => `${v}%`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0B132B", borderColor: "#1E293B", borderRadius: "10px", fontSize: "11px" }}
+                        formatter={(val: any, name: string) => [
+                          name === "crystallinity" ? `${val}%` : `${val} %/h`,
+                          name === "crystallinity" ? "Crystalline Fraction X_C" : "Transformation Rate dX/dt"
+                        ]}
+                        labelFormatter={(label) => `Reaction Time: ${label} hours`}
+                      />
+                      <ReferenceLine
+                        x={synthTime}
+                        stroke="#F59E0B"
+                        strokeDasharray="3 3"
+                        label={{ value: `Dwell (${synthTime}h)`, fill: "#F59E0B", fontSize: 10 }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="crystallinity"
+                        stroke="#10B981"
+                        strokeWidth={2.2}
+                        fillOpacity={1}
+                        fill="url(#crystGradient)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="w-full h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={jmakKineticsData.points} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="crystGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-                    <XAxis
-                      dataKey="time"
-                      stroke="#64748B"
-                      fontSize={10}
-                      tickFormatter={(v) => `${v}h`}
-                      label={{ value: "Reaction Duration (Hours)", position: "insideBottom", offset: -2, fill: "#64748B", fontSize: 10 }}
+              {/* Right 5 Cols: Multi-Stage Furnace Thermal Ramp & Dwell Profiler */}
+              <div className="lg:col-span-5 bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Thermometer className="w-4 h-4 text-amber-400" />
+                      <span>Furnace Thermal Ramp Schedule</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-mono tabular-nums">
+                      Ramp: {heatingRampRate.toFixed(1)} °C/min · Dwell: {synthTemp} °C for {synthTime}h
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs font-mono">
+                    <span className="text-slate-400">Ramp:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="25"
+                      step="0.5"
+                      value={heatingRampRate}
+                      onChange={(e) => setHeatingRampRate(Math.max(0.5, parseFloat(e.target.value) || 5))}
+                      className="w-14 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-amber-300 font-bold text-right"
                     />
-                    <YAxis
-                      domain={[0, 100]}
-                      stroke="#64748B"
-                      fontSize={10}
-                      tickFormatter={(v) => `${v}%`}
-                      label={{ value: "Crystallization Yield X_C", angle: -90, position: "insideLeft", offset: 15, fill: "#64748B", fontSize: 10 }}
-                    />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: "#0B132B", borderColor: "#1E293B", borderRadius: "12px", fontSize: "11px" }}
-                      formatter={(val: any, name: string) => [
-                        name === "crystallinity" ? `${val}%` : `${val} %/h`,
-                        name === "crystallinity" ? "Crystalline Fraction" : "Growth Velocity"
-                      ]}
-                      labelFormatter={(label) => `Reaction Time: ${label} hours`}
-                    />
-                    <ReferenceLine x={synthTime} stroke="#F59E0B" strokeDasharray="3 3" label={{ value: `Dwell (${synthTime}h)`, fill: "#F59E0B", fontSize: 10 }} />
-                    <Area
-                      type="monotone"
-                      dataKey="crystallinity"
-                      stroke="#10B981"
-                      strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#crystGradient)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                    <span className="text-[10px] text-slate-400">°C/m</span>
+                  </div>
+                </div>
+
+                <div className="w-full h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={jmakKineticsData.furnaceSchedule} margin={{ top: 10, right: 16, left: -10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+                      <XAxis
+                        dataKey="timeHr"
+                        stroke="#64748B"
+                        fontSize={10}
+                        tickFormatter={(v) => `${v}h`}
+                      />
+                      <YAxis
+                        domain={[0, Math.max(250, synthTemp + 100)]}
+                        stroke="#64748B"
+                        fontSize={10}
+                        tickFormatter={(v) => `${v}°`}
+                      />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#0B132B", borderColor: "#1E293B", borderRadius: "10px", fontSize: "11px" }}
+                        formatter={(val: any) => [`${val} °C`, "Setpoint Temperature"]}
+                        labelFormatter={(label) => `Elapsed Time: ${label} hrs`}
+                      />
+                      <Line
+                        type="linear"
+                        dataKey="tempC"
+                        stroke="#F59E0B"
+                        strokeWidth={2.5}
+                        dot={{ r: 4, fill: "#F59E0B" }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
-            {/* Bottom 3 Cards: Arrhenius, Ostwald Ripening & Thermodynamics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-[#050A14]/90 p-6 rounded-3xl border border-slate-800/80 shadow-lg space-y-2">
-                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest block">
-                  Arrhenius Activation Barrier
+            {/* Bottom 3 Cards: Arrhenius, Gibbs-Thomson Critical Radius & Autoclave Pressure */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="bg-[#070B14] p-5 rounded-2xl border border-slate-800 space-y-1.5">
+                <span className="text-[11px] font-mono text-amber-400 uppercase tracking-wider block">
+                  Arrhenius Activation Barrier (E_a)
                 </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black font-mono text-white">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold font-mono tabular-nums text-white">
                     {(jmakKineticsData.baseEa / 1000).toFixed(1)}
                   </span>
                   <span className="text-xs text-slate-400 font-mono">kJ/mol</span>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Thermal energy barrier for homogeneous nucleation and atomic rearrangement in the {selectedCandidate.phase_name} lattice.
+                <p className="text-xs text-slate-400">
+                  Energy barrier for homogeneous nucleation and lattice diffusion in {selectedCandidate.phase_name}.
                 </p>
               </div>
 
-              <div className="bg-[#050A14]/90 p-6 rounded-3xl border border-slate-800/80 shadow-lg space-y-2">
-                <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest block">
-                  Gibbs-Thomson Critical Radius
+              <div className="bg-[#070B14] p-5 rounded-2xl border border-slate-800 space-y-1.5">
+                <span className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider block">
+                  Gibbs-Thomson Critical Nucleus (r*)
                 </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black font-mono text-white">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold font-mono tabular-nums text-white">
                     {(synthSize * 0.35).toFixed(2)}
                   </span>
-                  <span className="text-xs text-slate-400 font-mono">nm (r*)</span>
+                  <span className="text-xs text-slate-400 font-mono">nm</span>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Critical nucleus radius above which nanocrystals grow spontaneously without Ostwald dissolution.
+                <p className="text-xs text-slate-400">
+                  Minimum stable cluster radius required to overcome surface free energy and prevent Ostwald dissolution.
                 </p>
               </div>
 
-              <div className="bg-[#050A14]/90 p-6 rounded-3xl border border-slate-800/80 shadow-lg space-y-2">
-                <span className="text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest block">
-                  Autoclave Saturated Vapor P_sat
+              <div className="bg-[#070B14] p-5 rounded-2xl border border-slate-800 space-y-1.5">
+                <span className="text-[11px] font-mono text-indigo-400 uppercase tracking-wider block">
+                  Autoclave Saturated Vapor Pressure
                 </span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-black font-mono text-white">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold font-mono tabular-nums text-white">
                     {physicsReadouts.estPressureBar}
                   </span>
                   <span className="text-xs text-slate-400 font-mono">bar</span>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Estimated hydrothermal vessel pressure at {synthTemp}°C. Ensure Teflon liner is rated ≥ 200 bar.
+                <p className="text-xs text-slate-400">
+                  Autogenous vessel pressure at {synthTemp} °C. Use PTFE-lined reactor rated ≥ 200 bar.
                 </p>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* SUBTAB 4: PROTOCOL & AI SYNTHESIS FORMULATION */}
+        {activeSubTab === "ai_route" && (
+          <motion.div
+            key="tab-ai-route"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
+          >
+            {/* Control Bar for Formulation */}
+            <div className="bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <span>{t("Synthesis Route Formulation Engine", "Synthesis Route Formulation Engine")}</span>
+                </h4>
+                <p className="text-xs text-slate-400">
+                  {t(
+                    "Synthesizes exact precursor weights, solvent chemistry, thermal ramp profiles, and powder XRD verification checkpoints.",
+                    "Synthesizes exact precursor weights, solvent chemistry, thermal ramp profiles, and powder XRD verification checkpoints."
+                  )}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-mono text-slate-400 mr-1">Regime:</span>
+                {[
+                  { id: "purity", label: "Phase Purity" },
+                  { id: "defects", label: "Defect Engineering" },
+                  { id: "confinement", label: "Quantum Confinement" }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setSynthAiFocus(f.id as any)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                      synthAiFocus === f.id
+                        ? "bg-indigo-600 text-white"
+                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={generateDeterministicBlueprint}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs font-semibold cursor-pointer whitespace-nowrap"
+                >
+                  Instant Blueprint
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onRunSynthesisAI}
+                  disabled={synthAiLoading}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                >
+                  {synthAiLoading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  <span>{synthAiLoading ? "Formulating..." : "Run Deep AI Route"}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* AI Generation Loading State */}
+            {synthAiLoading && (
+              <div className="bg-[#070B14] p-10 rounded-2xl border border-indigo-500/30 text-center flex flex-col items-center justify-center space-y-3">
+                <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
+                <div className="space-y-1">
+                  <h5 className="text-sm font-bold text-white">
+                    {synthAiStep || "Computing Phase Boundaries & Precursor Kinetics..."}
+                  </h5>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Target: {selectedCandidate.formula} · {synthMorphology} · {synthTemp} °C · {synthAtmosphere}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Markdown Viewer */}
+            {!synthAiLoading && activeMarkdownRecipe && (
+              <div className="bg-[#070B14] p-5 sm:p-7 rounded-2xl border border-slate-800 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3.5">
+                  <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 font-semibold">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>
+                      {synthAiResult
+                        ? "AI Synthesis Formulation Complete"
+                        : "Quantitative Synthesis Protocol Blueprint"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyRecipe}
+                      className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedRecipe ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedRecipe ? "Copied" : "Copy Protocol"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadRecipe}
+                      className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Export Markdown</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="prose prose-invert max-w-none prose-headings:text-indigo-200 prose-h2:text-base prose-h2:font-bold prose-h3:text-sm prose-p:text-slate-300 prose-p:text-xs prose-li:text-slate-300 prose-li:text-xs prose-strong:text-white prose-code:text-cyan-300 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
+                  <ReactMarkdown>{activeMarkdownRecipe}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!synthAiLoading && !activeMarkdownRecipe && (
+              <div className="bg-[#070B14] p-10 rounded-2xl border border-slate-800 text-center flex flex-col items-center justify-center space-y-4">
+                <FlaskConical className="w-10 h-10 text-indigo-400/50" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">
+                    {t("No Synthesis Route Formulated Yet", "No Synthesis Route Formulated Yet")}
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-md">
+                    Generate an instant stoichiometric & thermal protocol blueprint or run the deep AI synthesis formulation engine.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={generateDeterministicBlueprint}
+                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 rounded-lg font-semibold text-xs cursor-pointer"
+                  >
+                    Generate Instant Blueprint
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onRunSynthesisAI}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold text-xs cursor-pointer"
+                  >
+                    {t("Generate AI Synthesis Route", "Generate AI Synthesis Route")}
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -1609,36 +2121,38 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
         {activeSubTab === "sop_protocol" && (
           <motion.div
             key="tab-sop"
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-6"
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-5"
           >
-            <div className="bg-[#050A14]/90 p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-lg space-y-6">
+            <div className="bg-[#070B14] p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                 <div>
-                  <h4 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-pink-400" />
-                    {t("Standard Operating Procedure (SOP) Protocol", "Standard Operating Procedure (SOP) Protocol")}
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-pink-400" />
+                    <span>{t("Standard Operating Procedure (SOP) Checklist", "Standard Operating Procedure (SOP) Checklist")}</span>
                   </h4>
-                  <p className="text-xs text-slate-400">
-                    Step-by-step verified laboratory workflow for {selectedCandidate.phase_name} ({selectedCandidate.formula})
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Step-by-step laboratory verification workflow for {selectedCandidate.phase_name} ({selectedCandidate.formula}) · Progress: {completedSopCount}/{totalSopCount}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={() => window.print()}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                   >
                     <Printer className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{t("Print Protocol", "Print Protocol")}</span>
+                    <span>{t("Print SOP", "Print SOP")}</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleDownloadAuditReport}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow"
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>{t("Download Audit Report", "Download Audit Report")}</span>
@@ -1647,48 +2161,48 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
               </div>
 
               {/* SOP Step-by-step Interactive Checklist */}
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {[
                   {
                     id: "step_ppe",
-                    step: "1. Safety & Chemical PPE Preparation",
-                    desc: "Wear nitrile gloves, splash goggles, and lab coat. Perform organic solvent and acid handling inside a certified chemical fume hood."
+                    step: "01. Safety & Chemical PPE Preparation",
+                    desc: "Wear nitrile gloves, splash goggles, and flame-retardant lab coat. Perform acid digestion and solvent handling inside a certified fume hood."
                   },
                   {
                     id: "step_weighing",
-                    step: "2. Analytical Balance Precursor Weighing",
-                    desc: `Accurately weigh target precursors on a 4-decimal analytical balance: ${stoichCalculation.precursors
-                      .map((p) => `${p.precursorName} = ${p.massGrams.toFixed(4)} g`)
+                    step: "02. Analytical Balance Precursor Weighing",
+                    desc: `Weigh target reagents on a 0.1 mg analytical balance: ${stoichCalculation.precursors
+                      .map((p) => `${p.precursorName} = ${p.massGrams.toFixed(4)} g (${p.massMilligrams.toFixed(1)} mg)`)
                       .join("; ")}.`
                   },
                   {
                     id: "step_dissolution",
-                    step: "3. Solvation & Magnetic Stirring",
-                    desc: `Dissolve precursors in 50 mL of selected solvent (${selectedSolvent}). Adjust solution to pH ${synthPH.toFixed(
-                      1
-                    )} under continuous stirring at 500 RPM for 30 minutes.`
+                    step: "03. Solvation & Chelation",
+                    desc: `Dissolve precursors in ${solutionVolumeMl} mL of ${
+                      SOLVENT_OPTIONS.find((s) => s.id === selectedSolvent)?.name || selectedSolvent
+                    }. Adjust solution to pH ${synthPH.toFixed(1)} under 500 RPM magnetic stirring for 30 minutes.`
                   },
                   {
                     id: "step_autoclave",
-                    step: "4. Hydrothermal Autoclave Sealing",
-                    desc: `Transfer solution into a Teflon-lined stainless steel autoclave (fill fraction: 60-70%). Seal securely to withstand estimated pressure of ~${physicsReadouts.estPressureBar} bar.`
+                    step: "04. Reactor Vessel Loading",
+                    desc: `Transfer precursor solution into a PTFE-lined autoclave (fill factor: 65%). Seal torque bolts evenly for estimated pressure of ${physicsReadouts.estPressureBar} bar.`
                   },
                   {
                     id: "step_calcination",
-                    step: "5. Thermal Calcination Schedule",
-                    desc: `Ramp temperature to ${synthTemp} °C (ramp rate: 5 °C/min). Hold at ${synthTemp} °C for ${synthTime.toFixed(
+                    step: "05. Controlled Thermal Ramp & Dwell",
+                    desc: `Ramp temperature at ${heatingRampRate.toFixed(1)} °C/min to ${synthTemp} °C. Hold isothermally for ${synthTime.toFixed(
                       1
-                    )} hours under ${synthAtmosphere.toUpperCase()} atmosphere. Allow furnace to cool naturally to room temperature.`
+                    )} hours under ${synthAtmosphere.toUpperCase()} atmosphere.`
                   },
                   {
                     id: "step_washing",
-                    step: "6. Centrifugation & Washing Cycles",
-                    desc: "Wash precipitate 3 times with deionized water and twice with absolute ethanol via centrifugation at 8,000 RPM for 10 minutes to remove unreacted ions."
+                    step: "06. Centrifugation, Washing & Drying",
+                    desc: "Wash precipitate 3× with deionized water and 2× with anhydrous ethanol at 8,000 RPM for 10 min. Dry in vacuum oven at 80 °C for 6 hours."
                   },
                   {
                     id: "step_xrd",
-                    step: "7. Powder XRD Phase Confirmation",
-                    desc: `Grind dried powder in an agate mortar. Scan on XRD diffractometer (2θ = 10° - 90°) to verify primary Bragg reflections of ${selectedCandidate.phase_name} and absence of secondary impurities.`
+                    step: "07. Powder XRD Phase & Broadening Verification",
+                    desc: `Grind powder in an agate mortar and scan 2θ = 10°–90° to verify ${selectedCandidate.phase_name} reflections and expected Scherrer FWHM ≈ ${physicsReadouts.scherrerFwhmDeg}°.`
                   }
                 ].map((item) => {
                   const isDone = !!sopChecked[item.id];
@@ -1696,7 +2210,7 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                     <div
                       key={item.id}
                       onClick={() => setSopChecked((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 ${
+                      className={`p-3.5 rounded-xl border transition-colors cursor-pointer flex items-start gap-3 ${
                         isDone
                           ? "bg-emerald-950/20 border-emerald-500/40 text-slate-200"
                           : "bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700"
@@ -1704,7 +2218,7 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                     >
                       <button
                         type="button"
-                        className={`w-5 h-5 rounded-md border mt-0.5 flex items-center justify-center shrink-0 transition-colors ${
+                        className={`w-5 h-5 rounded border mt-0.5 flex items-center justify-center shrink-0 transition-colors ${
                           isDone
                             ? "bg-emerald-500 border-emerald-400 text-black"
                             : "border-slate-700 bg-slate-800"
@@ -1713,11 +2227,11 @@ XRD Scientific Intelligence Suite • Laboratory Protocol Approved
                         {isDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                       </button>
 
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         <h5 className={`text-xs font-bold ${isDone ? "text-emerald-300 line-through" : "text-white"}`}>
                           {item.step}
                         </h5>
-                        <p className="text-[11px] text-slate-400 leading-relaxed">{item.desc}</p>
+                        <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
                       </div>
                     </div>
                   );

@@ -20,6 +20,7 @@ import { SCHERRER_PRESETS, BURGERS_VECTOR_PRESETS } from './scherrer/ScherrerPre
 import { ScherrerDeconvolutionVisualizer } from './scherrer/ScherrerDeconvolutionVisualizer';
 import { ScherrerModelComparison } from './scherrer/ScherrerModelComparison';
 import { MonshiScherrerLinearView } from './scherrer/MonshiScherrerLinearView';
+import { NanoCrystalliteSimulatorView } from './scherrer/NanoCrystalliteSimulatorView';
 import { ScherrerPeakTableEditor } from './scherrer/ScherrerPeakTableEditor';
 import { ScherrerAdvisorView } from './scherrer/ScherrerAdvisorView';
 import { MeanCrystalliteSizingCard, SizingAverageMethod } from './scherrer/MeanCrystalliteSizingCard';
@@ -94,7 +95,11 @@ export const computeAverageSize = (valid: ScherrerResult[], method: SizingAverag
   return totalWeight > 0 ? weightedSum / totalWeight : sizes.reduce((acc, curr) => acc + curr, 0) / count;
 };
 
-export const ScherrerModule: React.FC = () => {
+export interface ScherrerModuleProps {
+  initialMode?: 'standard' | 'monshi' | 'nano_sim' | 'models';
+}
+
+export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 'standard' }) => {
   const { precision, lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
@@ -123,8 +128,22 @@ export const ScherrerModule: React.FC = () => {
 
   // Active visualization tab for right panel charts
   const [chartViewMode, setChartViewMode] = useState<
-    'diffractogram' | 'histogram' | 'trend' | 'microstructure' | 'anisotropy' | 'models' | 'monshi' | 'simulator' | 'advisor'
-  >('diffractogram');
+    'diffractogram' | 'histogram' | 'trend' | 'microstructure' | 'anisotropy' | 'models' | 'monshi' | 'nano_sim' | 'simulator' | 'advisor'
+  >(
+    initialMode === 'monshi'
+      ? 'monshi'
+      : initialMode === 'nano_sim'
+      ? 'nano_sim'
+      : initialMode === 'models'
+      ? 'models'
+      : 'diffractogram'
+  );
+
+  useEffect(() => {
+    if (initialMode === 'monshi') setChartViewMode('monshi');
+    else if (initialMode === 'nano_sim') setChartViewMode('nano_sim');
+    else if (initialMode === 'models') setChartViewMode('models');
+  }, [initialMode]);
 
   // Derivation interactive simulator parameters
   const [simPlaneCount, setSimPlaneCount] = useState<number>(25);
@@ -698,6 +717,99 @@ export const ScherrerModule: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
+      {/* Top-Level Analytical Fitting & Simulation Mode Switcher Bar (Merged Scherrer + Monshi-Scherrer + Nano-Crystallite Simulator) */}
+      <div className="lg:col-span-12 bg-[#050A14] border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
+                Unified Crystallite Sizing & Nanocrystalline Broadening Engine
+              </h3>
+              <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-mono font-bold text-emerald-300 uppercase">
+                Merged Multi-Solver Suite
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+              Switch seamlessly between Classical Scherrer, Monshi-Scherrer Logarithmic Regression (OLS/WLS/Huber), and Forward Nanocrystalline Simulation on the same dataset.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full xl:w-auto">
+          {[
+            {
+              id: 'diffractogram',
+              title: 'Classical & Anisotropic Scherrer',
+              sub: 'D_hkl = K(hkl)·λ / (β·cosθ)',
+              badge: `${avgSize > 0 ? avgSize.toFixed(1) + ' nm' : 'Active'}`,
+              activeModes: ['diffractogram', 'histogram', 'trend', 'microstructure', 'anisotropy', 'simulator', 'advisor'],
+              accent: 'amber'
+            },
+            {
+              id: 'monshi',
+              title: 'Monshi-Scherrer Log Fit',
+              sub: 'ln(β) = ln(1/cosθ) + ln(Kλ/D)',
+              badge: 'OLS / WLS / Huber',
+              activeModes: ['monshi'],
+              accent: 'emerald'
+            },
+            {
+              id: 'nano_sim',
+              title: 'Nano-Crystallite Simulator',
+              sub: 'Forward Size + Strain + Habit',
+              badge: '5-Model Benchmark',
+              activeModes: ['nano_sim'],
+              accent: 'cyan'
+            },
+            {
+              id: 'models',
+              title: 'Deconvolution Matrix',
+              sub: 'Gauss · Cauchy · Voigt · de Keijser',
+              badge: '5 Profiles',
+              activeModes: ['models'],
+              accent: 'indigo'
+            }
+          ].map(mode => {
+            const isSelected = mode.activeModes.includes(chartViewMode);
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setChartViewMode(mode.id as any)}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  isSelected
+                    ? mode.accent === 'emerald'
+                      ? 'bg-emerald-500/15 border-emerald-500/50 text-white shadow-lg'
+                      : mode.accent === 'cyan'
+                      ? 'bg-cyan-500/15 border-cyan-500/50 text-white shadow-lg'
+                      : mode.accent === 'indigo'
+                      ? 'bg-indigo-500/15 border-indigo-500/50 text-white shadow-lg'
+                      : 'bg-amber-500/15 border-amber-500/50 text-white shadow-lg'
+                    : 'bg-slate-950/70 border-slate-800/90 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider truncate">
+                    {mode.title}
+                  </span>
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold shrink-0 ${
+                    isSelected ? 'bg-black/40 text-amber-300 border border-white/10' : 'bg-slate-900 text-slate-500'
+                  }`}>
+                    {mode.badge}
+                  </span>
+                </div>
+                <span className="text-[9px] font-mono text-slate-400 truncate">
+                  {mode.sub}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Left Column: Configuration Controls */}
       <div className="lg:col-span-4 space-y-6">
         <div className="bg-[#050A14] p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
@@ -1584,13 +1696,14 @@ export const ScherrerModule: React.FC = () => {
               <div className="flex flex-wrap items-center bg-slate-950/60 p-1.5 rounded-2xl border border-slate-800 gap-1.5 text-xs">
                 {[
                   { id: 'diffractogram', label: 'Full XRD Pattern', icon: Layers },
+                  { id: 'monshi', label: 'Monshi-Scherrer Log Fit', icon: Activity },
+                  { id: 'nano_sim', label: 'Nano-Crystallite Simulator', icon: Atom },
                   { id: 'histogram', label: 'Distribution & PDF', icon: BarChart2 },
                   { id: 'trend', label: 'Size vs 2θ & Limit', icon: TrendingUp },
                   { id: 'microstructure', label: 'Dislocation & SSA', icon: Zap },
                   { id: 'anisotropy', label: 'Anisotropic (hkl)', icon: Compass },
                   { id: 'models', label: 'Model Sensitivity', icon: ArrowRightLeft },
-                  { id: 'monshi', label: 'Monshi-Scherrer', icon: Activity },
-                  { id: 'simulator', label: 'Profile Simulator', icon: Sliders },
+                  { id: 'simulator', label: 'Single-Peak Profile', icon: Sliders },
                   { id: 'advisor', label: 'AI Advisor', icon: Sparkles }
                 ].map(tab => {
                   const Icon = tab.icon;
@@ -1599,7 +1712,7 @@ export const ScherrerModule: React.FC = () => {
                     <button
                       key={tab.id}
                       onClick={() => setChartViewMode(tab.id as any)}
-                      className={`flex-1 min-w-[130px] px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      className={`flex-1 min-w-[125px] px-3 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         isActive
                           ? 'bg-indigo-600 text-white shadow-md'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/80'
@@ -1966,14 +2079,47 @@ export const ScherrerModule: React.FC = () => {
               </motion.div>
             )}
 
-            {/* TAB 6: Monshi-Scherrer Linearization */}
+            {/* TAB 6: Monshi-Scherrer Linearization (Full OLS / WLS / Huber Regression Engine) */}
             {chartViewMode === 'monshi' && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <MonshiScherrerLinearView results={results} wavelength={wavelength} kFactor={constantK} />
+                <MonshiScherrerLinearView
+                  results={results}
+                  wavelength={wavelength}
+                  kFactor={constantK}
+                  instFwhm={instFwhm}
+                  broadeningModel={broadeningModel}
+                  useCaglioti={useCaglioti}
+                  caglioti={caglioti}
+                  pseudoVoigtEta={pseudoVoigtEta}
+                  zeroShiftDeg={zeroShiftDeg}
+                  kAlpha2Correction={kAlpha2Correction}
+                  onTogglePeakExclusion={handleTogglePeakExclusion}
+                  onAutoPruneOutliers={handleAutoPruneOutliers}
+                />
+              </motion.div>
+            )}
+
+            {/* TAB 6B: Nano-Crystallite & Whole-Pattern Forward Simulator (Merged from XRD Nano) */}
+            {chartViewMode === 'nano_sim' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <NanoCrystalliteSimulatorView
+                  wavelength={wavelength}
+                  kFactor={constantK}
+                  instFwhm={instFwhm}
+                  onApplySimulatedPeaks={(simPeaks, label) => {
+                    handlePeaksTableChange(simPeaks);
+                    setSelectedMaterial(label);
+                    setChartViewMode('diffractogram');
+                  }}
+                />
               </motion.div>
             )}
 

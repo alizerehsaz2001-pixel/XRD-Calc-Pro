@@ -908,7 +908,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const [dragRotY, setDragRotY] = useState<number>(0.55);
   const [isDraggingLattice, setIsDraggingLattice] = useState<boolean>(false);
   const [latticeStyle, setLatticeStyle] = useState<'wireframe' | 'ball-stick' | 'space-filling'>('ball-stick');
-  const [autoRotateLattice, setAutoRotateLattice] = useState<boolean>(true);
+  const [autoRotateLattice, setAutoRotateLattice] = useState<boolean>(false);
   const [latticeZoom, setLatticeZoom] = useState<number>(1.0);
   const [showLatticeAxes, setShowLatticeAxes] = useState<boolean>(true);
   const [selectedMillerPlane, setSelectedMillerPlane] = useState<'none' | '100' | '110' | '111'>('111');
@@ -917,7 +917,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const dragStartRot = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (isDraggingLattice || !autoRotateLattice) return;
+    if (isDraggingLattice || !autoRotateLattice || activeDetailTab !== 'lattice') return;
     let frameId: number;
     const tick = () => {
       setDragRotY(prev => (prev + 0.007) % (Math.PI * 2));
@@ -925,7 +925,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
     };
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, [isDraggingLattice, autoRotateLattice]);
+  }, [isDraggingLattice, autoRotateLattice, activeDetailTab]);
 
   // Global Sync & Database Portal states
   const [showGlobalPortal, setShowGlobalPortal] = useState(false);

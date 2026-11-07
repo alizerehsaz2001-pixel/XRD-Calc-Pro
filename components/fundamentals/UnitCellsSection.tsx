@@ -336,10 +336,42 @@ export const CRYSTAL_SYSTEMS_CATALOG: CrystalSystemData[] = [
   }
 ];
 
+export const BRAVAIS_14_CATALOG: {
+  pearson: string;
+  systemId: CrystalSystemId;
+  centering: CenteringType;
+  label: string;
+  Z: number;
+  extinctionRule: string;
+}[] = [
+  { pearson: 'cP', systemId: 'cubic', centering: 'P', label: 'Simple Cubic', Z: 1, extinctionRule: 'All h,k,l' },
+  { pearson: 'cI', systemId: 'cubic', centering: 'I', label: 'Body-Centered Cubic', Z: 2, extinctionRule: 'h+k+l = 2n' },
+  { pearson: 'cF', systemId: 'cubic', centering: 'F', label: 'Face-Centered Cubic', Z: 4, extinctionRule: 'h,k,l unmixed' },
+  { pearson: 'hP', systemId: 'hexagonal', centering: 'P', label: 'Hexagonal Primitive', Z: 1, extinctionRule: 'All h,k,l' },
+  { pearson: 'hR', systemId: 'trigonal', centering: 'R', label: 'Rhombohedral', Z: 3, extinctionRule: '-h+k+l = 3n (Obv)' },
+  { pearson: 'tP', systemId: 'tetragonal', centering: 'P', label: 'Tetragonal Primitive', Z: 1, extinctionRule: 'All h,k,l' },
+  { pearson: 'tI', systemId: 'tetragonal', centering: 'I', label: 'Tetragonal Body-Centered', Z: 2, extinctionRule: 'h+k+l = 2n' },
+  { pearson: 'oP', systemId: 'orthorhombic', centering: 'P', label: 'Orthorhombic Primitive', Z: 1, extinctionRule: 'All h,k,l' },
+  { pearson: 'oI', systemId: 'orthorhombic', centering: 'I', label: 'Orthorhombic Body-Centered', Z: 2, extinctionRule: 'h+k+l = 2n' },
+  { pearson: 'oF', systemId: 'orthorhombic', centering: 'F', label: 'Orthorhombic Face-Centered', Z: 4, extinctionRule: 'h,k,l unmixed' },
+  { pearson: 'oC', systemId: 'orthorhombic', centering: 'C', label: 'Orthorhombic Base-Centered', Z: 2, extinctionRule: 'h+k = 2n' },
+  { pearson: 'mP', systemId: 'monoclinic', centering: 'P', label: 'Monoclinic Primitive', Z: 1, extinctionRule: 'All h,k,l' },
+  { pearson: 'mC', systemId: 'monoclinic', centering: 'C', label: 'Monoclinic Base-Centered', Z: 2, extinctionRule: 'h+k = 2n' },
+  { pearson: 'aP', systemId: 'triclinic', centering: 'P', label: 'Triclinic Primitive', Z: 1, extinctionRule: 'All h,k,l' },
+];
+
 export const UnitCellsSection: React.FC = () => {
   const [selectedSystemId, setSelectedSystemId] = useState<CrystalSystemId>('cubic');
   const [activeCentering, setActiveCentering] = useState<CenteringType>('P');
   const [viewMode, setViewMode] = useState<UnitCellsViewMode>('3d');
+  const [showAll14Matrix, setShowAll14Matrix] = useState<boolean>(false);
+
+  // Materials filter state
+  const [materialCategoryFilter, setMaterialCategoryFilter] = useState<'All' | 'Metal' | 'Ceramic' | 'Mineral' | 'Semiconductor' | 'Geological'>('All');
+  const [showAllSystemsMaterials, setShowAllSystemsMaterials] = useState<boolean>(false);
+
+  // Symmetry-lowering family selector in Theory tab
+  const [selectedSplittingFamily, setSelectedSplittingFamily] = useState<'200' | '110' | '111'>('200');
 
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
@@ -349,6 +381,13 @@ export const UnitCellsSection: React.FC = () => {
     return CRYSTAL_SYSTEMS_CATALOG.find(s => s.id === selectedSystemId) || CRYSTAL_SYSTEMS_CATALOG[0];
   }, [selectedSystemId]);
 
+  const activePearsonSymbol = useMemo(() => {
+    const match = BRAVAIS_14_CATALOG.find(
+      b => b.systemId === selectedSystemId && b.centering === activeCentering
+    );
+    return match?.pearson || 'cP';
+  }, [selectedSystemId, activeCentering]);
+
   // Adjust default centering when system changes
   const handleSelectSystem = (id: CrystalSystemId) => {
     playSynthTone('tick');
@@ -357,6 +396,38 @@ export const UnitCellsSection: React.FC = () => {
     if (sys && !sys.bravaisLattices.some(b => b.type === activeCentering)) {
       setActiveCentering(sys.bravaisLattices[0].type);
     }
+  };
+
+  const handleSelectBravais14 = (systemId: CrystalSystemId, centering: CenteringType) => {
+    playSynthTone('tick');
+    setSelectedSystemId(systemId);
+    setActiveCentering(centering);
+  };
+
+  // Filtered materials for Materials tab
+  const displayedMaterials = useMemo(() => {
+    const pool = showAllSystemsMaterials
+      ? CRYSTAL_SYSTEMS_CATALOG.flatMap(sys =>
+          sys.materials.map(m => ({ ...m, systemId: sys.id, systemName: sys.name }))
+        )
+      : activeSystem.materials.map(m => ({
+          ...m,
+          systemId: activeSystem.id,
+          systemName: activeSystem.name
+        }));
+
+    if (materialCategoryFilter === 'All') return pool;
+    return pool.filter(m => m.category === materialCategoryFilter);
+  }, [activeSystem, showAllSystemsMaterials, materialCategoryFilter]);
+
+  // Helper to infer centering from material latticeType string
+  const inferCenteringFromLatticeType = (latticeType: string, systemId: CrystalSystemId): CenteringType => {
+    if (latticeType.includes('(cF)') || latticeType.includes('(oF)') || latticeType.includes('Face-Centered')) return 'F';
+    if (latticeType.includes('(cI)') || latticeType.includes('(tI)') || latticeType.includes('(oI)') || latticeType.includes('Body-Centered')) return 'I';
+    if (latticeType.includes('(mC)') || latticeType.includes('(oC)') || latticeType.includes('Base-Centered')) return 'C';
+    if (latticeType.includes('(hR)') || latticeType.includes('Rhombohedral')) return 'R';
+    const sys = CRYSTAL_SYSTEMS_CATALOG.find(s => s.id === systemId);
+    return sys?.bravaisLattices[0]?.type || 'P';
   };
 
   // Quiz questions
@@ -370,7 +441,7 @@ export const UnitCellsSection: React.FC = () => {
         "Equality of axial lengths a = b = c with arbitrary interaxial angles"
       ],
       correct: 1,
-      explanation: "The hallmark of the cubic system is the presence of four 3-fold triad axes running along the body diagonals ⟨111⟩. Many people mistakenly think it is the 4-fold axes, but lowest-symmetry cubic crystals (like space group P23) lack 4-fold axes entirely!"
+      explanation: "The hallmark of the cubic system is the presence of four 3-fold triad axes running along the body diagonals ⟨111⟩. Lowest-symmetry cubic point groups (such as 23 and m-3, e.g., space group P23) lack 4-fold axes entirely!"
     },
     {
       question: "Why does the Tetragonal system only have 2 Bravais lattices (P and I) instead of 4 like Orthorhombic?",
@@ -381,7 +452,7 @@ export const UnitCellsSection: React.FC = () => {
         "Tetragonal crystals cannot accommodate atoms on basal faces"
       ],
       correct: 1,
-      explanation: "Auguste Bravais demonstrated in 1848 that a face-centered tetragonal (tF) unit cell can always be re-described as a smaller body-centered tetragonal (tI) unit cell rotated by 45° around the c-axis with a' = a/√2. Thus, tF is redundant."
+      explanation: "Auguste Bravais proved in 1848 that a face-centered tetragonal (tF) unit cell can always be re-indexed as a smaller body-centered tetragonal (tI) unit cell rotated by 45° around the c-axis with a' = a/√2, and base-centered tetragonal (tC) reduces to primitive tetragonal (tP)."
     },
     {
       question: "Which single crystal system features all four possible Bravais centering modes (Primitive P, Body-Centered I, Face-Centered F, and Base-Centered C)?",
@@ -392,7 +463,7 @@ export const UnitCellsSection: React.FC = () => {
         "Monoclinic"
       ],
       correct: 2,
-      explanation: "Orthorhombic is the only crystal system that exhibits all 4 Bravais centering types: oP, oI, oF, and oC (or oA/oB). Combined with the other systems, this makes up the 14 Bravais lattices."
+      explanation: "Orthorhombic is the only crystal system that exhibits all 4 Bravais centering types: oP, oI, oF, and oC (or oA/oB), because its three unequal orthogonal axes (a ≠ b ≠ c) prevent rotational reduction between C-centered and P-centered or F-centered and I-centered cells."
     },
     {
       question: "How many net lattice points belong exclusively to a single Face-Centered Cubic (FCC / cF) unit cell?",
@@ -404,6 +475,39 @@ export const UnitCellsSection: React.FC = () => {
       ],
       correct: 2,
       explanation: "A face-centered cell has 8 corner atoms (each shared by 8 adjacent cells: 8 × ⅛ = 1) plus 6 face-centered atoms (each shared by 2 adjacent cells: 6 × ½ = 3), totaling 1 + 3 = 4 net lattice points per unit cell."
+    },
+    {
+      question: "When a Trigonal R-centered crystal (hR, such as α-Al₂O₃ Corundum or Calcite) is indexed in the standard Hexagonal Obverse triple cell, what is its net multiplicity Z and systematic reflection condition?",
+      options: [
+        "Z = 1 and h + k + l = 2n",
+        "Z = 3 and −h + k + l = 3n",
+        "Z = 4 and h, k, l unmixed",
+        "Z = 2 and h + k = 2n"
+      ],
+      correct: 1,
+      explanation: "The Hexagonal Obverse cell contains 3 lattice points at (0,0,0), (⅔,⅓,⅓), and (⅓,⅔,⅔). Summing the structure factor exp[2πi(hu+kv+lw)] over these three basis translations yields constructive interference exclusively when −h + k + l = 3n."
+    },
+    {
+      question: "In powder X-ray diffraction, why do the (hkl) and (h̄kl) reflections split into two distinct 2θ peaks in a Monoclinic crystal (unique axis b, β ≠ 90°)?",
+      options: [
+        "Because the metric tensor contains a non-zero off-diagonal cross-term g₁₃ = a·c·cos(β)",
+        "Because monoclinic crystals violate Friedel's Law",
+        "Because the b-axis is longer than the a-axis",
+        "Because monoclinic crystals are always base-centered (mC)"
+      ],
+      correct: 0,
+      explanation: "In the monoclinic d-spacing formula, 1/d² includes the cross-term −2hl·cos(β)/(a·c·sin²β). Changing h to −h flips the sign of the product h·l, resulting in different interplanar spacings d(hkl) ≠ d(h̄kl) whenever both h ≠ 0 and l ≠ 0."
+    },
+    {
+      question: "When a Cubic crystal undergoes a ferroelastic phase transition into a Tetragonal phase (c ≠ a) and subsequently into an Orthorhombic phase (a ≠ b ≠ c), how does the single Cubic {200} diffraction peak evolve?",
+      options: [
+        "It remains a single peak but shifts to lower 2θ",
+        "It splits into a doublet (200)+(002) in Tetragonal, and a triplet (200)+(020)+(002) in Orthorhombic",
+        "It becomes systematically extinct due to symmetry lowering",
+        "It splits into 6 peaks in Tetragonal and 12 peaks in Orthorhombic"
+      ],
+      correct: 1,
+      explanation: "In Cubic (a=b=c), (200), (020), and (002) have identical d-spacings (multiplicity 6). In Tetragonal (a=b≠c), (200) and (020) remain degenerate while (002) separates, forming a 2:1 intensity doublet. In Orthorhombic (a≠b≠c), all three axes differ, splitting the peak into a 1:1:1 triplet."
     }
   ];
 
@@ -587,12 +691,80 @@ export const UnitCellsSection: React.FC = () => {
             <Compass className="w-4 h-4 text-indigo-400" />
             <span>The 7 Crystal Systems · Ordered by Holohedral Symmetry Rank</span>
           </span>
-          <span className="text-[11px] font-mono text-slate-400">
-            Active: <strong className="text-indigo-400">#{activeSystem.orderRank} {activeSystem.name}</strong> ·{' '}
-            <span className="text-cyan-400">{activeSystem.pointGroups[activeSystem.pointGroups.length - 1]}</span> ·{' '}
-            <span className="text-amber-300">{activeSystem.spaceGroupRange}</span>
-          </span>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[11px] font-mono text-slate-400">
+              Active: <strong className="text-indigo-400">#{activeSystem.orderRank} {activeSystem.name}</strong> ·{' '}
+              <span className="text-emerald-400 font-bold">Pearson {activePearsonSymbol}</span> ·{' '}
+              <span className="text-cyan-400">{activeSystem.pointGroups[activeSystem.pointGroups.length - 1]}</span> ·{' '}
+              <span className="text-amber-300">{activeSystem.spaceGroupRange}</span>
+            </span>
+            <button
+              onClick={() => { playSynthTone('tick'); setShowAll14Matrix(prev => !prev); }}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all flex items-center gap-1.5 ${
+                showAll14Matrix
+                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
+                  : 'bg-slate-900 text-indigo-300 border-indigo-500/40 hover:bg-slate-800'
+              }`}
+            >
+              <Grid className="w-3 h-3" />
+              <span>{showAll14Matrix ? 'Hide 14 Bravais Matrix' : 'All 14 Bravais Lattices (cP–aP)'}</span>
+            </button>
+          </div>
         </div>
+
+        {/* Collapsible 14 Bravais Lattices Quick-Jump Matrix */}
+        <AnimatePresence>
+          {showAll14Matrix && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-bold">
+                    Complete 14 Bravais Lattices Direct Selector (Pearson Symbols cP → aP)
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Click any Bravais lattice to immediately synchronize both Crystal System & Centering Mode
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                  {BRAVAIS_14_CATALOG.map((item) => {
+                    const isCurrent = item.systemId === selectedSystemId && item.centering === activeCentering;
+                    return (
+                      <button
+                        key={item.pearson}
+                        onClick={() => handleSelectBravais14(item.systemId, item.centering)}
+                        className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                          isCurrent
+                            ? 'bg-indigo-600/25 border-indigo-400 text-white shadow-md shadow-indigo-500/15'
+                            : 'bg-slate-950/80 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className={`font-mono text-xs font-extrabold ${isCurrent ? 'text-cyan-300' : 'text-indigo-400'}`}>
+                            {item.pearson}
+                          </span>
+                          <span className="font-mono text-[9px] text-emerald-400">
+                            Z={item.Z}
+                          </span>
+                        </div>
+                        <div className="text-[10px] font-bold text-slate-200 truncate">
+                          {item.label}
+                        </div>
+                        <div className="text-[9px] font-mono text-slate-400 truncate mt-0.5">
+                          {item.extinctionRule}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
           {CRYSTAL_SYSTEMS_CATALOG.map((sys) => {
@@ -658,7 +830,7 @@ export const UnitCellsSection: React.FC = () => {
         <div className="bg-slate-900/75 border border-slate-800 rounded-2xl p-3.5 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="space-y-0.5">
             <div className="text-[10px] font-mono uppercase tracking-wider text-indigo-400 font-bold">
-              Allowed Bravais Lattices for {activeSystem.name} ({activeSystem.bravaisLattices.length} of 14)
+              Allowed Bravais Lattices for {activeSystem.name} ({activeSystem.bravaisLattices.length} of 14 · Pearson {activePearsonSymbol})
             </div>
             <p className="text-xs text-slate-400">
               Select a Bravais centering mode to update the 3D unit cell nodes, coordination bonds, and multiplicity factor.
@@ -720,7 +892,14 @@ export const UnitCellsSection: React.FC = () => {
       )}
 
       {/* TAB: MILLER PLANES VISUALIZER (IMAGE 1) */}
-      {viewMode === 'miller' && <MillerPlanesVisualizer />}
+      {viewMode === 'miller' && (
+        <MillerPlanesVisualizer
+          selectedSystemId={selectedSystemId}
+          activeCentering={activeCentering}
+          onSelectSystem={handleSelectSystem}
+          setActiveCentering={setActiveCentering}
+        />
+      )}
 
       {/* TAB: METALLIC STRUCTURES BCC, FCC, HCP (IMAGE 3) */}
       {viewMode === 'metallic' && <MetallicStructuresVisualizer />}
@@ -876,7 +1055,7 @@ export const UnitCellsSection: React.FC = () => {
               <div className="p-3 bg-indigo-950/20 border border-indigo-500/20 rounded-xl text-xs text-indigo-300 flex items-start gap-2.5">
                 <Info className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
                 <p>
-                  <strong>Why Conventional over Primitive?</strong> In crystallography, we intentionally choose centered non-primitive cells (e.g., FCC instead of the smaller rhombohedral primitive cell) because the conventional cubic cell directly mirrors the full orthogonal 48-fold rotational/mirror symmetry of the macro crystal.
+                  <strong>Why Conventional over Primitive?</strong> In crystallography, we intentionally choose centered non-primitive cells (e.g., FCC instead of the smaller 60° rhombohedral primitive cell) because the conventional cubic cell directly mirrors the full orthogonal 48-fold rotational/mirror symmetry of the macro crystal.
                 </p>
               </div>
             </div>
@@ -959,6 +1138,138 @@ export const UnitCellsSection: React.FC = () => {
             </div>
           </div>
 
+          {/* Section 1.3: Symmetry-Lowering XRD Peak Splitting & Degeneracy Explorer */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-xl">
+            <div className="flex flex-wrap justify-between items-start gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest font-mono">
+                  Section 1.3 • Group-Subgroup Symmetry Lowering
+                </span>
+                <h2 className="text-2xl font-bold text-white tracking-tight mt-1">
+                  XRD Peak Splitting Across Crystal Systems
+                </h2>
+              </div>
+              <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs font-mono">
+                {(['200', '110', '111'] as const).map(fam => (
+                  <button
+                    key={fam}
+                    onClick={() => { playSynthTone('tick'); setSelectedSplittingFamily(fam); }}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      selectedSplittingFamily === fam
+                        ? 'bg-cyan-600 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Family &#123;{fam}&#125;
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              In high-symmetry Cubic crystals, symmetry-equivalent planes within a family <span className="font-mono text-cyan-300">&#123;hkl&#125;</span> share the exact same interplanar spacing <span className="font-mono text-amber-300">d_hkl</span>, superimposing into a single intense Bragg peak. When a crystal undergoes a distortion (e.g., ferroelectric BaTiO₃ cooling from Cubic → Tetragonal → Orthorhombic → Rhombohedral), metric degeneracy is lifted and the peak splits into diagnostic multiplets:
+            </p>
+
+            {selectedSplittingFamily === '200' && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
+                <div className="p-4 rounded-2xl bg-slate-950 border border-indigo-500/30 space-y-2">
+                  <div className="text-indigo-400 font-bold">1. Cubic (m-3m)</div>
+                  <div className="text-[11px] text-slate-400">a = b = c, α=β=γ=90°</div>
+                  <div className="text-emerald-400 font-bold text-sm">Single Peak (Singlet)</div>
+                  <div className="text-slate-300">(200), (020), (002)</div>
+                  <div className="text-[10px] text-slate-500">Multiplicity m = 6</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-cyan-500/30 space-y-2">
+                  <div className="text-cyan-400 font-bold">2. Tetragonal (4/mmm)</div>
+                  <div className="text-[11px] text-slate-400">a = b ≠ c, α=β=γ=90°</div>
+                  <div className="text-amber-400 font-bold text-sm">2 Peaks (2:1 Doublet)</div>
+                  <div className="text-slate-300">(200)/(020) + (002)</div>
+                  <div className="text-[10px] text-slate-500">Multiplicities m = 4 + 2</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/30 space-y-2">
+                  <div className="text-emerald-400 font-bold">3. Orthorhombic (mmm)</div>
+                  <div className="text-[11px] text-slate-400">a ≠ b ≠ c, α=β=γ=90°</div>
+                  <div className="text-rose-400 font-bold text-sm">3 Peaks (1:1:1 Triplet)</div>
+                  <div className="text-slate-300">(200) + (020) + (002)</div>
+                  <div className="text-[10px] text-slate-500">Multiplicities m = 2 + 2 + 2</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-purple-500/30 space-y-2">
+                  <div className="text-purple-400 font-bold">4. Rhombohedral (-3m)</div>
+                  <div className="text-[11px] text-slate-400">a = b = c, α=β=γ≠90°</div>
+                  <div className="text-emerald-400 font-bold text-sm">Single Peak (Singlet)</div>
+                  <div className="text-slate-300">(200), (020), (002)</div>
+                  <div className="text-[10px] text-slate-500">h·k + k·l + l·h = 0 (Unchanged!)</div>
+                </div>
+              </div>
+            )}
+
+            {selectedSplittingFamily === '110' && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
+                <div className="p-4 rounded-2xl bg-slate-950 border border-indigo-500/30 space-y-2">
+                  <div className="text-indigo-400 font-bold">1. Cubic (m-3m)</div>
+                  <div className="text-[11px] text-slate-400">a = b = c, α=β=γ=90°</div>
+                  <div className="text-emerald-400 font-bold text-sm">Single Peak (Singlet)</div>
+                  <div className="text-slate-300">&#123;110&#125; all equivalent</div>
+                  <div className="text-[10px] text-slate-500">Multiplicity m = 12</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-cyan-500/30 space-y-2">
+                  <div className="text-cyan-400 font-bold">2. Tetragonal (4/mmm)</div>
+                  <div className="text-[11px] text-slate-400">a = b ≠ c, α=β=γ=90°</div>
+                  <div className="text-amber-400 font-bold text-sm">2 Peaks (1:2 Doublet)</div>
+                  <div className="text-slate-300">(110) + (101)/(011)</div>
+                  <div className="text-[10px] text-slate-500">Multiplicities m = 4 + 8</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-emerald-500/30 space-y-2">
+                  <div className="text-emerald-400 font-bold">3. Orthorhombic (mmm)</div>
+                  <div className="text-[11px] text-slate-400">a ≠ b ≠ c, α=β=γ=90°</div>
+                  <div className="text-rose-400 font-bold text-sm">3 Peaks (1:1:1 Triplet)</div>
+                  <div className="text-slate-300">(110) + (101) + (011)</div>
+                  <div className="text-[10px] text-slate-500">Multiplicities m = 4 + 4 + 4</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-purple-500/30 space-y-2">
+                  <div className="text-purple-400 font-bold">4. Rhombohedral (-3m)</div>
+                  <div className="text-[11px] text-slate-400">a = b = c, α=β=γ≠90°</div>
+                  <div className="text-amber-400 font-bold text-sm">2 Peaks (1:1 Doublet)</div>
+                  <div className="text-slate-300">(110) + (1-10)</div>
+                  <div className="text-[10px] text-slate-500">Multiplicities m = 6 + 6</div>
+                </div>
+              </div>
+            )}
+
+            {selectedSplittingFamily === '111' && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
+                <div className="p-4 rounded-2xl bg-slate-950 border border-indigo-500/30 space-y-2">
+                  <div className="text-indigo-400 font-bold">1. Cubic (m-3m)</div>
+                  <div className="text-[11px] text-slate-400">a = b = c, α=β=γ=90°</div>
+                  <div className="text-emerald-400 font-bold text-sm">Single Peak (Singlet)</div>
+                  <div className="text-slate-300">&#123;111&#125; body diagonals</div>
+                  <div className="text-[10px] text-slate-500">Multiplicity m = 8</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-cyan-500/30 space-y-2">
+                  <div className="text-cyan-400 font-bold">2. Tetragonal (4/mmm)</div>
+                  <div className="text-[11px] text-slate-400">a = b ≠ c, α=β=γ=90°</div>
+                  <div className="text-emerald-400 font-bold text-sm">Single Peak (Singlet!)</div>
+                  <div className="text-slate-300">(111), (1-11), (-111)...</div>
+                  <div className="text-[10px] text-slate-500">All 8 planes keep equal d!</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-purple-500/30 space-y-2">
+                  <div className="text-purple-400 font-bold">3. Rhombohedral (-3m)</div>
+                  <div className="text-[11px] text-slate-400">a = b = c, α=β=γ≠90°</div>
+                  <div className="text-amber-400 font-bold text-sm">2 Peaks (1:3 Doublet)</div>
+                  <div className="text-slate-300">(111) + (11-1)/(1-11)/(-111)</div>
+                  <div className="text-[10px] text-slate-500">Multiplicities m = 2 + 6</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-rose-500/30 space-y-2">
+                  <div className="text-rose-400 font-bold">4. Monoclinic (2/m)</div>
+                  <div className="text-[11px] text-slate-400">a ≠ b ≠ c, β ≠ 90°</div>
+                  <div className="text-rose-400 font-bold text-sm">2 Peaks (1:1 Doublet)</div>
+                  <div className="text-slate-300">(111) + (-111)</div>
+                  <div className="text-[10px] text-slate-500">Cross-term hl·cos(β) splits ±h</div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Section 1.4: Atomic Packing Factor Theory & Mathematical Limit */}
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-xl">
             <div className="flex flex-wrap justify-between items-start gap-4 border-b border-slate-800 pb-4">
@@ -1016,56 +1327,96 @@ export const UnitCellsSection: React.FC = () => {
       {/* TAB 3: REAL-WORLD MATERIALS & MINERALOGICAL EXAMPLES */}
       {viewMode === 'materials' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center flex-wrap gap-2">
+          <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest font-mono">
                 Materials Science in the Laboratory
               </span>
               <h2 className="text-2xl font-bold text-white tracking-tight mt-1">
-                Real-World Materials for {activeSystem.name}
+                {showAllSystemsMaterials ? 'Complete 7-System Materials Catalog' : `Real-World Materials for ${activeSystem.name}`}
               </h2>
             </div>
-            <span className="text-xs text-slate-400">
-              Showing {activeSystem.materials.length} reference mineral & alloy structures
-            </span>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => { playSynthTone('tick'); setShowAllSystemsMaterials(prev => !prev); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all ${
+                  showAllSystemsMaterials
+                    ? 'bg-indigo-600 text-white border-indigo-400'
+                    : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                }`}
+              >
+                {showAllSystemsMaterials ? 'Showing All 7 Systems' : `Showing ${activeSystem.name.split(' ')[0]} Only`}
+              </button>
+
+              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800 text-[11px] font-mono">
+                {(['All', 'Metal', 'Ceramic', 'Mineral', 'Semiconductor', 'Geological'] as const).map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => { playSynthTone('tick'); setMaterialCategoryFilter(cat); }}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      materialCategoryFilter === cat
+                        ? 'bg-emerald-600 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {activeSystem.materials.map((mat, idx) => (
-              <div
-                key={idx}
-                className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-4 hover:border-slate-700 transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider">
-                    <span className="text-slate-400 font-bold">
-                      {mat.category} <span className="text-slate-600">·</span>{' '}
-                      <span className="text-indigo-400">{mat.spaceGroup}</span>
-                    </span>
-                    <CrystalSystemMiniSchematic
-                      systemId={activeSystem.id}
-                      centering={activeCentering}
-                      isSelected={true}
-                      size="sm"
-                    />
+            {displayedMaterials.map((mat, idx) => {
+              const targetCentering = inferCenteringFromLatticeType(mat.latticeType, mat.systemId);
+              return (
+                <div
+                  key={`${mat.name}-${idx}`}
+                  className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 space-y-4 hover:border-slate-700 transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider">
+                      <span className="text-slate-400 font-bold">
+                        {mat.category} <span className="text-slate-600">·</span>{' '}
+                        <span className="text-indigo-400">{mat.spaceGroup}</span>
+                      </span>
+                      <CrystalSystemMiniSchematic
+                        systemId={mat.systemId}
+                        centering={targetCentering}
+                        isSelected={true}
+                        size="sm"
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{mat.name}</h3>
+                      <div className="text-sm font-mono font-bold text-emerald-400">{mat.formula}</div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {mat.description}
+                    </p>
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{mat.name}</h3>
-                    <div className="text-sm font-mono font-bold text-emerald-400">{mat.formula}</div>
+                  <div className="pt-3 border-t border-slate-800/80 flex justify-between items-center gap-2 text-[11px] font-mono text-slate-400">
+                    <span className="truncate">{mat.latticeType}</span>
+                    <button
+                      onClick={() => {
+                        playSynthTone('tick');
+                        setSelectedSystemId(mat.systemId);
+                        setActiveCentering(targetCentering);
+                        setViewMode('3d');
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 font-bold text-[10px] shrink-0 flex items-center gap-1 transition-all"
+                    >
+                      <Rotate3d className="w-3 h-3" />
+                      <span>Inspect 3D</span>
+                    </button>
                   </div>
-
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    {mat.description}
-                  </p>
                 </div>
-
-                <div className="pt-3 border-t border-slate-800/80 flex justify-between items-center text-[11px] font-mono text-slate-400">
-                  <span>Lattice: {mat.latticeType}</span>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Key Insights Panel */}
@@ -1089,7 +1440,7 @@ export const UnitCellsSection: React.FC = () => {
       {/* TAB 4: KNOWLEDGE CHECK QUIZ */}
       {viewMode === 'quiz' && (
         <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-xl max-w-4xl mx-auto">
-          <div className="border-b border-slate-800 pb-4 flex justify-between items-center">
+          <div className="border-b border-slate-800 pb-4 flex justify-between items-center flex-wrap gap-2">
             <div>
               <span className="text-xs font-bold text-purple-400 uppercase tracking-widest font-mono">
                 Interactive Pedagogical Assessment
@@ -1098,7 +1449,9 @@ export const UnitCellsSection: React.FC = () => {
                 Unit Cells & Crystal Systems Quiz
               </h2>
             </div>
-            <span className="text-xs font-mono text-slate-400">4 Concept Questions</span>
+            <span className="text-xs font-mono text-slate-400">
+              {Object.keys(quizAnswers).length} / {quizQuestions.length} Answered
+            </span>
           </div>
 
           <div className="space-y-6">
@@ -1202,3 +1555,4 @@ export const UnitCellsSection: React.FC = () => {
     </div>
   );
 };
+

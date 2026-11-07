@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'rea
 import { useTranslation } from 'react-i18next';
 import { useI18n } from './components/I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
-import { BraggInput } from './components/BraggInput';
 import { InteractiveBraggWorkbench } from './components/bragg/InteractiveBraggWorkbench';
 
 // Resilient helper for lazy dynamic component imports with auto-retry and flexible default/named export resolution
@@ -34,6 +33,7 @@ function safeLazy<T extends React.ComponentType<any>>(
 }
 
 // Lazy-loaded core Bragg components to prevent initial bundle bloat
+const BraggInput = safeLazy(() => import('./components/BraggInput'), 'BraggInput');
 const ResultsTable = safeLazy(() => import('./components/ResultsTable'), 'ResultsTable');
 const DiffractionChart = safeLazy(() => import('./components/DiffractionChart'), 'DiffractionChart');
 const BraggHistory = safeLazy(() => import('./components/BraggHistory'), 'BraggHistory');
@@ -45,9 +45,7 @@ const DiffractionCompareModule = safeLazy(() => import('./components/Diffraction
 const SelectionRulesModule = safeLazy(() => import('./components/SelectionRulesModule'), 'SelectionRulesModule');
 const ScherrerModule = safeLazy(() => import('./components/ScherrerModule'), 'ScherrerModule');
 const WilliamsonHallModule = safeLazy(() => import('./components/WilliamsonHallModule'), 'WilliamsonHallModule');
-const MonshiScherrerModule = safeLazy(() => import('./components/MonshiScherrerModule'), 'MonshiScherrerModule');
 const DoubleVoigtModule = safeLazy(() => import('./components/DoubleVoigtModule'), 'DoubleVoigtModule');
-const IntegralBreadthModule = safeLazy(() => import('./components/IntegralBreadthModule'), 'IntegralBreadthModule');
 const IntegralBreadthAdvancedModule = safeLazy(() => import('./components/IntegralBreadthAdvancedModule'), 'IntegralBreadthAdvancedModule');
 const WarrenAverbachModule = safeLazy(() => import('./components/WarrenAverbachModule'), 'WarrenAverbachModule');
 const MethodOfMomentsModule = safeLazy(() => import('./components/MethodOfMomentsModule'), 'MethodOfMomentsModule');
@@ -63,7 +61,6 @@ const PawleyLeBailDecompositionModule = safeLazy(() => import('./components/Pawl
 const ReferenceIntensityRatioModule = safeLazy(() => import('./components/ReferenceIntensityRatioModule'), 'ReferenceIntensityRatioModule');
 const ImageAnalysisModule = safeLazy(() => import('./components/ImageAnalysisModule'), 'ImageAnalysisModule');
 const ImageGenerationModule = safeLazy(() => import('./components/ImageGenerationModule'), 'ImageGenerationModule');
-const XrdNanoModule = safeLazy(() => import('./components/XrdNanoModule'), 'XrdNanoModule');
 const PythonExportModule = safeLazy(() => import('./components/PythonExportModule'), 'PythonExportModule');
 const MaterialDatabaseExplorer = safeLazy(() => import('./components/MaterialDatabaseExplorer'), 'MaterialDatabaseExplorer');
 
@@ -77,7 +74,7 @@ const FooterInfoModal = safeLazy(() => import('./components/FooterInfoModal'), '
 const WhyXrdDisciplinePage = safeLazy(() => import('./components/WhyXrdDisciplinePage'), 'WhyXrdDisciplinePage');
 import type { FooterModalType } from './components/FooterInfoModal';
 
-import { ModuleIntro } from './components/ModuleIntro';
+const ModuleIntro = safeLazy(() => import('./components/ModuleIntro'), 'ModuleIntro');
 import { SideSeekBar } from './components/SideSeekBar';
 import LanguageSelector from './components/LanguageSelector';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -93,7 +90,7 @@ import {
   getCategoryMeta,
   SidebarGoniometerTelemetryCard
 } from './components/LeftSidebarGraphics';
-import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
+import { calculateBragg, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/braggCore';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, RotateCcw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal, Box, Search } from 'lucide-react';
 import { LinkedinIcon, GithubIcon } from './components/SocialIcons';
@@ -778,32 +775,41 @@ const App: React.FC = () => {
       }
     });
 
-    // Initial check for Python Engine
-    const checkPythonStatus = async () => {
-      try {
-        const res = await fetch("/api/python/status");
-        if (res.ok) {
-          const data = await res.json();
-          setPythonReady(data.ready);
-          setPythonLogs(data.logs || []);
+    // Initial check for Python Engine (only when Python features are enabled)
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (pythonFeaturesEnabled && !pythonReady) {
+      let attempts = 0;
+      const checkPythonStatus = async () => {
+        attempts++;
+        try {
+          const res = await fetch("/api/python/status");
+          if (res.ok) {
+            const data = await res.json();
+            setPythonReady(data.ready);
+            setPythonLogs(data.logs || []);
+          } else if (attempts >= 3 && interval) {
+            clearInterval(interval);
+          }
+        } catch (e) {
+          if (attempts >= 3 && interval) {
+            clearInterval(interval);
+          }
         }
-      } catch (e) {
-        console.log("Python engine status pending (waiting for server boot)...");
-      }
-    };
+      };
 
-    checkPythonStatus();
-    const interval = setInterval(() => {
-      if (!pythonReady) checkPythonStatus();
-    }, 5000);
+      checkPythonStatus();
+      interval = setInterval(() => {
+        if (!pythonReady) checkPythonStatus();
+      }, 8000);
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       unsubscribeNetwork();
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
     };
-  }, [pythonReady, autoSyncConfig]);
+  }, [pythonReady, pythonFeaturesEnabled, autoSyncConfig]);
 
   // Fetch Bragg history when user logs in
   useEffect(() => {
@@ -1331,16 +1337,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     braggStateRef.current = { sampleId, wavelength, rawPeaks, rawHKL, results, materialName, crystalSystem };
-    // Keep xrd_bragg_current updated on-the-fly as well, but the formal autosave ticks periodically
-    localStorage.setItem('xrd_bragg_current', JSON.stringify({
-      sampleId,
-      wavelength,
-      rawPeaks,
-      rawHKL,
-      results,
-      materialName,
-      crystalSystem
-    }));
+    // Debounce localStorage serialization so slider drags remain 60fps smooth
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem('xrd_bragg_current', JSON.stringify(braggStateRef.current));
+      } catch {}
+    }, 300);
+    return () => clearTimeout(timer);
   }, [sampleId, wavelength, rawPeaks, rawHKL, results, materialName, crystalSystem]);
 
   const lastSavedJsonRef = useRef<string>('');
@@ -1383,12 +1386,10 @@ const App: React.FC = () => {
       { id: 'selection', label: t('Selection Rules'), group: t('Fundamentals') },
       { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
       { id: 'compare', label: t('Diffraction Compare'), group: t('Fundamentals') },
-      { id: 'scherrer', label: t('Scherrer Method'), group: t('Size & Strain') },
+      { id: 'scherrer', label: t('Scherrer & Monshi Studio'), group: t('Size & Strain') },
       { id: 'wh', label: t('Williamson-Hall'), group: t('Size & Strain') },
-      { id: 'monshi_scherrer', label: t('Monshi-Scherrer Scheme'), group: t('Size & Strain') },
+      { id: 'integral_adv', label: t('Integral Breadth (Voigt & W-H)'), group: t('Size & Strain') },
       { id: 'double_voigt', label: t('Double-Voigt Method'), group: t('Size & Strain') },
-      { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
-      { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
       { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
       { id: 'method_of_moments', label: t('Method of Moments'), group: t('Size & Strain') },
       { id: 'residual_stress', label: t('Residual Stress'), group: t('Size & Strain') },
@@ -1400,7 +1401,6 @@ const App: React.FC = () => {
       { id: 'rir', label: t("Reference Intensity Ratio (RIR)"), group: t('Advanced Refinement') },
       { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
       { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
-      { id: 'xrd_nano', label: t('Nano-Crystallite Simulator'), group: t('Advanced Sim') },
       { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
       { id: 'dl', label: t('PhaseID Neural Net'), group: t('AI Tools') },
       { id: 'image_analysis', label: t('Image Analysis'), group: t('AI Tools') },
@@ -1417,6 +1417,41 @@ const App: React.FC = () => {
     }
     return allModules;
   }, [t, i18n.language, pythonFeaturesEnabled]);
+
+  const groupedSidebarModules = useMemo(() => {
+    const q = sidebarSearch.trim().toLowerCase();
+    const filtered = q
+      ? modules.filter((m) => {
+          const meta = getModuleScientificMeta(m.id);
+          return (
+            m.label.toLowerCase().includes(q) ||
+            (m.group && m.group.toLowerCase().includes(q)) ||
+            meta.formula.toLowerCase().includes(q) ||
+            meta.symbol.toLowerCase().includes(q)
+          );
+        })
+      : modules;
+
+    const groupsMap = new Map<string, typeof modules>();
+    for (const m of filtered) {
+      const grp = m.group || '';
+      const list = groupsMap.get(grp);
+      if (list) list.push(m);
+      else groupsMap.set(grp, [m]);
+    }
+    return Array.from(groupsMap.entries());
+  }, [modules, sidebarSearch]);
+
+  const settingsContextValue = useMemo(() => ({
+    precision,
+    zeroShift,
+    sampleDisplacement,
+    goniometerRadius,
+    soundEnabled,
+    animationsEnabled,
+    lengthUnit,
+    setLengthUnit
+  }), [precision, zeroShift, sampleDisplacement, goniometerRadius, soundEnabled, animationsEnabled, lengthUnit]);
 
   const stateRef = useRef({
     activeModule,
@@ -1662,16 +1697,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <SettingsContext.Provider value={{
-      precision,
-      zeroShift,
-      sampleDisplacement,
-      goniometerRadius,
-      soundEnabled,
-      animationsEnabled,
-      lengthUnit,
-      setLengthUnit
-    }}>
+    <SettingsContext.Provider value={settingsContextValue}>
       <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
@@ -2004,37 +2030,7 @@ const App: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                Array.from(
-                  new Set(
-                    (sidebarSearch.trim()
-                      ? modules.filter((m) => {
-                          const q = sidebarSearch.toLowerCase();
-                          const meta = getModuleScientificMeta(m.id);
-                          return (
-                            m.label.toLowerCase().includes(q) ||
-                            (m.group && m.group.toLowerCase().includes(q)) ||
-                            meta.formula.toLowerCase().includes(q) ||
-                            meta.symbol.toLowerCase().includes(q)
-                          );
-                        })
-                      : modules
-                    ).map((m) => m.group || '')
-                  )
-                ).map((group) => {
-                  const groupFiltered = (sidebarSearch.trim()
-                    ? modules.filter((m) => {
-                        const q = sidebarSearch.toLowerCase();
-                        const meta = getModuleScientificMeta(m.id);
-                        return (
-                          m.label.toLowerCase().includes(q) ||
-                          (m.group && m.group.toLowerCase().includes(q)) ||
-                          meta.formula.toLowerCase().includes(q) ||
-                          meta.symbol.toLowerCase().includes(q)
-                        );
-                      })
-                    : modules
-                  ).filter((m) => m.group === group);
-
+                groupedSidebarModules.map(([group, groupFiltered]) => {
                   if (groupFiltered.length === 0) return null;
 
                   const catMeta = getCategoryMeta(group);
@@ -2361,10 +2357,12 @@ const App: React.FC = () => {
                       >
                         <X className="w-5 h-5" />
                       </button>
-                      <ModuleIntro 
-                        module={activeModule} 
-                        onUnderstand={() => setIsExplained(true)} 
-                      />
+                      <Suspense fallback={<ModuleLoadingFallback />}>
+                        <ModuleIntro 
+                          module={activeModule} 
+                          onUnderstand={() => setIsExplained(true)} 
+                        />
+                      </Suspense>
                     </div>
                   </motion.div>
                 )}
@@ -2623,30 +2621,32 @@ const App: React.FC = () => {
 
                             {showAdvancedBraggInput && (
                               <div className="p-4 sm:p-6 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-950/40">
-                                <BraggInput
-                                  sampleId={sampleId}
-                                  setSampleId={setSampleId}
-                                  wavelength={wavelength}
-                                  setWavelength={setWavelength}
-                                  rawPeaks={rawPeaks}
-                                  setRawPeaks={setRawPeaks}
-                                  rawHKL={rawHKL}
-                                  setRawHKL={setRawHKL}
-                                  onCalculate={() => handleCalculate(true)}
-                                  onBatchCalculate={handleBatchCalculate}
-                                  zeroShift={zeroShift}
-                                  setZeroShift={setZeroShift}
-                                  sampleDisplacement={sampleDisplacement}
-                                  setSampleDisplacement={setSampleDisplacement}
-                                  goniometerRadius={goniometerRadius}
-                                  setGoniometerRadius={setGoniometerRadius}
-                                  isSimulationRunning={isSimulationRunning}
-                                  simulationStep={simulationStep}
-                                  isSaving={isSaving}
-                                  lastAutosaved={lastAutosaved}
-                                  crystalSystem={crystalSystem}
-                                  setCrystalSystem={setCrystalSystem}
-                                />
+                                <Suspense fallback={<ModuleLoadingFallback />}>
+                                  <BraggInput
+                                    sampleId={sampleId}
+                                    setSampleId={setSampleId}
+                                    wavelength={wavelength}
+                                    setWavelength={setWavelength}
+                                    rawPeaks={rawPeaks}
+                                    setRawPeaks={setRawPeaks}
+                                    rawHKL={rawHKL}
+                                    setRawHKL={setRawHKL}
+                                    onCalculate={() => handleCalculate(true)}
+                                    onBatchCalculate={handleBatchCalculate}
+                                    zeroShift={zeroShift}
+                                    setZeroShift={setZeroShift}
+                                    sampleDisplacement={sampleDisplacement}
+                                    setSampleDisplacement={setSampleDisplacement}
+                                    goniometerRadius={goniometerRadius}
+                                    setGoniometerRadius={setGoniometerRadius}
+                                    isSimulationRunning={isSimulationRunning}
+                                    simulationStep={simulationStep}
+                                    isSaving={isSaving}
+                                    lastAutosaved={lastAutosaved}
+                                    crystalSystem={crystalSystem}
+                                    setCrystalSystem={setCrystalSystem}
+                                  />
+                                </Suspense>
                               </div>
                             )}
                           </div>
@@ -2872,6 +2872,67 @@ const App: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Unified Line-Profile & Microstructure Studio Switcher Bar */}
+                  {[
+                    'fwhm',
+                    'scherrer',
+                    'monshi_scherrer',
+                    'wh',
+                    'integral',
+                    'integral_adv',
+                    'double_voigt',
+                    'wa',
+                    'method_of_moments',
+                    'xrd_nano'
+                  ].includes(activeModule) && (
+                    <div className="mb-6 bg-[#050A14] border border-slate-800 rounded-2xl p-3 shadow-xl flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <span className="px-2 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[9px] font-mono font-black text-indigo-300 uppercase tracking-wider">
+                          Line-Profile Studio
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
+                          Compare crystallite size (D) & microstrain (ε) models directly across consolidated engines:
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {[
+                          { id: 'fwhm' as Module, label: '1. FWHM Peak Fit', badge: 'β_obs' },
+                          { id: 'scherrer' as Module, label: '2. Scherrer + Monshi + NanoSim', badge: 'D + ln(β)' },
+                          { id: 'wh' as Module, label: '3. Williamson-Hall (8 Models)', badge: 'D & ε' },
+                          { id: 'integral_adv' as Module, label: '4. Integral Breadth (Voigt + W-H)', badge: 'A/I_max' },
+                          { id: 'double_voigt' as Module, label: '5. Double-Voigt', badge: 'β_L / β_G' },
+                          { id: 'wa' as Module, label: '6. Warren-Averbach', badge: 'Fourier A(L)' },
+                          { id: 'method_of_moments' as Module, label: '7. Variance Moments', badge: 'M₂(q)' }
+                        ].map(item => {
+                          const isCurrent =
+                            activeModule === item.id ||
+                            (item.id === 'scherrer' && (activeModule === 'monshi_scherrer' || activeModule === 'xrd_nano')) ||
+                            (item.id === 'integral_adv' && activeModule === 'integral');
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setActiveModule(item.id);
+                                playSynthTone('switch');
+                              }}
+                              className={`px-2.5 py-1.5 rounded-xl text-[10px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
+                                isCurrent
+                                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-md'
+                                  : 'bg-slate-900/90 text-slate-400 hover:text-white border-slate-800 hover:border-slate-700'
+                              }`}
+                            >
+                              <span>{item.label}</span>
+                              <span className={`px-1 py-0.2 rounded text-[8px] ${isCurrent ? 'bg-black/30 text-indigo-200' : 'bg-black/40 text-slate-500'}`}>
+                                {item.badge}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <Suspense fallback={<ModuleLoadingFallback />}>
                     {activeModule === 'fwhm' && <FWHMModule />}
                     {activeModule === 'selection' && <SelectionRulesModule />}
@@ -2881,12 +2942,13 @@ const App: React.FC = () => {
                         activeMaterialName={compareMaterialName || materialName} 
                       />
                     )}
-                    {activeModule === 'scherrer' && <ScherrerModule />}
+                    {activeModule === 'scherrer' && <ScherrerModule initialMode="standard" />}
+                    {activeModule === 'monshi_scherrer' && <ScherrerModule initialMode="monshi" />}
+                    {activeModule === 'xrd_nano' && <ScherrerModule initialMode="nano_sim" />}
                     {activeModule === 'wh' && <WilliamsonHallModule />}
-                    {activeModule === 'monshi_scherrer' && <MonshiScherrerModule />}
                     {activeModule === 'double_voigt' && <DoubleVoigtModule />}
-                    {activeModule === 'integral' && <IntegralBreadthModule />}
-                    {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
+                    {activeModule === 'integral' && <IntegralBreadthAdvancedModule initialViewMode="voigtProfile" />}
+                    {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule initialViewMode="fit" />}
                     {activeModule === 'wa' && <WarrenAverbachModule />}
                     {activeModule === 'method_of_moments' && <MethodOfMomentsModule />}
                     {activeModule === 'residual_stress' && <ResidualStressModule />}
@@ -2923,7 +2985,6 @@ const App: React.FC = () => {
                       />
                     )}
                     {activeModule === 'image_gen' && <ImageGenerationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
-                    {activeModule === 'xrd_nano' && <XrdNanoModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                     {activeModule === 'python_export' && <PythonExportModule />}
                     {activeModule === 'learn' && <LearnModule />}
                     {activeModule === 'unit_cells' && <UnitCellsSection />}

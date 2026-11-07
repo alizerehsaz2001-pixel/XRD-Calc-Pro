@@ -49,6 +49,7 @@ import {
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
 import { WHPeakDataManager } from './williamson_hall/WHPeakDataManager';
+import { NanoCrystalliteSimulatorView } from './scherrer/NanoCrystalliteSimulatorView';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -160,7 +161,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [strainModel, setStrainModel] = useState<'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens' | 'Monshi-Scherrer'>('UDM');
   
   // Diagnostic Visualizer Tab & Plot HUD Toggles
-  const [activeTab, setActiveTab] = useState<'fit' | 'pattern' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison' | 'advisor'>('fit');
+  const [activeTab, setActiveTab] = useState<'fit' | 'pattern' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison' | 'nanoSim' | 'advisor'>('fit');
   const [showConfidenceBand, setShowConfidenceBand] = useState<boolean>(true);
   const [showZeroStrainLine, setShowZeroStrainLine] = useState<boolean>(true);
   const [schematicMode, setSchematicMode] = useState<'decoupling' | 'scaling' | 'lattice'>('decoupling');
@@ -1707,6 +1708,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                 { id: 'apparentSizes', label: 'D_hkl Profile', icon: BarChart2 },
                 { id: 'dislocationTensor', label: 'Elasticity & ρ', icon: Atom },
                 { id: 'comparison', label: 'Multi-Model Studio', icon: Layers },
+                { id: 'nanoSim', label: 'Nano Simulator', icon: Sliders },
                 { id: 'advisor', label: 'AI Advisor', icon: BrainCircuit }
               ].map(tab => {
                 const Icon = tab.icon;
@@ -2166,6 +2168,28 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               <p className="text-[8px] text-slate-500 mt-2 font-mono leading-relaxed">
                 * Note: Models differ in their handling of anisotropic elastic constants (USDM/UDEDM), high-angle reflection weighting (SSP), or dislocation contrast factors (mWH).
               </p>
+            </div>
+          )}
+
+          {/* TAB 5B: NANO-CRYSTALLITE FORWARD SIMULATOR (Merged from XRD Nano) */}
+          {activeTab === 'nanoSim' && (
+            <div className="pt-2">
+              <NanoCrystalliteSimulatorView
+                wavelength={wavelength}
+                kFactor={constantK}
+                instFwhm={instFwhm}
+                onApplySimulatedPeaks={(simPeaks) => {
+                  const text = simPeaks
+                    .map(p => {
+                      const hklPart = p.hkl && p.hkl.length === 3 ? `, ${p.hkl[0]}, ${p.hkl[1]}, ${p.hkl[2]}` : '';
+                      return `${p.twoTheta.toFixed(3)}, ${p.fwhmObs.toFixed(3)}${hklPart}`;
+                    })
+                    .join('\n');
+                  setInputData(text);
+                  setExcludedIndices([]);
+                  setActiveTab('fit');
+                }}
+              />
             </div>
           )}
 

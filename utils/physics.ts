@@ -2994,7 +2994,100 @@ const computeIBModelCoordinates = (
 };
 
 /**
+ * Helper: Compute Halder-Wagner parabolic Voigt size and de Keijser harmonic Voigt size
+ * to regularize size-strain separation when unconstrained linear OLS crosses Y-intercept <= 0
+ * or exhibits negative strain slope.
+ */
+interface IBFallbackPhysicalStats {
+  hwSlopeSizeNm: number;
+  voigtHarmonicSizeNm: number;
+  meanBetaCosThetaRad: number;
+  points: { x: number; y: number }[];
+}
+
+const computeIBFallbackPhysicalStats = (
+  wavelength: number,
+  K: number,
+  processedPeaks: {
+    twoTheta: number;
+    betaSampleRad: number;
+    cosTheta: number;
+    sinTheta: number;
+    tanTheta: number;
+    dSpacing: number;
+    voigtDvNm?: number;
+  }[],
+  points: { x: number; y: number }[]
+): IBFallbackPhysicalStats => {
+  const kLambdaNm = (K * wavelength) / 10;
+  let sumBetaCos = 0;
+  let sumInvVoigtDv = 0;
+  let voigtCount = 0;
+
+  // Halder-Wagner linear regression on (beta/tanTheta)^2 vs beta/(tanTheta*sinTheta)
+  let hwSumX = 0, hwSumY = 0, hwSumXY = 0, hwSumX2 = 0, hwN = 0;
+
+  for (const p of processedPeaks) {
+    const betaCos = p.betaSampleRad * p.cosTheta;
+    sumBetaCos += betaCos;
+
+    if (p.voigtDvNm && p.voigtDvNm > 0.5 && isFinite(p.voigtDvNm)) {
+      sumInvVoigtDv += 1 / p.voigtDvNm;
+      voigtCount++;
+    } else if (betaCos > 1e-9) {
+      sumInvVoigtDv += betaCos / kLambdaNm;
+      voigtCount++;
+    }
+
+    if (p.tanTheta > 1e-6 && p.sinTheta > 1e-6 && p.betaSampleRad > 1e-8) {
+      const xHw = p.betaSampleRad / (p.tanTheta * p.sinTheta);
+      const yHw = Math.pow(p.betaSampleRad / p.tanTheta, 2);
+      if (isFinite(xHw) && isFinite(yHw)) {
+        hwSumX += xHw;
+        hwSumY += yHw;
+        hwSumXY += xHw * yHw;
+        hwSumX2 += xHw * xHw;
+        hwN++;
+      }
+    }
+  }
+
+  const meanBetaCosThetaRad = processedPeaks.length > 0 ? sumBetaCos / processedPeaks.length : 1e-3;
+  const scherrerMeanSizeNm = meanBetaCosThetaRad > 1e-9 ? kLambdaNm / meanBetaCosThetaRad : 50;
+  const voigtHarmonicSizeNm = voigtCount > 0 && sumInvVoigtDv > 1e-9 ? voigtCount / sumInvVoigtDv : scherrerMeanSizeNm;
+
+  let hwSlopeSizeNm = voigtHarmonicSizeNm;
+  if (hwN >= 2) {
+    const hwDenom = hwN * hwSumX2 - hwSumX * hwSumX;
+    if (Math.abs(hwDenom) > 1e-18) {
+      const hwSlope = (hwN * hwSumXY - hwSumX * hwSumY) / hwDenom;
+      if (hwSlope > 1e-7) {
+        const candidateNm = kLambdaNm / hwSlope;
+        if (candidateNm > 0.5 && candidateNm < 1500) {
+          hwSlopeSizeNm = candidateNm;
+        }
+      } else if (hwSumX2 > 1e-18) {
+        // Origin-constrained Halder-Wagner slope (zero-strain parabolic limit)
+        const originSlope = hwSumXY / hwSumX2;
+        if (originSlope > 1e-7) {
+          hwSlopeSizeNm = Math.min(1500, Math.max(0.5, kLambdaNm / originSlope));
+        }
+      }
+    }
+  }
+
+  return {
+    hwSlopeSizeNm,
+    voigtHarmonicSizeNm,
+    meanBetaCosThetaRad,
+    points
+  };
+};
+
+/**
  * Unified physical parameter & uncertainty extraction for all 6 IB Advanced Models
+ * Incorporates Non-Negative Least Squares (NNLS) boundary projection and
+ * Halder-Wagner / Voigt regularization when unconstrained OLS yields unphysical negative intercepts.
  */
 const extractIBModelPhysicalParameters = (
   methodKey: 'udm' | 'usdm' | 'udedm' | 'ssp' | 'hw' | 'mwh',
@@ -3004,7 +3097,8 @@ const extractIBModelPhysicalParameters = (
   stdErrorIntercept: number,
   wavelength: number,
   K: number,
-  nominalE_GPa: number
+  nominalE_GPa: number,
+  fallback?: IBFallbackPhysicalStats
 ): {
   sizeNm: number;
   sizeErrorNm: number;
@@ -3014,6 +3108,9 @@ const extractIBModelPhysicalParameters = (
   stressErrorMPa: number;
   energyDensityKjM3: number;
   energyErrorKjM3: number;
+  effectiveSlope: number;
+  effectiveIntercept: number;
+  fitRegime: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized';
 } => {
   const E_Pa = Math.max(1e9, nominalE_GPa * 1e9);
   const kLambdaNm = (K * wavelength) / 10; // in nm
@@ -3026,81 +3123,151 @@ const extractIBModelPhysicalParameters = (
   let stressErrorMPa = 0;
   let energyDensityKjM3 = 0;
   let energyErrorKjM3 = 0;
+  let effectiveSlope = slope;
+  let effectiveIntercept = intercept;
+  let fitRegime: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized' = 'standard_ols';
+
+  const pts = fallback?.points || [];
+  let sumXY_origin = 0;
+  let sumX2_origin = 0;
+  for (const pt of pts) {
+    sumXY_origin += pt.x * pt.y;
+    sumX2_origin += pt.x * pt.x;
+  }
 
   if (methodKey === 'hw') {
     // Halder-Wagner: Slope = K*lambda / D, Intercept = 16 * epsilon^2
-    if (slope > 1e-12) {
-      sizeNm = kLambdaNm / slope;
-      sizeErrorNm = sizeNm * (stdErrorSlope / slope);
-    }
-    if (intercept > 0) {
-      strain = Math.sqrt(intercept) / 4.0;
-      strainError = stdErrorIntercept / (8.0 * Math.sqrt(Math.max(1e-16, intercept)));
-    } else {
+    if (intercept < 0 && sumX2_origin > 1e-18) {
+      // NNLS zero-strain boundary: clamp intercept = 0 and refit slope through origin
+      fitRegime = 'nnls_zero_strain';
+      effectiveIntercept = 0;
+      effectiveSlope = Math.max(1e-7, sumXY_origin / sumX2_origin);
+      sizeNm = kLambdaNm / effectiveSlope;
+      sizeErrorNm = stdErrorSlope > 0 ? sizeNm * (stdErrorSlope / effectiveSlope) : sizeNm * 0.04;
       strain = 0;
       strainError = Math.sqrt(Math.abs(stdErrorIntercept)) / 4.0;
+    } else if (slope > 1e-7 && kLambdaNm / slope <= 1500) {
+      sizeNm = kLambdaNm / slope;
+      sizeErrorNm = sizeNm * (stdErrorSlope / slope);
+      if (intercept > 0) {
+        strain = Math.sqrt(intercept) / 4.0;
+        strainError = stdErrorIntercept / (8.0 * Math.sqrt(Math.max(1e-16, intercept)));
+      }
+    } else {
+      // Regularize with Voigt harmonic size
+      fitRegime = 'voigt_regularized';
+      sizeNm = fallback?.voigtHarmonicSizeNm || 45.0;
+      effectiveSlope = kLambdaNm / Math.max(0.5, sizeNm);
+      sizeErrorNm = sizeNm * 0.06;
+      const regIntercept = pts.length > 0
+        ? pts.reduce((acc, p) => acc + (p.y - effectiveSlope * p.x), 0) / pts.length
+        : Math.max(0, intercept);
+      effectiveIntercept = Math.max(0, regIntercept);
+      strain = Math.sqrt(effectiveIntercept) / 4.0;
+      strainError = stdErrorIntercept > 0 ? Math.sqrt(stdErrorIntercept) / 4.0 : strain * 0.08;
     }
     stressMPa = strain * nominalE_GPa * 1000;
     stressErrorMPa = strainError * nominalE_GPa * 1000;
     energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
     energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
   } else if (methodKey === 'ssp') {
-    // Size-Strain Plot: Slope = K*lambda / D, Intercept = (2 * epsilon * lambda)^2 = 4 * epsilon^2 * lambda^2
-    if (slope > 1e-12) {
-      sizeNm = kLambdaNm / slope;
-      sizeErrorNm = sizeNm * (stdErrorSlope / slope);
-    }
-    if (intercept > 0 && wavelength > 0) {
-      strain = Math.sqrt(intercept) / (2.0 * wavelength);
-      strainError = stdErrorIntercept / (4.0 * wavelength * Math.sqrt(Math.max(1e-16, intercept)));
-    } else {
+    // Size-Strain Plot: Slope = K*lambda / D, Intercept = (2 * epsilon * lambda)^2
+    if (intercept < 0 && sumX2_origin > 1e-18) {
+      fitRegime = 'nnls_zero_strain';
+      effectiveIntercept = 0;
+      effectiveSlope = Math.max(1e-7, sumXY_origin / sumX2_origin);
+      sizeNm = kLambdaNm / effectiveSlope;
+      sizeErrorNm = stdErrorSlope > 0 ? sizeNm * (stdErrorSlope / effectiveSlope) : sizeNm * 0.04;
       strain = 0;
       strainError = wavelength > 0 ? Math.sqrt(Math.abs(stdErrorIntercept)) / (2.0 * wavelength) : 0;
+    } else if (slope > 1e-7 && kLambdaNm / slope <= 1500) {
+      sizeNm = kLambdaNm / slope;
+      sizeErrorNm = sizeNm * (stdErrorSlope / slope);
+      if (intercept > 0 && wavelength > 0) {
+        strain = Math.sqrt(intercept) / (2.0 * wavelength);
+        strainError = stdErrorIntercept / (4.0 * wavelength * Math.sqrt(Math.max(1e-16, intercept)));
+      }
+    } else {
+      fitRegime = 'voigt_regularized';
+      sizeNm = fallback?.hwSlopeSizeNm || fallback?.voigtHarmonicSizeNm || 45.0;
+      effectiveSlope = kLambdaNm / Math.max(0.5, sizeNm);
+      sizeErrorNm = sizeNm * 0.06;
+      const regIntercept = pts.length > 0
+        ? pts.reduce((acc, p) => acc + (p.y - effectiveSlope * p.x), 0) / pts.length
+        : Math.max(0, intercept);
+      effectiveIntercept = Math.max(0, regIntercept);
+      strain = wavelength > 0 ? Math.sqrt(effectiveIntercept) / (2.0 * wavelength) : 0;
+      strainError = strain * 0.08;
     }
     stressMPa = strain * nominalE_GPa * 1000;
     stressErrorMPa = strainError * nominalE_GPa * 1000;
-    energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
-    energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
-  } else if (methodKey === 'udedm') {
-    // UDEDM: Intercept = K*lambda / D, Slope = sqrt(u) [in J^(1/2) m^(-3/2)]
-    if (intercept > 1e-12) {
-      sizeNm = kLambdaNm / intercept;
-      sizeErrorNm = sizeNm * (stdErrorIntercept / intercept);
-    }
-    const sqrtU = Math.max(0, slope);
-    const u_Jm3 = sqrtU * sqrtU;
-    const uError_Jm3 = 2 * sqrtU * stdErrorSlope;
-    energyDensityKjM3 = u_Jm3 / 1000;
-    energyErrorKjM3 = uError_Jm3 / 1000;
-    strain = Math.sqrt((2 * u_Jm3) / E_Pa);
-    strainError = stdErrorSlope * Math.sqrt(2 / E_Pa);
-    stressMPa = strain * nominalE_GPa * 1000;
-    stressErrorMPa = strainError * nominalE_GPa * 1000;
-  } else if (methodKey === 'usdm') {
-    // USDM: Intercept = K*lambda / D, Slope = sigma [in Pa]
-    if (intercept > 1e-12) {
-      sizeNm = kLambdaNm / intercept;
-      sizeErrorNm = sizeNm * (stdErrorIntercept / intercept);
-    }
-    const sigmaPa = Math.max(0, slope);
-    stressMPa = sigmaPa / 1e6;
-    stressErrorMPa = stdErrorSlope / 1e6;
-    strain = sigmaPa / E_Pa;
-    strainError = stdErrorSlope / E_Pa;
     energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
     energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
   } else {
-    // UDM & mWH: Intercept = K*lambda / D, Slope = epsilon
-    if (intercept > 1e-12) {
+    // Linear Y = beta * cos(theta) models: UDM, USDM, UDEDM, mWH
+    // Check 1: Negative slope (apparent negative strain) -> NNLS boundary epsilon = 0
+    if (slope < 0 && fallback && fallback.meanBetaCosThetaRad > 1e-7) {
+      fitRegime = 'nnls_zero_strain';
+      effectiveSlope = 0;
+      effectiveIntercept = fallback.meanBetaCosThetaRad;
+      sizeNm = kLambdaNm / effectiveIntercept;
+      sizeErrorNm = stdErrorIntercept > 0 ? sizeNm * (stdErrorIntercept / effectiveIntercept) : sizeNm * 0.04;
+    } else if (intercept > 1e-6 && kLambdaNm / intercept <= 1500) {
+      // Standard valid OLS intercept
       sizeNm = kLambdaNm / intercept;
       sizeErrorNm = sizeNm * (stdErrorIntercept / intercept);
+    } else {
+      // Check 2: Unconstrained OLS intercept <= 0 or > 1500 nm due to parabolic Voigt curvature / high strain slope
+      // Regularize intercept using Halder-Wagner parabolic Voigt size / de Keijser harmonic Voigt size
+      fitRegime = 'voigt_regularized';
+      const regSizeNm = fallback
+        ? (fallback.hwSlopeSizeNm > 0.5 && fallback.hwSlopeSizeNm < 1200
+            ? fallback.hwSlopeSizeNm
+            : fallback.voigtHarmonicSizeNm)
+        : 45.0;
+      sizeNm = Math.max(1.0, Math.min(1200, regSizeNm));
+      effectiveIntercept = kLambdaNm / sizeNm;
+      sizeErrorNm = stdErrorIntercept > 0
+        ? Math.min(sizeNm * 0.25, sizeNm * (stdErrorIntercept / Math.max(1e-4, effectiveIntercept)))
+        : sizeNm * 0.06;
+
+      // Re-project constrained slope through (0, effectiveIntercept): min sum (y_i - y0_reg - m * x_i)^2
+      if (sumX2_origin > 1e-18 && pts.length >= 2) {
+        let numConstrained = 0;
+        for (const pt of pts) {
+          numConstrained += pt.x * (pt.y - effectiveIntercept);
+        }
+        effectiveSlope = Math.max(0, numConstrained / sumX2_origin);
+      }
     }
-    strain = Math.max(0, slope);
-    strainError = stdErrorSlope;
-    stressMPa = strain * nominalE_GPa * 1000;
-    stressErrorMPa = strainError * nominalE_GPa * 1000;
-    energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
-    energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
+
+    if (methodKey === 'udedm') {
+      const sqrtU = Math.max(0, effectiveSlope);
+      const u_Jm3 = sqrtU * sqrtU;
+      const uError_Jm3 = 2 * sqrtU * stdErrorSlope;
+      energyDensityKjM3 = u_Jm3 / 1000;
+      energyErrorKjM3 = uError_Jm3 / 1000;
+      strain = Math.sqrt((2 * u_Jm3) / E_Pa);
+      strainError = stdErrorSlope * Math.sqrt(2 / E_Pa);
+      stressMPa = strain * nominalE_GPa * 1000;
+      stressErrorMPa = strainError * nominalE_GPa * 1000;
+    } else if (methodKey === 'usdm') {
+      const sigmaPa = Math.max(0, effectiveSlope);
+      stressMPa = sigmaPa / 1e6;
+      stressErrorMPa = stdErrorSlope / 1e6;
+      strain = sigmaPa / E_Pa;
+      strainError = stdErrorSlope / E_Pa;
+      energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
+      energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
+    } else {
+      // UDM & mWH
+      strain = Math.max(0, effectiveSlope);
+      strainError = stdErrorSlope;
+      stressMPa = strain * nominalE_GPa * 1000;
+      stressErrorMPa = strainError * nominalE_GPa * 1000;
+      energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
+      energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
+    }
   }
 
   return {
@@ -3111,7 +3278,10 @@ const extractIBModelPhysicalParameters = (
     stressMPa,
     stressErrorMPa,
     energyDensityKjM3,
-    energyErrorKjM3
+    energyErrorKjM3,
+    effectiveSlope,
+    effectiveIntercept,
+    fitRegime
   };
 };
 
@@ -3128,6 +3298,7 @@ const fitSingleIBModel = (
     tanTheta: number;
     dSpacing: number;
     hkl?: [number, number, number];
+    voigtDvNm?: number;
   }[],
   youngsModulusGPa: number = 130
 ): IBModelComparisonItem | null => {
@@ -3157,14 +3328,14 @@ const fitSingleIBModel = (
   const denom = n * sumX2 - sumX * sumX;
   if (Math.abs(denom) < 1e-18) return null;
 
-  const slope = (n * sumXY - sumX * sumY) / denom;
-  const intercept = (sumY - slope * sumX) / n;
+  const rawSlope = (n * sumXY - sumX * sumY) / denom;
+  const rawIntercept = (sumY - rawSlope * sumX) / n;
   const meanY = sumY / n;
   const meanX = sumX / n;
 
   let ssTot = 0, ssRes = 0, sxx = 0;
   for (const pt of points) {
-    const yFit = slope * pt.x + intercept;
+    const yFit = rawSlope * pt.x + rawIntercept;
     ssTot += Math.pow(pt.y - meanY, 2);
     ssRes += Math.pow(pt.y - yFit, 2);
     sxx += Math.pow(pt.x - meanX, 2);
@@ -3179,15 +3350,18 @@ const fitSingleIBModel = (
   const stdErrorSlope = sxx > 0 ? Math.sqrt(varRes / sxx) : 0;
   const stdErrorIntercept = sxx > 0 ? Math.sqrt(varRes * (1 / n + (meanX * meanX) / sxx)) : 0;
 
+  const fallbackStats = computeIBFallbackPhysicalStats(wavelength, K, processedPeaks, points);
+
   const extracted = extractIBModelPhysicalParameters(
     methodKey,
-    slope,
-    intercept,
+    rawSlope,
+    rawIntercept,
     stdErrorSlope,
     stdErrorIntercept,
     wavelength,
     K,
-    youngsModulusGPa
+    youngsModulusGPa,
+    fallbackStats
   );
 
   const descriptions: Record<string, string> = {
@@ -3212,8 +3386,10 @@ const fitSingleIBModel = (
     adjustedRSquared,
     rmse,
     fStatistic,
-    slope,
-    intercept,
+    slope: extracted.effectiveSlope,
+    intercept: extracted.effectiveIntercept,
+    rawOlsIntercept: rawIntercept,
+    fitRegime: extracted.fitRegime,
     description: descriptions[modelName] || ''
   };
 };
@@ -3229,7 +3405,8 @@ export const calculateIBAdvanced = (
   youngsModulusGPa: number = 130,
   separationMethod: 'udm' | 'usdm' | 'hw' | 'ssp' | 'udedm' | 'mwh' = 'udm',
   materialDensityGcm3: number = 2.33,
-  excludedIndices: number[] = []
+  excludedIndices: number[] = [],
+  burgersVectorNm: number = 0.286
 ): IBAdvancedResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
   
@@ -3244,6 +3421,8 @@ export const calculateIBAdvanced = (
     tanTheta: number;
     dSpacing: number;
     hkl?: [number, number, number];
+    voigtDvNm?: number;
+    cauchyFraction?: number;
   }[] = [];
 
   const excludedSet = new Set(excludedIndices);
@@ -3320,7 +3499,8 @@ export const calculateIBAdvanced = (
     const betaG_s = Math.sqrt(Math.max(1e-14, betaG_obs * betaG_obs - Math.pow(betaInstRad * instVoigt.fGauss, 2)));
 
     const volumeWeightedSizeDvNm = cosTheta > 0 ? (K * wavelength) / (betaL_s * cosTheta) / 10 : singlePeakSizeNm;
-    const areaWeightedSizeDaNm = volumeWeightedSizeDvNm / 2.0;
+    const peakDvDaRatio = 1.125 + 0.875 * fCauchy;
+    const areaWeightedSizeDaNm = volumeWeightedSizeDvNm / peakDvDaRatio;
     const apparentRmsStrain = tanTheta > 0 ? betaG_s / (2 * Math.sqrt(2 * Math.PI) * tanTheta) : 0;
 
     if (!isExcluded && betaSampleRad > 0) {
@@ -3332,7 +3512,9 @@ export const calculateIBAdvanced = (
         sinTheta,
         tanTheta,
         dSpacing,
-        hkl
+        hkl,
+        voigtDvNm: volumeWeightedSizeDvNm,
+        cauchyFraction: fCauchy
       });
     }
 
@@ -3370,12 +3552,47 @@ export const calculateIBAdvanced = (
   const n = points.length;
   const denominator = n * sumX2 - sumX * sumX;
   if (Math.abs(denominator) < 1e-18) return null;
-  const slope = (n * sumXY - sumX * sumY) / denominator;
-  const intercept = (sumY - slope * sumX) / n;
+  const rawSlope = (n * sumXY - sumX * sumY) / denominator;
+  const rawIntercept = (sumY - rawSlope * sumX) / n;
   const meanY = sumY / n;
   const meanX = sumX / n;
 
-  let ssTot = 0, ssRes = 0, sxx = 0;
+  // Compute physical fallback stats and extract regularized parameters
+  const fallbackStats = computeIBFallbackPhysicalStats(wavelength, K, processedPeaksList, points);
+
+  // First pass residuals on OLS for standard errors
+  let ssTot = 0, ssResOls = 0, sxx = 0;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const yPredOls = rawSlope * p.x + rawIntercept;
+    ssTot += Math.pow(p.y - meanY, 2);
+    ssResOls += Math.pow(p.y - yPredOls, 2);
+    sxx += Math.pow(p.x - meanX, 2);
+  }
+
+  const df = Math.max(1, n - 2);
+  const tCritical95 = getStudentTCritical95(df);
+  const varianceResidualsOls = n > 2 ? ssResOls / (n - 2) : 0;
+  const stdErrorSlope = sxx > 0 ? Math.sqrt(varianceResidualsOls / sxx) : 0;
+  const stdErrorIntercept = sxx > 0 ? Math.sqrt(varianceResidualsOls * (1 / n + (meanX * meanX) / sxx)) : 0;
+
+  // Physical parameters & first-order Taylor error propagation (with NNLS / Voigt regularization)
+  const extracted = extractIBModelPhysicalParameters(
+    separationMethod,
+    rawSlope,
+    rawIntercept,
+    stdErrorSlope,
+    stdErrorIntercept,
+    wavelength,
+    K,
+    youngsModulusGPa > 0 ? youngsModulusGPa : 130,
+    fallbackStats
+  );
+
+  const slope = extracted.effectiveSlope;
+  const intercept = extracted.effectiveIntercept;
+
+  let ssRes = 0;
   const residualsList: number[] = [];
   for (let i = 0; i < points.length; i++) {
     const p = points[i];
@@ -3383,14 +3600,12 @@ export const calculateIBAdvanced = (
     const res = p.y - yPred;
     p.residual = res;
     residualsList.push(res);
-    ssTot += Math.pow(p.y - meanY, 2);
     ssRes += Math.pow(res, 2);
-    sxx += Math.pow(p.x - meanX, 2);
   }
 
-  const rSquared = ssTot === 0 ? 0 : Math.max(0, Math.min(1, 1 - (ssRes / ssTot)));
+  const rSquared = ssTot === 0 ? 0 : Math.max(0, Math.min(1, 1 - (ssResOls / ssTot)));
   const adjustedRSquared = n > 2 ? Math.max(0, 1 - (1 - rSquared) * (n - 1) / (n - 2)) : rSquared;
-  const pearsonR = (slope >= 0 ? 1 : -1) * Math.sqrt(rSquared);
+  const pearsonR = (rawSlope >= 0 ? 1 : -1) * Math.sqrt(rSquared);
   const rmse = Math.sqrt(ssRes / n);
   const fStatistic = n > 2 && rSquared < 1 ? (rSquared / Math.max(1e-12, 1 - rSquared)) * (n - 2) : 0;
 
@@ -3404,13 +3619,8 @@ export const calculateIBAdvanced = (
   }
   const durbinWatson = dwDen > 0 ? dwNum / dwDen : 2.0;
 
-  // Standard errors & Student-t 95% intervals
-  const df = Math.max(1, n - 2);
-  const tCritical95 = getStudentTCritical95(df);
   const varianceResiduals = n > 2 ? ssRes / (n - 2) : 0;
   const stdErrFit = Math.sqrt(varianceResiduals);
-  const stdErrorSlope = sxx > 0 ? Math.sqrt(varianceResiduals / sxx) : 0;
-  const stdErrorIntercept = sxx > 0 ? Math.sqrt(varianceResiduals * (1 / n + (meanX * meanX) / sxx)) : 0;
 
   // Update residuals, internally studentized residuals, and exact pointwise 95% confidence band on pointsExtended
   for (const pe of pointsExtended) {
@@ -3424,21 +3634,21 @@ export const calculateIBAdvanced = (
     pe.studentizedResidual = denomStud > 1e-15 ? res / denomStud : 0;
   }
 
-  // Physical parameters & first-order Taylor error propagation
-  const extracted = extractIBModelPhysicalParameters(
-    separationMethod,
-    slope,
-    intercept,
-    stdErrorSlope,
-    stdErrorIntercept,
-    wavelength,
-    K,
-    youngsModulusGPa > 0 ? youngsModulusGPa : 130
-  );
-
   const sizeInterceptNm = extracted.sizeNm;
   const sizeErrorNm = extracted.sizeErrorNm;
-  const areaWeightedSizeNm = sizeInterceptNm / 2.0;
+
+  // Langford-Voigt & Krill-Birringer Log-Normal Polydispersity relation between D_v and D_a:
+  // Monodisperse sphere limit (f_L -> 0): D_v / D_a = 9/8 = 1.125
+  // Exponential Cauchy column limit (f_L -> 1): D_v / D_a = 2.0
+  const meanCauchyFraction = processedPeaksList.length > 0
+    ? processedPeaksList.reduce((acc, p) => acc + (p.cauchyFraction ?? 0.5), 0) / processedPeaksList.length
+    : 0.5;
+  const polydispersityRatioDvDa = 1.125 + 0.875 * Math.max(0, Math.min(1, meanCauchyFraction));
+  const areaWeightedSizeNm = sizeInterceptNm / polydispersityRatioDvDa;
+  const meanSphericalDiameterNm = (4.0 / 3.0) * sizeInterceptNm; // D_sphere = (4/3) * D_v for spherical domains (Guinier / Stokes-Wilson)
+  const lnSigmaSq = Math.max(0, Math.log((8.0 / 9.0) * polydispersityRatioDvDa));
+  const logNormalSigmaG = Math.exp(Math.sqrt(lnSigmaSq));
+
   const absoluteStrain = extracted.strain;
   const strainError = extracted.strainError;
   const rmsStrain = absoluteStrain * Math.sqrt(2 / Math.PI); // Gaussian equivalence <e^2>^0.5 = e * sqrt(2/pi)
@@ -3447,9 +3657,9 @@ export const calculateIBAdvanced = (
   const energyDensityKjM3 = extracted.energyDensityKjM3;
   const energyErrorKjM3 = extracted.energyErrorKjM3;
 
-  // Global dislocation density (Williamson-Smallman & 1/D^2) & SSA
+  // Global dislocation density (Williamson-Smallman & 1/D^2) & SSA using calibrated Burgers vector b
   const sizeM = Math.max(1e-12, sizeInterceptNm * 1e-9);
-  const bM = 0.25e-9;
+  const bM = Math.max(0.05, burgersVectorNm) * 1e-9;
   const dislocationDensityM2 = sizeM > 0 ? (2 * Math.sqrt(3) * absoluteStrain) / (sizeM * bM) : 0;
   const dislocationDensity10_14 = dislocationDensityM2 / 1e14;
   const williamsonDollarDislocation10_14 = sizeM > 0 ? (1 / (sizeM * sizeM)) / 1e14 : 0;
@@ -3467,13 +3677,16 @@ export const calculateIBAdvanced = (
     if (res) modelComparisons.push(res);
   }
 
-  // Find best model by highest R2 among physically valid fits (sizeNm > 0)
+  // Find best model by highest R2 among physically valid fits
   if (modelComparisons.length > 0) {
-    let maxR2 = -1;
+    let maxScore = -1;
     let bestIdx = 0;
     modelComparisons.forEach((item, idx) => {
-      if (item.sizeNm > 0 && item.rSquared > maxR2) {
-        maxR2 = item.rSquared;
+      // Prefer standard_ols fits with high R2, then regularized fits
+      const regimePenalty = item.fitRegime === 'standard_ols' ? 0 : 0.02;
+      const score = item.rSquared - regimePenalty;
+      if (item.sizeNm > 0 && score > maxScore) {
+        maxScore = score;
         bestIdx = idx;
       }
     });
@@ -3487,9 +3700,16 @@ export const calculateIBAdvanced = (
     sizeInterceptNm,
     sizeErrorNm,
     areaWeightedSizeNm,
+    meanSphericalDiameterNm,
+    polydispersityRatioDvDa,
+    logNormalSigmaG,
+    meanCauchyFraction,
+    fitRegime: extracted.fitRegime,
     regression: { 
       slope, 
-      intercept, 
+      intercept,
+      rawOlsSlope: rawSlope,
+      rawOlsIntercept: rawIntercept,
       rSquared,
       adjustedRSquared,
       pearsonR,
@@ -5918,31 +6138,17 @@ const evaluateMLValidationScore = (
     return Math.max(0, Math.min(100.0, confidence));
 };
 
-export const identifyPhasesDL = (
-  inputPoints: { twoTheta: number, intensity: number }[], 
-  isMixMode: boolean = false,
-  engineConfig?: {
-    kernelSize: number;
-    kernelProfile?: string;
-    filters: number;
-    depth: number;
-    pooling: string;
-    activation: string;
-    optimization: string;
-    learningRate: number;
-    confidenceThreshold: number;
-    batchNorm: boolean;
-    multiScale: boolean;
-    cagliotiCorrection?: boolean;
-    asymmetryCorrection?: boolean;
-    backgroundSubtraction?: boolean;
-    shapeExponent?: number;
-    attentionMechanism?: boolean;
-    dropout?: number;
+let cachedActiveMaterialsRef: any[] | null = null;
+let cachedMappedDLDB: any[] | null = null;
+
+function getCachedDLDatabase() {
+  const activeMats = getActiveMaterials();
+  if (activeMats === cachedActiveMaterialsRef && cachedMappedDLDB !== null) {
+    return cachedMappedDLDB;
   }
-): DLPhaseResult => {
-  const DB = getActiveMaterials().map((m, idx) => {
-    const nameHash = (m.name || '').split('').reduce((acc, ch, ci) => acc + ch.charCodeAt(0) * (ci + 17), 1000000 + idx * 1337);
+  cachedActiveMaterialsRef = activeMats;
+  cachedMappedDLDB = activeMats.map((m, idx) => {
+    const nameHash = (m.name || '').split('').reduce((acc: number, ch: string, ci: number) => acc + ch.charCodeAt(0) * (ci + 17), 1000000 + idx * 1337);
     return {
       name: m.name,
       formula: m.formula || '',
@@ -5970,11 +6176,68 @@ export const identifyPhasesDL = (
       thermalExpansion: (m as any).thermalExpansion
     };
   });
+  return cachedMappedDLDB;
+}
 
-  const TOLERANCE = 0.25; // Strict bounds for discrete evaluation
+export const identifyPhasesDL = (
+  inputPoints: { twoTheta: number, intensity: number }[], 
+  isMixMode: boolean = false,
+  engineConfig?: {
+    kernelSize: number;
+    kernelProfile?: string;
+    filters: number;
+    depth: number;
+    pooling: string;
+    activation: string;
+    optimization: string;
+    learningRate: number;
+    confidenceThreshold: number;
+    batchNorm: boolean;
+    multiScale: boolean;
+    cagliotiCorrection?: boolean;
+    asymmetryCorrection?: boolean;
+    backgroundSubtraction?: boolean;
+    shapeExponent?: number;
+    attentionMechanism?: boolean;
+    dropout?: number;
+  }
+): DLPhaseResult => {
+  const DB = getCachedDLDatabase();
+
+  const TOLERANCE = 0.28; // Bounds for discrete evaluation after sub-degree zero-shift alignment
+  const ZERO_SHIFT_LIMIT = 0.32; // Max specimen displacement / zero-point shift compensation (deg 2theta)
   const kernelSize = engineConfig?.kernelSize || 5;
   const isMultiScale = engineConfig?.multiScale ?? true;
   const activationName = engineConfig?.activation || "ReLU";
+
+  // Helper: Estimate optimal sub-degree zero-point / specimen displacement shift for a candidate phase
+  const estimatePhaseZeroShift = (
+    obsPoints: { twoTheta: number; intensity: number }[],
+    refPeaks: { t: number; i: number }[]
+  ): number => {
+    if (obsPoints.length === 0 || refPeaks.length === 0) return 0;
+    const topRef = [...refPeaks].sort((a, b) => b.i - a.i).slice(0, 3);
+    let weightedShiftSum = 0;
+    let weightTotal = 0;
+    for (const rp of topRef) {
+      let bestObs = obsPoints[0];
+      let minDist = Math.abs(obsPoints[0].twoTheta - rp.t);
+      for (let i = 1; i < obsPoints.length; i++) {
+        const d = Math.abs(obsPoints[i].twoTheta - rp.t);
+        if (d < minDist) {
+          minDist = d;
+          bestObs = obsPoints[i];
+        }
+      }
+      if (minDist <= ZERO_SHIFT_LIMIT) {
+        const w = rp.i * Math.max(0.1, 1 - minDist / ZERO_SHIFT_LIMIT);
+        weightedShiftSum += (bestObs.twoTheta - rp.t) * w;
+        weightTotal += w;
+      }
+    }
+    if (weightTotal <= 0) return 0;
+    return Math.max(-0.25, Math.min(0.25, weightedShiftSum / weightTotal));
+  };
 
   // Generate the observed envelope vector
   let S_obs = generateContinuousSpectrum(inputPoints, 10, 90, 0.2);
@@ -6053,16 +6316,18 @@ export const identifyPhasesDL = (
         let maxPossibleScore = 0;
         let matchedPeaksCount = 0;
         const matchedDetails: any[] = [];
+        const estShift = estimatePhaseZeroShift(remainingPoints, phase.peaks);
         
         for (const refPeak of phase.peaks) {
           maxPossibleScore += 10 * (Math.log10(refPeak.i + 10) / 2);
           if (remainingPoints.length === 0) continue;
           
+          const shiftedRefT = refPeak.t + estShift;
           const closest = remainingPoints.reduce((prev, curr) => {
-            return (Math.abs(curr.twoTheta - refPeak.t) < Math.abs(prev.twoTheta - refPeak.t) ? curr : prev);
+            return (Math.abs(curr.twoTheta - shiftedRefT) < Math.abs(prev.twoTheta - shiftedRefT) ? curr : prev);
           });
           
-          const diff = Math.abs(closest.twoTheta - refPeak.t);
+          const diff = Math.abs(closest.twoTheta - shiftedRefT);
           
           if (diff <= TOLERANCE) {
             matchedPeaksCount++;
@@ -6098,6 +6363,9 @@ export const identifyPhasesDL = (
             });
           }
         }
+
+        // Fast-screen phases with zero matched peaks to avoid redundant convolution
+        if (matchedPeaksCount === 0) return;
         
         // 1D Convolution mathematical cross-correlation check for mixture candidates
         const cachedRef = getCachedConvolvedReference(
@@ -6150,6 +6418,11 @@ export const identifyPhasesDL = (
           confidence *= 1.25; // Boost if primary diagnostic peak is present
         }
 
+        // Hanawalt Top-3 Search-Match Figure of Merit (FOM) boost
+        const top3Ref = [...phase.peaks].sort((a, b) => b.i - a.i).slice(0, 3);
+        const top3Hits = top3Ref.filter(rp => matchedDetails.some(md => md.refT === rp.t)).length;
+        if (top3Hits === 3) confidence *= 1.12;
+
         const secondaryPeaks = phase.peaks.filter(p => p.i >= 30 && p.i < 95);
         if (secondaryPeaks.length > 0) {
           const matchedSecondary = secondaryPeaks.filter(p => matchedDetails.some(md => md.refT === p.t)).length;
@@ -6159,7 +6432,7 @@ export const identifyPhasesDL = (
         }
 
         const precisionAvg = matchedDetails.length > 0 
-          ? matchedDetails.reduce((acc, md) => acc + (1 - Math.abs(md.refT - md.obsT)/TOLERANCE), 0) / matchedDetails.length
+          ? matchedDetails.reduce((acc, md) => acc + Math.max(0, 1 - Math.abs((md.refT + estShift) - md.obsT)/TOLERANCE), 0) / matchedDetails.length
           : 0;
         if (precisionAvg > 0.9) confidence *= 1.15;
         else if (precisionAvg > 0.8) confidence *= 1.05;
@@ -6182,7 +6455,7 @@ export const identifyPhasesDL = (
         } else if (engineConfig?.optimization === 'AdamW') {
            let unmatchedInputEnergy = 0;
            for (const inputPeak of remainingPoints) {
-              const hasMatch = phase.peaks.some(ref => Math.abs(ref.t - inputPeak.twoTheta) <= TOLERANCE);
+              const hasMatch = phase.peaks.some(ref => Math.abs((ref.t + estShift) - inputPeak.twoTheta) <= TOLERANCE);
               if (!hasMatch) {
                 unmatchedInputEnergy += inputPeak.intensity;
               }
@@ -6209,7 +6482,7 @@ export const identifyPhasesDL = (
           else if (finalConfidence > 40) matchQuality = "Possible";
           
           const pythonValidatedScore = evaluateMLValidationScore(
-            remainingPoints.map(p => ({ two_theta: p.twoTheta, intensity: p.intensity })),
+            remainingPoints.map(p => ({ two_theta: p.twoTheta - estShift, intensity: p.intensity })),
             phase.peaks.map(p => ({ two_theta: p.t, intensity: p.i })),
             TOLERANCE
           );
@@ -6251,11 +6524,12 @@ export const identifyPhasesDL = (
       if (bestPhase && bestPhaseIdx !== -1) {
         identifiedPhases.push(bestPhase);
         const phaseToStrip = availableDB[bestPhaseIdx];
+        const stripShift = estimatePhaseZeroShift(remainingPoints, phaseToStrip.peaks);
         
         // Dynamic stripping window based on engine tolerance with safety threshold
         const stripTolerance = Math.max(0.18, TOLERANCE * 1.2);
         remainingPoints = remainingPoints.filter(p => {
-          return !phaseToStrip.peaks.some(ref => Math.abs(ref.t - p.twoTheta) <= stripTolerance);
+          return !phaseToStrip.peaks.some(ref => Math.abs((ref.t + stripShift) - p.twoTheta) <= stripTolerance);
         });
         
         availableDB.splice(bestPhaseIdx, 1);
@@ -6267,21 +6541,26 @@ export const identifyPhasesDL = (
     return { module: "DL-Phase-ID-Smart-Mixture", candidates: identifiedPhases.sort((a,b) => b.confidence_score - a.confidence_score) };
   }
 
-  const candidates = DB.map(phase => {
+  const candidates: DLPhaseCandidate[] = [];
+  const totalInputEnergy = inputPoints.reduce((sum, p) => sum + p.intensity, 0);
+
+  for (const phase of DB) {
     let matchScore = 0;
     let maxPossibleScore = 0;
     let matchedPeaksCount = 0;
     const matchedDetails: any[] = [];
+    const estShift = estimatePhaseZeroShift(inputPoints, phase.peaks);
 
     for (const refPeak of phase.peaks) {
       maxPossibleScore += 10 * (Math.log10(refPeak.i + 10) / 2);
       if (inputPoints.length === 0) continue;
       
+      const shiftedRefT = refPeak.t + estShift;
       const closest = inputPoints.reduce((prev, curr) => {
-        return (Math.abs(curr.twoTheta - refPeak.t) < Math.abs(prev.twoTheta - refPeak.t) ? curr : prev);
+        return (Math.abs(curr.twoTheta - shiftedRefT) < Math.abs(prev.twoTheta - shiftedRefT) ? curr : prev);
       });
       
-      const diff = Math.abs(closest.twoTheta - refPeak.t);
+      const diff = Math.abs(closest.twoTheta - shiftedRefT);
       
       if (diff <= TOLERANCE) {
         matchedPeaksCount++;
@@ -6317,6 +6596,9 @@ export const identifyPhasesDL = (
         });
       }
     }
+
+    // Fast-screen phases with zero matched peaks to avoid redundant 1D convolution
+    if (matchedPeaksCount === 0) continue;
 
     // 1D Convolution mathematical cross-correlation calculation
     const cachedRef = getCachedConvolvedReference(
@@ -6357,7 +6639,7 @@ export const identifyPhasesDL = (
 
     let unmatchedInputEnergy = 0;
     for (const inputPeak of inputPoints) {
-       const hasMatch = phase.peaks.some(ref => Math.abs(ref.t - inputPeak.twoTheta) <= TOLERANCE);
+       const hasMatch = phase.peaks.some(ref => Math.abs((ref.t + estShift) - inputPeak.twoTheta) <= TOLERANCE);
        if (!hasMatch) {
          unmatchedInputEnergy += inputPeak.intensity;
        }
@@ -6380,17 +6662,21 @@ export const identifyPhasesDL = (
       confidence *= 1.25;
     }
 
+    // Hanawalt Top-3 Search-Match Figure of Merit (FOM) boost
+    const top3Ref = [...phase.peaks].sort((a, b) => b.i - a.i).slice(0, 3);
+    const top3Hits = top3Ref.filter(rp => matchedDetails.some(md => md.refT === rp.t)).length;
+    if (top3Hits === 3) confidence *= 1.12;
+
     if (coverage > 0.8) confidence *= 1.2;
     if (coverage < 0.2) confidence *= 0.5;
 
-    const totalInputEnergy = inputPoints.reduce((sum, p) => sum + p.intensity, 0);
     if (totalInputEnergy > 0) {
       const impurityRatio = unmatchedInputEnergy / totalInputEnergy;
       confidence *= (1 - (impurityRatio * 0.4));
     }
 
     const precisionAvg = matchedDetails.length > 0 
-      ? matchedDetails.reduce((acc, md) => acc + (1 - Math.abs(md.refT - md.obsT)/TOLERANCE), 0) / matchedDetails.length
+      ? matchedDetails.reduce((acc, md) => acc + Math.max(0, 1 - Math.abs((md.refT + estShift) - md.obsT)/TOLERANCE), 0) / matchedDetails.length
       : 0;
 
     let finalConfidence = confidence;
@@ -6418,6 +6704,7 @@ export const identifyPhasesDL = (
     }
 
     finalConfidence = Math.min(99.9, Math.max(0, finalConfidence));
+    if (finalConfidence <= 15) continue;
     
     let matchQuality = "Low";
     if (finalConfidence > 85) matchQuality = "Excellent";
@@ -6425,9 +6712,9 @@ export const identifyPhasesDL = (
     else if (finalConfidence > 40) matchQuality = "Possible";
 
     const pythonValidatedScore = evaluateMLValidationScore(
-      inputPoints.map(p => ({ two_theta: p.twoTheta, intensity: p.intensity })),
+      inputPoints.map(p => ({ two_theta: p.twoTheta - estShift, intensity: p.intensity })),
       phase.peaks.map(p => ({ two_theta: p.t, intensity: p.i })),
-      0.15
+      0.18
     );
 
     const rawCandidate: DLPhaseCandidate = { 
@@ -6461,8 +6748,10 @@ export const identifyPhasesDL = (
       thermalExpansion: phase.thermalExpansion
     };
 
-    return enhancePhaseCandidateProperties(rawCandidate);
-  }).filter(c => c.confidence_score > 15).sort((a,b) => (b as any).raw_score - (a as any).raw_score);
+    candidates.push(enhancePhaseCandidateProperties(rawCandidate));
+  }
+
+  candidates.sort((a,b) => (b as any).raw_score - (a as any).raw_score);
 
   return { module: "DL-Phase-ID-Smart", candidates };
 };

@@ -3025,10 +3025,76 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             </div>
           </motion.div>
         )}
+
+        {/* 5-Stage Deep Learning Pipeline Quick-Jump Navigation Ribbon */}
+        <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 relative z-10">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 mr-1">
+              Pipeline Stages:
+            </span>
+            {[
+              {
+                label: '1. Neural Workbench & Saliency',
+                anchor: 'dl-workbench-anchor',
+                badge: 'PINN / Grad-CAM'
+              },
+              {
+                label: '2. Data Ingestion & PDF-2 DB',
+                anchor: 'dl-ingestion-anchor',
+                badge: `${parsedPoints.length} pks`
+              },
+              {
+                label: '3. Executive Phase ID & RIR',
+                anchor: 'dl-executive-scorecard-anchor',
+                badge: `${result?.candidates?.length || 0} hits`
+              },
+              {
+                label: '4. Spectral Alignment',
+                anchor: 'ml-techniques-studio-anchor',
+                onClick: () => setResultsSubTab('alignment')
+              },
+              {
+                label: '5. ML Architecture Studio',
+                anchor: 'ml-techniques-studio-anchor',
+                onClick: () => setResultsSubTab('ml_techniques')
+              },
+              {
+                label: '6. Synthesis Intelligence',
+                anchor: 'synthesis-intelligence-studio',
+                badge: 'Wulff / JMAK'
+              }
+            ].map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => {
+                  if (item.onClick) item.onClick();
+                  document.getElementById(item.anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  playSynthTone('tick');
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-indigo-950/60 border border-slate-800 hover:border-indigo-500/40 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{item.label}</span>
+                {item.badge && (
+                  <span className="px-1.5 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {selectedCandidate && (
+            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 px-3 py-1 rounded-xl">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Primary Match: <strong>{selectedCandidate.phase_name}</strong> ({selectedCandidate.confidence_score.toFixed(1)}%)</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Interactive Neural Network Architecture, Layer Activation Probe & Multi-Task Prediction Workbench */}
-      <div className="lg:col-span-12">
+      <div id="dl-workbench-anchor" className="lg:col-span-12">
         <NeuralNetworkWorkbench
           parsedPoints={parsedPoints}
           selectedCandidate={selectedCandidate}
@@ -3055,7 +3121,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       </div>
 
       {/* Input Configuration & Top Panels */}
-      <div className="lg:col-span-12 flex flex-col gap-8">
+      <div id="dl-ingestion-anchor" className="lg:col-span-12 flex flex-col gap-8">
         {/* Advanced Engine Configuration (Collapsible for cleaner friendly view) */}
         {!showAdvancedHyperparameters && viewMode === 'standard' ? (
           <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
@@ -6127,15 +6193,15 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <span>
                             OPT: {engineConfig.optimization.toUpperCase()}
                           </span>
-                          <span>
-                            {idx === 2
-                              ? `CANDS: ~${(100 + Math.random() * 50).toFixed(0)}K`
-                              : `ACC: ${(95 + Math.random() * 4).toFixed(2)}%`}
-                          </span>
+                            <span>
+                              {idx === 2
+                                ? `CANDS: ~${(118 + (engineConfig.filters % 27)).toFixed(0)}K`
+                                : `ACC: ${(96.4 + ((idx * 1.1) % 2.4)).toFixed(2)}%`}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
                   {/* Layer Details & Visualizations */}
                   {(isActive || isCompleted) && (
@@ -6176,8 +6242,8 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 key={`bar-${i}`}
                                 className="flex-1 rounded-t-sm transition-all duration-300 relative z-10"
                                 style={{
-                                  backgroundColor: Math.random() > 0.8 ? '#a855f7' : '#8b5cf6',
-                                  height: `${10 + Math.random() * 90}%`,
+                                  backgroundColor: i % 5 === 0 ? '#a855f7' : '#8b5cf6',
+                                  height: `${15 + Math.abs(Math.sin(i * 0.45)) * 80}%`,
                                   animation: `pulse 1s ease-in-out infinite alternate`,
                                   animationDelay: `${i * 0.05}s`,
                                 }}
@@ -6294,9 +6360,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                       style={{ animationDelay: `${iIdx * 0.3}s` }}
                                     />
                                     {Array.from({ length: 48 }).map((_, i) => {
-                                      const isActive =
+                                      const detVal = Math.abs(Math.sin((i + 1) * (iIdx + 2) * 0.67));
+                                      const isActiveCell =
                                         engineConfig.dropout === 0 ||
-                                        Math.random() > engineConfig.dropout;
+                                        detVal > engineConfig.dropout;
                                         
                                       // Create varied patterns per filter map
                                       const isHighlight = i % (iIdx + 2) === 0 || (iIdx % 2 === 0 && i % 3 === 0);
@@ -6307,19 +6374,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                           key={`val-${i}`}
                                           className="flex-1 rounded-[1px] relative z-10 transition-all duration-500"
                                           style={{
-                                            backgroundColor: !isActive
+                                            backgroundColor: !isActiveCell
                                               ? "#0f172a"
                                               : isHighlight
                                                 ? "#a855f7" // bright purple
                                                 : isMed
                                                   ? "#7c3aed" // med purple
                                                   : "#1e293b", // dark
-                                            opacity: !isActive
+                                            opacity: !isActiveCell
                                               ? 0.1
-                                              : Math.random() * 0.7 + 0.3,
-                                            height: isActive && isHighlight ? "100%" : "60%",
-                                            marginTop: isActive && isHighlight ? "0" : "auto",
-                                            marginBottom: isActive && isHighlight ? "0" : "auto"
+                                              : detVal * 0.65 + 0.35,
+                                            height: isActiveCell && isHighlight ? "100%" : "60%",
+                                            marginTop: isActiveCell && isHighlight ? "0" : "auto",
+                                            marginBottom: isActiveCell && isHighlight ? "0" : "auto"
                                           }}
                                         />
                                       );
@@ -6371,7 +6438,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                <span className="text-[6.5px] text-slate-500 mb-1">LIVE TENSOR</span>
                                <div className="w-full flex gap-0.5 mt-1 opacity-70 justify-center">
                                  {Array.from({length: 6}).map((_, i) => (
-                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-cyan-500" style={{ opacity: Math.random() * 0.8 + 0.2 }} />
+                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-cyan-500" style={{ opacity: 0.35 + ((i * 19) % 60) / 100 }} />
                                  ))}
                                </div>
                             </div>
@@ -6394,7 +6461,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                <span className="text-[6.5px] text-slate-500 mb-1">CANDIDATES</span>
                                <div className="w-full flex gap-0.5 mt-1 opacity-70 justify-center">
                                  {Array.from({length: 6}).map((_, i) => (
-                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-emerald-500" style={{ opacity: Math.random() * 0.8 + 0.2 }} />
+                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-emerald-500" style={{ opacity: 0.4 + ((i * 23) % 55) / 100 }} />
                                  ))}
                                </div>
                             </div>
@@ -6408,19 +6475,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             {/* Scanning blips */}
                             <div className="absolute inset-0 flex gap-1 p-1 flex-wrap content-start overflow-hidden opacity-50">
                                {Array.from({length: 30}).map((_, i) => (
-                                 <div key={i} className={`w-3 h-1.5 rounded-sm ${Math.random() > 0.8 ? 'bg-cyan-500 animate-pulse' : 'bg-slate-800'}`} style={{ animationDelay: `${Math.random()}s` }} />
+                                 <div key={i} className={`w-3 h-1.5 rounded-sm ${i % 5 === 0 ? 'bg-cyan-500 animate-pulse' : 'bg-slate-800'}`} style={{ animationDelay: `${(i * 0.07).toFixed(2)}s` }} />
                                ))}
                             </div>
                             
                             <div className="relative z-10 bg-[#03060C]/80 px-2 py-1 rounded border border-slate-700/50 ml-1">
-                              <span className="text-slate-400 text-xs">SEARCH SPACE: <span className="text-cyan-400">{(100 + Math.random() * 50).toFixed(0)}K</span></span>
+                              <span className="text-slate-400 text-xs">SEARCH SPACE: <span className="text-cyan-400">128K</span></span>
                             </div>
                           </div>
 
                           <div className="w-full bg-[#03060C] h-2.5 rounded-full overflow-hidden border border-slate-800/80 p-0.5 shadow-inner mt-2">
                             <div
                               className="bg-gradient-to-r from-cyan-600 via-cyan-400 to-cyan-600 h-full rounded-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)] bg-[length:200%_100%]"
-                              style={{ width: `${10 + Math.random() * 80}%` }}
+                              style={{ width: `78%` }}
                             ></div>
                           </div>
                         </motion.div>
@@ -6461,7 +6528,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             
                             <div className="flex flex-col gap-1.5">
                               {Array.from({ length: 5 }).map((_, i) => {
-                                const prob = Math.random() * (100 - i * 15);
+                                const prob = Math.max(8, 92 - i * 19);
                                 return (
                                   <div key={`prob-${i}`} className="flex items-center gap-2">
                                     <span className="text-[7px] w-4 text-right text-emerald-600">P{i}</span>
@@ -6592,6 +6659,143 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
       {/* Results Section */}
       <div id="ml-techniques-studio-anchor" className="lg:col-span-12 space-y-6">
+        {/* Executive Neural Phase ID & Quantitative Chung RIR Scorecard */}
+        {result?.candidates && result.candidates.length > 0 && (() => {
+          const topCands = result.candidates.slice(0, 4);
+          // Compute Chung Reference Intensity Ratio (RIR) quantitative weight fractions W_alpha
+          const rirRatios = topCands.map((c, idx) => {
+            const densityVal = parseFloat(String(c.density || '3.2')) || 3.2;
+            const estRIR = Math.max(0.6, Math.min(8.5, densityVal * 0.68));
+            const maxMatchedI = c.matched_peaks && c.matched_peaks.length > 0
+              ? Math.max(...c.matched_peaks.map((mp: any) => mp.obsI || 50))
+              : Math.max(15, 100 - idx * 25);
+            const weightedFlux = (maxMatchedI * Math.pow(c.confidence_score / 100, 1.6)) / estRIR;
+            return { cand: c, estRIR, weightedFlux };
+          });
+          const sumFlux = rirRatios.reduce((acc, r) => acc + r.weightedFlux, 0) || 1;
+          const qpaItems = rirRatios.map(r => ({
+            ...r,
+            wtPct: Number(((r.weightedFlux / sumFlux) * 100).toFixed(1))
+          }));
+
+          return (
+            <div
+              id="dl-executive-scorecard-anchor"
+              className="bg-gradient-to-br from-[#070D1B] via-[#0A1224] to-[#070D1B] p-5 rounded-3xl border border-indigo-500/25 shadow-xl space-y-4"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
+                        Executive Neural Phase ID & Chung RIR Quantitative Scorecard
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono font-bold text-indigo-300">
+                        {isMixMode ? 'Multi-Phase Deconvolution' : 'Single / Primary Phase Mode'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      Click any candidate card to inspect its crystal structure, spectral alignment, and microstructure parameters
+                    </p>
+                  </div>
+                </div>
+
+                {/* 1-Click Cross-Module Export Bridges */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'bragg' }));
+                      playSynthTone('switch');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold transition-all cursor-pointer"
+                  >
+                    → Send to Bragg Engine
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'scherrer' }));
+                      playSynthTone('switch');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold transition-all cursor-pointer"
+                  >
+                    → Send to Scherrer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'wh' }));
+                      playSynthTone('switch');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold transition-all cursor-pointer"
+                  >
+                    → Send to Williamson-Hall
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {qpaItems.map(({ cand, estRIR, wtPct }, idx) => {
+                  const isSelected = selectedCandidate?.phase_name === cand.phase_name;
+                  return (
+                    <button
+                      key={cand.card_id || cand.phase_name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCandidate(cand);
+                        playSynthTone('tick');
+                      }}
+                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? 'bg-indigo-950/50 border-indigo-400 shadow-lg shadow-indigo-500/15 ring-1 ring-indigo-400/40'
+                          : 'bg-[#050A14]/90 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono font-bold text-slate-300">
+                            #{idx + 1} • {cand.card_id}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-mono font-black ${
+                              cand.confidence_score >= 85
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                : cand.confidence_score >= 65
+                                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                                : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                            }`}
+                          >
+                            {cand.confidence_score.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="text-sm font-black text-white truncate">
+                          {cand.phase_name}
+                        </div>
+                        <div className="text-xs font-mono text-indigo-300 truncate mt-0.5">
+                          {cand.formula} • {cand.crystalSystem || 'Crystalline'} ({cand.spaceGroup || 'P1'})
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+                        <span className="text-slate-400">
+                          Peaks: <strong className="text-white">{cand.matched_peaks?.length || 0}</strong> • RIR={estRIR.toFixed(1)}
+                        </span>
+                        <span className="text-emerald-400 font-bold">
+                          {wtPct}% wt
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Sub-view Switcher: Spectral Alignment vs ML Techniques Studio */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-xl">
           <div className="flex items-center gap-2 flex-wrap">
@@ -6728,154 +6932,125 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   </div>
                 )}
 
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 relative z-10">
-                  <div className="flex flex-1 items-center gap-6">
-                    <div className="relative group/icon cursor-default shrink-0">
-                      <div className="absolute inset-0 bg-violet-600/20 blur-2xl rounded-full group-hover/icon:bg-violet-500/40 transition-all duration-700 pointer-events-none" />
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#070D18] to-[#0B1221] rounded-2xl border border-violet-500/40 flex items-center justify-center relative shadow-[inset_0_2px_20px_rgba(255,255,255,0.05),0_5px_30px_rgba(139,92,246,0.2)] group-hover/icon:border-violet-400 transition-colors duration-500 overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-300/40 to-transparent" />
-                        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-violet-400/40 via-transparent to-transparent animate-pulse" />
-                        <Brain className="w-8 h-8 sm:w-10 sm:h-10 text-violet-400 drop-shadow-[0_0_12px_rgba(167,139,250,0.6)] group-hover/icon:scale-110 group-hover/icon:text-violet-300 transition-all duration-500 relative z-10" />
-                      </div>
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 mb-8 p-5 sm:p-6 bg-[#070B14] rounded-2xl border border-slate-800 relative z-10">
+                  <div className="flex items-start sm:items-center gap-4">
+                    <div className="w-14 h-14 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center shrink-0 text-indigo-400">
+                      <Brain className="w-7 h-7" />
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-center">
-                      <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight flex flex-wrap items-center gap-3">
-                        {t("Synthesis Intelligence", "Synthesis Intelligence")}
-                        <div className="flex items-center gap-2">
-                          <span className="hidden lg:flex px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs items-center gap-1.5 text-emerald-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(52,211,153,0.1)] uppercase font-bold">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                            Network Active
-                          </span>
-                          <span className="flex px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs items-center gap-1.5 text-amber-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(245,158,11,0.1)] uppercase font-bold">
-                            <ShieldAlert className="w-3 h-3" />
-                            Laboratory Verification Required
-                          </span>
-                        </div>
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-4 mt-2">
-                        <div className="flex gap-1.5 p-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
-                          {[...Array(5)].map((_, i) => (
-                            <div
-                              key={`integrity-dot-${i}`}
-                              className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? "bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" : "bg-slate-700"}`}
-                            />
-                          ))}
-                        </div>
-                        <div className="h-4 w-px bg-slate-700/50" />
-                        <p className="text-xs sm:text-sm font-black text-indigo-300/80 uppercase tracking-[0.2em] flex items-center gap-2">
-                          {t("Algorithm C-Score:", "Algorithm C-Score:")}
-                          <span className="text-white bg-indigo-500/20 px-2 py-0.5 rounded font-mono shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-                            {selectedCandidate.confidence_score.toFixed(1)}%
-                          </span>
-                        </p>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums text-slate-400 mb-1">
+                        <span className="text-emerald-400 font-semibold">● Neural Characterization Active</span>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          {t("Algorithm C-Score:", "Algorithm C-Score:")}{" "}
+                          <strong className="text-white">{selectedCandidate.confidence_score.toFixed(1)}%</strong>
+                        </span>
                         {selectedCandidate.mlValidationScore !== undefined && (
                           <>
-                            <div className="h-4 w-px bg-slate-700/50" />
-                            <p className="text-xs sm:text-sm font-black text-emerald-300/80 uppercase tracking-[0.2em] flex items-center gap-2">
-                              {t("Phys-ML Validation:", "Phys-ML Validation:")}
-                              <span className="text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded font-mono shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                                {selectedCandidate.mlValidationScore.toFixed(1)}%
-                              </span>
-                            </p>
+                            <span aria-hidden="true">·</span>
+                            <span>
+                              {t("Phys-ML Validation:", "Phys-ML Validation:")}{" "}
+                              <strong className="text-emerald-300">{selectedCandidate.mlValidationScore.toFixed(1)}%</strong>
+                            </span>
                           </>
                         )}
+                        <span aria-hidden="true">·</span>
+                        <span className="text-amber-300">Laboratory Verification Recommended</span>
                       </div>
+
+                      <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                        {t("Synthesis Intelligence & Material Metrology", "Synthesis Intelligence & Material Metrology")}
+                      </h3>
                     </div>
                   </div>
 
-                  <div className="flex flex-row md:flex-col lg:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
+                  <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
                     <button
-                      onClick={handleLatticeEstimation}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-emerald-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                      type="button"
+                      onClick={() => {
+                        document.getElementById("synthesis-intelligence-studio")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                        <Calculator className="w-5 h-5 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        <span className="text-xs font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {t("Structural AI", "Structural AI")}
-                        </span>
-                      </div>
+                      <FlaskConical className="w-3.5 h-3.5" />
+                      <span>Synthesis Reactor Studio</span>
                     </button>
                     <button
-                      onClick={handleGenerateReport}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-violet-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                      type="button"
+                      onClick={handleLatticeEstimation}
+                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                        <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
-                        <span className="text-xs font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {t("Export Logic", "Export Logic")}
-                        </span>
-                      </div>
+                      <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{t("Structural AI", "Structural AI")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGenerateReport}
+                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-violet-400" />
+                      <span>{t("Export Logic", "Export Logic")}</span>
                     </button>
                     {pythonFeaturesEnabled && (
                       <button
+                        type="button"
                         onClick={handleExportPythonML}
-                        className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-fuchsia-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-t from-fuchsia-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                        <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                          <Cpu className="w-5 h-5 text-fuchsia-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]" />
-                          <span className="text-xs font-black text-slate-300 group-hover:text-fuchsia-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                            {t("Export ML Script", "Export ML Script")}
-                          </span>
-                        </div>
+                        <Cpu className="w-3.5 h-3.5 text-fuchsia-400" />
+                        <span>{t("Export ML Script", "Export ML Script")}</span>
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={handleRunExpertAI}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-slate-800/80 hover:border-slate-700 hover:border-cyan-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                        <Brain className="w-5 h-5 text-cyan-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
-                        <span className="text-xs font-black text-slate-300 group-hover:text-cyan-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {t("AI Phase Analysis", "AI Phase Analysis")}
-                        </span>
-                      </div>
+                      <Brain className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{t("AI Phase Analysis", "AI Phase Analysis")}</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-fr">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr">
                   {/* Identity Card */}
-                  <div className="md:col-span-12 group">
-                    <div className="bg-[#050A14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-slate-800/80 hover:border-slate-700 shadow-2xl h-full flex flex-col relative overflow-hidden transition-all duration-500 hover:border-violet-500/40 hover:shadow-[0_0_50px_rgba(139,92,246,0.15)]">
-                      <div className="absolute -top-32 -right-32 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-violet-500/20 transition-all duration-700" />
-                      <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-cyan-600/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/20 transition-all duration-700" />
-
-                      {/* Corner accents */}
-                      <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/10 rounded-tl-[2.5rem]" />
-                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/10 rounded-br-[2.5rem]" />
-
-                      <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6 mb-6 relative z-10">
-                        <h2
-                          style={{ fontSize: "clamp(2rem, 5vw, 4.5rem)" }}
-                          className="font-black text-white tracking-tighter leading-none group-hover:text-violet-200 transition-colors duration-500 drop-shadow-[-3px_3px_10px_rgba(0,0,0,0.8)]"
-                        >
-                          {selectedCandidate.phase_name}
-                        </h2>
+                  <div className="md:col-span-12">
+                    <div className="bg-[#070B14] p-6 sm:p-8 rounded-2xl border border-slate-800 h-full flex flex-col relative overflow-hidden">
+                      <div className="flex flex-wrap items-baseline justify-between gap-4 mb-3 relative z-10">
+                        <div className="flex flex-wrap items-baseline gap-3">
+                          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                            {selectedCandidate.phase_name}
+                          </h2>
+                          <span className="text-lg font-mono font-bold text-indigo-400">
+                            {selectedCandidate.formula}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+                          <span className="text-emerald-400 font-semibold">
+                            {selectedCandidate.materialType || "Crystalline Phase"}
+                          </span>
+                          {selectedCandidate.crystalSystem && (
+                            <>
+                              <span>·</span>
+                              <span>{selectedCandidate.crystalSystem}</span>
+                            </>
+                          )}
+                          {selectedCandidate.spaceGroup && (
+                            <>
+                              <span>·</span>
+                              <span className="text-indigo-300">SG {selectedCandidate.spaceGroup}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-3 mb-8 relative z-10">
-                        <span className="px-5 py-2.5 bg-gradient-to-br from-violet-500/20 to-violet-500/5 text-violet-300 text-sm md:text-base font-mono font-black rounded-xl border border-violet-500/40 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:border-violet-400 transition-colors">
-                          {selectedCandidate.formula}
-                        </span>
-                        <span className="px-5 py-2.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] text-emerald-400 text-xs md:text-sm font-black uppercase tracking-[0.25em] rounded-xl border border-slate-800/80 hover:border-slate-700 shadow-inner hover:border-emerald-500/40 transition-colors flex items-center justify-center">
-                          {selectedCandidate.materialType || "Standard Matrix"}
-                        </span>
-                      </div>
 
-                      <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-3xl relative z-10 mb-10 font-medium">
+                      <p className="text-sm text-slate-300 leading-relaxed max-w-3xl relative z-10 mb-6">
                         {selectedCandidate.description ||
                           "Phase identification complete. Detailed morphological synthesis and mechanical property mapping for this specific lattice configuration are being processed by the intelligence engine."}
                       </p>
 
-                      <div className="mt-auto pt-8 border-t border-slate-800/80 hover:border-slate-700 grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 bg-gradient-to-t from-[#0B1221] to-transparent -mx-8 sm:-mx-10 px-8 sm:px-10 -mb-8 sm:-mb-10 pb-8 sm:pb-10 rounded-b-[2.5rem]">
+                      <div className="mt-auto pt-5 border-t border-slate-800 grid grid-cols-2 md:grid-cols-6 gap-4 relative z-10">
                         {[
                           {
                             label: "Molecular Wt",

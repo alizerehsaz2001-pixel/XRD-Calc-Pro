@@ -608,9 +608,17 @@ export const ReciprocalSpaceProbe3D: React.FC<ReciprocalSpaceProbe3DProps> = ({
         }
       }
     }
-    setHoveredNode(found);
+    setHoveredNode((prev) => {
+      if (prev === null && found === null) return prev;
+      if (prev && found && prev[0] === found[0] && prev[1] === found[1] && prev[2] === found[2]) {
+        return prev;
+      }
+      return found;
+    });
     if (found) {
-      setManualProbe(found);
+      setManualProbe((prev) =>
+        prev[0] === found[0] && prev[1] === found[1] && prev[2] === found[2] ? prev : found
+      );
     }
   };
 
@@ -643,9 +651,13 @@ export const ReciprocalSpaceProbe3D: React.FC<ReciprocalSpaceProbe3DProps> = ({
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+    if (canvas.width !== targetW || canvas.height !== targetH) {
+      canvas.width = targetW;
+      canvas.height = targetH;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const width = rect.width;
     const height = rect.height;

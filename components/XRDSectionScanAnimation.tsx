@@ -69,8 +69,16 @@ export const XRDSectionScanAnimation: React.FC<XRDSectionScanAnimationProps> = (
   const [scanAngle, setScanAngle] = useState(10);
   const [sectionData, setSectionData] = useState<XRDSectionInfo | null>(null);
 
+  const isInitialMountRef = React.useRef(true);
+
   useEffect(() => {
     if (!activeModule) return;
+
+    // Skip blocking scan animation on initial application boot for instant startup
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
 
     const meta = SECTION_METADATA[activeModule] || {
       name: activeModule.toUpperCase().replace('_', ' '),
@@ -98,7 +106,7 @@ export const XRDSectionScanAnimation: React.FC<XRDSectionScanAnimationProps> = (
     } catch {}
 
     const startTime = Date.now();
-    const duration = 520; // ms
+    const duration = 340; // ms
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -113,9 +121,9 @@ export const XRDSectionScanAnimation: React.FC<XRDSectionScanAnimationProps> = (
         setTimeout(() => {
           setIsScanning(false);
           if (onAnimationComplete) onAnimationComplete();
-        }, 120);
+        }, 80);
       }
-    }, 25);
+    }, 50);
 
     return () => clearInterval(interval);
   }, [activeModule]);

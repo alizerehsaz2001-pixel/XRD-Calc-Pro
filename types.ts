@@ -470,6 +470,8 @@ export interface IBModelComparisonItem {
   fStatistic?: number;
   slope: number;
   intercept: number;
+  rawOlsIntercept?: number;
+  fitRegime?: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized';
   description: string;
   isBestFit?: boolean;
 }
@@ -489,9 +491,16 @@ export interface IBAdvancedResult {
   sizeInterceptNm: number;
   sizeErrorNm?: number;
   areaWeightedSizeNm?: number;
+  meanSphericalDiameterNm?: number;
+  polydispersityRatioDvDa?: number;
+  logNormalSigmaG?: number;
+  meanCauchyFraction?: number;
+  fitRegime?: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized';
   regression: {
     slope: number;
     intercept: number;
+    rawOlsSlope?: number;
+    rawOlsIntercept?: number;
     rSquared: number;
     adjustedRSquared?: number;
     pearsonR?: number;

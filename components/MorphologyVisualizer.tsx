@@ -18,7 +18,7 @@ export const MorphologyVisualizer = ({
   const [isDragging, setIsDragging] = useState(false);
 
   // Interactive visual overlays
-  const [autoRotate, setAutoRotate] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(false);
   const [showLatticePlanes, setShowLatticePlanes] = useState(true);
   const [showNormals, setShowNormals] = useState(false);
 
@@ -31,13 +31,12 @@ export const MorphologyVisualizer = ({
   const estimatedPlanesN = Math.max(4, Math.round((safeSize * 10) / Math.max(1.2, dSpacing)));
 
   useEffect(() => {
+    if (!autoRotate || isDragging) return;
     let lastTime = performance.now();
 
     const tick = (time: number) => {
-      if (autoRotate && !isDragging) {
-        const delta = (time - lastTime) / 1000;
-        setAngleY(prev => (prev + delta * 14) % 360);
-      }
+      const delta = (time - lastTime) / 1000;
+      setAngleY(prev => (prev + delta * 14) % 360);
       lastTime = time;
       animFrameRef.current = requestAnimationFrame(tick);
     };
