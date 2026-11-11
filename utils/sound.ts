@@ -1,6 +1,7 @@
 /**
- * Web Audio-based scientific synthesizer soundboard
- * Integrates responsive retro chimes and beeps to reinforce tactile UI craftsmanship
+ * Silent-by-default laboratory audio feedback utility.
+ * Routine click/tab/slider tones ('tick', 'switch', 'action') are permanently suppressed
+ * so the XRD suite behaves like a quiet laboratory instrument (HighScore Plus, GSAS-II, TOPAS).
  */
 let sharedAudioCtx: AudioContext | null = null;
 
@@ -17,118 +18,45 @@ function getSharedAudioContext(): AudioContext | null {
   return sharedAudioCtx;
 }
 
-export const playSynthTone = (type: 'tick' | 'success' | 'error' | 'switch' | 'chime' | 'action' | 'xrd_scan' | 'xrd_beam') => {
+export const playSynthTone = (
+  type: 'tick' | 'success' | 'error' | 'switch' | 'chime' | 'action' | 'xrd_scan' | 'xrd_beam'
+) => {
   try {
+    // Suppress all routine click, switch, and slider ticks unconditionally
+    if (type === 'tick' || type === 'switch' || type === 'action') {
+      return;
+    }
+
+    // Muted by default unless explicitly enabled by user in Settings
     const isSound = localStorage.getItem('xrd_sound') === 'true';
     if (!isSound) return;
 
-    // Retrieve or initialize audio context
     const ctx = getSharedAudioContext();
     if (!ctx) return;
-    
+
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
-    
-    if (type === 'tick') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(900, ctx.currentTime);
-      gainNode.gain.setValueAtTime(0.008, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } 
-    else if (type === 'xrd_scan') {
-      // High-tech dual-frequency XRD beam frequency chirp (880Hz -> 1760Hz sweep)
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-      osc.frequency.exponentialRampToValueAtTime(1318.51, ctx.currentTime + 0.16); // E6
-      gainNode.gain.setValueAtTime(0.02, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
-      
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(1318.51, ctx.currentTime);
-      osc2.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.2);
-      gain2.gain.setValueAtTime(0.012, ctx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.24);
 
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.22);
-      osc2.start();
-      osc2.stop(ctx.currentTime + 0.24);
-    }
-    else if (type === 'xrd_beam') {
-      // Harmonic resonance for XRD lattice constructive interference
+    if (type === 'success' || type === 'chime' || type === 'xrd_scan' || type === 'xrd_beam') {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, ctx.currentTime); // A4
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
-      gainNode.gain.setValueAtTime(0.025, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      gainNode.gain.setValueAtTime(0.012, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.14);
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.28);
-    } 
-    else if (type === 'success' || type === 'chime') {
-      // Arpeggio chime
-      const osc2 = ctx.createOscillator();
-      const gainNode2 = ctx.createGain();
-      
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.06); // E5
-      gainNode.gain.setValueAtTime(0.03, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
-      
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(783.99, ctx.currentTime + 0.12); // G5
-      osc2.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.18); // C6
-      gainNode2.gain.setValueAtTime(0.02, ctx.currentTime + 0.12);
-      gainNode2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
-      
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc2.connect(gainNode2);
-      gainNode2.connect(ctx.destination);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-      osc2.start(ctx.currentTime + 0.12);
-      osc2.stop(ctx.currentTime + 0.35);
-    } 
-    else if (type === 'error') {
-      // Dissonant descending synth-alarm
-      osc.type = 'sawtooth';
+      osc.stop(ctx.currentTime + 0.14);
+    } else if (type === 'error') {
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(220, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.25);
-      gainNode.gain.setValueAtTime(0.04, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
-      osc.connect(gainNode);
-      gainNode.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.25);
-    } 
-    else if (type === 'switch' || type === 'action') {
-      // Soft modern blip
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(329.63, ctx.currentTime); // E4
-      osc.frequency.setValueAtTime(440.00, ctx.currentTime + 0.05); // A4
       gainNode.gain.setValueAtTime(0.015, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.16);
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.18);
+      osc.stop(ctx.currentTime + 0.16);
     }
-  } catch (e) {
-    console.warn('Web Audio Playback blocked or unsupported:', e);
+  } catch {
+    // Silent fallback
   }
 };

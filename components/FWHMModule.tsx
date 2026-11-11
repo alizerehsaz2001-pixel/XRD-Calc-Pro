@@ -21,6 +21,7 @@ import { OriginProFWHMPlotter } from './OriginProFWHMPlotter';
 import { InteractiveResidualSubplot } from './profile/InteractiveResidualSubplot';
 import { LiveComponentDeconstructionCard, DeconstructedComponentItem } from './profile/LiveComponentDeconstructionCard';
 import { LineProfileAnalyticsHeader } from './profile/LineProfileAnalyticsHeader';
+import { LineProfileCadSchematic } from './profile/LineProfileCadSchematic';
 import { downsampleLTTB } from '../utils/performanceOptimizer';
 import {
   ComposedChart,
@@ -541,6 +542,8 @@ export const FWHMModule: React.FC = () => {
   const [hoveredPointData, setHoveredPointData] = useState<{ x: number; y: number; cleanY: number; dSpacing: number; qVector: number; relPct: number } | null>(null);
   const [clickAction, setClickAction] = useState<'centroid' | 'caliper'>('centroid');
   const [visualizerSubPanel, setVisualizerSubPanel] = useState<'presets' | 'slicing' | 'dials' | 'overlays' | 'scale' | 'none'>('presets');
+  const [cadGraphicMode, setCadGraphicMode] = useState<'calipers' | 'kernels' | 'doublet'>('calipers');
+  const [showCadSchematic, setShowCadSchematic] = useState<boolean>(true);
 
   // Enhanced FWHM & Profile Analysis Overlays
   const [sliceMode, setSliceMode] = useState<'fwhm' | 'fwtm' | 'fwfm' | 'fwem' | 'custom'>('fwhm');
@@ -4245,40 +4248,57 @@ export const FWHMModule: React.FC = () => {
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Main interactive Chart Container */}
             <div 
-              className="bg-white dark:bg-slate-900 p-5 lg:p-7 rounded-2xl border-2 border-slate-300 dark:border-slate-800 relative overflow-hidden shadow-md"
+              className="bg-[#0B0F19] p-5 lg:p-6 rounded-xl border border-slate-800 relative overflow-hidden shadow-2xl"
               ref={chartContainerRef}
               onMouseEnter={() => setIsHovered(true)} 
               onMouseLeave={() => setIsHovered(false)}
             >
           {/* Header & Controls Toolbar */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 gap-3 z-10">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between pb-4 mb-4 border-b border-slate-800/80 gap-3 z-10">
             <div>
-              <h3 className="text-xl lg:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-                <Activity className="w-5 h-5 text-indigo-500" />
-                Line Profile Peak Visualizer
-              </h3>
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                <span className="font-medium text-slate-700 dark:text-slate-300">
-                  {type} {type === 'Pseudo-Voigt' ? `(η=${(extSim.stats.effEta * 100).toFixed(0)}%)` : ''}
+              <div className="flex items-center gap-2.5">
+                <Activity className="w-4 h-4 text-sky-400" />
+                <h3 className="text-lg lg:text-xl font-bold tracking-tight text-slate-100">
+                  Line Profile Peak Visualizer
+                </h3>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 border-l border-slate-800 pl-2.5">
+                  Bragg Reflection Metrology
                 </span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
-                  β_obs = {extSim.stats.effTchFwhm.toFixed(4)}°
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-[11px] font-mono tabular-nums text-slate-400">
+                <span>
+                  Kernel <strong className="text-sky-400">{type}{type === 'Pseudo-Voigt' ? ` (η=${(extSim.stats.effEta * 100).toFixed(0)}%)` : ''}</strong>
                 </span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                  120 FPS
+                <span className="text-slate-700">|</span>
+                <span>
+                  2θ₀ <strong className="text-slate-200">{center.toFixed(4)}°</strong>
+                </span>
+                <span className="text-slate-700">|</span>
+                <span>
+                  β_obs <strong className="text-amber-400">{extSim.stats.effTchFwhm.toFixed(4)}°</strong>
+                </span>
+                <span className="text-slate-700">|</span>
+                <span>
+                  β_IB <strong className="text-emerald-400">{(stats?.integralBreadth ?? extSim.stats.effTchFwhm).toFixed(4)}°</strong>
+                </span>
+                <span className="text-slate-700">|</span>
+                <span>
+                  φ <strong className="text-purple-400">{stats?.shapeFactor ? stats.shapeFactor.toFixed(3) : (extSim.stats.effTchFwhm / Math.max(0.0001, stats?.integralBreadth ?? extSim.stats.effTchFwhm)).toFixed(3)}</strong>
+                </span>
+                <span className="text-slate-700">|</span>
+                <span>
+                  d_hkl <strong className="text-sky-300">{extSim.stats.dSpacing.toFixed(4)} Å</strong>
                 </span>
                 {showModelComparison && (
                   <>
-                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                    <span className="text-amber-600 dark:text-amber-400 font-medium">Model Compare Active</span>
+                    <span className="text-slate-700">|</span>
+                    <span className="text-amber-400 font-semibold">5-Kernel Shootout</span>
                   </>
                 )}
                 {isCaliperMode && (
                   <>
-                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                    <span className="text-slate-700">|</span>
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
                       <Ruler className="w-3 h-3 inline" /> Caliper Active
                     </span>
                   </>
@@ -4289,7 +4309,7 @@ export const FWHMModule: React.FC = () => {
             {/* Quick Action Toolbar - Organized into logical groups */}
             <div className="flex flex-wrap items-center gap-2">
               {/* Primary Modes Group */}
-              <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700/80">
+              <div className="flex items-center p-0.5 bg-[#070A12] rounded-lg border border-slate-800">
                 <button
                   onClick={() => {
                     setEnableMultiPeakMode(false);
@@ -4298,8 +4318,8 @@ export const FWHMModule: React.FC = () => {
                   }}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     !enableMultiPeakMode && !showModelComparison && !enableKaDoublet
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-sky-500/15 text-sky-300 border border-sky-500/40 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                   title="Single Peak Standard Mode"
                 >
@@ -4309,8 +4329,8 @@ export const FWHMModule: React.FC = () => {
                   onClick={() => setEnableMultiPeakMode(!enableMultiPeakMode)}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
                     enableMultiPeakMode 
-                      ? 'bg-purple-600 text-white shadow-2xs font-semibold' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold' 
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                   title="Toggle Custom Multi-Peak Manual Deconvolution Mode"
                 >
@@ -4321,8 +4341,8 @@ export const FWHMModule: React.FC = () => {
                   onClick={() => setShowModelComparison(!showModelComparison)}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
                     showModelComparison 
-                      ? 'bg-amber-600 text-white shadow-2xs font-semibold' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold' 
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                   title="Compare Gaussian vs Lorentzian vs Pseudo-Voigt vs Pearson VII models"
                 >
@@ -4333,8 +4353,8 @@ export const FWHMModule: React.FC = () => {
                   onClick={() => setEnableKaDoublet(!enableKaDoublet)}
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 cursor-pointer ${
                     enableKaDoublet 
-                      ? 'bg-amber-600 text-white shadow-2xs font-semibold' 
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold' 
+                      : 'text-slate-400 hover:text-slate-200'
                   }`}
                   title="Toggle Cu Kα₁/Kα₂ Doublet Splitting"
                 >
@@ -4346,9 +4366,22 @@ export const FWHMModule: React.FC = () => {
               {/* Primary Actions */}
               <div className="flex items-center gap-1.5">
                 <button
+                  onClick={() => setShowCadSchematic(!showCadSchematic)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer border ${
+                    showCadSchematic
+                      ? 'bg-sky-500/15 text-sky-300 border-sky-500/40 font-semibold'
+                      : 'bg-[#070A12] text-slate-400 border-slate-800 hover:text-slate-200'
+                  }`}
+                  title="Toggle 3-Mode Interactive SVG CAD Line Profile Metrology Schematic"
+                >
+                  <Scan className="w-3.5 h-3.5" />
+                  CAD Schematic
+                </button>
+
+                <button
                   onClick={autoFitPeakModel}
                   disabled={isFitting}
-                  className="px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs disabled:opacity-50"
+                  className="px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer bg-sky-600 hover:bg-sky-500 text-white shadow-2xs disabled:opacity-50"
                   title="Perform Non-Linear Least Squares Auto-Fit on observed peak data"
                 >
                   <Wand2 className={`w-3.5 h-3.5 ${isFitting ? 'animate-spin' : ''}`} />
@@ -4365,8 +4398,8 @@ export const FWHMModule: React.FC = () => {
                   }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer border ${
                     isCaliperMode 
-                      ? 'bg-emerald-600 text-white border-emerald-500 font-semibold' 
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold' 
+                      : 'bg-[#070A12] text-slate-300 border-slate-800 hover:bg-slate-800'
                   }`}
                   title="Toggle 2-Point Caliper Measurement"
                 >
@@ -4378,8 +4411,8 @@ export const FWHMModule: React.FC = () => {
                   onClick={toggleSolitudeMode}
                   className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 cursor-pointer border ${
                     isSolitudeMode 
-                      ? 'bg-amber-500 text-white border-amber-400 font-semibold' 
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold' 
+                      : 'bg-[#070A12] text-slate-300 border-slate-800 hover:bg-slate-800'
                   }`}
                   title="Toggle Solitude View: Instantly hide noise and clutter for pure clean peak curve"
                 >
@@ -4928,43 +4961,68 @@ export const FWHMModule: React.FC = () => {
             )}
           </div>
 
+          {/* 3-Mode Interactive SVG CAD Line Profile Metrology Schematic */}
+          {showCadSchematic && (
+            <LineProfileCadSchematic
+              type={type}
+              center={center}
+              fwhm={fwhm}
+              eta={eta}
+              pearsonM={pearsonM}
+              amplitude={amplitude}
+              background={background}
+              asymmetry={asymmetry}
+              enableKaDoublet={enableKaDoublet}
+              stats={extSim.stats}
+              onSnapCaliper={(ptA, ptB) => {
+                setIsCaliperMode(true);
+                setCaliperPointA(ptA);
+                setCaliperPointB(ptB);
+              }}
+            />
+          )}
+
           {/* Real-Time Live Crosshair & Crystallographic Coordinate Ticker Bar */}
-          <div className="p-3 mb-3 bg-slate-900 text-slate-100 rounded-xl border-2 border-indigo-500/60 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+          <div className="px-3.5 py-2.5 mb-3 bg-[#070A12] text-slate-100 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-mono tabular-nums">
             <div className="flex items-center gap-2.5">
-              <span className="p-1.5 bg-indigo-600/30 rounded-lg text-indigo-300 font-extrabold flex items-center gap-1.5 text-xs">
-                <Crosshair className="w-4 h-4 text-indigo-400 animate-spin-slow" />
-                {hoveredPointData ? 'INSPECTOR CROSSHAIR:' : 'CENTROID SUMMARY:'}
+              <span className="px-2 py-1 bg-sky-500/15 border border-sky-500/30 rounded text-sky-300 font-bold flex items-center gap-1.5 text-[11px]">
+                <Crosshair className="w-3.5 h-3.5 text-sky-400" />
+                {hoveredPointData ? 'CROSSHAIR TRACE' : 'CENTROID LOCK'}
               </span>
 
               {hoveredPointData ? (
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 text-[10px] block">Angle 2θ:</span>
-                    <strong className="text-amber-300 font-bold text-sm">
+                    <span className="text-slate-500 text-[10px] block">Angle 2θ</span>
+                    <strong className="text-amber-300 font-bold text-xs">
                       {hoveredPointData.x.toFixed(4)}°
                     </strong>
                   </div>
+                  <span className="text-slate-800">|</span>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">{showNetIntensity ? 'Net Intensity:' : 'Obs Intensity:'}</span>
-                    <strong className="text-indigo-300 font-bold text-sm">
+                    <span className="text-slate-500 text-[10px] block">{showNetIntensity ? 'Net Intensity' : 'Obs Intensity'}</span>
+                    <strong className="text-sky-300 font-bold text-xs">
                       {showNetIntensity ? Math.max(0, hoveredPointData.cleanY - background).toFixed(1) : hoveredPointData.cleanY.toFixed(1)} cps
                     </strong>
                   </div>
+                  <span className="text-slate-800">|</span>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">Relative I/I_max:</span>
-                    <strong className="text-emerald-300 font-bold text-sm">
+                    <span className="text-slate-500 text-[10px] block">Rel. I/I_max</span>
+                    <strong className="text-emerald-300 font-bold text-xs">
                       {hoveredPointData.relPct.toFixed(1)}%
                     </strong>
                   </div>
+                  <span className="text-slate-800">|</span>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">d-Spacing:</span>
-                    <strong className="text-cyan-300 font-bold text-sm">
+                    <span className="text-slate-500 text-[10px] block">d-Spacing</span>
+                    <strong className="text-sky-300 font-bold text-xs">
                       {hoveredPointData.dSpacing.toFixed(4)} Å
                     </strong>
                   </div>
+                  <span className="text-slate-800">|</span>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">Q-Vector:</span>
-                    <strong className="text-purple-300 font-bold text-sm">
+                    <span className="text-slate-500 text-[10px] block">Q-Vector</span>
+                    <strong className="text-purple-300 font-bold text-xs">
                       {hoveredPointData.qVector.toFixed(4)} Å⁻¹
                     </strong>
                   </div>
@@ -4972,23 +5030,26 @@ export const FWHMModule: React.FC = () => {
               ) : (
                 <div className="flex flex-wrap items-center gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 text-[10px] block">Centroid 2θ₀:</span>
-                    <strong className="text-white font-bold text-sm">{center.toFixed(4)}°</strong>
+                    <span className="text-slate-500 text-[10px] block">Centroid 2θ₀</span>
+                    <strong className="text-slate-100 font-bold text-xs">{center.toFixed(4)}°</strong>
                   </div>
+                  <span className="text-slate-800">|</span>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">FWHM β:</span>
-                    <strong className="text-indigo-300 font-bold text-sm">{extSim.stats.effTchFwhm.toFixed(4)}°</strong>
+                    <span className="text-slate-500 text-[10px] block">FWHM β_obs</span>
+                    <strong className="text-amber-400 font-bold text-xs">{extSim.stats.effTchFwhm.toFixed(4)}°</strong>
                   </div>
+                  <span className="text-slate-800">|</span>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">d-Spacing d₀:</span>
-                    <strong className="text-emerald-300 font-bold text-sm">{extSim.stats.dSpacing.toFixed(4)} Å</strong>
+                    <span className="text-slate-500 text-[10px] block">d-Spacing d₀</span>
+                    <strong className="text-emerald-400 font-bold text-xs">{extSim.stats.dSpacing.toFixed(4)} Å</strong>
                   </div>
+                  <span className="text-slate-800">|</span>
                   <div>
-                    <span className="text-slate-400 text-[10px] block">Peak Height I₀:</span>
-                    <strong className="text-amber-300 font-bold text-sm">{amplitude.toFixed(0)} cps</strong>
+                    <span className="text-slate-500 text-[10px] block">Peak Height I₀</span>
+                    <strong className="text-sky-300 font-bold text-xs">{amplitude.toFixed(0)} cps</strong>
                   </div>
-                  <span className="text-[11px] text-slate-400 hidden xl:inline-block ml-2 border-l border-slate-700 pl-3">
-                    Hover graph to trace point coordinates • Click graph to reposition centroid
+                  <span className="text-[11px] font-sans text-slate-500 hidden xl:inline-block ml-2 border-l border-slate-800 pl-3">
+                    Hover plot to trace coordinates · Click plot to set centroid or caliper points
                   </span>
                 </div>
               )}
@@ -4996,7 +5057,7 @@ export const FWHMModule: React.FC = () => {
 
             {/* Quick Zoom Presets & Click Mode */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-1 bg-[#0B0F19] p-1 rounded-lg border border-slate-800">
                 <span className="text-[10px] font-sans font-bold text-slate-400 px-1">Zoom:</span>
                 <button
                   onClick={() => setZoomRange(0.4)}
@@ -5248,14 +5309,14 @@ export const FWHMModule: React.FC = () => {
 
           {/* Recharts Figure */}
           <div className={`w-full transition-all duration-300 relative z-10 ${
-            plotTheme === 'lab_dark' ? 'bg-slate-950 p-3 rounded-2xl border border-slate-800' :
-            plotTheme === 'journal' ? 'bg-white p-3 rounded-2xl border border-slate-300 shadow-sm' :
-            plotTheme === 'monochrome' ? 'bg-zinc-50 dark:bg-zinc-900 p-3 rounded-2xl border border-zinc-400' : ''
+            plotTheme === 'journal' ? 'bg-white p-3 rounded-xl border border-slate-300 shadow-sm' :
+            plotTheme === 'monochrome' ? 'bg-zinc-50 dark:bg-zinc-900 p-3 rounded-xl border border-zinc-400' :
+            'bg-[#070A12] p-3.5 rounded-xl border border-slate-800 shadow-inner'
           } ${isExpandedChart ? 'h-[640px] lg:h-[720px]' : 'h-[460px] lg:h-[520px]'}`}>
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart 
                 data={chartData} 
-                margin={{ top: 20, right: 35, left: 15, bottom: 25 }}
+                margin={{ top: 22, right: 35, left: 15, bottom: 25 }}
                 onMouseMove={(state: any) => {
                   if (state && state.activePayload && state.activePayload.length) {
                     const pt = state.activePayload[0].payload;
@@ -5296,45 +5357,46 @@ export const FWHMModule: React.FC = () => {
               >
                 <defs>
                   <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="0%" stopColor={plotTheme === 'monochrome' ? '#52525b' : '#6366f1'} stopOpacity={0.65}/>
-                     <stop offset="50%" stopColor={plotTheme === 'monochrome' ? '#71717a' : '#6366f1'} stopOpacity={0.25}/>
-                     <stop offset="100%" stopColor={plotTheme === 'monochrome' ? '#a1a1aa' : '#6366f1'} stopOpacity={0.05}/>
+                     <stop offset="0%" stopColor={plotTheme === 'monochrome' ? '#52525b' : '#38BDF8'} stopOpacity={0.38}/>
+                     <stop offset="55%" stopColor={plotTheme === 'monochrome' ? '#71717a' : '#38BDF8'} stopOpacity={0.12}/>
+                     <stop offset="100%" stopColor={plotTheme === 'monochrome' ? '#a1a1aa' : '#38BDF8'} stopOpacity={0.02}/>
                   </linearGradient>
                   <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                    <rect width="1.5" height="6" transform="translate(0,0)" fill={plotTheme === 'lab_dark' ? '#334155' : '#475569'} opacity="0.35"></rect>
+                    <rect width="1.5" height="6" transform="translate(0,0)" fill={plotTheme === 'journal' ? '#94a3b8' : '#334155'} opacity="0.35"></rect>
                   </pattern>
                 </defs>
                 <CartesianGrid 
                   strokeDasharray="3 3" 
-                  stroke={plotTheme === 'lab_dark' ? '#334155' : plotTheme === 'journal' ? '#cbd5e1' : '#94a3b8'} 
-                  strokeOpacity={plotTheme === 'lab_dark' ? 0.6 : 0.5} 
-                  strokeWidth={1.2} 
+                  stroke={plotTheme === 'journal' ? '#cbd5e1' : '#1E293B'} 
+                  strokeOpacity={plotTheme === 'journal' ? 0.6 : 0.85} 
+                  strokeWidth={1} 
                 />
                 
                 <XAxis 
                   dataKey="x" 
                   type="number" 
                   domain={['dataMin', 'dataMax']} 
-                  tick={{fontSize: 12, fill: plotTheme === 'lab_dark' ? '#cbd5e1' : '#334155', fontWeight: 700}}
+                  tick={{fontSize: 11, fill: plotTheme === 'journal' ? '#334155' : '#94A3B8', fontFamily: 'monospace', fontWeight: 600}}
                   label={{ 
                     value: 'Diffraction Angle 2θ (°)', 
                     position: 'bottom', 
                     offset: 5, 
-                    fill: plotTheme === 'lab_dark' ? '#e2e8f0' : '#0f172a', 
-                    fontSize: 13, 
-                    fontWeight: 800 
+                    fill: plotTheme === 'journal' ? '#0f172a' : '#E2E8F0', 
+                    fontSize: 12, 
+                    fontFamily: 'monospace',
+                    fontWeight: 700 
                   }}
                   tickFormatter={(val) => val != null && !isNaN(Number(val)) ? Number(val).toFixed(2) : ''}
-                  axisLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
-                  tickLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
+                  axisLine={{ stroke: plotTheme === 'journal' ? '#475569' : '#334155', strokeWidth: 1.5 }}
+                  tickLine={{ stroke: plotTheme === 'journal' ? '#475569' : '#334155', strokeWidth: 1.5 }}
                 />
                 <YAxis 
                   domain={yScaleMode === 'log10' ? [0.1, 'auto'] : [0, 'auto']} 
                   scale={yScaleMode === 'log10' ? 'log' : 'auto'}
                   width={55} 
-                  tick={{fontSize: 12, fill: plotTheme === 'lab_dark' ? '#cbd5e1' : '#334155', fontWeight: 700}}
-                  axisLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
-                  tickLine={{ stroke: plotTheme === 'lab_dark' ? '#64748b' : '#475569', strokeWidth: 2 }}
+                  tick={{fontSize: 11, fill: plotTheme === 'journal' ? '#334155' : '#94A3B8', fontFamily: 'monospace', fontWeight: 600}}
+                  axisLine={{ stroke: plotTheme === 'journal' ? '#475569' : '#334155', strokeWidth: 1.5 }}
+                  tickLine={{ stroke: plotTheme === 'journal' ? '#475569' : '#334155', strokeWidth: 1.5 }}
                   tickFormatter={(val) => {
                     if (val == null || isNaN(Number(val))) return '';
                     const nVal = Number(val);
@@ -5346,7 +5408,7 @@ export const FWHMModule: React.FC = () => {
                     angle: -90,
                     position: 'insideLeft',
                     offset: 10,
-                    style: { textAnchor: 'middle', fill: plotTheme === 'lab_dark' ? '#cbd5e1' : '#0f172a', fontSize: 12, fontWeight: 800 }
+                    style: { textAnchor: 'middle', fill: plotTheme === 'journal' ? '#0f172a' : '#E2E8F0', fontSize: 11, fontFamily: 'monospace', fontWeight: 700 }
                   }}
                 />
                 
@@ -5360,10 +5422,10 @@ export const FWHMModule: React.FC = () => {
                       const qVec = (4 * Math.PI * Math.sin(thetaRad)) / (activeWavelength * 10);
                       
                       return (
-                        <div className="bg-slate-900 text-slate-100 p-4 rounded-xl shadow-2xl text-xs border-2 border-indigo-500/80 min-w-[260px] backdrop-blur-md">
-                          <div className="font-extrabold border-b border-slate-700 pb-2 mb-2 text-indigo-400 flex items-center justify-between">
-                            <span>Angle 2θ: {dataPoint.x.toFixed(4)}°</span>
-                            <span className="text-[10px] bg-indigo-950 px-2 py-0.5 rounded font-mono text-indigo-300 border border-indigo-700">{type}</span>
+                        <div className="bg-[#0B0F19]/95 text-slate-100 p-3.5 rounded-xl shadow-2xl text-xs border border-slate-700 min-w-[260px] backdrop-blur-md">
+                          <div className="font-bold border-b border-slate-800 pb-2 mb-2 text-sky-400 flex items-center justify-between font-mono">
+                            <span>2θ = {dataPoint.x.toFixed(4)}°</span>
+                            <span className="text-[10px] bg-sky-950/80 px-2 py-0.5 rounded font-mono text-sky-300 border border-sky-800">{type}</span>
                           </div>
                           <div className="space-y-1.5 font-mono text-[11px]">
                             <div className="flex justify-between">
@@ -5466,7 +5528,7 @@ export const FWHMModule: React.FC = () => {
                     }
                     return null;
                   }}
-                  cursor={{ stroke: '#818cf8', strokeWidth: 2, strokeDasharray: '4 4' }}
+                  cursor={{ stroke: '#38BDF8', strokeWidth: 1.5, strokeDasharray: '4 4' }}
                 />
                 
                 {/* Background Noise Reference Area */}
@@ -5479,36 +5541,36 @@ export const FWHMModule: React.FC = () => {
                     fill="url(#hatch)" 
                     stroke="none"
                   >
-                     <Label value="Background Level" position="insideBottomRight" offset={10} fill="#64748b" fontSize={11} fontWeight="800" />
+                     <Label value="Background Baseline I_bg" position="insideBottomRight" offset={10} fill="#94A3B8" fontSize={10} fontWeight="700" />
                   </ReferenceArea>
                 )}
 
                 {/* Integral Breadth Area Box */}
-                {stats && showIntegralBreadthBox && (
+                {extSim.stats && showIntegralBreadthBox && (
                   <ReferenceArea 
-                    x1={center - stats.integralBreadth / 2} 
-                    x2={center + stats.integralBreadth / 2} 
+                    x1={center - (extSim.stats.integralBreadth ?? 0.2) / 2} 
+                    x2={center + (extSim.stats.integralBreadth ?? 0.2) / 2} 
                     y1={background} y2={amplitude + background} 
-                    fill="rgba(99, 102, 241, 0.12)"
-                    stroke="#6366f1"
-                    strokeDasharray="4 4"
-                    strokeWidth={2}
+                    fill="rgba(16, 185, 129, 0.09)"
+                    stroke="#10B981"
+                    strokeDasharray="5 3"
+                    strokeWidth={1.8}
                   >
-                    <Label value="Integral Breadth Box (β × I_max)" position="insideBottom" offset={12} fill="#4f46e5" fontSize={11} fontWeight="800" />
+                    <Label value={`Stokes–Wilson Integral Breadth Box (β_IB = ${Number(extSim.stats.integralBreadth ?? 0.2).toFixed(4)}°)`} position="insideBottom" offset={12} fill="#6EE7B7" fontSize={11} fontWeight="800" />
                   </ReferenceArea>
                 )}
 
                 {/* Half Maximum Vertical Bounds (2θ₁ and 2θ₂) */}
                 {extSim.stats && showHalfMaxBounds && (
                   <>
-                    <ReferenceLine x={extSim.stats.theta1} stroke="#d97706" strokeDasharray="3 3" strokeWidth={2}>
-                      <Label value="2θ₁" position="top" fill="#d97706" fontSize={12} fontWeight="800" offset={6} />
+                    <ReferenceLine x={extSim.stats.theta1} stroke="#F59E0B" strokeDasharray="3 3" strokeWidth={1.5}>
+                      <Label value="2θ₁" position="top" fill="#FBBF24" fontSize={11} fontWeight="800" offset={6} />
                     </ReferenceLine>
-                    <ReferenceLine x={extSim.stats.theta2} stroke="#d97706" strokeDasharray="3 3" strokeWidth={2}>
-                      <Label value="2θ₂" position="top" fill="#d97706" fontSize={12} fontWeight="800" offset={6} />
+                    <ReferenceLine x={extSim.stats.theta2} stroke="#F59E0B" strokeDasharray="3 3" strokeWidth={1.5}>
+                      <Label value="2θ₂" position="top" fill="#FBBF24" fontSize={11} fontWeight="800" offset={6} />
                     </ReferenceLine>
-                    <ReferenceDot x={extSim.stats.theta1} y={amplitude / 2 + background} r={6} fill="#f59e0b" stroke="#ffffff" strokeWidth={2} />
-                    <ReferenceDot x={extSim.stats.theta2} y={amplitude / 2 + background} r={6} fill="#f59e0b" stroke="#ffffff" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.theta1} y={amplitude / 2 + background} r={5.5} fill="#F59E0B" stroke="#070A12" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.theta2} y={amplitude / 2 + background} r={5.5} fill="#F59E0B" stroke="#070A12" strokeWidth={2} />
                   </>
                 )}
 
@@ -5517,74 +5579,74 @@ export const FWHMModule: React.FC = () => {
                   <>
                     <ReferenceLine 
                       segment={[{ x: extSim.stats.theta1Tenth, y: amplitude * 0.10 + background }, { x: extSim.stats.theta2Tenth, y: amplitude * 0.10 + background }]} 
-                      stroke="#0d9488" 
-                      strokeWidth={2.5}
+                      stroke="#2DD4BF" 
+                      strokeWidth={2}
                       strokeDasharray="4 4"
                     >
-                      <Label value={`FWTM = ${extSim.stats.fwtm.toFixed(4)}° (FWTM/FWHM = ${extSim.stats.fwtmRatio.toFixed(2)})`} position="bottom" fill="#0f766e" fontSize={11} fontWeight="800" offset={6} />
+                      <Label value={`FWTM = ${extSim.stats.fwtm.toFixed(4)}° (FWTM/FWHM = ${extSim.stats.fwtmRatio.toFixed(2)})`} position="bottom" fill="#5EEAD4" fontSize={11} fontWeight="800" offset={6} />
                     </ReferenceLine>
-                    <ReferenceLine x={extSim.stats.theta1Tenth} stroke="#0d9488" strokeDasharray="2 2" strokeWidth={1.5}>
-                      <Label value="2θ_1/10" position="top" fill="#0d9488" fontSize={10} fontWeight="800" offset={4} />
+                    <ReferenceLine x={extSim.stats.theta1Tenth} stroke="#14B8A6" strokeDasharray="2 2" strokeWidth={1.5}>
+                      <Label value="2θ_0.1L" position="top" fill="#5EEAD4" fontSize={10} fontWeight="800" offset={4} />
                     </ReferenceLine>
-                    <ReferenceLine x={extSim.stats.theta2Tenth} stroke="#0d9488" strokeDasharray="2 2" strokeWidth={1.5}>
-                      <Label value="2θ_9/10" position="top" fill="#0d9488" fontSize={10} fontWeight="800" offset={4} />
+                    <ReferenceLine x={extSim.stats.theta2Tenth} stroke="#14B8A6" strokeDasharray="2 2" strokeWidth={1.5}>
+                      <Label value="2θ_0.1R" position="top" fill="#5EEAD4" fontSize={10} fontWeight="800" offset={4} />
                     </ReferenceLine>
-                    <ReferenceDot x={extSim.stats.theta1Tenth} y={amplitude * 0.10 + background} r={5} fill="#0d9488" stroke="#ffffff" strokeWidth={2} />
-                    <ReferenceDot x={extSim.stats.theta2Tenth} y={amplitude * 0.10 + background} r={5} fill="#0d9488" stroke="#ffffff" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.theta1Tenth} y={amplitude * 0.10 + background} r={4.5} fill="#2DD4BF" stroke="#070A12" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.theta2Tenth} y={amplitude * 0.10 + background} r={4.5} fill="#2DD4BF" stroke="#070A12" strokeWidth={2} />
                   </>
                 )}
 
                 {/* Caliper Reference Markers & Connected Distance Span */}
                 {caliperPointA !== null && (
                   <>
-                    <ReferenceLine x={caliperPointA} stroke="#10b981" strokeWidth={2.5}>
-                      <Label value={`Pt A: ${caliperPointA.toFixed(3)}°`} position="insideTopLeft" fill="#059669" fontSize={11} fontWeight="800" offset={10} />
+                    <ReferenceLine x={caliperPointA} stroke="#10B981" strokeWidth={2.5}>
+                      <Label value={`Pt A: ${caliperPointA.toFixed(3)}°`} position="insideTopLeft" fill="#6EE7B7" fontSize={11} fontWeight="800" offset={10} />
                     </ReferenceLine>
-                    <ReferenceDot x={caliperPointA} y={amplitude * 0.85 + background} r={7} fill="#10b981" stroke="#ffffff" strokeWidth={2.5} />
+                    <ReferenceDot x={caliperPointA} y={amplitude * 0.85 + background} r={6.5} fill="#10B981" stroke="#070A12" strokeWidth={2.5} />
                   </>
                 )}
                 {caliperPointB !== null && (
                   <>
-                    <ReferenceLine x={caliperPointB} stroke="#059669" strokeWidth={2.5}>
-                      <Label value={`Pt B: ${caliperPointB.toFixed(3)}°`} position="insideTopRight" fill="#047857" fontSize={11} fontWeight="800" offset={10} />
+                    <ReferenceLine x={caliperPointB} stroke="#10B981" strokeWidth={2.5}>
+                      <Label value={`Pt B: ${caliperPointB.toFixed(3)}°`} position="insideTopRight" fill="#6EE7B7" fontSize={11} fontWeight="800" offset={10} />
                     </ReferenceLine>
-                    <ReferenceDot x={caliperPointB} y={amplitude * 0.85 + background} r={7} fill="#059669" stroke="#ffffff" strokeWidth={2.5} />
+                    <ReferenceDot x={caliperPointB} y={amplitude * 0.85 + background} r={6.5} fill="#10B981" stroke="#070A12" strokeWidth={2.5} />
                   </>
                 )}
                 {caliperPointA !== null && caliperPointB !== null && (
                   <ReferenceLine 
                     segment={[{ x: caliperPointA, y: amplitude * 0.85 + background }, { x: caliperPointB, y: amplitude * 0.85 + background }]} 
-                    stroke="#10b981" 
+                    stroke="#10B981" 
                     strokeWidth={3}
                   >
-                    <Label value={`Δ2θ = ${Math.abs(caliperPointB - caliperPointA).toFixed(4)}°`} position="top" fill="#047857" fontSize={12} fontWeight="800" offset={8} />
+                    <Label value={`Δ2θ = ${Math.abs(caliperPointB - caliperPointA).toFixed(4)}°`} position="top" fill="#6EE7B7" fontSize={12} fontWeight="800" offset={8} />
                   </ReferenceLine>
                 )}
 
                 {/* Gaussian Standard Deviation c = sigma span */}
                 {extSim.stats && showSigmaSpan && (
                   <>
-                    <ReferenceLine x={center - extSim.stats.gaussianSigmaC} stroke="#db2777" strokeDasharray="2 2" strokeWidth={1.5}>
-                      <Label value="-c (-σ)" position="insideBottomLeft" fill="#db2777" fontSize={10} fontWeight="800" />
+                    <ReferenceLine x={center - extSim.stats.gaussianSigmaC} stroke="#F472B6" strokeDasharray="2 2" strokeWidth={1.5}>
+                      <Label value="-c (-σ)" position="insideBottomLeft" fill="#F472B6" fontSize={10} fontWeight="800" />
                     </ReferenceLine>
-                    <ReferenceLine x={center + extSim.stats.gaussianSigmaC} stroke="#db2777" strokeDasharray="2 2" strokeWidth={1.5}>
-                      <Label value="+c (+σ)" position="insideBottomRight" fill="#db2777" fontSize={10} fontWeight="800" />
+                    <ReferenceLine x={center + extSim.stats.gaussianSigmaC} stroke="#F472B6" strokeDasharray="2 2" strokeWidth={1.5}>
+                      <Label value="+c (+σ)" position="insideBottomRight" fill="#F472B6" fontSize={10} fontWeight="800" />
                     </ReferenceLine>
                   </>
                 )}
 
                 {/* Half Maximum Intensity Line */}
                 {showImaxLines && (
-                  <ReferenceLine y={amplitude / 2 + background} stroke="#d97706" strokeDasharray="3 3" strokeWidth={1.5}>
-                    <Label value={`I_max / 2 (${(amplitude / 2 + background).toFixed(1)} cps)`} position="insideRight" fill="#d97706" fontSize={11} fontWeight="700" offset={10} />
+                  <ReferenceLine y={amplitude / 2 + background} stroke="#F59E0B" strokeDasharray="3 3" strokeWidth={1.2} strokeOpacity={0.7}>
+                    <Label value={`I_max / 2 (${(amplitude / 2 + background).toFixed(1)} cps)`} position="insideRight" fill="#FBBF24" fontSize={10} fontWeight="700" offset={10} />
                   </ReferenceLine>
                 )}
 
                 {/* Centroid Reference Marker */}
-                <ReferenceLine x={center} stroke="#4f46e5" strokeDasharray="3 3" strokeWidth={2}>
-                   <Label value="Centroid (2θ₀)" position="top" fill="#4f46e5" fontSize={12} fontWeight="800" offset={8} />
+                <ReferenceLine x={center} stroke="#38BDF8" strokeDasharray="3 3" strokeWidth={1.8}>
+                   <Label value="Centroid (2θ₀)" position="top" fill="#7DD3FC" fontSize={11} fontWeight="800" offset={8} />
                 </ReferenceLine>
-                <ReferenceDot x={center} y={amplitude + background} r={6} fill="#4f46e5" stroke="#ffffff" strokeWidth={2} />
+                <ReferenceDot x={center} y={amplitude + background} r={5.5} fill="#38BDF8" stroke="#070A12" strokeWidth={2} />
 
                 {/* Reference Material Peaks Overlay Lines */}
                 {showReferencePeaks && parsedRefPeaks.map((peak, idx) => {
@@ -5595,14 +5657,14 @@ export const FWHMModule: React.FC = () => {
                       <ReferenceLine 
                         key={`ref-peak-${idx}`} 
                         x={peak.theta} 
-                        stroke="#059669" 
+                        stroke="#10B981" 
                         strokeDasharray="4 4" 
                         strokeWidth={2}
                       >
                          <Label 
                            value={`${peak.label} | ${peak.theta.toFixed(2)}° | d=${peak.dSpacing.toFixed(3)}Å (${peak.relIntensity || 100}%)`} 
                            position="insideTopLeft" 
-                           fill="#047857" 
+                           fill="#6EE7B7" 
                            fontSize={11} 
                            fontWeight="800" 
                            offset={12 + (idx % 3) * 14} 
@@ -5615,38 +5677,38 @@ export const FWHMModule: React.FC = () => {
 
                 {/* Intensity Markers */}
                 {showImaxLines && (
-                  <ReferenceLine y={amplitude + background} stroke="#64748b" strokeWidth={1.5} strokeDasharray="2 3">
-                     <Label value={`I_max: ${(amplitude + background).toFixed(1)} cps`} position="insideLeft" fill="#475569" fontSize={11} fontWeight="700" offset={10} />
+                  <ReferenceLine y={amplitude + background} stroke="#64748B" strokeWidth={1.5} strokeDasharray="2 3">
+                     <Label value={`I_max: ${(amplitude + background).toFixed(1)} cps`} position="insideLeft" fill="#CBD5E1" fontSize={10} fontWeight="700" offset={10} />
                   </ReferenceLine>
                 )}
 
                 {/* FWHM Boundary Line & Markers */}
                 <ReferenceLine 
                   segment={[{ x: extSim.stats.theta1, y: amplitude / 2 + background }, { x: extSim.stats.theta2, y: amplitude / 2 + background }]} 
-                  stroke="#3730a3" 
-                  strokeWidth={3.5}
+                  stroke="#F59E0B" 
+                  strokeWidth={3}
                 >
-                  <Label value={`FWHM B = 2θ₂ - 2θ₁ = ${extSim.stats.effTchFwhm.toFixed(4)}°`} position="top" fill="#312e81" fontSize={12} fontWeight="800" offset={8} />
+                  <Label value={`FWHM β = 2θ₂ - 2θ₁ = ${extSim.stats.effTchFwhm.toFixed(4)}°`} position="top" fill="#FDE68A" fontSize={11} fontWeight="800" offset={8} />
                 </ReferenceLine>
-                <ReferenceDot x={center - fwhm / 2} y={amplitude / 2 + background} r={6} fill="#4338ca" stroke="#ffffff" strokeWidth={2} />
-                <ReferenceDot x={center + fwhm / 2} y={amplitude / 2 + background} r={6} fill="#4338ca" stroke="#ffffff" strokeWidth={2} />
+                <ReferenceDot x={center - fwhm / 2} y={amplitude / 2 + background} r={5.5} fill="#F59E0B" stroke="#070A12" strokeWidth={2} />
+                <ReferenceDot x={center + fwhm / 2} y={amplitude / 2 + background} r={5.5} fill="#F59E0B" stroke="#070A12" strokeWidth={2} />
 
                 {/* Asymmetry HWHM Split Segment Markers */}
                 {extSim.stats && showAsymmetryHwhm && (
                   <>
                     <ReferenceLine 
                       segment={[{ x: extSim.stats.theta1, y: amplitude / 2 + background }, { x: center, y: amplitude / 2 + background }]} 
-                      stroke="#8b5cf6" 
-                      strokeWidth={4}
+                      stroke="#C084FC" 
+                      strokeWidth={3.5}
                     >
-                      <Label value={`HWHM_L=${extSim.stats.hwhmLeft.toFixed(3)}°`} position="bottom" fill="#7c3aed" fontSize={10} fontWeight="800" offset={4} />
+                      <Label value={`HWHM_L=${extSim.stats.hwhmLeft.toFixed(3)}°`} position="bottom" fill="#D8B4FE" fontSize={10} fontWeight="800" offset={4} />
                     </ReferenceLine>
                     <ReferenceLine 
                       segment={[{ x: center, y: amplitude / 2 + background }, { x: extSim.stats.theta2, y: amplitude / 2 + background }]} 
-                      stroke="#06b6d4" 
-                      strokeWidth={4}
+                      stroke="#38BDF8" 
+                      strokeWidth={3.5}
                     >
-                      <Label value={`HWHM_R=${extSim.stats.hwhmRight.toFixed(3)}° (Asym=${extSim.stats.asymmetryFactor.toFixed(2)})`} position="bottom" fill="#0891b2" fontSize={10} fontWeight="800" offset={4} />
+                      <Label value={`HWHM_R=${extSim.stats.hwhmRight.toFixed(3)}° (Asym=${extSim.stats.asymmetryFactor.toFixed(2)})`} position="bottom" fill="#7DD3FC" fontSize={10} fontWeight="800" offset={4} />
                     </ReferenceLine>
                   </>
                 )}
@@ -5654,22 +5716,22 @@ export const FWHMModule: React.FC = () => {
                 {/* 2nd Derivative Inflection Points (~2σ markers) */}
                 {extSim.stats && showInflectionMarkers && (
                   <>
-                    <ReferenceLine x={extSim.stats.thetaInfLeft} stroke="#ec4899" strokeDasharray="3 3" strokeWidth={2}>
-                      <Label value="θ_inf,L" position="top" fill="#db2777" fontSize={10} fontWeight="800" offset={4} />
+                    <ReferenceLine x={extSim.stats.thetaInfLeft} stroke="#EC4899" strokeDasharray="3 3" strokeWidth={1.8}>
+                      <Label value="θ_inf,L" position="top" fill="#F472B6" fontSize={10} fontWeight="800" offset={4} />
                     </ReferenceLine>
-                    <ReferenceLine x={extSim.stats.thetaInfRight} stroke="#ec4899" strokeDasharray="3 3" strokeWidth={2}>
-                      <Label value="θ_inf,R" position="top" fill="#db2777" fontSize={10} fontWeight="800" offset={4} />
+                    <ReferenceLine x={extSim.stats.thetaInfRight} stroke="#EC4899" strokeDasharray="3 3" strokeWidth={1.8}>
+                      <Label value="θ_inf,R" position="top" fill="#F472B6" fontSize={10} fontWeight="800" offset={4} />
                     </ReferenceLine>
                     <ReferenceLine 
                       segment={[{ x: extSim.stats.thetaInfLeft, y: amplitude * 0.606 + background }, { x: extSim.stats.thetaInfRight, y: amplitude * 0.606 + background }]} 
-                      stroke="#ec4899" 
-                      strokeWidth={2.5}
+                      stroke="#EC4899" 
+                      strokeWidth={2.2}
                       strokeDasharray="2 2"
                     >
-                      <Label value={`Inflection Span Δ2θ_inf = ${extSim.stats.inflectionSpan.toFixed(4)}° (d²I=0)`} position="insideBottom" fill="#be185d" fontSize={10} fontWeight="800" offset={6} />
+                      <Label value={`Inflection Span Δ2θ_inf = ${extSim.stats.inflectionSpan.toFixed(4)}° (d²I=0)`} position="insideBottom" fill="#F9A8D4" fontSize={10} fontWeight="800" offset={6} />
                     </ReferenceLine>
-                    <ReferenceDot x={extSim.stats.thetaInfLeft} y={amplitude * 0.606 + background} r={5} fill="#ec4899" stroke="#ffffff" strokeWidth={2} />
-                    <ReferenceDot x={extSim.stats.thetaInfRight} y={amplitude * 0.606 + background} r={5} fill="#ec4899" stroke="#ffffff" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.thetaInfLeft} y={amplitude * 0.606 + background} r={4.5} fill="#EC4899" stroke="#070A12" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.thetaInfRight} y={amplitude * 0.606 + background} r={4.5} fill="#EC4899" stroke="#070A12" strokeWidth={2} />
                   </>
                 )}
 
@@ -5678,14 +5740,14 @@ export const FWHMModule: React.FC = () => {
                   <>
                     <ReferenceLine 
                       segment={[{ x: extSim.stats.thetaSlice1, y: amplitude * extSim.stats.sliceFraction + background }, { x: extSim.stats.thetaSlice2, y: amplitude * extSim.stats.sliceFraction + background }]} 
-                      stroke="#e11d48" 
-                      strokeWidth={3}
+                      stroke="#F43F5E" 
+                      strokeWidth={2.5}
                       strokeDasharray="4 2"
                     >
-                      <Label value={`Slice (${(extSim.stats.sliceFraction * 100).toFixed(1)}% Max): Δ2θ = ${extSim.stats.deltaThetaSlice.toFixed(4)}°`} position="top" fill="#be123c" fontSize={11} fontWeight="800" offset={6} />
+                      <Label value={`Slice (${(extSim.stats.sliceFraction * 100).toFixed(1)}% Max): Δ2θ = ${extSim.stats.deltaThetaSlice.toFixed(4)}°`} position="top" fill="#FDA4AF" fontSize={11} fontWeight="800" offset={6} />
                     </ReferenceLine>
-                    <ReferenceDot x={extSim.stats.thetaSlice1} y={amplitude * extSim.stats.sliceFraction + background} r={5} fill="#e11d48" stroke="#ffffff" strokeWidth={2} />
-                    <ReferenceDot x={extSim.stats.thetaSlice2} y={amplitude * extSim.stats.sliceFraction + background} r={5} fill="#e11d48" stroke="#ffffff" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.thetaSlice1} y={amplitude * extSim.stats.sliceFraction + background} r={5} fill="#F43F5E" stroke="#070A12" strokeWidth={2} />
+                    <ReferenceDot x={extSim.stats.thetaSlice2} y={amplitude * extSim.stats.sliceFraction + background} r={5} fill="#F43F5E" stroke="#070A12" strokeWidth={2} />
                   </>
                 )}
 
@@ -5694,8 +5756,8 @@ export const FWHMModule: React.FC = () => {
                   <Line 
                     type="monotone" 
                     dataKey="yG" 
-                    stroke="#a855f7" 
-                    strokeWidth={2.5} 
+                    stroke="#A855F7" 
+                    strokeWidth={2.2} 
                     strokeDasharray="4 4" 
                     dot={false} 
                     isAnimationActive={false} 
@@ -5707,8 +5769,8 @@ export const FWHMModule: React.FC = () => {
                   <Line 
                     type="monotone" 
                     dataKey="yL" 
-                    stroke="#06b6d4" 
-                    strokeWidth={2.5} 
+                    stroke="#F59E0B" 
+                    strokeWidth={2.2} 
                     strokeDasharray="4 4" 
                     dot={false} 
                     isAnimationActive={false} 
@@ -5721,8 +5783,8 @@ export const FWHMModule: React.FC = () => {
                     <Line 
                       type="monotone" 
                       dataKey="yGaussModel" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2.5} 
+                      stroke="#A855F7" 
+                      strokeWidth={2.2} 
                       strokeDasharray="6 4" 
                       dot={false} 
                       isAnimationActive={false} 
@@ -5730,8 +5792,8 @@ export const FWHMModule: React.FC = () => {
                     <Line 
                       type="monotone" 
                       dataKey="yLorentzModel" 
-                      stroke="#f59e0b" 
-                      strokeWidth={2.5} 
+                      stroke="#F59E0B" 
+                      strokeWidth={2.2} 
                       strokeDasharray="4 4" 
                       dot={false} 
                       isAnimationActive={false} 
@@ -5739,8 +5801,8 @@ export const FWHMModule: React.FC = () => {
                     <Line 
                       type="monotone" 
                       dataKey="yPearsonModel" 
-                      stroke="#10b981" 
-                      strokeWidth={2.5} 
+                      stroke="#10B981" 
+                      strokeWidth={2.2} 
                       strokeDasharray="2 3" 
                       dot={false} 
                       isAnimationActive={false} 
@@ -5753,8 +5815,8 @@ export const FWHMModule: React.FC = () => {
                   <Line 
                     type="monotone" 
                     dataKey="yKa1" 
-                    stroke="#2563eb" 
-                    strokeWidth={2.5} 
+                    stroke="#38BDF8" 
+                    strokeWidth={2.4} 
                     dot={false} 
                     isAnimationActive={false} 
                   />
@@ -5765,8 +5827,8 @@ export const FWHMModule: React.FC = () => {
                   <Line 
                     type="monotone" 
                     dataKey="yKa2" 
-                    stroke="#d97706" 
-                    strokeWidth={2.5} 
+                    stroke="#F59E0B" 
+                    strokeWidth={2.2} 
                     strokeDasharray="4 4" 
                     dot={false} 
                     isAnimationActive={false} 
@@ -5778,8 +5840,8 @@ export const FWHMModule: React.FC = () => {
                   <Line 
                     type="monotone" 
                     dataKey="yRachinger" 
-                    stroke="#10b981" 
-                    strokeWidth={2.8} 
+                    stroke="#10B981" 
+                    strokeWidth={2.6} 
                     strokeDasharray="4 4" 
                     dot={false} 
                     isAnimationActive={false} 
@@ -5792,8 +5854,8 @@ export const FWHMModule: React.FC = () => {
                   <Line 
                     type="monotone" 
                     dataKey="yPeak2" 
-                    stroke="#059669" 
-                    strokeWidth={2.5} 
+                    stroke="#10B981" 
+                    strokeWidth={2.4} 
                     strokeDasharray="3 3" 
                     dot={false} 
                     isAnimationActive={false} 
@@ -5810,7 +5872,7 @@ export const FWHMModule: React.FC = () => {
                       dataKey={p.id}
                       name={p.name}
                       stroke={p.color}
-                      strokeWidth={2.8}
+                      strokeWidth={2.5}
                       fill={p.color}
                       fillOpacity={0.18}
                       isAnimationActive={false}
@@ -5843,9 +5905,9 @@ export const FWHMModule: React.FC = () => {
                       <ReferenceDot 
                         x={p.center} 
                         y={showNetIntensity ? p.amplitude : p.amplitude + background} 
-                        r={5.5} 
+                        r={5} 
                         fill={p.color} 
-                        stroke="#ffffff" 
+                        stroke="#070A12" 
                         strokeWidth={2} 
                       />
                     </React.Fragment>
@@ -5857,8 +5919,8 @@ export const FWHMModule: React.FC = () => {
                   <Area 
                      type="monotone" 
                      dataKey={showNetIntensity ? "_cleanY_net" : "_cleanY"} 
-                     stroke={plotTheme === 'monochrome' ? "#18181b" : enableMultiPeakMode ? "#8b5cf6" : "#4f46e5"} 
-                     strokeWidth={3.5}
+                     stroke={plotTheme === 'monochrome' ? "#18181b" : enableMultiPeakMode ? "#C084FC" : "#38BDF8"} 
+                     strokeWidth={2.8}
                      fillOpacity={enableMultiPeakMode ? 0.05 : 1} 
                      fill="url(#colorY)" 
                      isAnimationActive={false}
@@ -5871,8 +5933,8 @@ export const FWHMModule: React.FC = () => {
                   <Area 
                      type="monotone" 
                      dataKey={showNetIntensity ? "y_net" : "y"} 
-                     stroke="#ff2a5f" 
-                     strokeWidth={1.8}
+                     stroke="#F43F5E" 
+                     strokeWidth={1.6}
                      strokeOpacity={0.85}
                      fillOpacity={0} 
                      fill="none" 

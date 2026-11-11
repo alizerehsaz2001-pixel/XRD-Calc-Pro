@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useId } from 'react';
 import { 
   Plus, Trash2, ArrowUpDown, Percent, Check, AlertCircle, 
-  Sparkles, Wand2, Eye, EyeOff, Copy, RotateCcw, Compass, Sliders,
-  BarChart2, Layers, Minimize2
+  Sparkles, Wand2, EyeOff, Copy, RotateCcw, Compass, Sliders,
+  BarChart2, Layers, Minimize2, Table, FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScherrerInput } from '../../types';
-import { suggestHKLPlanesAlgorithmic, calculateScherrer } from '../../utils/physics';
+import { suggestHKLPlanesAlgorithmic, calculateScherrer, parseScherrerInput } from '../../utils/physics';
 
 interface ScherrerPeakTableEditorProps {
   peaks: ScherrerInput[];
@@ -41,6 +41,10 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
   zeroShiftDeg = 0,
   morphologyKMode = 'Isotropic'
 }) => {
+  const uid = useId().replace(/:/g, '');
+  const [viewMode, setViewMode] = useState<'cards' | 'raw'>('cards');
+  const [rawText, setRawText] = useState<string>('');
+
   const [newTwoTheta, setNewTwoTheta] = useState<string>('');
   const [newFwhm, setNewFwhm] = useState<string>('');
   const [newIntensity, setNewIntensity] = useState<string>('100');
@@ -61,6 +65,32 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
   const [copiedTable, setCopiedTable] = useState<boolean>(false);
   const [indexingMessage, setIndexingMessage] = useState<string | null>(null);
 
+  // Serialize peaks to CSV text when switching to raw view
+  const serializePeaksToCSV = (list: ScherrerInput[]) => {
+    return list
+      .map(p => {
+        const prefix = p.excluded ? '! ' : '';
+        const hklPart = p.hkl ? `, ${p.hkl[0]}, ${p.hkl[1]}, ${p.hkl[2]}` : '';
+        return `${prefix}${p.twoTheta.toFixed(3)}, ${p.fwhmObs.toFixed(4)}, ${p.intensity ?? 100}${hklPart}`;
+      })
+      .join('\n');
+  };
+
+  const handleSwitchViewMode = (mode: 'cards' | 'raw') => {
+    if (mode === 'raw') {
+      setRawText(serializePeaksToCSV(peaks));
+    }
+    setViewMode(mode);
+  };
+
+  const handleRawTextChange = (val: string) => {
+    setRawText(val);
+    const parsed = parseScherrerInput(val);
+    if (parsed.length > 0) {
+      onChange(parsed);
+    }
+  };
+
   // Compute live per-peak metrics & summary stats for Total Reflections
   const reflectionMetrics = useMemo(() => {
     let activeCount = 0;
@@ -68,6 +98,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
     let resolvedCount = 0;
     let unresolvedCount = 0;
     const latticeEstimates: number[] = [];
+    const validSizes: number[] = [];
 
     const rows = peaks.map((p) => {
       const isExcluded = !!p.excluded;
@@ -103,8 +134,12 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
 
       const isResolved = calc !== null && !calc.error && calc.sizeNm > 0;
       if (!isExcluded) {
-        if (isResolved) resolvedCount++;
-        else unresolvedCount++;
+        if (isResolved && calc) {
+          resolvedCount++;
+          validSizes.push(calc.sizeNm);
+        } else {
+          unresolvedCount++;
+        }
       }
 
       // Estimate cubic lattice parameter a = d * sqrt(h^2 + k^2 + l^2) if hkl provided
@@ -149,6 +184,10 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
       ? Math.sqrt(latticeEstimates.reduce((acc, val) => acc + Math.pow(val - meanA, 2), 0) / latticeEstimates.length)
       : 0;
 
+    const meanSizeNm = validSizes.length > 0
+      ? validSizes.reduce((a, b) => a + b, 0) / validSizes.length
+      : null;
+
     return {
       rows,
       total: peaks.length,
@@ -161,7 +200,8 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
       maxIntensity,
       maxObsFwhm,
       meanA,
-      stdA
+      stdA,
+      meanSizeNm
     };
   }, [peaks, wavelength, constantK, instFwhm, useCaglioti, caglioti, broadeningModel, materialDensity, pseudoVoigtEta, breadthType, kAlpha2Correction, zeroShiftDeg, morphologyKMode]);
 
@@ -233,6 +273,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
   const handleSortByTwoTheta = () => {
     const sorted = [...peaks].sort((a, b) => a.twoTheta - b.twoTheta);
     onChange(sorted);
+    if (viewMode === 'raw') setRawText(serializePeaksToCSV(sorted));
   };
 
   const handleNormalizeIntensities = () => {
@@ -244,11 +285,13 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
       intensity: Math.round(((p.intensity || 100) / maxI) * 100)
     }));
     onChange(normalized);
+    if (viewMode === 'raw') setRawText(serializePeaksToCSV(normalized));
   };
 
   const handleIncludeAll = () => {
     const updated = peaks.map(p => ({ ...p, excluded: false }));
     onChange(updated);
+    if (viewMode === 'raw') setRawText(serializePeaksToCSV(updated));
   };
 
   // Deterministic Auto-Indexing of Miller Indices (hkl)
@@ -268,6 +311,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
         return p;
       });
       onChange(updated);
+      if (viewMode === 'raw') setRawText(serializePeaksToCSV(updated));
       setIndexingMessage(indexed.estimatedLatticeConstant || `Indexed ${peaks.length} reflections (${crystalSystem})`);
       setTimeout(() => setIndexingMessage(null), 4000);
     }
@@ -353,7 +397,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
 
       synthesized.push({
         twoTheta: parseFloat(twoTheta.toFixed(3)),
-        fwhmObs: parseFloat(fwhmObs.toFixed(3)),
+        fwhmObs: parseFloat(fwhmObs.toFixed(4)),
         intensity: pl.relInt,
         hkl: pl.hkl,
         excluded: false
@@ -362,16 +406,13 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
 
     if (synthesized.length > 0) {
       onChange(synthesized);
+      if (viewMode === 'raw') setRawText(serializePeaksToCSV(synthesized));
       setShowSynthesizer(false);
     }
   };
 
   const handleCopyCSV = () => {
-    const text = peaks.map(p => {
-      const prefix = p.excluded ? '! ' : '';
-      const hklPart = p.hkl ? `, ${p.hkl[0]}, ${p.hkl[1]}, ${p.hkl[2]}` : '';
-      return `${prefix}${p.twoTheta.toFixed(3)}, ${p.fwhmObs.toFixed(3)}, ${p.intensity ?? 100}${hklPart}`;
-    }).join('\n');
+    const text = serializePeaksToCSV(peaks);
     navigator.clipboard.writeText(text);
     setCopiedTable(true);
     setTimeout(() => setCopiedTable(false), 2000);
@@ -379,59 +420,80 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
 
   return (
     <div className="space-y-3">
-      {/* Total Reflections Header Card & Diagnostics Strip */}
-      <div className="bg-slate-950/70 border border-slate-800/90 rounded-2xl p-3.5 space-y-2.5">
+      {/* Top Reflections Data Metrology Console */}
+      <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-3.5 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black text-white uppercase tracking-wider tabular-nums">
-              Total Reflections: {reflectionMetrics.total}
-            </span>
-            <span className="text-slate-600">·</span>
-            <span className="text-[10px] font-mono tabular-nums text-emerald-400 font-bold">
-              {reflectionMetrics.activeCount} Active
-            </span>
-            {reflectionMetrics.excludedCount > 0 && (
-              <>
-                <span className="text-slate-600">·</span>
-                <span className="text-[10px] font-mono tabular-nums text-amber-400 font-bold">
-                  {reflectionMetrics.excludedCount} Excluded
-                </span>
-              </>
-            )}
-          </div>
-
-          {reflectionMetrics.meanA && (
-            <div className="text-[10px] font-mono tabular-nums text-indigo-300 flex items-center gap-1.5">
-              <Compass className="w-3 h-3 text-indigo-400" />
-              <span>Est. a₀ = <strong>{reflectionMetrics.meanA.toFixed(4)} Å</strong></span>
-              {reflectionMetrics.stdA > 0 && (
-                <span className="text-slate-500">(±{reflectionMetrics.stdA.toFixed(4)})</span>
+          <div>
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
+              <span>Reflections Data (2θ, FWHM, I%, hkl)</span>
+              <span className="text-slate-700">·</span>
+              <span className="text-slate-300 tabular-nums">{reflectionMetrics.activeCount}/{reflectionMetrics.total} Active</span>
+              {reflectionMetrics.excludedCount > 0 && (
+                <>
+                  <span className="text-slate-700">·</span>
+                  <span className="text-amber-400 tabular-nums">{reflectionMetrics.excludedCount} Excluded</span>
+                </>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Reflection Coverage & Resolution Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/70 text-[10px] font-mono tabular-nums text-slate-400">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span>
-              2θ Span: <strong className="text-slate-200">{reflectionMetrics.min2T.toFixed(1)}°–{reflectionMetrics.max2T.toFixed(1)}°</strong>
-            </span>
-            <span className="text-slate-700">|</span>
-            <span>
-              Resolved: <strong className={reflectionMetrics.unresolvedCount > 0 ? 'text-amber-300' : 'text-emerald-300'}>
-                {reflectionMetrics.resolvedCount}/{reflectionMetrics.activeCount}
-              </strong>
-            </span>
+            <div className="flex items-center gap-2 text-[10px] font-mono tabular-nums text-slate-400 mt-0.5 flex-wrap">
+              <span>
+                2θ Span: <strong className="text-slate-200">{reflectionMetrics.min2T.toFixed(1)}°–{reflectionMetrics.max2T.toFixed(1)}°</strong>
+              </span>
+              <span className="text-slate-700">·</span>
+              <span>
+                Resolved: <strong className={reflectionMetrics.unresolvedCount > 0 ? 'text-amber-300' : 'text-emerald-400'}>
+                  {reflectionMetrics.resolvedCount}/{reflectionMetrics.activeCount}
+                </strong>
+              </span>
+              {reflectionMetrics.meanA && (
+                <>
+                  <span className="text-slate-700">·</span>
+                  <span className="text-cyan-300 flex items-center gap-1">
+                    <Compass className="w-2.5 h-2.5 text-cyan-400" />
+                    <span>a₀ = <strong>{reflectionMetrics.meanA.toFixed(4)} Å</strong></span>
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Action Toolbar */}
+          {/* Segmented View Switcher: Cards vs Raw CSV */}
+          <div className="flex items-center gap-1 bg-[#070A12] p-0.5 rounded-lg border border-slate-800 text-[9px] font-mono font-bold">
+            <button
+              type="button"
+              onClick={() => handleSwitchViewMode('cards')}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                viewMode === 'cards'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Table className="w-3 h-3" />
+              <span>Cards</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchViewMode('raw')}
+              className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                viewMode === 'raw'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <FileText className="w-3 h-3" />
+              <span>Raw CSV</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Action & Symmetry Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
           <div className="flex flex-wrap items-center gap-1">
             {reflectionMetrics.excludedCount > 0 && (
               <button
                 type="button"
                 onClick={handleIncludeAll}
-                className="px-2 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+                className="px-2 py-1 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-md text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
                 title="Re-enable all excluded reflections"
               >
                 <RotateCcw className="w-2.5 h-2.5" />
@@ -442,17 +504,17 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
               type="button"
               onClick={handleSortByTwoTheta}
               disabled={peaks.length < 2}
-              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 border border-slate-800 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+              className="px-2 py-1 bg-[#070A12] hover:bg-slate-900 disabled:opacity-40 text-slate-300 border border-slate-800 rounded-md text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
               title="Sort reflections in ascending 2θ order"
             >
-              <ArrowUpDown className="w-2.5 h-2.5 text-indigo-400" />
+              <ArrowUpDown className="w-2.5 h-2.5 text-cyan-400" />
               Sort 2θ
             </button>
             <button
               type="button"
               onClick={handleNormalizeIntensities}
               disabled={peaks.length === 0}
-              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 border border-slate-800 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+              className="px-2 py-1 bg-[#070A12] hover:bg-slate-900 disabled:opacity-40 text-slate-300 border border-slate-800 rounded-md text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
               title="Normalize reflection intensities to 100% max"
             >
               <Percent className="w-2.5 h-2.5 text-emerald-400" />
@@ -461,10 +523,10 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
             <button
               type="button"
               onClick={() => setShowSynthesizer(!showSynthesizer)}
-              className={`px-2 py-1 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer border ${
+              className={`px-2 py-1 rounded-md text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer border whitespace-nowrap shrink-0 ${
                 showSynthesizer
-                  ? 'bg-amber-500 text-slate-950 border-amber-400'
-                  : 'bg-slate-900 hover:bg-slate-800 text-amber-300 border-slate-800'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                  : 'bg-[#070A12] hover:bg-slate-900 text-amber-300 border-slate-800'
               }`}
               title="Synthesize diffraction reflections from target crystallite size & strain"
             >
@@ -475,45 +537,40 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
               type="button"
               onClick={handleCopyCSV}
               disabled={peaks.length === 0}
-              className="px-2 py-1 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 border border-slate-800 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
+              className="px-2 py-1 bg-[#070A12] hover:bg-slate-900 disabled:opacity-40 text-slate-300 border border-slate-800 rounded-md text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
               title="Copy reflections as CSV"
             >
               {copiedTable ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5 text-slate-400" />}
               {copiedTable ? 'Copied' : 'CSV'}
             </button>
           </div>
-        </div>
 
-        {/* Auto-Indexing & Symmetry Selector Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/70">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Symmetry:</span>
+          <div className="flex items-center gap-1 flex-wrap">
             {(['Diamond', 'FCC', 'BCC', 'SC', 'Hexagonal'] as const).map(sys => (
               <button
                 key={sys}
                 type="button"
                 onClick={() => setCrystalSystem(sys)}
-                className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-colors cursor-pointer ${
+                className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   crystalSystem === sys
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                    : 'bg-slate-900 text-slate-500 hover:text-slate-300 border border-slate-800'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'bg-[#070A12] text-slate-500 hover:text-slate-300 border border-slate-800'
                 }`}
               >
                 {sys}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={handleAutoIndexHkl}
+              disabled={peaks.length === 0}
+              className="px-2 py-0.5 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 rounded text-[8.5px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              title="Automatically index (hkl) planes based on 2θ sin²θ ratios"
+            >
+              <Wand2 className="w-2.5 h-2.5 text-cyan-400" />
+              Index (hkl)
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleAutoIndexHkl}
-            disabled={peaks.length === 0}
-            className="px-2.5 py-1 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 rounded-lg text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer"
-            title="Automatically index (hkl) planes based on 2θ sin²θ ratios"
-          >
-            <Wand2 className="w-3 h-3 text-indigo-400" />
-            Auto-Index (hkl)
-          </button>
         </div>
 
         {indexingMessage && (
@@ -524,294 +581,430 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
         )}
       </div>
 
-      {/* Interactive 3-Mode Scherrer Reflections SVG Graphic */}
+      {/* Interactive 3-Mode Scherrer Reflection Graphic (Calibrated CAD & Scientific Metrology) */}
       {peaks.length > 0 && (
-        <div className="bg-[#050A14] border border-slate-800/90 rounded-2xl p-3 space-y-2.5 shadow-inner">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="bg-[#070A12] border border-slate-800 rounded-xl p-3 space-y-2.5">
+          <div className="flex items-center justify-between gap-2 flex-wrap border-b border-slate-800/80 pb-2">
             <div className="flex items-center gap-1.5">
-              <BarChart2 className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
+              <BarChart2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-200">
                 Scherrer Reflection Graphic
               </span>
+              <span className="text-slate-700">·</span>
+              <span className="text-[9px] font-mono text-amber-400 tabular-nums">
+                λ = {wavelength.toFixed(4)} Å
+              </span>
             </div>
-            <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[9px] font-mono font-bold">
+
+            <div className="flex bg-[#0B0F19] p-0.5 rounded-lg border border-slate-800 text-[9px] font-mono font-bold">
               <button
                 type="button"
                 onClick={() => setGraphicMode('spectrum')}
-                className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0 ${
                   graphicMode === 'spectrum'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    : 'text-slate-500 hover:text-slate-300'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <BarChart2 className="w-2.5 h-2.5" />
-                XRD Pattern
+                XRD Pattern &amp; FWHM
               </button>
               <button
                 type="button"
                 onClick={() => setGraphicMode('deconv')}
-                className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0 ${
                   graphicMode === 'deconv'
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
-                    : 'text-slate-500 hover:text-slate-300'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Layers className="w-2.5 h-2.5" />
-                β Deconv
+                β Deconv &amp; Caglioti
               </button>
               <button
                 type="button"
                 onClick={() => setGraphicMode('domain')}
-                className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                className={`px-2 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0 ${
                   graphicMode === 'domain'
                     ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : 'text-slate-500 hover:text-slate-300'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Minimize2 className="w-2.5 h-2.5" />
-                Bragg N·d
+                Bragg N·d &amp; D(β)
               </button>
             </div>
           </div>
 
-          {/* Mode 1: Interactive XRD Stick & Broadened Envelope Spectrum */}
-          {graphicMode === 'spectrum' && (
-            <div className="space-y-1.5">
-              <svg viewBox="0 0 360 128" className="w-full h-32 bg-slate-950/90 rounded-xl border border-slate-800/80 overflow-visible select-none">
-                <defs>
-                  <linearGradient id="scherrerStickGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.95" />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity="0.3" />
-                  </linearGradient>
-                  <linearGradient id="scherrerBellFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.32" />
-                    <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
+          {/* Mode 1: Calibrated Multi-Peak Pseudo-Voigt XRD Diffractogram + Active Peak Caliper Inset */}
+          {graphicMode === 'spectrum' && (() => {
+            const svgW = 460;
+            const svgH = 148;
+            const padL = 28;
+            const padR = 146; // Right 136px dedicated to Active Peak FWHM/Profile Inspector
+            const padT = 18;
+            const padB = 24;
+            const plotW = svgW - padL - padR;
+            const plotH = svgH - padT - padB;
+            const baseY = padT + plotH;
 
-                {/* Subtle Grid Lines */}
-                {[28, 56, 84].map((yVal) => (
-                  <line key={yVal} x1="24" y1={yVal} x2="346" y2={yVal} stroke="#1e293b" strokeWidth="0.6" strokeDasharray="2 2" />
-                ))}
-                <line x1="24" y1="104" x2="346" y2="104" stroke="#334155" strokeWidth="1" />
+            const minAngle = Math.max(5, Math.floor((reflectionMetrics.min2T || 20) - 6));
+            const maxAngle = Math.min(165, Math.ceil((reflectionMetrics.max2T || 80) + 6));
+            const spanAngle = Math.max(10, maxAngle - minAngle);
 
-                {(() => {
-                  const minAngle = Math.max(5, Math.floor((reflectionMetrics.min2T || 20) - 6));
-                  const maxAngle = Math.min(160, Math.ceil((reflectionMetrics.max2T || 80) + 6));
-                  const spanAngle = Math.max(10, maxAngle - minAngle);
+            const xOf = (tt: number) => padL + ((tt - minAngle) / spanAngle) * plotW;
+            const yOf = (relI: number) => baseY - (Math.min(100, Math.max(0, relI)) / 100) * plotH;
 
-                  return (
-                    <>
-                      {/* 2Theta Axis Ticks */}
-                      {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-                        const x = 28 + t * 312;
-                        const deg = minAngle + t * spanAngle;
-                        return (
-                          <g key={i}>
-                            <line x1={x} y1="104" x2={x} y2="108" stroke="#475569" strokeWidth="0.8" />
-                            <text x={x} y="118" fill="#64748b" fontSize="7.5" fontFamily="monospace" textAnchor="middle">
-                              {deg.toFixed(0)}°
-                            </text>
-                          </g>
-                        );
-                      })}
+            // Sample continuous Pseudo-Voigt diffractogram across plotW
+            const numPts = 160;
+            const curvePts: string[] = [];
+            const areaPts: string[] = [`${padL},${baseY}`];
+            for (let i = 0; i <= numPts; i++) {
+              const tt = minAngle + (i / numPts) * spanAngle;
+              let ySum = 0;
+              peaks.forEach((p) => {
+                if (p.excluded) return;
+                const relI = ((p.intensity ?? 100) / reflectionMetrics.maxIntensity) * 100;
+                const visHwhm = Math.max(0.35, p.fwhmObs * 1.35);
+                const dx = (tt - p.twoTheta) / visHwhm;
+                if (Math.abs(dx) < 6) {
+                  const g = Math.exp(-Math.LN2 * dx * dx);
+                  const l = 1 / (1 + dx * dx);
+                  ySum += relI * ((1 - pseudoVoigtEta) * g + pseudoVoigtEta * l);
+                }
+              });
+              const px = padL + (i / numPts) * plotW;
+              const py = yOf(Math.min(100, ySum));
+              curvePts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+              areaPts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+            }
+            areaPts.push(`${padL + plotW},${baseY}`);
 
-                      {/* Render each reflection stick & broadened Pseudo-Voigt bell */}
-                      {peaks.map((p, idx) => {
-                        const m = reflectionMetrics.rows[idx];
-                        const isSel = idx === safeSelectedIdx;
-                        const isExcl = !!p.excluded;
-                        const xPos = 28 + Math.max(0, Math.min(1, (p.twoTheta - minAngle) / spanAngle)) * 312;
-                        const relI = Math.max(0.08, (p.intensity ?? 100) / reflectionMetrics.maxIntensity);
-                        const stickH = relI * 72;
-                        const yTop = 104 - stickH;
+            const selP = peaks[safeSelectedIdx] || peaks[0];
+            const selM = reflectionMetrics.rows[safeSelectedIdx] || reflectionMetrics.rows[0];
 
-                        // Visual width proportional to FWHM_obs
-                        const halfW = Math.max(3.5, Math.min(24, (p.fwhmObs / Math.max(0.15, reflectionMetrics.maxObsFwhm)) * 14));
-                        const bellPath = `M ${(xPos - halfW * 2.1).toFixed(1)} 104 Q ${(xPos - halfW * 0.65).toFixed(1)} 104 ${(xPos - halfW * 0.45).toFixed(1)} ${(104 - stickH * 0.5).toFixed(1)} Q ${xPos.toFixed(1)} ${(yTop - 4).toFixed(1)} ${(xPos + halfW * 0.45).toFixed(1)} ${(104 - stickH * 0.5).toFixed(1)} Q ${(xPos + halfW * 0.65).toFixed(1)} 104 ${(xPos + halfW * 2.1).toFixed(1)} 104`;
+            // Build Active Peak Inset Profile (Observed vs Physical vs Instrumental)
+            const insetX = padL + plotW + 10;
+            const insetW = 130;
+            const insetCx = insetX + insetW / 2;
+            const insetBaseY = baseY - 16;
+            const insetPeakH = plotH - 22;
 
-                        const hklText = p.hkl ? `(${p.hkl.join('')})` : `#${idx + 1}`;
+            const obsPts: string[] = [];
+            const physPts: string[] = [];
+            const instPts: string[] = [];
+            const bObs = Math.max(0.05, selP?.fwhmObs || 0.25);
+            const bPhys = Math.max(0.01, selM?.betaCorrected || bObs * 0.6);
+            const bInst = Math.max(0.01, selM?.curInstFwhm || 0.1);
 
-                        return (
-                          <g
-                            key={idx}
-                            onClick={() => setSelectedPeakIdx(idx)}
-                            className="cursor-pointer transition-opacity"
-                            opacity={isExcl ? 0.3 : 1}
-                          >
-                            {/* Broadened Bell Envelope */}
-                            <path
-                              d={bellPath}
-                              fill={isSel ? 'url(#scherrerBellFill)' : 'rgba(99,102,241,0.12)'}
-                              stroke={isSel ? '#f59e0b' : '#6366f1'}
-                              strokeWidth={isSel ? '1.3' : '0.8'}
-                            />
-                            {/* FWHM Caliper on Selected Peak */}
-                            {isSel && (
-                              <g>
-                                <line
-                                  x1={xPos - halfW * 0.5}
-                                  y1={104 - stickH * 0.5}
-                                  x2={xPos + halfW * 0.5}
-                                  y2={104 - stickH * 0.5}
-                                  stroke="#10b981"
-                                  strokeWidth="1.2"
-                                />
-                                <circle cx={xPos - halfW * 0.5} cy={104 - stickH * 0.5} r="1.3" fill="#10b981" />
-                                <circle cx={xPos + halfW * 0.5} cy={104 - stickH * 0.5} r="1.3" fill="#10b981" />
-                              </g>
-                            )}
-                            {/* Stick */}
-                            <line
-                              x1={xPos}
-                              y1="104"
-                              x2={xPos}
-                              y2={yTop}
-                              stroke={isSel ? '#fbbf24' : 'url(#scherrerStickGrad)'}
-                              strokeWidth={isSel ? '2' : '1.4'}
-                            />
-                            <circle
-                              cx={xPos}
-                              cy={yTop}
-                              r={isSel ? '2.8' : '2'}
-                              fill={m?.error ? '#f43f5e' : isSel ? '#fbbf24' : '#818cf8'}
-                            />
-                            {/* Label */}
-                            <text
-                              x={xPos}
-                              y={Math.max(12, yTop - 6)}
-                              fill={isSel ? '#fbbf24' : '#cbd5e1'}
-                              fontSize={isSel ? '7.5' : '6.8'}
-                              fontFamily="monospace"
-                              fontWeight="bold"
-                              textAnchor="middle"
-                            >
-                              {hklText}
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </>
-                  );
-                })()}
-              </svg>
+            for (let i = 0; i <= 48; i++) {
+              const u = (i / 48) - 0.5; // -0.5 to 0.5
+              const px = insetX + 6 + (i / 48) * (insetW - 12);
+              const xDeg = u * bObs * 3.0;
 
-              {/* Selected Peak Telemetry Bar */}
-              {peaks[safeSelectedIdx] && (() => {
-                const selP = peaks[safeSelectedIdx];
-                const selM = reflectionMetrics.rows[safeSelectedIdx];
-                return (
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 bg-slate-900/70 rounded-lg border border-slate-800/80 text-[9.5px] font-mono tabular-nums">
-                    <span className="text-amber-300 font-bold">
-                      {selP.hkl ? `(${selP.hkl.join('')})` : `Peak #${safeSelectedIdx + 1}`} @ {selP.twoTheta.toFixed(3)}°
+              const evalPV = (w: number, amp: number) => {
+                const d = xDeg / (w / 2);
+                return amp * ((1 - pseudoVoigtEta) * Math.exp(-Math.LN2 * d * d) + pseudoVoigtEta / (1 + d * d));
+              };
+              obsPts.push(`${px.toFixed(1)},${(insetBaseY - evalPV(bObs, 1.0) * insetPeakH).toFixed(1)}`);
+              physPts.push(`${px.toFixed(1)},${(insetBaseY - evalPV(bPhys, 0.86) * insetPeakH).toFixed(1)}`);
+              instPts.push(`${px.toFixed(1)},${(insetBaseY - evalPV(bInst, 0.68) * insetPeakH).toFixed(1)}`);
+            }
+
+            const fwhmPxHalf = ((insetW - 12) / 6.0);
+
+            return (
+              <div className="space-y-1.5">
+                <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-36 bg-[#0B0F19] rounded-lg border border-slate-800/90 overflow-visible select-none">
+                  <defs>
+                    <linearGradient id={`schSpecFill-${uid}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.24" />
+                      <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Horizontal Reference Grid */}
+                  {[0.25, 0.5, 0.75, 1].map((g, i) => {
+                    const gy = padT + plotH * (1 - g);
+                    return (
+                      <g key={i}>
+                        <line x1={padL} y1={gy} x2={padL + plotW} y2={gy} stroke="#1e293b" strokeWidth="0.7" strokeDasharray="2 2" />
+                        <text x={padL - 4} y={gy + 2.5} textAnchor="end" fill="#475569" fontSize="6.5" fontFamily="monospace">
+                          {Math.round(g * 100)}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  <line x1={padL} y1={baseY} x2={padL + plotW} y2={baseY} stroke="#334155" strokeWidth="1" />
+
+                  {/* 2Theta Ticks */}
+                  {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+                    const tx = padL + t * plotW;
+                    const deg = minAngle + t * spanAngle;
+                    return (
+                      <g key={i}>
+                        <line x1={tx} y1={baseY} x2={tx} y2={baseY + 4} stroke="#475569" strokeWidth="0.8" />
+                        <text x={tx} y={svgH - 7} fill="#64748b" fontSize="7.5" fontFamily="monospace" textAnchor="middle">
+                          {deg.toFixed(0)}°
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Continuous Pseudo-Voigt Envelope */}
+                  <polygon points={areaPts.join(' ')} fill={`url(#schSpecFill-${uid})`} />
+                  <polyline fill="none" stroke="#38bdf8" strokeWidth="1.2" strokeOpacity="0.75" points={curvePts.join(' ')} />
+
+                  {/* Individual Reflection Sticks & Interactive Markers */}
+                  {peaks.map((p, idx) => {
+                    const m = reflectionMetrics.rows[idx];
+                    const isSel = idx === safeSelectedIdx;
+                    const isExcl = !!p.excluded;
+                    const xPos = xOf(p.twoTheta);
+                    const relI = Math.max(8, ((p.intensity ?? 100) / reflectionMetrics.maxIntensity) * 100);
+                    const topY = yOf(relI);
+                    const hklText = p.hkl ? `(${p.hkl.join('')})` : `#${idx + 1}`;
+
+                    return (
+                      <g
+                        key={idx}
+                        onClick={() => setSelectedPeakIdx(idx)}
+                        className="cursor-pointer"
+                        opacity={isExcl ? 0.3 : 1}
+                      >
+                        {isSel && (
+                          <line x1={xPos} y1={padT} x2={xPos} y2={baseY} stroke="#f59e0b" strokeWidth="0.7" strokeDasharray="2 2" opacity="0.6" />
+                        )}
+                        <line
+                          x1={xPos}
+                          y1={baseY}
+                          x2={xPos}
+                          y2={topY}
+                          stroke={m?.error ? '#f43f5e' : isSel ? '#f59e0b' : '#38bdf8'}
+                          strokeWidth={isSel ? '2.2' : '1.4'}
+                        />
+                        <circle
+                          cx={xPos}
+                          cy={topY}
+                          r={isSel ? '3.2' : '2.1'}
+                          fill={m?.error ? '#f43f5e' : isSel ? '#f59e0b' : '#38bdf8'}
+                          stroke="#070A12"
+                          strokeWidth="0.9"
+                        />
+                        <text
+                          x={xPos}
+                          y={Math.max(11, topY - 5)}
+                          fill={isSel ? '#fbbf24' : '#cbd5e1'}
+                          fontSize={isSel ? '7.5' : '6.8'}
+                          fontFamily="monospace"
+                          fontWeight="bold"
+                          textAnchor="middle"
+                        >
+                          {hklText}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Right Inset: Selected Reflection Profile & FWHM Caliper */}
+                  <g>
+                    <rect x={insetX} y={padT - 4} width={insetW} height={plotH + 8} rx="6" fill="#070A12" stroke="#1e293b" strokeWidth="1" />
+                    <text x={insetCx} y={padT + 7} textAnchor="middle" fill="#38bdf8" fontSize="7" fontFamily="monospace" fontWeight="bold">
+                      {selP?.hkl ? `(${selP.hkl.join('')})` : `PEAK #${safeSelectedIdx + 1}`} PROFILE CALIPER
+                    </text>
+                    <line x1={insetX + 6} y1={insetBaseY} x2={insetX + insetW - 6} y2={insetBaseY} stroke="#334155" strokeWidth="0.8" />
+                    <polyline fill="none" stroke="#38bdf8" strokeWidth="1.5" points={obsPts.join(' ')} />
+                    <polyline fill="none" stroke="#10b981" strokeWidth="1.2" strokeDasharray="2.5 1.5" points={physPts.join(' ')} />
+                    <polyline fill="none" stroke="#f59e0b" strokeWidth="1.1" strokeDasharray="1.5 1.5" points={instPts.join(' ')} />
+
+                    {/* Half-Maximum Caliper Line */}
+                    <line
+                      x1={insetCx - fwhmPxHalf}
+                      y1={insetBaseY - insetPeakH * 0.5}
+                      x2={insetCx + fwhmPxHalf}
+                      y2={insetBaseY - insetPeakH * 0.5}
+                      stroke="#38bdf8"
+                      strokeWidth="1.2"
+                    />
+                    <circle cx={insetCx - fwhmPxHalf} cy={insetBaseY - insetPeakH * 0.5} r="1.6" fill="#38bdf8" />
+                    <circle cx={insetCx + fwhmPxHalf} cy={insetBaseY - insetPeakH * 0.5} r="1.6" fill="#38bdf8" />
+
+                    <text x={insetCx} y={baseY - 4} textAnchor="middle" fill="#e2e8f0" fontSize="6.8" fontFamily="monospace" fontWeight="bold">
+                      β_obs={bObs.toFixed(3)}° · β_s={bPhys.toFixed(3)}°
+                    </text>
+                  </g>
+                </svg>
+
+                {/* Selected Peak Telemetry Bar */}
+                {selP && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-2.5 py-1.5 bg-[#0B0F19] rounded-lg border border-slate-800 text-[9.5px] font-mono tabular-nums">
+                    <span className="text-cyan-300 font-bold">
+                      {selP.hkl ? `(${selP.hkl.join('')})` : `Peak #${safeSelectedIdx + 1}`} @ 2θ = {selP.twoTheta.toFixed(3)}° · d = {selM?.dSpacing.toFixed(4)} Å
                     </span>
                     <span className="text-slate-400">
-                      β_obs: <strong className="text-slate-200">{selP.fwhmObs.toFixed(3)}°</strong> → β_phys: <strong className="text-emerald-300">{selM?.betaCorrected ? `${selM.betaCorrected.toFixed(3)}°` : 'Limit'}</strong>
+                      β_obs: <strong className="text-slate-200">{selP.fwhmObs.toFixed(3)}°</strong> · β_inst: <strong className="text-amber-300">{selM?.curInstFwhm.toFixed(3)}°</strong> · β_phys: <strong className="text-emerald-300">{selM?.betaCorrected ? `${selM.betaCorrected.toFixed(3)}°` : 'Limit'}</strong>
                     </span>
-                    <span className="text-indigo-300 font-bold">
-                      D = {selM?.sizeNm ? `${selM.sizeNm.toFixed(2)} nm` : 'Unresolved'}
+                    <span className="text-amber-300 font-bold">
+                      D_hkl = {selM?.sizeNm ? `${selM.sizeNm.toFixed(2)} nm` : 'Unresolved'}
                     </span>
                   </div>
-                );
-              })()}
-            </div>
-          )}
+                )}
+              </div>
+            );
+          })()}
 
-          {/* Mode 2: FWHM Broadening Deconvolution Graphic (β_obs = β_inst ⊕ β_phys) */}
-          {graphicMode === 'deconv' && (
-            <div className="space-y-1.5">
-              <svg viewBox="0 0 360 128" className="w-full h-32 bg-slate-950/90 rounded-xl border border-slate-800/80 overflow-visible select-none">
-                <line x1="28" y1="102" x2="346" y2="102" stroke="#334155" strokeWidth="1" />
-                {peaks.map((p, idx) => {
-                  const m = reflectionMetrics.rows[idx];
-                  const isSel = idx === safeSelectedIdx;
-                  const count = Math.max(1, peaks.length);
-                  const slotW = 310 / count;
-                  const cx = 32 + idx * slotW + slotW * 0.5;
-                  const barW = Math.min(26, Math.max(10, slotW * 0.56));
+          {/* Mode 2: Stacked Broadening Deconvolution + Continuous Caglioti Curve & D_hkl Locus */}
+          {graphicMode === 'deconv' && (() => {
+            const svgW = 460;
+            const svgH = 148;
+            const padL = 36;
+            const padR = 38;
+            const padT = 20;
+            const padB = 26;
+            const plotW = svgW - padL - padR;
+            const plotH = svgH - padT - padB;
+            const baseY = padT + plotH;
 
-                  const maxB = Math.max(0.2, reflectionMetrics.maxObsFwhm);
-                  const totalH = Math.min(76, (p.fwhmObs / maxB) * 76);
-                  const instH = Math.min(totalH, ((m?.curInstFwhm || 0) / maxB) * 76);
-                  const physH = Math.max(0, totalH - instH);
+            const maxB = Math.max(0.18, reflectionMetrics.maxObsFwhm * 1.15);
+            const maxD = Math.max(30, ...reflectionMetrics.rows.map(r => r.sizeNm || 0)) * 1.15;
+            const count = Math.max(1, peaks.length);
+            const slotW = plotW / count;
+            const barW = Math.min(28, Math.max(10, slotW * 0.52));
 
-                  const hklText = p.hkl ? `(${p.hkl.join('')})` : `#${idx + 1}`;
+            const dLocusPts: string[] = [];
+            const instLocusPts: string[] = [];
 
-                  return (
-                    <g
-                      key={idx}
-                      onClick={() => setSelectedPeakIdx(idx)}
-                      className="cursor-pointer"
-                      opacity={p.excluded ? 0.35 : 1}
-                    >
-                      {/* Instrumental Base Segment */}
-                      <rect
-                        x={cx - barW / 2}
-                        y={102 - instH}
-                        width={barW}
-                        height={Math.max(1.5, instH)}
-                        rx="2"
-                        fill="#f59e0b"
-                        fillOpacity="0.45"
-                        stroke="#f59e0b"
-                        strokeWidth={isSel ? '1' : '0.5'}
-                      />
-                      {/* Physical Size Broadening Segment */}
-                      {physH > 0 && (
+            peaks.forEach((_, idx) => {
+              const m = reflectionMetrics.rows[idx];
+              const cx = padL + (idx + 0.5) * slotW;
+              const instY = baseY - ((m?.curInstFwhm || 0) / maxB) * plotH;
+              instLocusPts.push(`${cx.toFixed(1)},${instY.toFixed(1)}`);
+              if (m?.sizeNm && m.sizeNm > 0) {
+                const dY = baseY - (m.sizeNm / maxD) * plotH;
+                dLocusPts.push(`${cx.toFixed(1)},${dY.toFixed(1)}`);
+              }
+            });
+
+            return (
+              <div className="space-y-1.5">
+                <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-36 bg-[#0B0F19] rounded-lg border border-slate-800/90 overflow-visible select-none">
+                  {/* Horizontal Grid & Left/Right Axes */}
+                  {[0.25, 0.5, 0.75, 1].map((g, i) => {
+                    const gy = padT + plotH * (1 - g);
+                    return (
+                      <g key={i}>
+                        <line x1={padL} y1={gy} x2={padL + plotW} y2={gy} stroke="#1e293b" strokeWidth="0.7" strokeDasharray="2 2" />
+                        <text x={padL - 4} y={gy + 2.5} textAnchor="end" fill="#38bdf8" fontSize="6.5" fontFamily="monospace">
+                          {(maxB * g).toFixed(2)}°
+                        </text>
+                        <text x={padL + plotW + 4} y={gy + 2.5} textAnchor="start" fill="#10b981" fontSize="6.5" fontFamily="monospace">
+                          {(maxD * g).toFixed(0)}nm
+                        </text>
+                      </g>
+                    );
+                  })}
+                  <line x1={padL} y1={baseY} x2={padL + plotW} y2={baseY} stroke="#334155" strokeWidth="1" />
+
+                  {peaks.map((p, idx) => {
+                    const m = reflectionMetrics.rows[idx];
+                    const isSel = idx === safeSelectedIdx;
+                    const cx = padL + (idx + 0.5) * slotW;
+                    const totalH = Math.min(plotH, (p.fwhmObs / maxB) * plotH);
+                    const instH = Math.min(totalH, ((m?.curInstFwhm || 0) / maxB) * plotH);
+                    const physH = Math.max(0, totalH - instH);
+                    const hklText = p.hkl ? `(${p.hkl.join('')})` : `#${idx + 1}`;
+
+                    return (
+                      <g
+                        key={idx}
+                        onClick={() => setSelectedPeakIdx(idx)}
+                        className="cursor-pointer"
+                        opacity={p.excluded ? 0.35 : 1}
+                      >
+                        {/* Instrumental Base Segment */}
                         <rect
                           x={cx - barW / 2}
-                          y={102 - instH - physH}
+                          y={baseY - instH}
                           width={barW}
-                          height={physH}
-                          rx="2"
-                          fill="#10b981"
+                          height={Math.max(1.5, instH)}
+                          rx="1.5"
+                          fill="#f59e0b"
                           fillOpacity="0.65"
-                          stroke="#10b981"
-                          strokeWidth={isSel ? '1.2' : '0.6'}
+                          stroke="#f59e0b"
+                          strokeWidth={isSel ? '1.1' : '0.5'}
                         />
-                      )}
-                      {/* Top D_hkl readout */}
-                      <text
-                        x={cx}
-                        y={Math.max(11, 102 - totalH - 5)}
-                        fill={m?.sizeNm ? '#6ee7b7' : '#fb7185'}
-                        fontSize="7"
-                        fontFamily="monospace"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                      >
-                        {m?.sizeNm ? `${m.sizeNm.toFixed(1)}nm` : 'Lim'}
-                      </text>
-                      {/* Bottom hkl label */}
-                      <text
-                        x={cx}
-                        y="115"
-                        fill={isSel ? '#fbbf24' : '#94a3b8'}
-                        fontSize="7.2"
-                        fontFamily="monospace"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                      >
-                        {hklText}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-              <div className="flex items-center justify-between px-2 text-[9px] font-mono text-slate-400">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-xs bg-emerald-500/80 inline-block" />
-                  Physical Size β_phys
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-xs bg-amber-500/60 inline-block" />
-                  Instrument β_inst ({broadeningModel})
-                </span>
-              </div>
-            </div>
-          )}
+                        {/* Physical Size Broadening Segment */}
+                        {physH > 0 && (
+                          <rect
+                            x={cx - barW / 2}
+                            y={baseY - instH - physH}
+                            width={barW}
+                            height={physH}
+                            rx="1.5"
+                            fill="#38bdf8"
+                            fillOpacity={isSel ? '0.85' : '0.6'}
+                            stroke={isSel ? '#e0f2fe' : '#38bdf8'}
+                            strokeWidth={isSel ? '1.2' : '0.6'}
+                          />
+                        )}
+                        {/* Top D_hkl readout */}
+                        <text
+                          x={cx}
+                          y={Math.max(11, baseY - totalH - 4)}
+                          fill={m?.sizeNm ? '#6ee7b7' : '#fb7185'}
+                          fontSize="7"
+                          fontFamily="monospace"
+                          fontWeight="bold"
+                          textAnchor="middle"
+                        >
+                          {m?.sizeNm ? `${m.sizeNm.toFixed(1)}nm` : 'Lim'}
+                        </text>
+                        {/* Bottom hkl & 2theta label */}
+                        <text
+                          x={cx}
+                          y={svgH - 12}
+                          fill={isSel ? '#fbbf24' : '#cbd5e1'}
+                          fontSize="7.2"
+                          fontFamily="monospace"
+                          fontWeight="bold"
+                          textAnchor="middle"
+                        >
+                          {hklText}
+                        </text>
+                        <text
+                          x={cx}
+                          y={svgH - 3.5}
+                          fill="#64748b"
+                          fontSize="6.5"
+                          fontFamily="monospace"
+                          textAnchor="middle"
+                        >
+                          {p.twoTheta.toFixed(1)}°
+                        </text>
+                      </g>
+                    );
+                  })}
 
-          {/* Mode 3: Coherent Crystallite Domain & Bragg Interference Schematic (D = N * d_hkl) */}
+                  {/* Caglioti / Instrumental Curve */}
+                  {instLocusPts.length > 1 && (
+                    <polyline fill="none" stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="3 2" points={instLocusPts.join(' ')} />
+                  )}
+                  {/* Crystallite Size D_hkl Trajectory */}
+                  {dLocusPts.length > 1 && (
+                    <polyline fill="none" stroke="#10b981" strokeWidth="1.4" points={dLocusPts.join(' ')} />
+                  )}
+                </svg>
+
+                <div className="flex items-center justify-between px-2 text-[9px] font-mono text-slate-400 flex-wrap gap-2">
+                  <span>Left Axis: <strong className="text-cyan-300">β_phys (Cyan)</strong> + <strong className="text-amber-300">β_inst (Amber)</strong></span>
+                  <span>Right Axis: <strong className="text-emerald-400">D_hkl Locus (nm)</strong> · Model: <strong className="text-slate-200">{broadeningModel}</strong></span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Mode 3: 3D Coherent Domain N*d_hkl & Mathematically Plotted Scherrer Hyperbola D(β_phys) */}
           {graphicMode === 'domain' && (() => {
             const selP = peaks[safeSelectedIdx] || peaks[0];
             const selM = reflectionMetrics.rows[safeSelectedIdx] || reflectionMetrics.rows[0];
@@ -819,76 +1012,126 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
             const sizeNm = selM?.sizeNm || 25.0;
             const planesN = selM?.planesN || Math.round((sizeNm * 10) / dVal);
             const thetaDeg = (selP?.twoTheta || 28.4) / 2;
-            const visiblePlanes = Math.min(9, Math.max(4, Math.round(planesN / 12)));
+            const thetaRad = (thetaDeg * Math.PI) / 180;
+            const cosTheta = Math.max(0.2, Math.cos(thetaRad));
+            const effK = selM?.effectiveK ?? constantK;
+            const visiblePlanes = Math.min(8, Math.max(4, Math.round(planesN / 14)));
+
+            // Plot true mathematical Scherrer curve D(beta_deg) = (K * lambda) / ((beta_deg * pi/180) * cosTheta * 10)
+            // Across beta_deg in [0.04° .. maxBetaPlot]
+            const maxBetaPlot = Math.max(0.45, ...reflectionMetrics.rows.map(r => (r.betaCorrected || 0.2) * 1.35));
+            const minBetaPlot = 0.03;
+            const maxDPlot = 140;
+
+            const mapBetaX = (bDeg: number) => 22 + ((Math.min(maxBetaPlot, Math.max(minBetaPlot, bDeg)) - minBetaPlot) / (maxBetaPlot - minBetaPlot)) * 150;
+            const mapDY = (dNm: number) => 92 - (Math.min(maxDPlot, Math.max(0, dNm)) / maxDPlot) * 66;
+
+            const curvePts: string[] = [];
+            for (let i = 0; i <= 60; i++) {
+              const bDeg = minBetaPlot + (i / 60) * (maxBetaPlot - minBetaPlot);
+              const bRad = (bDeg * Math.PI) / 180;
+              const dNm = (effK * wavelength) / (bRad * cosTheta * 10);
+              curvePts.push(`${mapBetaX(bDeg).toFixed(1)},${mapDY(dNm).toFixed(1)}`);
+            }
 
             return (
               <div className="space-y-1.5">
-                <svg viewBox="0 0 360 128" className="w-full h-32 bg-slate-950/90 rounded-xl border border-slate-800/80 overflow-visible select-none">
-                  {/* Left: Stacked Coherent Atomic Planes N * d_hkl */}
-                  <g transform="translate(18, 16)">
-                    <rect x="0" y="0" width="148" height="96" rx="8" fill="#09101f" stroke="#1e293b" strokeWidth="1" />
-                    <text x="74" y="13" fill="#94a3b8" fontSize="7.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-                      COHERENT DOMAIN D = N·d_hkl
+                <svg viewBox="0 0 460 148" className="w-full h-36 bg-[#0B0F19] rounded-lg border border-slate-800/90 overflow-visible select-none">
+                  {/* Left Panel: 3D Isometric Coherent Domain Stack D = N * d_hkl */}
+                  <g transform="translate(10, 10)">
+                    <rect x="0" y="0" width="218" height="128" rx="6" fill="#070A12" stroke="#1e293b" strokeWidth="1" />
+                    <text x="109" y="13" fill="#38bdf8" fontSize="7.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                      COHERENT COLUMN D_hkl = N · d_hkl
                     </text>
 
-                    {/* Render parallel atomic lattice planes */}
+                    {/* Isometric Parallel Lattice Planes */}
                     {Array.from({ length: visiblePlanes }).map((_, pIdx) => {
-                      const y = 26 + (pIdx * 54) / Math.max(1, visiblePlanes - 1);
+                      const y = 30 + (pIdx * 64) / Math.max(1, visiblePlanes - 1);
                       return (
                         <g key={pIdx}>
-                          <line x1="22" y1={y} x2="112" y2={y} stroke="#38bdf8" strokeWidth="1" strokeDasharray="3 2" opacity="0.75" />
-                          {[28, 48, 68, 88, 106].map((ax, aIdx) => (
-                            <circle key={aIdx} cx={ax} cy={y} r="2" fill="#38bdf8" />
+                          <polygon
+                            points={`26,${y + 4} 52,${y - 5} 152,${y - 5} 126,${y + 4}`}
+                            fill="rgba(56, 189, 248, 0.08)"
+                            stroke="#38bdf8"
+                            strokeWidth="0.9"
+                          />
+                          {[42, 68, 94, 120].map((ax, aIdx) => (
+                            <circle key={aIdx} cx={ax} cy={y} r="2" fill="#e0f2fe" stroke="#0284c7" strokeWidth="0.6" />
                           ))}
                         </g>
                       );
                     })}
 
-                    {/* Incident & Diffracted X-Ray Wave Beams */}
-                    <line x1="8" y1="16" x2="68" y2="44" stroke="#f59e0b" strokeWidth="1.5" />
-                    <line x1="68" y1="44" x2="128" y2="16" stroke="#10b981" strokeWidth="1.5" />
-                    <text x="16" y="34" fill="#fbbf24" fontSize="7" fontFamily="monospace" fontWeight="bold">
-                      θ={thetaDeg.toFixed(1)}°
+                    {/* Incident k_0 & Diffracted k X-Ray Wavevectors */}
+                    <line x1="14" y1="18" x2="86" y2="48" stroke="#f59e0b" strokeWidth="1.6" />
+                    <line x1="86" y1="48" x2="158" y2="18" stroke="#10b981" strokeWidth="1.6" />
+                    <text x="20" y="39" fill="#fbbf24" fontSize="7" fontFamily="monospace" fontWeight="bold">
+                      θ_B={thetaDeg.toFixed(2)}°
                     </text>
 
-                    {/* Vertical Dimension Caliper for D_hkl */}
-                    <line x1="126" y1="26" x2="126" y2="80" stroke="#f59e0b" strokeWidth="1.2" />
-                    <line x1="122" y1="26" x2="130" y2="26" stroke="#f59e0b" strokeWidth="1.2" />
-                    <line x1="122" y1="80" x2="130" y2="80" stroke="#f59e0b" strokeWidth="1.2" />
-                    <text x="136" y="56" fill="#fbbf24" fontSize="7.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle" transform="rotate(-90 136 56)">
-                      N≈{planesN}
+                    {/* Vertical Caliper for N Planes */}
+                    <line x1="172" y1="28" x2="172" y2="94" stroke="#f59e0b" strokeWidth="1.2" />
+                    <line x1="167" y1="28" x2="177" y2="28" stroke="#f59e0b" strokeWidth="1.2" />
+                    <line x1="167" y1="94" x2="177" y2="94" stroke="#f59e0b" strokeWidth="1.2" />
+                    <text x="194" y="56" fill="#fbbf24" fontSize="7.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                      N ≈ {planesN}
+                    </text>
+                    <text x="194" y="68" fill="#94a3b8" fontSize="6.5" fontFamily="monospace" textAnchor="middle">
+                      planes
                     </text>
 
-                    <text x="74" y="91" fill="#67e8f9" fontSize="7.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-                      d = {dVal.toFixed(3)} Å · K = {(selM?.effectiveK ?? constantK).toFixed(3)}
+                    <text x="109" y="117" fill="#cbd5e1" fontSize="7.2" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                      d_hkl = {dVal.toFixed(4)} Å · K_eff = {effK.toFixed(3)}
                     </text>
                   </g>
 
-                  {/* Right: Scherrer Inverse Relation Curve D(β) */}
-                  <g transform="translate(180, 16)">
-                    <rect x="0" y="0" width="162" height="96" rx="8" fill="#09101f" stroke="#1e293b" strokeWidth="1" />
-                    <text x="81" y="13" fill="#94a3b8" fontSize="7.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
-                      SCHERRER LAW: D = Kλ / (β·cosθ)
+                  {/* Right Panel: Live Mathematical Scherrer Hyperbola D(β_phys) */}
+                  <g transform="translate(238, 10)">
+                    <rect x="0" y="0" width="212" height="128" rx="6" fill="#070A12" stroke="#1e293b" strokeWidth="1" />
+                    <text x="106" y="13" fill="#f59e0b" fontSize="7.5" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                      SCHERRER LOCUS: D = Kλ / (β_phys·cosθ)
                     </text>
-                    {/* Hyperbolic Curve D vs Beta */}
-                    <path
-                      d="M 22 24 Q 36 74 142 82"
-                      fill="none"
-                      stroke="#6366f1"
-                      strokeWidth="1.6"
-                    />
-                    {/* Active operating point */}
-                    <circle cx="64" cy="56" r="4" fill="#f59e0b" stroke="#fff" strokeWidth="1" />
-                    <line x1="64" y1="56" x2="64" y2="84" stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="2 2" />
-                    <line x1="20" y1="56" x2="64" y2="56" stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="2 2" />
-                    <text x="72" y="52" fill="#fbbf24" fontSize="8" fontFamily="monospace" fontWeight="bold">
-                      D = {selM?.sizeNm ? `${selM.sizeNm.toFixed(1)} nm` : 'Limit'}
+
+                    {/* Axes */}
+                    <line x1="22" y1="22" x2="22" y2="92" stroke="#334155" strokeWidth="1" />
+                    <line x1="22" y1="92" x2="196" y2="92" stroke="#334155" strokeWidth="1" />
+                    <text x="108" y="104" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="middle">
+                      Physical Broadening β_phys (° 2θ)
                     </text>
-                    <text x="72" y="63" fill="#34d399" fontSize="7.2" fontFamily="monospace">
-                      β_s = {selM?.betaCorrected ? `${selM.betaCorrected.toFixed(3)}°` : '—'}
-                    </text>
-                    <text x="81" y="91" fill="#94a3b8" fontSize="7" fontFamily="monospace" textAnchor="middle">
-                      Peak {selP?.hkl ? `(${selP.hkl.join('')})` : `#${safeSelectedIdx + 1}`} @ 2θ={selP?.twoTheta.toFixed(2)}°
+
+                    {/* Hyperbola Curve */}
+                    <polyline fill="none" stroke="#38bdf8" strokeWidth="1.5" points={curvePts.join(' ')} />
+
+                    {/* Plot all active reflections on the hyperbola */}
+                    {peaks.map((p, idx) => {
+                      const m = reflectionMetrics.rows[idx];
+                      if (!m?.betaCorrected || !m?.sizeNm || p.excluded) return null;
+                      const px = mapBetaX(m.betaCorrected);
+                      const py = mapDY(m.sizeNm);
+                      const isSel = idx === safeSelectedIdx;
+                      return (
+                        <g key={idx} onClick={() => setSelectedPeakIdx(idx)} className="cursor-pointer">
+                          {isSel && (
+                            <>
+                              <line x1={px} y1={py} x2={px} y2="92" stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="2 2" />
+                              <line x1="22" y1={py} x2={px} y2={py} stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="2 2" />
+                              <circle cx={px} cy={py} r="6" fill="rgba(245, 158, 11, 0.2)" />
+                            </>
+                          )}
+                          <circle
+                            cx={px}
+                            cy={py}
+                            r={isSel ? '3.5' : '2.3'}
+                            fill={isSel ? '#f59e0b' : '#10b981'}
+                            stroke="#070A12"
+                            strokeWidth="0.9"
+                          />
+                        </g>
+                      );
+                    })}
+
+                    <text x="106" y="117" fill="#e2e8f0" fontSize="7.2" fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                      {selP?.hkl ? `(${selP.hkl.join('')})` : `#${safeSelectedIdx + 1}`}: β_phys={selM?.betaCorrected ? `${selM.betaCorrected.toFixed(3)}°` : '—'} → D={selM?.sizeNm ? `${selM.sizeNm.toFixed(1)} nm` : 'Lim'}
                     </text>
                   </g>
                 </svg>
@@ -907,13 +1150,13 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-3.5 space-y-3 text-xs">
+            <div className="bg-[#0B0F19] border border-amber-500/40 rounded-xl p-3.5 space-y-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5" />
                   Forward Diffraction Broadening Synthesizer ({crystalSystem})
                 </span>
-                <span className="text-[9px] font-mono text-slate-400">Generates 2θ, FWHM & (hkl)</span>
+                <span className="text-[9px] font-mono text-slate-400">Generates 2θ, FWHM &amp; (hkl)</span>
               </div>
 
               <div className="grid grid-cols-3 gap-2.5 font-mono text-[10px] tabular-nums">
@@ -926,7 +1169,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
                     step="1"
                     value={synthTargetSizeNm}
                     onChange={(e) => setSynthTargetSizeNm(parseFloat(e.target.value) || 25)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-amber-300 font-bold tabular-nums focus:outline-none focus:border-amber-500"
+                    className="w-full bg-[#070A12] border border-slate-800 rounded-lg px-2 py-1.5 text-amber-300 font-bold tabular-nums focus:outline-none focus:border-amber-500"
                   />
                 </div>
                 <div>
@@ -938,7 +1181,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
                     step="0.01"
                     value={synthStrainPct}
                     onChange={(e) => setSynthStrainPct(parseFloat(e.target.value) || 0)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-indigo-300 font-bold tabular-nums focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-[#070A12] border border-slate-800 rounded-lg px-2 py-1.5 text-cyan-300 font-bold tabular-nums focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
@@ -950,7 +1193,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
                     step="0.001"
                     value={synthLatticeA}
                     onChange={(e) => setSynthLatticeA(parseFloat(e.target.value) || 5.431)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-emerald-300 font-bold tabular-nums focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-[#070A12] border border-slate-800 rounded-lg px-2 py-1.5 text-emerald-300 font-bold tabular-nums focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -958,7 +1201,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
               <button
                 type="button"
                 onClick={handleSynthesizeReflections}
-                className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-[10px] uppercase tracking-wider transition-all cursor-pointer"
+                className="w-full py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 font-mono font-bold rounded-lg text-[10px] uppercase tracking-wider transition-all cursor-pointer"
               >
                 Synthesize Multi-Peak Reflection Table
               </button>
@@ -967,199 +1210,211 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
         )}
       </AnimatePresence>
 
-      {/* Zero-Horizontal-Scroll Responsive Reflection Cards */}
-      <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
-        <AnimatePresence initial={false}>
-          {peaks.map((p, idx) => {
-            const m = reflectionMetrics.rows[idx];
-            const isExcluded = !!p.excluded;
-            const isSelected = idx === safeSelectedIdx;
-            const dSpacingStr = m && m.dSpacing > 0 ? m.dSpacing.toFixed(3) : '—';
-            const relWeightPct = Math.min(100, Math.round(((p.intensity ?? 100) / reflectionMetrics.maxIntensity) * 100));
-            const physFractionPct = m?.betaCorrected && p.fwhmObs > 0
-              ? Math.min(100, Math.max(5, Math.round((m.betaCorrected / p.fwhmObs) * 100)))
-              : 0;
+      {/* Main Reflections Data View: Structured Metrology Cards vs Raw CSV Matrix */}
+      {viewMode === 'cards' ? (
+        <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+          <AnimatePresence initial={false}>
+            {peaks.map((p, idx) => {
+              const m = reflectionMetrics.rows[idx];
+              const isExcluded = !!p.excluded;
+              const isSelected = idx === safeSelectedIdx;
+              const dSpacingStr = m && m.dSpacing > 0 ? m.dSpacing.toFixed(3) : '—';
+              const relWeightPct = Math.min(100, Math.round(((p.intensity ?? 100) / reflectionMetrics.maxIntensity) * 100));
+              const physFractionPct = m?.betaCorrected && p.fwhmObs > 0
+                ? Math.min(100, Math.max(5, Math.round((m.betaCorrected / p.fwhmObs) * 100)))
+                : 0;
 
-            return (
-              <motion.div
-                key={`peak-card-${idx}`}
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: isExcluded ? 0.45 : 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                onClick={() => setSelectedPeakIdx(idx)}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-slate-900/95 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.08)]'
-                    : 'bg-slate-950/75 border-slate-800/80 hover:border-slate-700'
-                }`}
-              >
-                {/* Top Row: Use Toggle + Index + Inline (hkl) + Live Calculated Badges + Delete */}
-                <div className="flex items-center justify-between gap-1.5 flex-wrap mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleExcludeRow(idx);
-                      }}
-                      className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors cursor-pointer border ${
-                        isExcluded
-                          ? 'bg-slate-900 border-slate-700 text-slate-500 hover:text-amber-400'
-                          : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25'
-                      }`}
-                      title={isExcluded ? 'Excluded from Mean Sizing (click to include)' : `Peak #${idx + 1} included (click to exclude)`}
-                    >
-                      {isExcluded ? <EyeOff className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-                    </button>
+              return (
+                <motion.div
+                  key={`peak-card-${idx}`}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: isExcluded ? 0.45 : 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => setSelectedPeakIdx(idx)}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#0B0F19] border-cyan-500/60 shadow-sm'
+                      : 'bg-[#070A12] border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  {/* Top Row: Use Toggle + Unboxed Telemetry Metadata + Delete */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2 pb-1.5 border-b border-slate-800/80 font-mono tabular-nums text-[10px]">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleExcludeRow(idx);
+                        }}
+                        className={`w-5 h-5 rounded flex items-center justify-center transition-colors cursor-pointer border ${
+                          isExcluded
+                            ? 'bg-[#070A12] border-slate-700 text-slate-500 hover:text-amber-400'
+                            : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25'
+                        }`}
+                        title={isExcluded ? 'Excluded from Mean Sizing (click to include)' : `Peak #${idx + 1} included (click to exclude)`}
+                      >
+                        {isExcluded ? <EyeOff className="w-3 h-3" /> : <Check className="w-3 h-3" />}
+                      </button>
 
-                    <span className="text-[10px] font-mono font-black text-slate-400 px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 tabular-nums">
-                      #{idx + 1}
-                    </span>
+                      <span className="font-bold text-slate-300">#{idx + 1}</span>
+                      <span className="text-slate-700">·</span>
+                      <span className="text-cyan-400 font-bold">
+                        {p.hkl ? `(${p.hkl.join('')})` : 'Unindexed'}
+                      </span>
+                      <span className="text-slate-700">·</span>
+                      <span className="text-slate-400">
+                        d = <strong className="text-slate-200">{dSpacingStr} Å</strong>
+                      </span>
+                    </div>
 
-                    {/* Inline Miller Indices (h k l) */}
-                    <div className="flex items-center gap-0.5 bg-slate-950 px-1.5 py-0.5 rounded-lg border border-slate-800" onClick={(e) => e.stopPropagation()}>
-                      <span className="text-[9px] font-mono text-slate-500">(</span>
-                      <input
-                        type="number"
-                        placeholder="h"
-                        value={p.hkl ? p.hkl[0] : ''}
-                        onChange={(e) => handleUpdateRow(idx, 'h', e.target.value)}
-                        className="w-5 bg-transparent text-center text-indigo-300 font-mono text-[10px] font-bold tabular-nums focus:outline-none"
-                      />
-                      <input
-                        type="number"
-                        placeholder="k"
-                        value={p.hkl ? p.hkl[1] : ''}
-                        onChange={(e) => handleUpdateRow(idx, 'k', e.target.value)}
-                        className="w-5 bg-transparent text-center text-indigo-300 font-mono text-[10px] font-bold tabular-nums focus:outline-none"
-                      />
-                      <input
-                        type="number"
-                        placeholder="l"
-                        value={p.hkl ? p.hkl[2] : ''}
-                        onChange={(e) => handleUpdateRow(idx, 'l', e.target.value)}
-                        className="w-5 bg-transparent text-center text-indigo-300 font-mono text-[10px] font-bold tabular-nums focus:outline-none"
-                      />
-                      <span className="text-[9px] font-mono text-slate-500">)</span>
+                    <div className="flex items-center gap-2 ml-auto">
+                      {m?.sizeNm ? (
+                        <span className="font-bold text-amber-300">
+                          D = {m.sizeNm.toFixed(1)} nm <span className="text-slate-500 text-[9px]">(N≈{m.planesN})</span>
+                        </span>
+                      ) : (
+                        <span
+                          className="font-bold text-rose-400 flex items-center gap-1 text-[9px]"
+                          title={m?.error || 'Observed width ≤ Instrumental width'}
+                        >
+                          <AlertCircle className="w-2.5 h-2.5" />
+                          Resolution Limit
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRow(idx);
+                        }}
+                        className="p-1 text-slate-500 hover:text-rose-400 rounded transition-colors cursor-pointer"
+                        title="Delete reflection"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
 
-                  {/* Live Calculated Telemetry Pills: d-spacing, β_phys, and Size D_hkl */}
-                  <div className="flex items-center gap-1.5 ml-auto font-mono tabular-nums">
-                    <span className="text-[9.5px] text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800/80">
-                      d={dSpacingStr}Å
-                    </span>
-                    {m?.sizeNm ? (
-                      <span className="text-[10px] font-black text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-500/30">
-                        {m.sizeNm.toFixed(1)} nm
+                  {/* Middle Row: 4 Clean Numeric Inputs (2Theta, FWHM_obs, Intensity %, Miller hkl) */}
+                  <div className="grid grid-cols-12 gap-1.5 font-mono tabular-nums" onClick={(e) => e.stopPropagation()}>
+                    <div className="col-span-3 bg-[#070A12] px-2 py-1 rounded-lg border border-slate-800 focus-within:border-cyan-500/60">
+                      <span className="text-[8px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
+                        2θ (°)
                       </span>
-                    ) : (
-                      <span
-                        className="text-[9px] font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/30 flex items-center gap-1"
-                        title={m?.error || 'Observed width ≤ Instrumental width'}
-                      >
-                        <AlertCircle className="w-2.5 h-2.5" />
-                        Limit
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={p.twoTheta || ''}
+                        onChange={(e) => handleUpdateRow(idx, 'twoTheta', e.target.value)}
+                        className="w-full bg-transparent text-cyan-300 font-mono text-[11px] font-bold tabular-nums focus:outline-none"
+                      />
+                    </div>
+
+                    <div className={`col-span-3 bg-[#070A12] px-2 py-1 rounded-lg border ${
+                      m?.error ? 'border-rose-500/50' : 'border-slate-800 focus-within:border-amber-500/60'
+                    }`}>
+                      <span className="text-[8px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
+                        FWHM β (°)
                       </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteRow(idx);
-                      }}
-                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors cursor-pointer"
-                      title="Delete reflection"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={p.fwhmObs || ''}
+                        onChange={(e) => handleUpdateRow(idx, 'fwhmObs', e.target.value)}
+                        className={`w-full bg-transparent font-mono text-[11px] font-bold tabular-nums focus:outline-none ${
+                          m?.error ? 'text-rose-300' : 'text-amber-300'
+                        }`}
+                      />
+                    </div>
 
-                {/* Bottom Row: 3 Clean Numeric Inputs (2Theta, FWHM_obs, Relative Intensity) */}
-                <div className="grid grid-cols-3 gap-2 font-mono tabular-nums" onClick={(e) => e.stopPropagation()}>
-                  <div className="bg-slate-950/90 px-2 py-1 rounded-lg border border-slate-800/90 focus-within:border-indigo-500/60">
-                    <span className="text-[8.5px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
-                      2θ Angle (°)
-                    </span>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={p.twoTheta || ''}
-                      onChange={(e) => handleUpdateRow(idx, 'twoTheta', e.target.value)}
-                      className="w-full bg-transparent text-indigo-300 font-mono text-[11px] font-bold tabular-nums focus:outline-none"
-                    />
-                  </div>
+                    <div className="col-span-2 bg-[#070A12] px-2 py-1 rounded-lg border border-slate-800 focus-within:border-emerald-500/60">
+                      <span className="text-[8px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
+                        I (%)
+                      </span>
+                      <input
+                        type="number"
+                        step="1"
+                        value={p.intensity ?? 100}
+                        onChange={(e) => handleUpdateRow(idx, 'intensity', e.target.value)}
+                        className="w-full bg-transparent text-emerald-300 font-mono text-[11px] font-bold tabular-nums focus:outline-none"
+                      />
+                    </div>
 
-                  <div className={`bg-slate-950/90 px-2 py-1 rounded-lg border ${
-                    m?.error ? 'border-rose-500/50' : 'border-slate-800/90 focus-within:border-amber-500/60'
-                  }`}>
-                    <span className="text-[8.5px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
-                      FWHM β_obs (°)
-                    </span>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={p.fwhmObs || ''}
-                      onChange={(e) => handleUpdateRow(idx, 'fwhmObs', e.target.value)}
-                      className={`w-full bg-transparent font-mono text-[11px] font-bold tabular-nums focus:outline-none ${
-                        m?.error ? 'text-rose-300' : 'text-amber-300'
-                      }`}
-                    />
+                    <div className="col-span-4 bg-[#070A12] px-1.5 py-1 rounded-lg border border-slate-800">
+                      <span className="text-[8px] font-sans font-bold uppercase tracking-wider text-slate-500 block text-center">
+                        Miller (h k l)
+                      </span>
+                      <div className="grid grid-cols-3 gap-1">
+                        {(['h', 'k', 'l'] as const).map((axis, aIdx) => (
+                          <input
+                            key={axis}
+                            type="number"
+                            placeholder={axis}
+                            value={p.hkl ? p.hkl[aIdx] : ''}
+                            onChange={(e) => handleUpdateRow(idx, axis, e.target.value)}
+                            className="w-full bg-slate-900/80 text-center text-slate-200 font-mono text-[10px] font-bold tabular-nums rounded border border-slate-800/80 focus:border-cyan-500 focus:outline-none"
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="bg-slate-950/90 px-2 py-1 rounded-lg border border-slate-800/90 focus-within:border-emerald-500/60">
-                    <span className="text-[8.5px] font-sans font-bold uppercase tracking-wider text-slate-500 block">
-                      Intensity (%)
-                    </span>
-                    <input
-                      type="number"
-                      step="1"
-                      value={p.intensity ?? 100}
-                      onChange={(e) => handleUpdateRow(idx, 'intensity', e.target.value)}
-                      className="w-full bg-transparent text-emerald-300 font-mono text-[11px] font-bold tabular-nums focus:outline-none"
-                    />
+                  {/* Bottom Micro Telemetry Bar: Physical Broadening Share vs Instrumental */}
+                  <div className="mt-2 flex items-center gap-2 text-[8.5px] font-mono tabular-nums text-slate-400">
+                    <span>β_phys: <strong className="text-cyan-300">{m?.betaCorrected ? `${m.betaCorrected.toFixed(3)}°` : '—'}</strong> ({physFractionPct}%)</span>
+                    <div className="flex-1 h-1.5 bg-[#070A12] rounded-full overflow-hidden flex border border-slate-800/80">
+                      <div
+                        className="h-full bg-cyan-400 transition-all duration-300"
+                        style={{ width: `${physFractionPct}%` }}
+                      />
+                      <div
+                        className="h-full bg-amber-500/50 transition-all duration-300"
+                        style={{ width: `${Math.max(0, 100 - physFractionPct)}%` }}
+                      />
+                    </div>
+                    <span>β_inst: <strong className="text-amber-300">{m?.curInstFwhm.toFixed(3)}°</strong> · I={relWeightPct}%</span>
                   </div>
-                </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
 
-                {/* Micro Telemetry Bar: Physical Broadening Share & Intensity Weight */}
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="flex-1 h-1 bg-slate-950 rounded-full overflow-hidden flex">
-                    <div
-                      className="h-full bg-emerald-500/80 transition-all duration-300"
-                      style={{ width: `${physFractionPct}%` }}
-                      title={`Physical Sample Broadening Share: ${physFractionPct}%`}
-                    />
-                    <div
-                      className="h-full bg-amber-500/40 transition-all duration-300"
-                      style={{ width: `${Math.max(0, 100 - physFractionPct)}%` }}
-                      title="Instrumental Resolution Share"
-                    />
-                  </div>
-                  <span className="text-[8.5px] font-mono tabular-nums text-slate-500 shrink-0">
-                    β_phys: {m?.betaCorrected ? `${m.betaCorrected.toFixed(3)}°` : '—'} · I={relWeightPct}%
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
-
-        {peaks.length === 0 && (
-          <div className="py-8 text-center text-slate-500 text-xs bg-slate-950/60 rounded-xl border border-slate-800/80">
-            No reflection peaks entered yet. Use the quick-add bar below or click Synthesize.
+          {peaks.length === 0 && (
+            <div className="py-8 text-center text-slate-500 text-xs font-mono bg-[#070A12] rounded-xl border border-slate-800">
+              No reflection peaks entered yet. Use the quick-add bar below or click Synthesize.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-3 space-y-2">
+          <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+            <span>Format: <strong className="text-cyan-300">2θ, FWHM, Intensity [, h, k, l]</strong> (Prefix <code className="text-amber-300">!</code> to exclude)</span>
+            <button
+              type="button"
+              onClick={() => setRawText(serializePeaksToCSV(peaks))}
+              className="text-cyan-400 hover:text-cyan-300 font-bold cursor-pointer"
+            >
+              Format Columns
+            </button>
           </div>
-        )}
-      </div>
+          <textarea
+            value={rawText}
+            onChange={(e) => handleRawTextChange(e.target.value)}
+            className="w-full h-44 px-3 py-2.5 bg-[#070A12] text-cyan-300 border border-slate-800 focus:border-cyan-500/60 rounded-lg outline-none font-mono tabular-nums text-xs leading-relaxed custom-scrollbar"
+            placeholder="28.443, 0.240, 100, 1, 1, 1"
+            spellCheck="false"
+          />
+        </div>
+      )}
 
       {/* Quick Add Reflection Bar */}
-      <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 space-y-2">
+      <div className="bg-[#0B0F19] p-3 rounded-xl border border-slate-800 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Plus className="w-3.5 h-3.5 text-amber-400" /> Append Reflection Peak
+          <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+            <Plus className="w-3.5 h-3.5 text-cyan-400" /> Append Reflection Peak
           </span>
-          <span className="text-[9px] font-mono text-slate-500">2θ, FWHM, I% & optional (hkl)</span>
+          <span className="text-[9px] font-mono text-slate-500">2θ, FWHM, I% &amp; optional (hkl)</span>
         </div>
         <div className="grid grid-cols-3 gap-2 font-mono tabular-nums">
           <input
@@ -1168,7 +1423,7 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
             step="0.001"
             value={newTwoTheta}
             onChange={(e) => setNewTwoTheta(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-2.5 py-1.5 text-xs text-indigo-300 font-mono font-bold tabular-nums placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+            className="w-full bg-[#070A12] border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-cyan-300 font-mono font-bold tabular-nums placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
           />
           <input
             type="number"
@@ -1176,14 +1431,14 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
             step="0.001"
             value={newFwhm}
             onChange={(e) => setNewFwhm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold tabular-nums placeholder:text-slate-600 focus:outline-none focus:border-amber-500"
+            className="w-full bg-[#070A12] border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-amber-300 font-mono font-bold tabular-nums placeholder:text-slate-600 focus:outline-none focus:border-amber-500"
           />
           <input
             type="number"
             placeholder="I [%]"
             value={newIntensity}
             onChange={(e) => setNewIntensity(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-700/60 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-mono font-bold tabular-nums placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+            className="w-full bg-[#070A12] border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-emerald-300 font-mono font-bold tabular-nums placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
           />
         </div>
         <div className="flex items-center justify-between gap-2 pt-0.5">
@@ -1194,28 +1449,28 @@ export const ScherrerPeakTableEditor: React.FC<ScherrerPeakTableEditorProps> = (
               placeholder="h"
               value={newH}
               onChange={(e) => setNewH(e.target.value)}
-              className="w-9 bg-slate-950 border border-slate-700/60 rounded-lg px-1 py-1 text-xs text-center text-slate-300 font-mono font-bold tabular-nums placeholder:text-slate-600"
+              className="w-9 bg-[#070A12] border border-slate-800 rounded-lg px-1 py-1 text-xs text-center text-slate-200 font-mono font-bold tabular-nums placeholder:text-slate-600"
             />
             <input
               type="number"
               placeholder="k"
               value={newK}
               onChange={(e) => setNewK(e.target.value)}
-              className="w-9 bg-slate-950 border border-slate-700/60 rounded-lg px-1 py-1 text-xs text-center text-slate-300 font-mono font-bold tabular-nums placeholder:text-slate-600"
+              className="w-9 bg-[#070A12] border border-slate-800 rounded-lg px-1 py-1 text-xs text-center text-slate-200 font-mono font-bold tabular-nums placeholder:text-slate-600"
             />
             <input
               type="number"
               placeholder="l"
               value={newL}
               onChange={(e) => setNewL(e.target.value)}
-              className="w-9 bg-slate-950 border border-slate-700/60 rounded-lg px-1 py-1 text-xs text-center text-slate-300 font-mono font-bold tabular-nums placeholder:text-slate-600"
+              className="w-9 bg-[#070A12] border border-slate-800 rounded-lg px-1 py-1 text-xs text-center text-slate-200 font-mono font-bold tabular-nums placeholder:text-slate-600"
             />
           </div>
           <button
             type="button"
             onClick={handleAddPeak}
             disabled={!newTwoTheta || !newFwhm}
-            className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+            className="px-3.5 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 disabled:opacity-40 disabled:cursor-not-allowed text-cyan-300 border border-cyan-500/50 rounded-lg text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap shrink-0"
           >
             <Plus className="w-3.5 h-3.5" /> Add Peak
           </button>

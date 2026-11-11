@@ -1,0 +1,565 @@
+XRD-Calc Pro
+Gemini 4 Argon
+Ran for 3m 26s
+Built
+Ran quality control
+The Monshi-Scherrer Scheme physics engine and user interface have been upgraded:
+Enhanced Regression & Statistical Physics:
+Unconstrained vs. Constrained (
+) Consensus Fit: Simultaneously computes the unconstrained logarithmic regression (
+) and the theoretical fixed-slope (
+) geometric-mean consensus size (
+).
+Multiple Least-Squares Solvers: Added selectable Standard OLS, 
+-Weighted WLS (prioritizing low-to-mid angle reflections), and Huber IRLS Robust Regression (automatically down-weighting anomalous reflections).
+Uncertainty & Defect Quantification: Computes standard errors on slope (
+), intercept (
+), propagated crystallite size uncertainty (
+), Pearson 
+, 
+, dislocation density (
+), interplanar spacing (
+), scattering vector (
+), and standardized residuals (
+) with automatic outlier detection (
+).
+5-Method Benchmark Cross-Check: Benchmarks Monshi Free-Slope, Monshi Constrained (
+), Arithmetic Mean Single-Peak Scherrer, Classical Linear Scherrer (
+ vs 
+), and Williamson-Hall (UDM) side-by-side on the active dataset.
+Scientific Console UI & Interactive Workflow:
+Top Telemetry & Calibration Ribbon: Displays live solver status, active reflection count, slope regime classification (Nominal Isotropic, Strain-Broadened, or Sub-Unity / Faulted), one-click Workspace Sync, Auto-Prune Outliers, CSV Export, and LaTeX Copy.
+Dual-Mode Reflection Manager: Switch between an Interactive Peak Table (inline editing of 
+, 
+, and 
+, per-reflection include/exclude checkboxes, quick-add peak bar, and 
+ sorting) and Raw Batch Text Input, plus 6 curated reference standards.
+5 Interactive Visualization Views:
+Log Regression & 95% CI Band: Plots the unconstrained fit, constrained 
+ line, shaded 95% confidence interval, and interactive click-to-exclude reflection markers.
+Multi-Method Benchmark: Compares all 5 crystallite size formulations in a tabular matrix and reflection-by-reflection bar/reference chart.
+Residuals & Outlier Diagnostics: Toggle between standardized residuals (
+ with 
+ bounds) and raw logarithmic residuals (
+).
+Broadening Deconvolution Profile: Visualizes observed 
+, instrumental baseline 
+, and intrinsic sample breadth 
+ across 
+.
+Anisotropy & Dislocation Spectrum: Dual-axis chart comparing directional domain size 
+ and local dislocation density 
+.
+Checkpoint
+Improve Double-Voigt Method and improve it's UI
+Gemini 4 Argon
+Ran for 13m 43s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 3 files
+types.ts
+utils/physics.ts
+components/DoubleVoigtModule.tsx
+Built
+The Double-Voigt Method physics engine and scientific console UI have been upgraded:
+Physics & Numerical Engine Improvements
+Selectable Voigt Inversion Kernels: Added support for de Keijser et al. (1982), Langford (1978), and Balzar & Ledbetter (1993) empirical polynomial inversions for separating Lorentzian (
+) and Gaussian (
+) integral breadths.
+Weighted & Robust Reciprocal Regressions: Implemented Ordinary Least Squares (OLS), Low-
+ Inverse-Variance Weighted Least Squares (WLS-LowS), and iteratively reweighted Huber M-estimation (Huber-Robust) for both the Cauchy (
+ vs. 
+) and Gaussian (
+ vs. 
+) plots, complete with slope/intercept standard errors, RMSE, and 95% confidence bands.
+Log-Normal Microstructural Moments & Dislocation Density: Added full log-normal column-length distribution reconstruction (
+, 
+, 
+, 
+, 
+, polydispersity index 
+), Voigt shape ratio 
+, Williamson–Smallman dislocation density 
+ with configurable Burgers vector 
+, and the distance-dependent Warren–Averbach equivalent RMS microstrain curve 
+ vs. 
+.
+Outlier Detection & Reflection Masking: Automatic standardized residual (
+) outlier flagging and interactive per-reflection inclusion/exclusion toggles.
+Scientific Console UI Improvements
+Telemetry & Calibration Header: Instant status ribbon displaying active anode wavelength, Caglioti UVW instrumental calibration state, active inversion kernel, regression weighting mode, and CSV/JSON export controls.
+6 Curated Reference Presets: Added realistic multi-reflection XRD standards (Nanocrystalline 
+, Cold-Rolled 
+, Ball-Milled 
+ Anatase, bimodal Annealed 
+, Heavily Deformed 
+, and 
+ SRM 660c).
+Dual-Mode Reflection Editor: Switch seamlessly between an interactive tabular reflection editor (with inline 
+, FWHM, 
+, and 
+ inputs, outlier badges, and one-click reflection exclusion) and a raw text editor.
+5 Interactive Diagnostic Views:
+Cauchy Separation: 
+ vs. 
+ linear regression with 95% confidence band and standardized residual bar chart.
+Gaussian Separation: 
+ vs. 
+ quadratic regression with 95% confidence band and standardized residual bar chart.
+Size & Microstrain Distributions: Area- and volume-weighted log-normal column-length distributions 
+ & 
+, Warren–Averbach RMS strain curve 
+ vs. 
+, and size moment comparison (
+).
+Peak Deconvolution Inspector: Single-reflection pseudo-Voigt profile synthesis comparing observed (
+), instrumental (
+), and structurally deconvoluted (
+) profiles alongside Cauchy/Gaussian breadth budgets.
+Voigt Physics Sandbox: Interactive simulator for exploring how crystallite size and microstrain independently broaden Cauchy and Gaussian components across 
+.
+Checkpoint
+Cohen's Least-Squares Matrix Refinement improve it
+Gemini 4 Argon
+Ran for 15m 43s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 6 files
+components/cohen_refinement/CohenPresetsDb.ts
+components/cohen_refinement/CohenSolver.ts
+components/cohen_refinement/CohenPlots.tsx
+components/cohen_refinement/CohenPeakTable.tsx
+components/cohen_refinement/CohenModelComparator.tsx
+components/CohenRefinementModule.tsx
+Built
+Cohen's Least-Squares Matrix Refinement has been upgraded across its mathematical solver, physical diagnostics, and interactive console UI:
+Mathematical & Crystallographic Solver Upgrades
+Full Jacobian Covariance Error Propagation (
+): Replaced approximate angle/volume uncertainties with exact finite-difference Jacobian propagation from the normal covariance matrix 
+ to all direct lattice constants (
+) across all 7 crystal systems.
+9 Analytical Drift Kernels & Physical Goniometer Aberrations: Added the Taylor–Sinclair axial/absorption function alongside Nelson–Riley, Bradley–Jay, Sample Height Displacement, Hess–Hägg, Detector Zero-Shift, Flat-Specimen Transparency, Dual-Drift, and Fixed-Zero models. Converts the refined drift constant 
+ into physical specimen displacement 
+ (
+) for a configurable goniometer radius 
+ (
+).
+Huber IRLS Robust Estimation & Leverage Diagnostics: Added Iteratively Reweighted Least Squares (huber_robust) to automatically down-weight misindexed or shifted outlier peaks, and computed per-reflection Hat matrix leverage (
+), studentized residuals (
+), Cook's distance (
+), apparent lattice parameter (
+), zero-drift corrected lattice parameter (
+), and 
+ (ppm).
+Indexing & Model Selection Figures of Merit: Added Smith–Snyder (
+), de Wolff (
+), Akaike Information Criterion (
+), and Bayesian Information Criterion (
+), plus automatic 
+ Miller index suggestion for newly added or edited reflections.
+Interactive Scientific Console UI Upgrades
+Instant Real-Time Refinement: Removed the artificial multi-second blocking screen so any change to symmetry, drift model, weighting scheme, wavelength, goniometer radius, or peak inclusion updates all matrices, plots, and uncertainties immediately.
+6-Card Telemetry Strip & One-Click Optimization: Added live cards for 
+ (with ppm uncertainty), secondary axes/angles, 
+ & X-ray density 
+, drift 
+ & equivalent displacement 
+ (
+), 
+ & 
+ (ppm), and 
+, plus one-click Find Optimal Drift, Prune Outliers, and CSV / LaTeX / Report Export.
+4-Tab Interactive Refinement Visualizer:
+Drift Extrapolation (
+): Plots both raw apparent 
+ and drift-corrected 
+ points with the least-squares regression line, 
+ confidence band, and certified reference line.
+Angular Residuals (
+ vs. 
+): Interactive residual scatter with 
+ band and click-to-toggle reflection masking.
+Shifts & Cook's Leverage: Switchable bar chart across 
+ (°), 
+ (ppm), studentized residual 
+, and Cook's distance 
+.
+Diffraction Stick Pattern: Indexed Bragg stick pattern comparing observed, drift-refined, and ideal zero-drift 
+ positions.
+Checkpoint
+Improve Supercell & Coordinate Transformation Matrix Engine
+Gemini 4 Argon
+Ran for 12m 39s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 1 file
+components/SupercellTransformationModule.tsx
+Built
+The Supercell & Coordinate Transformation Matrix Engine has been upgraded into a real-time crystallographic transformation console:
+Key Enhancements
+Real-Time Matrix & Origin Console: Removed the artificial multi-step delay in favor of an instant interactive workspace supporting custom 
+ transformation matrices 
+, fractional origin shifts 
+, quick 
+ supercell multipliers, matrix operations (
+, 
+ swap, identity reset), and 12 curated presets (including 
+, 
+, Bain BCT 
+ FCC, FCC/BCC primitive 
+ conventional, Rhombohedral 
+ Hexagonal, Monoclinic 
+, and Orthorhombic 
+).
+Full 
+ Supercell Atomic Basis Replication: Automatically generates all symmetry-translated supercell atomic sites inside 
+ via 
+ with Cartesian coordinates 
+ in Å and ready-to-load crystal templates (
+ Perovskite, 
+ Diamond, 
+ Wurtzite, and 
+ BCC).
+Covariant & Contravariant Dual-Space Mapping:
+Miller Planes 
+: Transforms 
+ while verifying invariance of interplanar spacing 
+ and 
+ 
+ diffraction angles across basis settings.
+Zone Axes 
+: Transforms 
+ with real-space vector length 
+ and Weiss zone law (
+) verification.
+Niggli & Metric Diagnostics: Evaluates direct (
+) and reciprocal (
+) metric tensors, cell handedness, and Niggli reduction criteria.
+Interactive 3D & 2D Supercell Visualizer & Exporters: Added an interactive 3D orthographic wireframe and replicated-atom supercell viewer alongside 2D planar projections (ab, bc, ca), plus one-click export to VASP 5 POSCAR, .CIF, PyMatGen Python scripts, and LaTeX equations.
+Checkpoint
+Improve periodic table UI
+Gemini 4 Argon
+Ran for 15m 4s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 4 files
+components/periodic/PeriodicFilterToolbar.tsx
+components/periodic/PeriodicHeatmapLegend.tsx
+components/periodic/PeriodicTableGrid.tsx
+components/PeriodicTableModule.tsx
+Built
+The Periodic Table & Crystallographic Atlas UI has been redesigned for higher legibility, responsive layout fit, and deeper interactive metrology:
+Key UI & Functional Improvements
+Responsive Full-Fit 18-Column IUPAC Matrix: Eliminated awkward horizontal scrollbars on desktop in Split Console mode by calibrating cell spacing and column proportions across all 18 IUPAC groups and 7 periods, plus aligned 
+ Lanthanoid and 
+ Actinoid rows.
+3 Switchable Tile Telemetry Modes (Tile Data):
+a₀ & Lattice: Displays atomic number 
+, symbol, phase/Bravais glyph, element name, and primary lattice constant 
+ (Å).
+SG & ρ_XRD: Displays space group symbol (e.g., Fm-3m, Im-3m, Fd-3m) and theoretical X-ray density 
+ (
+).
+Orbital & χ: Displays ground-state outer valence subshells (e.g., 3d⁶ 4s²) and Pauling electronegativity 
+.
+Live Pin-to-Compare Reference & Differential Dock: Pin any element (Pin Ref) to lock it as a reference specimen; hovering or selecting any other element in the table immediately computes lattice mismatch 
+ (%), Hume-Rothery atomic radius difference 
+ (%), Pauling 
+, symmetry parity, and solid-solution solubility compatibility.
+One-Click Bravais Lattice & Thermal Phase Toolbar:
+Added a direct Lattice Filter bar (All, FCC, BCC, HCP, Diamond, Rhombo, Ortho, Tetra, Hex, Mono) with live element counts.
+Added live Solid / Liquid / Gas element counters in the Thermal Phase Simulator that update dynamically as you scrub or sweep temperature (
+ to 
+).
+Keyboard & Header Navigation: Added keyboard arrow navigation (←, →, ↑, ↓) across the periodic table along with a quick 
+ element stepper in the top suite bar.
+Checkpoint
+improve 3D Reciprocal Space & Ewald Sphere Probe , INSTRUMENT CALIBRATION & EWALD PROJECTION RIG ui graphic
+Gemini 4 Argon
+Ran for 10m 54s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 1 file
+components/ReciprocalSpaceProbe3D.tsx
+Built
+The 3D Reciprocal Space & Ewald Sphere Probe and Instrument Calibration & Ewald Projection Rig have been upgraded:
+3D Reciprocal Space & Ewald Sphere Probe (3 Switchable Viewports)
+3D Ewald Stage: Added geodesic latitude/longitude Ewald rings, closed scattering vector triangle shading (
+), 
+ Relrod spikes along 
+, Wigner-Seitz 1st Brillouin Zone cage, Limiting Sphere (
+), and an active reflection metrology HUD (
+, 
+, 
+, 
+, and 
+ excitation %).
+2D Precession Slice ((hk0), (h0l), (0kl), (hhl)): Interactive reciprocal net slice with constant-resolution 
+-spacing calibration rings, planar Ewald circle intersection, and clickable reflection spots.
+2D Area Detector (
+): Simulated flat-panel diffraction detector with Debye-Scherrer 
+ calibration rings, central beam stop, and Ewald-resonant Bragg spots weighted by 
+.
+Instrument Calibration & Ewald Projection Rig
+Live Equatorial Ewald Construction Schematic: Interactive vector diagram illustrating the collimated source, incident wavevector 
+ (
+), crystal origin 
+, Ewald sphere & 
+ excitation shell, reciprocal vector 
+, diffracted wavevector 
+, excitation error 
+, and area detector projection at camera length 
+.
+1-Click Bragg Alignment (Snap θ_B): Automatically calculates and sets the exact incident beam tilt angle 
+ that brings the active 
+ reflection onto the Ewald sphere (
+).
+Expanded Calibration Controls: 7 radiation presets (Cu-Kα, Mo-Kα, Co-Kα, Cr-Kα, Ag-Kα, Synch. 30keV, TEM 200kV), collapsible Direct & Reciprocal Cell Metric Tensor Tuner (
+), and a live Ewald-Excited Reflections Ribbon for jumping directly to resonant 
+ nodes.
+Checkpoint
+improve fastness of program and omptimize it
+Gemini 4 Argon
+Ran for 14m 26s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 12 files
+utils/braggCore.ts
+utils/materialsHelper.ts
+utils/physics.ts
+components/bragg/InteractiveBraggWorkbench.tsx
+App.tsx
+components/PeriodicTableModule.tsx
+components/ReciprocalSpaceProbe3D.tsx
+components/MaterialDatabaseExplorer.tsx
+components/MorphologyVisualizer.tsx
+components/CalculatorVisualizers.tsx
+components/XRDSectionScanAnimation.tsx
+components/SelectionRulesModule.tsx
+Built
+Application startup speed, runtime responsiveness, and rendering performance have been optimized across the suite:
+Critical-Path Bundle Reduction (>1 MB Deferred from Initial Load)
+Extracted core Bragg and Miller index solvers into a zero-dependency module so initial startup no longer pulls in the full 303 KB physics engine and 739 KB reference materials database on boot.
+Converted the advanced raw/batch Bragg input panel (128 KB) and module intro overlay to lazy-loaded dynamic chunks (React.lazy + Suspense).
+In-Memory Database & Phase-ID Caching
+Memoized getActiveMaterials() in memory, avoiding repeated localStorage reads, JSON parsing, and Set/Map reconstructions unless custom material overrides change.
+Cached the pre-parsed reference diffraction patterns in the Deep Learning PhaseID solver (identifyPhasesDL), eliminating redundant XY pattern parsing on every inference run.
+Eliminated Idle 60 FPS requestAnimationFrame & Timer Bottlenecks
+Material Database Explorer: Stopped a continuous 60 FPS state update loop (dragRotY) from re-rendering the entire registry when the 3D Lattice tab is inactive.
+Periodic Table & Quantum Cloud: Prevented the 3D unit cell loop from running when rotation is paused, and stopped 60 FPS radial wavefunction recalculations (200 steps × subshells) when viewing the static Radial PDF plot or when orbital animation is paused.
+3D Reciprocal Space & Ewald Sphere Probe: Prevented redundant React state updates on every mouse pixel movement when hovering over the same 
+ node, and avoided reallocating the HTML5 Canvas GPU backing store on every frame when dimensions are unchanged.
+Morphology & Miller Plane Visualizers: Gated 3D auto-rotation loops so they only run when explicitly active.
+Main-Thread & State Reactivity Optimizations
+Debounced localStorage state serialization during wavelength and goniometer slider drags for smooth 60 FPS scrubbing.
+Memoized SettingsContext.Provider, sidebar module grouping/filtering, and HKL chip parsing in Selection Rules, and gated background Python status polling to run only when Python features are enabled.
+Checkpoint
+improve Bragg Basis & Crystallographic Kinematics Engine ui
+Gemini 4 Argon
+Ran for 14m 16s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 1 file
+components/BraggVisualization.tsx
+Built
+The Bragg Basis & Crystallographic Kinematics Engine UI has been upgraded across all 7 tabs:
+Unified Global Control & Telemetry Deck: Added a persistent top control deck across all tabs with the Crystal Basis Structure preset selector, Miller indices (h k l) steppers and quick reflection buttons (100, 110, 111, 200, 220, 311), a 1-click Snap 2θ → θ_B(hkl) button, live structure factor telemetry (d(hkl), |F|, |F|², phase α, multiplicity M, and ALLOWED / EXTINCT status), and direct LaTeX, JSON, and CIF export actions.
+Tab 1 — Kinematics & Wave Superposition: Restructured into a full-width interactive X-ray diffraction ray-tracing stage featuring highlighted path-difference triangles (
+), phase-locked travelling waves, a live right-hand detector intensity gauge, and a 2-column bottom deck pairing the wave superposition oscilloscope (
+, 
+, 
+) and Argand phasor wheel with Debye-Waller thermal attenuation controls.
+Tab 2 — Atomic Basis & F(hkl): Made the Complex Argand Phasor Chain (Re(F) vs. Im(F)) permanently visible alongside the editable Fractional Coordinate & Cromer-Mann Form Factor table, with bidirectional hover highlighting between basis atom rows and their tip-to-tail phasor vectors.
+Tab 3 — Dual Basis 3D: Added interactive toggles for reciprocal basis vectors (
+) and the 3D 
+ intercept polygon inside the unit cell alongside the formatted 
+ direct (
+) and reciprocal (
+) metric tensors.
+Tab 4 — Sub-Planes: Replaced static HTML dividers with a scaled SVG Fractional Sub-Plane & Reflected Wavelet Visualizer plotting each basis site at its exact fractional interplanar depth 
+ with individual reflected sine wavelets and a constructive/destructive phase table.
+Tab 5 — 2D Real-Space: Connected the crystallographic projection plane selector (ab [001], bc [100], ac [010]) and supercell range slider (
+ to 
+ cells) to dynamically render projected unit cells, basis sites, and 
+ plane traces.
+Tabs 6 & 7 — Powder XRD & Ewald Geometry: Added a toggleable broadened profile envelope overlay on the powder diffractogram, an active excitation-error (
+) operating marker on the 
+ rocking curve, and 1-click buttons to load the active (h k l) plane into the Interplanar Angle & Weiss Zone Axis [u v w] calculator.
+Checkpoint
+improve unitcell section ui and logic
+Gemini 4 Argon
+Ran for 16m 28s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 2 files
+components/fundamentals/Interactive3DGeometryVisualizer.tsx
+components/fundamentals/UnitCellsSection.tsx
+Built
+The Unit Cells & 14 Bravais Lattices section has been upgraded with enhanced crystallographic logic and an interactive UI:
+True 3D Painter's Algorithm Depth-Sorted Rendering: Faces, edges, and all 3D atom spheres (vertices + centered sites) are depth-sorted back-to-front by camera 
+-depth with perspective radius scaling (1 + depth * 0.0008) for realistic 3D spatial occlusion.
+Trigonal Hexagonal Obverse (
+) vs. Primitive Rhombohedral (
+) Setting Switcher: Added exact bidirectional analytical conversion between Hexagonal 
+ and Primitive Rhombohedral 
+ coordinates, resolving the axial constraint mismatch.
+Dynamic Hexagonal Prism & Embedded Rhombic Cell: Scaled the hexagonal prism dynamically with 
+ and 
+ and highlighted the embedded 
+ primitive rhombic unit cell (
+ of the hexagonal prism volume).
+Supercell Tessellation & Multi-Plane 
+ Family Stack Slicer: Added 
+, 
+, and 
+ periodic supercell wireframe tiling, fixed negative Miller index plane slicing, and added a toggle to slice the full stack of parallel 
+ planes across the unit cell.
+Site-Sharing, Reciprocal Cell & Theoretical X-Ray Density (
+) Engine: Added live accounting of corner (
+), face (
+), and body (
+) sites, nearest-neighbor bond distance 
+, hard-sphere APF, reciprocal lattice parameters 
+, and theoretical crystal density 
+.
+Complete 14 Bravais Lattices Quick-Selector & Symmetry-Lowering Explorer: Added a 14-tile Pearson symbol selector (cP through aP), an interactive XRD peak-splitting explorer (
+, 
+, 
+ across Cubic, Tetragonal, Orthorhombic, Rhombohedral, and Monoclinic), category filtering with 1-click 3D loading in the Materials Catalog, and an expanded 7-question crystallography assessment.
+Checkpoint
+improve miller planes hkl in unitcell section
+Gemini 4 Argon
+Ran for 6m 39s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 2 files
+components/fundamentals/MillerPlanesVisualizer.tsx
+components/fundamentals/UnitCellsSection.tsx
+Built
+The Miller Planes 
+ engine in the Unit Cells section has been upgraded with full crystallographic metric support and interactive tools:
+Full 7-System Metric Tensor & 4-Index Miller-Bravais 
+ Support: Synchronizes directly with the active Crystal System and Bravais Centering (
+), with automatic 4-index 
+ where 
+ for Hexagonal and Trigonal lattices and a toggle to compare against an ideal reference cube.
+Origin-Shifted Negative Index Slicing & Axis Intercept Callouts: Automatically shifts the local unit cell origin 
+ when 
+ or 
+, rendering exact axis intercept callouts (
+) and highlighting unit-cell atoms that lie directly on the sliced plane.
+Parallel Plane Stack (
+) & Live 3D Drag Rotation: Added interactive mouse-drag 3D rotation, camera presets (Iso, [001], [111]), true reciprocal normal vector 
+, and a toggle to render the full family stack of parallel planes 
+ across the cell.
+12 Canonical Presets with Live 3D Mini-Thumbnails: Expanded the preset gallery to 12 planes (including high-index (200), (210), and (211)) with live 3D miniature schematics and accurate point-group multiplicity 
+ calculations.
+Interplanar Angle 
+ & Zone Axis 
+ Cross-Product Solver: Added a secondary plane 
+ overlay that renders in 3D and computes the exact interplanar angle 
+ and zone axis intersection 
+.
+Step-by-Step Fractional Intercept 
+ Converter & Bragg/Extinction Readout: Added an interactive solver that converts fractional intercepts 
+ (including 
+) into coprime Miller indices and plots them directly in 3D alongside live 
+, Cu 
+ / Mo 
+ 
+, planar slice area (
+), and systematic extinction checks.
+Checkpoint
+improve deep learning
+Gemini 4 Argon
+Ran for 15m 57s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 3 files
+utils/physics.ts
+components/deeplearning/NeuralNetworkWorkbench.tsx
+components/DeepLearningModule.tsx
+Built
+The Deep Learning XRD Phase Identification & Neural Crystallography suite has been upgraded across its physics-informed inference engine, interactive neural workbench, and executive analysis UI:
+1. Physics-Informed Neural Inference & Speed Optimization
+Sub-Degree Zero-Shift Auto-Alignment (
+): Automatically estimates and compensates for specimen displacement and goniometer zero-point shifts (
+) against the strongest diagnostic reflections prior to peak scoring and 1D convolutional cross-correlation.
+Fast Zero-Overlap Screening: Short-circuits redundant 1D spectral convolutions for database phases with zero matched reflections within tolerance, accelerating full-database screening.
+Hanawalt Top-3 Search-Match FOM: Boosts candidate confidence when all three strongest Hanawalt diagnostic reflections are simultaneously indexed.
+2. 1D Grad-CAM Saliency & 5-Model Deep Ensemble Voter
+Tab 4 (4. Grad-CAM Saliency & 5-Model Ensemble):
+Interactive 1D Grad-CAM Attribution Oscilloscope: Computes gradient-weighted class activation saliency (
+) across experimental Bragg peaks, with clickable reflections displaying 
+-spacing, relative intensity, and ICDD indexing status.
+5-Model Deep Ensemble Consensus Voter: Side-by-side comparison of ResNet-1D-50, XRD-Former, PINN-BraggNet, Crystal-GNN, and β-VAE Manifold with Bayesian ensemble mean confidence, epistemic uncertainty (
+), latency, and 1-click backbone switching.
+3. Workflow Navigation, Quantitative RIR Scorecard & Deterministic Rendering
+5-Stage Pipeline Quick-Jump Ribbon: Instant smooth-scroll navigation between the Neural Workbench, Data Ingestion & PDF-2 Database, Executive Phase ID Scorecard, Spectral Alignment, and ML Studio.
+Executive Neural Phase ID & Chung RIR Quantitative Scorecard: Displays top candidate cards with Chung Reference Intensity Ratio (
+) weight fraction estimates and 1-click cross-module bridges to the Bragg Engine, Scherrer, and Williamson-Hall modules.
+Deterministic Layer Telemetry: Replaced impure random calls in the Convolutional Engine layer visualizers with deterministic trigonometric functions to eliminate visual jitter during state updates.
+Checkpoint
+improve Synthesis Intelligence ui
+Gemini 4 Argon
+Ran for 9m 24s
+
+Action history
+Here are key actions taken for the app:
+
+Edited 2 files
+components/SynthesisIntelligenceStudio.tsx
+components/DeepLearningModule.tsx
+Built
+The Synthesis Intelligence & Material Metrology UI has been upgraded with interactive crystallographic visualization, stoichiometric lab controls, and a clean scientific instrumentation layout:
+1. 3D Wulff Construction & Crystal Habit Visualizer
+Interactive 3D Polyhedral Projection: Replaced the placeholder boxes with an interactive 3D SVG polyhedral renderer supporting Octahedral {111}, Nanocube {100}, Hexagonal Prism {0001} / {10-10}, 2D Nanosheet (001), 1D Nanowire [001], and Quantum Dot / Core-Shell habits with real-time Yaw & Pitch rotation scrubbers.
+Physical Metrology Readouts: Live calculation of morphology-corrected BET Specific Surface Area (
+), Brus Quantum Confinement Band Gap shift (
+), Scherrer FWHM peak broadening (
+), and dislocation density (
+).
+2. 1-Click Synthesis Method Presets & Furnace Ramp Profiler
+5 Standard Synthesis Route Presets: Instant configuration for Hydrothermal Autoclave, Polyol Solvothermal, Sol-Gel Pechini, Solid-State Ceramic, and Colloidal Hot-Injection regimes.
+Multi-Stage Furnace Thermal Ramp Schedule: Added an interactive heating ramp rate control (
+) and multi-stage temperature-time chart (Ambient 
+ Nucleation Soak 
+ Isothermal Dwell 
+ Controlled Cooling) alongside the JMAK Avrami crystallization curve.
+3. Stoichiometric Precursor Batcher & Instant Protocol Blueprint
+Molarity & Custom Precursor Support: Added solvent volume (
+) controls with real-time molarity (
+) and atom economy calculations, editable molecular weights for custom precursor salts, and 1-click TSV weighing table copy.
+Instant Quantitative Blueprint: Added a deterministic Instant Protocol Blueprint generator alongside the AI Synthesis Route engine so complete precursor, thermal ramp, and XRD verification protocols can be generated immediately.
+Checkpoint
+for xrd analysis which section of programs sections are useleess in this ptogram? what do you think?
+Gemini 4 Argon
+Ran for 44s
+From a real-world X-Ray Diffraction (XRD) & Crystallography perspective, the program currently has 33 top-level modules plus several massive sub-sections inside the Deep Learning module. While the core physics engines are strong, several sections are either unrelated to XRD, heavily redundant with other tabs, or visual/theatrical fluff that slows down a real researcher's workflow.
+Here is an honest breakdown of what is useless, redundant, and essential:
+1. Completely Unnecessary for XRD Analysis (Safe to Remove)
+Module / Section	Why It Is Useless for XRD Analysis	Recommendation
+AI Image Generation (ImageGenerationModule / image_gen)	Generating AI art/illustrations has zero scientific value in powder or single-crystal X-ray diffraction analysis.	Remove completely.
+User Activity Telemetry Plugin (UserActivityPlugin)	Logs every click, navigation, and calculation as a "system audit stream." In a scientific calculator, users care about diffraction data, not watching their own click logs.	Remove completely.
+Fake "Lab Director Profile" (ProfilePage)	Auto-generates fictional metrics (h-index: 12, citations: 340, classification: L-5 Senior Director, Project CONDENSED). A real researcher does not want fake academic credentials in their XRD software.	Remove or simplify to a minimal saved-projects/account drawer.
+Sound Effects (playSynthTone on every click)	Synthesized beeps and ticks on sliders and buttons feel like a sci-fi game rather than a laboratory instrument (like HighScore Plus, GSAS-II, or TOPAS).	Default to muted / remove.

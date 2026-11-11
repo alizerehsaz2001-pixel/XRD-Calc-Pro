@@ -60,7 +60,6 @@ const SupercellTransformationModule = safeLazy(() => import('./components/Superc
 const PawleyLeBailDecompositionModule = safeLazy(() => import('./components/PawleyLeBailDecompositionModule'), 'PawleyLeBailDecompositionModule');
 const ReferenceIntensityRatioModule = safeLazy(() => import('./components/ReferenceIntensityRatioModule'), 'ReferenceIntensityRatioModule');
 const ImageAnalysisModule = safeLazy(() => import('./components/ImageAnalysisModule'), 'ImageAnalysisModule');
-const ImageGenerationModule = safeLazy(() => import('./components/ImageGenerationModule'), 'ImageGenerationModule');
 const PythonExportModule = safeLazy(() => import('./components/PythonExportModule'), 'PythonExportModule');
 const MaterialDatabaseExplorer = safeLazy(() => import('./components/MaterialDatabaseExplorer'), 'MaterialDatabaseExplorer');
 
@@ -120,7 +119,6 @@ import {
 
 const ResidualStressModule = safeLazy(() => import('./components/ResidualStressModule'), 'ResidualStressModule');
 const XRRModule = safeLazy(() => import('./components/XRRModule'), 'XRRModule');
-const UserActivityPlugin = safeLazy(() => import('./components/UserActivityPlugin'), 'UserActivityPlugin');
 import { XRDSectionScanAnimation } from './components/XRDSectionScanAnimation';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
 const UnitCellsSection = safeLazy(() => import('./components/fundamentals/UnitCellsSection'), 'UnitCellsSection');
@@ -263,7 +261,6 @@ const App: React.FC = () => {
   });
   const [sidebarSearch, setSidebarSearch] = useState<string>('');
   const [collapsedSidebarGroups, setCollapsedSidebarGroups] = useState<Record<string, boolean>>({});
-  const [isActivityLedgerOpen, setIsActivityLedgerOpen] = useState<boolean>(false);
   const prevModuleRef = useRef<Module>(activeModule);
 
   useEffect(() => {
@@ -1404,11 +1401,10 @@ const App: React.FC = () => {
       { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
       { id: 'dl', label: t('PhaseID Neural Net'), group: t('AI Tools') },
       { id: 'image_analysis', label: t('Image Analysis'), group: t('AI Tools') },
-      { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
       { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
       { id: 'periodic_table', label: t('Periodic Table'), group: t('Intelligence') },
       { id: 'database', label: t('Material Registry'), group: t('Intelligence') },
-      { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
+      { id: 'profile', label: t('Lab Workspace & Sessions'), group: t('Intelligence') },
       { id: 'settings', label: t('Settings'), group: t('Intelligence') },
     ];
     
@@ -2279,7 +2275,6 @@ const App: React.FC = () => {
             isRTL={isRTL}
             t={t}
             sampleId={sampleId}
-            onOpenActivityLedger={() => setIsActivityLedgerOpen(true)}
             wavelength={wavelength}
             setWavelength={setWavelength}
             onCalculate={() => handleCalculate(true)}
@@ -2984,7 +2979,6 @@ const App: React.FC = () => {
                         }}
                       />
                     )}
-                    {activeModule === 'image_gen' && <ImageGenerationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                     {activeModule === 'python_export' && <PythonExportModule />}
                     {activeModule === 'learn' && <LearnModule />}
                     {activeModule === 'unit_cells' && <UnitCellsSection />}
@@ -3652,16 +3646,6 @@ const App: React.FC = () => {
               theme={theme}
             />
           </Suspense>
-
-          {/* User Activity & Telemetry Plugin */}
-          {isActivityLedgerOpen && (
-            <Suspense fallback={null}>
-              <UserActivityPlugin
-                isOpen={isActivityLedgerOpen}
-                onClose={() => setIsActivityLedgerOpen(false)}
-              />
-            </Suspense>
-          )}
         </div>
       </div>
     </div>

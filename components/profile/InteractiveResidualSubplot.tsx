@@ -50,12 +50,10 @@ export const InteractiveResidualSubplot: React.FC<InteractiveResidualSubplotProp
   const [copied, setCopied] = useState<boolean>(false);
   const [showDetailStats, setShowDetailStats] = useState<boolean>(false);
 
-  if (!data || data.length === 0) return null;
-
   // Compute standardized residual distribution moments & histogram bins
   const residualDistribution = React.useMemo(() => {
-    const n = data.length;
-    if (n === 0) return { bins: [], mean: 0, std: 1, skewness: 0, kurtosis: 0, normalityPass: true };
+    const n = data ? data.length : 0;
+    if (n === 0) return { bins: [], mean: 0, std: 1, skewness: 0, kurtosis: 0, jbStat: 0, normalityPass: true };
 
     const vals = data.map((p) => Number(p.normResidual ?? 0));
     const mean = vals.reduce((acc, v) => acc + v, 0) / n;
@@ -102,6 +100,8 @@ export const InteractiveResidualSubplot: React.FC<InteractiveResidualSubplotProp
     return { bins, mean, std, skewness, kurtosis, jbStat, normalityPass };
   }, [data]);
 
+  if (!data || data.length === 0) return null;
+
   const handleCopyResiduals = () => {
     const headers = '2Theta_deg,Y_obs,Y_calc,Residual_Raw,Sigma,Std_Residual\n';
     const rows = data
@@ -136,27 +136,27 @@ export const InteractiveResidualSubplot: React.FC<InteractiveResidualSubplotProp
   const isDark = plotTheme === 'lab_dark' || plotTheme === 'default';
 
   return (
-    <div className="mt-4 bg-slate-900 text-slate-100 rounded-2xl border-2 border-rose-500/40 shadow-xl overflow-hidden animate-in fade-in duration-300">
+    <div className="mt-4 bg-[#0B0F19] text-slate-100 rounded-xl border border-slate-800 shadow-xl overflow-hidden animate-in fade-in duration-300">
       {/* Residual Header & Metric Toolbar */}
-      <div className="px-4 py-3 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-4 py-3 bg-[#070A12] border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/30">
+          <div className="p-1.5 bg-rose-500/15 text-rose-400 rounded-lg border border-rose-500/30">
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-white text-sm tracking-wide">
-                Interactive Difference & Residual Analytics
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-slate-100 text-xs uppercase tracking-wider">
+                Interactive Difference &amp; Residual Analytics
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-950/80 text-rose-300 border border-rose-800/60">
-                {plotStyle === 'histogram'
+              <span className="text-[10px] font-mono tabular-nums text-rose-400">
+                · {plotStyle === 'histogram'
                   ? 'Normal Probability Histogram N(0,1)'
                   : residualMode === 'raw'
                   ? 'ΔI = Y_obs - Y_calc (counts)'
                   : 'Standardized ΔI / σ'}
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-slate-400 font-mono">
               Synchronized line profile goodness-of-fit error distribution with Poisson variance envelope
             </p>
           </div>

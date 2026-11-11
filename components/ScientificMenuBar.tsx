@@ -388,16 +388,6 @@ export const ScientificMenuBar: React.FC<ScientificMenuBarProps> = ({
           color: 'text-cyan-400'
         },
         {
-          label: t('Open Telemetry Activity Ledger', 'Activity Audit Ledger'),
-          icon: Activity,
-          shortcut: 'Alt+L',
-          action: () => {
-            if (onOpenActivityLedger) onOpenActivityLedger();
-            playSynthTone('switch');
-          },
-          color: 'text-indigo-400'
-        },
-        {
           label: t('Keyboard Shortcuts HUD', 'Keyboard Shortcuts Guide'),
           icon: Terminal,
           shortcut: 'Cmd+/',
@@ -420,9 +410,9 @@ export const ScientificMenuBar: React.FC<ScientificMenuBarProps> = ({
         },
         {
           id: 'profile',
-          label: t('Laboratory Director Node', 'Laboratory Director Node'),
-          formula: 'L-5 Lead Investigator',
-          badge: 'Profile',
+          label: t('Lab Workspace & Calibration Archive', 'Lab Workspace & Sessions'),
+          formula: 'Sessions · Caglioti (U,V,W) · NIST SRM',
+          badge: 'Archive',
           icon: User,
           color: 'text-indigo-400'
         },
@@ -510,8 +500,8 @@ export const ScientificMenuBar: React.FC<ScientificMenuBarProps> = ({
       items: [
         {
           id: 'scherrer',
-          label: t('Scherrer Crystallite Size', 'Scherrer Crystallite Size'),
-          formula: 'D = Kλ / (β·cos θ)',
+          label: t('Scherrer & Monshi Studio', 'Scherrer & Monshi Studio'),
+          formula: 'D = Kλ/(β·cos θ) · ln(β)',
           badge: 'Domain Size',
           icon: Microscope,
           shortcut: 'Alt+4',
@@ -527,12 +517,12 @@ export const ScientificMenuBar: React.FC<ScientificMenuBarProps> = ({
           color: 'text-emerald-400'
         },
         {
-          id: 'monshi_scherrer',
-          label: t('Monshi-Scherrer Logarithmic Scheme', 'Monshi-Scherrer Scheme'),
-          formula: 'ln(β) = ln(Kλ/D) + ln(1/cos θ)',
-          badge: 'Log Linear',
-          icon: Activity,
-          color: 'text-amber-400'
+          id: 'integral_adv',
+          label: t('Integral Breadth (Voigt & W-H)', 'Integral Breadth (Voigt & W-H)'),
+          formula: '(β*/d*)² = (1/D_v)(β*/d*²) + (2ε)²',
+          badge: 'Voigt & IB',
+          icon: SlidersHorizontal,
+          color: 'text-indigo-400'
         },
         {
           id: 'double_voigt',
@@ -541,22 +531,6 @@ export const ScientificMenuBar: React.FC<ScientificMenuBarProps> = ({
           badge: 'Voigt',
           icon: Layers,
           color: 'text-violet-400'
-        },
-        {
-          id: 'integral',
-          label: t('Integral Breadth Method', 'Integral Breadth (IB)'),
-          formula: 'β = ∫ I(2θ)d(2θ) / I_{max}',
-          badge: 'Area/Height',
-          icon: Infinity,
-          color: 'text-blue-400'
-        },
-        {
-          id: 'integral_adv',
-          label: t('Advanced IB (Halder-Wagner)', 'Advanced IB (Halder-Wagner)'),
-          formula: '(β*/d*)² = 1/D + (ε/2)(d*/β*)',
-          badge: 'Parabolic',
-          icon: SlidersHorizontal,
-          color: 'text-indigo-400'
         },
         {
           id: 'wa',
@@ -620,15 +594,6 @@ export const ScientificMenuBar: React.FC<ScientificMenuBarProps> = ({
           badge: 'Quantitative',
           icon: Layers,
           color: 'text-purple-400'
-        },
-        {
-          id: 'rietveld',
-          label: t('Rietveld Full-Pattern Refinement', 'Rietveld Refinement'),
-          formula: 'Minimizing R_{wp}, R_p, χ²',
-          badge: 'Full Profile',
-          icon: Sliders,
-          shortcut: 'Alt+6',
-          color: 'text-rose-400'
         }
       ]
     },
@@ -653,22 +618,6 @@ export const ScientificMenuBar: React.FC<ScientificMenuBarProps> = ({
           badge: 'Vision',
           icon: ImageIcon,
           color: 'text-pink-400'
-        },
-        {
-          id: 'image_gen',
-          label: t('Crystallographic Scientific Illustrator', 'Scientific Illustrator'),
-          formula: 'Direct & Reciprocal 3D Projection',
-          badge: 'Illustrator',
-          icon: Sparkles,
-          color: 'text-cyan-400'
-        },
-        {
-          id: 'xrd_nano',
-          label: t('XRD-Nano Quantum Mechanics Engine', 'XRD-Nano AI Physics'),
-          formula: 'Debye Scattering Equation (Nanoparticles)',
-          badge: 'Quantum Nano',
-          icon: Wand2,
-          color: 'text-indigo-400'
         }
       ]
     },

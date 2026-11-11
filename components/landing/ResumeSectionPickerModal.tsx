@@ -536,21 +536,6 @@ export const ResumeSectionPickerModal: React.FC<ResumeSectionPickerModalProps> =
         accentColor: 'from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30',
         tags: ['Computer Vision', 'Image OCR', 'Digitization', 'Plot Extraction']
       },
-      {
-        id: 'image_gen',
-        label: 'Scientific Crystal Illustrator',
-        labelFa: 'تصویرساز علمی بلورها',
-        category: 'ai',
-        categoryLabel: 'AI & Deep Learning',
-        categoryLabelFa: 'هوش مصنوعی و یادگیری عمیق',
-        subtitle: 'Generate publication-quality 3D lattice illustrations and diffraction diagrams',
-        subtitleFa: 'تولید تصاویر سه‌بعدی و شماتیک‌های بلورشناسی با کیفیت مقالات',
-        formula: 'AI Generative Crystallography',
-        badge: 'Crystal Art',
-        icon: <Sparkles className={`${iconClass} text-pink-400`} />,
-        accentColor: 'from-pink-500/20 to-rose-500/20 text-pink-400 border-pink-500/30',
-        tags: ['Illustrator', '3D Lattice', 'Publication Figures', 'Crystal Gen']
-      },
 
       // 6. Intelligence, Protocols & Laboratory (5 sections)
       {
@@ -600,18 +585,18 @@ export const ResumeSectionPickerModal: React.FC<ResumeSectionPickerModalProps> =
       },
       {
         id: 'profile',
-        label: 'Laboratory Director Profile',
-        labelFa: 'پروفایل مدیر آزمایشگاه',
+        label: 'Lab Workspace & Calibration Archive',
+        labelFa: 'فضای کاری و آرشیو کالیبراسیون',
         category: 'intelligence',
         categoryLabel: 'Intelligence & Laboratory',
         categoryLabelFa: 'اطلاعات، پروتکل‌ها و آزمایشگاه',
-        subtitle: 'Operator credentials, institutional accreditation, research badges & session logbook',
-        subtitleFa: 'مشخصات اپراتور، اعتبار سازمانی، سوابق و دفتر ثبت محاسبات',
-        formula: 'XRD Operator Credentials & Certs',
-        badge: 'Credentials',
+        subtitle: 'Saved diffraction sessions, Caglioti (U,V,W) diffractometer optics & NIST reference standards',
+        subtitleFa: 'نشست‌های ذخیره‌شده پراش، کالیبراسیون اپتیک دستگاه (U,V,W) و استانداردهای مرجع NIST',
+        formula: 'FWHM² = U·tan²θ + V·tanθ + W',
+        badge: 'Archive',
         icon: <User className={`${iconClass} text-violet-400`} />,
         accentColor: 'from-violet-500/20 to-indigo-500/20 text-violet-400 border-violet-500/30',
-        tags: ['Profile', 'Operator', 'Accreditation', 'Logbook']
+        tags: ['Sessions', 'Calibration', 'Caglioti', 'NIST SRM']
       },
       {
         id: 'settings',

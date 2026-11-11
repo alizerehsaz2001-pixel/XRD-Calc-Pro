@@ -618,43 +618,166 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
       {/* Tab 1: Interactive Reflection Editor & Sin²θ Ratio Auto-Indexer */}
       {workbenchTab === 'table' && (
         <div className="p-4 sm:p-5 space-y-4">
-          {/* Sin²θ Ratio Auto-Indexing Banner */}
+          {/* Sin²θ Ratio Auto-Indexing Banner & Visual Bravais Extinction Ladder */}
           {autoIndexedSolution && (
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white">
-                  <Wand2 className="w-4 h-4 text-indigo-500" />
-                  <span>
-                    Sin²θ / Sin²θ₁ Pattern Recognition: Best Match ={' '}
-                    <span className="text-indigo-600 dark:text-indigo-400">
-                      {autoIndexedSolution.system}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white flex-wrap">
+                    <Wand2 className="w-4 h-4 text-indigo-500" />
+                    <span>
+                      Sin²θ / Sin²θ₁ Pattern Recognition: Best Match ={' '}
+                      <span className="text-indigo-600 dark:text-indigo-400">
+                        {autoIndexedSolution.system}
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-slate-400 font-normal">·</span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                    Estimated a₀ = {autoIndexedSolution.meanA.toFixed(4)} ± {autoIndexedSolution.stdA.toFixed(4)} Å
-                  </span>
+                    <span className="text-slate-400 font-normal">·</span>
+                    <span className="font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
+                      Estimated a₀ = {autoIndexedSolution.meanA.toFixed(4)} ± {autoIndexedSolution.stdA.toFixed(4)} Å
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Sequence of N = h²+k²+l² ratios predicts planes:{' '}
+                    <span className="font-mono text-slate-700 dark:text-slate-200">
+                      {autoIndexedSolution.hkls.map(h => `(${h})`).join(', ')}
+                    </span>
+                  </p>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Sequence of N = h²+k²+l² ratios predicts planes:{' '}
-                  <span className="font-mono text-slate-700 dark:text-slate-200">
-                    {autoIndexedSolution.hkls.map(h => `(${h})`).join(', ')}
-                  </span>
-                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRawHKL(autoIndexedSolution.hkls.join(', '));
+                    setCrystalSystem(autoIndexedSolution.system);
+                    playSynthTone('success');
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-xs"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>Apply Auto-Indexed ({autoIndexedSolution.system}) HKLs</span>
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setRawHKL(autoIndexedSolution.hkls.join(', '));
-                  setCrystalSystem(autoIndexedSolution.system);
-                  playSynthTone('success');
-                }}
-                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-xs"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-                <span>Apply Auto-Indexed ({autoIndexedSolution.system}) HKLs</span>
-              </button>
+              {/* Visual Sin²θ / Sin²θ₁ Bravais Extinction Ladder SVG */}
+              <div className="bg-slate-900/95 border border-slate-800 rounded-xl p-3">
+                <svg viewBox="0 0 680 112" className="w-full h-auto select-none">
+                  <text x="12" y="15" fill="#94a3b8" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                    BRAVAIS EXTINCTION LADDER: NORMALIZED N = (h²+k²+l²) ALLOWED RAILS vs. OBSERVED PEAKS
+                  </text>
+                  {[
+                    {
+                      label: 'SC (P)',
+                      sys: 'SC',
+                      norms: [1, 2, 3, 4, 5, 6, 8],
+                      baseN1: 1,
+                      color: '#818cf8',
+                      y: 34
+                    },
+                    {
+                      label: 'BCC (I)',
+                      sys: 'BCC',
+                      norms: [2, 4, 6, 8, 10, 12, 14],
+                      baseN1: 2,
+                      color: '#22d3ee',
+                      y: 55
+                    },
+                    {
+                      label: 'FCC (F)',
+                      sys: 'FCC',
+                      norms: [3, 4, 8, 11, 12, 16, 19],
+                      baseN1: 3,
+                      color: '#34d399',
+                      y: 76
+                    },
+                    {
+                      label: 'Diamond',
+                      sys: 'Diamond',
+                      norms: [3, 8, 11, 16, 19, 24],
+                      baseN1: 3,
+                      color: '#fbbf24',
+                      y: 97
+                    }
+                  ].map((rail) => {
+                    const isBest = autoIndexedSolution.system === rail.sys;
+                    const maxRatio = 8.2;
+                    return (
+                      <g key={rail.sys}>
+                        <text
+                          x="12"
+                          y={rail.y + 3}
+                          fill={isBest ? rail.color : '#64748b'}
+                          fontSize="9.5"
+                          fontFamily="monospace"
+                          fontWeight={isBest ? 'bold' : 'normal'}
+                        >
+                          {rail.label}
+                        </text>
+                        <line
+                          x1="78"
+                          y1={rail.y}
+                          x2="662"
+                          y2={rail.y}
+                          stroke={isBest ? rail.color : '#1e293b'}
+                          strokeWidth={isBest ? '1.6' : '1'}
+                          strokeOpacity={isBest ? 0.65 : 0.9}
+                        />
+                        {rail.norms.map((nVal) => {
+                          const ratio = nVal / rail.baseN1;
+                          if (ratio > maxRatio) return null;
+                          const xPos = 86 + ((ratio - 1) / (maxRatio - 1)) * 566;
+                          return (
+                            <g key={nVal}>
+                              <line
+                                x1={xPos}
+                                y1={rail.y - 5}
+                                x2={xPos}
+                                y2={rail.y + 5}
+                                stroke={rail.color}
+                                strokeWidth="1.6"
+                                strokeOpacity={isBest ? 0.95 : 0.45}
+                              />
+                              <text
+                                x={xPos}
+                                y={rail.y - 7}
+                                textAnchor="middle"
+                                fill={isBest ? '#e2e8f0' : '#475569'}
+                                fontSize="7.5"
+                                fontFamily="monospace"
+                              >
+                                N={nVal}
+                              </text>
+                            </g>
+                          );
+                        })}
+                        {/* Plot experimental sin²θ / sin²θ₁ markers on best-matching rail */}
+                        {isBest &&
+                          results.map((r, rIdx) => {
+                            const sin1 =
+                              results.length > 0
+                                ? Math.sin((results[0].twoTheta / 2) * (Math.PI / 180))
+                                : 1;
+                            const sinCurr = Math.sin((r.twoTheta / 2) * (Math.PI / 180));
+                            const sinSqRatio =
+                              sin1 > 1e-6 ? (sinCurr * sinCurr) / (sin1 * sin1) : 1;
+                            if (sinSqRatio > maxRatio) return null;
+                            const xObs = 86 + ((sinSqRatio - 1) / (maxRatio - 1)) * 566;
+                            return (
+                              <circle
+                                key={rIdx}
+                                cx={xObs}
+                                cy={rail.y}
+                                r="4"
+                                fill="#f43f5e"
+                                stroke="#ffffff"
+                                strokeWidth="1.2"
+                              />
+                            );
+                          })}
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
             </div>
           )}
 
@@ -1175,52 +1298,87 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
             </div>
           </div>
 
-          {/* Right 7 Cols: Interactive Bragg Path-Difference & Goniometer SVG Schematic */}
+          {/* Right 7 Cols: Dual-Viewport Wave-Interference & Bragg-Brentano Parafocusing Goniometer SVG */}
           <div className="lg:col-span-7 bg-slate-950 rounded-2xl border border-slate-800 p-4 flex flex-col items-center">
             {(() => {
               const thetaDeg = Math.max(8, Math.min(72, activePeak.twoTheta / 2));
               const thetaRad = (thetaDeg * Math.PI) / 180;
-              const dPx = 38;
-              const cx = 210;
-              const cy = 92;
-              const rayLen = 135;
+              const dPx = 36;
+              const cx = 135;
+              const cy = 96;
+              const rayLen = 105;
 
               const srcX = cx - rayLen * Math.cos(thetaRad);
               const srcY = cy - rayLen * Math.sin(thetaRad);
               const detX = cx + rayLen * Math.cos(thetaRad);
               const detY = cy - rayLen * Math.sin(thetaRad);
 
-              // Second plane reflection point directly below (cx, cy) at y = cy + dPx
               const cy2 = cy + dPx;
-              const shiftX = dPx * Math.tan(Math.PI / 2 - thetaRad);
               const pA_X = cx - dPx * Math.sin(thetaRad) * Math.cos(thetaRad);
               const pA_Y = cy + dPx * Math.cos(thetaRad) * Math.cos(thetaRad);
               const pB_X = cx + dPx * Math.sin(thetaRad) * Math.cos(thetaRad);
               const pB_Y = pA_Y;
-              void shiftX;
+
+              // Phase offset induced by sample displacement or zero shift
+              const inducedDegShift =
+                zeroShift +
+                ((-2 * sampleDisplacement * Math.cos(thetaRad)) / (goniometerRadius || 240)) *
+                  (180 / Math.PI);
+              const phaseMismatchRad = inducedDegShift * 3.5;
+
+              // Wave superposition points
+              const wave1Pts: string[] = [];
+              const wave2Pts: string[] = [];
+              const sumWavePts: string[] = [];
+              for (let i = 0; i <= 60; i++) {
+                const wx = 18 + (i / 60) * 234;
+                const phase = (i / 60) * 4 * Math.PI;
+                const y1 = 196 - 8 * Math.cos(phase);
+                const y2 = 196 - 8 * Math.cos(phase + phaseMismatchRad);
+                const ySum = 196 - 8 * (Math.cos(phase) + Math.cos(phase + phaseMismatchRad));
+                wave1Pts.push(`${wx.toFixed(1)},${y1.toFixed(1)}`);
+                wave2Pts.push(`${wx.toFixed(1)},${y2.toFixed(1)}`);
+                sumWavePts.push(`${wx.toFixed(1)},${ySum.toFixed(1)}`);
+              }
+
+              // Viewport B: Bragg-Brentano Goniometer Circle
+              const gCx = 415;
+              const gCy = 118;
+              const gR = 76;
+              const gSrcX = gCx - gR * Math.cos(thetaRad);
+              const gSrcY = gCy - gR * Math.sin(thetaRad);
+              const gDetX = gCx + gR * Math.cos(thetaRad);
+              const gDetY = gCy - gR * Math.sin(thetaRad);
+              const dispPx = Math.max(-18, Math.min(18, -sampleDisplacement * 35));
 
               return (
-                <svg viewBox="0 0 420 185" className="w-full max-w-[460px] select-none">
+                <svg viewBox="0 0 545 228" className="w-full h-auto select-none">
+                  {/* Viewport A Background */}
+                  <rect x="6" y="6" width="262" height="216" rx="10" fill="#020617" stroke="#1e293b" />
+                  <text x="16" y="22" fill="#94a3b8" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                    A. BRAGG PATH DIFFERENCE (2d·sinθ = nλ)
+                  </text>
+
                   {/* Crystal Atomic Planes */}
                   {[0, 1, 2].map((layer) => {
                     const y = cy + layer * dPx;
                     return (
                       <g key={layer}>
                         <line
-                          x1="45"
+                          x1="22"
                           y1={y}
-                          x2="375"
+                          x2="248"
                           y2={y}
                           stroke="#334155"
-                          strokeWidth="1.4"
+                          strokeWidth="1.2"
                           strokeDasharray="4 3"
                         />
-                        {Array.from({ length: 9 }).map((_, aIdx) => (
+                        {Array.from({ length: 7 }).map((_, aIdx) => (
                           <circle
                             key={aIdx}
-                            cx={70 + aIdx * 35}
+                            cx={36 + aIdx * 33}
                             cy={y}
-                            r="4"
+                            r="3.5"
                             fill="#6366f1"
                             fillOpacity={layer === 0 ? 0.95 : 0.65}
                           />
@@ -1229,64 +1387,93 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                     );
                   })}
 
-                  {/* Sample displacement indicator */}
-                  {Math.abs(sampleDisplacement) > 0.001 && (
-                    <line
-                      x1="45"
-                      y1={cy - sampleDisplacement * 25}
-                      x2="375"
-                      y2={cy - sampleDisplacement * 25}
-                      stroke="#10b981"
-                      strokeWidth="1.2"
-                      strokeDasharray="2 2"
-                    />
-                  )}
+                  {/* Incident & Diffracted Beams */}
+                  <line x1={srcX} y1={srcY} x2={cx} y2={cy} stroke="#38bdf8" strokeWidth="2" />
+                  <line x1={cx} y1={cy} x2={detX} y2={detY} stroke="#22d3ee" strokeWidth="2" />
+                  <line x1={srcX} y1={srcY + dPx} x2={cx} y2={cy2} stroke="#38bdf8" strokeWidth="1.4" strokeOpacity="0.7" />
+                  <line x1={cx} y1={cy2} x2={detX} y2={detY + dPx} stroke="#22d3ee" strokeWidth="1.4" strokeOpacity="0.7" />
 
-                  {/* Incident & Diffracted Beam on Top Plane */}
-                  <line x1={srcX} y1={srcY} x2={cx} y2={cy} stroke="#38bdf8" strokeWidth="2.2" />
-                  <line x1={cx} y1={cy} x2={detX} y2={detY} stroke="#22d3ee" strokeWidth="2.2" />
-
-                  {/* Incident & Diffracted Beam on Second Plane (showing 2d sinθ path difference) */}
-                  <line
-                    x1={srcX}
-                    y1={srcY + dPx}
-                    x2={cx}
-                    y2={cy2}
-                    stroke="#38bdf8"
-                    strokeWidth="1.6"
-                    strokeOpacity="0.7"
-                  />
-                  <line
-                    x1={cx}
-                    y1={cy2}
-                    x2={detX}
-                    y2={detY + dPx}
-                    stroke="#22d3ee"
-                    strokeWidth="1.6"
-                    strokeOpacity="0.7"
-                  />
-
-                  {/* Path difference Highlight Triangle (A - O' - B) */}
+                  {/* Path difference Highlight Triangle */}
                   <polygon
                     points={`${cx},${cy} ${pA_X},${pA_Y} ${cx},${cy2} ${pB_X},${pB_Y}`}
                     fill="#f59e0b"
-                    fillOpacity="0.22"
+                    fillOpacity="0.24"
                     stroke="#f59e0b"
-                    strokeWidth="1.3"
+                    strokeWidth="1.2"
                   />
 
-                  {/* Interplanar d label */}
-                  <line x1="56" y1={cy} x2="56" y2={cy2} stroke="#f59e0b" strokeWidth="1.5" />
-                  <text x="62" y={(cy + cy2) / 2 + 3} fill="#fbbf24" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                  {/* Interplanar spacing d annotation */}
+                  <line x1="26" y1={cy} x2="26" y2={cy2} stroke="#f59e0b" strokeWidth="1.5" />
+                  <text x="31" y={(cy + cy2) / 2 + 3} fill="#fbbf24" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
                     d = {activePeak.dSpacing.toFixed(3)} Å
                   </text>
 
-                  {/* Angle Labels */}
-                  <text x="16" y="20" fill="#94a3b8" fontSize="9.5" fontFamily="monospace" fontWeight="bold">
-                    Peak ({activePeak.hkl || 'hkl'}): θ = {(activePeak.twoTheta / 2).toFixed(2)}° · 2θ = {activePeak.twoTheta.toFixed(2)}°
+                  {/* Wave Superposition Strip */}
+                  <rect x="14" y="172" width="246" height="42" rx="6" fill="#0f172a" stroke="#1e293b" />
+                  <polyline fill="none" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.55" points={wave1Pts.join(' ')} />
+                  <polyline fill="none" stroke="#818cf8" strokeWidth="1" strokeOpacity="0.55" points={wave2Pts.join(' ')} />
+                  <polyline fill="none" stroke="#10b981" strokeWidth="1.8" points={sumWavePts.join(' ')} />
+                  <text x="20" y="182" fill="#34d399" fontSize="7.5" fontFamily="monospace" fontWeight="bold">
+                    E₁+E₂ Superposition (Δφ = {phaseMismatchRad.toFixed(2)} rad)
                   </text>
-                  <text x="16" y="34" fill="#fbbf24" fontSize="9" fontFamily="monospace">
-                    Path Difference Δ = 2d·sinθ = {(2 * activePeak.dSpacing * Math.sin((activePeak.twoTheta / 2) * (Math.PI / 180))).toFixed(4)} Å = 1·λ
+
+                  {/* Viewport B Background: Bragg-Brentano Goniometer Circle */}
+                  <rect x="276" y="6" width="263" height="216" rx="10" fill="#020617" stroke="#1e293b" />
+                  <text x="286" y="22" fill="#38bdf8" fontSize="9" fontFamily="monospace" fontWeight="bold">
+                    B. BRAGG-BRENTANO θ/2θ PARAFOCUSING CIRCLE
+                  </text>
+
+                  {/* Goniometer Circle */}
+                  <circle
+                    cx={gCx}
+                    cy={gCy}
+                    r={gR}
+                    fill="none"
+                    stroke="#1e293b"
+                    strokeWidth="1.4"
+                    strokeDasharray="4 3"
+                  />
+
+                  {/* Ideal vs Displaced Sample Stage */}
+                  <line x1={gCx - 38} y1={gCy} x2={gCx + 38} y2={gCy} stroke="#475569" strokeWidth="2" />
+                  {Math.abs(sampleDisplacement) > 0.001 && (
+                    <line
+                      x1={gCx - 38}
+                      y1={gCy + dispPx}
+                      x2={gCx + 38}
+                      y2={gCy + dispPx}
+                      stroke="#10b981"
+                      strokeWidth="2.2"
+                    />
+                  )}
+
+                  {/* Incident k_i and Scattered k_f rays on Goniometer */}
+                  <line x1={gSrcX} y1={gSrcY} x2={gCx} y2={gCy + dispPx} stroke="#38bdf8" strokeWidth="2" />
+                  <line x1={gCx} y1={gCy + dispPx} x2={gDetX} y2={gDetY} stroke="#22d3ee" strokeWidth="2" />
+
+                  {/* Momentum Transfer Vector Q = k_f - k_i */}
+                  <line x1={gCx} y1={gCy} x2={gCx} y2={gCy - 48} stroke="#f43f5e" strokeWidth="2" />
+                  <polygon points={`${gCx},${gCy - 54} ${gCx - 3.5},${gCy - 46} ${gCx + 3.5},${gCy - 46}`} fill="#f43f5e" />
+                  <text x={gCx + 6} y={gCy - 42} fill="#fb7185" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                    Q = 4πsinθ/λ
+                  </text>
+
+                  {/* Source & Detector Nodes on Circle */}
+                  <circle cx={gSrcX} cy={gSrcY} r="5" fill="#38bdf8" />
+                  <text x={gSrcX - 8} y={gSrcY - 8} textAnchor="middle" fill="#38bdf8" fontSize="8" fontFamily="monospace" fontWeight="bold">
+                    X-Ray Tube
+                  </text>
+                  <circle cx={gDetX} cy={gDetY} r="5" fill="#22d3ee" />
+                  <text x={gDetX + 6} y={gDetY - 8} textAnchor="middle" fill="#22d3ee" fontSize="8" fontFamily="monospace" fontWeight="bold">
+                    Detector (2θ)
+                  </text>
+
+                  {/* Telemetry Footer in Viewport B */}
+                  <text x="288" y="198" fill="#cbd5e1" fontSize="8.5" fontFamily="monospace">
+                    R = {goniometerRadius} mm · Peak ({activePeak.hkl || 'hkl'}) 2θ = {activePeak.twoTheta.toFixed(2)}°
+                  </text>
+                  <text x="288" y="212" fill="#fbbf24" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                    Total Aberration Δ(2θ) = {inducedDegShift >= 0 ? `+${inducedDegShift.toFixed(4)}` : inducedDegShift.toFixed(4)}°
                   </text>
                 </svg>
               );

@@ -28,8 +28,6 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
 }) => {
   const [selectedSystem, setSelectedSystem] = useState<string>('FCC');
 
-  if (!isOpen) return null;
-
   const twoThetaList = useMemo(() => {
     return currentPeaks.map(p => p.twoTheta).filter(tt => tt > 0 && tt < 180);
   }, [currentPeaks]);
@@ -67,6 +65,8 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
     });
   }, [currentPeaks, indexResult, selectedSystem, wavelength]);
 
+  if (!isOpen) return null;
+
   const handleApply = () => {
     const formatted = mergedSuggestions.map(p => ({
       twoTheta: p.twoTheta,
@@ -87,26 +87,27 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-[#050A14] border border-purple-500/40 rounded-3xl p-6 max-w-2xl w-full shadow-[0_0_50px_rgba(168,85,247,0.15)] space-y-5 max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-[#0B0F19] border border-slate-700 rounded-2xl p-6 max-w-2xl w-full shadow-2xl space-y-5 max-h-[90vh] flex flex-col overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-purple-500/10 border border-purple-500/30 rounded-2xl text-purple-400">
-              <BrainCircuit className="w-5 h-5 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+            <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
+              <BrainCircuit className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-white uppercase tracking-wider">
+              <h3 className="text-base font-bold text-slate-100 uppercase tracking-wider">
                 Algorithmic (h k l) Plane Indexer
               </h3>
-              <p className="text-[10px] text-purple-400/80 font-mono">
-                Auto-assign Miller indices from interplanar d-spacings & lattice extinction rules
+              <p className="text-[10px] text-slate-400 font-mono">
+                Auto-assign Miller indices from interplanar d-spacings &amp; lattice extinction rules
               </p>
             </div>
           </div>
           <button 
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -114,8 +115,8 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
 
         {/* Crystal System Selector */}
         <div className="space-y-2 shrink-0">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-            <Layers className="w-3.5 h-3.5 text-purple-400" />
+          <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-sky-400" />
             Target Crystal System
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -124,10 +125,10 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
                 key={sys.id}
                 type="button"
                 onClick={() => setSelectedSystem(sys.id)}
-                className={`p-2.5 rounded-xl border text-left transition-all ${
+                className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
                   selectedSystem === sys.id 
-                    ? 'bg-purple-500/20 border-purple-500/60 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.2)]' 
-                    : 'bg-[#0A101C] border-white/5 text-slate-400 hover:border-white/20'
+                    ? 'bg-sky-500/15 border-sky-500/50 text-sky-300' 
+                    : 'bg-[#070A12] border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
                 <div className="text-xs font-bold">{sys.name.split(' (')[0]}</div>
@@ -139,15 +140,15 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
 
         {/* Estimated Lattice Constant info banner */}
         {indexResult && indexResult.estimatedLatticeConstant && (
-          <div className="bg-purple-950/30 border border-purple-500/20 px-3.5 py-2.5 rounded-xl flex items-center justify-between text-xs font-mono shrink-0">
-            <span className="text-slate-400">Estimated Lattice Constant <strong className="text-purple-300">a</strong>:</span>
-            <span className="text-purple-400 font-bold">{indexResult.estimatedLatticeConstant}</span>
+          <div className="bg-[#070A12] border border-slate-800 px-3.5 py-2.5 rounded-lg flex items-center justify-between text-xs font-mono tabular-nums shrink-0">
+            <span className="text-slate-400">Estimated Lattice Constant <strong className="text-sky-300">a</strong>:</span>
+            <span className="text-emerald-400 font-bold">{indexResult.estimatedLatticeConstant}</span>
           </div>
         )}
 
         {/* Table of reflections and suggested (h k l) */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar border border-white/5 rounded-2xl bg-[#070D18] p-3 space-y-2">
-          <div className="grid grid-cols-12 gap-2 text-[9px] font-black uppercase tracking-widest text-slate-500 px-3 py-1 border-b border-white/5">
+        <div className="flex-1 overflow-y-auto custom-scrollbar border border-slate-800 rounded-xl bg-[#070A12] p-3 space-y-2">
+          <div className="grid grid-cols-12 gap-2 text-[9px] font-mono font-bold uppercase tracking-widest text-slate-500 px-3 py-1 border-b border-slate-800">
             <span className="col-span-2">2θ (deg)</span>
             <span className="col-span-2">Area</span>
             <span className="col-span-2">I_max</span>
@@ -158,19 +159,19 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
           {mergedSuggestions.map((item, idx) => (
             <div 
               key={idx}
-              className={`grid grid-cols-12 gap-2 items-center px-3 py-2 rounded-xl text-xs font-mono border transition-all ${
+              className={`grid grid-cols-12 gap-2 items-center px-3 py-2 rounded-lg text-xs font-mono tabular-nums border transition-all ${
                 item.isValid 
-                  ? 'bg-[#0A101C] border-white/5 hover:border-purple-500/30' 
+                  ? 'bg-[#0B0F19] border-slate-800 hover:border-sky-500/30' 
                   : 'bg-red-950/20 border-red-500/30'
               }`}
             >
-              <span className="col-span-2 text-pink-400 font-bold">{item.twoTheta.toFixed(2)}°</span>
+              <span className="col-span-2 text-sky-400 font-bold">{item.twoTheta.toFixed(2)}°</span>
               <span className="col-span-2 text-emerald-400 font-bold">{item.area.toFixed(1)}</span>
-              <span className="col-span-2 text-cyan-400 font-bold">{item.iMax.toFixed(0)}</span>
+              <span className="col-span-2 text-amber-400 font-bold">{item.iMax.toFixed(0)}</span>
               <span className="col-span-2 text-slate-400">{item.dSpacing.toFixed(3)} Å</span>
               
               <div className="col-span-4 flex items-center justify-center gap-1.5">
-                <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold text-xs">
+                <span className="px-2 py-0.5 rounded bg-[#070A12] text-slate-200 border border-slate-700 font-bold text-xs">
                   ({item.h} {item.k} {item.l})
                 </span>
                 {item.isValid ? (
@@ -190,16 +191,16 @@ export const IBAdvancedHKLModal: React.FC<IBAdvancedHKLModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-bold uppercase tracking-wider text-xs transition-colors"
+            className="flex-1 py-2.5 bg-[#070A12] hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-lg font-mono font-bold uppercase tracking-wider text-xs transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleApply}
-            className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl font-black uppercase tracking-wider text-xs transition-all shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/50 text-sky-200 rounded-lg font-mono font-bold uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 text-sky-400" />
             Apply Indexed Planes
           </button>
         </div>
