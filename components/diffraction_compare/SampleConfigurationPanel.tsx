@@ -13,7 +13,11 @@ import {
   Zap,
   CheckCircle2,
   Scale,
-  Atom
+  Atom,
+  Crosshair,
+  Plus,
+  Minus,
+  RotateCcw
 } from 'lucide-react';
 import { 
   CurveColorPalette, 
@@ -75,6 +79,15 @@ interface SampleConfigurationPanelProps {
   onSwapSamples: () => void;
   onOpenSearchMatch?: () => void;
   onRawDataUploadedA?: (points: { twoTheta: number; intensity: number }[]) => void;
+
+  // Optional Quick Alignment & Telemetry Props
+  shiftTwoTheta?: number;
+  setShiftTwoTheta?: (shift: number) => void;
+  scaleSampleB?: number;
+  setScaleSampleB?: (scale: number) => void;
+  onAutoAlign?: () => void;
+  peaksCountA?: number;
+  peaksCountB?: number;
 }
 
 export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> = ({
@@ -122,7 +135,14 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
 
   onSwapSamples,
   onOpenSearchMatch,
-  onRawDataUploadedA
+  onRawDataUploadedA,
+  shiftTwoTheta = 0,
+  setShiftTwoTheta,
+  scaleSampleB = 1.0,
+  setScaleSampleB,
+  onAutoAlign,
+  peaksCountA,
+  peaksCountB
 }) => {
   const { t } = useTranslation();
   const [fileStatsA, setFileStatsA] = useState<string | null>(null);
@@ -202,70 +222,78 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
   const defaultRirD = useMemo(() => estimateMaterialRir(selectedMaterialD), [selectedMaterialD]);
 
   return (
-    <div className="space-y-4">
-      {/* Primary 2-Column Sample Configuration (A vs B) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 relative">
-        {/* Sample A: Target / Experimental */}
-        <div 
-          className="bg-[#080d1a] border p-4 lg:p-5 rounded-2xl flex flex-col justify-between shadow-xl relative overflow-hidden transition-all"
-          style={{ borderColor: `${activePalette.colorA}50` }}
-        >
-          <div className="space-y-3.5">
+    <div className="space-y-3">
+      {/* Primary 2-Column Specimen Configuration (Channel A vs Channel B) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 relative">
+        {/* CHANNEL A: TARGET / EXPERIMENTAL SPECIMEN */}
+        <div className="bg-[#0B0F19] border border-slate-800 rounded-lg flex flex-col justify-between shadow-xl relative overflow-hidden">
+          {/* Top 2px Calibrated Signal Accent Bar */}
+          <div className="h-0.5 w-full" style={{ backgroundColor: activePalette.colorA }} />
+
+          <div className="p-4 space-y-3">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div 
-                  className="p-2 rounded-xl border flex items-center justify-center shadow-sm"
+                  className="p-1.5 rounded-md border flex items-center justify-center shrink-0"
                   style={{ 
-                    backgroundColor: `${activePalette.colorA}18`,
+                    backgroundColor: `${activePalette.colorA}15`,
                     borderColor: `${activePalette.colorA}40`,
                     color: activePalette.colorA 
                   }}
                 >
-                  <FlaskConical className="w-5 h-5" />
+                  <FlaskConical className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xs lg:text-sm font-extrabold uppercase tracking-wider" style={{ color: activePalette.colorA }}>
-                      Sample A: Target / Experimental
+                    <span className="px-1.5 py-0.5 rounded bg-[#070A12] border border-slate-800 text-[9px] font-mono font-bold text-slate-300">
+                      CH-A
+                    </span>
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider truncate" style={{ color: activePalette.colorA }}>
+                      EXPERIMENTAL TARGET SPECIMEN
                     </h3>
                     <input
                       type="color"
                       value={activePalette.colorA}
                       onChange={(e) => onUpdateCustomColor('colorA', e.target.value)}
-                      className="w-5 h-5 rounded-md cursor-pointer border border-slate-700 bg-transparent p-0"
-                      title="Click to customize Sample A curve color"
+                      className="w-4 h-4 rounded cursor-pointer border border-slate-700 bg-transparent p-0 shrink-0"
+                      title="Customize Channel A trace color"
                     />
                   </div>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    {sampleAInputMode === 'active' ? 'Real-time calculation from current session' : 'Custom reflection list or uploaded scan'}
-                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                    <span>{sampleAInputMode === 'active' ? 'Live Bragg Session Feed' : 'Custom / Ascii Scan Input'}</span>
+                    {peaksCountA !== undefined && (
+                      <span className="text-sky-400 font-bold tabular-nums">
+                        · {peaksCountA} Reflections
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Mode switch */}
-              <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5 rounded-xl">
+              {/* Mode Switch */}
+              <div className="flex items-center bg-[#070A12] border border-slate-800 p-0.5 rounded-md shrink-0">
                 <button
                   id="btn-sampleA-active"
                   onClick={() => setSampleAInputMode('active')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer whitespace-nowrap ${
                     sampleAInputMode === 'active'
-                      ? 'shadow-sm ring-1 ring-white/20'
+                      ? 'text-slate-950 font-extrabold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  style={sampleAInputMode === 'active' ? { backgroundColor: activePalette.colorA, color: '#000000' } : {}}
+                  style={sampleAInputMode === 'active' ? { backgroundColor: activePalette.colorA } : {}}
                 >
-                  Active Session
+                  Workspace
                 </button>
                 <button
                   id="btn-sampleA-custom"
                   onClick={() => setSampleAInputMode('custom')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer whitespace-nowrap ${
                     sampleAInputMode === 'custom'
-                      ? 'shadow-sm ring-1 ring-white/20'
+                      ? 'text-slate-950 font-extrabold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  style={sampleAInputMode === 'custom' ? { backgroundColor: activePalette.colorA, color: '#000000' } : {}}
+                  style={sampleAInputMode === 'custom' ? { backgroundColor: activePalette.colorA } : {}}
                 >
                   Custom / File
                 </button>
@@ -274,41 +302,48 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
 
             {/* Content Area */}
             {sampleAInputMode === 'active' ? (
-              <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 text-xs space-y-2">
+              <div className="p-3.5 bg-[#070A12] rounded-md border border-slate-800 text-xs space-y-2 font-mono">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Current Material:</span>
-                  <span className="font-bold text-sm font-mono tabular-nums" style={{ color: activePalette.colorA }}>
+                  <span className="text-slate-400 text-[11px]">Active Workspace Material:</span>
+                  <span className="font-bold text-xs tabular-nums" style={{ color: activePalette.colorA }}>
                     {activeMaterialName}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed font-mono">
-                  Using real crystallographic reflections and intensity values computed in the active Bragg diffraction workspace.
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Directly coupled to the active Bragg structure factor &amp; crystallographic reflection generator.
                 </p>
-                <div className="pt-2 flex items-center gap-2 text-[11px] font-mono text-emerald-300">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Synchronized with Workspace</span>
+                <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-emerald-400">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>REAL-TIME TELEMETRY LINK ACTIVE</span>
+                  </span>
+                  <span className="text-slate-500">Cu Kα₁ = 1.54056 Å</span>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3 text-xs">
+              <div className="space-y-2.5 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Sample Name</label>
+                    <label className="text-[10px] text-slate-400 font-mono font-bold uppercase block mb-1">
+                      Specimen Identifier
+                    </label>
                     <input
                       type="text"
                       value={customNameA}
                       onChange={(e) => setCustomNameA(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-cyan-500 outline-none"
+                      className="w-full bg-[#070A12] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-sky-500 outline-none"
                       placeholder="e.g. Bio-HAp Sintered"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Chemical Formula</label>
+                    <label className="text-[10px] text-slate-400 font-mono font-bold uppercase block mb-1">
+                      Chemical Formula
+                    </label>
                     <input
                       type="text"
                       value={customFormulaA}
                       onChange={(e) => setCustomFormulaA(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-cyan-500 outline-none"
+                      className="w-full bg-[#070A12] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-sky-500 outline-none"
                       placeholder="e.g. Ca10(PO4)6(OH)2"
                     />
                   </div>
@@ -317,89 +352,85 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                 {/* Drag and Drop Zone or Textarea */}
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase flex items-center gap-1.5">
-                      <span>2θ, Intensity Peak List</span>
-                      <span className="text-slate-500 font-normal text-[9px]">(or 2θ(I) format)</span>
+                    <label className="text-[10px] text-slate-400 font-mono font-bold uppercase flex items-center gap-1.5">
+                      <span>2θ (°), Relative Intensity Peak Array</span>
                     </label>
                     
-                    <div className="flex items-center gap-2">
-                      <label className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 font-bold cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
-                        <Upload className="w-3 h-3" />
-                        <span>Upload File (.xy/.csv/.raw)</span>
-                        <input
-                          type="file"
-                          accept=".xy,.csv,.dat,.txt,.raw"
-                          className="hidden"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              processUploadedFile(e.target.files[0]);
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
+                    <label className="text-[10px] font-mono text-sky-400 hover:text-sky-300 font-bold cursor-pointer flex items-center gap-1 px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/30">
+                      <Upload className="w-3 h-3" />
+                      <span>Import (.xy/.csv/.raw)</span>
+                      <input
+                        type="file"
+                        accept=".xy,.csv,.dat,.txt,.raw"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            processUploadedFile(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
 
-                  {/* Drag & Drop Wrapper */}
                   <div
                     onDragOver={(e) => { e.preventDefault(); setIsDraggingA(true); }}
                     onDragLeave={() => setIsDraggingA(false)}
                     onDrop={handleDropA}
-                    className={`relative rounded-xl border transition-all ${
+                    className={`relative rounded-md border transition-colors ${
                       isDraggingA 
-                        ? 'border-cyan-400 bg-cyan-950/40 ring-2 ring-cyan-400/50' 
-                        : 'border-slate-800 bg-slate-900/90'
+                        ? 'border-sky-400 bg-sky-950/30' 
+                        : 'border-slate-800 bg-[#070A12]'
                     }`}
                   >
                     <textarea
                       rows={3}
                       value={customPatternA}
                       onChange={(e) => setCustomPatternA(e.target.value)}
-                      className="w-full bg-transparent p-2.5 text-slate-200 font-mono text-xs focus:outline-none resize-none leading-relaxed"
+                      className="w-full bg-transparent p-2 text-slate-200 font-mono text-xs tabular-nums focus:outline-none resize-none leading-relaxed"
                       placeholder="25.87(30), 31.77(100), 32.19(70), 32.90(60)..."
                     />
                     {isDraggingA && (
-                      <div className="absolute inset-0 bg-cyan-950/80 backdrop-blur-xs flex items-center justify-center text-cyan-300 font-mono text-xs font-bold rounded-xl pointer-events-none">
-                        Drop XRD File (.xy / .csv / .dat / .raw) here
+                      <div className="absolute inset-0 bg-sky-950/85 flex items-center justify-center text-sky-300 font-mono text-xs font-bold rounded-md pointer-events-none">
+                        Drop Powder Diffraction File (.xy / .csv / .dat / .raw)
                       </div>
                     )}
                   </div>
 
                   {fileStatsA && (
-                    <div className="mt-1.5 flex items-center justify-between text-[10px] font-mono text-cyan-400">
+                    <div className="mt-1 flex items-center justify-between text-[10px] font-mono text-sky-400">
                       <span>✓ {fileStatsA}</span>
                       <button 
                         onClick={() => setFileStatsA(null)} 
                         className="text-slate-500 hover:text-slate-300 text-[9px]"
                       >
-                        Dismiss
+                        Clear
                       </button>
                     </div>
                   )}
 
                   {/* Quick Format Loaders */}
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    <span className="text-[10px] text-slate-500 font-mono">Quick Formats:</span>
+                    <span className="text-[10px] text-slate-500 font-mono uppercase">Templates:</span>
                     <button
                       type="button"
                       onClick={() => loadExamplePatternA('ha')}
-                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#070A12] hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
                     >
                       HAp Standard
                     </button>
                     <button
                       type="button"
                       onClick={() => loadExamplePatternA('tio2')}
-                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#070A12] hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
                     >
                       TiO₂ Anatase
                     </button>
                     <button
                       type="button"
                       onClick={() => loadExamplePatternA('lifepo4')}
-                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                      className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#070A12] hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
                     >
-                      LiFePO₄ Battery
+                      LiFePO₄ Cathode
                     </button>
                   </div>
                 </div>
@@ -408,67 +439,75 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
           </div>
         </div>
 
-        {/* Sample B: Reference Standard (Model Phase 1) */}
-        <div 
-          className="bg-[#080d1a] border p-4 lg:p-5 rounded-2xl flex flex-col justify-between shadow-xl relative overflow-hidden transition-all"
-          style={{ borderColor: `${activePalette.colorB}50` }}
-        >
-          <div className="space-y-3.5">
+        {/* CHANNEL B: REFERENCE STANDARD (MODEL PHASE 1) */}
+        <div className="bg-[#0B0F19] border border-slate-800 rounded-lg flex flex-col justify-between shadow-xl relative overflow-hidden">
+          {/* Top 2px Calibrated Signal Accent Bar */}
+          <div className="h-0.5 w-full" style={{ backgroundColor: activePalette.colorB }} />
+
+          <div className="p-4 space-y-3">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <div 
-                  className="p-2 rounded-xl border flex items-center justify-center shadow-sm"
+                  className="p-1.5 rounded-md border flex items-center justify-center shrink-0"
                   style={{ 
-                    backgroundColor: `${activePalette.colorB}18`,
+                    backgroundColor: `${activePalette.colorB}15`,
                     borderColor: `${activePalette.colorB}40`,
                     color: activePalette.colorB 
                   }}
                 >
-                  <Database className="w-5 h-5" />
+                  <Database className="w-4 h-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-xs lg:text-sm font-extrabold uppercase tracking-wider" style={{ color: activePalette.colorB }}>
-                      Sample B: Reference Standard
+                    <span className="px-1.5 py-0.5 rounded bg-[#070A12] border border-slate-800 text-[9px] font-mono font-bold text-slate-300">
+                      CH-B
+                    </span>
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider truncate" style={{ color: activePalette.colorB }}>
+                      REFERENCE STANDARD (PRIMARY PHASE)
                     </h3>
                     <input
                       type="color"
                       value={activePalette.colorB}
                       onChange={(e) => onUpdateCustomColor('colorB', e.target.value)}
-                      className="w-5 h-5 rounded-md cursor-pointer border border-slate-700 bg-transparent p-0"
-                      title="Click to customize Sample B curve color"
+                      className="w-4 h-4 rounded cursor-pointer border border-slate-700 bg-transparent p-0 shrink-0"
+                      title="Customize Channel B trace color"
                     />
                   </div>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    {sampleBInputMode === 'preset' ? 'Searchable crystallographic materials library' : 'User-specified reference pattern'}
-                  </p>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                    <span>{sampleBInputMode === 'preset' ? 'Indexed Crystallographic DB' : 'Custom Reference Array'}</span>
+                    {peaksCountB !== undefined && (
+                      <span className="text-indigo-300 font-bold tabular-nums">
+                        · {peaksCountB} Reflections
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Mode switch */}
-              <div className="flex items-center bg-slate-900 border border-slate-800 p-0.5 rounded-xl">
+              {/* Mode Switch */}
+              <div className="flex items-center bg-[#070A12] border border-slate-800 p-0.5 rounded-md shrink-0">
                 <button
                   id="btn-sampleB-preset"
                   onClick={() => setSampleBInputMode('preset')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer whitespace-nowrap ${
                     sampleBInputMode === 'preset'
-                      ? 'shadow-sm ring-1 ring-white/20'
+                      ? 'text-slate-950 font-extrabold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  style={sampleBInputMode === 'preset' ? { backgroundColor: activePalette.colorB, color: '#000000' } : {}}
+                  style={sampleBInputMode === 'preset' ? { backgroundColor: activePalette.colorB } : {}}
                 >
                   Database
                 </button>
                 <button
                   id="btn-sampleB-custom"
                   onClick={() => setSampleBInputMode('custom')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer whitespace-nowrap ${
                     sampleBInputMode === 'custom'
-                      ? 'shadow-sm ring-1 ring-white/20'
+                      ? 'text-slate-950 font-extrabold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  style={sampleBInputMode === 'custom' ? { backgroundColor: activePalette.colorB, color: '#000000' } : {}}
+                  style={sampleBInputMode === 'custom' ? { backgroundColor: activePalette.colorB } : {}}
                 >
                   Custom
                 </button>
@@ -477,21 +516,20 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
 
             {/* Content Area */}
             {sampleBInputMode === 'preset' ? (
-              <div className="space-y-3 text-xs">
-                {/* Search / Filter for database materials */}
+              <div className="space-y-2.5 text-xs">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2" />
                   <input
                     type="text"
                     value={dbSearchQueryB}
                     onChange={(e) => setDbSearchQueryB(e.target.value)}
-                    placeholder="Search database standards (e.g. HAp, TiO2, Quartz, Spinel, Battery)..."
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 outline-none"
+                    placeholder="Filter ICDD/COD standards by name, formula, or crystal system..."
+                    className="w-full bg-[#070A12] border border-slate-800 rounded pl-8 pr-3 py-1.5 text-xs text-slate-200 font-mono focus:border-indigo-500 outline-none"
                   />
                   {dbSearchQueryB && (
                     <button
                       onClick={() => setDbSearchQueryB('')}
-                      className="text-slate-500 hover:text-slate-300 absolute right-2.5 top-2 text-[10px] font-mono"
+                      className="text-slate-500 hover:text-slate-300 absolute right-2.5 top-1.5 text-[10px] font-mono"
                     >
                       Clear
                     </button>
@@ -509,28 +547,35 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                         setEngineSettings(prev => ({ ...prev, rirB: estimateMaterialRir(nextMat) }));
                       }
                     }}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 font-mono text-xs focus:border-indigo-500 outline-none cursor-pointer"
+                    className="w-full bg-[#070A12] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-indigo-500 outline-none cursor-pointer"
                   >
                     {filteredMaterialsB.map(({ material, originalIndex }) => (
                       <option key={originalIndex} value={originalIndex}>
-                        {material.name} ({material.formula}) - {material.crystalSystem || 'Crystalline'}
+                        {material.name} ({material.formula}) — {material.crystalSystem || 'Crystalline'}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Selected Material Card Info */}
-                <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 text-[11px] font-mono space-y-1.5">
+                {/* Selected Material Telemetry Grid */}
+                <div className="p-2.5 bg-[#070A12] rounded-md border border-slate-800 text-[11px] font-mono tabular-nums space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Phase Name:</span>
-                    <strong className="text-indigo-300 font-bold">{selectedMaterialB.name}</strong>
+                    <span className="text-slate-400">Standard Phase:</span>
+                    <strong className="text-indigo-300 font-bold truncate max-w-[230px]">{selectedMaterialB.name}</strong>
                   </div>
-                  <div className="flex justify-between items-center text-slate-400">
-                    <span>Crystal System: <strong className="text-slate-200">{selectedMaterialB.crystalSystem || 'Hexagonal'}</strong></span>
-                    <span>·</span>
-                    <span>SG: <strong className="text-slate-200">{selectedMaterialB.spaceGroup || 'P63/m'}</strong></span>
-                    <span>·</span>
-                    <span>RIR (I/Ic): <strong className="text-cyan-300 tabular-nums">{(engineSettings.rirB ?? defaultRirB).toFixed(2)}</strong></span>
+                  <div className="grid grid-cols-3 gap-1.5 pt-1 border-t border-slate-800/80 text-[10px]">
+                    <div>
+                      <span className="text-slate-500 block uppercase text-[9px]">System</span>
+                      <span className="text-slate-200 font-bold">{selectedMaterialB.crystalSystem || 'Hexagonal'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block uppercase text-[9px]">Space Group</span>
+                      <span className="text-slate-200 font-bold">{selectedMaterialB.spaceGroup || 'P63/m'}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-500 block uppercase text-[9px]">Corundum I/Ic</span>
+                      <span className="text-sky-400 font-bold">{(engineSettings.rirB ?? defaultRirB).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -538,47 +583,51 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                   <button
                     type="button"
                     onClick={onOpenSearchMatch}
-                    className="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer hover:border-amber-400"
+                    className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-md text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Zap className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Auto Search-Match Best Database Phase</span>
+                    <span>Run Automated Search-Match Against Database</span>
                   </button>
                 )}
               </div>
             ) : (
-              <div className="space-y-3 text-xs">
+              <div className="space-y-2.5 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Standard Name</label>
+                    <label className="text-[10px] text-slate-400 font-mono font-bold uppercase block mb-1">
+                      Standard Identifier
+                    </label>
                     <input
                       type="text"
                       value={customNameB}
                       onChange={(e) => setCustomNameB(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-indigo-500 outline-none"
+                      className="w-full bg-[#070A12] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-indigo-500 outline-none"
                       placeholder="e.g. Standard ICDD 09-0432"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Chemical Formula</label>
+                    <label className="text-[10px] text-slate-400 font-mono font-bold uppercase block mb-1">
+                      Chemical Formula
+                    </label>
                     <input
                       type="text"
                       value={customFormulaB}
                       onChange={(e) => setCustomFormulaB(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-indigo-500 outline-none"
+                      className="w-full bg-[#070A12] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 font-mono text-xs focus:border-indigo-500 outline-none"
                       placeholder="e.g. Ca10(PO4)6(OH)2"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
-                    Reference Peak List (2θ, I)
+                  <label className="text-[10px] text-slate-400 font-mono font-bold uppercase block mb-1">
+                    Reference Reflection List (2θ, I)
                   </label>
                   <textarea
                     rows={3}
                     value={customPatternB}
                     onChange={(e) => setCustomPatternB(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-200 font-mono text-xs focus:border-indigo-500 outline-none resize-none leading-relaxed"
+                    className="w-full bg-[#070A12] border border-slate-800 rounded p-2 text-slate-200 font-mono text-xs tabular-nums focus:border-indigo-500 outline-none resize-none leading-relaxed"
                     placeholder="25.87(30), 31.77(100), 32.19(70)..."
                   />
                 </div>
@@ -588,42 +637,117 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
         </div>
       </div>
 
-      {/* Central Quick Swap Action Bar */}
-      <div className="flex items-center justify-center gap-3">
-        <button
-          id="btn-swap-samples"
-          onClick={onSwapSamples}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700 rounded-xl text-xs font-mono font-bold transition-all shadow-md active:scale-95 cursor-pointer hover:border-cyan-400"
-          title="Swap Sample A and Reference B roles"
-        >
-          <ArrowLeftRight className="w-4 h-4 text-cyan-400" />
-          <span>Swap Sample A & Reference B</span>
-        </button>
+      {/* INTEGRATED GONIOMETER ALIGNMENT, SCALING & SWAP CONSOLE */}
+      <div className="bg-[#0B0F19] border border-slate-800 rounded-lg px-4 py-2.5 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-3 font-mono text-xs tabular-nums">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            id="btn-swap-samples"
+            onClick={onSwapSamples}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#070A12] hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-md text-xs font-bold transition-colors cursor-pointer"
+            title="Swap Experimental Sample A and Reference B channels"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-sky-400" />
+            <span>Swap Ch-A / Ch-B</span>
+          </button>
+
+          {setShiftTwoTheta && (
+            <div className="flex items-center gap-2 bg-[#070A12] border border-slate-800 px-2.5 py-1 rounded-md">
+              <span className="text-[10px] text-slate-400 uppercase font-bold">Ref B Shift (Δ2θ):</span>
+              <button
+                type="button"
+                onClick={() => setShiftTwoTheta(Number((shiftTwoTheta - 0.02).toFixed(2)))}
+                className="p-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded border border-slate-700 cursor-pointer"
+              >
+                <Minus className="w-3 h-3" />
+              </button>
+              <input
+                type="range"
+                min="-1.5"
+                max="1.5"
+                step="0.01"
+                value={shiftTwoTheta}
+                onChange={(e) => setShiftTwoTheta(parseFloat(e.target.value))}
+                className="w-24 accent-sky-400 cursor-pointer"
+              />
+              <button
+                type="button"
+                onClick={() => setShiftTwoTheta(Number((shiftTwoTheta + 0.02).toFixed(2)))}
+                className="p-0.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded border border-slate-700 cursor-pointer"
+              >
+                <Plus className="w-3 h-3" />
+              </button>
+              <span className="w-14 text-right font-bold text-sky-400">
+                {shiftTwoTheta > 0 ? `+${shiftTwoTheta.toFixed(2)}°` : `${shiftTwoTheta.toFixed(2)}°`}
+              </span>
+              {shiftTwoTheta !== 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShiftTwoTheta(0)}
+                  className="p-0.5 text-slate-500 hover:text-slate-200 cursor-pointer"
+                  title="Reset 2Theta shift"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {setScaleSampleB && (
+            <div className="flex items-center gap-2 bg-[#070A12] border border-slate-800 px-2.5 py-1 rounded-md">
+              <span className="text-[10px] text-slate-400 uppercase font-bold">Scale B:</span>
+              <input
+                type="range"
+                min="0.1"
+                max="2.5"
+                step="0.05"
+                value={scaleSampleB}
+                onChange={(e) => setScaleSampleB(parseFloat(e.target.value))}
+                className="w-20 accent-indigo-400 cursor-pointer"
+              />
+              <span className="w-11 text-right font-bold text-indigo-300">
+                {(scaleSampleB * 100).toFixed(0)}%
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 w-full xl:w-auto justify-end">
+          {onAutoAlign && (
+            <button
+              type="button"
+              onClick={onAutoAlign}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 rounded-md text-xs font-bold transition-colors cursor-pointer"
+            >
+              <Crosshair className="w-3.5 h-3.5 text-sky-400" />
+              <span>Cross-Correlation Auto-Align</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Expandable Advanced Drawers (Multi-Phase Deconvolution & Simulation Physics) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         {/* Drawer 1: Multi-Phase Mixture Deconvolution + RIR Corundum Weights */}
-        <div className="bg-[#080d1a] border border-slate-800/90 rounded-2xl overflow-hidden shadow-lg">
+        <div className="bg-[#0B0F19] border border-slate-800 rounded-lg overflow-hidden shadow-lg">
           <button
             onClick={() => setShowMultiPhaseDrawer(!showMultiPhaseDrawer)}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-900/50 transition-colors cursor-pointer"
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-[#070A12] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <div className="p-1.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/30">
                 <Layers3 className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-100 flex items-center gap-2">
-                  <span>Multi-Phase Mixture & RIR (I/Ic) Weights</span>
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100 flex items-center gap-2">
+                  <span>MULTI-PHASE MIXTURE &amp; CORUNDUM RIR (I/Ic)</span>
                   {(hasPhaseC || hasPhaseD) && (
-                    <span className="text-purple-300 text-[10px] font-mono font-normal">
-                      · {hasPhaseC && hasPhaseD ? 'Phases C & D Active' : 'Phase C Active'}
+                    <span className="px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[9px] font-mono">
+                      {hasPhaseC && hasPhaseD ? 'CH-C + CH-D ACTIVE' : 'CH-C ACTIVE'}
                     </span>
                   )}
                 </h4>
-                <p className="text-[11px] text-slate-400 font-mono">
-                  Synthesize secondary & tertiary phases with analytical NNLS + Corundum RIR scaling
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  Synthesize secondary/tertiary crystalline phases with NNLS + Corundum matrix-flushing weights
                 </p>
               </div>
             </div>
@@ -631,12 +755,12 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
           </button>
 
           {showMultiPhaseDrawer && (
-            <div className="p-4 pt-3 border-t border-slate-800/80 space-y-3.5 text-xs font-mono animate-in fade-in duration-200">
+            <div className="p-4 pt-3 border-t border-slate-800 bg-[#070A12] space-y-3 text-xs font-mono">
               {/* Primary Phase B RIR calibration */}
-              <div className="p-2.5 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+              <div className="p-2.5 bg-[#0B0F19] rounded-md border border-slate-800 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Scale className="w-3.5 h-3.5 text-indigo-400" />
-                  <span className="text-slate-300 text-[11px]">Primary Ref B RIR (I/Ic):</span>
+                  <span className="text-slate-300 text-[11px]">Primary Ref B Corundum RIR (I/Ic):</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <input
@@ -646,13 +770,13 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                     max="20"
                     value={engineSettings.rirB ?? defaultRirB}
                     onChange={(e) => setEngineSettings(prev => ({ ...prev, rirB: Math.max(0.1, parseFloat(e.target.value) || 1.0) }))}
-                    className="w-20 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-right text-indigo-300 font-bold tabular-nums text-xs outline-none focus:border-indigo-400"
+                    className="w-20 bg-[#070A12] border border-slate-700 rounded px-2 py-1 text-right text-indigo-300 font-bold tabular-nums text-xs outline-none focus:border-indigo-400"
                   />
                   <button
                     type="button"
                     onClick={() => setEngineSettings(prev => ({ ...prev, rirB: defaultRirB }))}
-                    className="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 cursor-pointer"
-                    title="Reset to estimated database RIR"
+                    className="text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 border border-slate-700 cursor-pointer"
+                    title="Reset to database RIR"
                   >
                     Auto
                   </button>
@@ -660,7 +784,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
               </div>
 
               {/* Secondary Phase C */}
-              <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2.5">
+              <div className="p-3 bg-[#0B0F19] rounded-md border border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <input
@@ -668,10 +792,10 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                       id="toggle-phase-c"
                       checked={hasPhaseC}
                       onChange={(e) => setHasPhaseC(e.target.checked)}
-                      className="w-4 h-4 rounded text-purple-600 cursor-pointer accent-purple-500"
+                      className="w-3.5 h-3.5 rounded cursor-pointer accent-purple-500"
                     />
                     <label htmlFor="toggle-phase-c" className="font-bold text-slate-200 cursor-pointer flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activePalette.colorC }} />
+                      <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: activePalette.colorC }} />
                       <span>Secondary Phase C</span>
                     </label>
                   </div>
@@ -702,7 +826,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                           setEngineSettings(prev => ({ ...prev, rirC: estimateMaterialRir(mat) }));
                         }
                       }}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs outline-none"
+                      className="w-full bg-[#070A12] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 text-xs outline-none"
                     >
                       {materialsDb.map((mat, idx) => (
                         <option key={idx} value={idx}>
@@ -724,7 +848,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                           className="w-full accent-purple-500 cursor-pointer"
                         />
                       </div>
-                      <div className="flex items-center justify-between bg-slate-950/90 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                      <div className="flex items-center justify-between bg-[#070A12] px-2.5 py-1.5 rounded border border-slate-800">
                         <span className="text-[10px] text-slate-400">RIR (I/Ic):</span>
                         <input
                           type="number"
@@ -742,7 +866,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
               </div>
 
               {/* Tertiary Phase D */}
-              <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 space-y-2.5">
+              <div className="p-3 bg-[#0B0F19] rounded-md border border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <input
@@ -750,10 +874,10 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                       id="toggle-phase-d"
                       checked={hasPhaseD}
                       onChange={(e) => setHasPhaseD(e.target.checked)}
-                      className="w-4 h-4 rounded text-rose-600 cursor-pointer accent-rose-500"
+                      className="w-3.5 h-3.5 rounded cursor-pointer accent-rose-500"
                     />
                     <label htmlFor="toggle-phase-d" className="font-bold text-slate-200 cursor-pointer flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activePalette.colorD }} />
+                      <span className="w-2.5 h-2.5 rounded-xs" style={{ backgroundColor: activePalette.colorD }} />
                       <span>Tertiary Phase D</span>
                     </label>
                   </div>
@@ -784,7 +908,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                           setEngineSettings(prev => ({ ...prev, rirD: estimateMaterialRir(mat) }));
                         }
                       }}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs outline-none"
+                      className="w-full bg-[#070A12] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 text-xs outline-none"
                     >
                       {materialsDb.map((mat, idx) => (
                         <option key={idx} value={idx}>
@@ -806,7 +930,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                           className="w-full accent-rose-500 cursor-pointer"
                         />
                       </div>
-                      <div className="flex items-center justify-between bg-slate-950/90 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                      <div className="flex items-center justify-between bg-[#070A12] px-2.5 py-1.5 rounded border border-slate-800">
                         <span className="text-[10px] text-slate-400">RIR (I/Ic):</span>
                         <input
                           type="number"
@@ -827,21 +951,21 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
         </div>
 
         {/* Drawer 2: Simulation Physics, Caglioti Resolution & Cu Ka1/Ka2 Doublets */}
-        <div className="bg-[#080d1a] border border-slate-800/90 rounded-2xl overflow-hidden shadow-lg">
+        <div className="bg-[#0B0F19] border border-slate-800 rounded-lg overflow-hidden shadow-lg">
           <button
             onClick={() => setShowEngineDrawer(!showEngineDrawer)}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-900/50 transition-colors cursor-pointer"
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-[#070A12] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/30">
                 <SlidersHorizontal className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-100 flex items-center gap-2">
-                  <span>Crystallographic Physics & Caglioti Resolution</span>
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100 flex items-center gap-2">
+                  <span>CAGLIOTI (U,V,W) RESOLUTION &amp; Kα₁/Kα₂ OPTICS</span>
                 </h4>
-                <p className="text-[11px] text-slate-400 font-mono">
-                  Caglioti (U,V,W) dispersion, Cu Kα₁/Kα₂ doublet synthesis, Rachinger & normalization
+                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                  Configure profile kernel, Caglioti angular dispersion, and Rachinger Kα₂ stripping
                 </p>
               </div>
             </div>
@@ -849,16 +973,16 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
           </button>
 
           {showEngineDrawer && (
-            <div className="p-4 pt-3 border-t border-slate-800/80 space-y-3.5 text-xs font-mono animate-in fade-in duration-200">
+            <div className="p-4 pt-3 border-t border-slate-800 bg-[#070A12] space-y-3 text-xs font-mono">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
-                    Peak Shape Function
+                    Profile Convolution Kernel
                   </label>
                   <select
                     value={engineSettings.peakShape}
                     onChange={(e) => setEngineSettings(prev => ({ ...prev, peakShape: e.target.value as PeakShapeFunction }))}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 text-xs outline-none cursor-pointer"
+                    className="w-full bg-[#0B0F19] border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 text-xs outline-none cursor-pointer"
                   >
                     <option value="pseudoVoigt">Pseudo-Voigt (η·L + (1-η)·G)</option>
                     <option value="pearsonVII">Pearson VII (Exponent m)</option>
@@ -869,12 +993,12 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
 
                 <div>
                   <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
-                    Normalization Mode
+                    Intensity Normalization
                   </label>
                   <select
                     value={engineSettings.normalizationMode}
                     onChange={(e) => setEngineSettings(prev => ({ ...prev, normalizationMode: e.target.value as 'max100' | 'unitArea' | 'raw' }))}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-cyan-300 text-xs outline-none cursor-pointer"
+                    className="w-full bg-[#0B0F19] border border-slate-800 rounded px-2.5 py-1.5 text-sky-300 text-xs outline-none cursor-pointer"
                   >
                     <option value="max100">Max Peak = 100% (Standard)</option>
                     <option value="unitArea">Unit Integrated Area (∫I d2θ)</option>
@@ -889,7 +1013,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                     <label className="text-[10px] text-slate-400 font-bold uppercase">
                       Base FWHM₀ (W = FWHM₀²)
                     </label>
-                    <span className="text-[11px] text-cyan-400 font-bold tabular-nums">{engineSettings.fwhm.toFixed(2)}°</span>
+                    <span className="text-[11px] text-sky-400 font-bold tabular-nums">{engineSettings.fwhm.toFixed(2)}°</span>
                   </div>
                   <input
                     type="range"
@@ -898,7 +1022,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                     step="0.02"
                     value={engineSettings.fwhm}
                     onChange={(e) => setEngineSettings(prev => ({ ...prev, fwhm: parseFloat(e.target.value) }))}
-                    className="w-full accent-cyan-400 cursor-pointer"
+                    className="w-full accent-sky-400 cursor-pointer"
                   />
                 </div>
 
@@ -942,17 +1066,17 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
               </div>
 
               {/* Caglioti (U, V, W) & Cu Ka1/Ka2 Physics Controls */}
-              <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2.5">
+              <div className="p-3 bg-[#0B0F19] rounded-md border border-slate-800 space-y-2.5">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <label className="flex items-center gap-2 cursor-pointer text-slate-200 font-bold text-[11px]">
                     <input
                       type="checkbox"
                       checked={!!engineSettings.enableCaglioti}
                       onChange={(e) => setEngineSettings(prev => ({ ...prev, enableCaglioti: e.target.checked }))}
-                      className="w-3.5 h-3.5 rounded accent-cyan-400 cursor-pointer"
+                      className="w-3.5 h-3.5 rounded accent-sky-400 cursor-pointer"
                     />
-                    <Atom className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Caglioti FWHM(θ) Dispersion: FWHM² = U·tan²θ + V·tanθ + W</span>
+                    <Atom className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Caglioti Dispersion: FWHM²(θ) = U·tan²θ + V·tanθ + W</span>
                   </label>
                 </div>
 
@@ -960,8 +1084,8 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                   <div className="grid grid-cols-2 gap-3 pt-1">
                     <div>
                       <div className="flex justify-between items-center mb-0.5">
-                        <span className="text-[10px] text-slate-400">U (Strain/Dispersion):</span>
-                        <span className="text-[10px] text-cyan-300 font-bold tabular-nums">{(engineSettings.cagliotiU ?? 0.04).toFixed(3)}</span>
+                        <span className="text-[10px] text-slate-400">U (Microstrain Term):</span>
+                        <span className="text-[10px] text-sky-300 font-bold tabular-nums">{(engineSettings.cagliotiU ?? 0.04).toFixed(3)}</span>
                       </div>
                       <input
                         type="range"
@@ -970,12 +1094,12 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                         step="0.005"
                         value={engineSettings.cagliotiU ?? 0.04}
                         onChange={(e) => setEngineSettings(prev => ({ ...prev, cagliotiU: parseFloat(e.target.value) }))}
-                        className="w-full accent-cyan-400 cursor-pointer"
+                        className="w-full accent-sky-400 cursor-pointer"
                       />
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-0.5">
-                        <span className="text-[10px] text-slate-400">V (Axial/Optics):</span>
+                        <span className="text-[10px] text-slate-400">V (Optics / Axial):</span>
                         <span className="text-[10px] text-indigo-300 font-bold tabular-nums">{(engineSettings.cagliotiV ?? -0.02).toFixed(3)}</span>
                       </div>
                       <input
@@ -991,7 +1115,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/80">
+                <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-800">
                   <label className="flex items-center gap-2 cursor-pointer text-[11px] text-slate-300">
                     <input
                       type="checkbox"
@@ -1036,7 +1160,7 @@ export const SampleConfigurationPanel: React.FC<SampleConfigurationPanelProps> =
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">
-                      Counting Noise (σ)
+                      Poisson Noise (σ)
                     </label>
                     <span className="text-[11px] text-rose-400 font-bold tabular-nums">{engineSettings.noiseLevel.toFixed(1)}%</span>
                   </div>

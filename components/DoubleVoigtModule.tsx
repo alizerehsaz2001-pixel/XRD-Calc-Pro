@@ -51,6 +51,7 @@ import { AIAnalysis } from './AIAnalysis';
 import { PythonCodeExporter } from './PythonCodeExporter';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
+import { DoubleVoigtCadSchematic } from './double_voigt/DoubleVoigtCadSchematic';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -150,8 +151,8 @@ export const DoubleVoigtModule: React.FC = () => {
 
   const [inputData, setInputData] = useState<string>(DV_PRESETS[0].data);
   const [activePresetName, setActivePresetName] = useState<string>(DV_PRESETS[0].name);
-  const [activePlotTab, setActivePlotTab] = useState<'cauchy' | 'gaussian' | 'summary' | 'profile' | 'concept'>('cauchy');
-  const [summarySubView, setSummarySubView] = useState<'distribution' | 'strainCurve' | 'bars'>('distribution');
+  const [activePlotTab, setActivePlotTab] = useState<'cauchy' | 'gaussian' | 'summary' | 'profile' | 'kernelMatrix' | 'concept'>('cauchy');
+  const [summarySubView, setSummarySubView] = useState<'distribution' | 'fourier' | 'strainCurve' | 'bars'>('distribution');
   const [selectedPeakIdx, setSelectedPeakIdx] = useState<number>(0);
   const [interactiveEta, setInteractiveEta] = useState<number>(0.60);
   const [showConfidenceBand, setShowConfidenceBand] = useState<boolean>(true);
@@ -422,15 +423,91 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
       const diffV = Math.log(L) - muVol;
       const pArea = (1 / (L * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-(diffA * diffA) / (2 * sigmaSq));
       const pVol = (1 / (L * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(-(diffV * diffV) / (2 * sigmaSq));
+      const aSize = Math.exp(-2 * L * (1 / Math.max(1, Dv)) - Math.PI * L * L * Math.pow(1 / (Math.PI * Math.max(1, result.gaussianSizeDgNm || Dv)), 2));
+      const aTangent = Math.max(0, 1 - L / Math.max(0.5, Da));
       points.push({
         L: parseFloat(L.toFixed(2)),
         areaDensity: parseFloat((pArea * 100).toFixed(3)),
-        volumeDensity: parseFloat((pVol * 100).toFixed(3))
+        volumeDensity: parseFloat((pVol * 100).toFixed(3)),
+        aSize: parseFloat(aSize.toFixed(4)),
+        aTangent: parseFloat(aTangent.toFixed(4))
       });
     }
 
     return { points, modeL, medianL, sigma, Dv, Da, Dn, ratio };
   }, [result]);
+
+  // Simultaneous 3-Kernel x 3-Weighting Benchmark Matrix
+  const kernelComparisonMatrix = useMemo(() => {
+    if (parsedPeaks.length < 2) return [];
+    const combos: {
+      kernel: 'deKeijser-1982' | 'Langford-1978' | 'Balzar-1993';
+      weighting: 'OLS' | 'WLS-LowS' | 'Huber-Robust';
+      label: string;
+    }[] = [
+      { kernel: 'deKeijser-1982', weighting: 'OLS', label: 'de Keijser (1982) · Standard OLS' },
+      { kernel: 'deKeijser-1982', weighting: 'WLS-LowS', label: 'de Keijser (1982) · 1/s Low-Angle WLS' },
+      { kernel: 'deKeijser-1982', weighting: 'Huber-Robust', label: 'de Keijser (1982) · Huber Robust IRLS' },
+      { kernel: 'Langford-1978', weighting: 'OLS', label: 'Langford (1978) · Standard OLS' },
+      { kernel: 'Balzar-1993', weighting: 'OLS', label: 'Balzar-Ledbetter (1993) · Standard OLS' },
+      { kernel: 'Balzar-1993', weighting: 'Huber-Robust', label: 'Balzar-Ledbetter (1993) · Huber IRLS' }
+    ];
+
+    return combos
+      .map(c => {
+        const res = calculateDoubleVoigt(
+          wavelength,
+          instFwhm,
+          parsedPeaks,
+          instrumentalMode,
+          { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+          {
+            zeroShiftDeg,
+            instEta,
+            applyLPFactor,
+            monochromatorAngleDeg: monochromatorAngle,
+            kAlpha2Correction,
+            shapeK,
+            deconvKernel: c.kernel,
+            regressionWeighting: c.weighting,
+            burgersVectorNm,
+            excludedIndices
+          }
+        );
+        return res
+          ? {
+              ...c,
+              dvNm: res.volumeSizeDvNm,
+              daNm: res.areaSizeDaNm,
+              dgNm: res.gaussianSizeDgNm,
+              ecPct: res.cauchyStrainEc * 100,
+              egPct: res.gaussianStrainEg * 100,
+              rmsPct: res.rmsStrain * 100,
+              cauchyR2: res.cauchyFit.rSquared,
+              gaussR2: res.gaussianFit.rSquared,
+              meanR2: 0.5 * (res.cauchyFit.rSquared + res.gaussianFit.rSquared),
+              kParam: res.voigtParameterK || 0
+            }
+          : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+  }, [
+    parsedPeaks,
+    wavelength,
+    instFwhm,
+    instrumentalMode,
+    cagliotiU,
+    cagliotiV,
+    cagliotiW,
+    zeroShiftDeg,
+    instEta,
+    applyLPFactor,
+    monochromatorAngle,
+    kAlpha2Correction,
+    shapeK,
+    burgersVectorNm,
+    excludedIndices
+  ]);
 
   // Generate Cauchy chart data with 95% CI band
   const cauchyChartData = useMemo(() => {
@@ -795,31 +872,32 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
       )}
 
       {/* Architectural Header & Dual Voigt Formulation */}
-      <div className="bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 md:p-8">
+      <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-5 shadow-xl relative overflow-hidden">
+        <div className="h-0.5 w-full bg-indigo-500 absolute top-0 left-0 right-0" />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          <div className="lg:col-span-6 space-y-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+          <div className="lg:col-span-6 space-y-2.5">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-indigo-400 uppercase tracking-wider">
               <span>Reciprocal-Space Voigt Convolution</span>
               <span aria-hidden="true">·</span>
-              <span>Langford (1978, 1992) &amp; Balzar-Ledbetter (1993)</span>
+              <span>Langford (1978, 1992) &amp; Balzar–Ledbetter (1993)</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Double-Voigt Method
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">
+              Double-Voigt Method Workstation
             </h1>
 
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              Models both size-broadened and strain-broadened line profiles as Voigt functions in reciprocal space <span className="font-mono text-indigo-600 dark:text-indigo-400">s = 2sinθ/λ</span>. Because the convolution of two Voigt profiles is analytically another Voigt profile, Cauchy integral breadths add linearly while Gaussian integral breadths add quadratically—enabling exact extraction of volume-weighted <span className="font-mono text-indigo-600 dark:text-indigo-400">⟨D_V⟩</span>, area-weighted <span className="font-mono text-emerald-600 dark:text-emerald-400">⟨D_A⟩</span>, and distance-dependent microstrain <span className="font-mono text-indigo-600 dark:text-indigo-400">⟨ε²(L)⟩¹/²</span>.
+            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              Models both size-broadened and strain-broadened line profiles as Voigt functions in reciprocal space <span className="font-mono text-indigo-300">s = 2sinθ/λ</span>. Because the convolution of two Voigt profiles is analytically another Voigt profile, Cauchy integral breadths add linearly while Gaussian integral breadths add quadratically—enabling exact extraction of volume-weighted <span className="font-mono text-indigo-300">⟨D_V⟩</span>, area-weighted <span className="font-mono text-emerald-300">⟨D_A⟩</span>, and distance-dependent microstrain <span className="font-mono text-purple-300">⟨ε²(L)⟩¹/²</span>.
             </p>
           </div>
 
-          <div className="lg:col-span-6 bg-slate-50 dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-2">
+          <div className="lg:col-span-6 bg-[#070A12] border border-slate-800 rounded-lg p-3.5 space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800 pb-1.5">
               <span>DUAL RECIPROCAL VOIGT SEPARATION</span>
-              <span>s = 2sinθ / λ [nm⁻¹]</span>
+              <span className="text-indigo-400 font-bold">s = 2sinθ / λ [nm⁻¹]</span>
             </div>
             <div
-              className="py-2 px-3 bg-white dark:bg-[#070A12] rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto text-center text-slate-900 dark:text-slate-100 text-xs"
+              className="py-1.5 px-3 bg-[#0B0F19] rounded border border-slate-800 overflow-x-auto text-center text-slate-100 text-xs"
               dangerouslySetInnerHTML={{
                 __html: katex.renderToString(
                   '\\beta_C^*(s) = \\frac{1}{\\langle D \\rangle_V} + 2 e_C s, \\qquad \\big(\\beta_G^*(s)\\big)^2 = \\left(\\frac{1}{\\pi D_G}\\right)^2 + 8\\pi e_G^2 s^2',
@@ -828,7 +906,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               }}
             />
             <div
-              className="py-1.5 px-3 bg-white dark:bg-[#070A12] rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto text-center text-slate-900 dark:text-slate-100 text-xs"
+              className="py-1.5 px-3 bg-[#0B0F19] rounded border border-slate-800 overflow-x-auto text-center text-slate-100 text-xs"
               dangerouslySetInnerHTML={{
                 __html: katex.renderToString(
                   '\\langle D \\rangle_A = \\frac{1}{\\pi \\beta_{G,S}^*} \\exp(k^2)\\,\\text{erfc}(k), \\quad k = \\frac{\\beta_{C,S}^*}{\\sqrt{\\pi}\\,\\beta_{G,S}^*}',
@@ -840,10 +918,10 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
         </div>
 
         {/* 6 Curated Reference Standards */}
-        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0">
-            <FlaskConical className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-            <span>REFERENCE STANDARDS:</span>
+        <div className="mt-4 pt-4 border-t border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 shrink-0 uppercase font-bold">
+            <FlaskConical className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Reference Standards:</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 w-full">
             {DV_PRESETS.map((p) => {
@@ -853,20 +931,40 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   key={p.name}
                   type="button"
                   onClick={() => handleApplyPreset(p)}
-                  className={`px-3 py-2 rounded-lg border text-left transition-colors cursor-pointer ${
+                  className={`px-3 py-2 rounded border text-left transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-indigo-500/10 border-indigo-500 text-slate-900 dark:text-white'
-                      : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-500/40'
+                      ? 'bg-indigo-500/15 border-indigo-500/60 text-white'
+                      : 'bg-[#070A12] border-slate-800 text-slate-300 hover:border-indigo-500/40'
                   }`}
                 >
-                  <div className="text-xs font-semibold truncate">{p.name}</div>
-                  <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate mt-0.5">{p.tag}</div>
+                  <div className="text-[11px] font-bold truncate">{p.name}</div>
+                  <div className="text-[9.5px] font-mono text-slate-400 truncate mt-0.5">{p.tag}</div>
                 </button>
               );
             })}
           </div>
         </div>
       </div>
+
+      {/* Interactive 3-Mode CAD Double-Voigt Metrology Schematic */}
+      <DoubleVoigtCadSchematic
+        result={result}
+        activePresetName={activePresetName}
+        wavelength={wavelength}
+        instFwhm={instFwhm}
+        instEta={instEta}
+        instrumentalMode={instrumentalMode}
+        cagliotiU={cagliotiU}
+        cagliotiV={cagliotiV}
+        cagliotiW={cagliotiW}
+        shapeK={shapeK}
+        deconvKernel={deconvKernel}
+        regressionWeighting={regressionWeighting}
+        selectedPeakIdx={selectedPeakIdx}
+        onSelectPeakIdx={(idx) => setSelectedPeakIdx(idx)}
+        onSelectKernel={(k) => setDeconvKernel(k)}
+        onSelectWeighting={(w) => setRegressionWeighting(w)}
+      />
 
       {/* Main Split Console Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -1495,140 +1593,176 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
         <div className="lg:col-span-7 space-y-6">
           {result ? (
             <>
-              {/* 4-Card Microstructural Telemetry Strip */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              {/* 5-Card CAD Metrology Telemetry Strip */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                 {/* 1. Volume-Weighted Size D_V */}
-                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+                  <div className="h-0.5 w-full bg-indigo-500 absolute top-0 left-0 right-0" />
+                  <div className="flex items-center justify-between text-[10px] text-indigo-400 font-bold uppercase">
                     <span>VOLUME SIZE ⟨D_V⟩</span>
-                    <Ruler className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <Ruler className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
                   <div className="my-2 flex items-baseline">
-                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                    <span className="text-2xl font-bold text-white">
                       {convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(2)}
                     </span>
-                    <span className="text-xs uppercase font-mono text-slate-400 ml-1.5">
+                    <span className="text-xs uppercase text-indigo-400 ml-1.5 font-bold">
                       {lengthUnit}
                     </span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  <div className="pt-2 border-t border-slate-800/80 space-y-0.5 text-[10px] text-slate-400">
                     <div className="flex justify-between">
-                      <span>Std Error (±ΔD_V):</span>
-                      <span className="text-slate-800 dark:text-slate-200">
+                      <span>±ΔD_V:</span>
+                      <span className="text-slate-200">
                         ±{convertLength((result.volumeSizeUncertaintyNm || 0) * 10, lengthUnit).toFixed(2)} {lengthUnit}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Gaussian D_G:</span>
-                      <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
+                      <span>Gauss D_G:</span>
+                      <span className="text-indigo-300 font-semibold">
                         {convertLength(result.gaussianSizeDgNm * 10, lengthUnit).toFixed(2)} {lengthUnit}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Area-Weighted Size D_A & Polydispersity */}
-                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                {/* 2. Area-Weighted Size D_A */}
+                <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+                  <div className="h-0.5 w-full bg-emerald-500 absolute top-0 left-0 right-0" />
+                  <div className="flex items-center justify-between text-[10px] text-emerald-400 font-bold uppercase">
                     <span>AREA SIZE ⟨D_A⟩</span>
-                    <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <Layers className="w-3.5 h-3.5 text-emerald-400" />
                   </div>
                   <div className="my-2 flex items-baseline">
-                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                    <span className="text-2xl font-bold text-white">
                       {convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(2)}
                     </span>
-                    <span className="text-xs uppercase font-mono text-slate-400 ml-1.5">
+                    <span className="text-xs uppercase text-emerald-400 ml-1.5 font-bold">
                       {lengthUnit}
                     </span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  <div className="pt-2 border-t border-slate-800/80 space-y-0.5 text-[10px] text-slate-400">
                     <div className="flex justify-between">
-                      <span>Polydispersity κ:</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <span>Number ⟨D_N⟩:</span>
+                      <span className="text-slate-200">
+                        {convertLength((result.numberSizeDnNm || result.areaSizeDaNm * 0.72) * 10, lengthUnit).toFixed(2)} {lengthUnit}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Median M:</span>
+                      <span className="text-emerald-300 font-semibold">
+                        {convertLength((result.logNormalMedianNm || result.areaSizeDaNm * 0.85) * 10, lengthUnit).toFixed(2)} {lengthUnit}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Voigt Ratio k & Polydispersity */}
+                <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+                  <div className="h-0.5 w-full bg-amber-400 absolute top-0 left-0 right-0" />
+                  <div className="flex items-center justify-between text-[10px] text-amber-400 font-bold uppercase">
+                    <span>VOIGT RATIO (k)</span>
+                    <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                  </div>
+                  <div className="my-2 flex items-baseline">
+                    <span className="text-2xl font-bold text-white">
+                      {(result.voigtParameterK || 0).toFixed(3)}
+                    </span>
+                    <span className="text-[10px] text-amber-400 ml-1.5">
+                      erfc(k)
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800/80 space-y-0.5 text-[10px] text-slate-400">
+                    <div className="flex justify-between">
+                      <span>Polydisp. κ:</span>
+                      <span className="text-amber-300 font-semibold">
                         {(result.polydispersityRatio || 1.2).toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Number ⟨D_N⟩:</span>
-                      <span className="text-slate-800 dark:text-slate-200">
-                        {convertLength((result.numberSizeDnNm || result.areaSizeDaNm * 0.72) * 10, lengthUnit).toFixed(2)} {lengthUnit}
+                      <span>LogNorm σ_LN:</span>
+                      <span className="text-slate-200">
+                        {(result.logNormalSigma || 0.3).toFixed(3)}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* 3. Deconvolved Microstrains */}
-                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                {/* 4. Deconvolved Microstrains */}
+                <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+                  <div className="h-0.5 w-full bg-purple-500 absolute top-0 left-0 right-0" />
+                  <div className="flex items-center justify-between text-[10px] text-purple-400 font-bold uppercase">
                     <span>RMS STRAIN ⟨ε²⟩¹/²</span>
-                    <TrendingUp className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
                   </div>
                   <div className="my-2 flex items-baseline">
-                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                    <span className="text-2xl font-bold text-white">
                       {(result.rmsStrain * 100).toFixed(4)}
                     </span>
-                    <span className="text-xs uppercase font-mono text-slate-400 ml-1">
+                    <span className="text-xs uppercase text-purple-400 ml-1 font-bold">
                       %
                     </span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  <div className="pt-2 border-t border-slate-800/80 space-y-0.5 text-[10px] text-slate-400">
                     <div className="flex justify-between">
                       <span>Cauchy e_C:</span>
-                      <span className="text-indigo-600 dark:text-indigo-400">{(result.cauchyStrainEc * 100).toFixed(4)}%</span>
+                      <span className="text-indigo-300">{(result.cauchyStrainEc * 100).toFixed(4)}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Gaussian e_G:</span>
-                      <span className="text-purple-600 dark:text-purple-400">{(result.gaussianStrainEg * 100).toFixed(4)}%</span>
+                      <span>Gauss e_G:</span>
+                      <span className="text-purple-300">{(result.gaussianStrainEg * 100).toFixed(4)}%</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 4. Dislocation Density & Dual Fit R^2 */}
-                <div className="bg-white dark:bg-[#0B0F19] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-500 dark:text-slate-400">
+                {/* 5. Dislocation Density & Dual Fit R^2 */}
+                <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+                  <div className="h-0.5 w-full bg-cyan-400 absolute top-0 left-0 right-0" />
+                  <div className="flex items-center justify-between text-[10px] text-cyan-400 font-bold uppercase">
                     <span>DISLOCATION (ρ)</span>
-                    <Activity className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <Activity className="w-3.5 h-3.5 text-cyan-400" />
                   </div>
                   <div className="my-2 flex items-baseline">
-                    <span className="text-2xl sm:text-3xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                    <span className="text-2xl font-bold text-white">
                       {((result.dislocationDensityM2 || 0) / 1e15).toFixed(2)}
                     </span>
-                    <span className="text-xs font-mono text-slate-400 ml-1.5">
+                    <span className="text-[10px] text-cyan-400 ml-1 font-bold">
                       ×10¹⁵ m⁻²
                     </span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  <div className="pt-2 border-t border-slate-800/80 space-y-0.5 text-[10px] text-slate-400">
                     <div className="flex justify-between">
                       <span>Cauchy R²:</span>
-                      <span className="text-slate-800 dark:text-slate-200">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span>
+                      <span className="text-slate-200">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Gaussian R²:</span>
-                      <span className="text-slate-800 dark:text-slate-200">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span>
+                      <span>Gauss R²:</span>
+                      <span className="text-slate-200">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* 5-Tab Interactive Visualization Stage */}
-              <div className="bg-white dark:bg-[#0B0F19] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+              {/* 6-Tab Interactive Visualization Stage */}
+              <div className="bg-[#0B0F19] p-5 rounded-lg border border-slate-800 space-y-5 shadow-xl">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
                   <div className="flex flex-wrap items-center gap-1.5">
                     {[
                       { id: 'cauchy' as const, label: '01. Cauchy Fit (β_C* vs s)' },
                       { id: 'gaussian' as const, label: '02. Gaussian Fit ((β_G*)² vs s²)' },
-                      { id: 'summary' as const, label: '03. Column P(L) & Strain Curve' },
+                      { id: 'summary' as const, label: '03. A_S(L), P(L) & Strain' },
                       { id: 'profile' as const, label: '04. Peak Voigt Deconvolution' },
-                      { id: 'concept' as const, label: '05. Voigt Physics Sandbox' }
+                      { id: 'kernelMatrix' as const, label: '05. Kernel & Solver Matrix' },
+                      { id: 'concept' as const, label: '06. Voigt Physics Sandbox' }
                     ].map(tab => (
                       <button
                         key={tab.id}
                         type="button"
                         onClick={() => setActivePlotTab(tab.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                        className={`px-3 py-1.5 rounded border text-xs font-mono font-bold transition-colors whitespace-nowrap cursor-pointer ${
                           activePlotTab === tab.id
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 dark:bg-[#111827] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200'
+                            : 'bg-[#070A12] border-slate-800 text-slate-400 hover:text-white'
                         }`}
                       >
                         {tab.label}
@@ -1907,32 +2041,43 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   </div>
                 )}
 
-                {/* Tab 3: Column-Length Distribution P(L), Warren-Averbach Strain Curve & Moments */}
+                {/* Tab 3: Column-Length Distribution P(L), Analytical Fourier A_S(L), Warren-Averbach Strain Curve & Moments */}
                 {activePlotTab === 'summary' && columnLengthData && (
                   <div className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-mono text-slate-600 dark:text-slate-400">
+                      <span className="text-xs font-mono text-slate-400">
                         Synthesized from ⟨D_A⟩ = {columnLengthData.Da.toFixed(2)} nm &amp; ⟨D_V⟩ = {columnLengthData.Dv.toFixed(2)} nm (σ_LN = {columnLengthData.sigma.toFixed(3)})
                       </span>
-                      <div className="flex bg-slate-100 dark:bg-[#111827] p-0.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono">
+                      <div className="flex bg-[#070A12] p-0.5 rounded border border-slate-800 text-xs font-mono">
                         <button
                           type="button"
                           onClick={() => setSummarySubView('distribution')}
-                          className={`px-2.5 py-1 rounded-md cursor-pointer ${
+                          className={`px-2.5 py-1 rounded cursor-pointer ${
                             summarySubView === 'distribution'
                               ? 'bg-indigo-600 text-white font-semibold'
-                              : 'text-slate-600 dark:text-slate-400'
+                              : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
                           Log-Normal P(L)
                         </button>
                         <button
                           type="button"
+                          onClick={() => setSummarySubView('fourier')}
+                          className={`px-2.5 py-1 rounded cursor-pointer ${
+                            summarySubView === 'fourier'
+                              ? 'bg-indigo-600 text-white font-semibold'
+                              : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          Fourier A_S(L)
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setSummarySubView('strainCurve')}
-                          className={`px-2.5 py-1 rounded-md cursor-pointer ${
+                          className={`px-2.5 py-1 rounded cursor-pointer ${
                             summarySubView === 'strainCurve'
                               ? 'bg-indigo-600 text-white font-semibold'
-                              : 'text-slate-600 dark:text-slate-400'
+                              : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
                           RMS Strain ⟨ε²(L)⟩¹/²
@@ -1940,10 +2085,10 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                         <button
                           type="button"
                           onClick={() => setSummarySubView('bars')}
-                          className={`px-2.5 py-1 rounded-md cursor-pointer ${
+                          className={`px-2.5 py-1 rounded cursor-pointer ${
                             summarySubView === 'bars'
                               ? 'bg-indigo-600 text-white font-semibold'
-                              : 'text-slate-600 dark:text-slate-400'
+                              : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
                           Size Moments
@@ -1952,7 +2097,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     </div>
 
                     {summarySubView === 'distribution' && (
-                      <div className="h-80 sm:h-96 w-full bg-slate-50/60 dark:bg-[#070A12] rounded-xl border border-slate-200 dark:border-slate-800/80 p-3">
+                      <div className="h-80 sm:h-96 w-full bg-[#070A12] rounded-lg border border-slate-800 p-3">
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart data={columnLengthData.points} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
@@ -1989,7 +2134,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                                 if (active && payload && payload.length) {
                                   const d = payload[0].payload;
                                   return (
-                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-xl font-mono text-xs space-y-1 tabular-nums">
+                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-lg font-mono text-xs space-y-1 tabular-nums">
                                       <div className="text-emerald-400 font-bold border-b border-slate-700 pb-1">
                                         Column Length L = {d.L} nm
                                       </div>
@@ -2006,6 +2151,66 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                             <ReferenceLine x={columnLengthData.Dv} stroke="#6366f1" strokeDasharray="4 4" label={{ value: `⟨D_V⟩ = ${columnLengthData.Dv.toFixed(1)} nm`, fill: '#6366f1', fontSize: 10, position: 'top' }} />
                             <Area type="monotone" dataKey="areaDensity" name="Area-Weighted Distribution P_A(L)" stroke="#10b981" fill="#10b981" fillOpacity={0.18} strokeWidth={2} />
                             <Area type="monotone" dataKey="volumeDensity" name="Volume-Weighted Distribution P_V(L)" stroke="#6366f1" fill="#6366f1" fillOpacity={0.18} strokeWidth={2} />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+
+                    {summarySubView === 'fourier' && (
+                      <div className="h-80 sm:h-96 w-full bg-[#070A12] rounded-lg border border-slate-800 p-3">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={columnLengthData.points} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.15)" />
+                            <XAxis
+                              dataKey="L"
+                              type="number"
+                              domain={[0, 'auto']}
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                              label={{
+                                value: 'Fourier Column Length L [nm]',
+                                position: 'insideBottom',
+                                offset: -15,
+                                fill: '#38bdf8',
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <YAxis
+                              domain={[0, 1.05]}
+                              stroke="#64748b"
+                              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }}
+                              label={{
+                                value: 'Size Fourier Coefficient A_S(L)',
+                                angle: -90,
+                                position: 'insideLeft',
+                                offset: -5,
+                                fill: '#38bdf8',
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                              }}
+                            />
+                            <Tooltip
+                              content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                  const d = payload[0].payload;
+                                  return (
+                                    <div className="bg-slate-900 text-white border border-slate-700 p-3 rounded-lg font-mono text-xs space-y-1 tabular-nums">
+                                      <div className="text-cyan-400 font-bold border-b border-slate-700 pb-1">
+                                        Fourier Distance L = {d.L} nm
+                                      </div>
+                                      <div>Analytical A_S(L): <span className="text-emerald-400 font-bold">{d.aSize}</span></div>
+                                      <div>Initial Tangent (1 − L/⟨D_A⟩): <span className="text-cyan-300">{d.aTangent}</span></div>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              }}
+                            />
+                            <Legend verticalAlign="top" height={32} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                            <ReferenceLine x={columnLengthData.Da} stroke="#38bdf8" strokeDasharray="4 4" label={{ value: `Tangent Intercept ⟨D_A⟩ = ${columnLengthData.Da.toFixed(1)} nm`, fill: '#38bdf8', fontSize: 10, position: 'top' }} />
+                            <Area type="monotone" dataKey="aSize" name="Double-Voigt Analytical A_S(L) = exp(−2Lβ_C,S* − πL²(β_G,S*)²)" stroke="#10b981" fill="#10b981" fillOpacity={0.16} strokeWidth={2.4} />
+                            <Line type="monotone" dataKey="aTangent" name="Initial Slope Tangent (Intercept = ⟨D_A⟩)" stroke="#38bdf8" strokeWidth={1.8} strokeDasharray="5 3" dot={false} />
                           </ComposedChart>
                         </ResponsiveContainer>
                       </div>
@@ -2200,7 +2405,68 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   </div>
                 )}
 
-                {/* Tab 5: Interactive Voigt Physics Sandbox */}
+                {/* Tab 5: Simultaneous 3-Kernel & 3-Weighting Comparative Matrix */}
+                {activePlotTab === 'kernelMatrix' && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-slate-400">
+                      <span>Simultaneous Double-Voigt Inversion Kernel &amp; Regression Weighting Benchmark</span>
+                      <span className="text-emerald-400 font-bold">CLICK ANY CONFIGURATION TO APPLY</span>
+                    </div>
+                    <div className="overflow-x-auto rounded-lg border border-slate-800 bg-[#070A12]">
+                      <table className="w-full text-left font-mono text-xs tabular-nums">
+                        <thead className="bg-[#0B0F19] text-slate-400 border-b border-slate-800 text-[10px] uppercase">
+                          <tr>
+                            <th className="py-2.5 px-3">Kernel &amp; Solver Configuration</th>
+                            <th className="py-2.5 px-2.5 text-indigo-400">⟨D_V⟩ (nm)</th>
+                            <th className="py-2.5 px-2.5 text-emerald-400">⟨D_A⟩ (nm)</th>
+                            <th className="py-2.5 px-2.5 text-amber-400">k Ratio</th>
+                            <th className="py-2.5 px-2.5 text-cyan-400">e_C (%)</th>
+                            <th className="py-2.5 px-2.5 text-purple-400">e_G (%)</th>
+                            <th className="py-2.5 px-2.5 text-white">RMS ⟨ε⟩ (%)</th>
+                            <th className="py-2.5 px-2.5">Cauchy R²</th>
+                            <th className="py-2.5 px-2.5">Gauss R²</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/80">
+                          {kernelComparisonMatrix.map((row, i) => {
+                            const isCurrent = deconvKernel === row.kernel && regressionWeighting === row.weighting;
+                            return (
+                              <tr
+                                key={`${row.kernel}-${row.weighting}-${i}`}
+                                onClick={() => {
+                                  setDeconvKernel(row.kernel);
+                                  setRegressionWeighting(row.weighting);
+                                }}
+                                className={`cursor-pointer transition-colors ${
+                                  isCurrent ? 'bg-indigo-500/15' : 'hover:bg-slate-800/40'
+                                }`}
+                              >
+                                <td className="py-2.5 px-3 font-bold text-white flex items-center gap-2">
+                                  <span>{row.label}</span>
+                                  {isCurrent && (
+                                    <span className="px-1.5 py-0.5 rounded bg-indigo-500/25 border border-indigo-500/50 text-[9px] text-indigo-200 uppercase">
+                                      Active
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-2.5 font-bold text-indigo-300">{row.dvNm.toFixed(2)}</td>
+                                <td className="py-2.5 px-2.5 font-bold text-emerald-300">{row.daNm.toFixed(2)}</td>
+                                <td className="py-2.5 px-2.5 text-amber-300">{row.kParam.toFixed(3)}</td>
+                                <td className="py-2.5 px-2.5 text-cyan-300">{row.ecPct.toFixed(4)}</td>
+                                <td className="py-2.5 px-2.5 text-purple-300">{row.egPct.toFixed(4)}</td>
+                                <td className="py-2.5 px-2.5 font-bold text-white">{row.rmsPct.toFixed(4)}</td>
+                                <td className="py-2.5 px-2.5 text-slate-300">{(row.cauchyR2 * 100).toFixed(1)}%</td>
+                                <td className="py-2.5 px-2.5 text-slate-300">{(row.gaussR2 * 100).toFixed(1)}%</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 6: Interactive Voigt Physics Sandbox */}
                 {activePlotTab === 'concept' && (
                   <div className="space-y-4">
                     <div className="p-3.5 bg-slate-50 dark:bg-[#111827] rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">

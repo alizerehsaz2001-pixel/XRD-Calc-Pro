@@ -394,20 +394,20 @@ ${rowsLatex}
   );
 
   return (
-    <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] border border-amber-500/25 rounded-3xl p-6 lg:p-8 shadow-2xl relative overflow-hidden group/size-card transition-all">
-      {/* Ambient background glows */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 blur-3xl pointer-events-none rounded-full" />
-      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-indigo-500/10 blur-3xl pointer-events-none rounded-full" />
+    <div className="bg-[#0B0F19] border border-slate-800 rounded-md shadow-2xl relative overflow-hidden group/size-card transition-all">
+      {/* Top 2px Signal Accent Bar */}
+      <div className="h-0.5 w-full bg-gradient-to-r from-amber-500 via-cyan-500 to-emerald-500" />
+      <div className="p-5 lg:p-6">
 
       {/* --- Card Header --- */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 relative z-10 pb-5 border-b border-slate-800/80">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 bg-gradient-to-br from-amber-500/30 to-amber-600/10 rounded-2xl border border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
-            <Zap className="h-6 w-6 text-amber-400" />
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5 relative z-10 pb-4 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-amber-500/10 rounded border border-amber-500/30">
+            <Zap className="h-5 w-5 text-amber-400" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h3 className="text-xl font-black text-white tracking-tight">Mean Crystallite Sizing</h3>
+              <h3 className="text-base font-bold text-white uppercase tracking-wider font-mono">Mean Crystallite Sizing & Moment Synthesis</h3>
               <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
                 <span>·</span>
                 <span className="text-amber-400 font-bold">
@@ -598,8 +598,8 @@ ${rowsLatex}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch relative z-10">
         
         {/* Left Col: Hero Size Display with Confidence Intervals, Distribution Quantile Ruler & Unit Conversions */}
-        <div className="lg:col-span-5 flex flex-col justify-between bg-black/60 p-6 rounded-2xl border border-amber-500/25 shadow-inner relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="lg:col-span-5 flex flex-col justify-between bg-[#070A12] p-5 rounded border border-slate-800 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-500" />
 
           <div>
             <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
@@ -1248,6 +1248,7 @@ ${rowsLatex}
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 };

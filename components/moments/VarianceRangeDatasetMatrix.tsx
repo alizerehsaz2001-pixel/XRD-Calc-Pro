@@ -338,36 +338,36 @@ export const VarianceRangeDatasetMatrix: React.FC<VarianceRangeDatasetMatrixProp
   const activePointsCount = matrixRows.filter(r => !r.excluded).length;
 
   return (
-    <div className={`bg-[#080E1A]/95 rounded-2xl border border-white/10 shadow-2xl overflow-hidden text-slate-200 font-sans ${className}`}>
+    <div className={`bg-[#0B0F19] rounded-md border border-slate-800 overflow-hidden text-slate-200 font-sans ${className}`}>
       {/* Header Bar */}
-      <div className="p-4 sm:p-5 border-b border-white/10 bg-gradient-to-r from-purple-950/30 via-slate-900/50 to-indigo-950/30 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300 shadow-inner">
-            <Database className="w-5 h-5" />
+      <div className="px-4 py-3 border-b border-slate-800 bg-[#070A12] flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+            <Database className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Variance-Range Dataset Matrix
+              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                Variance–Range Dataset Matrix
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
                 W(σ) vs σ
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono">
-              Progressive peak truncation limits σ = Δ(2θ)/2 & 2nd central moments
+              Progressive peak truncation limits σ = Δ(2θ)/2 &amp; 2nd/4th central moments
             </p>
           </div>
         </div>
 
         {/* View Mode Switcher & Quick Actions */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-white/10 text-xs font-mono">
+          <div className="flex items-center gap-1 bg-[#0B0F19] p-1 rounded border border-slate-800 text-xs font-mono">
             <button
               type="button"
               onClick={() => { setViewMode('table'); playSynthTone('tick'); }}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'table' ? 'bg-purple-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors cursor-pointer ${
+                viewMode === 'table' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
               <Table className="w-3.5 h-3.5" />
@@ -376,8 +376,8 @@ export const VarianceRangeDatasetMatrix: React.FC<VarianceRangeDatasetMatrixProp
             <button
               type="button"
               onClick={() => { setViewMode('text'); playSynthTone('tick'); }}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'text' ? 'bg-purple-600 text-white font-bold shadow-md' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded flex items-center gap-1.5 transition-colors cursor-pointer ${
+                viewMode === 'text' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold' : 'text-slate-400 hover:text-white'
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -388,7 +388,7 @@ export const VarianceRangeDatasetMatrix: React.FC<VarianceRangeDatasetMatrixProp
           <button
             type="button"
             onClick={() => setShowSynthesizer(!showSynthesizer)}
-            className="px-3 py-1.5 bg-indigo-950/60 hover:bg-indigo-900/80 border border-indigo-500/40 text-indigo-300 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Synthesize ideal variance-range parabola data from target size and strain"
           >
             <Wand2 className="w-3.5 h-3.5" />
@@ -398,50 +398,50 @@ export const VarianceRangeDatasetMatrix: React.FC<VarianceRangeDatasetMatrixProp
       </div>
 
       {/* Live Regression & Monotonicity Diagnostics HUD */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 p-3 bg-black/40 border-b border-white/5 font-mono text-xs">
-        <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
-          <span className="text-[9px] text-slate-500 uppercase block">Active Data Points</span>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 p-3 bg-[#070A12]/80 border-b border-slate-800 font-mono text-xs tabular-nums">
+        <div className="bg-[#0B0F19] p-2 rounded border border-slate-800">
+          <span className="text-[9px] text-slate-500 uppercase block">Active Range Cuts</span>
           <div className="flex items-center gap-1.5 font-bold text-white">
-            <span className="text-purple-400">{activePointsCount}</span>
+            <span className="text-indigo-400">{activePointsCount}</span>
             <span className="text-slate-600">/</span>
             <span>{matrixRows.length} cuts</span>
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
+        <div className="bg-[#0B0F19] p-2 rounded border border-slate-800">
           <span className="text-[9px] text-slate-500 uppercase block">Wilson Fit R²</span>
           <div className="font-bold text-emerald-400">
-            {result ? result.rSquared.toFixed(4) : '—'}
+            {result ? result.rSquared.toFixed(5) : '—'}
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
-          <span className="text-[9px] text-slate-500 uppercase block">Apparent Size D_V</span>
-          <div className="font-bold text-sky-300">
+        <div className="bg-[#0B0F19] p-2 rounded border border-slate-800">
+          <span className="text-[9px] text-slate-500 uppercase block">Volume Size D_V</span>
+          <div className="font-bold text-cyan-300">
             {result && result.sizeNm > 0 ? `${result.sizeNm.toFixed(2)} nm` : '—'}
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
+        <div className="bg-[#0B0F19] p-2 rounded border border-slate-800">
           <span className="text-[9px] text-slate-500 uppercase block">RMS Microstrain</span>
           <div className="font-bold text-amber-300">
             {result ? `${(result.rmsStrain * 100).toFixed(3)}%` : '—'}
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
-          <span className="text-[9px] text-slate-500 uppercase block">Variance Slope K₁</span>
+        <div className="bg-[#0B0F19] p-2 rounded border border-slate-800">
+          <span className="text-[9px] text-slate-500 uppercase block">Linear Slope K₁</span>
           <div className="font-bold text-indigo-300">
             {result ? result.slopeK1.toExponential(3) : '—'}
           </div>
         </div>
 
-        <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
+        <div className="bg-[#0B0F19] p-2 rounded border border-slate-800">
           <span className="text-[9px] text-slate-500 uppercase block">Monotonicity</span>
           <div>
             {monotonicityCheck.isMonotonic ? (
               <span className="text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                <Check className="w-3 h-3" /> Valid W(σ)
+                <Check className="w-3 h-3" /> Monotonic W(σ)
               </span>
             ) : (
               <span className="text-rose-400 font-bold flex items-center gap-1 text-[11px]" title={`${monotonicityCheck.violations} non-monotonic drops detected`}>

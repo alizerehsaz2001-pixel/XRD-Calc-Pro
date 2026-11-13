@@ -66,6 +66,7 @@ export type ModuleId =
   | 'metric_tensor'
   | 'supercell_transform'
   | 'pawley_lebail'
+  | 'rietveld'
   | 'rir'
   | 'neutron'
   | 'magnetic'
@@ -150,6 +151,7 @@ const VALID_MODULE_IDS = new Set<string>([
   'metric_tensor',
   'supercell_transform',
   'pawley_lebail',
+  'rietveld',
   'rir',
   'neutron',
   'magnetic',
@@ -631,7 +633,28 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'استخراج تجربی شدت‌های منفرد برای حل ساختارهای مجهول بلوری و بررسی برازش کل پروفایل بدون مدل اتمی.'
           : 'Whole-powder-pattern decomposition extracting individual |F(hkl)|² reflection intensities and profile agreement factors (R_wp, χ²) without atomic coordinates.',
-        suggestedNext: ['rir', 'cohen', 'compare']
+        suggestedNext: ['rietveld', 'rir', 'cohen', 'compare']
+      },
+      {
+        id: 'rietveld',
+        label: t('Rietveld Structure Refinement', 'Rietveld Structure Refinement'),
+        categoryId: 'refinement',
+        category: t('Structure & Refinement', 'Structure & Refinement'),
+        categoryIcon: <Atom className="w-4 h-4 text-violet-500" />,
+        subtitle: t('Full-pattern crystal structure refinement: CIF Wyckoff coordinates, Caglioti U,V,W, March-Dollase & QPA', 'Full-pattern crystal structure refinement: CIF Wyckoff coordinates, Caglioti U,V,W, March-Dollase & QPA'),
+        formula: 'y_calc(2θ) = y_bg + Σ_p S_p Σ_K m_K·Lp_K·|F_K|²·P_K·Ω(2θ − 2θ_K)',
+        tags: ['Rietveld', 'Structure Refinement', 'CIF', 'Wyckoff', 'Caglioti', 'Rwp', 'Quantitative Phase Analysis'],
+        icon: <Atom className={`${defaultIconClass} text-sky-400`} />,
+        inputs: ['Experimental Pattern (.xy/.dat) & IRF', 'CIF Crystal Structure (Lattice, Space Group, Wyckoff x,y,z, B_iso, SOF)', 'Caglioti (U,V,W) & March-Dollase Texture r'],
+        outputs: ['Refined Unit Cell & Atomic Coordinates ± σ', 'Hill-Howard Quantitative Phase Weight Fractions (wt%)', 'Agreement Indices R_wp, R_p, R_exp, χ², R_B & Difference Plot'],
+        subModels: ['7-Step Guided Rietveld Refinement Pipeline', 'Cromer-Mann Structure Factor |F_hkl|² & CIF Importer', 'Levenberg-Marquardt Sequential Turn-On Solver'],
+        recommendedRange: '2θ: 10° – 120° Full Powder Pattern',
+        complexity: 'Expert',
+        isPopular: true,
+        descriptionDetail: isRTL
+          ? 'پالایش کامل ساختار بلوری به روش ریتولد شامل مدل‌سازی پس‌زمینه چبیشف، وارد کردن فایل CIF، پالایش ابعاد شبکه، تابع پروفایل کالیوتی و مختصات اتمی وایکوف.'
+          : 'Complete 7-stage Rietveld refinement workstation covering Chebyshev background modeling, CIF phase import, zero-shift/displacement, lattice refinement, TCH Caglioti microstructure, atomic Wyckoff coordinates/B_iso/SOF, and R-factor diagnostics.',
+        suggestedNext: ['pawley_lebail', 'rir', 'cohen']
       },
       {
         id: 'rir',

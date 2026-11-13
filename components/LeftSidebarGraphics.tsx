@@ -150,6 +150,13 @@ export const MODULE_SCIENTIFIC_META: Record<string, ModuleScientificMeta> = {
     accentHex: '#f59e0b',
     categoryCode: 'REF-04'
   },
+  rietveld: {
+    symbol: '|F_K|²',
+    formula: 'y_c = y_bg + ∑ S_p·Lp·|F_K|²·Ω(2θ)',
+    shortTag: 'Rietveld · CIF',
+    accentHex: '#38bdf8',
+    categoryCode: 'REF-06'
+  },
   rir: {
     symbol: 'I/I_c',
     formula: 'W_α = (I_α / RIR_α) / ∑(I_k / RIR_k)',
@@ -487,6 +494,7 @@ export const renderScientificModuleIcon = (id: string, active: boolean): React.R
       );
 
     case 'pawley_lebail':
+    case 'rietveld':
       // Diffractogram peak with Bragg reflection tick marks & residual line below
       return (
         <svg {...baseProps}>

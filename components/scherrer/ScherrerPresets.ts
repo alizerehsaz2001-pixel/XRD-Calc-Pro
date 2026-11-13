@@ -21,7 +21,7 @@ export const SCHERRER_PRESETS: ScherrerPreset[] = [
     density: 2.33,
     materialLabel: 'Silicon (Si)',
     desc: 'NIST Standard Reference Material 640d with high crystallinity calibration peaks.',
-    icon: '💎',
+    icon: 'Si',
     burgersVectorNm: 0.384
   },
   { 
@@ -33,7 +33,7 @@ export const SCHERRER_PRESETS: ScherrerPreset[] = [
     density: 5.61,
     materialLabel: 'Zinc Oxide (ZnO)',
     desc: 'Hexagonal wurtzite nanorods with anisotropic c-axis elongation: D(002) is markedly larger than D(100).',
-    icon: '⚪',
+    icon: 'ZnO',
     burgersVectorNm: 0.325
   },
   { 
@@ -45,7 +45,7 @@ export const SCHERRER_PRESETS: ScherrerPreset[] = [
     density: 3.89,
     materialLabel: 'TiO₂ Anatase',
     desc: 'Photocatalytic titania nanopowder showing pronounced facet-dependent broadening across (101) and (004).',
-    icon: '✨',
+    icon: 'TiO₂',
     burgersVectorNm: 0.378
   },
   { 
@@ -57,7 +57,7 @@ export const SCHERRER_PRESETS: ScherrerPreset[] = [
     density: 19.30,
     materialLabel: 'Gold (Au)',
     desc: 'Colloidal gold nanocrystals with characteristic FCC (111) dominant facets and {200} twin boundary broadening.',
-    icon: '🟡',
+    icon: 'Au',
     burgersVectorNm: 0.288
   },
   { 
@@ -69,7 +69,7 @@ export const SCHERRER_PRESETS: ScherrerPreset[] = [
     density: 7.22,
     materialLabel: 'Ceria (CeO₂)',
     desc: 'Fluorite-structured catalytic nanoparticles with high specific surface area and defect concentrations.',
-    icon: '🧪',
+    icon: 'CeO₂',
     burgersVectorNm: 0.383
   },
   { 
@@ -81,7 +81,7 @@ export const SCHERRER_PRESETS: ScherrerPreset[] = [
     density: 5.17,
     materialLabel: 'Magnetite (Fe₃O₄)',
     desc: 'Superparamagnetic iron oxide nanoparticles (SPIONs) displaying isotropic cubic domain confinement.',
-    icon: '🧲',
+    icon: 'Fe₃O₄',
     burgersVectorNm: 0.592
   }
 ];

@@ -2,13 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { playSynthTone } from '../utils/sound';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseMomentInput, calculateMethodOfMoments, integrateRawPeakMoments, RawPeakMomentsResult } from '../utils/physics';
-import { MethodOfMomentsResult, MomentDataPoint } from '../types';
+import { MethodOfMomentsResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   LineChart,
-  BarChart,
-  Bar,
   Line,
   XAxis,
   YAxis,
@@ -18,47 +16,28 @@ import {
   Scatter,
   Legend,
   ReferenceLine,
-  Area,
-  AreaChart
+  Area
 } from 'recharts';
 import {
   Info,
-  AlertTriangle,
   TrendingUp,
   Ruler,
   Atom,
   Download,
-  Trash2,
   Database,
   FlaskConical,
   Activity,
-  Layers,
   CheckCircle,
   Copy,
   Sparkles,
-  RotateCcw,
-  BarChart2,
   Sliders,
-  Award,
   Zap,
-  HelpCircle,
-  Maximize2,
-  BarChart3,
-  Cpu,
-  Calculator,
   Check,
-  FileText,
-  Upload,
   ArrowRight,
-  TrendingDown,
   Gauge,
-  Sigma,
   Crosshair,
-  Maximize,
-  Grid,
-  Loader2
+  Grid
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { AIAnalysis } from './AIAnalysis';
@@ -66,6 +45,7 @@ import { PythonCodeExporter } from './PythonCodeExporter';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 import { VarianceRangeDatasetMatrix } from './moments/VarianceRangeDatasetMatrix';
+import { MomentsCadSchematic } from './moments/MomentsCadSchematic';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -79,42 +59,54 @@ const XRAY_WAVELENGTHS = [
 
 const MOMENT_PRESETS = [
   {
+    formula: 'CeO₂',
     name: 'CeO2 Nanocrystals (Pure Size)',
+    tag: 'SRM 674b • K₂ ≈ 0',
     wavelength: 1.54056,
     twoTheta0: 28.55,
     data: "0.20, 0.00182, 0.000009\n0.30, 0.00285, 0.000022\n0.40, 0.00392, 0.000041\n0.50, 0.00498, 0.000067\n0.60, 0.00605, 0.000099\n0.70, 0.00714, 0.000139\n0.80, 0.00822, 0.000185\n0.90, 0.00931, 0.000238\n1.00, 0.01041, 0.000299",
     desc: 'Uniform fluorite CeO2 nanopowder exhibiting pure linear variance progression with zero microstrain curvature.'
   },
   {
+    formula: 'Ni',
     name: 'Nanocrystalline Ni (Size + Strain)',
+    tag: 'SPD FCC • High K₂',
     wavelength: 1.54056,
     twoTheta0: 44.51,
     data: "0.20, 0.00210, 0.000012\n0.35, 0.00395, 0.000038\n0.50, 0.00612, 0.000088\n0.65, 0.00862, 0.000168\n0.80, 0.01145, 0.000288\n0.95, 0.01460, 0.000455\n1.10, 0.01810, 0.000680\n1.25, 0.02192, 0.000970",
     desc: 'Severe plastic deformation nickel sample displaying noticeable quadratic curvature from lattice microstrain.'
   },
   {
+    formula: 'TiO₂',
     name: 'Ultrafine Anatase TiO2 (Nanopowder)',
+    tag: '14 nm • High K₁',
     wavelength: 1.54056,
     twoTheta0: 25.28,
     data: "0.25, 0.00295, 0.000021\n0.40, 0.00485, 0.000055\n0.55, 0.00682, 0.000108\n0.70, 0.00886, 0.000182\n0.85, 0.01096, 0.000280\n1.00, 0.01314, 0.000405\n1.15, 0.01538, 0.000558",
     desc: 'High surface-area anatase nanocrystals evaluated by progressive integration ranges up to 1.15 degrees.'
   },
   {
+    formula: 'Cu–Al',
     name: 'Cold-Worked Cu-Al Alloy (High Strain)',
+    tag: 'Dislocation Forest',
     wavelength: 1.54056,
     twoTheta0: 43.30,
     data: "0.30, 0.00340, 0.000030\n0.50, 0.00650, 0.000100\n0.70, 0.01040, 0.000250\n0.90, 0.01510, 0.000510\n1.10, 0.02060, 0.000920\n1.30, 0.02690, 0.001530",
     desc: 'Dense dislocation networks driving dominant quadratic curvature in the variance-range plot.'
   },
   {
+    formula: 'WC–Co',
     name: 'Ball-Milled WC-Co (Cermet Hardmetal)',
+    tag: 'Milled Cermet',
     wavelength: 1.54056,
     twoTheta0: 35.64,
     data: "0.20, 0.00245, 0.000018\n0.35, 0.00460, 0.000062\n0.50, 0.00715, 0.000145\n0.65, 0.01010, 0.000275\n0.80, 0.01342, 0.000460\n0.95, 0.01710, 0.000710\n1.10, 0.02115, 0.001040",
     desc: 'Heavily milled refractory tungsten carbide exhibiting both nanoscale grain refinement and residual microstress.'
   },
   {
+    formula: '316L',
     name: 'Deformed 316L Stainless Steel (Stacking Faults)',
+    tag: 'Leptokurtic β₂ > 4',
     wavelength: 1.54056,
     twoTheta0: 50.75,
     data: "0.25, 0.00280, 0.000028\n0.45, 0.00560, 0.000095\n0.65, 0.00890, 0.000220\n0.85, 0.01275, 0.000430\n1.05, 0.01715, 0.000740\n1.25, 0.02210, 0.001160",
@@ -167,11 +159,12 @@ export const MethodOfMomentsModule: React.FC = () => {
   // Input modes: 'table' (direct variance table) or 'rawProfile' (integrate raw scan) or 'synthetic'
   const [inputMode, setInputMode] = useState<'table' | 'rawProfile' | 'synthetic'>('table');
   const [inputData, setInputData] = useState<string>(MOMENT_PRESETS[0].data);
+  const [selectedPresetName, setSelectedPresetName] = useState<string>(MOMENT_PRESETS[0].name);
   const [rawScanText, setRawScanText] = useState<string>(RAW_SCAN_SAMPLE);
   const [activeResultTab, setActiveResultTab] = useState<'variancePlot' | 'reducedPlot' | 'momentsKurtosis' | 'rawInspector' | 'tableDetails'>('variancePlot');
 
   // Interactive slider for raw window inspection
-  const [inspectSigma, setInspectSigma] = useState<number>(0.5);
+  const [inspectSigma, setInspectSigma] = useState<number>(0.65);
 
   // Synthetic peak parameters for interactive profile moment calculator
   const [synthCentroid, setSynthCentroid] = useState<number>(38.2);
@@ -190,8 +183,16 @@ export const MethodOfMomentsModule: React.FC = () => {
 
   const [rawIntegrationResult, setRawIntegrationResult] = useState<RawPeakMomentsResult | null>(null);
   const [copiedNotification, setCopiedNotification] = useState(false);
-  const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
-  const [computingStep, setComputingStep] = useState<number>(-1);
+
+  // Memoized KaTeX formula
+  const wilsonFormulaHtml = useMemo(
+    () =>
+      katex.renderToString(
+        'W(\\sigma) = W_0 + \\frac{K\\lambda \\cdot \\sigma}{\\pi^2 D_V \\cos\\theta_0} + 4 \\langle\\varepsilon^2\\rangle \\tan^2\\theta_0 \\cdot \\sigma^2',
+        { throwOnError: false, displayMode: true }
+      ),
+    []
+  );
 
   // Calculate raw integration when in raw profile mode
   useEffect(() => {
@@ -202,9 +203,9 @@ export const MethodOfMomentsModule: React.FC = () => {
         setTwoTheta0(parseFloat(res.twoThetaCentroid.toFixed(2)));
       }
     }
-  }, [rawScanText, inputMode]);
+  }, [rawScanText, inputMode, twoTheta0]);
 
-  // Recalculate Method of Moments whenever inputs change
+  // Recalculate Method of Moments instantaneously whenever inputs change
   useEffect(() => {
     const parsedMoments = parseMomentInput(inputData);
     if (parsedMoments.length >= 3) {
@@ -248,35 +249,11 @@ export const MethodOfMomentsModule: React.FC = () => {
     burgersVectorNm
   ]);
 
-  const startComputation = () => {
-    setAppState('computing');
-    setComputingStep(0);
-    playSynthTone('tick');
-    setTimeout(() => {
-      setComputingStep(1);
-      playSynthTone('tick');
-    }, 400);
-    setTimeout(() => {
-      setComputingStep(2);
-      playSynthTone('tick');
-    }, 800);
-    setTimeout(() => {
-      setComputingStep(3);
-      playSynthTone('tick');
-    }, 1200);
-    setTimeout(() => {
-      setComputingStep(4);
-      playSynthTone('chime');
-    }, 1600);
-    setTimeout(() => {
-      setAppState('results');
-    }, 2000);
-  };
-
   const handleApplyPreset = (preset: typeof MOMENT_PRESETS[0]) => {
     setWavelength(preset.wavelength);
     setTwoTheta0(preset.twoTheta0);
     setInputData(preset.data);
+    setSelectedPresetName(preset.name);
     setInputMode('table');
     playSynthTone('tick');
   };
@@ -351,7 +328,6 @@ export const MethodOfMomentsModule: React.FC = () => {
     return sigmaList.map(sig => {
       let m0 = 0;
       let m2 = 0;
-      let m3 = 0;
       let m4 = 0;
 
       for (const pt of grid) {
@@ -359,12 +335,10 @@ export const MethodOfMomentsModule: React.FC = () => {
           const dxRad = (pt.x - x0) * DEG_TO_RAD;
           m0 += pt.intensity * step;
           m2 += (dxRad * dxRad) * pt.intensity * step;
-          m3 += Math.pow(dxRad, 3) * pt.intensity * step;
           m4 += Math.pow(dxRad, 4) * pt.intensity * step;
         }
       }
 
-      // Add synthetic microstrain curvature
       const strainVarianceAddition = 4 * (strain * strain) * Math.pow(Math.tan((x0 / 2) * DEG_TO_RAD), 2) * (sig * DEG_TO_RAD) * (sig * DEG_TO_RAD);
       const wRad2 = m0 > 0 ? (m2 / m0) + strainVarianceAddition : 0;
       const mu4Rad4 = m0 > 0 ? (m4 / m0) + 3 * strainVarianceAddition * strainVarianceAddition : 0;
@@ -453,6 +427,7 @@ export const MethodOfMomentsModule: React.FC = () => {
     });
     setTwoTheta0(synthCentroid);
     setInputData(text);
+    setSelectedPresetName('Synthetic Profile');
     setInputMode('table');
     playSynthTone('chime');
   };
@@ -505,37 +480,37 @@ export const MethodOfMomentsModule: React.FC = () => {
 
   const momentsWalkthroughSteps: WizardStep[] = [
     {
-      title: 'Progressive Integration Range (σ = Δ2θ)',
+      title: 'Progressive Integration Range (σ = Δ2θ/2)',
       subtitle: 'Truncation Limits Around Peak Centroid 2θ₀',
-      explanation: 'Calculates the profile variance W(σ) = μ₂ of the diffraction line as a function of the integration truncation range σ = |2θ - 2θ₀|. Broad tails carry crucial information regarding crystallite size and lattice microstrain.',
+      explanation: 'Calculates the profile variance W(σ) = μ₂ of a single diffraction line as a function of the symmetric integration cutoff σ = |2θ - 2θ₀|. Broad Cauchy tails carry crucial information regarding crystallite size and lattice microstrain.',
       tip: 'Ensure background subtraction is clean; over-subtraction artificially dampens higher-order moments.'
     },
     {
       title: 'Wilson-Langford Variance-Range Parabola',
       subtitle: 'W(σ) = W₀ + K₁·σ + K₂·σ²',
-      explanation: 'The slope K₁ (linear term) is governed entirely by crystallite size broadening: K₁ = λ / (π² · D_V · cosθ₀). The curvature K₂ (quadratic term) is governed by microstrain: K₂ = 4 · ⟨ε²⟩ · tan²θ₀.',
+      explanation: 'The linear slope K₁ is governed entirely by crystallite size broadening: K₁ = Kλ / (π² · D_V · cosθ₀). The quadratic curvature K₂ is governed by microstrain: K₂ = 4 · ⟨ε²⟩ · tan²θ₀.',
       tip: 'In a purely size-broadened sample (e.g. CeO2 nanocrystals), K₂ ≈ 0 and the plot is a straight line!'
     },
     {
-      title: 'Reduced Variance Plot: W(σ)/σ vs. σ',
-      subtitle: 'Direct Visual Separation of Size vs. Strain',
-      explanation: 'Dividing variance by σ yields W(σ)/σ = K₁ + K₂·σ. The vertical intercept directly reveals size constant K₁, while any non-zero slope immediately reveals microstrain K₂.',
+      title: 'Langford Reduced Variance Plot: W(σ)/σ vs. σ',
+      subtitle: 'Direct Linearization of Size vs. Strain',
+      explanation: 'Dividing variance by σ yields W(σ)/σ ≈ K₁ + K₂·σ. The vertical Y-intercept directly reveals size constant K₁, while any non-zero slope immediately reveals microstrain K₂.',
       tip: 'A horizontal line in the reduced variance plot proves that the sample is strain-free.'
     },
     {
       title: 'Kurtosis & Statistical Tail Decay',
-      subtitle: 'Leptokurtic (> 3) vs. Platykurtic (< 3) Peak Tails',
-      explanation: 'Evaluates the 4th moment μ₄ to determine peak sharpness and tail decay. Lorentzian/Cauchy profiles exhibit heavy tails (leptokurtic, Kurtosis > 3), while Gaussian profiles exhibit light tails (kurtosis = 3).',
+      subtitle: 'Leptokurtic (β₂ > 3) vs. Gaussian (β₂ = 3) Peak Tails',
+      explanation: 'Evaluates the 4th central moment μ₄ to determine peak sharpness and tail decay. Lorentzian/Cauchy profiles exhibit heavy tails (leptokurtic, β₂ > 3.5), while Gaussian profiles exhibit light tails (β₂ = 3.0).',
       tip: 'High kurtosis (> 4) indicates a strong Lorentzian character typically associated with small crystallite dimensions and planar stacking faults.'
     }
   ];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
-      {/* 0. Guided Walkthrough Wizard */}
+    <div className="space-y-5 max-w-[1600px] mx-auto pb-16 px-2 sm:px-4">
+      {/* 1. Guided Walkthrough Wizard */}
       <GuidedWalkthroughWizard
-        moduleName="Method of Moments & Variance-Range Parabolic Analysis"
-        description="Master Wilson-Langford variance progression, linear size separation (K₁), quadratic microstrain curvature (K₂), and dislocation density."
+        moduleName="Method of Moments & Variance-Range Parabolic Workstation"
+        description="Single-peak Wilson–Langford variance progression W(σ) = W₀ + K₁σ + K₂σ², separating volume size D_V (linear slope K₁) from RMS microstrain ⟨ε²⟩¹/² (quadratic curvature K₂)."
         steps={momentsWalkthroughSteps}
         presetNames={MOMENT_PRESETS.map(p => p.name)}
         onLoadBenchmarkPreset={(idx) => {
@@ -544,7 +519,216 @@ export const MethodOfMomentsModule: React.FC = () => {
         }}
       />
 
-      {/* 0.5 Physical Meaning Verdict Banner */}
+      {/* 2. Executive CAD Metrology Header & Benchmark Preset Bar */}
+      <div className="bg-[#0B0F19] border border-slate-800 rounded-md overflow-hidden">
+        <div className="px-4 py-3.5 bg-[#070A12] border-b border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-300">
+                WILSON–LANGFORD MOMENTS ENGINE
+              </span>
+              <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-300">
+                SINGLE-PEAK SIZE–STRAIN DECOUPLING
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 tabular-nums">
+                2θ₀ = {twoTheta0.toFixed(2)}° • λ = {convertLength(wavelength, lengthUnit).toFixed(4)} {lengthUnit}
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+              <span>Method of Moments &amp; Variance–Range Parabola</span>
+            </h1>
+            <p className="text-xs text-slate-400 max-w-3xl">
+              Evaluates the 2nd central moment (variance <span className="font-mono text-indigo-300">W(σ)</span>) and 4th moment (kurtosis <span className="font-mono text-emerald-300">β₂ = μ₄/W²</span>) across progressive truncation limits <span className="font-mono text-cyan-300">±σ</span> around peak centroid <span className="font-mono text-white">2θ₀</span>.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyLaTeX}
+              disabled={!result}
+              className="px-3 py-1.5 bg-[#0B0F19] hover:bg-slate-800 text-slate-200 border border-slate-700 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+              title="Copy LaTeX summary"
+            >
+              {copiedNotification ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
+              <span>{copiedNotification ? 'Copied LaTeX' : 'Copy LaTeX'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadCSV}
+              disabled={!result}
+              className="px-3 py-1.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/40 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+              title="Download CSV analysis table"
+            >
+              <Download className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Benchmark Presets Strip */}
+        <div className="px-4 py-2.5 bg-[#0B0F19] border-b border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 shrink-0">
+            <FlaskConical className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Reference Variance–Range Datasets:</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 w-full">
+            {MOMENT_PRESETS.map((p) => {
+              const isSelected = selectedPresetName === p.name;
+              return (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => handleApplyPreset(p)}
+                  title={p.desc}
+                  className={`px-2.5 py-1.5 rounded border text-left transition-colors cursor-pointer flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-indigo-500/15 border-indigo-500/50 text-white'
+                      : 'bg-[#070A12] border-slate-800 hover:border-slate-700 text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-mono font-bold text-indigo-300">{p.formula}</span>
+                    <span className="text-[9px] font-mono text-slate-400 tabular-nums">{p.twoTheta0}°</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 truncate block mt-0.5">
+                    {p.tag}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 5-Card Executive Microstructural & Moment KPI Strip */}
+        {result && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-slate-800 bg-[#070A12] font-mono tabular-nums">
+            {/* Card 1: Volume Domain Size D_V & Area Size <L>_A */}
+            <div className="p-3.5 space-y-1">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1 text-cyan-400 font-bold">
+                  <Ruler className="w-3.5 h-3.5" /> 1. Volume Size D_V
+                </span>
+                <span>Slope K₁</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-white">
+                  {convertLength(result.sizeNm * 10, lengthUnit).toFixed(2)}
+                </span>
+                <span className="text-xs text-cyan-400 font-bold">{lengthUnit}</span>
+                <span className="text-[11px] text-slate-500 ml-auto">
+                  ({result.sizeNm.toFixed(1)} nm)
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <span>Area ⟨L⟩_A: <strong className="text-slate-200">{result.areaWeightedSizeNm?.toFixed(1)} nm</strong></span>
+                <span>K₁: <strong className="text-cyan-300">{result.slopeK1.toExponential(2)}</strong></span>
+              </div>
+            </div>
+
+            {/* Card 2: RMS Microstrain */}
+            <div className="p-3.5 space-y-1">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1 text-amber-400 font-bold">
+                  <TrendingUp className="w-3.5 h-3.5" /> 2. RMS Strain ⟨ε²⟩¹/²
+                </span>
+                <span>Curvature K₂</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-white">
+                  {(result.rmsStrain * 1000).toFixed(3)}
+                </span>
+                <span className="text-xs text-amber-400 font-bold">×10⁻³</span>
+                <span className="text-[11px] text-slate-400 ml-auto">
+                  ({(result.rmsStrain * 100).toFixed(3)}%)
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <span>⟨ε²⟩: <strong className="text-slate-200">{(result.rmsStrain * result.rmsStrain).toExponential(2)}</strong></span>
+                <span>K₂: <strong className="text-amber-300">{result.quadraticK2.toExponential(2)}</strong></span>
+              </div>
+            </div>
+
+            {/* Card 3: Dislocation Density */}
+            <div className="p-3.5 space-y-1">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1 text-purple-400 font-bold">
+                  <Grid className="w-3.5 h-3.5" /> 3. Dislocations ρ
+                </span>
+                <span>b = {burgersVectorNm.toFixed(2)} nm</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-white">
+                  {result.dislocationDensity ? result.dislocationDensity.toExponential(2) : '0.00e+0'}
+                </span>
+                <span className="text-xs text-purple-400 font-bold">m⁻²</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <span>In cm⁻²: <strong className="text-slate-200">{result.dislocationDensity ? (result.dislocationDensity * 1e-4).toExponential(2) : '0.0'}</strong></span>
+                <span className="text-purple-300">2√3·ε / (D_V·b)</span>
+              </div>
+            </div>
+
+            {/* Card 4: 4th Moment Kurtosis */}
+            <div className="p-3.5 space-y-1">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <Activity className="w-3.5 h-3.5" /> 4. Kurtosis β₂ = μ₄/W²
+                </span>
+                <span>Gaussian = 3.0</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-white">
+                  {result.meanKurtosis.toFixed(2)}
+                </span>
+                <span className="text-xs text-emerald-400 font-bold">
+                  (γ₂ = {(result.meanKurtosis - 3).toFixed(2)})
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <span>Tail Regime:</span>
+                <strong className={result.meanKurtosis > 3.5 ? 'text-amber-300' : 'text-emerald-300'}>
+                  {result.meanKurtosis > 3.5 ? 'LEPTOKURTIC (CAUCHY)' : 'MESOKURTIC (GAUSS)'}
+                </strong>
+              </div>
+            </div>
+
+            {/* Card 5: Regression Fit Quality */}
+            <div className="p-3.5 space-y-1">
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-slate-400">
+                <span className="flex items-center gap-1 text-indigo-400 font-bold">
+                  <CheckCircle className="w-3.5 h-3.5" /> 5. Parabola Fit R²
+                </span>
+                <span>{result.points.length} Range Cuts</span>
+              </div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-bold text-white">
+                  {result.rSquared.toFixed(5)}
+                </span>
+                <span className="text-xs text-indigo-400 font-bold ml-auto">
+                  Score {result.qualityScore || 95}/100
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                <span>Intercept W₀:</span>
+                <strong className="text-slate-200">{result.interceptW0.toExponential(2)} rad²</strong>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Interactive 3-Mode CAD Method of Moments Schematic & Pedagogical Guide */}
+      <MomentsCadSchematic
+        result={result}
+        twoTheta0={twoTheta0}
+        wavelength={wavelength}
+        shapeK={shapeK}
+        inspectSigma={inspectSigma}
+        onInspectSigmaChange={setInspectSigma}
+      />
+
+      {/* 4. Physical Meaning Verdict Banner */}
       {result && (
         <PhysicalMeaningSummary
           title="Method of Moments Physical Microstructure Verdict"
@@ -560,530 +744,444 @@ export const MethodOfMomentsModule: React.FC = () => {
         />
       )}
 
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#0B1230] to-[#060A20] p-6 md:p-10 border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.15)] group">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-indigo-500/30 transition-colors duration-700" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-purple-600/30 transition-colors duration-700" />
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          <div className="space-y-4 flex-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-medium shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-              <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-              <span>Statistical Profile Analysis • Second & Fourth Statistical Moments</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-400 tracking-tight flex flex-wrap items-center gap-3">
-              Method of Moments
-              <span className="text-xs font-mono font-normal text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/30 shadow-inner">
-                Wilson-Langford Variance Parabola
+      {/* 5. Main Unified Side-by-Side CAD Workstation */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* LEFT COLUMN (4 cols): Experimental Physics & Input Source Controls */}
+        <div className="lg:col-span-4 space-y-4">
+          {/* Card A: Experimental Geometry & Physics Parameters */}
+          <div className="bg-[#0B0F19] border border-slate-800 rounded-md overflow-hidden">
+            <div className="px-4 py-3 bg-[#070A12] border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Atom className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                  Experimental Physics &amp; Corrections
+                </h3>
+              </div>
+              <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/30">
+                Wilson Form
               </span>
-            </h1>
-            <p className="text-slate-300 text-sm md:text-base max-w-2xl leading-relaxed">
-              Separates crystallite size and microstrain by analyzing profile variance <span className="font-mono text-indigo-300">W</span> and kurtosis <span className="font-mono text-indigo-300">μ₄</span> across progressive integration limits <span className="font-mono text-indigo-300">σ</span>. The linear slope yields reciprocal domain size <span className="font-mono text-indigo-300">(1/D_V)</span>, while quadratic curvature gives mean-square strain <span className="font-mono text-indigo-300">⟨ε²⟩</span> and dislocation density.
-            </p>
-          </div>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2 relative z-20">
-            {appState === 'results' && (
-              <button
-                onClick={() => setAppState('setup')}
-                className="px-4 py-2.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/40 rounded-2xl text-xs font-bold font-mono transition-all flex items-center gap-2 shadow-lg active:scale-95"
-              >
-                <RotateCcw className="w-4 h-4 text-indigo-300" />
-                Edit Parameters
-              </button>
-            )}
-            <button
-              onClick={handleCopyLaTeX}
-              disabled={!result}
-              className="px-3.5 py-2.5 bg-black/40 hover:bg-white/10 text-slate-300 border border-white/10 rounded-2xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 disabled:opacity-40"
-              title="Copy LaTeX formula"
-            >
-              {copiedNotification ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-indigo-400" />}
-              {copiedNotification ? 'Copied!' : 'LaTeX'}
-            </button>
-            <button
-              onClick={handleDownloadCSV}
-              disabled={!result}
-              className="px-3.5 py-2.5 bg-black/40 hover:bg-white/10 text-slate-300 border border-white/10 rounded-2xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 disabled:opacity-40"
-              title="Download CSV"
-            >
-              <Download className="w-4 h-4 text-indigo-400" />
-              CSV
-            </button>
-          </div>
-        </div>
-      </div>
+            <div className="p-4 space-y-4">
+              {/* Sub-tab Navigation */}
+              <div className="grid grid-cols-3 p-1 bg-[#070A12] rounded border border-slate-800 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setExpSubTab('wavelength')}
+                  className={`py-1.5 px-2 rounded text-[11px] font-mono font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                    expSubTab === 'wavelength'
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sliders className="w-3 h-3" />
+                  <span>Radiation</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpSubTab('instrument')}
+                  className={`py-1.5 px-2 rounded text-[11px] font-mono font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                    expSubTab === 'instrument'
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Activity className="w-3 h-3" />
+                  <span>Instrument</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpSubTab('corrections')}
+                  className={`py-1.5 px-2 rounded text-[11px] font-mono font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                    expSubTab === 'corrections'
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Zap className="w-3 h-3" />
+                  <span>Defects</span>
+                </button>
+              </div>
 
-      {/* Preset Selector Row */}
-      <div className="bg-[#050C17]/90 p-4 sm:p-5 rounded-3xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] relative z-20 hover:border-indigo-500/30 transition-colors duration-500">
-        <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-300 font-bold uppercase tracking-wider">
-          <FlaskConical className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
-          <span>Curated Experimental Datasets</span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          {MOMENT_PRESETS.map((p) => (
-            <motion.button
-              key={p.name}
-              onClick={() => handleApplyPreset(p)}
-              whileHover={{ scale: 1.04, y: -1 }}
-              whileTap={{ scale: 0.96 }}
-              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-black/50 hover:bg-indigo-500/10 text-indigo-400 text-xs font-mono font-bold rounded-xl border border-white/5 hover:border-indigo-500/40 transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 group/btn cursor-pointer"
-              title={p.desc}
-            >
-              <Zap className="w-3.5 h-3.5 text-indigo-400 group-hover/btn:text-indigo-300 group-hover/btn:scale-110 transition-transform" />
-              <span>{p.name.split(' (')[0]}</span>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* 1. SETUP STATE VIEW */}
-      {appState === 'setup' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Mode Switcher Tabs */}
-          <div className="flex p-1 bg-[#050C17]/90 rounded-2xl border border-white/10 gap-2">
-            <motion.button
-              onClick={() => setInputMode('table')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                inputMode === 'table'
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-indigo-200 border border-indigo-500/50 shadow-inner'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Database className="w-4 h-4 text-indigo-400" />
-              <span>Variance-Range Table (σ, W, μ₄)</span>
-            </motion.button>
-            <motion.button
-              onClick={() => setInputMode('rawProfile')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                inputMode === 'rawProfile'
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-indigo-200 border border-indigo-500/50 shadow-inner'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Activity className="w-4 h-4 text-purple-400" />
-              <span>Raw 2θ vs Intensity Profile Integrator</span>
-            </motion.button>
-            <motion.button
-              onClick={() => setInputMode('synthetic')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 py-3 px-4 rounded-xl text-xs font-mono font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                inputMode === 'synthetic'
-                  ? 'bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-indigo-200 border border-indigo-500/50 shadow-inner'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Sliders className="w-4 h-4 text-emerald-400" />
-              <span>Synthetic Peak & Moment Simulator</span>
-            </motion.button>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Column: Experimental Geometry & Physics Parameters */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5 hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
-                <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
-                  <div className="flex items-center gap-2">
-                    <Atom className="w-4 h-4 text-indigo-400" />
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Experimental Physics</h3>
-                  </div>
-                  <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20 shadow-inner">
-                    Wilson Form
-                  </span>
-                </div>
-
-                {/* Sub-tab Navigation */}
-                <div className="flex p-1 bg-black/50 rounded-xl border border-white/10 gap-1 relative z-10">
-                  <button
-                    onClick={() => setExpSubTab('wavelength')}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
-                      expSubTab === 'wavelength'
-                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Sliders className="w-3 h-3" />
-                    Radiation
-                  </button>
-                  <button
-                    onClick={() => setExpSubTab('instrument')}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
-                      expSubTab === 'instrument'
-                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Activity className="w-3 h-3" />
-                    Instrument
-                  </button>
-                  <button
-                    onClick={() => setExpSubTab('corrections')}
-                    className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
-                      expSubTab === 'corrections'
-                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <Zap className="w-3 h-3" />
-                    Microstructure
-                  </button>
-                </div>
-
-                {/* Sub-tab 1: Radiation */}
-                {expSubTab === 'wavelength' && (
-                  <div className="space-y-4 relative z-10">
-                    <div className="group/input">
-                      <label className="block text-xs font-semibold text-slate-300 mb-2 group-hover/input:text-indigo-300 transition-colors">
-                        Radiation Wavelength (λ) [{lengthUnit}]
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={convertLength(wavelength, lengthUnit)}
-                          onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
-                          className="w-full px-3 py-2 bg-black/40 text-indigo-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors cursor-pointer appearance-none shadow-inner"
-                        >
-                          {XRAY_WAVELENGTHS.map((w) => (
-                            <option key={w.label} value={convertLength(w.value, lengthUnit)}>
-                              {w.label} ({convertLength(w.value, lengthUnit).toFixed(4)} {lengthUnit})
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          step="0.00001"
-                          value={convertLength(wavelength, lengthUnit)}
-                          onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value) || 1.54056, lengthUnit))}
-                          className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors shadow-inner"
-                          placeholder={`Custom ${lengthUnit}`}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="group/input">
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-xs font-semibold text-slate-300 group-hover/input:text-indigo-300 transition-colors">
-                          Peak Centroid (2θ₀) [degrees]
-                        </label>
-                        <span className="text-xs font-mono text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                          θ₀ = {(twoTheta0 / 2).toFixed(2)}°
-                        </span>
-                      </div>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={twoTheta0}
-                        onChange={(e) => setTwoTheta0(parseFloat(e.target.value) || 28.55)}
-                        className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors shadow-inner"
-                        placeholder="2θ₀ in degrees"
-                      />
-                    </div>
-
-                    <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-2 shadow-inner">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-300 font-medium">Shape Habit Multiplier (K):</span>
-                        <span className="text-indigo-300 font-mono font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                          K = {shapeK.toFixed(2)}
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.80"
-                        max="1.20"
-                        step="0.01"
-                        value={shapeK}
-                        onChange={(e) => setShapeK(parseFloat(e.target.value))}
-                        className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                      />
-                      <div className="flex justify-between text-[9px] text-slate-400 font-mono">
-                        <span>0.89 (Spherical)</span>
-                        <span>1.00 (Standard)</span>
-                        <span>1.07 (Octahedral)</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Sub-tab 2: Instrumental */}
-                {expSubTab === 'instrument' && (
-                  <div className="space-y-4 relative z-10">
+              {/* Sub-tab 1: Radiation & Peak Centroid */}
+              {expSubTab === 'wavelength' && (
+                <div className="space-y-3.5">
+                  <div>
+                    <label className="block text-[11px] font-mono font-semibold text-slate-300 mb-1.5">
+                      X-Ray Wavelength (λ) [{lengthUnit}]
+                    </label>
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setInstrumentalMode('constant')}
-                        className={`py-2 px-3 rounded-xl text-xs font-mono font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                          instrumentalMode === 'constant'
-                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 shadow-inner'
-                            : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20'
-                        }`}
+                      <select
+                        value={convertLength(wavelength, lengthUnit)}
+                        onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
+                        className="w-full px-2.5 py-1.5 bg-[#070A12] text-indigo-300 border border-slate-700 rounded text-xs font-mono outline-none focus:border-indigo-500 cursor-pointer"
                       >
-                        Constant FWHM
-                      </button>
-                      <button
-                        onClick={() => setInstrumentalMode('caglioti')}
-                        className={`py-2 px-3 rounded-xl text-xs font-mono font-bold border transition-all flex items-center justify-center gap-1.5 ${
-                          instrumentalMode === 'caglioti'
-                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 shadow-inner'
-                            : 'bg-black/40 text-slate-400 border-white/5 hover:border-white/20'
-                        }`}
-                      >
-                        Caglioti Polynomial
-                      </button>
+                        {XRAY_WAVELENGTHS.map((w) => (
+                          <option key={w.label} value={convertLength(w.value, lengthUnit)}>
+                            {w.label} ({convertLength(w.value, lengthUnit).toFixed(4)})
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={convertLength(wavelength, lengthUnit)}
+                        onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value) || 1.54056, lengthUnit))}
+                        className="w-full px-2.5 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs font-mono tabular-nums outline-none focus:border-indigo-500"
+                      />
                     </div>
-
-                    {instrumentalMode === 'constant' ? (
-                      <div className="group/input">
-                        <label className="block text-xs font-semibold text-slate-300 mb-2">
-                          Instrumental Standard FWHM [degrees 2θ]
-                        </label>
-                        <input
-                          type="number"
-                          step="0.005"
-                          value={instFwhm}
-                          onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0.05)}
-                          className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-2">
-                          <div>
-                            <span className="block text-[10px] text-slate-400 font-mono mb-1">U (tan²θ)</span>
-                            <input
-                              type="number"
-                              step="0.001"
-                              value={cagliotiU}
-                              onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                            />
-                          </div>
-                          <div>
-                            <span className="block text-[10px] text-slate-400 font-mono mb-1">V (tanθ)</span>
-                            <input
-                              type="number"
-                              step="0.001"
-                              value={cagliotiV}
-                              onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                            />
-                          </div>
-                          <div>
-                            <span className="block text-[10px] text-slate-400 font-mono mb-1">W (const)</span>
-                            <input
-                              type="number"
-                              step="0.001"
-                              value={cagliotiW}
-                              onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                )}
 
-                {/* Sub-tab 3: Corrections & Microstructure parameters */}
-                {expSubTab === 'corrections' && (
-                  <div className="space-y-4 relative z-10">
-                    <div className="group/input">
-                      <label className="block text-xs font-semibold text-slate-300 mb-1">
-                        Burgers Vector Magnitude (b) [nm]
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="text-[11px] font-mono font-semibold text-slate-300">
+                        Peak Centroid (2θ₀) [deg]
+                      </label>
+                      <span className="text-[11px] font-mono text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/30 tabular-nums">
+                        θ₀ = {(twoTheta0 / 2).toFixed(2)}°
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={twoTheta0}
+                      onChange={(e) => setTwoTheta0(parseFloat(e.target.value) || 28.55)}
+                      className="w-full px-2.5 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs font-mono tabular-nums outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-[#070A12] rounded border border-slate-800 space-y-2">
+                    <div className="flex justify-between items-center text-xs font-mono">
+                      <span className="text-slate-300">Shape Habit Factor (K):</span>
+                      <span className="text-indigo-300 font-bold tabular-nums">K = {shapeK.toFixed(2)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.80"
+                      max="1.20"
+                      step="0.01"
+                      value={shapeK}
+                      onChange={(e) => setShapeK(parseFloat(e.target.value))}
+                      className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-slate-800 rounded"
+                    />
+                    <div className="flex justify-between text-[9px] text-slate-500 font-mono">
+                      <span>0.89 (Sphere)</span>
+                      <span>1.00 (Cubic/Wilson)</span>
+                      <span>1.07 (Octahedral)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-tab 2: Instrumental Variance Subtraction */}
+              {expSubTab === 'instrument' && (
+                <div className="space-y-3.5">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setInstrumentalMode('constant')}
+                      className={`py-1.5 px-2.5 rounded text-xs font-mono font-bold border transition-colors cursor-pointer ${
+                        instrumentalMode === 'constant'
+                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                          : 'bg-[#070A12] text-slate-400 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      Constant FWHM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInstrumentalMode('caglioti')}
+                      className={`py-1.5 px-2.5 rounded text-xs font-mono font-bold border transition-colors cursor-pointer ${
+                        instrumentalMode === 'caglioti'
+                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                          : 'bg-[#070A12] text-slate-400 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      Caglioti (U,V,W)
+                    </button>
+                  </div>
+
+                  {instrumentalMode === 'constant' ? (
+                    <div>
+                      <label className="block text-[11px] font-mono font-semibold text-slate-300 mb-1.5">
+                        Instrumental Standard FWHM [deg 2θ]
                       </label>
                       <input
                         type="number"
-                        step="0.01"
-                        value={burgersVectorNm}
-                        onChange={(e) => setBurgersVectorNm(parseFloat(e.target.value) || 0.25)}
-                        className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                        placeholder="0.25 nm (for Dislocation Density ρ)"
+                        step="0.005"
+                        value={instFwhm}
+                        onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0.05)}
+                        className="w-full px-2.5 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs font-mono tabular-nums outline-none focus:border-indigo-500"
                       />
-                      <span className="text-[10px] text-slate-500 block mt-1">Used to calculate Dislocation Density ρ = 2√3 ⟨ε²⟩½ / (D_V · b)</span>
+                      <span className="text-[10px] font-mono text-slate-500 block mt-1">
+                        Subtracts additive Gaussian variance W_inst = β_inst² / (8 ln 2)
+                      </span>
                     </div>
-
-                    <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-3 shadow-inner">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-xs font-semibold text-white block">Lorentz-Polarization (L-P) Factor</span>
-                          <span className="text-[10px] text-slate-400">Angular scattering geometry correction</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setApplyLPFactor(!applyLPFactor)}
-                          className={`w-11 h-6 rounded-full transition-colors relative ${applyLPFactor ? 'bg-indigo-500' : 'bg-white/10'}`}
-                        >
-                          <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${applyLPFactor ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between shadow-inner">
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2 font-mono">
                       <div>
-                        <span className="text-xs font-semibold text-white block">Kα₂ Doublet Splitting Correction</span>
-                        <span className="text-[10px] text-slate-400">Rachinger doublet stripping</span>
+                        <span className="block text-[10px] text-slate-400 mb-1">U (tan²θ)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiU}
+                          onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs tabular-nums outline-none focus:border-indigo-500"
+                        />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setKAlpha2Correction(!kAlpha2Correction)}
-                        className={`w-11 h-6 rounded-full transition-colors relative ${kAlpha2Correction ? 'bg-indigo-500' : 'bg-white/10'}`}
-                      >
-                        <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${kAlpha2Correction ? 'translate-x-5' : 'translate-x-0'}`} />
-                      </button>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 mb-1">V (tanθ)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiV}
+                          onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs tabular-nums outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 mb-1">W (const)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiW}
+                          onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs tabular-nums outline-none focus:border-indigo-500"
+                        />
+                      </div>
                     </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-mono font-semibold text-slate-300 mb-1">
+                      Goniometer Zero-Shift Δ(2θ₀) [deg]
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={zeroShiftDeg}
+                      onChange={(e) => setZeroShiftDeg(parseFloat(e.target.value) || 0)}
+                      className="w-full px-2.5 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs font-mono tabular-nums outline-none focus:border-indigo-500"
+                    />
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* Sub-tab 3: Microstructure & Physical Corrections */}
+              {expSubTab === 'corrections' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-mono font-semibold text-slate-300 mb-1">
+                      Burgers Vector Magnitude (b) [nm]
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={burgersVectorNm}
+                      onChange={(e) => setBurgersVectorNm(parseFloat(e.target.value) || 0.25)}
+                      className="w-full px-2.5 py-1.5 bg-[#070A12] text-white border border-slate-700 rounded text-xs font-mono tabular-nums outline-none focus:border-indigo-500"
+                    />
+                    <span className="text-[10px] font-mono text-slate-500 block mt-1">
+                      Governs Dislocation Density ρ = 2√3 ⟨ε²⟩¹/² / (D_V · b)
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 bg-[#070A12] rounded border border-slate-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-mono font-semibold text-white block">Lorentz–Polarization (L–P)</span>
+                      <span className="text-[10px] text-slate-400">Angular scattering intensity correction</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setApplyLPFactor(!applyLPFactor)}
+                      className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${applyLPFactor ? 'bg-indigo-500' : 'bg-slate-700'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${applyLPFactor ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+
+                  {applyLPFactor && (
+                    <div>
+                      <label className="block text-[10px] font-mono text-slate-400 mb-1">
+                        Monochromator 2θ_M [deg] (Graphite = 26.4°)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={monochromatorAngle}
+                        onChange={(e) => setMonochromatorAngle(parseFloat(e.target.value) || 26.4)}
+                        className="w-full px-2.5 py-1 bg-[#070A12] text-white border border-slate-700 rounded text-xs font-mono tabular-nums"
+                      />
+                    </div>
+                  )}
+
+                  <div className="p-2.5 bg-[#070A12] rounded border border-slate-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-mono font-semibold text-white block">Kα₂ Doublet Stripping</span>
+                      <span className="text-[10px] text-slate-400">Rachinger variance subtraction</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setKAlpha2Correction(!kAlpha2Correction)}
+                      className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${kAlpha2Correction ? 'bg-indigo-500' : 'bg-slate-700'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${kAlpha2Correction ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Governing Wilson Equation Box */}
+              <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                  <span className="uppercase font-bold text-indigo-300 flex items-center gap-1">
+                    <Info className="w-3 h-3" /> Governing Parabola Law
+                  </span>
+                  <span>Additive Moments</span>
+                </div>
+                <div
+                  className="py-2 px-2 bg-[#070A12] border border-slate-800 rounded text-white text-xs overflow-x-auto text-center"
+                  dangerouslySetInnerHTML={{ __html: wilsonFormulaHtml }}
+                />
               </div>
             </div>
+          </div>
 
-            {/* Right Column: Input Interface according to active inputMode */}
-            <div className="lg:col-span-7 space-y-6">
+          {/* Card B: Input Mode Switcher & Raw/Synthetic Generators */}
+          <div className="bg-[#0B0F19] border border-slate-800 rounded-md overflow-hidden">
+            <div className="px-4 py-3 bg-[#070A12] border-b border-slate-800 flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                Moment Data Source Mode
+              </span>
+              <span className="text-[10px] font-mono text-slate-400">Live Sync</span>
+            </div>
+
+            <div className="p-3 space-y-3">
+              <div className="grid grid-cols-3 gap-1 bg-[#070A12] p-1 rounded border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setInputMode('table')}
+                  className={`py-1.5 px-2 rounded text-[11px] font-mono font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                    inputMode === 'table'
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Database className="w-3 h-3" />
+                  <span>Matrix</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode('rawProfile')}
+                  className={`py-1.5 px-2 rounded text-[11px] font-mono font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                    inputMode === 'rawProfile'
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Activity className="w-3 h-3" />
+                  <span>Raw Scan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode('synthetic')}
+                  className={`py-1.5 px-2 rounded text-[11px] font-mono font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer ${
+                    inputMode === 'synthetic'
+                      ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sliders className="w-3 h-3" />
+                  <span>Simulator</span>
+                </button>
+              </div>
+
               {inputMode === 'table' && (
-                <VarianceRangeDatasetMatrix
-                  inputData={inputData}
-                  onInputDataChange={setInputData}
-                  result={result}
-                  twoTheta0={twoTheta0}
-                  wavelength={wavelength}
-                  shapeK={shapeK}
-                  onTriggerCalculate={result && result.points.length >= 3 ? startComputation : undefined}
-                />
+                <div className="p-3 bg-[#070A12] border border-slate-800 rounded space-y-2 text-xs font-mono">
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span>Active Dataset:</span>
+                    <span className="text-indigo-300 font-bold truncate max-w-[180px]">{selectedPresetName}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+                    Edit individual range cutoffs <span className="font-mono text-white">σ</span> and variances <span className="font-mono text-white">W(σ)</span> directly in the <strong>Spreadsheet Matrix</strong> below, or switch to <strong>Raw Scan</strong> / <strong>Simulator</strong> to integrate moments from an intensity profile.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveResultTab('tableDetails')}
+                    className="w-full py-1.5 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 rounded text-xs font-mono font-bold transition-colors cursor-pointer"
+                  >
+                    Open Full Spreadsheet Matrix Tab
+                  </button>
+                </div>
               )}
 
               {inputMode === 'rawProfile' && (
-                <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-purple-500/30 transition-all duration-500 relative overflow-hidden group">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-purple-400" />
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Raw Peak Profile Scan & Integrator</h3>
-                    </div>
-                    {rawIntegrationResult && (
-                      <motion.button
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 font-mono block mb-1">
+                      Paste Raw 2θ [deg] vs Intensity [counts] Scan:
+                    </label>
+                    <textarea
+                      rows={6}
+                      value={rawScanText}
+                      onChange={(e) => setRawScanText(e.target.value)}
+                      className="w-full p-2.5 bg-[#070A12] text-indigo-300 font-mono text-xs border border-slate-700 rounded outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {rawIntegrationResult && (
+                    <div className="bg-[#070A12] p-3 rounded border border-slate-800 space-y-2 text-xs font-mono tabular-nums">
+                      <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
+                        Numerical Peak Integration Summary
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">1st Moment Centroid 2θ₀:</span>
+                        <span className="text-white font-bold">{rawIntegrationResult.twoThetaCentroid.toFixed(3)}°</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Observed FWHM / β_I:</span>
+                        <span className="text-cyan-300 font-bold">
+                          {rawIntegrationResult.fwhm.toFixed(3)}° / {rawIntegrationResult.integralBreadthDeg.toFixed(3)}°
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Lorentzian Fraction η:</span>
+                        <span className="text-amber-300 font-bold">{(rawIntegrationResult.lorentzianFractionEta * 100).toFixed(1)}%</span>
+                      </div>
+                      <button
+                        type="button"
                         onClick={handleTransferRawMoments}
-                        whileHover={{ scale: 1.03, y: -1 }}
-                        whileTap={{ scale: 0.97 }}
-                        className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs font-mono font-bold shadow-md shadow-indigo-500/20 transition-all flex items-center gap-1.5 cursor-pointer relative overflow-hidden group/btn"
+                        className="w-full mt-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-mono font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                       >
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
-                          initial={{ x: '-100%' }}
-                          animate={{ x: '200%' }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                        />
-                        <span className="relative z-10">Transfer {rawIntegrationResult.momentPoints.length} Moments to Analysis</span>
-                        <ArrowRight className="w-3.5 h-3.5 relative z-10 group-hover/btn:translate-x-1 transition-transform" />
-                      </motion.button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] text-slate-400 font-mono block mb-1">Paste Raw 2θ vs Intensity Scan:</label>
-                      <textarea
-                        rows={7}
-                        value={rawScanText}
-                        onChange={(e) => setRawScanText(e.target.value)}
-                        className="w-full p-3 bg-black/60 text-purple-300 font-mono text-xs border border-white/10 rounded-xl outline-none focus:border-purple-500/50 custom-scrollbar shadow-inner"
-                      />
+                        <span>Load {rawIntegrationResult.momentPoints.length} Integrated Moments</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-
-                    {rawIntegrationResult ? (
-                      <div className="space-y-3">
-                        <div className="bg-black/40 p-3 rounded-xl border border-white/5 space-y-1.5 text-xs font-mono">
-                          <div className="text-[10px] text-purple-400 font-bold uppercase tracking-wider mb-1">Profile Characterization:</div>
-                          <div className="flex justify-between"><span>Auto Centroid 2θ₀:</span> <span className="text-white font-bold">{rawIntegrationResult.twoThetaCentroid.toFixed(3)}°</span></div>
-                          <div className="flex justify-between"><span>Observed FWHM:</span> <span className="text-indigo-300 font-bold">{rawIntegrationResult.fwhm.toFixed(3)}°</span></div>
-                          <div className="flex justify-between"><span>Integral Breadth β_I:</span> <span className="text-purple-300 font-bold">{rawIntegrationResult.integralBreadthDeg.toFixed(3)}°</span></div>
-                          <div className="flex justify-between"><span>Shape Factor 2FWHM/β_I:</span> <span className="text-emerald-300 font-bold">{rawIntegrationResult.shapeFactorPhi.toFixed(3)}</span></div>
-                          <div className="flex justify-between"><span>Lorentzian Fraction η:</span> <span className="text-amber-300 font-bold">{(rawIntegrationResult.lorentzianFractionEta * 100).toFixed(1)}%</span></div>
-                        </div>
-
-                        {/* Visual Profile Preview */}
-                        <div className="h-28 w-full bg-black/50 p-2 rounded-xl border border-white/5">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={rawIntegrationResult.integratedProfile} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.05)" />
-                              <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 9 }} />
-                              <YAxis stroke="#64748b" tick={{ fontSize: 9 }} />
-                              <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(168,85,247,0.3)', borderRadius: '8px', fontSize: '10px' }} />
-                              <ReferenceLine x={rawIntegrationResult.twoThetaCentroid} stroke="#f59e0b" strokeDasharray="3 3" />
-                              <Line type="monotone" name="Raw Counts" dataKey="rawIntensity" stroke="#a855f7" strokeWidth={1.5} dot={false} />
-                              <Line type="monotone" name="Background" dataKey="background" stroke="#64748b" strokeDasharray="2 2" strokeWidth={1} dot={false} />
-                              <Line type="monotone" name="Net Peak" dataKey="netIntensity" stroke="#38bdf8" strokeWidth={1.5} dot={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-black/30 rounded-xl border border-white/5 flex flex-col items-center justify-center p-6 text-center text-slate-500 text-xs">
-                        <Activity className="w-8 h-8 text-slate-600 mb-2 animate-pulse" />
-                        <span>Enter 2θ and Intensity columns to calculate peak centroid and progressive truncation moments.</span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               )}
 
               {inputMode === 'synthetic' && (
-                <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-emerald-500/30 transition-all duration-500">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                    <div className="flex items-center gap-2">
-                      <Sliders className="w-4 h-4 text-emerald-400" />
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Synthetic Profile & Moment Simulator</h3>
-                    </div>
-                    <motion.button
-                      onClick={handleLoadSyntheticToInput}
-                      whileHover={{ scale: 1.03, y: -1 }}
-                      whileTap={{ scale: 0.97 }}
-                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-mono font-bold shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5 cursor-pointer relative overflow-hidden group/btn"
-                    >
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
-                        initial={{ x: '-100%' }}
-                        animate={{ x: '200%' }}
-                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                      />
-                      <Sparkles className="w-3.5 h-3.5 relative z-10 group-hover/btn:rotate-12 transition-transform" />
-                      <span className="relative z-10">Use in Method of Moments</span>
-                    </motion.button>
+                <div className="space-y-3 font-mono text-xs">
+                  <div className="h-28 w-full bg-[#070A12] p-2 rounded border border-slate-800">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={syntheticProfileCurve} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="2 2" stroke="#1e293b" />
+                        <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 9 }} />
+                        <YAxis stroke="#64748b" tick={{ fontSize: 9 }} domain={[0, 'auto']} />
+                        <ReferenceLine x={synthCentroid} stroke="#f59e0b" strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="profile" stroke="#10b981" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="gaussian" stroke="#38bdf8" strokeDasharray="3 3" strokeWidth={1} dot={false} />
+                        <Line type="monotone" dataKey="lorentzian" stroke="#c084fc" strokeDasharray="3 3" strokeWidth={1} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
 
-                  {/* Real-Time Live Synthetic Peak Profile Preview */}
-                  <div className="bg-black/50 p-3 rounded-2xl border border-white/5">
-                    <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
-                      <span className="text-emerald-300 font-bold flex items-center gap-1.5">
-                        <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                        Simulated Pseudo-Voigt Diffraction Peak
-                      </span>
-                      <div className="flex items-center gap-3 text-[10px]">
-                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Total</span>
-                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-400" /> Gaussian Core</span>
-                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-400" /> Lorentzian Tails</span>
-                      </div>
-                    </div>
-                    <div className="h-32 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={syntheticProfileCurve} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="2 2" stroke="rgba(255,255,255,0.05)" />
-                          <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 9 }} />
-                          <YAxis stroke="#64748b" tick={{ fontSize: 9 }} domain={[0, 'auto']} />
-                          <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(16,185,129,0.3)', borderRadius: '8px', fontSize: '10px' }} />
-                          <ReferenceLine x={synthCentroid} stroke="#f59e0b" strokeDasharray="3 3" />
-                          <Line type="monotone" name="Synthetic Profile" dataKey="profile" stroke="#10b981" strokeWidth={2} dot={false} />
-                          <Line type="monotone" name="Gaussian Part" dataKey="gaussian" stroke="#38bdf8" strokeDasharray="3 3" strokeWidth={1} dot={false} />
-                          <Line type="monotone" name="Lorentzian Part" dataKey="lorentzian" stroke="#c084fc" strokeDasharray="3 3" strokeWidth={1} dot={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2 tabular-nums">
                     <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-300">Centroid 2θ₀:</span>
-                        <span className="text-indigo-400 font-mono font-bold">{synthCentroid.toFixed(2)}°</span>
+                      <div className="flex justify-between text-[11px] mb-0.5">
+                        <span className="text-slate-400">Centroid 2θ₀:</span>
+                        <span className="text-indigo-300 font-bold">{synthCentroid.toFixed(2)}°</span>
                       </div>
                       <input
                         type="range"
@@ -1092,13 +1190,13 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.1"
                         value={synthCentroid}
                         onChange={(e) => setSynthCentroid(parseFloat(e.target.value))}
-                        className="w-full accent-indigo-400 cursor-pointer"
+                        className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-slate-800 rounded"
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-300">FWHM (Size Broadening):</span>
-                        <span className="text-purple-400 font-mono font-bold">{synthFwhm.toFixed(2)}°</span>
+                      <div className="flex justify-between text-[11px] mb-0.5">
+                        <span className="text-slate-400">Peak FWHM (Size):</span>
+                        <span className="text-cyan-300 font-bold">{synthFwhm.toFixed(2)}°</span>
                       </div>
                       <input
                         type="range"
@@ -1107,13 +1205,13 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.01"
                         value={synthFwhm}
                         onChange={(e) => setSynthFwhm(parseFloat(e.target.value))}
-                        className="w-full accent-purple-400 cursor-pointer"
+                        className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded"
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-300">Voigt Mixing η:</span>
-                        <span className="text-emerald-400 font-mono font-bold">{synthMixingEta.toFixed(2)} ({synthMixingEta > 0.6 ? 'Lorentzian' : 'Gaussian'})</span>
+                      <div className="flex justify-between text-[11px] mb-0.5">
+                        <span className="text-slate-400">Lorentzian Mixing η:</span>
+                        <span className="text-emerald-300 font-bold">{synthMixingEta.toFixed(2)}</span>
                       </div>
                       <input
                         type="range"
@@ -1122,13 +1220,13 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.05"
                         value={synthMixingEta}
                         onChange={(e) => setSynthMixingEta(parseFloat(e.target.value))}
-                        className="w-full accent-emerald-400 cursor-pointer"
+                        className="w-full accent-emerald-400 cursor-pointer h-1.5 bg-slate-800 rounded"
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-300">Lattice Microstrain:</span>
-                        <span className="text-amber-400 font-mono font-bold">{(synthMicrostrain * 100).toFixed(3)}%</span>
+                      <div className="flex justify-between text-[11px] mb-0.5">
+                        <span className="text-slate-400">Synthetic Microstrain:</span>
+                        <span className="text-amber-300 font-bold">{(synthMicrostrain * 100).toFixed(3)}%</span>
                       </div>
                       <input
                         type="range"
@@ -1137,393 +1235,133 @@ export const MethodOfMomentsModule: React.FC = () => {
                         step="0.0005"
                         value={synthMicrostrain}
                         onChange={(e) => setSynthMicrostrain(parseFloat(e.target.value))}
-                        className="w-full accent-amber-400 cursor-pointer"
+                        className="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-800 rounded"
                       />
                     </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={handleLoadSyntheticToInput}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-mono font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Apply Synthetic Moments to Workstation</span>
+                  </button>
                 </div>
               )}
-
-              {/* Methodology Guide */}
-              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/20 shadow-[0_8px_30px_rgba(99,102,241,0.05)] space-y-3 hover:border-indigo-500/40 transition-colors duration-500 relative overflow-hidden group">
-                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
-                <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2 relative z-10">
-                  <Info className="w-4 h-4" />
-                  Wilson-Langford Variance-Range Formula
-                </h4>
-                <div 
-                  className="text-white text-xs sm:text-sm py-3 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto text-center shadow-inner relative z-10"
-                  dangerouslySetInnerHTML={{
-                    __html: katex.renderToString(
-                      'W(\\sigma) = W_0 + \\frac{\\lambda \\sigma}{\\pi^2 D_V \\cos\\theta_0} + 4 \\langle\\epsilon^2\\rangle \\tan^2\\theta_0 \\cdot \\sigma^2',
-                      { throwOnError: false, displayMode: true }
-                    )
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Banner */}
-          <div className="p-6 bg-[#050C17]/95 rounded-3xl border border-indigo-500/30 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-inner">
-                <Sparkles className="w-6 h-6 animate-pulse" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Ready for Method of Moments Regression
-                </h4>
-                <p className="text-xs text-slate-400 font-mono">
-                  {result?.points?.length || 0} Range Points Configured | Peak Centroid 2θ₀ = {twoTheta0}° | λ = {wavelength} Å
-                </p>
-              </div>
-            </div>
-
-            <motion.button
-              onClick={startComputation}
-              disabled={!result || result.points.length < 3}
-              whileHover={result && result.points.length >= 3 ? { scale: 1.02, y: -2 } : {}}
-              whileTap={result && result.points.length >= 3 ? { scale: 0.98 } : {}}
-              className={`w-full sm:w-auto px-8 py-4 font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 relative overflow-hidden group text-sm ${
-                result && result.points.length >= 3
-                  ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:via-purple-500 hover:to-indigo-500 text-white shadow-[0_10px_25px_rgba(99,102,241,0.3)] hover:shadow-[0_15px_35px_rgba(168,85,247,0.45)] cursor-pointer'
-                  : 'bg-[#070D18] text-slate-600 cursor-not-allowed border border-white/5 shadow-inner'
-              }`}
-            >
-              {result && result.points.length >= 3 && (
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/25 to-white/0"
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '200%' }}
-                  transition={{ repeat: Infinity, duration: 2.2, ease: "linear" }}
-                />
-              )}
-              <Calculator className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-              <span className="relative z-10 text-shadow-sm">Execute Wilson-Langford Moments Analysis</span>
-            </motion.button>
-          </div>
-        </div>
-      )}
-
-      {/* 2. COMPUTING STATE VIEW */}
-      {appState === 'computing' && (
-        <div className="bg-[#050C17]/95 rounded-3xl p-12 border border-indigo-500/30 shadow-2xl flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-300 min-h-[440px] relative overflow-hidden">
-          {/* Ambient Glows */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500/10 rounded-full blur-[70px] pointer-events-none" />
-          
-          <div className="relative w-32 h-32 flex items-center justify-center">
-            {/* Outer Pulsing Ring */}
-            <div className="absolute inset-0 border-2 border-indigo-500/20 rounded-full animate-ping opacity-30" />
-            {/* Base Ring */}
-            <div className="absolute inset-2 border-4 border-indigo-950/80 rounded-full" />
-            {/* Spinning Indicator */}
-            <div className="absolute inset-2 border-4 border-indigo-500 rounded-full border-t-transparent border-r-indigo-400 animate-spin" />
-            {/* Secondary Counter-rotating Ring */}
-            <div className="absolute inset-5 border-2 border-purple-500/50 rounded-full border-b-transparent border-l-purple-300 animate-[spin_3s_linear_infinite_reverse]" />
-            <Sparkles className="w-10 h-10 text-indigo-300 animate-pulse relative z-10 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)]" />
-          </div>
-
-          <div className="text-center space-y-1">
-            <h3 className="text-base font-bold text-white uppercase tracking-wider">
-              Deconvolving Wilson-Langford Moments
-            </h3>
-            <p className="text-xs font-mono text-slate-400">
-              Polynomial least-squares regression & asymptotic tail analysis...
-            </p>
-          </div>
-
-          {/* Dynamic Progress Bar */}
-          <div className="w-full max-w-lg space-y-1.5">
-            <div className="flex justify-between text-[11px] font-mono">
-              <span className="text-slate-400">Computation Progress:</span>
-              <span className="text-indigo-400 font-bold">{Math.min(100, Math.round(((computingStep + 1) / 4) * 100))}%</span>
-            </div>
-            <div className="w-full h-2 bg-black/60 rounded-full border border-white/10 overflow-hidden relative">
-              <motion.div
-                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-sky-400 rounded-full"
-                initial={{ width: '0%' }}
-                animate={{ width: `${Math.min(100, Math.round(((computingStep + 1) / 4) * 100))}%` }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-              />
-            </div>
-          </div>
-          
-          <div className="space-y-3 w-full max-w-lg">
-            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 0 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 0 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>1</span>
-                Subtracting instrumental resolution & Caglioti broadening...
-              </span>
-              {computingStep > 0 ? (
-                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
-              ) : (
-                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-              )}
-            </div>
-            
-            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 1 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 1 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>2</span>
-                Performing Wilson Variance-Range regression W(σ) = W₀ + K₁σ + K₂σ²...
-              </span>
-              {computingStep > 1 ? (
-                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
-              ) : computingStep === 1 ? (
-                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-              ) : null}
-            </div>
-            
-            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 2 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 2 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>3</span>
-                Deconvolving volume size D_V, area size ⟨L⟩_A & RMS microstrain ⟨ε²⟩½...
-              </span>
-              {computingStep > 2 ? (
-                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
-              ) : computingStep === 2 ? (
-                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-              ) : null}
-            </div>
-            
-            <div className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-300 ${computingStep >= 3 ? 'bg-indigo-950/50 border-indigo-500/50 text-indigo-200 shadow-md shadow-indigo-500/10' : 'bg-black/40 border-white/5 text-slate-500'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${computingStep > 3 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'}`}>4</span>
-                Evaluating Dislocation Density ρ & statistical moment kurtosis...
-              </span>
-              {computingStep > 3 ? (
-                <Check className="w-4 h-4 text-emerald-400 animate-in zoom-in" />
-              ) : computingStep === 3 ? (
-                <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
-              ) : null}
             </div>
           </div>
         </div>
-      )}
 
-      {/* 3. RESULTS STATE VIEW */}
-      {appState === 'results' && result && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <ScientificMathControl
-              title="Wilson-Langford Variance-Range Analysis"
-              formula="W(\\sigma) = W_0 + \\frac{\\lambda \\sigma}{\\pi^2 D_V \\cos\\theta_0} + 4 \\langle\\epsilon^2\\rangle \\tan^2\\theta_0 \\cdot \\sigma^2"
-              description="Separates crystallite domain size and microstrain by evaluating profile variance across progressive integration cutoffs σ. Linear slope gives domain size, quadratic curvature gives microstrain distortion."
-              variables={[
-                { symbol: 'D_V', name: 'Volume-Weighted Size', value: convertLength(result.sizeNm * 10, lengthUnit), unit: lengthUnit },
-                { symbol: '⟨L⟩_A', name: 'Area-Weighted Size', value: convertLength((result.areaWeightedSizeNm || 0) * 10, lengthUnit), unit: lengthUnit },
-                { symbol: '⟨ε²⟩', name: 'Mean-Square Strain', value: (result.rmsStrain * result.rmsStrain) * 10000, unit: 'x10⁻⁴' },
-                { symbol: 'K_1', name: 'Linear Slope (Size)', value: result.slopeK1, unit: 'rad' },
-                { symbol: 'K_2', name: 'Curvature (Strain)', value: result.quadraticK2, unit: '' }
-              ]}
-              result={convertLength(result.sizeNm * 10, lengthUnit)}
-              resultUnit={lengthUnit}
-              resultName="D_V (Volume Size)"
-            />
-          </motion.div>
-
-          {/* Primary Microstructural Metric Cards */}
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-          >
-            {/* 1. Volume-Weighted Crystallite Size D_V */}
-            <motion.div 
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-500"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <Ruler className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Volume Size (D_V)</span>
-                </div>
-                <Award className="w-4 h-4 text-indigo-400/50" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-                  {result.sizeNm.toFixed(2)}
-                </span>
-                <span className="text-indigo-300 text-sm font-mono font-semibold">nm</span>
-              </div>
-              <div className="mt-4 pt-3 border-t border-indigo-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                <div className="flex justify-between"><span>Length in Å:</span> <span className="text-slate-200 font-bold">{(result.sizeNm * 10).toFixed(1)} Å</span></div>
-                <div className="flex justify-between"><span>Area Size ⟨L⟩_A:</span> <span className="text-indigo-300 font-bold">{result.areaWeightedSizeNm?.toFixed(2)} nm</span></div>
-                <div className="flex justify-between"><span>Linear Slope K₁:</span> <span className="text-slate-300 font-bold">{result.slopeK1.toExponential(3)} rad</span></div>
-              </div>
-            </motion.div>
-
-            {/* 2. RMS Microstrain */}
-            <motion.div 
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="bg-[#050C17]/90 p-5 rounded-3xl border border-purple-500/30 shadow-[0_8px_30px_rgba(168,85,247,0.1)] relative overflow-hidden group hover:border-purple-400/60 transition-colors duration-500"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-colors" />
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-purple-400">
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">RMS Microstrain</span>
-                </div>
-                <Activity className="w-4 h-4 text-purple-400/50" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-purple-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
-                  {(result.rmsStrain * 100).toFixed(3)}
-                </span>
-                <span className="text-purple-300 text-sm font-mono font-semibold">%</span>
-              </div>
-              <div className="mt-4 pt-3 border-purple-500/20 space-y-1 text-[11px] font-mono text-slate-400 border-t">
-                <div className="flex justify-between"><span>⟨ε²⟩:</span> <span className="text-slate-200 font-bold">{(result.rmsStrain * result.rmsStrain).toExponential(3)}</span></div>
-                <div className="flex justify-between"><span>Curvature K₂:</span> <span className="text-purple-300 font-bold">{result.quadraticK2.toExponential(3)}</span></div>
-                <div className="flex justify-between"><span>Intercept W₀:</span> <span className="text-slate-300 font-bold">{result.interceptW0.toExponential(3)} rad²</span></div>
-              </div>
-            </motion.div>
-
-            {/* 3. Dislocation Density */}
-            <motion.div 
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="bg-[#050C17]/90 p-5 rounded-3xl border border-amber-500/30 shadow-[0_8px_30px_rgba(245,158,11,0.1)] relative overflow-hidden group hover:border-amber-400/60 transition-colors duration-500"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-amber-500/20 transition-colors" />
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-amber-400">
-                  <Grid className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Dislocation Density</span>
-                </div>
-                <Zap className="w-4 h-4 text-amber-400/50" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                <span className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-amber-300 font-mono tracking-tight">
-                  {result.dislocationDensity ? result.dislocationDensity.toExponential(2) : '0.0'}
-                </span>
-                <span className="text-amber-300 text-xs font-mono font-semibold">m⁻²</span>
-              </div>
-              <div className="mt-4 pt-3 border-amber-500/20 space-y-1 text-[11px] font-mono text-slate-400 border-t">
-                <div className="flex justify-between"><span>In cm⁻²:</span> <span className="text-slate-200 font-bold">{result.dislocationDensity ? (result.dislocationDensity * 1e-4).toExponential(2) : '0.0'} cm⁻²</span></div>
-                <div className="flex justify-between"><span>Burgers vector b:</span> <span className="text-amber-300 font-bold">{result.burgersVectorNm || 0.25} nm</span></div>
-                <div className="flex justify-between"><span>Kurtosis β₂:</span> <span className="text-slate-300 font-bold">{result.meanKurtosis.toFixed(2)}</span></div>
-              </div>
-            </motion.div>
-
-            {/* 4. Fit Quality & Regression Score */}
-            <motion.div 
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
-              className="bg-[#050C17]/90 p-5 rounded-3xl border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.1)] relative overflow-hidden group hover:border-emerald-400/60 transition-colors duration-500"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors" />
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 text-emerald-400">
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Quality Score (R²)</span>
-                </div>
-                <Gauge className="w-4 h-4 text-emerald-400/50" />
-              </div>
-              <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-emerald-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                  {result.qualityScore || 95}
-                </span>
-                <span className="text-emerald-300 text-sm font-mono font-semibold">/100</span>
-              </div>
-              <div className="mt-4 pt-3 border-emerald-500/20 space-y-1 text-[11px] font-mono text-slate-400 border-t">
-                <div className="flex justify-between"><span>Fit R²:</span> <span className="text-slate-200 font-bold">{result.rSquared.toFixed(5)}</span></div>
-                <div className="flex justify-between"><span>Points:</span> <span className="text-emerald-300 font-bold">{result.points.length} ranges</span></div>
-                <div className="flex justify-between"><span>Profile Shape:</span> <span className="text-slate-300 font-bold">{result.meanKurtosis > 3.5 ? 'Leptokurtic' : 'Gaussian'}</span></div>
-              </div>
-            </motion.div>
-          </motion.div>
-
+        {/* RIGHT COLUMN (8 cols): Interactive Plots, Window Inspector & Spreadsheet Matrix */}
+        <div className="lg:col-span-8 space-y-4">
           {/* Interactive Visualizer Navigation Tabs */}
-          <div className="bg-[#050C17]/90 p-2 rounded-2xl border border-white/10 flex flex-wrap gap-2">
-            <motion.button
+          <div className="bg-[#0B0F19] p-1.5 rounded-md border border-slate-800 flex flex-wrap gap-1.5">
+            <button
+              type="button"
               onClick={() => setActiveResultTab('variancePlot')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeResultTab === 'variancePlot' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeResultTab === 'variancePlot'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Variance-Range Parabola W(σ)</span>
-            </motion.button>
-            <motion.button
+              <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
+              <span>01. Variance Parabola W(σ)</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveResultTab('reducedPlot')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeResultTab === 'reducedPlot' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeResultTab === 'reducedPlot'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Reduced Plot W/σ vs σ</span>
-            </motion.button>
-            <motion.button
+              <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+              <span>02. Langford Linear Plot (W/σ)</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveResultTab('momentsKurtosis')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeResultTab === 'momentsKurtosis' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeResultTab === 'momentsKurtosis'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Activity className="w-3.5 h-3.5" />
-              <span>Moments & Kurtosis Hierarchy</span>
-            </motion.button>
-            <motion.button
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <span>03. 4th Moment Kurtosis β₂</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveResultTab('rawInspector')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeResultTab === 'rawInspector' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeResultTab === 'rawInspector'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Crosshair className="w-3.5 h-3.5" />
-              <span>Integration Range Window Inspector</span>
-            </motion.button>
-            <motion.button
+              <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+              <span>04. Window Inspector (±σ)</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveResultTab('tableDetails')}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeResultTab === 'tableDetails' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activeResultTab === 'tableDetails'
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Database className="w-3.5 h-3.5" />
-              <span>Data Matrix & Residuals</span>
-            </motion.button>
+              <Database className="w-3.5 h-3.5 text-purple-400" />
+              <span>05. Dataset Matrix ({result?.points.length || 0})</span>
+            </button>
           </div>
 
           {/* Tab 1: Variance Parabola W(sigma) vs sigma */}
-          {activeResultTab === 'variancePlot' && (
-            <div className="bg-[#080E1A]/90 p-6 rounded-3xl border border-white/10 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {activeResultTab === 'variancePlot' && result && (
+            <div className="bg-[#0B0F19] p-4 rounded-md border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-indigo-400" />
-                    <span>Wilson Variance-Range Parabola: W(σ) = W₀ + K₁σ + K₂σ²</span>
+                    <span>Wilson Variance–Range Parabola: W(σ) = W₀ + K₁σ + K₂σ²</span>
                   </h4>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Linear slope yields domain size D_V = {result.sizeNm.toFixed(2)} nm | Quadratic curvature yields ⟨ε²⟩½ = {(result.rmsStrain * 100).toFixed(3)}%
+                  <p className="text-[11px] text-slate-400 font-mono tabular-nums mt-0.5">
+                    Linear Size Tangent K₁ → D_V = {result.sizeNm.toFixed(2)} nm | Quadratic Strain Curvature K₂ → ⟨ε²⟩¹/² = {(result.rmsStrain * 100).toFixed(3)}%
                   </p>
                 </div>
-                <div className="flex items-center gap-3 text-xs font-mono text-slate-400">
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" /> Observed</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" /> Quadratic Fit</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block" /> Linear Size</span>
+                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400">
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" /> Observed W</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-purple-400 inline-block" /> Total Fit</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-sky-400 inline-block" /> Linear Size</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-amber-400 inline-block" /> Strain Part</span>
                 </div>
               </div>
 
-              <div className="h-80 w-full">
+              <div className="h-80 w-full bg-[#070A12] p-2 rounded border border-slate-800">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartVarianceData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="sigmaDeg" stroke="#94a3b8" label={{ value: 'Integration Cutoff Range σ (deg 2θ)', position: 'insideBottom', offset: -10, fill: '#94a3b8' }} />
-                    <YAxis stroke="#94a3b8" label={{ value: 'Profile Variance W (deg²)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(99,102,241,0.3)', borderRadius: '12px' }} />
-                    <Legend verticalAlign="top" />
+                  <ComposedChart data={chartVarianceData} margin={{ top: 10, right: 25, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis
+                      dataKey="sigmaDeg"
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                      label={{ value: 'Integration Cutoff Range σ = |2θ − 2θ₀| (deg)', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                      label={{ value: 'Profile Variance W(σ) (deg²)', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <Tooltip contentStyle={{ backgroundColor: '#070A12', borderColor: '#334155', borderRadius: '6px', fontFamily: 'monospace', fontSize: '11px' }} />
+                    <Legend verticalAlign="top" wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
                     <Scatter name="Observed Variance W(σ)" dataKey="varianceDeg2" fill="#6366f1" />
                     <Line type="monotone" name="Quadratic Fit W(σ)" dataKey="fittedWDeg2" stroke="#a855f7" strokeWidth={2.5} dot={false} />
-                    <Line type="monotone" name="Linear Size Component" dataKey="linearComponentDeg2" stroke="#38bdf8" strokeDasharray="5 5" strokeWidth={1.5} dot={false} />
-                    <Line type="monotone" name="Quadratic Strain Component" dataKey="quadraticComponentDeg2" stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.5} dot={false} />
+                    <Line type="monotone" name="Linear Size Component (W₀ + K₁σ)" dataKey="linearComponentDeg2" stroke="#38bdf8" strokeDasharray="5 5" strokeWidth={1.8} dot={false} />
+                    <Line type="monotone" name="Quadratic Strain Component (K₂σ²)" dataKey="quadraticComponentDeg2" stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.8} dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -1531,30 +1369,39 @@ export const MethodOfMomentsModule: React.FC = () => {
           )}
 
           {/* Tab 2: Langford Reduced Variance Plot */}
-          {activeResultTab === 'reducedPlot' && (
-            <div className="bg-[#080E1A]/90 p-6 rounded-3xl border border-white/10 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {activeResultTab === 'reducedPlot' && result && (
+            <div className="bg-[#0B0F19] p-4 rounded-md border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-purple-400" />
-                    <span>Langford Reduced Variance Plot: W(σ)/σ vs σ</span>
+                  <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-cyan-400" />
+                    <span>Langford Reduced Variance Linearization: W(σ)/σ vs. σ</span>
                   </h4>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Linearized form: W/σ = K₁ + K₂·σ. Intercept gives size factor K₁, slope gives microstrain K₂.
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    Dividing by σ linearizes the parabola: Y-Intercept = K₁ (Size Slope), Line Slope = K₂ (Microstrain).
                   </p>
                 </div>
               </div>
 
-              <div className="h-80 w-full">
+              <div className="h-80 w-full bg-[#070A12] p-2 rounded border border-slate-800">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartReducedData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="sigmaDeg" stroke="#94a3b8" label={{ value: 'Range σ (deg)', position: 'insideBottom', offset: -10, fill: '#94a3b8' }} />
-                    <YAxis stroke="#94a3b8" label={{ value: 'Reduced Variance W/σ (deg)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(99,102,241,0.3)', borderRadius: '12px' }} />
-                    <Legend verticalAlign="top" />
-                    <Scatter name="Observed W/σ" dataKey="wOverSigmaObs" fill="#6366f1" />
-                    <Line type="monotone" name="Fitted W/σ" dataKey="wOverSigmaFit" stroke="#a855f7" strokeWidth={2.5} dot={false} />
+                  <ComposedChart data={chartReducedData} margin={{ top: 10, right: 25, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis
+                      dataKey="sigmaDeg"
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                      label={{ value: 'Integration Range Cutoff σ (deg)', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                      label={{ value: 'Reduced Variance W(σ)/σ (deg)', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <Tooltip contentStyle={{ backgroundColor: '#070A12', borderColor: '#334155', borderRadius: '6px', fontFamily: 'monospace', fontSize: '11px' }} />
+                    <Legend verticalAlign="top" wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                    <Scatter name="Observed W(σ)/σ" dataKey="wOverSigmaObs" fill="#22d3ee" />
+                    <Line type="monotone" name="Linearized Fit (K₁ + K₂·σ)" dataKey="wOverSigmaFit" stroke="#a855f7" strokeWidth={2.5} dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -1562,31 +1409,40 @@ export const MethodOfMomentsModule: React.FC = () => {
           )}
 
           {/* Tab 3: Moments & Kurtosis Hierarchy */}
-          {activeResultTab === 'momentsKurtosis' && (
-            <div className="bg-[#080E1A]/90 p-6 rounded-3xl border border-white/10 shadow-xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          {activeResultTab === 'momentsKurtosis' && result && (
+            <div className="bg-[#0B0F19] p-4 rounded-md border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
                     <Activity className="w-4 h-4 text-emerald-400" />
-                    <span>Kurtosis (β₂ = μ₄ / W²) & 4th Statistical Moment Evolution</span>
+                    <span>Pearson Kurtosis (β₂ = μ₄ / W²) &amp; Excess Kurtosis (γ₂ = β₂ − 3)</span>
                   </h4>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Average Kurtosis = {result.meanKurtosis.toFixed(2)} | Gaussian Benchmark = 3.0 (Leptokurtic tails indicate Cauchy/Lorentzian character)
+                  <p className="text-[11px] text-slate-400 font-mono tabular-nums mt-0.5">
+                    Mean Kurtosis β₂ = {result.meanKurtosis.toFixed(2)} | Gaussian Reference = 3.00 (Values &gt; 3.5 indicate heavy Lorentzian size/fault tails)
                   </p>
                 </div>
               </div>
 
-              <div className="h-80 w-full">
+              <div className="h-80 w-full bg-[#070A12] p-2 rounded border border-slate-800">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartKurtosisData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="sigmaDeg" stroke="#94a3b8" label={{ value: 'Integration Range σ (deg)', position: 'insideBottom', offset: -10, fill: '#94a3b8' }} />
-                    <YAxis stroke="#94a3b8" label={{ value: 'Kurtosis (μ₄ / W²)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }} />
-                    <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(99,102,241,0.3)', borderRadius: '12px' }} />
-                    <Legend verticalAlign="top" />
-                    <ReferenceLine y={3} stroke="#ef4444" strokeDasharray="4 4" label={{ value: 'Gaussian β₂ = 3', fill: '#ef4444', position: 'insideTopRight' }} />
+                  <LineChart data={chartKurtosisData} margin={{ top: 10, right: 25, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis
+                      dataKey="sigmaDeg"
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                      label={{ value: 'Integration Range σ (deg)', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <YAxis
+                      stroke="#94a3b8"
+                      tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                      label={{ value: 'Kurtosis (μ₄ / W²)', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                    />
+                    <Tooltip contentStyle={{ backgroundColor: '#070A12', borderColor: '#334155', borderRadius: '6px', fontFamily: 'monospace', fontSize: '11px' }} />
+                    <Legend verticalAlign="top" wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                    <ReferenceLine y={3} stroke="#ef4444" strokeDasharray="4 4" label={{ value: 'Gaussian Limit β₂ = 3.0', fill: '#ef4444', position: 'insideTopRight', fontSize: 10 }} />
                     <Line type="monotone" name="Kurtosis β₂" dataKey="kurtosis" stroke="#10b981" strokeWidth={2.5} dot />
-                    <Line type="monotone" name="Excess Kurtosis γ₂" dataKey="excessKurtosis" stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.5} dot />
+                    <Line type="monotone" name="Excess Kurtosis γ₂" dataKey="excessKurtosis" stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.8} dot />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -1594,118 +1450,121 @@ export const MethodOfMomentsModule: React.FC = () => {
           )}
 
           {/* Tab 4: Raw Window Inspector */}
-          {activeResultTab === 'rawInspector' && (
-            <div className="bg-[#080E1A]/90 p-6 rounded-3xl border border-white/10 shadow-xl space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {activeResultTab === 'rawInspector' && result && (
+            <div className="bg-[#0B0F19] p-4 rounded-md border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Crosshair className="w-4 h-4 text-sky-400" />
-                    <span>Dynamic Integration Window [2θ₀ - σ, 2θ₀ + σ]</span>
+                  <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Crosshair className="w-4 h-4 text-cyan-400" />
+                    <span>Dynamic Integration Window Inspector [2θ₀ − σ, 2θ₀ + σ]</span>
                   </h4>
-                  <p className="text-xs text-slate-400">
-                    Explore how expanding truncation range σ progressively incorporates the asymptotic tail decay.
+                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    Inspect how widening the symmetric cutoff σ captures asymptotic Lorentzian tails and shifts the size/strain variance ratio.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-black/40 px-4 py-2 rounded-2xl border border-white/10">
-                  <span className="text-xs font-mono text-slate-300">Active σ Window:</span>
-                  <span className="text-sm font-mono font-bold text-sky-400">±{inspectSigma.toFixed(2)}°</span>
+                <div className="flex items-center gap-2 bg-[#070A12] px-3 py-1.5 rounded border border-slate-800 font-mono tabular-nums">
+                  <span className="text-xs text-slate-400">Active Window:</span>
+                  <span className="text-xs font-bold text-cyan-300">±{inspectSigma.toFixed(2)}°</span>
                 </div>
               </div>
 
-              {/* Live Truncation Profile Chart */}
-              <div className="bg-black/50 p-4 rounded-2xl border border-white/5 space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <div className="flex items-center gap-2 text-sky-300 font-bold">
-                    <Activity className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Truncated Profile Intensity & Tail Capture</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-[10px]">
-                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-cyan-500/50 border border-cyan-400" /> Integrated Window</span>
-                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-0.5 bg-slate-500" /> Full Peak Tails</span>
-                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-0.5 bg-amber-400" /> 2θ₀ Centroid</span>
-                  </div>
-                </div>
-
-                <div className="h-60 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={inspectorProfileCurve.pts} margin={{ top: 10, right: 15, left: -10, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="windowAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.6}/>
-                          <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.05}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 10 }} label={{ value: '2θ (°)', position: 'insideBottom', offset: -4, fill: '#64748b', fontSize: 10 }} />
-                      <YAxis stroke="#64748b" tick={{ fontSize: 10 }} />
-                      <Tooltip contentStyle={{ backgroundColor: '#0B1230', borderColor: 'rgba(6,182,212,0.3)', borderRadius: '12px', fontSize: '11px' }} />
-                      <ReferenceLine x={twoTheta0} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.5} label={{ value: '2θ₀', fill: '#f59e0b', fontSize: 10, position: 'top' }} />
-                      <ReferenceLine x={parseFloat((twoTheta0 - inspectSigma).toFixed(2))} stroke="#22d3ee" strokeDasharray="2 2" />
-                      <ReferenceLine x={parseFloat((twoTheta0 + inspectSigma).toFixed(2))} stroke="#22d3ee" strokeDasharray="2 2" />
-                      <Area type="monotone" dataKey="windowIntensity" stroke="#06b6d4" strokeWidth={2} fill="url(#windowAreaGrad)" name="Window Intensity" />
-                      <Line type="monotone" dataKey="totalIntensity" stroke="#64748b" strokeDasharray="3 3" strokeWidth={1.5} dot={false} name="Full Peak Profile" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="h-64 w-full bg-[#070A12] p-2 rounded border border-slate-800">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={inspectorProfileCurve.pts} margin={{ top: 10, right: 15, left: -10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="windowAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.55} />
+                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="twoTheta" stroke="#64748b" tick={{ fontSize: 10, fontFamily: 'monospace' }} />
+                    <YAxis stroke="#64748b" tick={{ fontSize: 10, fontFamily: 'monospace' }} />
+                    <Tooltip contentStyle={{ backgroundColor: '#070A12', borderColor: '#334155', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace' }} />
+                    <ReferenceLine x={twoTheta0} stroke="#f59e0b" strokeDasharray="3 3" strokeWidth={1.5} label={{ value: '2θ₀', fill: '#f59e0b', fontSize: 10, position: 'top' }} />
+                    <ReferenceLine x={parseFloat((twoTheta0 - inspectSigma).toFixed(2))} stroke="#22d3ee" strokeDasharray="2 2" />
+                    <ReferenceLine x={parseFloat((twoTheta0 + inspectSigma).toFixed(2))} stroke="#22d3ee" strokeDasharray="2 2" />
+                    <Area type="monotone" dataKey="windowIntensity" stroke="#06b6d4" strokeWidth={2} fill="url(#windowAreaGrad)" name="Integrated Window" />
+                    <Line type="monotone" dataKey="totalIntensity" stroke="#64748b" strokeDasharray="3 3" strokeWidth={1.5} dot={false} name="Full Peak Profile" />
+                  </ComposedChart>
+                </ResponsiveContainer>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <input
                   type="range"
-                  min="0.1"
-                  max="1.5"
+                  min="0.10"
+                  max="1.50"
                   step="0.05"
                   value={inspectSigma}
                   onChange={(e) => setInspectSigma(parseFloat(e.target.value))}
-                  className="w-full accent-sky-400 cursor-pointer"
+                  className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded"
                 />
                 <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                  <span>σ = 0.10° (Peak Core)</span>
-                  <span>σ = 0.75° (Intermediate Tail)</span>
-                  <span>σ = 1.50° (Deep Background)</span>
+                  <span>σ = 0.10° (Bragg Core)</span>
+                  <span>σ = 0.75° (Intermediate Wing)</span>
+                  <span>σ = 1.50° (Asymptotic Tail)</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-black/50 rounded-2xl border border-white/5 text-xs font-mono">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 bg-[#070A12] rounded border border-slate-800 text-xs font-mono tabular-nums">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Integration Bounds:</span>
-                  <span className="text-sky-300 font-bold">{(twoTheta0 - inspectSigma).toFixed(2)}° → {(twoTheta0 + inspectSigma).toFixed(2)}°</span>
+                  <span className="text-slate-500 block text-[10px]">Angular Span:</span>
+                  <span className="text-cyan-300 font-bold">{(twoTheta0 - inspectSigma).toFixed(2)}° → {(twoTheta0 + inspectSigma).toFixed(2)}°</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Captured Area Fraction:</span>
-                  <span className="text-emerald-300 font-bold">{inspectorProfileCurve.capturedPct.toFixed(1)}% of total peak</span>
+                  <span className="text-slate-500 block text-[10px]">Captured Area M₀:</span>
+                  <span className="text-emerald-300 font-bold">{inspectorProfileCurve.capturedPct.toFixed(1)}% of total</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Estimated Variance W(σ):</span>
+                  <span className="text-slate-500 block text-[10px]">Variance W(σ):</span>
                   <span className="text-indigo-300 font-bold">
                     {(result.interceptW0 + result.slopeK1 * (inspectSigma * Math.PI / 180) + result.quadraticK2 * Math.pow(inspectSigma * Math.PI / 180, 2)).toExponential(3)} rad²
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Size vs Strain Ratio:</span>
+                  <span className="text-slate-500 block text-[10px]">Size / Strain Ratio:</span>
                   <span className="text-amber-300 font-bold">
-                    {((result.slopeK1 * (inspectSigma * Math.PI / 180)) / Math.max(1e-12, result.quadraticK2 * Math.pow(inspectSigma * Math.PI / 180, 2))).toFixed(2)} (K₁σ / K₂σ²)
+                    {((result.slopeK1 * (inspectSigma * Math.PI / 180)) / Math.max(1e-12, result.quadraticK2 * Math.pow(inspectSigma * Math.PI / 180, 2))).toFixed(2)}× (K₁σ / K₂σ²)
                   </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Tab 5: Data Matrix & Residuals */}
-          {activeResultTab === 'tableDetails' && (
-            <VarianceRangeDatasetMatrix
-              inputData={inputData}
-              onInputDataChange={setInputData}
-              result={result}
-              twoTheta0={twoTheta0}
-              wavelength={wavelength}
-              shapeK={shapeK}
-            />
-          )}
+          {/* Tab 5: Full Editable Variance-Range Dataset Matrix (also shown below when on other tabs for quick editing) */}
+          <VarianceRangeDatasetMatrix
+            inputData={inputData}
+            onInputDataChange={setInputData}
+            result={result}
+            twoTheta0={twoTheta0}
+            wavelength={wavelength}
+            shapeK={shapeK}
+          />
+        </div>
+      </div>
 
-          {/* AI Analysis & Python Code Exporter */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
+      {/* 6. Scientific Math Control & AI / Python Exporters */}
+      {result && (
+        <div className="space-y-5 pt-2">
+          <ScientificMathControl
+            title="Wilson–Langford Variance–Range Deconvolution"
+            formula="W(\\sigma) = W_0 + \\frac{K\\lambda \\cdot \\sigma}{\\pi^2 D_V \\cos\\theta_0} + 4 \\langle\\varepsilon^2\\rangle \\tan^2\\theta_0 \\cdot \\sigma^2"
+            description="Separates crystallite domain size and microstrain from a single reflection by evaluating profile variance across progressive integration cutoffs σ. Linear slope gives domain size, quadratic curvature gives microstrain distortion."
+            variables={[
+              { symbol: 'D_V', name: 'Volume-Weighted Size', value: convertLength(result.sizeNm * 10, lengthUnit), unit: lengthUnit },
+              { symbol: '⟨L⟩_A', name: 'Area-Weighted Size', value: convertLength((result.areaWeightedSizeNm || 0) * 10, lengthUnit), unit: lengthUnit },
+              { symbol: '⟨ε²⟩', name: 'Mean-Square Strain', value: (result.rmsStrain * result.rmsStrain) * 10000, unit: '×10⁻⁴' },
+              { symbol: 'K_1', name: 'Linear Slope (Size)', value: result.slopeK1, unit: 'rad' },
+              { symbol: 'K_2', name: 'Curvature (Strain)', value: result.quadraticK2, unit: '' }
+            ]}
+            result={convertLength(result.sizeNm * 10, lengthUnit)}
+            resultUnit={lengthUnit}
+            resultName="D_V (Volume Size)"
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <AIAnalysis
               methodName="Method of Moments (Wilson-Langford Variance Parabola)"
               resultData={{

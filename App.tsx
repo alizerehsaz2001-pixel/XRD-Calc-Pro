@@ -58,6 +58,7 @@ const CohenRefinementModule = safeLazy(() => import('./components/CohenRefinemen
 const CrystallographicMetricTensorModule = safeLazy(() => import('./components/CrystallographicMetricTensorModule'), 'CrystallographicMetricTensorModule');
 const SupercellTransformationModule = safeLazy(() => import('./components/SupercellTransformationModule'), 'SupercellTransformationModule');
 const PawleyLeBailDecompositionModule = safeLazy(() => import('./components/PawleyLeBailDecompositionModule'), 'PawleyLeBailDecompositionModule');
+const RietveldRefinementModule = safeLazy(() => import('./components/RietveldRefinementModule'), 'RietveldRefinementModule');
 const ReferenceIntensityRatioModule = safeLazy(() => import('./components/ReferenceIntensityRatioModule'), 'ReferenceIntensityRatioModule');
 const ImageAnalysisModule = safeLazy(() => import('./components/ImageAnalysisModule'), 'ImageAnalysisModule');
 const PythonExportModule = safeLazy(() => import('./components/PythonExportModule'), 'PythonExportModule');
@@ -127,7 +128,7 @@ import { DisplayModeSwitcher } from './components/DisplayModeSwitcher';
 import { WorkflowStageHeader } from './components/WorkflowStageHeader';
 import { HalfScreenStageNavigator } from './components/HalfScreenStageNavigator';
 
-type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
+type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rietveld' | 'rir' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
 const ModuleLoadingFallback: React.FC = () => (
   <div className="flex flex-col items-center justify-center p-12 min-h-[380px] rounded-3xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/60 dark:border-white/5 animate-pulse">
@@ -1395,6 +1396,7 @@ const App: React.FC = () => {
       { id: 'metric_tensor', label: t("Metric Tensor Algebra"), group: t('Advanced Refinement') },
       { id: 'supercell_transform', label: t("Supercell & Matrix Engine"), group: t('Advanced Refinement') },
       { id: 'pawley_lebail', label: t("Pawley & Le Bail Fitting"), group: t('Advanced Refinement') },
+      { id: 'rietveld', label: t("Rietveld Structure Refinement"), group: t('Advanced Refinement') },
       { id: 'rir', label: t("Reference Intensity Ratio (RIR)"), group: t('Advanced Refinement') },
       { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
       { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
@@ -1975,6 +1977,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 gap-1">
                       {[
+                        { id: 'rietveld' as Module, label: 'Rietveld Refinement (Full Pattern)', badge: 'R_wp · CIF' },
                         { id: 'wh' as Module, label: 'Williamson-Hall (Size + Strain)', badge: 'Strain ε' },
                         { id: 'dl' as Module, label: 'AI Phase ID (Neural Network)', badge: 'Deep Learning' },
                         { id: 'preferred_orientation' as Module, label: 'Preferred Orientation (Texture)', badge: 'TC(hkl)' },
@@ -2964,6 +2967,7 @@ const App: React.FC = () => {
                     {activeModule === 'pawley_lebail' && (
                       <PawleyLeBailDecompositionModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
                     )}
+                    {activeModule === 'rietveld' && <RietveldRefinementModule />}
                     {activeModule === 'rir' && <ReferenceIntensityRatioModule />}
                     {activeModule === 'neutron' && <NeutronModule />}
                     {activeModule === 'magnetic' && <MagneticNeutronModule />}

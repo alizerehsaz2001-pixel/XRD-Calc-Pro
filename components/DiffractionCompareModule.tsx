@@ -29,6 +29,7 @@ import { DiagnosticsAndMetricsPanel } from './diffraction_compare/DiagnosticsAnd
 import { CompareChartViewer } from './diffraction_compare/CompareChartViewer';
 import { AutoSearchMatchModal } from './diffraction_compare/AutoSearchMatchModal';
 import { GuideModal } from './diffraction_compare/GuideModal';
+import { CompareCadSchematic } from './diffraction_compare/CompareCadSchematic';
 
 interface DiffractionCompareModuleProps {
   activeResults?: BraggResult[];
@@ -487,11 +488,11 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   };
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-300 relative">
+    <div className="space-y-4 animate-in fade-in duration-300 relative">
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-slate-900/95 border border-cyan-500/50 text-slate-100 shadow-2xl backdrop-blur-md font-mono text-xs animate-in slide-in-from-top-3 duration-200">
-          <div className="p-1 rounded-full bg-cyan-500/20 text-cyan-400">
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-md bg-[#0B0F19]/98 border border-sky-500/50 text-slate-100 shadow-2xl backdrop-blur-md font-mono text-xs animate-in slide-in-from-top-3 duration-200">
+          <div className="p-1 rounded bg-sky-500/20 text-sky-400">
             <Check className="w-3.5 h-3.5" />
           </div>
           <span>{toastMessage.text}</span>
@@ -504,6 +505,83 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         </div>
       )}
 
+      {/* 0. Executive Comparative Metrology Telemetry Strip */}
+      <div className="bg-[#0B0F19] border border-slate-800 rounded-lg overflow-hidden shadow-lg">
+        <div className="px-4 py-2 bg-[#070A12] border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 bg-emerald-400" />
+            <span className="font-bold uppercase tracking-widest text-slate-200">
+              DIFFERENTIAL XRD METROLOGY &amp; RIR PHASE DECONVOLUTION WORKSTATION
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-slate-400 tabular-nums">
+            <span>DOMAIN: <strong className="text-slate-200">{zoomRange.left}°–{zoomRange.right}° 2θ</strong></span>
+            <span>·</span>
+            <span>STEP: <strong className="text-slate-200">0.10° (801 PTS)</strong></span>
+            <span>·</span>
+            <span>KERNEL: <strong className="text-sky-400 uppercase">{engineSettings.peakShape}</strong></span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-800 font-mono tabular-nums">
+          <div className="p-3 bg-[#0B0F19]">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Cosine Similarity (S_cos)</span>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base font-extrabold text-sky-400">{metrics.cosineSimilarity}%</span>
+              <span className="text-[10px] text-slate-500">r = {metrics.pearsonR}%</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-[#0B0F19]">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Weighted Residual (R_wp)</span>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className={`text-base font-extrabold ${parseFloat(metrics.rWP) < 15 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {metrics.rWP}%
+              </span>
+              <span className="text-[10px] text-slate-500">R_p = {metrics.rP}%</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-[#0B0F19]">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Goodness of Fit (χ²)</span>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base font-extrabold text-indigo-300">{metrics.chiSquared}</span>
+              <span className="text-[10px] text-slate-500">d_DW = {metrics.durbinWatson}</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-[#0B0F19]">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Mean Peak Shift (Δ2θ)</span>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className={`text-base font-extrabold ${Math.abs(indexing.meanShift) > 0.04 ? 'text-amber-400' : 'text-slate-200'}`}>
+                {indexing.meanShift > 0 ? `+${indexing.meanShift.toFixed(3)}°` : `${indexing.meanShift.toFixed(3)}°`}
+              </span>
+              <span className="text-[10px] text-slate-500">Δ2θ₀ = {indexing.strainRegression.zeroShiftDeg.toFixed(2)}°</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-[#0B0F19]">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Vegard Strain (ε = Δd/d)</span>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className={`text-base font-extrabold ${Math.abs(indexing.strainRegression.trueMacrostrainPercent) > 0.04 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                {indexing.strainRegression.trueMacrostrainPercent > 0
+                  ? `+${indexing.strainRegression.trueMacrostrainPercent.toFixed(3)}%`
+                  : `${indexing.strainRegression.trueMacrostrainPercent.toFixed(3)}%`}
+              </span>
+              <span className="text-[10px] text-slate-500">R² = {indexing.strainRegression.regressionR2.toFixed(2)}</span>
+            </div>
+          </div>
+
+          <div className="p-3 bg-[#0B0F19]">
+            <span className="text-[9px] uppercase tracking-wider text-slate-400 block">Primary RIR Weight %</span>
+            <div className="flex items-baseline justify-between mt-1">
+              <span className="text-base font-extrabold text-purple-400">{phaseFractions.wtPercentB.toFixed(1)} wt%</span>
+              <span className="text-[10px] text-slate-500">FOM {metrics.fom}/100</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 1. Top Ribbon: Scenarios & Quick Actions */}
       <PresetScenariosRibbon
         onSelectScenario={handleSelectScenario}
@@ -513,6 +591,24 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
           setIsSearchMatchOpen(true);
         }}
         onExportCSV={handleExportCSV}
+      />
+
+      {/* 1.5 Interactive 3-Mode CAD Differential Crystallography Schematic */}
+      <CompareCadSchematic
+        metrics={metrics}
+        meanShift={indexing.meanShift}
+        strainRegression={indexing.strainRegression}
+        phaseQuant={phaseFractions}
+        peaksA={profileSynthesis.peaksA}
+        peaksB={profileSynthesis.peaksB}
+        materialAName={materialA.name}
+        materialBName={materialB.name}
+        materialCName={materialC?.name}
+        materialDName={materialD?.name}
+        hasPhaseC={hasPhaseC}
+        hasPhaseD={hasPhaseD}
+        shiftTwoTheta={shiftTwoTheta}
+        activePalette={activePalette}
       />
 
       {/* 2. Sample Configuration Panel */}
@@ -564,6 +660,13 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
           setSearchMatchInitialMode('full');
           setIsSearchMatchOpen(true);
         }}
+        shiftTwoTheta={shiftTwoTheta}
+        setShiftTwoTheta={setShiftTwoTheta}
+        scaleSampleB={scaleSampleB}
+        setScaleSampleB={setScaleSampleB}
+        onAutoAlign={handleAutoAlign}
+        peaksCountA={profileSynthesis.peaksA.length}
+        peaksCountB={profileSynthesis.peaksB.length}
       />
 
       {/* 3. Main Recharts Diffraction Profile Viewer */}

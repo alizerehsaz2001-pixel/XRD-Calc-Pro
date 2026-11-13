@@ -6,7 +6,7 @@ import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
 import Markdown from 'react-markdown';
 import 'katex/dist/katex.min.css';
-import voigtBg from '../src/assets/images/voigt_ui_bg_1786057688362.jpg';
+import { IBCadSchematic } from './integral_breadth/IBCadSchematic';
 import {
   ComposedChart,
   Line,
@@ -743,24 +743,24 @@ plt.show()
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
-      {/* Unified Integral Breadth Mode Switcher Bar (Merged Single-Line Voigt + Multi-Reflection Regression Suite) */}
-      <div className="lg:col-span-12 bg-[#050A14] border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500">
+      {/* Executive Integral Breadth Metrology Telemetry Ribbon */}
+      <div className="lg:col-span-12 bg-[#0B0F19] border border-slate-800 rounded-lg p-4 shadow-xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-pink-500/15 border border-pink-500/30 text-pink-400">
+          <div className="p-2.5 rounded bg-[#070A12] border border-pink-500/40 text-pink-400">
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
-                Unified Integral Breadth (β = A/I_max) & Voigt Deconvolution Suite
+                Stokes–Wilson Integral Breadth (β = Area / I_max) &amp; Voigt Deconvolution Workstation
               </h3>
-              <span className="px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/30 text-[9px] font-mono font-bold text-pink-300 uppercase">
-                Merged Single + Multi-Line Engine
+              <span className="px-2 py-0.5 rounded bg-pink-500/15 border border-pink-500/30 text-[9px] font-mono font-bold text-pink-300 uppercase">
+                6-Model Multi-Reflection + Single-Line Voigt
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-              Compare 6 Multi-Reflection Regression Models (UDM, USDM, UDEDM, SSP, Halder-Wagner, mWH) alongside Single-Line de Keijser Voigt & Langford Shape Factor φ analysis.
+              Simultaneous UDM, USDM, UDEDM, SSP, Halder–Wagner &amp; Ungár mWH separation with Langford φ &amp; de Keijser Voigt deconvolution.
             </p>
           </div>
         </div>
@@ -795,10 +795,10 @@ plt.show()
                 key={mode.id}
                 type="button"
                 onClick={() => setActiveChartTab(mode.id as any)}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                className={`p-2.5 rounded border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   isSelected
-                    ? 'bg-pink-500/15 border-pink-500/50 text-white shadow-lg'
-                    : 'bg-slate-950/70 border-slate-800/90 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                    ? 'bg-pink-500/15 border-pink-500/50 text-white'
+                    : 'bg-[#070A12] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
@@ -806,7 +806,7 @@ plt.show()
                     {mode.title}
                   </span>
                   <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold shrink-0 ${
-                    isSelected ? 'bg-black/40 text-pink-300 border border-white/10' : 'bg-slate-900 text-slate-500'
+                    isSelected ? 'bg-[#070A12] text-pink-300 border border-pink-500/30' : 'bg-slate-900 text-slate-500'
                   }`}>
                     {mode.badge}
                   </span>
@@ -820,19 +820,35 @@ plt.show()
         </div>
       </div>
 
-      {/* Configuration Column — Upgraded IB Adv Config Scientific Instrumentation Console */}
-      <div className="lg:col-span-4 space-y-5">
-        <div className="bg-[#050A14] p-5 sm:p-6 rounded-3xl border border-slate-800 relative overflow-hidden">
-          {/* Measured Scrim & Background */}
-          <div className="absolute inset-0 z-0 pointer-events-none opacity-15 mix-blend-screen">
-            <img src={voigtBg} alt="Voigt Configuration" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/85 to-[#050A14]/40" />
-          </div>
+      {/* Interactive 3-Mode CAD Integral Breadth & Voigt Deconvolution Schematic */}
+      <div className="lg:col-span-12">
+        <IBCadSchematic
+          result={result}
+          selectedMaterial={selectedMaterial}
+          wavelength={wavelength}
+          constantK={constantK}
+          instBetaIB={instBetaIB}
+          instrumentalMode={instrumentalMode}
+          cagliotiU={cagliotiU}
+          cagliotiV={cagliotiV}
+          cagliotiW={cagliotiW}
+          decouplingMethod={decouplingMethod}
+          separationMethod={separationMethod}
+          voigtShapePhi={voigtShapePhi}
+          onSelectDecouplingMethod={(m) => setDecouplingMethod(m)}
+          onSelectSeparationMethod={(m) => setSeparationMethod(m)}
+          onChangeVoigtPhi={(phi) => setVoigtShapePhi(phi)}
+        />
+      </div>
 
+      {/* Configuration Column — IB Adv Config Scientific Instrumentation Console */}
+      <div className="lg:col-span-4 space-y-5">
+        <div className="bg-[#0B0F19] p-5 rounded-lg border border-slate-800 relative overflow-hidden">
+          <div className="h-0.5 w-full bg-pink-500/70 absolute top-0 left-0 right-0" />
           {/* Console Header */}
           <div className="flex justify-between items-start gap-3 mb-4 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-[#070D18] rounded-xl border border-pink-500/30 text-pink-400">
+              <div className="p-2 bg-[#070A12] rounded border border-pink-500/30 text-pink-400">
                 <Settings2 className="w-5 h-5" />
               </div>
               <div>
@@ -1042,10 +1058,10 @@ plt.show()
                       type="button"
                       onClick={handleSmartLoad}
                       disabled={isThinking || !searchQuery.trim()}
-                      className="px-3.5 py-2 bg-pink-500/15 hover:bg-pink-500/25 disabled:opacity-40 text-pink-300 font-mono text-xs font-bold rounded-xl border border-pink-500/30 transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+                      className="px-3.5 py-2 bg-pink-500/15 hover:bg-pink-500/25 disabled:opacity-40 text-pink-300 font-mono text-xs font-bold rounded-lg border border-pink-500/30 transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
                     >
-                      {isThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                      <span>Generate</span>
+                      {isThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Cpu className="w-3.5 h-3.5" />}
+                      <span>Synthesize</span>
                     </button>
                   </div>
                 </div>
@@ -2079,15 +2095,15 @@ plt.show()
           />
         )}
 
-        {/* 5-Card Multi-Metric Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        {/* 5-Card Multi-Metric Summary (CAD Metrology Readouts) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Crystallite Size */}
-          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-4 rounded-2xl border border-emerald-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+            <div className="h-0.5 w-full bg-emerald-500 absolute top-0 left-0 right-0" />
             <div>
               <div className="flex items-center justify-between gap-1.5 mb-2">
                 <div className="flex items-center gap-1.5">
-                  <div className="p-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                  <div className="p-1 rounded bg-[#070A12] border border-emerald-500/30 text-emerald-400">
                     <Box className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest font-sans">Volume Size (Dv)</span>
@@ -2115,7 +2131,7 @@ plt.show()
                 ) : null}
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between gap-1">
+            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between gap-1">
               <span title="Langford-Voigt Area-Weighted Column Length Da">
                 Da = {result?.areaWeightedSizeNm ? result.areaWeightedSizeNm.toFixed(1) : '-'} nm
               </span>
@@ -2126,14 +2142,14 @@ plt.show()
           </div>
 
           {/* Microstrain */}
-          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-4 rounded-2xl border border-cyan-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-cyan-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+            <div className="h-0.5 w-full bg-cyan-400 absolute top-0 left-0 right-0" />
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <div className="p-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                <div className="p-1 rounded bg-[#070A12] border border-cyan-500/30 text-cyan-400">
                   <Activity className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Microstrain (ε)</span>
+                <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest font-sans">Microstrain (ε)</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-black text-white font-mono">
@@ -2142,20 +2158,20 @@ plt.show()
                 <span className="text-[10px] font-bold text-cyan-400">×10⁻³</span>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono truncate">
+            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono truncate">
               {result ? `${result.strainPercent.toFixed(3)}${result.strainErrorPercent ? ` ±${result.strainErrorPercent.toFixed(3)}` : ''}% • RMS=${result.rmsStrainPercent?.toFixed(3) || '-'}%` : '-'}
             </div>
           </div>
 
           {/* Stress & Energy */}
-          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-4 rounded-2xl border border-pink-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-pink-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+            <div className="h-0.5 w-full bg-pink-500 absolute top-0 left-0 right-0" />
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <div className="p-1 rounded bg-pink-500/10 border border-pink-500/30 text-pink-400">
+                <div className="p-1 rounded bg-[#070A12] border border-pink-500/30 text-pink-400">
                   <Cpu className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-[9px] font-black text-pink-400 uppercase tracking-widest">Lattice Stress (σ)</span>
+                <span className="text-[9px] font-black text-pink-400 uppercase tracking-widest font-sans">Lattice Stress (σ)</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-black text-white font-mono">
@@ -2164,18 +2180,18 @@ plt.show()
                 <span className="text-[10px] font-bold text-pink-400">MPa</span>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono truncate">
+            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono truncate">
               {result?.stressErrorMPa ? `±${result.stressErrorMPa.toFixed(1)} MPa • ` : ''}u = {result?.energyDensityKjM3?.toFixed(2) || '-'} kJ/m³
             </div>
           </div>
 
           {/* Dislocation Density & Specific Surface Area */}
-          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-4 rounded-2xl border border-amber-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+            <div className="h-0.5 w-full bg-amber-400 absolute top-0 left-0 right-0" />
             <div>
               <div className="flex items-center justify-between gap-1.5 mb-2">
                 <div className="flex items-center gap-1.5">
-                  <div className="p-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400">
+                  <div className="p-1 rounded bg-[#070A12] border border-amber-500/30 text-amber-400">
                     <Atom className="w-3.5 h-3.5" />
                   </div>
                   <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest font-sans">Dislocation (ρ_WS)</span>
@@ -2193,21 +2209,21 @@ plt.show()
                 <span className="text-[9px] font-bold text-amber-400">×10¹⁴ m⁻²</span>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between gap-1">
+            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between gap-1">
               <span>1/D²={result?.williamsonDollarDislocation10_14?.toFixed(2) || '-'}</span>
               <span>SSA={result?.specificSurfaceAreaM2g !== undefined ? `${result.specificSurfaceAreaM2g.toFixed(1)} m²/g` : '-'}</span>
             </div>
           </div>
 
           {/* Fit Quality R² */}
-          <div className="bg-gradient-to-br from-[#050A14] via-[#081020] to-[#050A14] p-4 rounded-2xl border border-purple-500/20 shadow-xl relative overflow-hidden flex flex-col justify-between">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+            <div className="h-0.5 w-full bg-purple-400 absolute top-0 left-0 right-0" />
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <div className="p-1 rounded bg-purple-500/10 border border-purple-500/30 text-purple-400">
+                <div className="p-1 rounded bg-[#070A12] border border-purple-500/30 text-purple-400">
                   <Sliders className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Fit Quality (R²)</span>
+                <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest font-sans">Fit Quality (R²)</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-black text-white font-mono">
@@ -2215,7 +2231,7 @@ plt.show()
                 </span>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-white/5 text-[8px] text-slate-500 uppercase tracking-wider font-mono flex items-center justify-between">
+            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between">
               <span>Adj: {result?.regression.adjustedRSquared ? result.regression.adjustedRSquared.toFixed(3) : '-'}</span>
               <span>F={result?.regression.fStatistic ? result.regression.fStatistic.toFixed(1) : '-'}</span>
             </div>
@@ -2223,8 +2239,8 @@ plt.show()
         </div>
 
         {/* Visualizer Tabs Header */}
-        <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative flex flex-col overflow-hidden">
-          <div className="flex flex-wrap justify-between items-center gap-3 mb-6 pb-4 border-b border-white/5 relative z-10">
+        <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-5 shadow-xl relative flex flex-col overflow-hidden">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-5 pb-3.5 border-b border-slate-800 relative z-10">
             <div className="flex flex-wrap items-center gap-1.5">
               {[
                 { id: 'fit', label: `${separationMethod.toUpperCase()} Regression`, icon: TrendingUp },
@@ -2780,23 +2796,23 @@ plt.show()
             </div>
           )}
 
-          {/* Tab 6: AI Crystallographic Line-Profile Advisor */}
+          {/* Tab 6: Crystallographic Line-Profile Advisor */}
           {activeChartTab === 'advisor' && (
-            <div className="flex flex-col h-[400px] overflow-y-auto custom-scrollbar bg-[#070D18] p-5 rounded-2xl border border-white/5">
-              <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/5">
+            <div className="flex flex-col h-[400px] overflow-y-auto custom-scrollbar bg-[#070A12] p-5 rounded-lg border border-slate-800">
+              <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-pink-400" />
+                  <Cpu className="w-4 h-4 text-pink-400" />
                   <span className="text-xs font-black text-white uppercase tracking-wider">
-                    AI Crystallographic Line-Profile Advisor
+                    Crystallographic Line-Profile Diagnostic Advisor
                   </span>
                 </div>
                 <button
                   onClick={handleGenerateAdvisorReport}
                   disabled={isAdvisorLoading || !result}
-                  className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 disabled:opacity-50 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-all shadow-md"
+                  className="px-3 py-1.5 bg-pink-500/20 hover:bg-pink-500/30 border border-pink-500/40 disabled:opacity-50 text-pink-200 font-mono font-bold rounded text-xs flex items-center gap-1.5 transition-all cursor-pointer"
                 >
-                  {isAdvisorLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                  {advisorReport ? 'Regenerate Analysis' : 'Generate Comprehensive Report'}
+                  {isAdvisorLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+                  {advisorReport ? 'Regenerate Analysis' : 'Run Diagnostic Synthesis'}
                 </button>
               </div>
 
@@ -2810,7 +2826,7 @@ plt.show()
               )}
 
               {advisorError && !isAdvisorLoading && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
+                <div className="p-4 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono">
                   {advisorError}
                 </div>
               )}
@@ -2828,7 +2844,7 @@ plt.show()
                     Crystallographic Advisor Idle
                   </p>
                   <p className="text-[11px] max-w-md font-mono">
-                    Click "Generate Comprehensive Report" to receive deep domain insights on microstrain anisotropy, dislocation density, and Voigt profile deconvolution for {selectedMaterial}.
+                    Click &quot;Run Diagnostic Synthesis&quot; to evaluate microstrain anisotropy, dislocation density, and Voigt profile deconvolution for {selectedMaterial}.
                   </p>
                 </div>
               )}
@@ -2853,14 +2869,14 @@ plt.show()
 
         {/* Peak Deconstruction Table */}
         {result && result.pointsExtended && result.pointsExtended.length > 0 && (
-          <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-            <div className="flex justify-between items-center mb-6 relative z-10 px-2">
+          <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-5 shadow-xl relative overflow-hidden">
+            <div className="flex justify-between items-center mb-4 relative z-10">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
+                <div className="p-2 bg-[#070A12] rounded border border-emerald-500/30">
                   <Database className="w-4 h-4 text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Peak Deconstruction & Calculated Sizes</h3>
+                  <h3 className="text-xs font-black text-white uppercase tracking-[0.16em]">Peak Deconstruction &amp; Calculated Sizes</h3>
                   <p className="text-[9px] text-slate-400 mt-0.5 uppercase tracking-wider font-mono">
                     {decouplingMethod.toUpperCase()} deconvolution &bull; {separationMethod.toUpperCase()} coordinate transformation
                   </p>
@@ -2874,7 +2890,7 @@ plt.show()
               )}
             </div>
 
-            <div className="relative z-10 overflow-x-auto rounded-xl border border-white/5 bg-[#070D18]/60 shadow-inner">
+            <div className="relative z-10 overflow-x-auto rounded border border-slate-800 bg-[#070A12]">
               <table className="w-full text-left border-collapse font-mono text-[11px]">
                 <thead>
                   <tr className="border-b border-white/5 bg-white/5 text-[9px] text-slate-400 font-sans uppercase tracking-widest font-black">

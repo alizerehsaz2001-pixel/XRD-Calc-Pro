@@ -24,22 +24,22 @@ import { NanoCrystalliteSimulatorView } from './scherrer/NanoCrystalliteSimulato
 import { ScherrerPeakTableEditor } from './scherrer/ScherrerPeakTableEditor';
 import { ScherrerAdvisorView } from './scherrer/ScherrerAdvisorView';
 import { MeanCrystalliteSizingCard, SizingAverageMethod } from './scherrer/MeanCrystalliteSizingCard';
+import { ScherrerCadSchematic } from './scherrer/ScherrerCadSchematic';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
-import scherrerBg from '../src/assets/images/scherrer_bg_1785502401694.jpg';
 import { logCalculation, logExport } from '../services/activityLogger';
 
 const K_FACTORS = [
-  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
-  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles (FWHM-based)', icon: '⚪' },
-  { label: 'Cubic {100}', value: 0.943, desc: 'Exact factor for cubic crystallites with {100} facets', icon: '⬜' },
-  { label: 'Cubic {111}', value: 0.84, desc: 'Calculated for cubic shapes with {111} orientation', icon: '🧊' },
-  { label: 'Octahedral', value: 0.94, desc: 'Common for spinel/diamond structured materials', icon: '◇' },
-  { label: 'Tetrahedral', value: 0.73, desc: 'Calculated for triangular/tetrahedral geometries', icon: '▲' },
-  { label: 'Platelets/Disks', value: 0.89, desc: 'Low aspect ratio plate-like grains', icon: '▤' },
-  { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
-  { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM', icon: '∫' },
-  { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
+  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: 'STD' },
+  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles (FWHM-based)', icon: 'SPH' },
+  { label: 'Cubic {100}', value: 0.943, desc: 'Exact factor for cubic crystallites with {100} facets', icon: 'C100' },
+  { label: 'Cubic {111}', value: 0.84, desc: 'Calculated for cubic shapes with {111} orientation', icon: 'C111' },
+  { label: 'Octahedral', value: 0.94, desc: 'Common for spinel/diamond structured materials', icon: 'OCT' },
+  { label: 'Tetrahedral', value: 0.73, desc: 'Calculated for triangular/tetrahedral geometries', icon: 'TET' },
+  { label: 'Platelets/Disks', value: 0.89, desc: 'Low aspect ratio plate-like grains', icon: 'PLT' },
+  { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: 'ROD' },
+  { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM', icon: 'IB' },
+  { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: 'USR' }
 ];
 
 const CAGLIOTI_PRESETS = [
@@ -716,124 +716,261 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
   }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel, materialDensity, pseudoVoigtEta, breadthType, burgersVectorNm, averageType, kAlpha2Correction, zeroShiftDeg, morphologyKMode]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
-      {/* Top-Level Analytical Fitting & Simulation Mode Switcher Bar (Merged Scherrer + Monshi-Scherrer + Nano-Crystallite Simulator) */}
-      <div className="lg:col-span-12 bg-[#050A14] border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
-            <Layers className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
-                Unified Crystallite Sizing & Nanocrystalline Broadening Engine
-              </h3>
-              <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-mono font-bold text-emerald-300 uppercase">
-                Merged Multi-Solver Suite
-              </span>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 items-start">
+      {/* Top Executive Metrology Header + Mode Switcher */}
+      <div className="lg:col-span-12 bg-[#0B0F19] border border-slate-800 rounded-md shadow-2xl overflow-hidden">
+        <div className="h-0.5 w-full bg-gradient-to-r from-amber-500 via-cyan-500 to-emerald-500" />
+        <div className="p-4 sm:p-5 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 border-b border-slate-800/80">
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400">
+              <Layers className="w-5 h-5" />
             </div>
-            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-              Switch seamlessly between Classical Scherrer, Monshi-Scherrer Logarithmic Regression (OLS/WLS/Huber), and Forward Nanocrystalline Simulation on the same dataset.
-            </p>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold text-white uppercase tracking-wider font-mono">
+                  SCHERRER STUDIO // COHERENT CRYSTALLITE METROLOGY WORKSTATION
+                </h2>
+                <span className="px-2 py-0.5 rounded-xs bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-300 uppercase">
+                  5-KERNEL DECONVOLUTION
+                </span>
+                <span className="px-2 py-0.5 rounded-xs bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-mono font-bold text-cyan-300 uppercase">
+                  LANGFORD–WILSON K(hkl)
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-mono mt-0.5">
+                Classical & Anisotropic Scherrer Sizing, Monshi-Scherrer Log-Linear Regression (OLS/WLS/Huber), and Forward Nanocrystalline Broadening Synthesis.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsDerivationModalOpen(true)}
+              className="px-3 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <span>LaTeX Proof</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="px-3 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Download className="w-3.5 h-3.5 text-amber-400" />
+              <span>CSV Report</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleTransferToWilliamsonHall}
+              className="px-3 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Share2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{transferredToWH ? 'Sent to W-H!' : 'Send to W-H'}</span>
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full xl:w-auto">
-          {[
-            {
-              id: 'diffractogram',
-              title: 'Classical & Anisotropic Scherrer',
-              sub: 'D_hkl = K(hkl)·λ / (β·cosθ)',
-              badge: `${avgSize > 0 ? avgSize.toFixed(1) + ' nm' : 'Active'}`,
-              activeModes: ['diffractogram', 'histogram', 'trend', 'microstructure', 'anisotropy', 'simulator', 'advisor'],
-              accent: 'amber'
-            },
-            {
-              id: 'monshi',
-              title: 'Monshi-Scherrer Log Fit',
-              sub: 'ln(β) = ln(1/cosθ) + ln(Kλ/D)',
-              badge: 'OLS / WLS / Huber',
-              activeModes: ['monshi'],
-              accent: 'emerald'
-            },
-            {
-              id: 'nano_sim',
-              title: 'Nano-Crystallite Simulator',
-              sub: 'Forward Size + Strain + Habit',
-              badge: '5-Model Benchmark',
-              activeModes: ['nano_sim'],
-              accent: 'cyan'
-            },
-            {
-              id: 'models',
-              title: 'Deconvolution Matrix',
-              sub: 'Gauss · Cauchy · Voigt · de Keijser',
-              badge: '5 Profiles',
-              activeModes: ['models'],
-              accent: 'indigo'
-            }
-          ].map(mode => {
-            const isSelected = mode.activeModes.includes(chartViewMode);
-            return (
-              <button
-                key={mode.id}
-                type="button"
-                onClick={() => setChartViewMode(mode.id as any)}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  isSelected
-                    ? mode.accent === 'emerald'
-                      ? 'bg-emerald-500/15 border-emerald-500/50 text-white shadow-lg'
-                      : mode.accent === 'cyan'
-                      ? 'bg-cyan-500/15 border-cyan-500/50 text-white shadow-lg'
-                      : mode.accent === 'indigo'
-                      ? 'bg-indigo-500/15 border-indigo-500/50 text-white shadow-lg'
-                      : 'bg-amber-500/15 border-amber-500/50 text-white shadow-lg'
-                    : 'bg-slate-950/70 border-slate-800/90 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider truncate">
-                    {mode.title}
-                  </span>
-                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold shrink-0 ${
-                    isSelected ? 'bg-black/40 text-amber-300 border border-white/10' : 'bg-slate-900 text-slate-500'
-                  }`}>
-                    {mode.badge}
-                  </span>
-                </div>
-                <span className="text-[9px] font-mono text-slate-400 truncate">
-                  {mode.sub}
-                </span>
-              </button>
-            );
-          })}
+        {/* 4-Solver Mode Bar + 5-Card Executive KPI Strip */}
+        <div className="p-4 bg-[#070A12] space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              {
+                id: 'diffractogram',
+                title: '01. Classical & Anisotropic Scherrer',
+                sub: 'D_hkl = K(hkl)·λ / (β·cosθ)',
+                badge: `${avgSize && avgSize > 0 ? avgSize.toFixed(1) + ' nm' : 'Active'}`,
+                activeModes: ['diffractogram', 'histogram', 'trend', 'microstructure', 'anisotropy', 'simulator', 'advisor'],
+                accent: 'amber'
+              },
+              {
+                id: 'monshi',
+                title: '02. Monshi-Scherrer Log Fit',
+                sub: 'ln(β) = ln(1/cosθ) + ln(Kλ/D)',
+                badge: 'OLS / WLS / Huber',
+                activeModes: ['monshi'],
+                accent: 'emerald'
+              },
+              {
+                id: 'nano_sim',
+                title: '03. Nano-Crystallite Simulator',
+                sub: 'Forward Size + Strain + Habit',
+                badge: '5-Model Benchmark',
+                activeModes: ['nano_sim'],
+                accent: 'cyan'
+              },
+              {
+                id: 'models',
+                title: '04. Deconvolution Matrix',
+                sub: 'Gauss · Cauchy · Voigt · de Keijser',
+                badge: '5 Profiles',
+                activeModes: ['models'],
+                accent: 'indigo'
+              }
+            ].map(mode => {
+              const isSelected = mode.activeModes.includes(chartViewMode);
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setChartViewMode(mode.id as any)}
+                  className={`p-3 rounded border text-left transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden ${
+                    isSelected
+                      ? mode.accent === 'emerald'
+                        ? 'bg-emerald-500/10 border-emerald-500/50 text-white'
+                        : mode.accent === 'cyan'
+                        ? 'bg-cyan-500/10 border-cyan-500/50 text-white'
+                        : mode.accent === 'indigo'
+                        ? 'bg-indigo-500/10 border-indigo-500/50 text-white'
+                        : 'bg-amber-500/10 border-amber-500/50 text-white'
+                      : 'bg-[#0B0F19] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  {isSelected && (
+                    <div
+                      className={`absolute top-0 left-0 right-0 h-0.5 ${
+                        mode.accent === 'emerald'
+                          ? 'bg-emerald-400'
+                          : mode.accent === 'cyan'
+                          ? 'bg-cyan-400'
+                          : mode.accent === 'indigo'
+                          ? 'bg-indigo-400'
+                          : 'bg-amber-400'
+                      }`}
+                    />
+                  )}
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[11px] font-mono font-bold uppercase tracking-wider truncate">
+                      {mode.title}
+                    </span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-xs text-[9px] font-mono font-bold shrink-0 ${
+                        isSelected ? 'bg-slate-950 text-amber-300 border border-slate-700' : 'bg-slate-900 text-slate-500'
+                      }`}
+                    >
+                      {mode.badge}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 truncate">{mode.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 5-Card Executive Scherrer Metrology KPI Strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 font-mono tabular-nums">
+            <div className="bg-[#0B0F19] border border-slate-800 p-3 rounded relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-500" />
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
+                <span>Mean Size ⟨D⟩ ({averageType})</span>
+                <span className="text-amber-400 font-bold">{validResults.length}/{results.length} pks</span>
+              </div>
+              <div className="text-xl font-bold text-white mt-1">
+                {avgSize ? avgSize.toFixed(precision) : '—'} <span className="text-xs text-amber-400">nm</span>
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">
+                ±{stats.stdDev.toFixed(2)} nm (CV: {stats.relDispersion.toFixed(1)}%)
+              </div>
+            </div>
+
+            <div className="bg-[#0B0F19] border border-slate-800 p-3 rounded relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-cyan-500" />
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
+                <span>Volume / Area Moments</span>
+                <span className="text-cyan-400 font-bold">D_V / D_A</span>
+              </div>
+              <div className="text-xl font-bold text-white mt-1">
+                {volumeWeighted.toFixed(1)} <span className="text-slate-500 text-sm">/</span>{' '}
+                <span className="text-cyan-300">{areaWeighted.toFixed(1)}</span>{' '}
+                <span className="text-xs text-slate-400">nm</span>
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">
+                D_g = {geometricMean.toFixed(1)} nm · Aniso {stats.anisotropyIndex.toFixed(2)}:1
+              </div>
+            </div>
+
+            <div className="bg-[#0B0F19] border border-slate-800 p-3 rounded relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-indigo-500" />
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
+                <span>Coherent Bragg Stack</span>
+                <span className="text-indigo-400 font-bold">N = D / d_hkl</span>
+              </div>
+              <div className="text-xl font-bold text-white mt-1">
+                ~{stats.avgCoherentPlanes} <span className="text-xs text-indigo-300">planes</span>
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">
+                Span: {stats.min.toFixed(1)}–{stats.max.toFixed(1)} nm
+              </div>
+            </div>
+
+            <div className="bg-[#0B0F19] border border-slate-800 p-3 rounded relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-purple-500" />
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
+                <span>Dislocation Density δ</span>
+                <span className="text-purple-400 font-bold">1 / D²</span>
+              </div>
+              <div className="text-xl font-bold text-white mt-1">
+                {stats.avgDislocation10_14.toFixed(2)} <span className="text-xs text-purple-300">×10¹⁴ m⁻²</span>
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">
+                b = {burgersVectorNm.toFixed(3)} nm ({selectedMaterial.split(' ')[0]})
+              </div>
+            </div>
+
+            <div className="bg-[#0B0F19] border border-slate-800 p-3 rounded relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-emerald-500" />
+              <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
+                <span>Specific Surface (SSA)</span>
+                <span className="text-emerald-400 font-bold">ρ={materialDensity} g/cm³</span>
+              </div>
+              <div className="text-xl font-bold text-white mt-1">
+                {stats.avgSSA.toFixed(1)} <span className="text-xs text-emerald-300">m²/g</span>
+              </div>
+              <div className="text-[10px] text-slate-500 mt-1">
+                W-H Strain Triage: {Math.abs(whStrainTriage.slope) > 0.0008 ? 'Strain Detected' : 'Negligible Strain'}
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Full-Width 3-Mode Interactive CAD Scherrer Crystallite Metrology Schematic */}
+      <div className="lg:col-span-12">
+        <ScherrerCadSchematic
+          results={results}
+          validResults={validResults}
+          selectedPeakIdx={selectedMathPeakIdx}
+          onSelectPeakIdx={setSelectedMathPeakIdx}
+          wavelength={wavelength}
+          constantK={constantK}
+          morphologyKMode={morphologyKMode}
+          onSelectMorphologyKMode={setMorphologyKMode}
+          broadeningModel={broadeningModel}
+          onSelectBroadeningModel={setBroadeningModel}
+          breadthType={breadthType}
+          instFwhm={instFwhm}
+          useCaglioti={useCaglioti}
+          caglioti={caglioti}
+          kAlpha2Correction={kAlpha2Correction}
+          avgSize={avgSize}
+          precision={precision}
+        />
       </div>
 
       {/* Left Column: Configuration Controls */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#050A14] p-6 sm:p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
-          {/* Custom Background Graphic */}
-          <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
-            <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/85 to-[#050A14]/30" />
-          </div>
-
-          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all duration-700"></div>
-          
-          <div className="flex items-center gap-4 mb-8 relative z-10">
-            <div className="relative group/title-icon cursor-default">
-              <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full group-hover/title-icon:bg-amber-400/30 transition-all duration-700 pointer-events-none" />
-              <div className="w-14 h-14 bg-[#0a0500] rounded-2xl border border-amber-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/title-icon:border-amber-400 transition-colors duration-500 overflow-hidden">
-                <Settings className="w-6 h-6 text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] group-hover/title-icon:rotate-90 transition-transform duration-700" />
-              </div>
+        <div className="bg-[#0B0F19] p-5 sm:p-6 rounded-md shadow-2xl border border-slate-800 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-500" />
+          <div className="flex items-center gap-3.5 mb-6 relative z-10 pb-4 border-b border-slate-800">
+            <div className="w-10 h-10 bg-amber-500/10 rounded border border-amber-500/30 flex items-center justify-center shrink-0">
+              <Settings className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-1">
-                Scherrer Studio
+              <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                Instrument & Broadening Parameters
               </h2>
-              <p className="flex items-center gap-2 text-[10px] font-mono text-amber-500/80 uppercase tracking-[0.25em]">
-                <span>● Physics Sizing Engine</span>
+              <p className="text-[10px] font-mono text-amber-400/90 uppercase tracking-widest mt-0.5">
+                X-Ray Optics · Shape Factor K · Reflection Input
               </p>
             </div>
           </div>
@@ -907,8 +1044,8 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
                   className="w-full px-4 py-3 bg-slate-950/80 hover:bg-slate-900 border border-slate-700/60 hover:border-amber-500/40 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity">
-                      {K_FACTORS.find(k => k.label === selectedKType)?.icon || '✎'}
+                    <span className="text-[11px] font-mono font-bold px-2 py-1 rounded bg-slate-900 border border-slate-800 text-amber-400">
+                      {K_FACTORS.find(k => k.label === selectedKType)?.icon || 'USR'}
                     </span>
                     <div className="flex flex-col items-start gap-1">
                       <span className="text-sm font-bold text-white leading-none">
@@ -941,7 +1078,7 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
                           `}
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <span className="text-xl bg-slate-950 w-10 h-10 flex items-center justify-center rounded-xl border border-slate-800 group-hover/item:border-amber-500/30 shrink-0">
+                            <span className="text-xs font-mono font-bold text-amber-400 bg-slate-950 w-10 h-10 flex items-center justify-center rounded border border-slate-800 group-hover/item:border-amber-500/30 shrink-0">
                               {k.icon}
                             </span>
                             <div className="flex flex-col min-w-0">
@@ -1376,9 +1513,9 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
                       if ((p as any).burgersVectorNm) setBurgersVectorNm((p as any).burgersVectorNm);
                       if ((p as any).broadeningModel) setBroadeningModel((p as any).broadeningModel);
                     }}
-                    className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-950/40 border border-slate-800 hover:border-amber-500/30 hover:bg-slate-900 transition-all text-left group/btn cursor-pointer"
+                    className="flex items-center gap-3 p-2.5 rounded bg-slate-950/60 border border-slate-800 hover:border-amber-500/40 hover:bg-slate-900 transition-all text-left group/btn cursor-pointer"
                   >
-                    <span className="text-xl bg-slate-950 w-10 h-10 flex items-center justify-center rounded-xl border border-slate-800 group-hover/btn:border-amber-500/20 shrink-0">
+                    <span className="text-xs font-mono font-bold text-amber-400 bg-slate-950 w-10 h-10 flex items-center justify-center rounded border border-slate-800 group-hover/btn:border-amber-500/30 shrink-0">
                       {p.icon}
                     </span>
                     <div className="flex flex-col min-w-0">
@@ -1419,7 +1556,7 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
                     value={inputData}
                     onChange={(e) => setInputData(e.target.value)}
                     placeholder="28.44, 0.25, 100, 1, 1, 1&#10;47.30, 0.28, 45, 2, 2, 0"
-                    className="w-full h-36 px-5 py-4 bg-slate-950/80 text-amber-400 border border-slate-700/60 focus:border-amber-500/50 rounded-2xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm leading-relaxed resize-none transition-all shadow-inner custom-scrollbar"
+                    className="w-full h-36 px-4 py-3 bg-slate-950/90 text-amber-400 border border-slate-800 focus:border-amber-500/50 rounded outline-none font-mono text-sm leading-relaxed resize-none transition-all custom-scrollbar"
                     spellCheck={false}
                   />
                 </div>
@@ -1428,24 +1565,16 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
 
             {/* Execute Analysis Action */}
             {!isSimulationRunning ? (
-              <motion.button
+              <button
+                type="button"
                 onClick={handleCalculate}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-[0_10px_25px_rgba(245,158,11,0.25)] hover:shadow-[0_15px_35px_rgba(245,158,11,0.4)] transition-all flex items-center justify-center gap-3 group relative overflow-hidden cursor-pointer"
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono font-bold rounded border border-amber-400 transition-colors flex items-center justify-center gap-2.5 cursor-pointer"
               >
-                <motion.div 
-                  className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/25 to-amber-400/0"
-                  initial={{ x: '-100%' }}
-                  animate={{ x: '200%' }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                />
-                <FlaskConical className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300 relative z-10" />
-                <span className="uppercase tracking-[0.2em] text-sm relative z-10 text-shadow-sm">Calculate Sizing & Microstructure</span>
-              </motion.button>
+                <FlaskConical className="w-4 h-4" />
+                <span className="uppercase tracking-wider text-xs">Recompute Scherrer & Microstructure</span>
+              </button>
             ) : (
-              <div className="bg-[#070D18] p-5 rounded-2xl border border-amber-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-2xl rounded-full" />
+              <div className="bg-[#070D18] p-5 rounded border border-amber-500/30 overflow-hidden relative">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <div className="w-4 h-4 rounded-full border-2 border-amber-500/30 border-t-amber-400 animate-spin" /> Scherrer Analysis Running
                 </h4>
@@ -1679,16 +1808,17 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
 
         {/* Multi-Tab Visualization Panels (Histogram, Trend vs 2θ, Microstructure, Anisotropy) */}
         {results.length > 0 && validResults.length > 0 && (
-          <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-6 lg:p-8 shadow-2xl relative overflow-hidden space-y-6">
+          <div className="bg-[#0B0F19] border border-slate-800 rounded-md p-6 lg:p-7 shadow-2xl relative overflow-hidden space-y-6">
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 via-cyan-500 to-amber-500" />
             {/* View Selector Header */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 border-b border-slate-800/80 pb-5">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-5 border-b border-slate-800 pb-5">
+              <div className="flex items-center gap-3.5">
+                <div className="p-2.5 bg-indigo-500/10 rounded border border-indigo-500/30">
                   <BarChart2 className="h-5 w-5 text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Crystallite Visualizer & Diagnostics</h3>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Multi-Peak Distribution & Facet Profiles</p>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Crystallite Visualizer & Multi-Solver Diagnostics</h3>
+                  <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mt-0.5">Full XRD Pattern · Monshi-Scherrer · Forward Simulator · Anisotropic Facet Polar</p>
                 </div>
               </div>
 

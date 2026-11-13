@@ -478,6 +478,7 @@ const renderModuleSpecializedSchematic = (moduleKey: string): { caption: string;
       };
 
     case 'pawley_lebail':
+    case 'rietveld':
     case 'rir':
     case 'compare':
       return {
@@ -1291,6 +1292,57 @@ const MODULE_CONTENT: Record<
           <M>W</M>
           <sub>amorphous</sub> = 1 − <F>Σ</F> <M>W</M>
           <sub>cryst,j</sub>
+        </FormulaContainer>
+      </div>
+    )
+  },
+  rietveld: {
+    title: 'Rietveld Whole-Pattern Structure Refinement',
+    tag: 'Full-Profile Crystallography',
+    icon: Activity,
+    color: 'from-sky-500 to-indigo-500',
+    description:
+      'Nonlinear least-squares whole-powder-pattern refinement modeling Chebyshev background polynomials, goniometer zero-shift and displacement, unit-cell metric tensors, Thompson-Cox-Hastings Caglioti profiles, Cromer-Mann atomic Wyckoff coordinates, and Hill-Howard quantitative phase fractions.',
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormulaContainer label="Rietveld Forward Profile Model">
+          <M>y</M>
+          <sub>calc,i</sub> = <M>y</M>
+          <sub>bg,i</sub> + <F>Σ</F>
+          <sub>p</sub> <M>S</M>
+          <sub>p</sub> <F>Σ</F>
+          <sub>K</sub> <M>m</M>
+          <sub>K</sub> <M>Lp</M>
+          <sub>K</sub> |<M>F</M>
+          <sub>K</sub>|<sup>2</sup> <M>P</M>
+          <sub>K</sub> <M>Ω</M>(2<M>θ</M>
+          <sub>i</sub> − 2<M>θ</M>
+          <sub>K</sub>)
+        </FormulaContainer>
+        <FormulaContainer label="Hill-Howard Quantitative Phase Weight">
+          <M>W</M>
+          <sub>p</sub> ={' '}
+          <Fraction
+            num={
+              <span>
+                <M>S</M>
+                <sub>p</sub> <M>Z</M>
+                <sub>p</sub> <M>M</M>
+                <sub>p</sub> <M>V</M>
+                <sub>p</sub>
+              </span>
+            }
+            den={
+              <span>
+                <F>Σ</F>
+                <sub>k</sub> <M>S</M>
+                <sub>k</sub> <M>Z</M>
+                <sub>k</sub> <M>M</M>
+                <sub>k</sub> <M>V</M>
+                <sub>k</sub>
+              </span>
+            }
+          />
         </FormulaContainer>
       </div>
     )
